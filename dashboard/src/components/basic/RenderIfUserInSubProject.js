@@ -7,8 +7,8 @@ import { User } from '../../config';
 // returns JSX.Element or NULL
 export function RenderIfUserInSubProject(props) {
     const {children, currentProject, subProjectId, subProjects} = props;
-    var userId = User.getUserId();
-    var renderItems = null;
+    const userId = User.getUserId();
+    let renderItems = null;
     if (
         currentProject && 
         currentProject.users.filter(user => user.userId === userId && user.role !== 'Viewer').length > 0)

@@ -1,77 +1,71 @@
 module.exports = {
     create: async function (data) {
-        data.authToken = await EncryptDecrypt.encrypt(data.authToken);
-        var smsSmtpModel = new SmsSmtpModel();
-        smsSmtpModel.projectId = data.projectId;
-        smsSmtpModel.accountSid = data.accountSid;
-        smsSmtpModel.authToken = data.authToken;
-        smsSmtpModel.phoneNumber = data.phoneNumber;
-        smsSmtpModel.enabled = true;
         try {
-            var smsSmtp = await smsSmtpModel.save();
+            data.authToken = await EncryptDecrypt.encrypt(data.authToken);
+            const smsSmtpModel = new SmsSmtpModel();
+            smsSmtpModel.projectId = data.projectId;
+            smsSmtpModel.accountSid = data.accountSid;
+            smsSmtpModel.authToken = data.authToken;
+            smsSmtpModel.phoneNumber = data.phoneNumber;
+            smsSmtpModel.enabled = true;
+            const smsSmtp = await smsSmtpModel.save();
             if (smsSmtp && smsSmtp.authToken) {
                 smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
             }
+            return smsSmtp;
         } catch (error) {
-            ErrorService.log('smsSmtpModel.save', error);
+            ErrorService.log('smsSmtpService.create', error);
             throw error;
         }
-        return smsSmtp;
     },
 
-    update: async function (data) {
-        let _this = this;
-        if (!data._id) {
-            try {
-                let smsSmtp = await _this.create(data);
-                return smsSmtp;
-            } catch (error) {
-                ErrorService.log('SmsSmtpService.create', error);
-                throw error;
+    updateOneBy: async function (query, data) {
+        if (!query) {
+            query = {};
+        }
+
+        if (!query.deleted) query.deleted = false;
+
+        if (data.authToken) {
+            data.authToken = await EncryptDecrypt.encrypt(data.authToken);
+        }
+        try {
+            const updatedSmsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            }).lean();
+            if (updatedSmsSmtp && updatedSmsSmtp.authToken) {
+                updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(updatedSmsSmtp.authToken);
             }
-        } else {
-            try {
-                var smsSmtp = await _this.findOneBy({ _id: data._id });
-                if (smsSmtp && smsSmtp.authToken) {
-                    smsSmtp.authToken = await EncryptDecrypt.encrypt(smsSmtp.authToken);
-                }
-            } catch (error) {
-                ErrorService.log('SmsSmtpService.findOneBy', error);
-                throw error;
-            }
-            if (data.authToken) {
-                data.authToken = await EncryptDecrypt.encrypt(data.authToken);
-            }
-            let accountSid = data.accountSid || smsSmtp.accountSid;
-            let authToken = data.authToken || smsSmtp.authToken;
-            let phoneNumber = data.phoneNumber || smsSmtp.phoneNumber;
-            let enabled = data.smssmtpswitch !== undefined ? data.smssmtpswitch : smsSmtp.enabled;
-            try {
-                var updatedSmsSmtp = await SmsSmtpModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        accountSid: accountSid,
-                        authToken: authToken,
-                        phoneNumber: phoneNumber,
-                        enabled: enabled
-                    }
-                }, {
-                    new: true
-                }).lean();
-                if (updatedSmsSmtp && updatedSmsSmtp.authToken) {
-                    updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(updatedSmsSmtp.authToken);
-                }
-            } catch (error) {
-                ErrorService.log('SmsSmtpModel.findByIdAndUpdate', error);
-                throw error;
+            return updatedSmsSmtp;
+        } catch (error) {
+            ErrorService.log('smsSmtpService.updateOneBy', error);
+            throw error;
+        }
+    },
+
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
             }
 
-            return updatedSmsSmtp;
+            if (!query.deleted) query.deleted = false;
+            let updatedData = await SmsSmtpModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('smsSmtpService.updateMany', error);
+            throw error;
         }
     },
 
     deleteBy: async function (query, userId) {
         try {
-            var smsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
+            const smsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -80,34 +74,33 @@ module.exports = {
             }, {
                 new: true
             });
+            return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.findOneAndUpdate', error);
+            ErrorService.log('smsSmtpService.deleteBy', error);
             throw error;
         }
-        return smsSmtp;
     },
 
     findBy: async function (query, skip, limit) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof (skip) === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof (limit) === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
         try {
-            var smsSmtp = await SmsSmtpModel.find(query)
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 10;
+
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const smsSmtp = await SmsSmtpModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -117,66 +110,64 @@ module.exports = {
                 smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
             }
 
+            return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.find', error);
+            ErrorService.log('smsSmtpService.findBy', error);
             throw error;
         }
-
-        return smsSmtp;
     },
 
     findOneBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
-            var smsSmtp = await SmsSmtpModel.findOne(query)
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            let smsSmtp = await SmsSmtpModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .lean();
             if (smsSmtp && smsSmtp.authToken) {
                 smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
             }
+            if (!smsSmtp) {
+                smsSmtp = {};
+            }
+
+            return smsSmtp;
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.findOne', error);
+            ErrorService.log('smsSmtpService.findOneBy', error);
             throw error;
         }
-        if (!smsSmtp) {
-            smsSmtp = {};
-        }
-
-        return smsSmtp;
     },
 
     countBy: async function (query) {
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
-            var count = await SmsSmtpModel.count(query);
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const count = await SmsSmtpModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.count', error);
+            ErrorService.log('smsSmtpService.countBy', error);
             throw error;
         }
-        return count;
     },
 
     hardDeleteBy: async function (query) {
         try {
             await SmsSmtpModel.deleteMany(query);
+            return 'Sms Smtp(s) removed successfully';
         } catch (error) {
-            ErrorService.log('SmsSmtpModel.deleteMany', error);
+            ErrorService.log('smsSmtpService.hardDeleteBy', error);
             throw error;
         }
-        return 'Sms Smtp(s) removed successfully';
     },
 };
 
-var SmsSmtpModel = require('../models/twilio');
-var ErrorService = require('./errorService');
-var EncryptDecrypt = require('../config/encryptDecrypt');
+const SmsSmtpModel = require('../models/twilio');
+const ErrorService = require('./errorService');
+const EncryptDecrypt = require('../config/encryptDecrypt');

@@ -2,90 +2,247 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import MonitorBarChart from './MonitorBarChart';
+import MonitorChart from './MonitorChart';
+import uuid from 'uuid';
+import DateRangeWrapper from './DateRangeWrapper';
 import MonitorTitle from './MonitorTitle';
+import ProbeBar from './ProbeBar';
 import moment from 'moment';
-import { editMonitorSwitch } from '../../actions/monitor';
+import {
+    editMonitorSwitch,
+    fetchMonitorLogs,
+    fetchMonitorStatuses,
+    deleteMonitor
+} from '../../actions/monitor';
+import DeleteMonitor from '../modals/DeleteMonitor';
+import { FormLoader } from '../basic/Loader';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import Badge from '../common/Badge';
+import ShouldRender from '../basic/ShouldRender';
+import { selectedProbe } from '../../actions/monitor';
+import { openModal, closeModal } from '../../actions/modal';
+import { history } from '../../store';
+import { getMonitorStatus, filterProbeData } from '../../config';
+import DataPathHoC from '../DataPathHoC';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class MonitorViewHeader extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            deleteModalId: uuid.v4(),
+            startDate: moment().subtract(30, 'd'),
+            endDate: moment()
+        }
+
+        this.deleteMonitor = this.deleteMonitor.bind(this);
+    }
+
+    componentDidMount() {
+        const { fetchMonitorLogs, fetchMonitorStatuses, monitor } = this.props;
+        const { startDate, endDate } = this.state;
+
+        fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
+        fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
+    }
+
+    handleDateChange = (startDate, endDate) => {
+        this.setState({ startDate, endDate });
+
+        const { fetchMonitorLogs, fetchMonitorStatuses, monitor } = this.props;
+
+        fetchMonitorLogs(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
+        fetchMonitorStatuses(monitor.projectId._id || monitor.projectId, monitor._id, startDate, endDate);
+    }
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Edit Monitor Switch Clicked', {});
+        if (!IS_DEV) {
+            logEvent('Edit Monitor Switch Clicked', {});
+        }
+    }
+
+    deleteMonitor = () => {
+        const promise = this.props.deleteMonitor(this.props.monitor._id, this.props.monitor.projectId._id || this.props.monitor.projectId);
+        history.push(`/project/${this.props.currentProject._id}/monitoring`);
+        if (!IS_DEV) {
+            logEvent('Monitor Deleted', {
+                ProjectId: this.props.currentProject._id,
+                monitorId: this.props.monitor._id
+            });
+        }
+        return promise;
+    }
+
+    selectbutton = (data) => {
+        this.props.selectedProbe(data);
+    }
+
+    handleKeyBoard = (e) => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({ id: this.state.deleteModalId })
+            default:
+                return false;
         }
     }
 
     render() {
-        var enddate = new Date();
-        var startdate = new Date().setDate(enddate.getDate() - 90);
-        const subProjectId = this.props.monitor.projectId._id || this.props.monitor.projectId;
-        const subProject = this.props.subProjects.find(subProject => subProject._id === subProjectId);
+        const { deleteModalId, startDate, endDate } = this.state;
+        const { monitor, subProjects, monitorState, activeProbe, currentProject, probes } = this.props;
+
+        const subProjectId = monitor.projectId._id || monitor.projectId;
+        const subProject = subProjects.find(subProject => subProject._id === subProjectId);
+
+        const probe = monitor && probes && probes.length > 0 ? probes[probes.length < 2 ? 0 : activeProbe] : null;
+        const { logs, statuses } = filterProbeData(monitor, probe, startDate, endDate);
+
+        const status = getMonitorStatus(monitor.incidents, logs);
+
+        let deleting = false;
+        if (monitorState && monitorState.deleteMonitor && monitorState.deleteMonitor === monitor._id) {
+            deleting = true;
+        }
+
         return (
-            <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
-                {   
-                    this.props.currentProject._id === subProjectId ?
-                        <div className="Box-root Padding-top--20 Padding-left--20">
-                            <Badge color={'red'}>Project</Badge>
-                        </div> :
+            <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium" onKeyDown={this.handleKeyBoard}>
+                {
+                    currentProject._id === subProjectId ?
+                        subProjects.length > 0 ?
+                            <div className="Box-root Padding-top--20 Padding-left--20">
+                                <Badge color={'red'}>Project</Badge>
+                            </div> :
+                            null
+                        :
                         <div className="Box-root Padding-top--20 Padding-left--20">
                             <Badge color={'blue'}>{subProject && subProject.name}</Badge>
                         </div>
                 }
                 <div className="Box-root">
                     <div className="db-Trends-header">
-                        <MonitorTitle monitor={ this.props.monitor } />
+                        <MonitorTitle monitor={monitor} status={status} />
                         <div className="db-Trends-controls">
                             <div className="db-Trends-timeControls">
-
-                                <div className="db-DateRangeInputWithComparison">
-                                    <div className="db-DateRangeInput bs-Control" style={{ cursor: 'default' }}>
-                                        <div className="db-DateRangeInput-input" role="button" tabIndex="0" style={{ cursor: 'default' }}>
-                                            <span className="db-DateRangeInput-start" style={{ padding: '3px' }}>{moment(startdate).format('ll')}</span>
-                                            <span className="db-DateRangeInput-input-arrow" style={{ padding: '3px' }}></span>
-                                            <span className="db-DateRangeInput-end" style={{ padding: '3px' }}>{moment(enddate).format('ll')}</span></div>
-                                    </div>
-                                </div>
+                                <DateRangeWrapper
+                                    selected={startDate}
+                                    onChange={this.handleDateChange}
+                                    dateRange={30}
+                                />
                             </div>
                             <div>
                                 <RenderIfSubProjectAdmin subProjectId={subProjectId}>
-                                    <button className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' onClick={this.editMonitor}><span>Edit</span></button>
+                                    <button id={`edit_${monitor.name}`} className='bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings' type='button' onClick={this.editMonitor}><span>Edit</span></button>
+                                    <button id={`delete_${monitor.name}`} className={deleting ? 'bs-Button bs-Button--blue' : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'} type="button" disabled={deleting}
+                                        onClick={() =>
+                                            this.props.openModal({
+                                                id: deleteModalId,
+                                                onClose: () => '',
+                                                onConfirm: () => this.deleteMonitor(),
+                                                content: DataPathHoC(DeleteMonitor, { monitor })
+                                            })}>
+                                        <ShouldRender if={!deleting}>
+                                            <span>Delete</span>
+                                        </ShouldRender>
+                                        <ShouldRender if={deleting}>
+                                            <FormLoader />
+                                        </ShouldRender>
+                                    </button>
                                 </RenderIfSubProjectAdmin>
                             </div>
                         </div>
                     </div>
-                    <MonitorBarChart monitor={ this.props.monitor } /><br />
+                    <ShouldRender if={monitor && probes && probes.length > 1}>
+                        <ShouldRender if={monitor.type !== 'manual' && monitor.type !== 'device' && monitor.type !== 'server-monitor'}>
+                            <div className="btn-group">
+                                {monitor && probes.map((location, index) => {
+                                    const { logs } = filterProbeData(monitor, location, startDate, endDate);
+                                    const status = getMonitorStatus(monitor.incidents, logs);
+                                    const probe = probes.filter(probe => probe._id === location._id);
+                                    const lastAlive = probe && probe.length > 0 ? probe[0].lastAlive : null;
+
+                                    return (
+                                        <ProbeBar
+                                            key={index}
+                                            index={index}
+                                            name={location.probeName}
+                                            status={status}
+                                            selectbutton={this.selectbutton}
+                                            activeProbe={activeProbe}
+                                            lastAlive={lastAlive}
+                                        />
+                                    )
+                                })}
+                            </div>
+                        </ShouldRender>
+                        <MonitorChart
+                            start={startDate}
+                            end={endDate}
+                            key={uuid.v4()}
+                            monitor={monitor}
+                            data={logs}
+                            statuses={statuses}
+                            status={status}
+                            showAll={true}
+                        />
+                    </ShouldRender>
+                    {monitor && probes && probes.length < 2 ?
+                        <MonitorChart
+                            start={startDate}
+                            end={endDate}
+                            key={uuid.v4()}
+                            monitor={monitor}
+                            data={logs}
+                            statuses={statuses}
+                            status={status}
+                            showAll={true}
+                        />
+                        : ''
+                    }<br />
                 </div>
             </div>
         );
     }
 }
 
-MonitorViewHeader.displayName = 'MonitorViewHeader'
+MonitorViewHeader.displayName = 'MonitorViewHeader';
 
 MonitorViewHeader.propTypes = {
     monitor: PropTypes.object.isRequired,
     editMonitorSwitch: PropTypes.func.isRequired,
+    fetchMonitorLogs: PropTypes.func.isRequired,
+    fetchMonitorStatuses: PropTypes.func.isRequired,
+    monitorState: PropTypes.object.isRequired,
+    deleteMonitor: PropTypes.func.isRequired,
+    openModal: PropTypes.func,
+    closeModal: PropTypes.func,
     index: PropTypes.string.isRequired,
     subProjects: PropTypes.array.isRequired,
     currentProject: PropTypes.object.isRequired,
-}
+    activeProbe: PropTypes.number,
+    selectedProbe: PropTypes.func.isRequired,
+    probes: PropTypes.array
+};
 
-const mapDispatchToProps = dispatch => bindActionCreators(
-    { editMonitorSwitch }, dispatch
-)
+const mapDispatchToProps = dispatch => bindActionCreators({
+    editMonitorSwitch,
+    fetchMonitorLogs,
+    fetchMonitorStatuses,
+    deleteMonitor,
+    selectedProbe,
+    openModal,
+    closeModal
+}, dispatch);
 
 const mapStateToProps = (state) => {
     return {
+        monitorState: state.monitor,
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,
+        activeProbe: state.monitor.activeProbe,
+        probes: state.probe.probes.data
     };
-}
-
-MonitorViewHeader.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorViewHeader);

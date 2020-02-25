@@ -87,7 +87,7 @@ export const resetProjects = () => {
 
 export function getProjects(switchToProjectId) {
 	return function (dispatch) {
-		var promise = getApi('project/projects', null);
+		const promise = getApi('project/projects', null);
 		dispatch(projectsRequest(promise));
 
 		promise.then(function (projects) {
@@ -95,7 +95,12 @@ export function getProjects(switchToProjectId) {
 			dispatch(projectsSuccess(projects));
 
 			if (projects.length > 0 && !switchToProjectId) {
-				dispatch(switchProject(dispatch, projects[0]));
+				if(User.getCurrentProjectId()) {
+					const project = projects.filter(project => project._id === User.getCurrentProjectId())
+					dispatch(switchProject(dispatch, project[0]));
+				} else {
+					dispatch(switchProject(dispatch, projects[0]));
+				}
 			}
 			else {
 
@@ -107,7 +112,11 @@ export function getProjects(switchToProjectId) {
 						projectSwitched = true;
 					}
 				}
-
+				if(User.getCurrentProjectId() && !projectSwitched) {
+					const project = projects.filter(project => project._id === User.getCurrentProjectId());
+					dispatch(switchProject(dispatch, project[0]));
+					projectSwitched = true;
+				}
 				!projectSwitched && dispatch(switchProject(dispatch, projects[0]));
 			}
 
@@ -161,7 +170,7 @@ export const resetCreateProject = () => {
 export function createProject(values) {
 	return function (dispatch) {
 
-		var promise = postApi('project/create', values);
+		const promise = postApi('project/create', values);
 
 		dispatch(createProjectRequest());
 
@@ -190,8 +199,14 @@ export function createProject(values) {
 
 
 export function switchProject(dispatch, project) {
-
-	history.push('/project/' + project._id + '/monitoring');
+	const currentProjectId = User.getCurrentProjectId();
+	const historyProjectId = history.location.pathname.split('project')[1];
+	if (!currentProjectId || project._id !== currentProjectId) {
+		history.push(`/project/${project._id}/monitoring`);
+		User.setCurrentProjectId(project._id);
+	} else if (historyProjectId && historyProjectId === '/') {
+		history.push(`/project/${project._id}/monitoring`);
+	}
 
 	dispatch(resetSubProjects());
 	dispatch(resetAlert());
@@ -202,7 +217,7 @@ export function switchProject(dispatch, project) {
 	dispatch(resetCreateMonitor());
 	dispatch(resetSubProjectFetchStatusPages());
 	dispatch(fetchNotificationsReset());
-
+	
 	getSubProjects(project._id)(dispatch);
 	fetchAlert(project._id)(dispatch);
 	fetchSubProjectStatusPages(project._id)(dispatch);
@@ -273,7 +288,7 @@ export function resetProjectToken(projectId) {
 
 	return function (dispatch) {
 
-		var promise = getApi(`project/${projectId}/resetToken`);
+		const promise = getApi(`project/${projectId}/resetToken`);
 
 		dispatch(resetProjectTokenRequest());
 
@@ -333,13 +348,13 @@ export function renameProject(projectId, projectName) {
 
 	return function (dispatch) {
 
-		var promise = putApi(`project/${projectId}/renameProject`, { projectName });
+		const promise = putApi(`project/${projectId}/renameProject`, { projectName });
 
 		dispatch(renameProjectRequest());
 
 		promise.then(function (project) {
 			dispatch(renameProjectSuccess(project));
-
+			return project;
 		}, function (error) {
 			if (error && error.response && error.response.data)
 				error = error.response.data;
@@ -383,16 +398,15 @@ export function deleteProjectError(error) {
 	};
 }
 
-export function deleteProject(projectId) {
+export function deleteProject(projectId, feedback) {
 
 	return function (dispatch) {
 
-		var promise = deleteApi(`project/${projectId}/deleteProject`, { projectId });
+		const promise = deleteApi(`project/${projectId}/deleteProject`, { projectId, feedback });
 
 		dispatch(deleteProjectRequest());
 
 		promise.then(function () {
-			dispatch(hideDeleteModal())
 			dispatch(deleteProjectSuccess(projectId));
 			dispatch(deleteProjectIncidents(projectId));
 			dispatch(deleteProjectSchedules(projectId));
@@ -450,7 +464,7 @@ export function changePlan(projectId, planId, projectName, oldPlan, newPlan) {
 
 	return function (dispatch) {
 
-		var promise = postApi(`project/${projectId}/changePlan`, { projectName, planId, oldPlan, newPlan });
+		const promise = postApi(`project/${projectId}/changePlan`, { projectName, planId, oldPlan, newPlan });
 
 		dispatch(changePlanRequest());
 
@@ -484,7 +498,7 @@ export function upgradeToEnterpriseMail(projectId, projectName, oldPlan) {
 
 	return function (dispatch) {
 
-		var promise = postApi(`project/${projectId}/upgradeToEnterprise`, { projectName, oldPlan });
+		const promise = postApi(`project/${projectId}/upgradeToEnterprise`, { projectName, oldPlan });
 
 		dispatch(changePlanRequest());
 
@@ -540,7 +554,7 @@ export function exitProjectError(error) {
 export function exitProject(projectId, userId) {
 	return function (dispatch) {
 
-		var promise = deleteApi(`project/${projectId}/user/${userId}/exitProject`, null);
+		const promise = deleteApi(`project/${projectId}/user/${userId}/exitProject`, null);
 		dispatch(exitProjectRequest());
 
 		promise.then(function () {
@@ -597,7 +611,7 @@ export function markProjectForDelete(projectId, feedback) {
 
 	return function (dispatch) {
 
-		var promise = deleteApi(`project/${projectId}/deleteProject`, { projectId, feedback });
+		const promise = deleteApi(`project/${projectId}/deleteProject`, { projectId, feedback });
 
 		dispatch(markProjectForDeleteRequest());
 
@@ -648,7 +662,7 @@ export function alertOptionsUpdate(projectId, alertData) {
 
 	return function (dispatch) {
 
-		var promise = putApi(`project/${projectId}/alertOptions`, alertData);
+		const promise = putApi(`project/${projectId}/alertOptions`, alertData);
 
 		dispatch(alertOptionsUpdateRequest());
 
@@ -697,7 +711,7 @@ export function addBalance(projectId, data) {
 
 	return function (dispatch) {
 
-		var promise = postApi(`stripe/${projectId}/addBalance`, data);
+		const promise = postApi(`stripe/${projectId}/addBalance`, data);
 
 		dispatch(addBalanceRequest());
 
@@ -718,6 +732,53 @@ export function addBalance(projectId, data) {
 			}
 			dispatch(addBalanceError(errors(error)));
 		})
+		return promise;
+	}
+}
+export function checkCardRequest(promise) {
+	return {
+		type: types.CHECK_CARD_REQUEST,
+		payload: promise
+	};
+}
+
+export function checkCardFailed(error) {
+	return {
+		type: types.CHECK_CARD_FAILED,
+		payload: error
+	};
+}
+
+export function checkCardSuccess(card) {
+	return {
+		type: types.CHECK_CARD_SUCCESS,
+		payload: card
+	};
+}
+
+export function checkCard(data) {
+
+	return function (dispatch) {
+		const promise = postApi('stripe/checkCard', data)
+
+		dispatch(checkCardRequest(promise));
+
+		promise.then(function (card) {
+			dispatch(checkCardSuccess(card.data))
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else {
+				error = 'Network Error';
+			}
+			dispatch(checkCardFailed(error));
+		});
 		return promise;
 	}
 }

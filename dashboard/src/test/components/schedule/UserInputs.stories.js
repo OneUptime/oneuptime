@@ -3,13 +3,13 @@ import { storiesOf } from '@storybook/react';
 import { reduxForm } from 'redux-form'
 import UserInputs from '../../../components/schedule/UserInputs'
 
-let UserInputs_Decorated = new reduxForm({
+const UserInputsDecorated = new reduxForm({
     form: 'AddUsersForm',
     enableReinitialize: true
 })(UserInputs);
 
 
-let props_with_User_admin = {
+const props_with_User_admin = {
     project: {
         'id': '5b1f39482a62c8611d23c953',
         'users': [
@@ -53,7 +53,7 @@ let props_with_User_admin = {
 
 }
 
-let props_with_user_not_admin = {
+const props_with_user_not_admin = {
     project: {
         'id': '5b1f39482a62c8611d23c953',
         'users': [
@@ -102,9 +102,9 @@ storiesOf('Schedule', module)
             {story()}</div>
     ))
     .add('UserInput User Is Admin', () =>
-        <UserInputs_Decorated {...props_with_User_admin} />
+        <UserInputsDecorated {...props_with_User_admin} />
     )
     .add('UserInput User Not Admin', () =>
-        <UserInputs_Decorated {...props_with_user_not_admin} />
+        <UserInputsDecorated {...props_with_user_not_admin} />
     )
 

@@ -16,7 +16,7 @@ function validate(value) {
     return errors;
 }
 
-let props = {
+const props = {
     handleSubmit: action('handleSubmit'),
     renameSchedule:action('renameSchedule'),
     isRequesting:false,
@@ -24,9 +24,9 @@ let props = {
     initialValues:{schedule_name: 'Test'}
 }
 
-let onSubmitSuccess = action('onSubmitSuccess')
+const onSubmitSuccess = action('onSubmitSuccess')
 
-let RenameScheduleForm = new reduxForm({
+const RenameScheduleForm = new reduxForm({
     form: 'RenameSchedule' + Math.floor((Math.random() * 10) + 1),
     validate,
     onSubmitSuccess,

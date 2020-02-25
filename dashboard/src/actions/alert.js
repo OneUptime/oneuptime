@@ -35,7 +35,7 @@ export function fetchAlert(projectId) {
 
     return function (dispatch) {
 
-        var promise = getApi(`alert/${projectId}`);
+        const promise = getApi(`alert/${projectId}`);
 
         dispatch(alertRequest());
 
@@ -95,7 +95,7 @@ export function fetchProjectAlert(projectId, skip, limit) {
 
     return function (dispatch) {
 
-        var promise = getApi(`alert/${projectId}/alert?skip=${skip}&limit=${limit}`);
+        const promise = getApi(`alert/${projectId}/alert?skip=${skip}&limit=${limit}`);
 
         dispatch(projectAlertRequest());
 
@@ -160,7 +160,7 @@ export function fetchIncidentAlert(projectId,incidentId,skip,limit) {
 
     return function (dispatch) {
 
-        var promise = getApi(`alert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`);
+        const promise = getApi(`alert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`);
 
         dispatch(incidentAlertRequest());
 
@@ -225,8 +225,9 @@ export function fetchSubscriberAlert(projectId, incidentId, skip, limit) {
     return function (dispatch) {
         skip = skip < 0 ? 0 : skip;
         limit = limit < 0 ? 0 : limit;
+        let promise = null;
         if(skip >= 0 && limit >= 0){
-            var promise = getApi(`subscriberAlert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`);
+            promise = getApi(`subscriberAlert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`);
         }else{
             promise = getApi(`subscriberAlert/${projectId}/incident/${incidentId}`);
         }
@@ -252,6 +253,108 @@ export function fetchSubscriberAlert(projectId, incidentId, skip, limit) {
 
         });
 
+        return promise;
+    };
+}
+
+export function fetchAlertChargesRequest(promise) {
+    return {
+        type: types.FETCH_ALERT_CHARGES_REQUEST,
+        payload: promise
+    };
+}
+
+export function fetchAlertChargesFailed(error) {
+    return {
+        type: types.FETCH_ALERT_CHARGES_FAILED,
+        payload: error
+    };
+}
+
+export function fetchAlertChargesSuccess(alertCharges) {
+    return {
+        type: types.FETCH_ALERT_CHARGES_SUCCESS,
+        payload: alertCharges
+    };
+}
+
+export function fetchAlertCharges(projectId, skip, limit) {
+    let promise;
+    return function (dispatch) {
+        if (skip >=0 && limit > 0) {
+            promise = getApi(`alert/${projectId}/alert/charges?skip=${skip}&limit=${limit}`)
+
+        } else {
+            promise = getApi(`alert/${projectId}/alert/charges`)
+        }
+
+        dispatch(fetchAlertChargesRequest(promise));
+
+        promise.then(function (alertCharges) {
+            dispatch(fetchAlertChargesSuccess(alertCharges.data))
+        }, function (error) {
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            if(error && error.message){
+				error = error.message;
+            }
+            else{
+				error = 'Network Error';
+			}
+            dispatch(fetchAlertChargesFailed(error));
+        });
+        return promise;
+    }
+}
+
+export function downloadAlertChargesRequest(promise) {
+    return {
+        type: types.DOWNLOAD_ALERT_CHARGES_REQUEST,
+        payload: promise
+    };
+}
+
+export function downloadAlertChargesFailed(error) {
+    return {
+        type: types.DOWNLOAD_ALERT_CHARGES_FAILED,
+        payload: error
+    };
+}
+
+export function downloadAlertChargesSuccess(alertCharges) {
+    return {
+        type: types.DOWNLOAD_ALERT_CHARGES_SUCCESS,
+        payload: alertCharges
+    };
+}
+
+export function downloadAlertCharges(projectId) {
+
+    return function (dispatch) {
+        
+        const promise = getApi(`alert/${projectId}/alert/charges`);
+
+        dispatch(downloadAlertChargesRequest(promise));
+
+        promise.then(function (alertCharges) {
+            dispatch(downloadAlertChargesSuccess(alertCharges.data))
+        }, function (error) {
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            if(error && error.message){
+				error = error.message;
+            }
+            else{
+				error = 'Network Error';
+			}
+            dispatch(downloadAlertChargesFailed(error));
+        });
         return promise;
     };
 }

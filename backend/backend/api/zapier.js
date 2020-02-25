@@ -4,38 +4,36 @@
  *
  */
 
-var express = require('express');
-var ZapierService = require('../services/zapierService');
-var MonitorService = require('../services/monitorService');
-var ProjectService = require('../services/projectService');
+const express = require('express');
+const ZapierService = require('../services/zapierService');
+const MonitorService = require('../services/monitorService');
+const ProjectService = require('../services/projectService');
 const {
     isAuthorized
 } = require('../middlewares/authorization');
-var sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-var sendItemResponse = require('../middlewares/response').sendItemResponse;
-var sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 
-var router = express.Router();
+const router = express.Router();
 
 router.get('/test', isAuthorized, async function (req, res) {
-    var apiKey = req.query.apiKey;
-    var projectId = req.query.projectId;
-
-    try{
-        var response = await ZapierService.test(projectId, apiKey);
+    try {
+        const apiKey = req.query.apiKey;
+        const projectId = req.query.projectId;
+        const response = await ZapierService.test(projectId, apiKey);
         return sendItemResponse(req, res, response);
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.get('/monitors', isAuthorized, async function (req, res) {
-    var projectId = req.query.projectId;
-
-    try{
-        var projects = await ProjectService.findBy({ $or: [{_id: projectId}, {parentProjectId: projectId}] });
-        var projectIds = projects.map(project => project._id);
-        var monitors = await MonitorService.findBy({projectId: { $in: projectIds } });
+    try {
+        const projectId = req.query.projectId;
+        const projects = await ProjectService.findBy({ $or: [{_id: projectId}, {parentProjectId: projectId}] });
+        const projectIds = projects.map(project => project._id);
+        let monitors = await MonitorService.findBy({projectId: { $in: projectIds } });
         if (monitors) {
             if(monitors.length){
                 monitors = monitors.map(resp => {return {id:resp._id,name:resp.name};});
@@ -44,166 +42,161 @@ router.get('/monitors', isAuthorized, async function (req, res) {
         }else{
             return sendItemResponse(req, res, []);
         }
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.post('/incident/createIncident', isAuthorized, async function (req, res){
-    const monitors = req.body.monitors || [];
-    try{
-        var incident = await ZapierService.createIncident(monitors);
+    try {
+        const monitors = req.body.monitors || [];
+        const incident = await ZapierService.createIncident(monitors);
         return sendItemResponse(req, res, incident);
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.get('/incidents', isAuthorized, async function (req, res) {
-    var projectId = req.query.projectId;
-
-    try{
+    try {
+        const projectId = req.query.projectId;
         // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-        var incidents = await ZapierService.getIncidents(projectId);
+        const incidents = await ZapierService.getIncidents(projectId);
         // zapier expects this as an item response and not a list response.
         return sendItemResponse(req, res, incidents); 
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.get('/incident/resolved', isAuthorized, async function (req, res) {
-    var projectId = req.query.projectId;
-
-    try{
+    try {
+        const projectId = req.query.projectId;
         // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-        var incidents = await ZapierService.getResolvedIncidents(projectId);
+        const incidents = await ZapierService.getResolvedIncidents(projectId);
         // zapier expects this as an item response and not a list response.
         if (incidents) return sendItemResponse(req, res, incidents);
         else return sendItemResponse(req, res, []);
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.post('/incident/resolveLastIncident', isAuthorized, async function (req, res) {
-    const monitors = req.body.monitors || [];
-    try{
-        var incident = await ZapierService.resolveLastIncident(monitors);
+    try {
+        const monitors = req.body.monitors || [];
+        const incident = await ZapierService.resolveLastIncident(monitors);
         if (incident) return sendItemResponse(req, res, incident);
         else return sendItemResponse(req, res, {});
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.post('/incident/resolveAllIncidents', isAuthorized, async function (req, res) {
-    const monitors = req.body.monitors || [];
-    try{
-        var incidents = await ZapierService.resolveAllIncidents(monitors);
+    try {
+        const monitors = req.body.monitors || [];
+        const incidents = await ZapierService.resolveAllIncidents(monitors);
         // zapier expects this as an item response and not a list response.;
         if (incidents) return sendItemResponse(req, res, incidents);
         else return sendItemResponse(req, res, {});
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.post('/incident/resolveIncident', isAuthorized, async function (req, res) {
-    const incidents = req.body.incidents || [];
-    try{
-        var resolvedIncidents = await ZapierService.resolveIncident(incidents);
+    try {
+        const incidents = req.body.incidents || [];
+        const resolvedIncidents = await ZapierService.resolveIncident(incidents);
         // zapier expects this as an item response and not a list response.
         if (resolvedIncidents) return sendItemResponse(req, res, resolvedIncidents);
         else return sendItemResponse(req, res, {});
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.get('/incident/acknowledged', isAuthorized, async function (req, res) {
-    var projectId = req.query.projectId;
-
-    try{
+    try {
+        const projectId = req.query.projectId;
         // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-        var incidents = await ZapierService.getAcknowledgedIncidents(projectId, true, false);
+        const incidents = await ZapierService.getAcknowledgedIncidents(projectId, true, false);
         // zapier expects this as an item response and not a list response.
         if (incidents) return sendItemResponse(req, res, incidents);
         else return sendItemResponse(req, res, []);
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.post('/incident/acknowledgeLastIncident', isAuthorized, async function (req, res) {
-    const monitors = req.body.monitors || [];
-    try{
-        var incident = await ZapierService.acknowledgeLastIncident(monitors);
+    try {
+        const monitors = req.body.monitors || [];
+        const incident = await ZapierService.acknowledgeLastIncident(monitors);
         if (incident) return sendItemResponse(req, res, incident);
         else return sendItemResponse(req, res, {});
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.post('/incident/acknowledgeAllIncidents', isAuthorized, async function (req, res) {
-    const monitors = req.body.monitors || [];
-    try{
-        var incidents = await ZapierService.acknowledgeAllIncidents(monitors);
+    try {
+        const monitors = req.body.monitors || [];
+        const incidents = await ZapierService.acknowledgeAllIncidents(monitors);
         // zapier expects this as an item response and not a list response.;
         if (incidents) return sendItemResponse(req, res, incidents);
         else return sendItemResponse(req, res, {});
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.post('/incident/acknowledgeIncident', isAuthorized, async function (req, res) {
-    const incidents = req.body.incidents || [];
-    try{
-        var acknowledgedIncidents = await ZapierService.acknowledgeIncident(incidents);
+    try {
+        const incidents = req.body.incidents || [];
+        const acknowledgedIncidents = await ZapierService.acknowledgeIncident(incidents);
         // zapier expects this as an item response and not a list response.
         if (acknowledgedIncidents) return sendItemResponse(req, res, acknowledgedIncidents);
         else return sendItemResponse(req, res, {});
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.post('/subscribe', isAuthorized, async function (req, res) {
-    var url = req.body.url;
-    var type = req.body.type;
-    var monitors = req.body.input && req.body.input.monitors ? req.body.input.monitors : [];
-    var projectId = req.query.projectId;
-    if (!url) {
-        return sendErrorResponse( req, res, {
-            code: 400,
-            message: 'We are not able to complete your subscription request because hookUrl is null.'
-        });
-    }
-
-    if (!type) {
-        return sendErrorResponse( req, res, {
-            code: 400,
-            message: 'We are not able to complete your subscription request because trigger type is null.'
-        });
-    }
-
-    try{
-        var response = await ZapierService.subscribe(projectId, url, type, monitors);
+    try {
+        const url = req.body.url;
+        const type = req.body.type;
+        const monitors = req.body.input && req.body.input.monitors ? req.body.input.monitors : [];
+        const projectId = req.query.projectId;
+        if (!url) {
+            return sendErrorResponse( req, res, {
+                code: 400,
+                message: 'We are not able to complete your subscription request because hookUrl is null.'
+            });
+        }
+    
+        if (!type) {
+            return sendErrorResponse( req, res, {
+                code: 400,
+                message: 'We are not able to complete your subscription request because trigger type is null.'
+            });
+        }
+        const response = await ZapierService.subscribe(projectId, url, type, monitors);
         return sendItemResponse(req, res, response);
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.delete('/unsubscribe/:id', isAuthorized, async function (req, res) {
-    var id = req.params.id;
-
-    try{
+    try {
+        const id = req.params.id;
         await ZapierService.unsubscribe(id);
         return sendEmptyResponse(req, res);
-    }catch(error){
+    } catch(error) {
         return sendErrorResponse(req, res, error);
     }
 });

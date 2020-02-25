@@ -6,6 +6,9 @@ import { connect } from 'react-redux';
 import LoginForm from '../components/auth/LoginForm';
 import { loginUser, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
+import { identify, setUserId, logEvent } from '../analytics';
+import { IS_DEV } from '../config';
+import { history } from '../store';
 
 class LoginPage extends React.Component {
 
@@ -20,17 +23,23 @@ class LoginPage extends React.Component {
 	}
 
 	submitHandler = (values) => {
-		let thisObj = this;
 		this.props.loginUser(values).then((user) => {
 			if (user && user.data && user.data.id) {
-				if(window.location.href.indexOf('localhost') <= -1){
-					thisObj.context.mixpanel.identify(user.data.id);
+				if(!IS_DEV){
+					identify(user.data.id);
+					setUserId(user.data.id);
+					logEvent('Log in user', { id: user.data.id })
 				}
 			}
 		})
 	}
 
 	render() {
+		const { login } = this.props;
+
+		if (login.success && !login.user.tokens) {
+			history.push('/user-auth/token');
+		}
 
 		return (
 			<div id="wrap">
@@ -41,7 +50,22 @@ class LoginPage extends React.Component {
 				</div>
 
 				{/* LOGIN BOX */}
-				{!this.props.login.success && this.props.login.error && this.props.login.error === 'Verify your email first.' ? <MessageBox title={'Your email is not verified.'} message={'An email is on its way to you with new verification link. Please don&apos;t forget to check spam. '} /> : <LoginForm onSubmit={this.submitHandler} {...this.props} />}
+				{!this.props.login.success
+					&& this.props.login.error
+					&& this.props.login.error === 'Verify your email first.' ?
+					<div>
+						<MessageBox
+							title='Your email is not verified.'
+							//eslint-disable-next-line 
+							message={`An email is on its way to you with new verification link. Please don't forget to check spam.`} >
+							<div className="below-box">
+								<p>
+									Click <Link to="/user-verify/resend">here</Link> to resend verification link to your email.
+								</p>
+							</div>
+						</MessageBox>
+					</div> :
+					<LoginForm onSubmit={this.submitHandler} {...this.props} />}
 
 				{/* FOOTER */}
 				<div className="below-box">

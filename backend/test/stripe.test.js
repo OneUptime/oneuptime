@@ -1,82 +1,102 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var token, projectId, userId;
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var payment = require('../backend/config/payment');
-var stripe = require('stripe')(payment.paymentPrivateKey);
-var ngrok = require('ngrok');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const AirtableService = require('../backend/services/airtableService');
 
-var cardId, authorization, webhookId;
+let token, projectId, userId, airtableId;
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const payment = require('../backend/config/payment');
+const stripe = require('stripe')(payment.paymentPrivateKey);
+const ngrok = require('ngrok');
 
-var sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+let cardId, authorization, webhookId;
 
+const sleep = waitTimeInMs =>
+    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-describe('Stripe payment API', function () {
+describe('Stripe payment API', function() {
     this.timeout(50000);
 
-    before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
-            let project = res.body.project;
+    before(function(done) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
-                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
-                    request.post('/user/login').send({
-                        email: userData.user.email,
-                        password: userData.user.password
-                    }).end(function (err, res) {
-                        token = res.body.tokens.jwtAccessToken;
-                        authorization = `Basic ${token}`;
-                        done();
+            airtableId = res.body.airtableId;
+
+            VerificationTokenModel.findOne({ userId }, function(
+                err,
+                verificationToken
+            ) {
+                request
+                    .get(`/user/confirmation/${verificationToken.token}`)
+                    .redirects(0)
+                    .end(function() {
+                        request
+                            .post('/user/login')
+                            .send({
+                                email: userData.user.email,
+                                password: userData.user.password,
+                            })
+                            .end(function(err, res) {
+                                token = res.body.tokens.jwtAccessToken;
+                                authorization = `Basic ${token}`;
+                                done();
+                            });
                     });
-                });
             });
         });
     });
 
-    
-    after(async function () {
-        await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
-        await ProjectService.hardDeleteBy({_id: projectId});
+    after(async function() {
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [
+                    userData.user.email,
+                    userData.newUser.email,
+                    userData.anotherUser.email,
+                ],
+            },
+        });
+        await ProjectService.hardDeleteBy({ _id: projectId });
         await ngrok.disconnect();
         await stripe.webhookEndpoints.del(webhookId);
+        await AirtableService.deleteUser(airtableId);
     });
 
-    it('should sign up and a transaction of 1 $ should be made', function (done) {
-        request.get(`/stripe/${projectId}/charges`).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.have.property('data');
-            expect(res.body.data).to.be.an('array');
-            expect(res.body.data).to.have.length.greaterThan(0);
-            expect(res.body.data[0]).to.be.an('object');
-            expect(res.body.data[0]).to.have.property('failure_code');
-            expect(res.body.data[0].failure_code).to.be.equal(null);
-            expect(res.body.data[0]).to.have.property('amount');
-            expect(res.body.data[0].amount).to.be.equal(100);
-            done();
-        });
+    it('should sign up and a transaction of 1 $ should be made', function(done) {
+        request
+            .get(`/stripe/${userId}/charges`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.have.property('data');
+                expect(res.body.data).to.be.an('array');
+                expect(res.body.data).to.have.length.greaterThan(0);
+                expect(res.body.data[0]).to.be.an('object');
+                expect(res.body.data[0]).to.have.property('failure_code');
+                expect(res.body.data[0].failure_code).to.be.equal(null);
+                expect(res.body.data[0]).to.have.property('amount');
+                expect(res.body.data[0].amount).to.be.equal(100);
+                done();
+            });
     });
-    
-    it('should return payment intent when valid details are passed ', function (done) {
-        stripe.tokens.create({
-            card: {
-                number: '4242424242424242',
-                exp_month: 12,
-                exp_year: 2020,
-                cvc: '123'
-            }
-        }, function (err, token){
-            request.post(`/stripe/${projectId}/creditCard/${token.id}/pi`).set('Authorization', authorization).end(function (err, res) {
-                cardId = token.card.id;
+
+    it('should return payment intent when valid details are passed ', function(done) {
+        request
+            .post(`/stripe/${userId}/creditCard/${'tok_amex'}/pi`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                cardId = res.body.source;
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('id');
                 expect(res.body).to.have.property('client_secret');
@@ -85,98 +105,127 @@ describe('Stripe payment API', function () {
                 expect(res.body.source).not.to.be.null;
                 done();
             });
-        });       
     });
 
-    it('should return 2 cards attached to customer', function (done) {
-        request.get(`/stripe/${projectId}/creditCard`).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.have.property('data');
-            expect(res.body.data).to.be.an('array');
-            expect(res.body.data).to.have.length(2);                
-            done();
-        });       
-    });
-    it('should update default card for customer', function(done){
-        request.put(`/stripe/${projectId}/creditCard/${cardId}`).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('object');
-            expect(res.body).to.have.property('default_source');
-            expect(res.body.default_source).to.be.equal(cardId);
-            done();
-        });
-    });
-    it('should return 2 cards attached to customer', function (done) {
-        request.get(`/stripe/${projectId}/creditCard`).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.have.property('data');
-            expect(res.body.data).to.be.an('array');
-            expect(res.body.data).to.have.length(2);                
-            done();
-        });       
-    });
-
-    it('should fetch a single card', function (done) {
-        request.get(`/stripe/${projectId}/creditCard/${cardId}`).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('object');
-            expect(res.body).to.have.property('id');
-            expect(res.body.id).not.to.be.null;
-            expect(res.body).to.have.property('customer');
-            expect(res.body.customer).not.to.be.null;
-            done();
-        });       
-    });
-
-    it('should delete a card', function (done) {
-        request.delete(`/stripe/${projectId}/creditCard/${cardId}`).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('object');
-            expect(res.body).to.have.property('id');
-            expect(res.body.id).not.to.be.null;
-            expect(res.body).to.have.property('deleted');
-            expect(res.body.deleted).to.be.equal(true);
-            done();
-        });       
-    });
-
-    it('should not delete a single left card', function (done) {
-        request.get(`/stripe/${projectId}/creditCard`).set('Authorization', authorization).end(function (err, res) {
-            cardId = res.body.data[0].id;
-            request.delete(`/stripe/${projectId}/creditCard/${cardId}`).set('Authorization', authorization).end(function (err, res) {
-                expect(res).to.have.status(403);
-                expect(res.body.message).to.be.equal('Cannot delete the only card');
+    it('should return 2 cards attached to customer', function(done) {
+        request
+            .get(`/stripe/${userId}/creditCard`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.have.property('data');
+                expect(res.body.data).to.be.an('array');
+                expect(res.body.data).to.have.length(2);
                 done();
             });
-        });
+    });
+    it('should update default card for customer', function(done) {
+        request
+            .put(`/stripe/${userId}/creditCard/${cardId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('default_source');
+                expect(res.body.default_source).to.be.equal(cardId);
+                done();
+            });
+    });
+    it('should return 2 cards attached to customer', function(done) {
+        request
+            .get(`/stripe/${userId}/creditCard`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.have.property('data');
+                expect(res.body.data).to.be.an('array');
+                expect(res.body.data).to.have.length(2);
+                done();
+            });
     });
 
-    it('should not create a payment intent when token(generated from client) is invalid', function (done) {
-        request.post(`/stripe/${projectId}/creditCard/${'tok_invalid'}/pi`).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(400);
-            expect(res.body.message).to.be.equal('No such token: tok_invalid');
-            done();
-        });
-    });
-    it('should not add balance to customer accounts if rechargeBalanceAmount is not a valid integer', function (done) {
-        request.post(`/stripe/${projectId}/addBalance`)
+    it('should fetch a single card', function(done) {
+        request
+            .get(`/stripe/${userId}/creditCard/${cardId}`)
             .set('Authorization', authorization)
-            .send({
-                rechargeBalanceAmount:'43_'
-            })
-            .end(function (err, res) {
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('id');
+                expect(res.body.id).not.to.be.null;
+                expect(res.body).to.have.property('customer');
+                expect(res.body.customer).not.to.be.null;
+                done();
+            });
+    });
+
+    it('should delete a card', function(done) {
+        request
+            .delete(`/stripe/${userId}/creditCard/${cardId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('id');
+                expect(res.body.id).not.to.be.null;
+                done();
+            });
+    });
+
+    it('should not delete a single left card', function(done) {
+        request
+            .get(`/stripe/${userId}/creditCard`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                cardId = res.body.data[0].id;
+                request
+                    .delete(`/stripe/${userId}/creditCard/${cardId}`)
+                    .set('Authorization', authorization)
+                    .end(function(err, res) {
+                        expect(res).to.have.status(403);
+                        expect(res.body.message).to.be.equal(
+                            'Cannot delete the only card'
+                        );
+                        done();
+                    });
+            });
+    });
+
+    it('should not create a payment intent when token(generated from client) is invalid', function(done) {
+        request
+            .post(`/stripe/${userId}/creditCard/${'tok_invalid'}/pi`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
                 expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('Amount should be present and it should be a valid number.');
+                expect(res.body.message).to.be.equal(
+                    'No such token: tok_invalid'
+                );
                 done();
             });
     });
-    it('should return payment intent if rechargeBalanceAmount is a valid integer', function (done) {
-        request.post(`/stripe/${projectId}/addBalance`)
+    it('should not add balance to customer accounts if rechargeBalanceAmount is not a valid integer', function(done) {
+        request
+            .post(`/stripe/${projectId}/addBalance`)
             .set('Authorization', authorization)
             .send({
-                rechargeBalanceAmount: '100'
+                rechargeBalanceAmount: '43_',
             })
-            .end(function (err, res) {
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Amount should be present and it should be a valid number.'
+                );
+                done();
+            });
+    });
+    it('should return payment intent if rechargeBalanceAmount is a valid integer', function(done) {
+        request
+            .post(`/stripe/${projectId}/addBalance`)
+            .set('Authorization', authorization)
+            .send({
+                rechargeBalanceAmount: '100',
+            })
+            .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('id');
                 expect(res.body).to.have.property('client_secret');
@@ -186,26 +235,31 @@ describe('Stripe payment API', function () {
                 done();
             });
     });
-    it('should update balance when payment intent is confirmed from the client side', async function () {
-
-        var ngrokURL = await ngrok.connect(3020);
-        var url = `${ngrokURL}/stripe/webHook/pi`;
-        var webhook = await stripe.webhookEndpoints.create({
+    it('should update balance when payment intent is confirmed from the client side', async function() {
+        const ngrokURL = await ngrok.connect(3020);
+        const url = `${ngrokURL}/stripe/webHook/pi`;
+        const webhook = await stripe.webhookEndpoints.create({
             url,
-            enabled_events: ['payment_intent.succeeded']
+            enabled_events: ['payment_intent.succeeded'],
         });
         webhookId = webhook.id;
         if (webhook.status === 'enabled') {
-            var addBalanceRequest = await request.post(`/stripe/${projectId}/addBalance`)
+            const addBalanceRequest = await request
+                .post(`/stripe/${projectId}/addBalance`)
                 .set('Authorization', authorization)
                 .send({
-                    rechargeBalanceAmount: '100'
+                    rechargeBalanceAmount: '100',
                 });
-            if (addBalanceRequest) { 
-                await sleep(5000);
-                var project = await ProjectService.findOneBy({_id: projectId});
-                var { balance } = project;   
-                expect(balance).to.be.equal(100);          
+            const confirmedpaymentIntent = await stripe.paymentIntents.confirm(
+                addBalanceRequest.body.id
+            );
+            if (confirmedpaymentIntent) {
+                await sleep(20000);
+                const project = await ProjectService.findOneBy({
+                    _id: projectId,
+                });
+                const { balance } = project;
+                expect(balance).to.be.equal(100);
             }
         }
     });

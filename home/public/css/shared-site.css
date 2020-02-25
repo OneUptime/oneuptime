@@ -211,7 +211,6 @@ body{
     background-repeat:no-repeat;
     font-size:62.5%;
     color:#6f7c82;
-    font-family:Whitney SSm A,Whitney SSm B,Helvetica,Arial;
     font-weight:400;
     font-style:normal;
     overflow-x:hidden;
@@ -221,7 +220,7 @@ a{
     text-decoration:none
 }
 a,a span.arrow{
-    color:#008cdd
+    color:#000000
 }
 a:hover,a:hover span.arrow{
     color:#292e31
@@ -266,7 +265,7 @@ h3{
     margin-bottom:.2em
 }
 h3,p{
-    font-size:1.6em
+    font-size:16px
 }
 p{
     line-height:1.5em;
@@ -339,7 +338,7 @@ iframe[name=google_conversion_frame]{
         font-size:14px
     }
     html.mobile h1{
-        font-size:1.6em;
+        font-size:16px;
         font-weight:500
     }
     html.mobile h2{
@@ -867,7 +866,6 @@ html.mobile header#main-header div.mobile-nav-button{
     html.mobile header#main-header ul a,html.mobile header#main-header ul ul a,html.mobile header#main-header ul ul a:hover{
         padding:5px 20px!important;
         box-sizing:border-box;
-        font-family:Whitney SSm A,Whitney SSm B,Helvetica,Arial;
         font-weight:500;
         color:#fff!important;
         line-height:3em!important;
@@ -945,7 +943,7 @@ a.button.default,button.button.default,strong.button.default{
     border:0;
     color:#fff;
     text-shadow:0 -1px 0 rgba(0,0,0,.1);
-    background:#008cdd;
+    background:#000000;
     background:-webkit-linear-gradient(#489dce,#1272ac);
     background:linear-gradient(#489dce,#1272ac);
     box-shadow:0 1px 0 rgba(0,0,0,.15)
@@ -1144,7 +1142,7 @@ footer#main-footer div.country-selector ul li.beta+li.beta:before{
 }
 footer#main-footer div.country-selector ul li.notify-signup-link a{
     padding-top:3px;
-    line-height:1.6em;
+    line-height:16px;
     color:#a8b1b5
 }
 footer#main-footer div.country-selector ul:before{

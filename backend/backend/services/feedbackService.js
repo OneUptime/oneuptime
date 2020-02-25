@@ -10,56 +10,54 @@ module.exports = {
     //Param 2: projectId: Project Id present in req.params.
     //Param 3: userId: User Id.
     //Returns: promise
-    create: async function (projectId, message, createdById) {
-        var feedback = new FeedbackModel();
-        
-        feedback.message = message;
-        feedback.projectId = projectId;
-        feedback.createdById = createdById;
-        
-        try{
+    create: async function (projectId, message, page, createdById) {
+        try {
+            let feedback = new FeedbackModel();
+
+            feedback.message = message;
+            feedback.page = page;
+            feedback.projectId = projectId;
+            feedback.createdById = createdById;
             feedback = await feedback.save();
-        }catch(error){
-            ErrorService.log('feedback.save', error);
-            throw error;
-        }
+            feedback = feedback.toObject();
 
-        feedback = feedback.toObject();
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            feedback.project = project;
 
-        var project = await ProjectService.findOneBy({_id: projectId});
-        feedback.project = project;
+            const user = await UserService.findOneBy({ _id: createdById });
 
-        var user = await UserService.findOneBy({_id: createdById});
-        feedback.createdBy = user;
+            const record = await AirtableService.logFeedback({
+                message,
+                name: user.name,
+                email: user.email,
+                project: project.name,
+                page
+            });
+            feedback.airtableId = record.id || null;
 
-        try{
             await MailService.sendLeadEmailToFyipeTeam(feedback);
-        }catch(error){
-            ErrorService.log('MailService.sendLeadEmailToFyipeTeam', error);
-            throw error;
-        }
-        try{
             await MailService.sendUserFeedbackResponse(user.email, user.name);
-        }catch(error){
-            ErrorService.log('MailService.sendUserFeedbackResponse', error);
+            return feedback;
+        } catch (error) {
+            ErrorService.log('feedbackService.create', error);
             throw error;
         }
-        return feedback;
     },
 
-    hardDeleteBy: async function(query){
-        try{
+    hardDeleteBy: async function (query) {
+        try {
             await FeedbackModel.deleteMany(query);
-        }catch(error){
-            ErrorService.log('FeedbackModel.deleteMany', error);
+            return 'Feedback(s) removed successfully!';
+        } catch (error) {
+            ErrorService.log('feedbackService.hardDeleteBy', error);
             throw error;
         }
-        return 'Feedback(s) removed successfully!';
     }
 };
 
-var FeedbackModel = require('../models/feedback');
-var MailService = require('./mailService');
-var ErrorService = require('./errorService');
-var UserService = require('./userService');
-var ProjectService = require('./projectService');
+const FeedbackModel = require('../models/feedback');
+const MailService = require('./mailService');
+const ErrorService = require('./errorService');
+const UserService = require('./userService');
+const ProjectService = require('./projectService');
+const AirtableService = require('./airtableService');

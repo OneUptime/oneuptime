@@ -11,10 +11,12 @@ import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import CreateManualIncident from '../modals/CreateManualIncident';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class MonitorViewIncidentBox extends Component {
 
-    constructor(props){
+    constructor(props) {
         super(props);
         this.state = {
             createIncidentModalId: uuid.v4()
@@ -23,19 +25,19 @@ export class MonitorViewIncidentBox extends Component {
 
     prevClicked = () => {
         this.props.fetchMonitorsIncidents(this.props.monitor.projectId._id, this.props.monitor._id, (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) - 5) : 5), 5);
-        if (window.location.href.indexOf('localhost') <= -1) {
-          this.context.mixpanel.track('Previous Incident Requested', {
-            projectId: this.props.monitor.projectId._id,
-          });
+        if (!IS_DEV) {
+            logEvent('Previous Incident Requested', {
+                projectId: this.props.monitor.projectId._id,
+            });
         }
     }
-    
+
     nextClicked = () => {
         this.props.fetchMonitorsIncidents(this.props.monitor.projectId._id, this.props.monitor._id, (this.props.monitor.skip ? (parseInt(this.props.monitor.skip, 10) + 5) : 5), 5);
-        if (window.location.href.indexOf('localhost') <= -1) {
-          this.context.mixpanel.track('Next Incident Requested', {
-            projectId: this.props.monitor.projectId._id,
-          });
+        if (!IS_DEV) {
+            logEvent('Next Incident Requested', {
+                projectId: this.props.monitor.projectId._id,
+            });
         }
     }
 
@@ -47,19 +49,18 @@ export class MonitorViewIncidentBox extends Component {
                 return false;
         }
     }
-        
+
     render() {
-        let { createIncidentModalId } = this.state;
-        let creating = this.props.create ? this.props.create : false;
-        const projectId = this.props.monitor.projectId ? this.props.monitor.projectId._id || this.props.monitor.projectId : this.props.currentProject._id;
+        const { createIncidentModalId } = this.state;
+        const creating = this.props.create ? this.props.create : false;
         return (
-            <div onKeyDown={this.handleKeyBoard}>
+            <div onKeyDown={this.handleKeyBoard} className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                 <span>
-                                Incident Log
+                                    Incident Log
                                 </span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -70,12 +71,11 @@ export class MonitorViewIncidentBox extends Component {
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <button className={creating ? 'bs-Button bs-Button--blue' : 'bs-Button bs-ButtonLegacy ActionIconParent'} type="button" disabled={creating}
+                                id={`createIncident_${this.props.monitor.name}`}
                                 onClick={() =>
                                     this.props.openModal({
                                         id: createIncidentModalId,
-                                        onClose: () => '',
-                                        onConfirm: () => this.props.createNewIncident(projectId, this.props.monitor._id),
-                                        content: DataPathHoC(CreateManualIncident, this.props.monitor._id)
+                                        content: DataPathHoC(CreateManualIncident, { monitorId: this.props.monitor._id, projectId: this.props.monitor.projectId._id })
                                     })}>
                                 <ShouldRender if={!creating}>
                                     <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
@@ -88,8 +88,8 @@ export class MonitorViewIncidentBox extends Component {
                             </button>
                         </div>
                     </div>
-                    </div>
-                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                </div>
+                <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentList incidents={this.props.monitor} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
                 </div>
             </div>
@@ -101,16 +101,14 @@ MonitorViewIncidentBox.displayName = 'MonitorViewIncidentBox'
 
 MonitorViewIncidentBox.propTypes = {
     monitor: PropTypes.object.isRequired,
-    currentProject: PropTypes.object.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     openModal: PropTypes.func,
     create: PropTypes.bool,
-    closeModal: PropTypes.func,
-    createNewIncident: PropTypes.func.isRequired,
+    closeModal: PropTypes.func
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
-    {fetchMonitorsIncidents, openModal, closeModal, createNewIncident}, dispatch
+    { fetchMonitorsIncidents, openModal, closeModal, createNewIncident }, dispatch
 )
 
 const mapStateToProps = (state) => {
@@ -119,9 +117,5 @@ const mapStateToProps = (state) => {
         create: state.incident.newIncident.requesting,
     };
 }
-
-MonitorViewIncidentBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorViewIncidentBox);

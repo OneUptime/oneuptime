@@ -36,7 +36,7 @@ export const resetResetPassword = () => {
 export function resetPassword(values) {
 	return function(dispatch){
 
-		var promise = postApi('user/forgot-password', values);
+		const promise = postApi('user/forgot-password', values);
 		dispatch(resetPasswordRequest(promise));
 
 		promise.then(function(data){

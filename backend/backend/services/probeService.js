@@ -1,227 +1,961 @@
 module.exports = {
     create: async function (data) {
-        var _this = this;
         try {
-            let accessToken = uuidv1();
-            let storedProbe = await _this.findOneBy({ probeName: data.probeName });
+            const _this = this;
+            let probeKey;
+            if (data.probeKey) {
+                probeKey = data.probeKey;
+            } else {
+                probeKey = uuidv1();
+            }
+            const storedProbe = await _this.findOneBy({ probeName: data.probeName });
             if (storedProbe && storedProbe.probeName) {
-                let error = new Error('Probe name already exists.');
+                const error = new Error('Probe name already exists.');
                 error.code = 400;
                 ErrorService.log('probe.create', error);
                 throw error;
             }
             else {
-                let probe = new ProbeModel();
-                probe.probeKey = accessToken;
+                const probe = new ProbeModel();
+                probe.probeKey = probeKey;
                 probe.probeName = data.probeName;
-                var savedProbe = await probe.save();
+                const savedProbe = await probe.save();
                 return savedProbe;
             }
         } catch (error) {
-            ErrorService.log('probe.save', error);
+            ErrorService.log('ProbeService.create', error);
             throw error;
         }
     },
 
-    update: async function (query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
+    updateOneBy: async function (query, data) {
         try {
-            var probe = await ProbeModel.findOneAndUpdate(query,
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const probe = await ProbeModel.findOneAndUpdate(query,
                 { $set: data },
                 {
                     new: true
                 });
+            return probe;
         } catch (error) {
-            ErrorService.log('ProbeModel.findOneAndUpdate', error);
+            ErrorService.log('ProbeService.updateOneBy', error);
             throw error;
         }
-        return probe;
+    },
+
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            let updatedData = await ProbeModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('ProbeService.updateMany', error);
+            throw error;
+        }
     },
 
     findBy: async function (query, limit, skip) {
-
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof (skip) === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof (limit) === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
-            var probe = await ProbeModel.find(query)
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const probe = await ProbeModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
+            return probe;
         } catch (error) {
-            ErrorService.log('ProbeModel.find', error);
+            ErrorService.log('ProbeService.findBy', error);
             throw error;
         }
-        return probe;
     },
 
     findOneBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
-            var probe = await ProbeModel.findOne(query);
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const probe = await ProbeModel.findOne(query);
+            return probe;
         } catch (error) {
-            ErrorService.log('ProbeModel.findOne', error);
+            ErrorService.log('ProbeService.findOneBy', error);
             throw error;
         }
-        return probe;
     },
 
     countBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
-            var count = await ProbeModel.count(query);
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const count = await ProbeModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('ProbeModel.count', error);
+            ErrorService.log('ProbeService.countBy', error);
             throw error;
         }
-
-        return count;
     },
 
     deleteBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-        query.deleted = false;
         try {
-            var probe = await ProbeModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now() } }, { new: true });
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const probe = await ProbeModel.findOneAndUpdate(query, { $set: { deleted: true, deletedAt: Date.now() } }, { new: true });
+            return probe;
         } catch (error) {
-            ErrorService.log('ProbeModel.findOneAndUpdate', error);
+            ErrorService.log('ProbeService.deleteBy', error);
             throw error;
         }
-        return probe;
     },
 
     hardDeleteBy: async function (query) {
         try {
             await ProbeModel.deleteMany(query);
+            return 'Probe(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('ProbeModel.deleteMany', error);
+            ErrorService.log('ProbeService.hardDeleteBy', error);
             throw error;
         }
-        return 'Probe(s) removed successfully!';
     },
 
-    createMonitorLog: async function (data) {
+    sendProbe: async function (probeId, monitorId) {
         try {
-            let Log = new MonitorLogModel();
-            Log.monitorId = data.monitorId;
-            Log.probeId = data.probeId;
-            Log.responseTime = data.responseTime;
-            Log.responseStatus = data.responseStatus;
-            Log.status = data.status;
-            var savedLog = await Log.save();
-        } catch (error) {
-            ErrorService.log('Log.save', error);
-            throw error;
-        }
-        return savedLog;
-    },
-
-    createMonitorStatus: async function (data) {
-        try {
-            let MonitorStatus = new MonitorStatusModel();
-            MonitorStatus.monitorId = data.monitorId;
-            MonitorStatus.probeId = data.probeId;
-            MonitorStatus.responseTime = data.responseTime;
-            MonitorStatus.status = data.status;
-            var savedMonitorStatus = await MonitorStatus.save();
-        } catch (error) {
-            ErrorService.log('MonitorStatus.save', error);
-            throw error;
-        }
-        return savedMonitorStatus;
-    },
-
-    updateMonitorStatus: async function (monitorStatusId) {
-        try {
-            var MonitorStatus = await MonitorStatusModel.findOneAndUpdate({ _id: monitorStatusId },
-                { $set: { endTime: Date.now() } },
-                {
-                    new: true
-                });
-        } catch (error) {
-            ErrorService.log('MonitorStatusModel.findOneAndUpdate', error);
-            throw error;
-        }
-        return MonitorStatus;
-    },
-
-    setTime: async function (data) {
-        var _this = this;
-        try {
-            var lastStatus = await MonitorStatusModel.find({ monitorId: data.monitorId,probeId:data.probeId })
-                .sort([['createdAt', -1]])
-                .limit(1);
-            var log = await _this.createMonitorLog(data);
-            if(!lastStatus || !lastStatus.length){
-                await _this.createMonitorStatus(data);
+            const probe = await this.findOneBy({ _id: probeId });
+            if (probe) {
+                delete probe._doc.deleted;
+                await RealTimeService.updateProbe(probe, monitorId);
             }
-            else if (lastStatus && lastStatus[0].status !== data.status) {
-                if(lastStatus && lastStatus[0] && lastStatus[0]._id){
-                    await _this.updateMonitorStatus(lastStatus[0]._id);
+        } catch (error) {
+            ErrorService.log('ProbeService.sendProbe', error);
+            throw error;
+        }
+    },
+
+    saveMonitorLog: async function (data) {
+        try {
+            const _this = this;
+            let monitor, autoAcknowledge, autoResolve, incidentIds;
+            const monitorStatus = await MonitorStatusService.findOneBy({ monitorId: data.monitorId, probeId: data.probeId });
+            let log = await MonitorLogService.create(data);
+            const lastStatus = monitorStatus && monitorStatus.status ? monitorStatus.status : null;
+            if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
+                // check if monitor has a previous status
+                // check if previous status is different from the current status
+                // if different, create a new monitor status and incident
+                await MonitorStatusService.create(data);
+                const incident = await _this.incidentCreateOrUpdate(data);
+                monitor = incident.monitor;
+                incidentIds = incident.incidentIds;
+                autoAcknowledge = lastStatus && lastStatus === 'degraded' ? monitor.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? monitor.criteria.down.autoAcknowledge : false;
+                autoResolve = lastStatus === 'degraded' ? monitor.criteria.degraded.autoResolve : lastStatus === 'offline' ? monitor.criteria.down.autoResolve : false;
+                await _this.incidentResolveOrAcknowledge(data, lastStatus, autoAcknowledge, autoResolve);
+            }
+            if (incidentIds && incidentIds.length) {
+                log = await MonitorLogService.updateOneBy({ _id: log._id }, { incidentIds });
+            }
+            return log;
+        } catch (error) {
+            ErrorService.log('ProbeService.saveMonitorLog', error);
+            throw error;
+        }
+    },
+
+    getMonitorLog: async function (data) {
+        try {
+            const date = new Date();
+            const log = await MonitorLogService.findOneBy({ monitorId: data.monitorId, probeId: data.probeId, createdAt: { $lt: data.date || date } });
+            return log;
+        } catch (error) {
+            ErrorService.log('probeService.getMonitorLog', error);
+            throw error;
+        }
+    },
+
+    incidentCreateOrUpdate: async function (data) {
+        try {
+            const monitor = await MonitorService.findOneBy({ _id: data.monitorId });
+            const incidents = await IncidentService.findBy({ monitorId: data.monitorId, incidentType: data.status, resolved: false });
+            let incidentIds = [];
+
+            if (data.status === 'online' && monitor && monitor.criteria && monitor.criteria.up && monitor.criteria.up.createAlert) {
+                if (incidents && incidents.length) {
+                    incidentIds = incidents.map(async (incident) => {
+                        return await IncidentService.updateOneBy({
+                            _id: incident._id
+                        }, {
+                            probes: incident.probes.concat({
+                                probeId: data.probeId,
+                                updatedAt: Date.now(),
+                                status: true,
+                                reportedStatus: data.status
+                            })
+                        });
+                    });
                 }
-                await _this.createMonitorStatus(data);
+                else {
+                    incidentIds = await [IncidentService.create({
+                        projectId: monitor.projectId,
+                        monitorId: data.monitorId,
+                        createdById: null,
+                        incidentType: 'online',
+                        probeId: data.probeId
+                    })];
+                }
             }
-
+            else if (data.status === 'degraded' && monitor && monitor.criteria && monitor.criteria.degraded && monitor.criteria.degraded.createAlert) {
+                if (incidents && incidents.length) {
+                    incidentIds = incidents.map(async (incident) => {
+                        return await IncidentService.updateOneBy({
+                            _id: incident._id
+                        }, {
+                            probes: incident.probes.concat({
+                                probeId: data.probeId,
+                                updatedAt: Date.now(),
+                                status: true,
+                                reportedStatus: data.status
+                            })
+                        });
+                    });
+                }
+                else {
+                    incidentIds = await [IncidentService.create({
+                        projectId: monitor.projectId,
+                        monitorId: data.monitorId,
+                        createdById: null,
+                        incidentType: 'degraded',
+                        probeId: data.probeId
+                    })];
+                }
+            }
+            else if (data.status === 'offline' && monitor && monitor.criteria && monitor.criteria.down && monitor.criteria.down.createAlert) {
+                if (incidents && incidents.length) {
+                    incidentIds = incidents.map(async (incident) => {
+                        return await IncidentService.updateOneBy({
+                            _id: incident._id
+                        }, {
+                            probes: incident.probes.concat({
+                                probeId: data.probeId,
+                                updatedAt: Date.now(),
+                                status: true,
+                                reportedStatus: data.status
+                            })
+                        });
+                    });
+                }
+                else {
+                    incidentIds = await [IncidentService.create({
+                        projectId: monitor.projectId,
+                        monitorId: data.monitorId,
+                        createdById: null,
+                        incidentType: 'offline',
+                        probeId: data.probeId
+                    })];
+                }
+            }
+            incidentIds = await Promise.all(incidentIds);
+            incidentIds = incidentIds.map(i => i._id);
+            return { monitor, incidentIds };
         } catch (error) {
-            ErrorService.log('setTime.findOne', error);
+            ErrorService.log('ProbeService.incidentCreateOrUpdate', error);
             throw error;
         }
-        return log;
     },
 
-    getTime: async function (data) {
+    incidentResolveOrAcknowledge: async function (data, lastStatus, autoAcknowledge, autoResolve) {
         try {
-            var date = new Date();
-            var log = await MonitorLogModel.findOne({monitorId:data.monitorId,probeId:data.probeId,createdAt : { $lt: date }});
+            const incidents = await IncidentService.findBy({ monitorId: data.monitorId, incidentType: lastStatus, resolved: false });
+            const incidentsV1 = [];
+            const incidentsV2 = [];
+            if (incidents && incidents.length) {
+                if (lastStatus && lastStatus !== data.status) {
+                    incidents.map(async (incident) => {
+                        incident = incident.toObject();
+                        incident.probes.some(probe => {
+                            const probeId = data.probeId ? data.probeId.toString() : null;
+                            if (probe.probeId === probeId) {
+                                incidentsV1.push(incident);
+                                return true;
+                            }
+                            else return false;
+                        });
+                    });
+                }
+            }
+            await Promise.all(incidentsV1.map(async (incident) => {
+                const newIncident = await IncidentService.updateOneBy({
+                    _id: incident._id
+                }, {
+                    probes: incident.probes.concat([{
+                        probeId: data.probeId,
+                        updatedAt: Date.now(),
+                        status: false,
+                        reportedStatus: data.status
+                    }])
+                });
+                incidentsV2.push(newIncident);
+                return newIncident;
+            }));
+
+            incidentsV2.map(async (incident) => {
+                const trueArray = [];
+                const falseArray = [];
+                incident.probes.map(probe => {
+                    if (probe.status) {
+                        trueArray.push(probe);
+                    }
+                    else {
+                        falseArray.push(probe);
+                    }
+                });
+                if (trueArray.length === falseArray.length) {
+                    if (autoAcknowledge) {
+                        if (!incident.acknowledged) {
+                            await IncidentService.acknowledge(incident._id, null, 'fyipe');
+                        }
+                    }
+                    if (autoResolve) {
+                        await IncidentService.resolve(incident._id, null, 'fyipe');
+                        incident.probes.map(async probe => {
+                            await MonitorStatusService.create({ monitorId: incident.monitorId, probeId: probe.probeId, status: 'online' });
+                        });
+                    }
+                }
+            });
+            return {};
         } catch (error) {
-            ErrorService.log('MonitorLogModel.findOne', error);
+            ErrorService.log('ProbeService.incidentResolveOrAcknowledge', error);
             throw error;
         }
-        return log;
     },
 
     updateProbeStatus: async function (probeId) {
         try {
-            var probe = await ProbeModel.findOneAndUpdate({_id:probeId}, { $set: { lastAlive: Date.now() } }, { new: true });
+            const probe = await ProbeModel.findOneAndUpdate({ _id: probeId }, { $set: { lastAlive: Date.now() } }, { new: true });
+            return probe;
         } catch (error) {
-            ErrorService.log('ProbeModel.findOneAndUpdate', error);
+            ErrorService.log('probeService.updateProbeStatus', error);
             throw error;
         }
-        return probe;
+    },
+
+    conditions: async (payload, resp, con) => {
+        let stat = true;
+        const status = resp ? (resp.status ? resp.status : (resp.statusCode ? resp.statusCode : null)) : null;
+        const body = resp && resp.body ? resp.body : null;
+
+        if (con && con.and && con.and.length) {
+            stat = await checkAnd(payload, con.and, status, body);
+        }
+        else if (con && con.or && con.or.length) {
+            stat = await checkOr(payload, con.or, status, body);
+        }
+        return stat;
     },
 };
 
-let ProbeModel = require('../models/probe');
-let MonitorLogModel = require('../models/monitorLog');
-let MonitorStatusModel = require('../models/monitorStatus');
-let ErrorService = require('./errorService');
-let uuidv1 = require('uuid/v1');
+const _ = require('lodash');
+
+const checkAnd = async (payload, con, statusCode, body) => {
+    let validity = true;
+    for (let i = 0; i < con.length; i++) {
+        if (con[i] && con[i].responseType && con[i].responseType === 'responseTime') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (!(con[i] && con[i].field1 && payload && payload > con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (!(con[i] && con[i].field1 && payload && payload < con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (!(con[i] && con[i].field1 && payload && con[i].field2 && payload > con[i].field1 && payload < con[i].field2)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (!(con[i] && con[i].field1 && payload && payload == con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (!(con[i] && con[i].field1 && payload && payload != con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (!(con[i] && con[i].field1 && payload && payload >= con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (!(con[i] && con[i].field1 && payload && payload <= con[i].field1)) {
+                    validity = false;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'doesRespond') {
+            if (con[i] && con[i].filter && con[i].filter === 'isUp') {
+                if (!(con[i] && con[i].filter && payload)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
+                if (!(con[i] && con[i].filter && !payload)) {
+                    validity = false;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'statusCode') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (!(con[i] && con[i].field1 && statusCode && statusCode > con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (!(con[i] && con[i].field1 && statusCode && statusCode < con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (!(con[i] && con[i].field1 && statusCode && con[i].field2 && statusCode > con[i].field1 && statusCode < con[i].field2)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (!(con[i] && con[i].field1 && statusCode && statusCode == con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (!(con[i] && con[i].field1 && statusCode && statusCode != con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (!(con[i] && con[i].field1 && statusCode && statusCode >= con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (!(con[i] && con[i].field1 && statusCode && statusCode <= con[i].field1)) {
+                    validity = false;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'cpuLoad') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad > con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad < con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && con[i].field2 && payload.cpuLoad > con[i].field1 && payload.cpuLoad < con[i].field2)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad == con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad != con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad >= con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (!(con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad <= con[i].field1)) {
+                    validity = false;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'memoryUsage') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed > con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed < con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && con[i].field2 && payload.memoryUsed > con[i].field1 && payload.memoryUsed < con[i].field2)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed == con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed != con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed >= con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (!(con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed <= con[i].field1)) {
+                    validity = false;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'storageUsage') {
+            const size = parseInt(payload.totalStorage || 0);
+            const used = parseInt(payload.storageUsed || 0);
+            const free = (size - used) / Math.pow(1e3, 3);
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (!(con[i] && con[i].field1 && free > con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (!(con[i] && con[i].field1 && free < con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (!(con[i] && con[i].field1 && con[i].field2 && free > con[i].field1 && free < con[i].field2)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (!(con[i] && con[i].field1 && free === con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (!(con[i] && con[i].field1 && free !== con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (!(con[i] && con[i].field1 && free >= con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (!(con[i] && con[i].field1 && free <= con[i].field1)) {
+                    validity = false;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'temperature') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp > con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp < con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && con[i].field2 && payload.mainTemp > con[i].field1 && payload.mainTemp < con[i].field2)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp == con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp != con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp >= con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (!(con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp <= con[i].field1)) {
+                    validity = false;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'responseBody') {
+            if (con[i] && con[i].filter && con[i].filter === 'contains') {
+                if (!(con[i] && con[i].field1 && body && body[con[i].field1])) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'doesNotContain') {
+                if (!(con[i] && con[i].field1 && body && !body[con[i].field1])) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
+                if (!(con[i] && con[i].field1 && body && body[con[i].field1] === con[i].field1)) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'empty') {
+                if (!(con[i] && con[i].filter && body && _.isEmpty(body))) {
+                    validity = false;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEmpty') {
+                if (!(con[i] && con[i].filter && body && !_.isEmpty(body))) {
+                    validity = false;
+                }
+            }
+        }
+        if (con[i] && con[i].collection && con[i].collection.and && con[i].collection.and.length) {
+            const temp = await checkAnd(payload, con[i].collection.and, statusCode, body);
+            if (!temp) {
+                validity = temp;
+            }
+        }
+        else if (con[i] && con[i].collection && con[i].collection.or && con[i].collection.or.length) {
+            const temp1 = await checkOr(payload, con[i].collection.or, statusCode, body);
+            if (!temp1) {
+                validity = temp1;
+            }
+        }
+    }
+    return validity;
+};
+const checkOr = async (payload, con, statusCode, body) => {
+    let validity = false;
+    for (let i = 0; i < con.length; i++) {
+        if (con[i] && con[i].responseType === 'responseTime') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (con[i] && con[i].field1 && payload && payload > con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (con[i] && con[i].field1 && payload && payload < con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (con[i] && con[i].field1 && payload && con[i].field2 && payload > con[i].field1 && payload < con[i].field2) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (con[i] && con[i].field1 && payload && payload == con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (con[i] && con[i].field1 && payload && payload != con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (con[i] && con[i].field1 && payload && payload >= con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (con[i] && con[i].field1 && payload && payload <= con[i].field1) {
+                    validity = true;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'doesRespond') {
+            if (con[i] && con[i].filter && con[i].filter === 'isUp') {
+                if (con[i] && con[i].filter && payload) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
+                if (con[i] && con[i].filter && !payload) {
+                    validity = true;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'statusCode') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (con[i] && con[i].field1 && statusCode && statusCode > con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (con[i] && con[i].field1 && statusCode && statusCode < con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (con[i] && con[i].field1 && statusCode && con[i].field2 && statusCode > con[i].field1 && statusCode < con[i].field2) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (con[i] && con[i].field1 && statusCode && statusCode == con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (con[i] && con[i].field1 && statusCode && statusCode != con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (con[i] && con[i].field1 && statusCode && statusCode >= con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (con[i] && con[i].field1 && statusCode && statusCode <= con[i].field1) {
+                    validity = true;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'cpuLoad') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad > con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad < con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (con[i] && con[i].field1 && payload.cpuLoad && con[i].field2 && payload.cpuLoad > con[i].field1 && payload.cpuLoad < con[i].field2) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad == con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad != con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad >= con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (con[i] && con[i].field1 && payload.cpuLoad && payload.cpuLoad <= con[i].field1) {
+                    validity = true;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'memoryUsage') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed > con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed < con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (con[i] && con[i].field1 && payload.memoryUsed && con[i].field2 && payload.memoryUsed > con[i].field1 && payload.memoryUsed < con[i].field2) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed == con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed != con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed >= con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (con[i] && con[i].field1 && payload.memoryUsed && payload.memoryUsed <= con[i].field1) {
+                    validity = true;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'storageUsage') {
+            const size = parseInt(payload.totalStorage || 0);
+            const used = parseInt(payload.storageUsed || 0);
+            const free = (size - used) / Math.pow(1e3, 3);
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (con[i] && con[i].field1 && free > con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (con[i] && con[i].field1 && free < con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (con[i] && con[i].field1 && con[i].field2 && free > con[i].field1 && free < con[i].field2) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (con[i] && con[i].field1 && free === con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (con[i] && con[i].field1 && free !== con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (con[i] && con[i].field1 && free >= con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (con[i] && con[i].field1 && free <= con[i].field1) {
+                    validity = true;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'temperature') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp > con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'lessThan') {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp < con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'inBetween') {
+                if (con[i] && con[i].field1 && payload.mainTemp && con[i].field2 && payload.mainTemp > con[i].field1 && payload.mainTemp < con[i].field2) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp == con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEqualTo') {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp != con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'gtEqualTo') {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp >= con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'ltEqualTo') {
+                if (con[i] && con[i].field1 && payload.mainTemp && payload.mainTemp <= con[i].field1) {
+                    validity = true;
+                }
+            }
+        }
+        else if (con[i] && con[i].responseType === 'responseBody') {
+            if (con[i] && con[i].filter && con[i].filter === 'contains') {
+                if (con[i] && con[i].field1 && body && body[con[i].field1]) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'doesNotContain') {
+                if (con[i] && con[i].field1 && body && !body[con[i].field1]) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
+                if (con[i] && con[i].field1 && body && body[con[i].field1] === con[i].field1) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'empty') {
+                if (con[i] && con[i].filter && body && _.isEmpty(body)) {
+                    validity = true;
+                }
+            }
+            else if (con[i] && con[i].filter && con[i].filter === 'notEmpty') {
+                if (con[i] && con[i].filter && body && !_.isEmpty(body)) {
+                    validity = true;
+                }
+            }
+        }
+        if (con[i] && con[i].collection && con[i].collection.and && con[i].collection.and.length) {
+            const temp = await checkAnd(payload, con[i].collection.and, statusCode, body);
+            if (temp) {
+                validity = temp;
+            }
+        }
+        else if (con[i] && con[i].collection && con[i].collection.or && con[i].collection.or.length) {
+            const temp1 = await checkOr(payload, con[i].collection.or, statusCode, body);
+            if (temp1) {
+                validity = temp1;
+            }
+        }
+    }
+    return validity;
+};
+
+const ProbeModel = require('../models/probe');
+const RealTimeService = require('./realTimeService');
+const ErrorService = require('./errorService');
+const uuidv1 = require('uuid/v1');
+const MonitorService = require('./monitorService');
+const MonitorStatusService = require('./monitorStatusService');
+const MonitorLogService = require('./monitorLogService');
+const IncidentService = require('./incidentService');

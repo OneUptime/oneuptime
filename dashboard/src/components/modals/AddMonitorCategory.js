@@ -118,7 +118,7 @@ export class AddMonitorCategoryForm extends React.Component {
 
 AddMonitorCategoryForm.displayName = 'AddMonitorCategoryForm'
 
-let CreateAddMonitorCategoryForm = reduxForm({
+const CreateAddMonitorCategoryForm = reduxForm({
     form: 'AddMonitorCategoryForm',
     validate
 })(AddMonitorCategoryForm);
@@ -138,7 +138,7 @@ const mapDispatchToProps = (dispatch) => {
 AddMonitorCategoryForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
-    projectId: PropTypes.object,
+    projectId: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
     createMonitorCategory: PropTypes.func.isRequired,
     CreateMonitorCategoryModalId: PropTypes.string,
     monitorCategory: PropTypes.object

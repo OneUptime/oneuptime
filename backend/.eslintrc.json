@@ -1,4 +1,4 @@
-{    
+{
     "parser": "babel-eslint",
     "env": {
         "browser": true,
@@ -7,10 +7,10 @@
         "node": true,
         "mocha": true
     },
-    "extends": "eslint:recommended",
+    "extends": ["eslint:recommended"],
     "parserOptions": {
         "sourceType": "module",
-        "ecmaVersion":  2017
+        "ecmaVersion": 2017
     },
     "rules": {
         "indent": [
@@ -19,7 +19,7 @@
         ],
         "linebreak-style": [
             "error",
-            "windows"
+            "unix"
         ],
         "quotes": [
             "error",
@@ -28,6 +28,11 @@
         "semi": [
             "error",
             "always"
-        ]
+        ],
+        "prefer-const": ["error", {
+            "destructuring": "any",
+            "ignoreReadBeforeAssign": false
+        }],
+        "no-var": "error"
     }
 }

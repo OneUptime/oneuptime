@@ -9,7 +9,7 @@ class BeforeLoad extends React.Component {
         const initialUrl = sessionStorage.getItem('initialUrl');
         this.isAuthenticated = isAuthenticated;
         const redirectTo = getQueryVar('redirectTo', initialUrl);
-        let counter = getQueryVar('counter',initialUrl) || 0;
+        const counter = getQueryVar('counter',initialUrl) || 0;
         if (redirectTo) this.redirect = redirectTo;
         if (isAuthenticated) {
             if (redirectTo) {
@@ -22,7 +22,7 @@ class BeforeLoad extends React.Component {
     render() {
         if (this.isAuthenticated && this.redirect) {
             return (
-                <div id="app-loading" style={{ 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'backgroundColor': '#e6ebf1', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }}>
+                <div id="app-loading" style={{ 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'backgroundColor': '#fdfdfd', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }}>
                     <div>Redirecting please wait...</div>
                 </div>
             )

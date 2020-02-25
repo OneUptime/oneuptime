@@ -10,7 +10,11 @@ import {
     MORE_NOTES_FAILURE,
     STATUSPAGE_NOTES_RESET,
     INDIVIDUAL_NOTES_ENABLE,
-    INDIVIDUAL_NOTES_DISABLE
+    INDIVIDUAL_NOTES_DISABLE,
+    SELECT_PROBE,
+    FETCH_MONITOR_STATUSES_REQUEST,
+    FETCH_MONITOR_STATUSES_SUCCESS,
+    FETCH_MONITOR_STATUSES_FAILURE,
 } from '../actions/status';
 
 const INITIAL_STATE = {
@@ -24,10 +28,11 @@ const INITIAL_STATE = {
         skip: 0
     },
     requestingmore: false,
+    requestingstatuses: false,
     individualnote: null,
-    notesmessage: null
+    notesmessage: null,
+    activeProbe: 0
 };
-
 
 export default (state = INITIAL_STATE, action) => {
     switch (action.type) {
@@ -45,12 +50,83 @@ export default (state = INITIAL_STATE, action) => {
                 requesting: false
             });
 
-
         case STATUSPAGE_REQUEST:
             return Object.assign({}, state, {
                 error: null,
                 requesting: true
             });
+
+        case 'UPDATE_STATUS_PAGE': {
+            const isValidMonitorNote = state.individualnote && action.payload.monitorIds && action.payload.monitorIds.length > 0 && action.payload.monitorIds.find(monitor => monitor._id === state.individualnote._id);
+            return Object.assign({}, state, {
+                error: null,
+                statusPage: {
+                    ...action.payload,
+
+                    monitorsData: action.payload.monitorsData && action.payload.monitorsData.length > 0 ?
+                        action.payload.monitorsData.map(newMonitorData => {
+                            if (state.statusPage.monitorsData && state.statusPage.monitorsData.length > 0) {
+                                state.statusPage.monitorsData.forEach(oldMonitorData => {
+                                    if (newMonitorData._id === oldMonitorData._id) {
+                                        newMonitorData.statuses = oldMonitorData.statuses;
+                                    }
+                                })
+                            }
+
+                            return newMonitorData;
+                        }) : []
+                },
+                individualnote: isValidMonitorNote ? state.individualnote : null,
+                notesmessage: isValidMonitorNote ? state.notesmessage : null,
+                requesting: false
+            });
+        }
+
+        case 'UPDATE_MONITOR':
+            return Object.assign({}, state, {
+                error: null,
+                statusPage: {
+                    ...state.statusPage,
+
+                    monitorIds: state.statusPage.monitorIds && state.statusPage.monitorIds.length > 0 ?
+                        state.statusPage.monitorIds.map(monitor => {
+                            if (monitor._id === action.payload._id) {
+                                monitor.name = action.payload.name;
+                            }
+                            return monitor;
+                        }) : [],
+                    monitorsData: state.statusPage.monitorsData && state.statusPage.monitorsData.length > 0 ?
+                        state.statusPage.monitorsData.map(monitor => {
+                            if (monitor._id === action.payload._id) {
+                                return {
+                                    ...monitor,
+                                    ...action.payload,
+                                    monitorCategoryId: action.payload.monitorCategoryId
+                                };
+                            }
+                            return monitor;
+                        }) : []
+                },
+                requesting: false
+            });
+
+        case 'DELETE_MONITOR': {
+            const isIndividualNote = state.individualnote && state.individualnote._id === action.payload;
+            return Object.assign({}, state, {
+                error: null,
+                statusPage: {
+                    ...state.statusPage,
+
+                    monitorIds: state.statusPage.monitorIds && state.statusPage.monitorIds.length > 0 ?
+                        state.statusPage.monitorIds.filter(monitor => monitor._id !== action.payload) : [],
+                    monitorsData: state.statusPage.monitorsData && state.statusPage.monitorsData.length > 0 ?
+                        state.statusPage.monitorsData.filter(monitor => monitor._id !== action.payload) : []
+                },
+                individualnote: isIndividualNote ? null : state.individualnote,
+                notesmessage: isIndividualNote ? null : state.notesmessage,
+                requesting: false
+            });
+        }
 
         case STATUSPAGE_NOTES_SUCCESS:
             return Object.assign({}, state, {
@@ -74,7 +150,6 @@ export default (state = INITIAL_STATE, action) => {
                 }
             });
 
-
         case STATUSPAGE_NOTES_REQUEST:
             return Object.assign({}, state, {
                 notes: {
@@ -94,6 +169,23 @@ export default (state = INITIAL_STATE, action) => {
                     requesting: false,
                     skip: 0,
                     count: 0
+                }
+            });
+
+        case 'UPDATE_INCIDENT_NOTE':
+            return Object.assign({}, state, {
+                notes: {
+                    ...state.notes,
+
+                    notes: state.notes.notes && state.notes.notes.length > 0 ?
+                        state.notes.notes.map(note => {
+                            if (note._id === action.payload._id) {
+                                return action.payload;
+                            } else {
+                                return note;
+                            }
+                        })
+                        : []
                 }
             });
 
@@ -136,7 +228,101 @@ export default (state = INITIAL_STATE, action) => {
                 notesmessage: null
             });
 
-        default:
-            return state;
+        case SELECT_PROBE:
+            return Object.assign({}, state, {
+                activeProbe: action.payload
+            });
+
+        case FETCH_MONITOR_STATUSES_REQUEST:
+            return Object.assign({}, state, {
+                requestingstatuses: true
+            });
+
+        case FETCH_MONITOR_STATUSES_SUCCESS:
+            return Object.assign({}, state, {
+                statusPage: {
+                    ...state.statusPage,
+
+                    monitorsData: state.statusPage.monitorsData.map(monitor => {
+                        if (monitor._id === action.payload.monitorId) {
+                            monitor.statuses = action.payload.statuses.data;
+                        }
+                        return monitor;
+                    })
+                },
+                requestingstatuses: false
+            });
+
+        case FETCH_MONITOR_STATUSES_FAILURE:
+            return Object.assign({}, state, {
+                statusPage: {
+                    ...state.statusPage,
+
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                requestingstatuses: false
+            });
+
+        case 'UPDATE_MONITOR_STATUS':
+            return Object.assign({}, state, {
+                statusPage: {
+                    ...state.statusPage,
+
+                    monitorsData: state.statusPage.monitorsData.map(monitor => {
+                        if (monitor._id === action.payload.status.monitorId) {
+                            const data = Object.assign({}, action.payload.status.data);
+                            const probes = action.payload.probes;
+                            const isValidProbe = (monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'device')
+                                && probes && probes.length > 0;
+
+                            if (monitor.statuses && monitor.statuses.length > 0) {
+                                const monitorProbes = monitor.statuses.map(a => a._id);
+
+                                if (monitorProbes.includes(data.probeId) || !data.probeId) {
+                                    monitor.statuses = monitor.statuses.map(probeStatuses => {
+                                        const probeId = probeStatuses._id;
+
+                                        if (probeId === data.probeId || !data.probeId) {
+                                            const previousStatus = probeStatuses.statuses[0];
+                                            previousStatus.endTime = new Date().toISOString();
+
+                                            return { _id: probeId, statuses: [data, previousStatus, ...(probeStatuses.statuses.slice(1))] };
+                                        } else {
+                                            return probeStatuses;
+                                        }
+                                    });
+
+                                    if (isValidProbe && !probes.every(probe => monitorProbes.includes(probe._id))) {
+                                        // add manual status to all new probes
+                                        const newProbeStatuses = [];
+
+                                        probes.forEach(probe => {
+                                            if (!monitorProbes.includes(probe._id)) {
+                                                newProbeStatuses.push({ _id: probe._id, statuses: [data] });
+                                            }
+                                        });
+
+                                        monitor.statuses = [...monitor.statuses, ...newProbeStatuses];
+                                    }
+                                } else {
+                                    monitor.statuses = [...monitor.statuses, { _id: data.probeId || null, statuses: [data] }];
+                                }
+                            } else {
+                                if (isValidProbe) {
+                                    monitor.statuses = probes.map(probe => ({ _id: probe._id, statuses: [data] }));
+                                } else {
+                                    monitor.statuses = [{ _id: data.probeId || null, statuses: [data] }];
+                                }
+                            }
+                        }
+                        return monitor;
+                    })
+                },
+                requestingstatuses: false
+            });
+
+        default: return state;
     }
 }

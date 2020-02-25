@@ -14,9 +14,6 @@ import { closeNotificationMenu } from '../actions/notification';
 import { fetchUsers } from '../actions/user';
 
 export class DashboardApp extends Component {
-    constructor(props){
-        super(props);
-    }
 
     componentDidMount() {
         const { fetchUsers, ready, user } = this.props;
@@ -117,23 +114,22 @@ DashboardApp.displayName = 'DashboardApp'
 DashboardApp.propTypes = {
     profile: PropTypes.object.isRequired,
     notification: PropTypes.object.isRequired,
-    match: PropTypes.object,
     hideProfileMenu: PropTypes.func,
     closeNotificationMenu: PropTypes.func,
     showForm: PropTypes.func,
-    location: PropTypes.object.isRequired,
+    fetchUsers: PropTypes.func,
     children: PropTypes.any,
     ready: PropTypes.func,
     user: PropTypes.object.isRequired
 }
 
-let mapStateToProps = state => ({
+const mapStateToProps = state => ({
     profile: state.profileSettings,
     notification: state.notifications,
     user: state.user
 })
 
-let mapDispatchToProps = dispatch => (
+const mapDispatchToProps = dispatch => (
     bindActionCreators({
         hideProfileMenu,
         closeNotificationMenu,

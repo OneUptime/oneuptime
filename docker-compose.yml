@@ -1,0 +1,140 @@
+version: "3.7"
+services:
+  
+  mongo:
+      image: mongo:3.6
+      ports:
+        - "27017:27017"
+      volumes:
+        - mongodata:/data/db
+
+  redis:
+    image: redis:5.0.7
+    ports:
+      - "6379:6379"
+    command: redis-server
+
+  backend:
+    ports:
+      - "3002:3002"
+    build: ./backend
+    env_file: 
+      - ./backend/.env
+    environment: 
+      - MONGO_URL=mongodb://mongo:27017/fyipedb
+      - REDIS_HOST=redis
+    depends_on:
+      - mongo
+      - redis
+      - haraka
+
+  accounts:
+    ports:
+      - "3003:3003"
+    build: ./accounts
+    env_file: 
+      - ./accounts/.env
+    depends_on:
+      - backend
+
+  dashboard:
+    ports:
+      - "3000:3000"
+    build: ./dashboard
+    env_file: 
+      - ./dashboard/.env
+    depends_on:
+      - backend
+
+  home:
+    ports:
+      - "1444:1444"
+    env_file: 
+      - ./home/.env
+    build: ./home
+  
+  status-page:
+    ports:
+      - "3006:3006"
+    build: ./status-page
+    env_file: 
+      - ./status-page/.env
+    depends_on:
+      - backend
+      - accounts
+      - dashboard
+
+  admin-dashboard:
+    ports:
+      - "3100:3100"
+    env_file: 
+      - ./admin-dashboard/.env
+    build: ./admin-dashboard
+    depends_on:
+      - backend
+      - accounts
+  
+  http-test-server:
+    ports:
+      - "3010:3010"
+    env_file: 
+      - ./http-test-server/.env
+    build: ./http-test-server
+
+  probe1:
+    ports:
+      - "3024:3024"
+    build: ./probe
+    env_file: 
+      - ./probe/.env
+    environment:
+      - PORT=3024
+      - SERVER_URL=http://backend:3002
+      - PROBE_NAME=Probe 1
+      - PROBE_KEY=test-key
+    depends_on:
+      - backend
+
+  probe2:
+    ports:
+      - "3025:3025"
+    build: ./probe
+    env_file: 
+      - ./probe/.env
+    environment:
+      - PORT=3025
+      - SERVER_URL=http://backend:3002
+      - PROBE_NAME=Probe 2
+      - PROBE_KEY=test-key
+    depends_on:
+      - backend
+
+  api-docs:
+    ports:
+      - "1445:1445"
+    build: ./api-docs
+    env_file: 
+      - ./api-docs/.env
+
+  ##IMPORTANT: 
+  ## This container is used to expose backend api to the internet 
+  ## which is essential to debug "Webhooks" from services like Stripe, Twilio, etc. 
+  ngrok:
+    ports:
+      - "4040:4040"
+    image: wernight/ngrok:latest
+    command: ngrok http backend:3002
+    depends_on:
+      - backend
+    
+  ##IMPORTANT: 
+  ## This container is an SMTP server used to send emails. 
+  haraka:
+    ports:
+      - "25:25"
+    build: ./haraka
+  
+volumes:
+  mongodata:
+  
+    

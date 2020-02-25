@@ -1,16 +1,16 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+let expect = require('chai').expect;
+let userData = require('./data/user');
+let chai = require('chai');
 chai.use(require('chai-http'));
 
-var request = chai.request.agent(app);
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var app = require('../server');
+let request = chai.request.agent(app);
+let UserService = require('../backend/services/userService');
+let ProjectService = require('../backend/services/projectService');
+let app = require('../server');
 
 // eslint-disable-next-line
-var token, projectId, anotherUser, log = obj => console.log(obj);
+let token, projectId, anotherUser, log = obj => console.log(obj);
 
 describe('Webhook API', function () {
     this.timeout(20000);

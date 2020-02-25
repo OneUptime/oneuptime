@@ -2,14 +2,13 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { User } from '../../config';
+    import { User } from '../../config';
 import { hideProfileMenu } from '../../actions/profile'
 
 export class ProfileMenu extends Component {
     
     logout(){
-       var values = {name: User.getName(),email: User.getEmail()};
+       const values = {name: User.getName(),email: User.getEmail()};
         User.clear();
         window.location.href='/login'; //hard refresh.
         if(window.location.href.indexOf('localhost') <= -1){
@@ -18,13 +17,13 @@ export class ProfileMenu extends Component {
     }
 
     render() {
-        var name = User.getName();
-        var email = User.getEmail();
+        const name = User.getName();
+        const email = User.getEmail();
 
         return  this.props.visible ? 
             (
                 <div className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
-                    style={{top: '49px', width: '232px', right: '19px'}}>
+                    style={{top: '49px', width: '232px', right: '40px'}}>
                     <span>
                         <div className="ContextualPopover" style={{transformOrigin: '100% 0px 0px'}}>
                             <div className="ContextualPopover-arrowContainer">
@@ -74,7 +73,6 @@ const mapDispatchToProps = dispatch => {
 
 ProfileMenu.propTypes = {
     visible: PropTypes.bool,
-    hideProfileMenu: PropTypes.func.isRequired
 }
 
 ProfileMenu.contextTypes = {

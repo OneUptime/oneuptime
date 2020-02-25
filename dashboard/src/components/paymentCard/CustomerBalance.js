@@ -16,6 +16,8 @@ import {
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
+import { logEvent } from '../../analytics';
+import { IS_DEV, env } from '../../config';
 
 function validate(value) {
 
@@ -32,7 +34,7 @@ function validate(value) {
 
 export class CustomerBalance extends Component {
 
-    state = { 
+    state = {
         MessageBoxId: uuid.v4()
     }
 
@@ -41,24 +43,24 @@ export class CustomerBalance extends Component {
         const { addBalance, projectId, openModal } = this.props;
         const { MessageBoxId } = this.state;
 
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Add amount to balance', values);
+        if (!IS_DEV) {
+            logEvent('Add amount to balance', values);
         }
         if (rechargeBalanceAmount) {
             addBalance(projectId, values)
-            .then(() => {
-                const { paymentIntent } = this.props;
-                this.handlePaymentIntent(paymentIntent.client_secret);
+                .then(() => {
+                    const { paymentIntent } = this.props;
+                    this.handlePaymentIntent(paymentIntent.client_secret);
 
-            })
-            .catch((err) => {
-                openModal({
-                    id: MessageBoxId,
-                    content: MessageBox,
-                    title: 'Message',
-                    message: err.message
                 })
-            })
+                .catch((err) => {
+                    openModal({
+                        id: MessageBoxId,
+                        content: MessageBox,
+                        title: 'Message',
+                        message: err.message
+                    })
+                })
         }
     }
     handlePaymentIntent = (paymentIntentClientSecret) => {
@@ -67,12 +69,12 @@ export class CustomerBalance extends Component {
         stripe.handleCardPayment(paymentIntentClientSecret)
             .then(result => {
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                    var creditedBalance = result.paymentIntent.amount / 100; 
+                    const creditedBalance = result.paymentIntent.amount / 100;
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
                         title: 'Message',
-                        message: `Transaction successful, your balance is now ${balance+creditedBalance}$`
+                        message: `Transaction successful, your balance is now ${balance + creditedBalance}$`
                     })
                     getProjects()
                 }
@@ -89,7 +91,7 @@ export class CustomerBalance extends Component {
     render() {
         const { balance } = this.props;
         return (
-            <div className="db-World-contentPane Box-root">
+            <div className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -97,11 +99,11 @@ export class CustomerBalance extends Component {
                                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                     <div className="Box-root">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>Current Balance</span>
+                                            <span>Alerts: Current Account Balance</span>
                                         </span>
                                         <p>
                                             <span>
-                                                Manage your fyipe account balance.
+                                                This balance will be use to send SMS and call alerts.
                                             </span>
                                         </p>
                                     </div>
@@ -117,7 +119,9 @@ export class CustomerBalance extends Component {
                                                         <label className="Checkbox">
                                                             <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
                                                                 <label>
-                                                                    This balance will be used to send alerts. If the balance is below a certain criteria, alerts will not be sent.
+                                                                    This balance will be used to send SMS and Call alerts. If the balance is below a certain criteria, alerts will not be sent.
+                                                                    <br /><br />
+                                                                    Please make sure you have multiple backups cards added to Fyipe to ensure alert deliverability.
                                                                 </label>
                                                             </div>
                                                         </label>
@@ -132,7 +136,7 @@ export class CustomerBalance extends Component {
                                                         <label className="Checkbox">
                                                             <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
                                                                 <label>
-                                                                    <p>Balance: <span style={{ fontWeight: 'bold' }}>{`${balance}$`}</span></p>
+                                                                    <p>Current balance: <span style={{ fontWeight: 'bold' }}>{`${balance}$`}</span></p>
                                                                 </label>
                                                             </div>
                                                         </label>
@@ -166,7 +170,7 @@ export class CustomerBalance extends Component {
                                                 type="submit"
                                             >
                                                 <ShouldRender if={!this.props.isRequesting}>
-                                                    <span>Add</span>
+                                                    <span>Recharge Account</span>
                                                 </ShouldRender>
                                                 <ShouldRender if={this.props.isRequesting}>
                                                     <FormLoader />
@@ -193,16 +197,16 @@ CustomerBalance.propTypes = {
     projectId: PropTypes.string,
     balance: PropTypes.number,
     openModal: PropTypes.func,
-    paymentIntent: PropTypes.string,
+    paymentIntent: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
     stripe: PropTypes.object,
     getProjects: PropTypes.func
 }
 
-let formName = 'CustomerBalance' + Math.floor((Math.random() * 10) + 1);
+const formName = 'CustomerBalance' + Math.floor((Math.random() * 10) + 1);
 
-let onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
+const onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
 
-let CustomerBalanceForm = new reduxForm({
+const CustomerBalanceForm = new reduxForm({
     form: formName,
     enableReinitialize: true,
     validate,
@@ -223,19 +227,15 @@ const mapStateToProps = state => (
     }
 )
 
-CustomerBalance.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
-
-const _CustomerBalanceForm = injectStripe(connect(mapStateToProps, mapDispatchToProps)(CustomerBalanceForm));
+const CustomerBalanceFormStripe = injectStripe(connect(mapStateToProps, mapDispatchToProps)(CustomerBalanceForm));
 
 export default class CustomerBalanceWithCheckout extends Component {
     render() {
         return (
-            <StripeProvider apiKey="pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv">
-                    <Elements>
-                        <_CustomerBalanceForm />
-                    </Elements>
+            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
+                <Elements>
+                    <CustomerBalanceFormStripe />
+                </Elements>
             </StripeProvider>
         )
     }

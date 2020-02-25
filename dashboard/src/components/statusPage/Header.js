@@ -15,7 +15,7 @@ export class StatusHeader extends Component {
                         <div className="Box-root">
                             <p>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Status Page: {statusPage.status.title || 'Status Page'}</span>
+                                    <span>Status Page: {statusPage.status.name || 'Status Page'}</span>
                                 </span>
                             </p>
                             <p><span>Status page lets your customers and your team see the current status of your monitors.</span></p>
@@ -42,9 +42,5 @@ const mapStateToProps = state => {
     const { statusPage} = state;
     return { statusPage };
 }
-
-StatusHeader.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(StatusHeader);

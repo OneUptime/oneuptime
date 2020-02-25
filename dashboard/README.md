@@ -32,4 +32,4 @@ To run puppeteer tests for this repo, follow these steps:
 - Start the backend server
 - Start the accounts application
 - Start the dashboard application
-- Then run ```npm run jest``` from your terminal
+- Then run ```npm run test``` from your terminal

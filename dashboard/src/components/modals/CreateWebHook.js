@@ -5,11 +5,11 @@ import { bindActionCreators } from 'redux';
 import { Validate } from '../../config';
 import { reduxForm, Field } from 'redux-form';
 import { createWebHookRequest, createWebHook, createWebHookSuccess, createWebHookError } from '../../actions/webHook';
-import MultiSelectMonitor from '../multiSelect/MultiSelectMonitor';
+import { ValidateField } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import { RadioInput } from '../webHooks/RadioInput';
 import { RenderField } from '../basic/RenderField';
+import { RenderSelect } from '../basic/RenderSelect';
 
 function validate(values) {
 
@@ -18,12 +18,6 @@ function validate(values) {
 	if (!Validate.url(values.endpoint)) {
 		errors.endpoint = 'Webhook url is required!'
 	}
-	if (!values.monitorIds) {
-		errors.monitorIds = 'Atleast one monitor is required!'
-	}
-	else if (!values.monitorIds.length) {
-		errors.monitorIds = 'Atleast one monitor is required!'
-	}
 
 	return errors;
 }
@@ -31,17 +25,21 @@ function validate(values) {
 class CreateWebHook extends React.Component {
 
 	submitForm = (values) => {
-		const { createWebHook, closeThisDialog } = this.props;
+		const { createWebHook, closeThisDialog, data: { monitorId } } = this.props;
 		const postObj = {};
 		postObj.endpoint = values.endpoint;
-		postObj.monitorIds = values.monitorIds;
 		postObj.endpointType = values.endpointType;
+		postObj.monitorId = monitorId ? monitorId : values.monitorId;
 		postObj.type = 'webhook';
+		postObj.incidentCreated = values.incidentCreated ? values.incidentCreated : false;
+		postObj.incidentResolved = values.incidentResolved ? values.incidentResolved : false;
+		postObj.incidentAcknowledged = values.incidentAcknowledged ? values.incidentAcknowledged : false;
 
-		postObj.monitorIds = postObj.monitorIds.map(({ value }) => value);
 		createWebHook(this.props.currentProject._id, postObj)
 			.then(() => {
-				closeThisDialog();
+				if (this.props.newWebHook && !this.props.newWebHook.error) {
+					closeThisDialog();
+				}
 			});
 	}
 
@@ -55,7 +53,7 @@ class CreateWebHook extends React.Component {
 	}
 
 	render() {
-		const { handleSubmit, closeThisDialog } = this.props;
+		const { handleSubmit, closeThisDialog, data: { monitorId } } = this.props;
 		const monitorList = [];
 		const allMonitors = this.props.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
 		if (allMonitors && allMonitors.length > 0) {
@@ -100,8 +98,65 @@ class CreateWebHook extends React.Component {
 																	type="url"
 																	placeholder="Enter webhook url"
 																	id="endpoint"
-																	className="bs-TextInput bs-Button"
+																	className="db-BusinessSettings-input TextInput bs-TextInput"
 																	style={{ width: 300, padding: '3px 5px' }}
+																/>
+															</div>
+														</div>
+													</div>
+												</div>
+											</fieldset>
+
+											<ShouldRender if={!monitorId}>
+												<fieldset className="Margin-bottom--16">
+													<div className="bs-Fieldset-rows">
+														<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+															<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId">
+																<span>Monitor</span>
+															</label>
+															<div className="bs-Fieldset-fields">
+																<div className="bs-Fieldset-field" style={{ width: '300px' }}>
+																	<Field
+																		component={RenderSelect}
+																		name="monitorId"
+																		id="monitorId"
+																		placeholder="Select monitor"
+																		disabled={this.props.newWebHook.requesting}
+																		validate={ValidateField.select}
+																		options={[
+																			{ value: '', label: 'Select monitor' },
+																			...(monitorList && monitorList.length > 0 ? monitorList.map(monitor => ({ value: monitor.value, label: monitor.label })) : [])
+																		]}
+																		className="db-select-nw db-MultiSelect-input"
+																	/>
+																</div>
+															</div>
+														</div>
+													</div>
+												</fieldset>
+											</ShouldRender>
+
+											<fieldset className="Margin-bottom--16">
+												<div className="bs-Fieldset-rows">
+													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId">
+															<span>Endpoint Type</span>
+														</label>
+														<div className="bs-Fieldset-fields">
+															<div className="bs-Fieldset-field" style={{ width: '300px' }}>
+																<Field
+																	component={RenderSelect}
+																	name="endpointType"
+																	id="endpointType"
+																	placeholder="Select endpoint type"
+																	disabled={this.props.newWebHook.requesting}
+																	validate={ValidateField.select}
+																	options={[
+																		{ value: '', label: 'Select endpoint type' },
+																		{ value: 'get', label: 'GET' },
+																		{ value: 'post', label: 'POST' },
+																	]}
+																	className="db-select-nw db-MultiSelect-input"
 																/>
 															</div>
 														</div>
@@ -112,56 +167,90 @@ class CreateWebHook extends React.Component {
 											<fieldset className="Margin-bottom--16">
 												<div className="bs-Fieldset-rows">
 													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorIds">
-															<span>Monitors</span>
-														</label>
-														<div className="bs-Fieldset-fields">
-															<div className="bs-Fieldset-field" style={{ width: '300px' }}>
-																<Field
-																	component={MultiSelectMonitor}
-																	name="monitorIds"
-																	id="monitorIds"
-																	placeholder="Select monitors"
-																	data={monitorList}
-																	valueField="value"
-																	textField="label"
-																	className="bs-TextInput bs-Button db-MultiSelect-input"
-																/>
+														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
+														<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
+															<div className="bs-Fieldset-field">
+																<label className="Checkbox" style={{ marginRight: '12px' }}>
+																	<Field
+																		component="input"
+																		type="checkbox"
+																		name='incidentCreated'
+																		className="Checkbox-source"
+																		id='incidentCreated'
+																	/>
+																	<div className="Checkbox-box Box-root Margin-right--2">
+																		<div className="Checkbox-target Box-root">
+																			<div className="Checkbox-color Box-root"></div>
+																		</div>
+																	</div>
+																	<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+																		<label><span>Ping when incident is Created</span></label>
+																	</div>
+																</label>
 															</div>
 														</div>
 													</div>
 												</div>
 											</fieldset>
 
-											<fieldset className="Margin-bottom--8">
+											<fieldset className="Margin-bottom--16">
 												<div className="bs-Fieldset-rows">
 													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-														<label className="bs-Fieldset-label Text-align--left" htmlFor="endpointType">
-															<span>Endpoint Type</span>
-														</label>
-														<div className="bs-Fieldset-fields">
-															<div className="bs-Fieldset-field" style={{ width: '70%' }}>
-																<div className="Flex-flex ">
-																	<RadioInput
-																		value="get"
-																		details="GET"
-																		id="endpointType"
+														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
+														<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
+															<div className="bs-Fieldset-field">
+																<label className="Checkbox" style={{ marginRight: '12px' }}>
+																	<Field
+																		component="input"
+																		type="checkbox"
+																		name='incidentAcknowledged'
+																		className="Checkbox-source"
+																		id='incidentAcknowledged'
 																	/>
-																	<div style={{ paddingTop: 5, marginLeft: 40 }}>
-																		<RadioInput
-																			value="post"
-																			details="POST"
-																			id="endpointType"
-																		/>
+																	<div className="Checkbox-box Box-root Margin-right--2">
+																		<div className="Checkbox-target Box-root">
+																			<div className="Checkbox-color Box-root"></div>
+																		</div>
 																	</div>
-																</div>
+																	<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+																		<label><span>Ping when incident is Acknowledged</span></label>
+																	</div>
+																</label>
+															</div>
+														</div>
+													</div>
+												</div>
+											</fieldset>
+
+											<fieldset className="Margin-bottom--16">
+												<div className="bs-Fieldset-rows">
+													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
+														<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
+															<div className="bs-Fieldset-field">
+																<label className="Checkbox" style={{ marginRight: '12px' }}>
+																	<Field
+																		component="input"
+																		type="checkbox"
+																		name='incidentResolved'
+																		className="Checkbox-source"
+																		id='incidentResolved'
+																	/>
+																	<div className="Checkbox-box Box-root Margin-right--2">
+																		<div className="Checkbox-target Box-root">
+																			<div className="Checkbox-color Box-root"></div>
+																		</div>
+																	</div>
+																	<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+																		<label><span>Ping when incident is Resolved</span></label>
+																	</div>
+																</label>
 															</div>
 														</div>
 													</div>
 												</div>
 											</fieldset>
 										</div>
-
 									</div>
 								</div>
 							</div>
@@ -184,7 +273,7 @@ class CreateWebHook extends React.Component {
 									<button
 										className="bs-Button bs-DeprecatedButton bs-Button--blue"
 										disabled={this.props.newWebHook && this.props.newWebHook.requesting}
-										type="submit">
+										type="submit" id="createWebhook">
 										{this.props.newWebHook && !this.props.newWebHook.requesting && <span>Create</span>}
 										{this.props.newWebHook && this.props.newWebHook.requesting && <FormLoader />}
 									</button>
@@ -200,20 +289,17 @@ class CreateWebHook extends React.Component {
 
 CreateWebHook.displayName = 'CreateWebHook';
 
-CreateWebHook.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
-
 CreateWebHook.propTypes = {
 	currentProject: PropTypes.object,
 	createWebHook: PropTypes.func.isRequired,
 	closeThisDialog: PropTypes.func.isRequired,
 	handleSubmit: PropTypes.func.isRequired,
 	monitor: PropTypes.object,
-	newWebHook: PropTypes.object
+	newWebHook: PropTypes.object,
+	data: PropTypes.object,
 };
 
-let NewCreateWebHook = reduxForm({
+const NewCreateWebHook = reduxForm({
 	form: 'newCreateWebHook', // a unique identifier for this form
 	enableReinitialize: true,
 	validate, // <--- validation function given to redux-for
@@ -235,7 +321,7 @@ const mapStateToProps = state => (
 		monitor: state.monitor,
 		currentProject: state.project.currentProject,
 		newWebHook: state.webHooks.createWebHook,
-		initialValues: { endpoint: '', endpointType: 'get', monitorIds: [] }
+		initialValues: { endpoint: '', endpointType: '', monitorId: '' }
 	}
 );
 

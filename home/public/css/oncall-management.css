@@ -16,7 +16,7 @@ main .stripes{
 }
 main .common-UppercaseTitle{
     margin-bottom:20px;
-    color:#32325d
+    color:#000000
 }
 main .common-UppercaseTitle img{
     display:block;
@@ -45,12 +45,6 @@ main .overlay.active{
 body{
     overflow-x:hidden
 }
-.globalNav .colorize,.productNav a.home,.productNav a.home:hover{
-    color:#fff
-}
-.globalNav .colorize.active,.globalNav .colorize:hover{
-    color:hsla(0,0%,100%,.75)
-}
 .productNav .colorize{
     color:#3d7bb7
 }
@@ -76,7 +70,7 @@ main header .stripes{
     top:0;
     grid:repeat(5,200px)/repeat(10,1fr);
     transform-origin:0;
-    background:linear-gradient(#507eb1,#709dc7 10%,#dde9f5 38%,#eaf2f9 48%,#f6f9fc 62%)
+    background:linear-gradient(#507eb1,#709dc7 10%,#dde9f5 38%,#eaf2f9 48%,#f9f9f9 62%)
 }
 main header .stripes :nth-child(1){
     grid-column:span 3;
@@ -216,7 +210,7 @@ main header .stripes :nth-child(5){
     border-radius:20px;
     background:hsla(0,0%,100%,.92);
     box-shadow:0 5px 10px rgba(153,107,46,.1);
-    color:#299fc4;
+    color:#000000;
     opacity:0;
     transition:transform .15s ease,opacity .7s;
     will-change:opacity;
@@ -238,12 +232,12 @@ main header .stripes :nth-child(5){
     width:12px;
     height:14px;
     margin-right:9px;
-    fill:#299fc4;
+    fill:#000000;
     transition:fill .2s
 }
 @media (min-width:670px){
     #header-hero .common-Button:hover svg{
-        fill:#00c2ff
+        fill:#000000
     }
 }
 #header-hero .cubes{
@@ -340,13 +334,13 @@ main header .stripes :nth-child(5){
 }
 #intro li:first-child .common-Button{
     color:#fff;
-    background-color:#00c2ff
+    background-color:#000000
 }
 #intro li:first-child .common-Button:active{
-    background-color:#24b47e
+    background-color:#000000
 }
 #intro li:last-child .common-Button{
-    color:#299fc4
+    color:#000000
 }
 @media (min-width:670px){
     #intro{
@@ -448,7 +442,7 @@ main header .stripes :nth-child(5){
     grid:repeat(2,200px)/1fr minmax(0,1000px) 1fr;
     -ms-flex-line-pack:justify;
     align-content:space-between;
-    background:linear-gradient(100grad,#545fdd,#14aad9 50%)
+    background:linear-gradient(100grad,#545fdd,#000000 50%)
 }
 @media (min-width:670px){
     #comparison .stripes{
@@ -518,11 +512,11 @@ main header .stripes :nth-child(5){
     border-radius:4px 4px 0 0
 }
 #comparison section:first-child .common-Uppercase{
-    color:#525f7f;
+    color:#000000;
     background:#f4f8fb
 }
 #comparison section:last-child .common-Uppercase{
-    color:#24b47e;
+    color:#000000;
     background:#f2feef
 }
 #comparison .common-BodyText{
@@ -567,11 +561,11 @@ main header .stripes :nth-child(5){
 }
 #comparison li:first-child .label{
     margin-left:7px;
-    background:#68d4f8
+    background:#000000
 }
 #comparison li:nth-child(2) .label{
     margin-left:18%;
-    background:#7795f8
+    background:#797979
 }
 #comparison li:nth-child(3) .label{
     margin-left:24%;
@@ -691,10 +685,10 @@ main header .stripes :nth-child(5){
     display:flex;
     -ms-flex-align:center;
     align-items:center;
-    color:#24b47e
+    color:#000000
 }
 #routing-diagram-legend li:nth-child(2){
-    color:#3297d3
+    color:#000000
 }
 #routing-diagram-legend li:last-child{
     color:#d782d9
@@ -780,7 +774,7 @@ main header .stripes :nth-child(5){
     padding-left:14px;
     font-size:15px;
     line-height:22px;
-    color:#6b7c93;
+    color:#797979;
     will-change:opacity;
     margin-top:calc(var(--diagram-height) + 20px)
 }
@@ -943,7 +937,7 @@ main header .stripes :nth-child(5){
     grid:repeat(2,200px)/repeat(3,1fr);
     -ms-flex-line-pack:justify;
     align-content:space-between;
-    background:linear-gradient(192deg,#b2cbe1,#f6f9fc 42%)
+    background:linear-gradient(192deg,#b2cbe1,#f9f9f9 42%)
 }
 #onboarding-verification .stripes :first-child{
     grid-column:3;
@@ -951,7 +945,7 @@ main header .stripes :nth-child(5){
 }
 @media (min-width:880px){
     #onboarding-verification .stripes :last-child{
-        background:linear-gradient(100grad,#74e4a2,#24b47e)
+        background:linear-gradient(100grad,#74e4a2,black)
     }
 }
 #onboarding-verification .phone{
@@ -974,12 +968,12 @@ main header .stripes :nth-child(5){
 #onboarding-verification .phone .screen{
     --screen-width:390px;
     --form-spacing:25px;
-    --form-separator:#e6ebf1;
+    --form-separator:#fdfdfd;
     position:relative;
     width:var(--screen-width);
     height:690px;
     border-radius:6px;
-    background:linear-gradient(#f6f9fc 70%,#fff);
+    background:linear-gradient(#f9f9f9 70%,#fff);
     overflow:hidden;
     transform:scale(.82051);
     transform-origin:0 0;
@@ -1178,7 +1172,7 @@ main header .stripes :nth-child(5){
     display:-ms-flexbox;
     display:flex;
     font-size:17px;
-    color:#525f7f
+    color:#000000
 }
 #hestia-flow .fake-input .space{
     width:4px
@@ -1191,7 +1185,7 @@ main header .stripes :nth-child(5){
     line-height:50px;
     color:#fff;
     text-transform:uppercase;
-    background-color:#14aad9
+    background-color:#000000
 }
 #hestia-flow .fake-button:after{
     content:"";
@@ -1204,7 +1198,7 @@ main header .stripes :nth-child(5){
 }
 #hestia-flow>section h1{
     text-transform:uppercase;
-    color:#32325d;
+    color:#000000;
     font-size:15px;
     font-weight:600;
     margin-bottom:19px
@@ -1278,7 +1272,7 @@ main header .stripes :nth-child(5){
 #hestia-verification .fake-keyboard:after,#hestia-verification .fake-keyboard:before{
     content:"";
     grid-row:4;
-    background:#f6f9fc
+    background:#f9f9f9
 }
 #hestia-bank-info{
     display:grid;
@@ -1304,7 +1298,7 @@ main header .stripes :nth-child(5){
 #hestia-card-selection .group-row:first-child{
     border:none;
     background:#f9fff7;
-    color:#24b47e;
+    color:#000000;
     font-size:17px;
     font-weight:500;
     line-height:50px;
@@ -1316,7 +1310,7 @@ main header .stripes :nth-child(5){
     display:flex;
     -ms-flex-align:center;
     align-items:center;
-    color:#32325d;
+    color:#000000;
     font-weight:600;
     font-size:15px;
     text-transform:uppercase
@@ -1338,7 +1332,7 @@ main header .stripes :nth-child(5){
     width:18px;
     height:18px;
     border-radius:10px;
-    border:1px solid #cfd7df;
+    border:1px solid #dbdbdb;
     top:-1px;
     left:15px
 }
@@ -1347,7 +1341,7 @@ main header .stripes :nth-child(5){
     width:12px;
     height:12px;
     border-radius:6px;
-    background:#14aad9;
+    background:#000000;
     opacity:0;
     top:3px;
     left:19px
@@ -1435,7 +1429,7 @@ main header .stripes :nth-child(5){
 #onboarding-verification .content button{
     padding-left:42px;
     margin-top:2em;
-    color:#24b47e;
+    color:#000000;
     background:#fff url(/img/v3/connect/features/view-onboarding-demo.svg) no-repeat 9px 50%;
     background-size:24px 24px
 }
@@ -1474,7 +1468,7 @@ main header .stripes :nth-child(5){
     background:linear-gradient(100grad,#fff 45%,#fafdfe)
 }
 #compliance .stripes :last-child{
-    background:linear-gradient(100grad,#68d4f8,#5ac7f1)
+    background:linear-gradient(100grad,#000000,#5ac7f1)
 }
 #compliance .common-UppercaseTitle{
     padding-top:75px;
@@ -1490,7 +1484,7 @@ main header .stripes :nth-child(5){
     margin-top:30px;
     padding:22px 20px 18px;
     border-radius:4px;
-    background:#f6f9fc
+    background:#f9f9f9
 }
 #compliance h2{
     margin-bottom:18px;
@@ -1547,7 +1541,7 @@ main header .stripes :nth-child(5){
 }
 #compliance .eu-guide .common-Button--default:active{
     color:#fff;
-    background-color:#24b47e
+    background-color:#000000
 }
 @media (min-width:670px){
     #compliance .eu-guide{
@@ -1729,7 +1723,7 @@ main header .stripes :nth-child(5){
 }
 #dashboard-connected-accounts .active{
     font-weight:600;
-    color:#14aad9
+    color:#000000
 }
 #connected-accounts-nav{
     -ms-flex:0 0 256px;
@@ -1763,7 +1757,7 @@ main header .stripes :nth-child(5){
     display:-ms-flexbox;
     display:flex;
     padding-bottom:3px;
-    color:#525f7f
+    color:#000000
 }
 #connected-accounts-subnav li+li{
     margin-left:25px
@@ -1774,11 +1768,11 @@ main header .stripes :nth-child(5){
     background:#fff;
     box-shadow:0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08);
     overflow:hidden;
-    color:#8898aa
+    color:#757575
 }
 #connected-accounts-view section h2{
     padding:20px;
-    border-bottom:2px solid #e6ebf1;
+    border-bottom:2px solid #fdfdfd;
     text-transform:uppercase;
     font-size:1em;
     color:#424770
@@ -1791,7 +1785,7 @@ main header .stripes :nth-child(5){
     padding:14px 20px
 }
 #connected-accounts-view section li:nth-child(2n){
-    background:#f6f9fc
+    background:#f9f9f9
 }
 #connected-accounts-view section svg{
     width:16px
@@ -1826,14 +1820,14 @@ main header .stripes :nth-child(5){
     color:#45b2e8
 }
 #connected-accounts-recent path:first-child{
-    fill:#68d4f8
+    fill:#000000
 }
 #connected-accounts-recent path:last-child{
     fill:#45b2e8
 }
 #connected-accounts-recent .state-badge{
     color:#45b2e8;
-    border-color:#68d4f8
+    border-color:#000000
 }
 #international-support:before{
     content:"";
@@ -1890,7 +1884,7 @@ main header .stripes :nth-child(5){
 }
 #international-support a{
     font-weight:500;
-    color:#14aad9;
+    color:#000000;
     transition:color .2s
 }
 #international-support a svg{
@@ -1904,7 +1898,7 @@ main header .stripes :nth-child(5){
 }
 #international-support aside{
     font-size:15px;
-    color:#6b7c93;
+    color:#797979;
     box-shadow:0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08);
     border-radius:4px;
     margin-top:1.5em
@@ -2041,7 +2035,7 @@ main header .stripes :nth-child(5){
 }
 #features-list .sub-list li{
     padding:5px 0;
-    border-top:1px solid #f6f9fc
+    border-top:1px solid #f9f9f9
 }
 @media (min-width:670px){
     #features-list .main-list{
@@ -2060,7 +2054,7 @@ main header .stripes :nth-child(5){
         border:none
     }
     #features-list .sub-list li:nth-child(4n+1),#features-list .sub-list li:nth-child(4n - 2){
-        background:#f6f9fc
+        background:#f9f9f9
     }
 }
 #features-list .container-lg>p.common-BodyText{
@@ -2072,7 +2066,7 @@ main header .stripes :nth-child(5){
     position:relative;
     overflow:hidden;
     margin-top:60px;
-    background:linear-gradient(-12deg,#7795f8 50%,#14aad9 80%,#555abf)
+    background:linear-gradient(-12deg,#797979 50%,#000000 80%,#555abf)
 }
 #code-examples .stripes{
     z-index:0;
@@ -2085,7 +2079,7 @@ main header .stripes :nth-child(5){
     grid-column-end:-1
 }
 #code-examples .stripes :first-child{
-    background:linear-gradient(100grad,rgba(103,114,229,0),rgba(103,114,229,.3) 50%,#14aad9)
+    background:linear-gradient(100grad,rgba(103,114,229,0),rgba(103,114,229,.3) 50%,#000000)
 }
 #code-examples .stripes :last-child{
     grid-column-start:span 2;
@@ -2131,7 +2125,7 @@ main header .stripes :nth-child(5){
     position:absolute;
     width:100%;
     border-radius:4px;
-    background:#68d4f8;
+    background:#000000;
     box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08);
     will-change:transform;
     transform-origin:50% 0;
@@ -2272,7 +2266,7 @@ main footer.container-lg{
 }
 main footer.container-lg .common-Uppercase{
     margin:2.2em 0 1em;
-    color:#24b47e
+    color:#000000
 }
 main footer.container-lg .common-Link{
     margin-top:1em
@@ -2306,7 +2300,7 @@ code .token.property{
     font-weight:500
 }
 .language-php .token.operator,code .token.atrule,code .token.keyword{
-    color:#14aad9
+    color:#000000
 }
 code.language-markup .token.namespace,code .token.attr-name,code .token.selector,code .token.tag,code .token.tag *{
     color:#0075d6
@@ -2323,7 +2317,7 @@ code .token.comment{
 }
 code.language-url,code .token.function,code .token.url{
     font-weight:600;
-    color:#3297d3
+    color:#000000
 }
 .language-ruby .token.constant+.token.punctuation,.language-ruby .token.constant+.token.punctuation+.token.symbol,code .token.boolean,code .token.builtin,code .token.class-name,code .token.constant,code .token.namespace{
     font-weight:600;

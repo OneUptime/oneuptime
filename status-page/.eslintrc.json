@@ -8,7 +8,6 @@
         },
         "sourceType": "module"
     },
-
     "env": {
         "browser": true,
         "node": true,
@@ -16,20 +15,20 @@
         "es6": true,
         "mocha": true
     },
-
     "plugins": [
-        "react"
+        "react",
+        "jsx-a11y"
     ],
     "settings": {
         "react": {
             "version": "16.3.2"
         }
     },
-
-    "extends": ["eslint:recommended", "plugin:react/recommended"],
-
+    "extends": [
+        "eslint:recommended",
+        "plugin:react/recommended"
+    ],
     "parser": "babel-eslint",
-
     "rules": {
         "no-fallthrough": "error",
         "no-unreachable": "error",
@@ -38,6 +37,10 @@
         "valid-typeof": "error",
         "no-func-assign": "error",
         "no-extra-semi": "error",
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
         "no-unused-vars": [
             "error",
             {
@@ -54,12 +57,18 @@
         "no-mixed-spaces-and-tabs": "error",
         "no-useless-escape": "error",
         "react/jsx-no-undef": "error",
-        "quotes": ["error", "single"],
-        "react/jsx-no-bind": ["error", {
-            "allowArrowFunctions": true,
-            "allowBind": false,
-            "ignoreRefs": false
-        }],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "react/jsx-no-bind": [
+            "error",
+            {
+                "allowArrowFunctions": true,
+                "allowBind": false,
+                "ignoreRefs": false
+            }
+        ],
         "react/no-children-prop": "error",
         "react/no-deprecated": "error",
         "react/no-array-index-key": "off",
@@ -75,10 +84,24 @@
         "react/prop-types": "error",
         "react/react-in-jsx-scope": "error",
         "react/no-string-refs": "warn",
-        "jsx-a11y/href-no-hash": [0],
+        "jsx-a11y/href-no-hash": [
+            0
+        ],
         "react/no-unescaped-entities": "error",
-        "react/display-name": ["error", {
-            "ignoreTranspilerName": true
-        }]
+        "react/display-name": [
+            "error",
+            {
+                "ignoreTranspilerName": true
+            }
+        ],
+        "eqeqeq": "error",
+        "jsx-a11y/anchor-is-valid": "error",
+        "array-callback-return": "error",
+        "no-loop-func": "error",
+        "prefer-const": ["error", {
+            "destructuring": "any",
+            "ignoreReadBeforeAssign": false
+        }],
+        "no-var": "error"
     }
 }

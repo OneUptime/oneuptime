@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-let loaderStyle = {
+const loaderStyle = {
     backgroundColor: '#96d8ff'
 }
 
@@ -13,11 +13,11 @@ export const FormLoader = () => (<div className="ball-beat"><div style={{ height
 
 FormLoader.displayName = 'FormLoader'
 
-export const ListLoader = () => (<div className="ball-beat" style={{ textAlign: 'center', marginTop: '20px' }}><div style={{ height: '8px', width: '8px', backgroundColor: '#32325d' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#32325d' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#32325d' }}></div></div>);
+export const ListLoader = () => (<div className="ball-beat" style={{ textAlign: 'center', marginTop: '20px' }}><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div></div>);
 
 ListLoader.displayName = 'ListLoader'
 
-export const TeamListLoader = () => (<div className="ball-beat" style={{ textAlign: 'center',width:'95px'}}><div style={{ height: '8px', width: '8px', backgroundColor: '#32325d' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#32325d' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#32325d' }}></div></div>);
+export const TeamListLoader = () => (<div className="ball-beat" style={{ textAlign: 'center',width:'95px'}}><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div></div>);
 
 TeamListLoader.displayName = 'TeamListLoader'
 
@@ -40,6 +40,27 @@ export const Spinner = () => (
 )
 
 Spinner.displayName = 'Spinner'
+
+export const ButtonSpinner = () => (
+    <div className="Spinner bs-SpinnerLegacy Spinner--color--white Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: 4 }}>
+        <svg
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+			className="Spinner-svg"
+			style={{ width: 25, height: 25 }}
+        >
+            <ellipse
+                cx={12}
+                cy={12}
+                rx={10}
+                ry={10}
+                className="Spinner-ellipse"
+            />
+        </svg>
+    </div>
+)
+
+ButtonSpinner.displayName = 'ButtonSpinner'
 
 export const LoadingState = () => (
 	<div className="Box-root Margin-bottom--12">

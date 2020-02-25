@@ -1,57 +1,17 @@
+#!/bin/bash
+
+# This script runs the local development server in Docker.
 if [[ ! $(which docker) && ! $(docker  --version) ]]
 then
   echo -e "\033[91mPlease install Docker. https://docs.docker.com/install"
   exit
 fi
 
-if [[ ! $(which git) && ! $(docker --git) ]]
-then
-  echo -e "\033[91mPlease install Git. https://git-scm.com/book/en/v2/Getting-Started-Installing-Git"
-  exit
-fi
+sudo chmod +x ./uninstall.sh
+sudo ./uninstall.sh
 
-if [[ ! $(which node) ]]
-then
-  echo -e "\033[91mPlease install Node."
-  exit
-fi
+# Sleep 
+sleep 5s
 
-if [[ ! $(which npm) ]]
-then
-  echo -e "\033[91mPlease install npm."
-  exit
-fi
-
-cd accounts
-npm install
-cd ..
-
-cd api-docs
-npm install
-cd ..
-
-cd backend
-npm install
-cd ..
-
-cd dashboard
-npm install
-cd ..
-
-cd home
-npm install
-cd ..
-
-cd status-page
-npm install
-cd ..
-
-cd probe
-npm install
-cd ..
-
-
-
-
-
-
+#Docker compose up as a daemon.
+sudo docker-compose up -d --build

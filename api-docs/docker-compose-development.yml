@@ -1,9 +1,0 @@
-web:
-  build: .
-  dockerfile: Dockerfile-development
-  ports:
-   - "1445:1445"
-  volumes:
-   - .:/usr/src/app/
-  environment:
-   NODE_ENV: development 

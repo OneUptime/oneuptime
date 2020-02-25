@@ -1,22 +1,26 @@
 process.env.PORT = 3020;
-let expect = require('chai').expect;
-let userData = require('./data/user');
-let chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-let app = require('../server');
-let request = chai.request.agent(app);
+const app = require('../server');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
 
-var incidentData = require('./data/incident');
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var IncidentService = require('../backend/services/incidentService');
-var MonitorService = require('../backend/services/monitorService');
-var NotificationService = require('../backend/services/notificationService');
-var SubscriberAlertService = require('../backend/services/subscriberAlertService');
-var SubscriberService = require('../backend/services/subscriberService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+const incidentData = require('./data/incident');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const IncidentService = require('../backend/services/incidentService');
+const MonitorService = require('../backend/services/monitorService');
+const NotificationService = require('../backend/services/notificationService');
+const SubscriberAlertService = require('../backend/services/subscriberAlertService');
+const SubscriberService = require('../backend/services/subscriberService');
+const AirtableService = require('../backend/services/airtableService');
 
-var token, userId, projectId, monitorId, incidentId, subscriberId, monitor = {
+const VerificationTokenModel = require('../backend/models/verificationToken');
+
+let token, userId, airtableId, projectId, monitorId, incidentId, subscriberId;
+const monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -26,10 +30,12 @@ describe('Subcriber Alert API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -37,7 +43,7 @@ describe('Subcriber Alert API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${token}`;
+                        const authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
                             monitorId = res.body._id;
                             request.post(`/incident/${projectId}/${monitorId}`).set('Authorization', authorization)
@@ -61,6 +67,7 @@ describe('Subcriber Alert API', function () {
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await SubscriberService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should create subscriber alert with valid incidentId, alertVia', (done) => {

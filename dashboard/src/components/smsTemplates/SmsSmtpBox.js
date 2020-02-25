@@ -16,6 +16,8 @@ import IsOwner from '../basic/IsOwner';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class SmsSmtpBox extends Component {
     constructor(props) {
@@ -60,7 +62,7 @@ export class SmsSmtpBox extends Component {
 
 
     submitForm = (values) => {
-        var { smtpConfigurations, updateSmtpConfig, postSmtpConfig, currentProject } = this.props;
+        const { smtpConfigurations, updateSmtpConfig, postSmtpConfig, currentProject } = this.props;
 
         if (values.smssmtpswitch) {
             if (smtpConfigurations.config && smtpConfigurations.config._id) {
@@ -73,8 +75,8 @@ export class SmsSmtpBox extends Component {
         else if (smtpConfigurations.config._id) {
             this.props.deleteSmtpConfig(this.props.currentProject._id, smtpConfigurations.config._id, values);
         }
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Changed sms smtp configuration', {});
+        if (!IS_DEV) {
+            logEvent('Changed sms smtp configuration', {});
         }
     }
 
@@ -85,7 +87,7 @@ export class SmsSmtpBox extends Component {
     render() {
         const { handleSubmit } = this.props;
         return (
-            <div className="db-World-contentPane Box-root" style={{paddingTop: 0}}>
+            <div className="db-World-contentPane Box-root" style={{ paddingTop: 0 }}>
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -155,7 +157,7 @@ export class SmsSmtpBox extends Component {
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span>Account SID for your Twilio Account.
+                                                                        <p className="bs-Fieldset-explanation"><span><a target="_blank" rel="noopener noreferrer" href="https://support.twilio.com/hc/en-us/articles/223136607-What-is-an-Application-SID-">Account SID for your Twilio Account.</a>
                                                                                     </span></p>
                                                                     </div>
                                                                 </div>
@@ -171,8 +173,8 @@ export class SmsSmtpBox extends Component {
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span>Auth Token for your Twilio Account.
-                                                                                    </span></p>
+                                                                        <p className="bs-Fieldset-explanation"><span><a href="https://support.twilio.com/hc/en-us/articles/223136027-Auth-Tokens-and-How-to-Change-Them" target="_blank" rel="noopener noreferrer">Auth Token for your Twilio Account.</a>
+                                                                        </span></p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bs-Fieldset-row">
@@ -187,7 +189,7 @@ export class SmsSmtpBox extends Component {
                                                                             required="required"
                                                                             disabled={this.props.smtpConfigurations.requesting}
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span>Phone Number associated with your twilio account.
+                                                                        <p className="bs-Fieldset-explanation"><span><a href="https://support.twilio.com/hc/en-us/articles/223181428-Assigning-Twilio-number-to-an-SMS-application" target="_blank" rel="noopener noreferrer"> Phone Number associated with your twilio account</a>.
                                                                                     </span></p>
                                                                     </div>
                                                                 </div>
@@ -261,7 +263,7 @@ SmsSmtpBox.propTypes = {
     smsSmtpDelete: PropTypes.object,
 }
 
-let SmsSmtpBoxForm = reduxForm({
+const SmsSmtpBoxForm = reduxForm({
     form: 'SmsSmtpBox', // a unique identifier for this form
     enableReinitialize: true,
     validate: SmsSmtpBox.validate // <--- validation function given to redux-for
@@ -277,9 +279,9 @@ const mapDispatchToProps = (dispatch) => {
 }
 
 function mapStateToProps(state) {
-    var smtpConfigurations = state.smsTemplates && state.smsTemplates.smsSmtpConfiguration;
-    var showSmsSmtpConfiguration = state.smsTemplates && state.smsTemplates.showSmsSmtpConfiguration;
-    var values = { smssmtpswitch: false, accountSid: '', authToken: '', phoneNumber: '' };
+    const smtpConfigurations = state.smsTemplates && state.smsTemplates.smsSmtpConfiguration;
+    const showSmsSmtpConfiguration = state.smsTemplates && state.smsTemplates.showSmsSmtpConfiguration;
+    let values = { smssmtpswitch: false, accountSid: '', authToken: '', phoneNumber: '' };
     if (showSmsSmtpConfiguration) {
         values = {
             smssmtpswitch: true,
@@ -296,9 +298,5 @@ function mapStateToProps(state) {
         showSmsSmtpConfiguration,
     };
 }
-
-SmsSmtpBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(SmsSmtpBoxForm);

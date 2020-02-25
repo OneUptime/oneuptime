@@ -1,162 +1,158 @@
 module.exports = {
     create: async function (data) {
-        var subscriberAlertModel = new SubscriberAlertModel();
-        subscriberAlertModel.projectId = data.projectId || null;
-        subscriberAlertModel.subscriberId = data.subscriberId || null;
-        subscriberAlertModel.incidentId = data.incidentId || null;
-        subscriberAlertModel.alertVia = data.alertVia || null;
-        subscriberAlertModel.alertStatus = data.alertStatus || null;
-        try{
-            var subscriberAlert = await subscriberAlertModel.save();
-        }catch(error){
-            ErrorService.log('subscriberAlertModel.save', error);
+        try {
+            const subscriberAlertModel = new SubscriberAlertModel();
+            subscriberAlertModel.projectId = data.projectId || null;
+            subscriberAlertModel.subscriberId = data.subscriberId || null;
+            subscriberAlertModel.incidentId = data.incidentId || null;
+            subscriberAlertModel.alertVia = data.alertVia || null;
+            subscriberAlertModel.alertStatus = data.alertStatus || null;
+            if(data.error){
+                subscriberAlertModel.error = data.error;
+                subscriberAlertModel.errorMessage = data.errorMessage;
+            }
+            const subscriberAlert = await subscriberAlertModel.save();
+            return subscriberAlert;
+        } catch (error) {
+            ErrorService.log('SubscriberAlertService.create', error);
             throw error;
         }
-        return subscriberAlert;
     },
 
-    update: async function(subscriberAlertId, projectId, data){
-        let _this = this;
-        if(!data._id){
-            try{
-                let subscriberAlert = await _this.create(data);
-                return subscriberAlert;
-            }catch(error){
-                ErrorService.log('SubscriberAlertService.create', error);
-                throw error;
+    updateOneBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
             }
-        }else{
-            try{
-                var subscriberAlert = await _this.findByOne({_id: data._id});
-            }catch(error){
-                ErrorService.log('SubscriberAlertService', error);
-                throw error;
-            }
-            let incidentId = data.incidentId || subscriberAlert.incidentId;
-            let subscriberId = data.subscriberId || subscriberAlert.subscriberId;
-            let alertVia = data.alertVia || subscriberAlert.alertVia;
-            let alertStatus = data.alertStatus || subscriberAlert.alertStatus;
 
-            try{
-                //find and update
-                subscriberAlert = await SubscriberAlertModel.findByIdAndUpdate(data._id,{
-                    $set:{
-                        projectId: projectId,
-                        subscriberId: subscriberId,
-                        alertVia: alertVia,
-                        alertStatus: alertStatus,
-                        incidentId: incidentId
-                    }
-                }, {
-                    new: true
-                });
-            }catch(error){
-                ErrorService.log('SubscriberAlertModel.findByIdAndUpdate', error);
-                throw error;
-            }
-            return subscriberAlert;
-        }
-    },
-
-    deleteBy: async function(query, userId){
-        try{
-            var subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(query, {
-                $set:{
-                    deleted:true,
-                    deletedById:userId,
-                    deletedAt:Date.now()
-                }
-            },{
+            if (!query.deleted) query.deleted = false;
+            //find and update
+            const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
                 new: true
             });
-        }catch(error){
-            ErrorService.log('SubscriberAlertModel.findOneAndUpdate', error);
+            return subscriberAlert;
+        } catch (error) {
+            ErrorService.log('SubscriberAlertService.updateOneBy', error);
             throw error;
         }
-        return subscriberAlert;
+        
     },
 
-    findBy: async function(query, skip, limit){
-        if(!skip) skip=0;
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
 
-        if(!limit) limit=10;
-
-        if(typeof(skip) === 'string'){
-            skip = parseInt(skip);
+            if (!query.deleted) query.deleted = false;
+            let updatedData = await SubscriberAlertModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('SubscriberAlertService.updateMany', error);
+            throw error;
         }
+    },
 
-        if(typeof(limit) === 'string'){
-            limit = parseInt(limit);
+    deleteBy: async function (query, userId) {
+        try {
+            const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(query, {
+                $set: {
+                    deleted: true,
+                    deletedById: userId,
+                    deletedAt: Date.now()
+                }
+            }, {
+                new: true
+            });
+            return subscriberAlert;
+        } catch (error) {
+            ErrorService.log('SubscriberAlertService.deleteBy', error);
+            throw error;
         }
+    },
 
-        if(!query){
-            query = {};
-        }
+    findBy: async function (query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
 
-        query.deleted = false;
-        try{
-            var subscriberAlerts = await SubscriberAlertModel.find(query)
+            if (!limit) limit = 10;
+
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const subscriberAlerts = await SubscriberAlertModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
-                .populate('subscriberId','name contactEmail contactPhone contactWebhook')
+                .populate('subscriberId', 'name contactEmail contactPhone contactWebhook')
                 .populate('incidentId', 'name');
-        }catch(error){
-            ErrorService.log('SubscriberAlertModel.find', error);
+            return subscriberAlerts;
+        } catch (error) {
+            ErrorService.log('SubscriberAlertService.findBy', error);
             throw error;
         }
-
-        return subscriberAlerts;
     },
 
-    findByOne: async function(query){
-        if(!query){
-            query = {};
-        }
+    findByOne: async function (query) {
+        try {
+            if (!query) {
+                query = {};
+            }
 
-        query.deleted = false;
-        try{
-            var subscriberAlert = await SubscriberAlertModel.find(query)
+            query.deleted = false;
+            const subscriberAlert = await SubscriberAlertModel.find(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
-                .populate('subscriberId','name')
+                .populate('subscriberId', 'name')
                 .populate('incidentId', 'name');
-        }catch(error){
-            ErrorService.log('SubscriberAlertModel.find', error);
+            return subscriberAlert;
+        } catch (error) {
+            ErrorService.log('SubscriberAlertService.findByOne', error);
             throw error;
         }
-        return subscriberAlert;
     },
 
     countBy: async function (query) {
+        try {
+            if (!query) {
+                query = {};
+            }
 
-        if(!query){
-            query = {};
-        }
-
-        query.deleted = false;
-        try{
-            var count = await SubscriberAlertModel.count(query);
-        }catch(error){
-            ErrorService.log('SubscriberAlertModel.count', error);
+            query.deleted = false;
+            const count = await SubscriberAlertModel.count(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('SubscriberAlertService.countBy', error);
             throw error;
         }
-        return count;
-
     },
 
-    hardDeleteBy: async function(query){
-        try{
+    hardDeleteBy: async function (query) {
+        try {
             await SubscriberAlertModel.deleteMany(query);
-        }catch(error){
-            ErrorService.log('SubscriberAlertModel.deleteMany', error);
+            return 'Subscriber Alert(s) removed successfully';
+        } catch (error) {
+            ErrorService.log('SubscriberAlertService.hardDeleteBy', error);
             throw error;
         }
-        return 'Subscriber Alert(s) removed successfully';
     },
 };
 
-var SubscriberAlertModel = require('../models/subscriberAlert');
-var ErrorService = require('./errorService');
-
+const SubscriberAlertModel = require('../models/subscriberAlert');
+const ErrorService = require('./errorService');

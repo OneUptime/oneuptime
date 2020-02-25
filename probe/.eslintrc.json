@@ -18,7 +18,7 @@
         ],
         "linebreak-style": [
             "error",
-            "windows"
+            "unix"
         ],
         "quotes": [
             "error",
@@ -27,6 +27,14 @@
         "semi": [
             "error",
             "always"
-        ]
+        ],
+        "prefer-const": [
+            "error",
+            {
+              "destructuring": "any",
+              "ignoreReadBeforeAssign": false
+            }
+          ],
+          "no-var": "error"
     }
 }

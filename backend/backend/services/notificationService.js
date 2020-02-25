@@ -1,178 +1,167 @@
 module.exports = {
     async findBy(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
 
-        if(!skip) skip=0;
+            if (!limit) limit = 20;
 
-        if(!limit) limit=20;
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
 
-        if(typeof(skip) === 'string'){
-            skip = parseInt(skip);
-        }
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
 
-        if(typeof(limit) === 'string'){
-            limit = parseInt(limit);
-        }
+            if (!query) {
+                query = {};
+            }
 
-        if(!query){
-            query = {};
-        }
-
-        query.deleted = false;
-        try{
-            var notifications = await NotificationModel.find(query)
+            query.deleted = false;
+            const notifications = await NotificationModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 });
-        }catch(error){
-            ErrorService.log('NotificationModel.find', error);
+            return notifications;
+        } catch (error) {
+            ErrorService.log('notificationService.findBy', error);
             throw error;
         }
-
-        return notifications;
     },
 
     async countBy(query) {
-        if(!query){
-            query = {};
-        }
+        try {
+            if (!query) {
+                query = {};
+            }
 
-        query.deleted = false;
-        try{
-            var count = await NotificationModel.count(query);
-        }catch(error){
-            ErrorService.log('NotificationModel.count', error);
+            query.deleted = false;
+            const count = await NotificationModel.count(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('notificationService.countBy', error);
             throw error;
         }
-
-        return count;
-    },
-
-    get: async function (projectId,userId) {
-        try{
-            var notifications = await NotificationModel.find({projectId,createdById : {$ne : userId}}).sort({createdAt : -1});
-        }catch(error){
-            ErrorService.log('NotificationModel.find', error);
-            throw error;
-        }
-        return notifications;
     },
 
     create: async function (projectId, message, userId, icon, meta) {
-        if(!meta){
-            meta = {};
-        }
-        var notification = new NotificationModel();
-        notification.projectId = projectId;
-        notification.message = message;
-        notification.icon = icon;
-        notification.createdBy = userId;
-        notification.meta = meta;
-        try{
+        try {
+            if (!meta) {
+                meta = {};
+            }
+            let notification = new NotificationModel();
+            notification.projectId = projectId;
+            notification.message = message;
+            notification.icon = icon;
+            notification.createdBy = userId;
+            notification.meta = meta;
             notification = await notification.save();
-        }catch(error){
-            ErrorService.log('notification.save', error);
-            throw error;
-        }
-        try{
             await RealTimeService.sendNotification(notification);
-        }catch(error){
-            ErrorService.log('RealTimeService.sendNotification', error);
+            return notification;
+        } catch (error) {
+            ErrorService.log('notificationService.create', error);
             throw error;
         }
-        return notification;
     },
 
-    updateBy: async function(data){
-        let _this = this;
-        if(!data._id){
-            try{
-                let notification = await _this.create(data.projectId, data.message, data.userId, data.icon);
-                return notification;
-            }catch(error){
-                ErrorService.log('NotificationService.create', error);
-                throw error;
+    updateManyBy: async function (query, data) {
+        try {
+            const notifications = await NotificationModel.updateMany(query, {
+                $addToSet: data
+            });
+            return notifications;
+        } catch (error) {
+            ErrorService.log('notificationService.updateManyBy', error);
+            throw error;
+        }
+    },
+
+    updateOneBy: async function (query, data) {
+        try {
+            const _this = this;
+            if (!query) {
+                query = {};
             }
-        }else{
-            try{
-                var notification = await _this.findOneBy({_id: data._id});
-            }catch(error){
-                ErrorService.log('Notification.findOneBy', error);
-                throw error;
-            }
-            let projectId = data.projectId || notification.projectId;
-            let createdAt = data.createdAt || notification.createdAt;
-            let createdBy = data.createdBy || notification.createdBy;
-            let message = data.message || notification.message;
-            let read = notification.read;
-            let meta = data.meta || notification.meta;
-            if(data.read){
-                for(let userId of data.read){
+
+            if (!query.deleted) query.deleted = false;
+            let notification = await _this.findOneBy(query);
+            const read = notification.read;
+            if (data.read) {
+                for (const userId of data.read) {
                     read.push(userId);
                 }
             }
-            let icon = data.icon || notification.icon;
-            try{
-                notification = await NotificationModel.findByIdAndUpdate(data._id, {
-                    $set:{
-                        projectId: projectId,
-                        createdAt: createdAt,
-                        createdBy: createdBy,
-                        message: message,
-                        icon: icon,
-                        read: read,
-                        meta: meta
-                    }},
-                {
-                    new: true
-                });
-            }catch(error){
-                ErrorService.log('NotificationModel.findByIdAndUpdate', error);
-                throw error;
+            data.read = read;
+            notification = await NotificationModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            });
+            return notification;
+        } catch (error) {
+            ErrorService.log('notificationService.updateOneBy', error);
+            throw error;
+        }
+    },
+
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
             }
 
-            return notification;
+            if (!query.deleted) query.deleted = false;
+            let updatedData = await NotificationModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await NotificationModel.find(query)
+                .sort({ createdAt: -1 });
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('notificationService.updateMany', error);
+            throw error;
         }
     },
 
     delete: async function (notificationId) {
-        try{
-            var result = await NotificationModel.findById(notificationId).remove();
-        }catch(error){
-            ErrorService.log('NotificationModel.findById', error);
+        try {
+            const result = await NotificationModel.findById(notificationId).remove();
+            return result;
+        } catch (error) {
+            ErrorService.log('notificationService.delete', error);
             throw error;
         }
-        return result;
 
     },
 
-    hardDeleteBy: async function(query){
-        try{
+    hardDeleteBy: async function (query) {
+        try {
             await NotificationModel.deleteMany(query);
-        }catch(error){
-            ErrorService.log('NotificationModel.deleteMany', error);
+            return 'Notification(s) removed successfully!';
+        } catch (error) {
+            ErrorService.log('notificationService.hardDeleteBy', error);
             throw error;
         }
-        return 'Notification(s) removed successfully!';
     },
 
-    findOneBy: async function (query){
-        if (!query) {
-            query = {};
-        }
+    findOneBy: async function (query) {
+        try {
+            if (!query) {
+                query = {};
+            }
 
-        query.deleted = false;
-        try{
-            var notification = await NotificationModel.findOne(query)
+            query.deleted = false;
+            const notification = await NotificationModel.findOne(query)
                 .populate('projectId', 'name');
-        }catch(error){
-            ErrorService.log('NotificationModel.findOne', error);
+            return notification;
+        } catch (error) {
+            ErrorService.log('notificationService.findOneBy', error);
             throw error;
         }
-        return notification;
     },
 
 };
 
-var NotificationModel = require('../models/notification');
-var RealTimeService = require('../services/realTimeService');
-var ErrorService = require('../services/errorService');
+const NotificationModel = require('../models/notification');
+const RealTimeService = require('../services/realTimeService');
+const ErrorService = require('../services/errorService');

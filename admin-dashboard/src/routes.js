@@ -4,7 +4,9 @@ const {
 	Users,
 	User,
 	Projects,
-	Project
+	Project,
+	Probes,
+	AuditLogs
 } = pages;
 
 export const groups = [
@@ -32,19 +34,37 @@ export const groups = [
 			{
 				title: 'Projects',
 				path: '/projects',
-				icon: 'atlas',
+				icon: 'projects',
 				component: Projects,
 				visible: true,
 				subRoutes: [{
 					title: 'Project',
 					path: '/projects/:projectId',
-					icon: 'atlas',
+					icon: 'projects',
 					component: Project,
 					visible: true,
 					subRoutes: [],
 					index: 1
 				}],
 				index: 2
+			},
+			{
+				title: 'Probes',
+				path: '/probes',
+				icon: 'probes',
+				component: Probes,
+				visible: true,
+				subRoutes: [],
+				index: 3
+			},
+			{
+				title: 'Audit Logs',
+				path: '/auditLogs',
+				icon: 'auditLogs',
+				component: AuditLogs,
+				visible: true,
+				subRoutes: [],
+				index: 4
 			},
 		]
 	},

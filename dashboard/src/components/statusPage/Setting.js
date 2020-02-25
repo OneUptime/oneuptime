@@ -11,6 +11,8 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -38,16 +40,16 @@ export class Setting extends Component {
     }, function () {
 
     });
-    if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('StatusPage Domain Updated', values);
+    if (!IS_DEV) {
+      logEvent('StatusPage Domain Updated', values);
     }
   }
 
   render() {
-    var statusPageId = '';
-    var hosted = '';
-    var statusurl = '';
-    var { projectId } = this.props.statusPage.status
+    let statusPageId = '';
+    let hosted = '';
+    let statusurl = '';
+    let { projectId } = this.props.statusPage.status
     projectId = projectId ? projectId._id || projectId : null;
     if(this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.domain){
       hosted = this.props.statusPage.status.domain;
@@ -69,7 +71,7 @@ export class Setting extends Component {
     }
     const { handleSubmit, subProjects, currentProject } = this.props;
     const currentProjectId = currentProject ? currentProject._id : null;
-    var subProject = currentProjectId === projectId ? currentProject : false;
+    let subProject = currentProjectId === projectId ? currentProject : false;
     if(!subProject) subProject = subProjects.find(subProject => subProject._id === projectId);
     return (
       <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -102,7 +104,7 @@ export class Setting extends Component {
                               disabled={this.props.statusPage.setting.requesting}
                               placeholder="domain"
                             />
-                            <p className="bs-Fieldset-explanation"><span>Add statuspage.fyipeapp.com to your domains CNAME. If you want to preview your status page. Please check <a href={statusurl}>{statusurl} </a></span></p>
+                            <p className="bs-Fieldset-explanation"><span>Add statuspage.fyipeapp.com to your domains CNAME. If you want to preview your status page. Please check <a target="_blank" rel="noopener noreferrer" href={statusurl}>{statusurl} </a></span></p>
                           </div>
                         </div>
                         ) : (
@@ -165,7 +167,7 @@ Setting.propTypes = {
   subProjects: PropTypes.array.isRequired,
 }
 
-let SettingForm = reduxForm({
+const SettingForm = reduxForm({
   form: 'Setting', // a unique identifier for this form
   enableReinitialize: true,
   validate // <--- validation function given to redux-for
@@ -183,9 +185,5 @@ function mapStateToProps(state) {
     subProjects: state.subProject.subProjects.subProjects
   };
 }
-
-Setting.contextTypes = {
-  mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(SettingForm);

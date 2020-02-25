@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { FormLoader } from '../basic/Loader';
 
 
 class DeleteWebhook extends Component {
@@ -14,6 +15,8 @@ class DeleteWebhook extends Component {
 	}
 	
 	render() {
+		const { data } = this.props;
+
 		return (
 			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
 			<div
@@ -40,8 +43,14 @@ class DeleteWebhook extends Component {
 						<button className="bs-Button bs-DeprecatedButton bs-Button--grey" type="button" onClick={this.props.closeThisDialog}>
 							<span>Cancel</span>
 						</button>
-						<button className="bs-Button bs-DeprecatedButton bs-Button--red" type="button"  onClick={this.props.confirmThisDialog}>
-						<span>Delete</span>
+						<button
+							className="bs-Button bs-DeprecatedButton bs-Button--red" 
+							type="button"  
+							onClick={this.props.confirmThisDialog}
+							disabled={data.deleting}
+						>
+							{!data.deleting && <span>Delete</span>}
+							{data.deleting && <FormLoader />}
 						</button>
 					</div>
 				</div>
@@ -57,7 +66,8 @@ DeleteWebhook.displayName = 'DeleteWebhookFormModal'
 
 DeleteWebhook.propTypes = {
 	confirmThisDialog: PropTypes.func.isRequired,
-	closeThisDialog: PropTypes.func.isRequired
+	closeThisDialog: PropTypes.func.isRequired,
+	data: PropTypes.object,
 }
 
 export default DeleteWebhook;

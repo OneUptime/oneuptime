@@ -4,14 +4,14 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import { reduxForm, Field, formValueSelector } from 'redux-form';
-import { createMonitor, createMonitorSuccess, createMonitorFailure, resetCreateMonitor, editMonitor, editMonitorSwitch, addSeat } from '../../actions/monitor';
+import { createMonitor, createMonitorSuccess, createMonitorFailure, resetCreateMonitor, editMonitor, editMonitorSwitch, setMonitorCriteria, addSeat } from '../../actions/monitor';
 import { RenderField } from '../basic/RenderField';
 import { makeCriteria } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import AddSeats from '../modals/AddSeats';
 import { openModal, closeModal } from '../../actions/modal';
-import { fetchMonitorsIncidents, fetchMonitorsSubscribers } from '../../actions/monitor';
-//import { showUpgradeForm } from '../../actions/project';
+import { fetchMonitorCriteria, fetchMonitorsIncidents, fetchMonitorsSubscribers } from '../../actions/monitor';
+import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import SubProjectSelector from '../basic/SubProjectSelector';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
@@ -23,7 +23,9 @@ import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
 import 'brace/mode/javascript';
 import 'brace/theme/github';
- 
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
+import Tooltip from '../basic/Tooltip';
 const selector = formValueSelector('NewMonitor');
 
 class NewMonitor extends Component {
@@ -33,16 +35,17 @@ class NewMonitor extends Component {
         this.state = {
             upgradeModalId: uuid.v4(),
             advance: false,
-            script: ''
+            script: '',
+            type: props.edit ? props.editMonitorProp.type : props.type
         }
     }
-
 
     componentDidMount() {
         const userId = User.getUserId();
         const projectMember = this.props.currentProject.users.find(user => user.userId === userId);
         //load call schedules
         if (projectMember) this.props.fetchSchedules(this.props.currentProject._id);
+        this.props.fetchMonitorCriteria();
     }
 
     //Client side validation
@@ -75,38 +78,38 @@ class NewMonitor extends Component {
         return errors;
     }
 
-    /*  componentDidUpdate() {
-          const { monitor } = this.props
-          if (monitor.newMonitor.error === 'You can\'t add any more monitors. Please upgrade plan.') {
-              this.showUpgradeForm()
-          }
-      }*/
+    componentDidUpdate() {
+        const { monitor } = this.props
+        if (monitor.newMonitor.error === 'You can\'t add any more monitors. Please upgrade plan.') {
+            this.props.showUpgradeForm()
+        }
+    }
 
     submitForm = (values) => {
-        var thisObj = this;
+        const thisObj = this;
 
-        var { upgradeModalId } = this.state;
-        const postObj = { data: {}, criteria: { up: {}, down: {}, degraded: {} } };
+        const { upgradeModalId } = this.state;
+        const postObj = { data: {}, criteria: {} };
         postObj.projectId = values[`subProject_${this.props.index}`]
         postObj.name = values[`name_${this.props.index}`];
-        postObj.type = values[`type_${this.props.index}`] ? values[`type_${this.props.index}`] : this.props.editMonitorProp.type;
+        postObj.type = values[`type_${this.props.index}`] ? values[`type_${this.props.index}`] : (this.props.edit ? this.props.editMonitorProp.type : this.props.type);
         postObj.monitorCategoryId = values[`monitorCategoryId_${this.props.index}`]
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
         if (!postObj.projectId) postObj.projectId = this.props.currentProject._id;
-        if (postObj.type === 'url' || postObj.type === 'manual')
-            postObj.data.url = values[`url_${this.props.index}`] || null;
+        if (postObj.type === 'manual')
+            postObj.data.description = values[`description_${this.props.index}`] || null;
 
         if (postObj.type === 'device')
             postObj.data.deviceId = values[`deviceId_${this.props.index}`];
 
-        if (postObj.type === 'api')
+        if (postObj.type === 'url' || postObj.type === 'api')
             postObj.data.url = values[`url_${this.props.index}`];
-        
-        if (postObj.type === 'script'){
+
+        if (postObj.type === 'script') {
             postObj.data.script = thisObj.state.script;
         }
 
-        if (postObj.type === 'url' || postObj.type === 'api') {
+        if (postObj.type === 'url' || postObj.type === 'api' || postObj.type === 'server-monitor' || postObj.type === 'script') {
             if (values && values[`up_${this.props.index}`] && values[`up_${this.props.index}`].length) {
                 postObj.criteria.up = makeCriteria(values[`up_${this.props.index}`]);
                 postObj.criteria.up.createAlert = values && values[`up_${this.props.index}_createAlert`] ? true : false;
@@ -158,17 +161,16 @@ class NewMonitor extends Component {
                     } else {
                         this.props.fetchMonitorsIncidents(postObj.projectId, this.props.editMonitorProp._id, 0, 3);
                     }
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Monitor Edit', values);
+                    if (!IS_DEV) {
+                        logEvent('Monitor Edit', values);
                     }
                 })
         } else {
-
             this.props.createMonitor(postObj.projectId, postObj)
                 .then(() => {
                     thisObj.props.reset();
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Add New Monitor', values);
+                    if (!IS_DEV) {
+                        logEvent('Add New Monitor', values);
                     }
                 }, error => {
                     if (error && error.message && error.message === 'You can\'t add any more monitors. Please add an extra seat to add more monitors.') {
@@ -181,12 +183,18 @@ class NewMonitor extends Component {
                     }
                 });
         }
+
+        this.setState({
+            advance: false,
+            script: '',
+            type: this.props.edit ? this.props.editMonitorProp.type : this.props.type
+        });
     }
 
-    scheduleChange = (e) => {
+    scheduleChange = (e, value) => {
         //load call schedules
-        if (e.target.value && e.target.value !== '') {
-            this.props.fetchSchedules(e.target.value);
+        if (value && value !== '') {
+            this.props.fetchSchedules(value);
         } else {
             const userId = User.getUserId();
             const projectMember = this.props.currentProject.users.find(user => user.userId === userId);
@@ -196,34 +204,39 @@ class NewMonitor extends Component {
 
     cancelEdit = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Monitor Edit Cancelled', {});
+        if (!IS_DEV) {
+            logEvent('Monitor Edit Cancelled', {});
         }
     }
 
     openAdvance = () => {
         this.setState({ advance: !this.state.advance });
     }
-    changeBox = () => {
-        this.setState({ advance: false });
+
+    changeBox = (e, value) => {
+        this.setState({ advance: false, type: value });
+        this.props.setMonitorCriteria(this.props.name, this.props.category, this.props.subProject, this.props.schedule, value);
     }
 
     scriptTextChange = (newValue) => {
-        this.setState({script: newValue});
+        this.setState({ script: newValue });
+    }
+
+    monitorTypeDescription = {
+        'url': 'Monitor your website and get notified when it goes down or performs poorly.',
+        'device': 'Monitor IoT devices constantly and notify your team when they do not behave the way you want.',
+        'manual': (<>Manual monitors do not monitor any resource. You can change monitor status by using <a href="https://docs.fyipe.com">Fyipe’s API</a>. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.</>),
+        'api': (<>Monitor <a href="https://en.wikipedia.org/wiki/Representational_state_transfer">REST</a> endpoints constantly and notify your team when they do not behave the way you want.</>),
+        'script': 'Run custom JavaScript script and alerts you when script fails.',
+        'server-monitor': 'Monitor servers constantly and notify your team when they do not behave the way you want.',
     }
 
     render() {
-        let requesting = ((this.props.monitor.newMonitor.requesting && !this.props.edit) || (this.props.monitor.editMonitor.requesting && this.props.edit));
+        const requesting = ((this.props.monitor.newMonitor.requesting && !this.props.edit) || (this.props.monitor.editMonitor.requesting && this.props.edit));
 
         const { handleSubmit, subProjects, schedules } = this.props;
         const { monitorCategoryList } = this.props;
-        let type = '';
-        if (this.props.edit) {
-            type = this.props.editMonitorProp.type;
-        }
-        else {
-            type = this.props.type;
-        }
+        const type = this.state.type;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -251,7 +264,7 @@ class NewMonitor extends Component {
                                 <p>
                                     <ShouldRender if={!this.props.edit}>
                                         <span>
-                                            Monitor pings your website every minute and checks uptime, performance and notifies you when things are down.
+                                        Monitor any resources (Websites, API, Servers, IoT Devices and more) constantly and notify your team when they do not behave the way you want.
                                         </span>
                                     </ShouldRender>
                                     <ShouldRender if={this.props.edit}>
@@ -286,124 +299,156 @@ class NewMonitor extends Component {
                                                         />
                                                     </div>
                                                 </div>
+                                                <ShouldRender if={monitorCategoryList && monitorCategoryList.length > 0}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Monitor Category</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field className="db-select-nw"
+                                                                component={RenderSelect}
+                                                                name={`monitorCategoryId_${this.props.index}`}
+                                                                id="monitorCategory"
+                                                                placeholder="Choose Monitor Category"
+                                                                disabled={requesting}
+                                                                options={[
+                                                                    { value: '', label: 'Select monitor category' },
+                                                                    ...(monitorCategoryList && monitorCategoryList.length > 0 ? monitorCategoryList.map(category => ({ value: category._id, label: category.name })) : [])
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
                                                 <ShouldRender if={!this.props.edit}>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">Monitor Type</label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                component={RenderSelect}
-                                                                name={`type_${this.props.index}`}
-                                                                id="type"
-                                                                placeholder="Monitor Type"
-                                                                disabled={requesting}
-                                                                onChange={() => this.changeBox()}
-                                                                validate={ValidateField.select}
-                                                            >
-                                                                <option value="">Select monitor type</option>
-                                                                <option value="url">URL</option>
-                                                                <option value="device">Device</option>
-                                                                <option value="manual">Manual</option>
-                                                                <option value="api">API</option>
-                                                                <option value="script">Script</option>
-                                                                <option value="server-monitor">Server Monitor</option>
-                                                            </Field>
-                                                        </div>
-                                                    </div>
-                                                    <ShouldRender if={subProjects && subProjects.length > 0}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">Sub Project</label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    name={`subProject_${this.props.index}`}
-                                                                    id="subProjectId"
-                                                                    required="required"
-                                                                    disabled={requesting}
-                                                                    component={SubProjectSelector}
-                                                                    props={{ subProjects }}
-                                                                    onChange={this.scheduleChange}
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={!this.props.edit && schedules && schedules.length > 0}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">Call Schedule</label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={'select'}
-                                                                    name={`callSchedule_${this.props.index}`}
-                                                                    id="callSchedule"
-                                                                    placeholder="Call Schedule"
-                                                                    disabled={requesting}
-                                                                >
-                                                                    <option value="">Select call schedule</option>
-                                                                    {schedules && schedules.map((schedule, i) => <option key={i} value={schedule._id}>{schedule.name}</option>)}
-                                                                </Field>
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={monitorCategoryList && monitorCategoryList.length > 0}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">Monitor Category</label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={'select'}
-                                                                    name={`monitorCategoryId_${this.props.index}`}
-                                                                    id="monitorCategory"
-                                                                    placeholder="Choose Monitor Category"
-                                                                    disabled={requesting}
-                                                                    validate={ValidateField.select}
-                                                                >
-                                                                    <option value="">Select monitor category</option>
-                                                                    {monitorCategoryList && monitorCategoryList.map(monitorCategory => <option key={monitorCategory._id} value={monitorCategory._id}>{monitorCategory.name}</option>)}
-                                                                </Field>
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={type === 'api'}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">HTTP Method</label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={RenderSelect}
-                                                                    name={`method_${this.props.index}`}
-                                                                    id="method"
-                                                                    placeholder="Http Method"
-                                                                    disabled={requesting}
-                                                                    validate={ValidateField.select}
-                                                                >
-                                                                    <option value="">Select method</option>
-                                                                    <option value="get">GET</option>
-                                                                    <option value="post">POST</option>
-                                                                    <option value="put">PUT</option>
-                                                                    <option value="delete">DELETE</option>
-                                                                </Field>
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
 
-                                                    {/**  <div className="bs-Fieldset-row">
-                                                    {/**  <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">Sub project</label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={'select'}
-                                                            name={`type_${this.props.index}`}
-                                                            id="type"
-                                                            placeholder="Monitor Type"
-                                                            required="required"
-                                                            disabled={requesting}
-                                                        >
-                                                            <option value="">Select monitor type</option>
-                                                            <option value="url">URL</option>
-                                                            <option value="device">Device</option>
-                                                            <option value="manual">Manual</option>
-                                                        </Field>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field className="db-select-nw"
+                                                                    component={RenderSelect}
+                                                                    name={`type_${this.props.index}`}
+                                                                    id="type"
+                                                                    placeholder="Monitor Type"
+                                                                    disabled={requesting}
+                                                                    onChange={(e, v) => this.changeBox(e, v)}
+                                                                    validate={ValidateField.select}
+                                                                    options={[
+                                                                        { value: '', label: 'Select monitor type' },
+                                                                        { value: 'url', label: 'Website' },
+                                                                        { value: 'device', label: 'IoT Device' },
+                                                                        { value: 'manual', label: 'Manual' },
+                                                                        { value: 'api', label: 'API' },
+                                                                        { value: 'script', label: 'Script' },
+                                                                        { value: 'server-monitor', label: 'Server' }
+                                                                    ]}
+                                                                />
+                                                                <Tooltip title="Monitor Types" >
+                                                                    <div>
+                                                                        <p> <b>What are monitors?</b></p>
+                                                                        <p> Monitors lets you monitor any reosurces you have like API&#39;s, Websites, Servers, Containers, IoT device or more. </p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>Website Monitors</b></p>
+                                                                        <p> Monitor your website and get notified when it goes down or performs poorly.</p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>IoT Device</b></p>
+                                                                        <p> Monitor IoT devices constantly and notify your team when they do not behave the way you want. </p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>Manual Monitors</b></p>
+                                                                        <p> <>Manual monitors do not monitor any resource. You can change monitor status by using <a href="https://docs.fyipe.com">Fyipe’s API</a>. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.</> </p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>API Monitor</b></p>
+                                                                        <p> <>Monitor <a href="https://en.wikipedia.org/wiki/Representational_state_transfer">REST</a> endpoints constantly and notify your team when they do not behave the way you want.</> </p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>Script Monitor</b></p>
+                                                                        <p> Run custom JavaScript script and alerts you when script fails.</p>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '5px' }}>
+                                                                        <p> <b>Server Monitor</b></p>
+                                                                        <p> Monitor servers constantly and notify your team when they do not behave the way you want.</p>
+                                                                    </div>
+                                                                    
+                                                                </Tooltip>
+                                                            </span>
+                                                            <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ marginTop: 10 }}>
+                                                                <span>{this.monitorTypeDescription[[this.state.type]]}</span>
+                                                            </span>
+                                                        </div>
+
+
                                                     </div>
-                                                </div> */}
-                                                    {(type === 'url' || type === 'manual' || type === 'api') && <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">URL{type === 'manual' && '(optional)'}</label>
+                                                </ShouldRender>
+                                                <ShouldRender if={subProjects && subProjects.length > 0}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Sub Project</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                name={`subProject_${this.props.index}`}
+                                                                id="subProjectId"
+                                                                required="required"
+                                                                disabled={requesting}
+                                                                component={SubProjectSelector}
+                                                                subProjects={subProjects}
+                                                                onChange={(e, v) => this.scheduleChange(e, v)}
+                                                                className="db-select-nw"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={schedules && schedules.length > 0}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Call Schedule</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field className="db-select-nw"
+                                                                component={RenderSelect}
+                                                                name={`callSchedule_${this.props.index}`}
+                                                                id="callSchedule"
+                                                                placeholder="Call Schedule"
+                                                                disabled={requesting}
+                                                                style={{ height: '28px' }}
+                                                                options={[
+                                                                    { value: '', label: 'Select call schedule' },
+                                                                    ...(schedules && schedules.length > 0 ? schedules.map(schedule => ({ value: schedule._id, label: schedule.name })) : [])
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={type === 'api'}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">HTTP Method</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field className="db-select-nw"
+                                                                component={RenderSelect}
+                                                                name={`method_${this.props.index}`}
+                                                                id="method"
+                                                                placeholder="Http Method"
+                                                                disabled={requesting}
+                                                                validate={ValidateField.select}
+                                                                options={[
+                                                                    { value: '', label: 'Select method' },
+                                                                    { value: 'get', label: 'GET' },
+                                                                    { value: 'post', label: 'POST' },
+                                                                    { value: 'put', label: 'PUT' },
+                                                                    { value: 'delete', label: 'DELETE' }
+                                                                ]}
+                                                                style={{ height: '28px' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={type === 'url' || type === 'api'}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">URL</label>
                                                         <div className="bs-Fieldset-fields">
                                                             <Field className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 component={RenderField}
@@ -415,61 +460,75 @@ class NewMonitor extends Component {
                                                                 validate={[ValidateField.required, ValidateField.url]}
                                                             />
                                                         </div>
-                                                    </div>}
-
-                                                    {type === 'device' && <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">Device ID</label>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={type === 'manual'}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">Description (optional)</label>
                                                         <div className="bs-Fieldset-fields">
                                                             <Field className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 component={RenderField}
-                                                                type="deviceId"
-                                                                name={`deviceId_${this.props.index}`}
-                                                                id="deviceId"
-                                                                placeholder="of234dfgqwe"
+                                                                type="text"
+                                                                name={`description_${this.props.index}`}
+                                                                id="description"
+                                                                placeholder="Home Page's Monitor"
                                                                 disabled={requesting}
-                                                                validate={ValidateField.required}
                                                             />
                                                         </div>
-                                                    </div>}
-                                                    <ShouldRender if={type && (type === 'api' || type === 'url') && !this.state.advance}>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label"></label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <a onClick={() => this.openAdvance()} style={{ cursor: 'pointer' }}> Advance Options.</a>
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={type === 'script'}>
+                                                    </div>
+                                                </ShouldRender>
+                                                {type === 'device' && <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">Device ID</label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            component={RenderField}
+                                                            type="deviceId"
+                                                            name={`deviceId_${this.props.index}`}
+                                                            id="deviceId"
+                                                            placeholder="of234dfgqwe"
+                                                            disabled={requesting}
+                                                            validate={ValidateField.required}
+                                                        />
+                                                    </div>
+                                                </div>}
+                                                <ShouldRender if={type === 'script'}>
                                                     <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">Script</label>
-                                                            <div className="bs-Fieldset-fields">
+                                                        <label className="bs-Fieldset-label">Script</label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span>
                                                                 <span>
-                                                                    <span>
-                                                                        <AceEditor
-                                                                            placeholder="Enter script here"
-                                                                            mode="javascript"
-                                                                            theme="github"
-                                                                            value={this.state.script}
-                                                                            name={`script_${this.props.index}`}
-                                                                            id="script"
-                                                                            editorProps={{ $blockScrolling: true }}
-                                                                            height={150}
-                                                                            highlightActiveLine={true}
-                                                                            onChange={this.scriptTextChange}
-                                                                        />
-                                                                    </span>
+                                                                    <AceEditor
+                                                                        placeholder="Enter script here"
+                                                                        mode="javascript"
+                                                                        theme="github"
+                                                                        value={this.state.script}
+                                                                        name={`script_${this.props.index}`}
+                                                                        id="script"
+                                                                        editorProps={{ $blockScrolling: true }}
+                                                                        height="150px"
+                                                                        highlightActiveLine={true}
+                                                                        onChange={this.scriptTextChange}
+                                                                    />
                                                                 </span>
-                                                            </div>
+                                                            </span>
                                                         </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={type && (type === 'api' || type === 'url' || type === 'server-monitor' || type === 'script') && !this.state.advance}>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label"></label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <button className="button-as-anchor" onClick={() => this.openAdvance()}> Advance Options.</button>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender if={this.state.advance && (type === 'api' || type === 'url' || type === 'server-monitor' || type === 'script')}>
+                                                    <ShouldRender if={this.state.advance && type === 'api'}>
+                                                        <ApiAdvance index={this.props.index} />
                                                     </ShouldRender>
-                                                    <ShouldRender if={this.state.advance && (type === 'api' || type === 'url')}>
-                                                        <ShouldRender if={this.state.advance && type === 'api'}>
-                                                            <ApiAdvance index={this.props.index} />
-                                                        </ShouldRender>
-                                                        <ResponseComponent head='Monitor up criteria' tagline='This is where you describe when your monitor is considered up' fieldname={`up_${this.props.index}`} index={this.props.index} />
-                                                        <ResponseComponent head='Monitor degraded criteria' tagline='This is where you describe when your monitor is considered degraded' fieldname={`degraded_${this.props.index}`} index={this.props.index} />
-                                                        <ResponseComponent head='Monitor down criteria' tagline='This is where you describe when your monitor is considered down' fieldname={`down_${this.props.index}`} index={this.props.index} />
-                                                    </ShouldRender>
+                                                    <ResponseComponent head='Monitor up criteria' tagline='This is where you describe when your monitor is considered up' fieldname={`up_${this.props.index}`} index={this.props.index} type={this.state.type} />
+                                                    <ResponseComponent head='Monitor degraded criteria' tagline='This is where you describe when your monitor is considered degraded' fieldname={`degraded_${this.props.index}`} index={this.props.index} type={this.state.type} />
+                                                    <ResponseComponent head='Monitor down criteria' tagline='This is where you describe when your monitor is considered down' fieldname={`down_${this.props.index}`} index={this.props.index} type={this.state.type} />
                                                 </ShouldRender>
                                             </div>
                                         </fieldset>
@@ -528,17 +587,16 @@ class NewMonitor extends Component {
                     </div>
                 </div>
             </div>
-
         );
     }
 }
 
 NewMonitor.displayName = 'NewMonitor';
 
-let NewMonitorForm = new reduxForm({
+const NewMonitorForm = new reduxForm({
     form: 'NewMonitor',
-    enableReinitialize: true,
-    destroyOnUnmount: false,
+    destroyOnUnmount: true,
+    enableReinitialize: true
 })(NewMonitor);
 
 const mapDispatchToProps = dispatch => bindActionCreators(
@@ -551,46 +609,58 @@ const mapDispatchToProps = dispatch => bindActionCreators(
         openModal,
         closeModal,
         editMonitor,
+        fetchMonitorCriteria,
+        setMonitorCriteria,
         addSeat,
         fetchMonitorsIncidents,
         fetchMonitorsSubscribers,
         fetchSchedules,
-        scheduleSuccess
+        scheduleSuccess,
+        showUpgradeForm
     }
     , dispatch);
 
 const mapStateToProps = (state, ownProps) => {
+    const name = selector(state, 'name_1000');
+    const type = selector(state, 'type_1000');
+    const category = selector(state, 'monitorCategoryId_1000');
+    const subProject = selector(state, 'subProject_1000');
+    const schedule = selector(state, 'callSchedule_1000');
+
     if (ownProps.edit) {
         const monitorId = ownProps.match ? ownProps.match.params ? ownProps.match.params.monitorId : null : null;
         return {
             monitor: state.monitor,
             currentProject: state.project.currentProject,
-            type: selector(state, 'type_1000'),
+            name,
+            type,
+            category,
+            subProject,
+            schedule,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
+            monitorCategoryList: state.monitorCategories.monitorCategoryListForNewMonitor.monitorCategories,
             monitorId
         };
-    }
-    else {
-        const initialvalue = {
-            up_1000: [{ match: 'all', responseType: 'doesRespond', filter: 'isUp', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
-            down_1000: [{ match: 'all', responseType: 'doesRespond', filter: 'isDown', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
-            degraded_1000: [{ match: 'all', responseType: 'responseTime', filter: 'greaterThan', field1: '5000', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
-        }
+    } else {
         return {
-            initialValues: initialvalue,
+            initialValues: state.monitor.newMonitor.initialValue,
             monitor: state.monitor,
             currentProject: state.project.currentProject,
-            type: selector(state, 'type_1000'),
+            name,
+            type,
+            category,
+            subProject,
+            schedule,
             monitorCategoryList: state.monitorCategories.monitorCategoryListForNewMonitor.monitorCategories,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data
         };
     }
-}
+};
 
 NewMonitor.propTypes = {
-    index: PropTypes.number.isRequired,
+    index: PropTypes.oneOfType([PropTypes.string.isRequired, PropTypes.number.isRequired]),
     editMonitorSwitch: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     editMonitor: PropTypes.func.isRequired,
@@ -602,15 +672,18 @@ NewMonitor.propTypes = {
     fetchSchedules: PropTypes.func.isRequired,
     editMonitorProp: PropTypes.object,
     edit: PropTypes.bool,
+    name: PropTypes.string,
     type: PropTypes.string,
+    category: PropTypes.string,
+    subProject: PropTypes.string,
+    schedule: PropTypes.string,
     subProjects: PropTypes.array,
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
-    monitorId: PropTypes.string.isRequired
+    monitorId: PropTypes.string,
+    setMonitorCriteria: PropTypes.func,
+    fetchMonitorCriteria: PropTypes.func,
+    showUpgradeForm: PropTypes.func
 }
-
-NewMonitor.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

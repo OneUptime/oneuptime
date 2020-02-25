@@ -1,85 +1,66 @@
+const StringUtil = require('../utils/string');
+
 module.exports = {
     user: {
-        name: 'Olalekan Ayodele',
-        email: 'noreply@fyipe.com',
+        name: 'John Smith',
+        email: StringUtil.generateRandomString(10)+'@tmpmail.com',
         password:'1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',
         jobRole: 'Engineer',
         companySize: 10,
-        card: {
-            stripeToken: 'tok_visa'
-        },
         subscription: {
             stripePlanId: 0
         },
-        cardName: 'Mastercard',
-        cardNumber: '5555555555554444',
-        cvv: '123',
-        expiry: '01/2020',
         city: 'New York',
         state: 'New York',
         zipCode: '111000111',
         country: 'Iceland',
         planId: 'plan_EgTJMZULfh6THW',
         companyRole: 'Snr. Developer',
-        companyPhoneNumber: '+1255609726',
+        companyPhoneNumber: '+919910568840',
         reference: 'Github'
     },
 
     anotherUser: {
         name: 'Kayode Adebayo',
-        email: 'noreply1@fyipe.com',
+        email: StringUtil.generateRandomString(10)+'@fyipe.com',
         password:'123456789',
         confirmPassword: '123456789',
         companyName: 'Hackerbay',
         jobRole: 'Engineer',
         companySize: 10,
-        card: {
-            stripeToken: 'tok_visa'
-        },
         subscription: {
             stripePlanId: 0
         },
-        cardName: 'Mastercard',
-        cardNumber: '5555555555554444',
-        cvv: '123',
-        expiry: '01/2020',
         city: 'New York',
         state: 'New York',
         zipCode: '111000111',
         country: 'Iceland',
         planId: 'plan_EgTJMZULfh6THW',
         companyRole: 'Snr. Developer',
-        companyPhoneNumber: '+1255609726',
+        companyPhoneNumber: '+919910568840',
         reference: 'Github'
     },
 
     newUser: {
-        name: 'Olalekan Ayodele',
-        email: 'testmail@fyipe.com',
+        name: 'John Smith',
+        email: StringUtil.generateRandomString(10)+'@fyipe.com',
         password:'1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',
         jobRole: 'Engineer',
         companySize: 10,
-        card: {
-            stripeToken: 'tok_visa'
-        },
         subscription: {
             stripePlanId: 0
         },
-        cardName: 'Mastercard',
-        cardNumber: '5555555555554444',
-        cvv: '123',
-        expiry: '01/2020',
         city: 'New York',
         state: 'New York',
         zipCode: '111000111',
         country: 'Iceland',
         planId: 'plan_EgTJMZULfh6THW',
         companyRole: 'Snr. Developer',
-        companyPhoneNumber: '+1255609726',
+        companyPhoneNumber: '+919910568840',
         reference: 'Github'
     },
 
@@ -91,16 +72,9 @@ module.exports = {
         companyName: null,
         jobRole: null,
         companySize: null,
-        card: {
-            stripeToken: null
-        },
         subscription: {
             stripePlanId: null
         },
-        cardName: null,
-        cardNumber: null,
-        cvv: null,
-        expiry: null,
         city: null,
         state: null,
         zipCode: null,
@@ -112,11 +86,11 @@ module.exports = {
     },
 
     profile: {
-        name: 'Olalekan Ayodele',
-        email: 'lekan@fyipe.com',
-        timezone: 'London GMT +00:00',
+        name: 'John Smith',
+        email: StringUtil.generateRandomString(10)+'@fyipe.com',
+        timezone: 'Europe/London',
         profilePic: 'Image.jpg',
-        companyPhoneNumber: '+01234567890',
-        alertPhoneNumber: '+01234567890'
+        companyPhoneNumber: '+919910568840',
+        alertPhoneNumber: '+919910568840'
     }
 };

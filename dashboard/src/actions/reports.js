@@ -35,7 +35,7 @@ export const getActiveMembers = (projectId, startDate, endDate, skip, limit) => 
   catch (error) {
     let newerror = error;
     if (newerror && newerror.response && newerror.response.data)
-    newerror = newerror.response.data;
+      newerror = newerror.response.data;
     if (newerror && newerror.data) {
       newerror = newerror.data;
     }
@@ -72,7 +72,7 @@ export const getActiveMonitorsError = error => {
 
 export const getActiveMonitors = (projectId, startDate, endDate, skip, limit) => async dispatch => {
   try {
-    const promise = getApi(`reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${skip}&limit=${limit}`);
+    const promise = getApi(`reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${skip || 0}&limit=${limit || 0}`);
     dispatch(getActiveMonitorsRequest(promise));
     const monitors = await promise;
     dispatch(getActiveMonitorsSuccess(monitors.data));
@@ -80,7 +80,7 @@ export const getActiveMonitors = (projectId, startDate, endDate, skip, limit) =>
   catch (error) {
     let newerror = error;
     if (newerror && newerror.response && newerror.response.data)
-    newerror = newerror.response.data;
+      newerror = newerror.response.data;
     if (newerror && newerror.data) {
       newerror = newerror.data;
     }
@@ -94,38 +94,38 @@ export const getActiveMonitors = (projectId, startDate, endDate, skip, limit) =>
   }
 }
 
-export const getMonthlyIncidentsRequest = promise => {
+export const getIncidentsRequest = promise => {
   return {
-    type: types.GET_MONTHLY_INCIDENTS_REQUEST,
+    type: types.GET_INCIDENTS_REQUEST,
     payload: promise
-  };
+  }
 }
 
-export const getMonthlyIncidentsSuccess = months => {
+export const getIncidentsSuccess = reports => {
   return {
-    type: types.GET_MONTHLY_INCIDENTS_SUCCESS,
-    payload: months
-  };
+    type: types.GET_INCIDENTS_SUCCESS,
+    payload: reports
+  }
 }
 
-export const getMonthlyIncidentsError = error => {
+export const getIncidentsError = error => {
   return {
-    type: types.GET_MONTHLY_INCIDENTS_FAILED,
+    type: types.GET_INCIDENTS_FAILED,
     payload: error
-  };
+  }
 }
 
-export const getMonthlyIncidents = (projectId) => async dispatch => {
+export const getIncidents = (projectId, filter, startDate, endDate) => async dispatch => {
   try {
-    const promise = getApi(`reports/${projectId}/monthly-incidents`);
-    dispatch(getMonthlyIncidentsRequest(promise));
-    const months = await promise;
-    dispatch(getMonthlyIncidentsSuccess(months.data));
+    const promise = getApi(`reports/${projectId}/incidents?startDate=${startDate}&endDate=${endDate}&filter=${filter}`);
+    dispatch(getIncidentsRequest(promise));
+    const reports = await promise;
+    dispatch(getIncidentsSuccess(reports.data));
   }
   catch (error) {
     let newerror = error;
     if (newerror && newerror.response && newerror.response.data)
-    newerror = newerror.response.data;
+      newerror = newerror.response.data;
     if (newerror && newerror.data) {
       newerror = newerror.data;
     }
@@ -135,42 +135,42 @@ export const getMonthlyIncidents = (projectId) => async dispatch => {
     else {
       newerror = 'Network Error';
     }
-    dispatch(getMonthlyIncidentsError(newerror));
+    dispatch(getIncidentsError(newerror));
   }
 }
 
-export const getMonthlyResolveTimeRequest = promise => {
+export const getResolveTimeRequest = promise => {
   return {
-    type: types.GET_MONTHLY_RESOLVE_TIME_REQUEST,
+    type: types.GET_RESOLVE_TIME_REQUEST,
     payload: promise
-  };
+  }
 }
 
-export const getMonthlyResolveTimeSuccess = months => {
+export const getResolveTimeSuccess = reports => {
   return {
-    type: types.GET_MONTHLY_RESOLVE_TIME_SUCCESS,
-    payload: months
-  };
+    type: types.GET_RESOLVE_TIME_SUCCESS,
+    payload: reports
+  }
 }
 
-export const getMonthlyResolveTimeError = error => {
+export const getResolveTimeError = error => {
   return {
-    type: types.GET_MONTHLY_RESOLVE_TIME_FAILED,
+    type: types.GET_RESOLVE_TIME_FAILED,
     payload: error
-  };
+  }
 }
 
-export const getMonthlyResolveTime = (projectId) => async dispatch => {
+export const getResolveTime = (projectId, filter, startDate, endDate) => async dispatch => {
   try {
-    const promise = getApi(`reports/${projectId}/average-resolved`);
-    dispatch(getMonthlyResolveTimeRequest(promise));
-    const months = await promise;
-    dispatch(getMonthlyResolveTimeSuccess(months.data));
+    const promise = getApi(`reports/${projectId}/average-resolved?startDate=${startDate}&endDate=${endDate}&filter=${filter}`);
+    dispatch(getResolveTimeRequest(promise));
+    const reports = await promise;
+    dispatch(getResolveTimeSuccess(reports.data));
   }
   catch (error) {
     let newerror = error;
     if (newerror && newerror.response && newerror.response.data)
-    newerror = newerror.response.data;
+      newerror = newerror.response.data;
     if (newerror && newerror.data) {
       newerror = newerror.data;
     }
@@ -180,6 +180,6 @@ export const getMonthlyResolveTime = (projectId) => async dispatch => {
     else {
       newerror = 'Network Error';
     }
-    dispatch(getMonthlyResolveTimeError(newerror));
+    dispatch(getResolveTimeError(newerror));
   }
 }

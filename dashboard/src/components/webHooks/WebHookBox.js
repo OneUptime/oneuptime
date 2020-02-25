@@ -9,7 +9,7 @@ class WebHookBox extends React.Component {
 
     render() {
         return (
-            <div className="db-World-contentPane Box-root">
+            <div className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -22,20 +22,20 @@ class WebHookBox extends React.Component {
                                             </span>
                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                 <span>
-                                                    Add your webhooks api.
+                                                    Integrate Fyipe with your Webhooks.
                                                         </span>
                                             </span>
                                         </div>
                                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                             <div className="Box-root">
                                                 <RenderIfAdmin>
-                                                    <WebHookButton />
+                                                    <WebHookButton monitorId={this.props.monitorId}/>
                                                 </RenderIfAdmin>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <WebHookList />
+                                <WebHookList monitorId={this.props.monitorId}/>
                             </div>
                         </div>
                     </div>
@@ -47,8 +47,8 @@ class WebHookBox extends React.Component {
 
 WebHookBox.displayName = 'WebHookBox';
 
-WebHookBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
+WebHookBox.propTypes = {
+	monitorId: PropTypes.string,
 };
 
 export default withRouter(WebHookBox);

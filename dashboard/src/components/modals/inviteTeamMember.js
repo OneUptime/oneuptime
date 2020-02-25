@@ -10,6 +10,8 @@ import PropTypes from 'prop-types';
 import projectTeamMemberNotification from './projectTeamMemberNotification.js';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class FormModal extends Component {
 	constructor(props){
@@ -40,8 +42,8 @@ export class FormModal extends Component {
 				//do nothing.
 			});
 		}
-		if (window.location.href.indexOf('localhost') <= -1) {
-			this.context.mixpanel.track('Team member invitation form', values);
+		if (!IS_DEV) {
+			logEvent('Team member invitation form', values);
 		}
 	}
 
@@ -113,7 +115,7 @@ export class FormModal extends Component {
 										<div className="db-RoleRadioList-row">
 											<label className="bs-Radio" htmlFor={`Viewer_${data.subProjectName}`}>
 												<Field id={`Viewer_${data.subProjectName}`} className="bs-Radio-source" name="role" component="input" type="radio" value="Viewer" />
-												<span className="bs-Radio-button"></span><span className="bs-Radio-label"><div className="db-RoleRadioListLabel"><div className="db-RoleRadioListLabel-name"><span>Viewer</span></div><div className="db-RoleRadioListLabel-description"><span>Viewers are able to view private status pages of projects.</span></div><div className="db-RoleRadioListLabel-info"><div className="Box-root Flex-inlineFlex"><div className="Box-root Flex-flex"><div className="Box-root Flex-flex"></div></div></div></div></div></span></label></div>	
+												<span className="bs-Radio-button"></span><span className="bs-Radio-label"><div className="db-RoleRadioListLabel"><div className="db-RoleRadioListLabel-name"><span>Viewer</span></div><div className="db-RoleRadioListLabel-description"><span>Viewers are your internal team members or your customers who can only view private status page of this project.</span></div><div className="db-RoleRadioListLabel-info"><div className="Box-root Flex-inlineFlex"><div className="Box-root Flex-flex"><div className="Box-root Flex-flex"></div></div></div></div></div></span></label></div>	
 										<div className="db-RoleRadioList-row">
 											<label className="bs-Radio" htmlFor={`Member_${data.subProjectName}`}>
 												<Field id={`Member_${data.subProjectName}`} className="bs-Radio-source" name="role" component="input" type="radio" value="Member" />
@@ -169,7 +171,7 @@ export class FormModal extends Component {
 
 FormModal.displayName = 'InviteMemberFormModal'
 
-let InviteTeamMemberForm = reduxForm({
+const InviteTeamMemberForm = reduxForm({
 	form: 'InviteTeamMember', // a unique identifier for this form
 })(FormModal);
 
@@ -199,9 +201,5 @@ FormModal.propTypes = {
 	closeModal: PropTypes.func.isRequired,
 	subProjects: PropTypes.array.isRequired,
 }
-
-FormModal.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(InviteTeamMemberForm);

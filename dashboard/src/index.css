@@ -2,3 +2,14 @@ body {
   overflow: hidden;
   height: 100%;
 }
+
+.renderFrequencyInput::-webkit-inner-spin-button,
+.renderFrequencyInput::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+}
+
+.renderFrequencyInput {
+  margin-top: 15px;
+  border-radius: 5px;
+  -moz-appearance:textfield;
+}

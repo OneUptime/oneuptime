@@ -106,7 +106,7 @@ body{
     z-index:10020
 }
 .search-text,.search input{
-    color:#939da3;
+    color:#797979;
     background-color:transparent;
     background-image:url(/img/documentation/icon-search.png);
     background-size:14px 14px;
@@ -179,7 +179,7 @@ body{
     padding-bottom:18px
 }
 .search-results li.selected{
-    background:#ecfaff;
+    background:#d7d7d7;
     background-image:url(/img/documentation/icon-arrow-blue-small.svg);
     background-size:12px 12px;
     background-repeat:no-repeat;
@@ -188,7 +188,7 @@ body{
 .search-results li a{
     font-size:15px;
     font-weight:500;
-    color:#0099e5;
+    color:#797979;
     text-decoration:underline;
     display:inline-block;
     margin-bottom:5px;
@@ -275,7 +275,7 @@ body{
     font-size:20px;
     line-height:20px;
     vertical-align:top;
-    color:#0099e5;
+    color:#797979;
     font-weight:500;
     text-decoration:none
 }
@@ -336,10 +336,10 @@ header#main-header a{
     font-size:15px;
     line-height:55px;
     padding-left:30px;
-    color:#0099e5
+    color:#797979
 }
 header#main-header a:hover{
-    color:#32325d
+    color:#000000
 }
 header#main-header .button a:after{
     font:normal 16px fyipeIcons;
@@ -347,7 +347,7 @@ header#main-header .button a:after{
     padding-left:5px
 }
 #loading-bar{
-    background:#0099e5;
+    background:#797979;
     height:3px;
     position:absolute;
     top:0;
@@ -367,7 +367,7 @@ header#main-header .button a:after{
 #sidebar h1,#sidebar h1 a{
     display:block;
     font-size:15px;
-    color:#0d2b3e;
+    color:#000000;
     font-weight:500;
     height:36px;
     line-height:36px;
@@ -496,7 +496,7 @@ header#main-header .button a:after{
     font-style:normal;
     padding:2px 3px 1px;
     border-radius:4px;
-    border:1px solid #e6ebf1;
+    border:1px solid #fdfdfd;
     display:inline-block;
     vertical-align:1px;
     margin-left:8px
@@ -519,7 +519,7 @@ header#main-header .button a:after{
 #sidebar ul li.category{
     font-weight:500;
     font-size:12px;
-    color:#939da3;
+    color:#797979;
     text-transform:uppercase;
     margin-bottom:5px;
     margin-top:4px
@@ -569,7 +569,7 @@ header#main-header .button a:after{
     border-top:1px solid rgba(120,134,156,.08)
 }
 #sidebar h1 a.selected,#sidebar ul li a.selected{
-    color:#0099e5;
+    color:#797979;
     font-weight:500
 }
 #sidebar ul ul{
@@ -647,14 +647,14 @@ header#main-header .button a:after{
 }
 article h1{
     font-size:31px;
-    color:#0d2b3e;
+    color:#000000;
     font-weight:400
 }
 article h2{
     font-size:22px
 }
 article h2,article h3{
-    color:#0d2b3e;
+    color:#000000;
     font-weight:500
 }
 article h3{
@@ -662,7 +662,7 @@ article h3{
 }
 article h4,article h5,article h6{
     font-size:17px;
-    color:#0d2b3e;
+    color:#000000;
     font-weight:500
 }
 article blockquote,article dl,article ol,article p,article table tbody,article ul{
@@ -746,17 +746,17 @@ article footer{
     padding:39px 0
 }
 article footer #csat-widget{
-    background-color:#f6f9fc;
+    background-color:#f9f9f9;
     border-radius:5px;
     margin-top:20px;
     padding:20px;
-    color:#525f7f
+    color:#000000
 }
 article footer #csat-widget .common-Button{
     margin-left:5px;
     line-height:25px;
     height:25px;
-    color:#299fc4;
+    color:#000000;
     text-transform:unset;
     cursor:pointer
 }
@@ -837,7 +837,7 @@ article aside.important.flash{
     }
 }
 .key-popover a,article a,article a code{
-    color:#0099e5;
+    color:#797979;
     font-weight:500;
     text-decoration:underline
 }
@@ -884,7 +884,7 @@ article a[href^="/docs/api"]:active:after{
 }
 article code,article strong{
     font-weight:500;
-    color:#0d2b3e
+    color:#000000
 }
 article code{
     font-family:Source Code Pro,monospace
@@ -918,7 +918,7 @@ article ul>li:before{
     left:10px;
     top:9px;
     border-radius:50%;
-    background:#939da3
+    background:#797979
 }
 article ul.no-style>li:before{
     display:none
@@ -942,7 +942,7 @@ article ul.checkmarks>li:before{
 article ol>li:before{
     counter-increment:a;
     content:counter(a);
-    background:#939da3;
+    background:#797979;
     color:#fff;
     font-size:13px;
     font-weight:500;
@@ -1005,7 +1005,7 @@ article ul.large-items>li a{
 article ul.large-items>li h3{
     position:relative;
     display:inline-block;
-    color:#0099e5;
+    color:#797979;
     font-size:15px;
     font-weight:500
 }
@@ -1053,7 +1053,7 @@ article table:not(:first-child),article table table{
 article table thead tr th{
     font-weight:500;
     font-size:13px;
-    color:#939da3;
+    color:#797979;
     text-transform:uppercase;
     text-align:left;
     padding:0 0 7px 9px
@@ -1116,7 +1116,7 @@ article table.reference .attr,article table.reference td:first-child code{
     text-align:right
 }
 article table.reference .attr{
-    color:#0d2b3e;
+    color:#000000;
     font-weight:500
 }
 article table.reference .type{
@@ -1124,12 +1124,12 @@ article table.reference .type{
     font-size:13px;
     line-height:18px;
     font-weight:500;
-    color:#939da3
+    color:#797979
 }
 .card-number,.card-token{
     white-space:nowrap;
     font-family:Source Code Pro,monospace;
-    color:#0d2b3e;
+    color:#000000;
     font-weight:500
 }
 .card-number span{
@@ -1238,7 +1238,7 @@ article .tabs-code>nav a:active{
     color:#2f3538
 }
 article .tabs-code>nav a.selected{
-    color:#0099e5
+    color:#797979
 }
 article .code>nav{
     display:flex;
@@ -1394,7 +1394,7 @@ article .tabs-regular .nav-tabs{
 article .tabs-regular .nav-tabs select{
     font-size:15px;
     font-weight:500;
-    color:#0099e5;
+    color:#797979;
     background:transparent;
     outline:none;
     padding:0 13px 0 0;
@@ -1422,7 +1422,7 @@ article .tabs-regular .nav-tabs a:active{
     background:#f0f4f7;
     border-top-left-radius:3px;
     border-top-right-radius:3px;
-    color:#0d2b3e
+    color:#000000
 }
 article .tabs-regular .nav-tabs a.selected{
     background:#0e99e5;
@@ -1583,7 +1583,7 @@ article a.column h4+p{
     padding-top:5px
 }
 article a.column:hover,article a.column:hover>*{
-    color:#0099e5
+    color:#797979
 }
 article .card-form{
     width:325px;
@@ -1719,11 +1719,11 @@ article .tag.beta,article .tag.major,article .tag.recommended{
 }
 article .tag.optional{
     background:#f8f9fa;
-    color:#939da3
+    color:#797979
 }
 article .tag.warning{
     background:#c23d4b;
-    color:#f6f9fc
+    color:#f9f9f9
 }
 article h1 .tag{
     position:relative;

@@ -6,7 +6,7 @@ import { MockCurrentProject } from '../../ReduxStore_Mock'
 
 localStorage.setItem('id', '5b1c0c29cb06cc23b132db07')
 
-let props = {
+const props = {
     currentProject: {
         '_id': '5b1f39482a62c8611d23c953',
         'users': [

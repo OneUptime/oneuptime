@@ -3,12 +3,15 @@ import PropTypes from 'prop-types'
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import { Validate } from '../../config';
-import { FlatLoader } from '../basic/Loader.js';
+import { ButtonSpinner } from '../basic/Loader.js';
 import { changePasswordError, changePasswordSuccess, changePassword, resetChangePassword } from '../../actions/changePassword';
 import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField';
 import { Link } from 'react-router-dom'
 
+const errorStyle = {
+	color: '#c23d4b'
+}
 export class ChangePasswordForm extends Component {
 
   submitForm =(values)=> {
@@ -17,14 +20,21 @@ export class ChangePasswordForm extends Component {
   }
 
   render() {
+    const changePasswordStateError = this.props.changePasswordState.error;
+		let header;
+		if (changePasswordStateError) {
+			header = <span style={errorStyle}>{changePasswordStateError}</span> 
+		} else {
+			header = <span>Reset Password</span>
+		}
     return (
       <div id="main-body" className="box css">
         <div className="inner">
           <form onSubmit={this.props.handleSubmit(this.submitForm)} className="request-reset">
-            <div className="request-reset-step step" >
+            <div className="request-reset-step" >
               <div className="title">
                 <h2>
-                  <span > {this.props.changePasswordState.error ? <span className="error" >{this.props.changePasswordState.error}</span> : 'Reset Password'} </span>
+                  {header}
                 </h2>
               </div>
 
@@ -32,13 +42,12 @@ export class ChangePasswordForm extends Component {
 
 
               {this.props.changePasswordState.success && <p className="message"> Your password is changed. Please <Link to="/login"> click here to login </Link> </p>}
-              {!this.props.changePasswordState.success && <p className="message"> Enter your email address below and we will send you a link to
-                                reset your password. </p>}
+              {!this.props.changePasswordState.success && <p className="message"> Please enter a new password to continue</p>}
 
 
               {!this.props.changePasswordState.success && <div> <p className="text">
-                <span>
-                  <label htmlFor="password">  Password </label>
+                <span id="passwordField">
+                  <label htmlFor="password">  New Password </label>
                   <Field
                     component={RenderField}
                     type="password"
@@ -49,8 +58,8 @@ export class ChangePasswordForm extends Component {
                 </span>
               </p>
                 <p className="text">
-                  <span>
-                    <label htmlFor="confirmPassword">  Confirm Password </label>
+                  <span id="confirmPasswordField">
+                    <label htmlFor="confirmPassword">  Confirm New Password </label>
                     <Field
                       component={RenderField}
                       type="password"
@@ -63,7 +72,7 @@ export class ChangePasswordForm extends Component {
                 <p className="submit">
                   <button type="submit" className="button blue medium" disabled={this.props.changePasswordState.requesting}>
                     {!this.props.changePasswordState.requesting && <span>Change Password</span>}
-                    {this.props.changePasswordState.requesting && <FlatLoader />}
+                    {this.props.changePasswordState.requesting && <ButtonSpinner />}
                   </button>
                 </p> </div>}
             </div>
@@ -79,17 +88,23 @@ export class ChangePasswordForm extends Component {
 ChangePasswordForm.displayName = 'ChangePasswordForm'
 
 function validate(values) {
-  let errors = {};
+  const errors = {};
   if (!Validate.text(values.password)) {
     errors.password = 'Password is required.'
   }
+  if (Validate.text(values.password) && !Validate.isStrongPassword(values.password)) {
+    errors.password = 'Password should be atleast 8 characters long'
+  }
   if (!Validate.text(values.confirmPassword)) {
-    errors.confirmPassword = 'Confirm Password is invalid.'
+    errors.confirmPassword = 'Confirm Password is required.';
+  }
+  if (!Validate.compare(values.password, values.confirmPassword)) {
+    errors.confirmPassword = 'Password and confirm password should match.';
   }
   return errors;
 }
 
-let changePasswordForm = reduxForm({
+const changePasswordForm = reduxForm({
   form: 'changePasswordForm', // a unique identifier for this form
   validate
 })(ChangePasswordForm);

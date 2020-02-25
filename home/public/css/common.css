@@ -13,7 +13,7 @@
     font-weight:300;
     font-size:45px;
     line-height:60px;
-    color:#32325d;
+    color:#000000;
     letter-spacing:-.01em
 }
 @media (min-width:670px){
@@ -26,7 +26,7 @@
     font-weight:400;
     font-size:34px;
     line-height:43px;
-    color:#32325d
+    color:#000000
 }
 @media (min-width:670px){
     .common-PageTitle{
@@ -38,7 +38,7 @@
     font-weight:300;
     font-size:34px;
     line-height:43px;
-    color:#14aad9
+    color:#000000
 }
 @media (min-width:670px){
     .common-PageSubtitle{
@@ -50,7 +50,7 @@
     font-weight:400;
     font-size:21px;
     line-height:31px;
-    color:#525f7f
+    color:#000000
 }
 @media (min-width:670px){
     .common-IntroText{
@@ -62,13 +62,13 @@
     font-weight:500;
     font-size:19px;
     line-height:28px;
-    color:#32325d
+    color:#000000
 }
 .common-BodyText{
     font-weight:400;
     font-size:17px;
     line-height:26px;
-    color:#6b7c93
+    color:#797979
 }
 .common-UppercaseTitle{
     font-size:20px;
@@ -154,25 +154,25 @@
     transition:stroke .1s
 }
 .common-ProductLockupBack:hover .hover-fillLight{
-    fill:#8898aa
+    fill:#757575
 }
 .common-ProductLockupBack:hover .hover-fillDark{
-    fill:#32325d
+    fill:#000000
 }
 .common-ProductLockupBack:hover .hover-strokeLight{
-    stroke:#8898aa
+    stroke:#757575
 }
 .common-ProductLockupBack:hover .hover-strokeDark{
-    stroke:#32325d
+    stroke:#000000
 }
 .common-Link{
-    color:#14aad9;
+    color:#000000;
     font-weight:500;
     transition:color .1s ease;
     cursor:pointer
 }
 .common-Link:hover{
-    color:#32325d
+    color:#000000
 }
 .common-Link:active{
     color:#000
@@ -200,7 +200,7 @@
     color:#c4f0ff
 }
 .common-InvertedText .common-BodyText{
-    color:#9cdbff
+    color:#000000
 }
 .common-InvertedText .common-Link,.common-Link--white{
     color:#fff
@@ -224,44 +224,44 @@
     font-weight:600;
     text-transform:uppercase;
     letter-spacing:.025em;
-    color:#299fc4;
+    color:#000000;
     text-decoration:none;
     transition:all .15s ease
 }
 .common-Button:hover{
-    color:#299fc4;
+    color:#000000;
     transform:translateY(-1px);
     box-shadow:0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08)
 }
 .common-Button:active{
-    color:#299fc4;
-    background-color:#f6f9fc;
+    color:#000000;
+    background-color:#f9f9f9;
     transform:translateY(1px);
     box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08)
 }
 .common-Button--default{
     color:#fff;
-    background:#14aad9
+    background:#000000
 }
 .common-Button--default:hover{
     color:#fff;
-    background-color:#299fc4
+    background-color:#000000
 }
 .common-Button--default:active{
-    color:#e6ebf1;
-    background-color:#299fc4
+    color:#fdfdfd;
+    background-color:#000000
 }
 .common-Button--dark{
     color:#fff;
-    background:#32325d
+    background:#000000
 }
 .common-Button--dark:hover{
     color:#fff;
     background-color:#43458b
 }
 .common-Button--dark:active{
-    color:#e6ebf1;
-    background-color:#32325d
+    color:#fdfdfd;
+    background-color:#000000
 }
 .common-Button--disabled{
     color:#fff;
@@ -334,6 +334,6 @@
     text-align:center;
     padding:2px 6px 2px 7px;
     text-transform:uppercase;
-    color:#8898aa;
+    color:#757575;
     background-color:rgba(136,152,170,.15)
 }

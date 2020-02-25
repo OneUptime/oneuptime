@@ -17,9 +17,9 @@ if (!isServer) {
 	});
 }
 
-var cookies = new Cookies();
+const cookies = new Cookies();
 
-var userData = cookies.get('admin-data');
+const userData = cookies.get('admin-data');
 if (userData !== undefined){
 	User.setUserId(userData.id);
 	User.setAccessToken(userData.tokens.jwtAccessToken);

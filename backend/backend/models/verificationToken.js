@@ -1,9 +1,9 @@
-var mongoose = require('../config/db');
-var Schema = mongoose.Schema;
+const mongoose = require('../config/db');
+const Schema = mongoose.Schema;
 
-var { EMAIL_VERIFY_TIME } = process.env;
+const { EMAIL_VERIFY_TIME } = process.env;
 
-var verificationToken = new Schema({
+const verificationToken = new Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true, ref: 'User'

@@ -3,7 +3,7 @@ import { storiesOf,action } from '@storybook/react';
 import { DeleteCaution } from '../../../components/project/DeleteCaution'
 import { withKnobs, boolean } from '@storybook/addon-knobs';
 
-let props  = {
+const props  = {
     deleteProject:(details)=>{
         const deleteProject = action('deleteProject');
         deleteProject(details);

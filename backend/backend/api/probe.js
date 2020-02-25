@@ -13,43 +13,44 @@ const isAuthorizedProbe = require('../middlewares/probeAuthorization').isAuthori
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-var getUser = require('../middlewares/user').getUser;
+const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 
-router.post('/', isAuthorizedAdmin, async function (req, res) {
-    let data = req.body;
+router.post('/', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
-        let probe = await ProbeService.create(data);
+        const data = req.body;
+        const probe = await ProbeService.create(data);
         return sendItemResponse(req, res, probe);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.get('/', isAuthorizedAdmin, async function (req, res) {
+router.get('/', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
-        let probe = await ProbeService.findBy({});
-        let count = await ProbeService.countBy({});
-        return sendListResponse(req, res, probe,count);
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 0;
+        const probe = await ProbeService.findBy({}, limit, skip);
+        const count = await ProbeService.countBy({});
+        return sendListResponse(req, res, probe, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.put('/:id', isAuthorizedAdmin, async function (req, res) {
-    let data = req.body;
-    data._id = req.params.id;
+router.put('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
-        let probe = await ProbeService.update({_id:req.params.id},data);
+        const data = req.body;
+        const probe = await ProbeService.updateOneBy({ _id: req.params.id }, data);
         return sendItemResponse(req, res, probe);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.delete('/:id', isAuthorizedAdmin, async function (req, res) {
+router.delete('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
-        let probe = await ProbeService.deleteBy({_id:req.params.id});
+        const probe = await ProbeService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, probe);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -58,44 +59,86 @@ router.delete('/:id', isAuthorizedAdmin, async function (req, res) {
 
 router.get('/monitors', isAuthorizedProbe, async function (req, res) {
     try {
-        let monitors = await MonitorService.getProbeMonitors(new Date(new Date().getTime() - (60 * 1000)));
-        return sendListResponse(req, res, monitors,monitors.length);
+        const monitors = await MonitorService.getProbeMonitors(new Date(new Date().getTime() - (60 * 1000)));
+        return sendListResponse(req, res, monitors, monitors.length);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.post('/setTime/:monitorId', isAuthorizedProbe, async function (req, res) {
-    let data = req.body;
-    data.probeId = req.probe.id;
-    data.monitorId = req.params.monitorId;
+router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response) {
     try {
-        let probe = await ProbeService.setTime(data);
-        return sendItemResponse(req, res, probe);
+        const { monitor, res, resp, type } = req.body;
+        let status;
+
+        if (type === 'api' || type === 'url') {
+            const validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(res, resp, monitor.criteria.up) : false);
+            const validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(res, resp, monitor.criteria.degraded) : false);
+            const validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(res, resp, monitor.criteria.down) : false);
+
+            if (validDown) {
+                status = 'offline';
+            } else if (validDegraded) {
+                status = 'degraded';
+            } else if (validUp) {
+                status = 'online';
+            } else {
+                status = 'unknown';
+            }
+        }
+
+        if (type === 'device') {
+            if (res) {
+                status = 'online';
+            } else {
+                status = 'offline';
+            }
+        }
+
+        const data = req.body;
+        data.responseTime = res || 0;
+        data.responseStatus = resp && resp.status ? resp.status : null;
+        data.status = status;
+        data.probeId = req.probe && req.probe.id ? req.probe.id : null;
+        data.monitorId = req.params.monitorId;
+        const log = await ProbeService.saveMonitorLog(data);
+        return sendItemResponse(req, response, log);
+    } catch (error) {
+        return sendErrorResponse(req, response, error);
+    }
+});
+
+router.post('/setTime/:monitorId', isAuthorizedProbe, async function (req, res) {
+    try {
+        const data = req.body;
+        data.probeId = req.probe.id;
+        data.monitorId = req.params.monitorId;
+        const log = await ProbeService.saveMonitorLog(data);
+        return sendItemResponse(req, res, log);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) {
-    let data = req.body;
-    data.probeId = req.probe.id;
-    data.monitorId = req.params.monitorId;
     try {
-        let probe = await ProbeService.getTime(data);
-        return sendItemResponse(req, res, probe);
+        const data = req.body;
+        data.probeId = req.probe.id;
+        data.monitorId = req.params.monitorId;
+        const log = await ProbeService.getMonitorLog(data);
+        return sendItemResponse(req, res, log);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.get('/:projectId/probes', getUser,isAuthorized, async function (req, res) {
-    var limit = req.query.limit || null;
-    var skip = req.query.skip || null;
+router.get('/:projectId/probes', getUser, isAuthorized, async function (req, res) {
     try {
-        let probe = await ProbeService.findBy({},limit,skip);
-        let count = await ProbeService.countBy({});
-        return sendListResponse(req, res, probe,count);
+        const limit = req.query.limit || null;
+        const skip = req.query.skip || null;
+        const probe = await ProbeService.findBy({}, limit, skip);
+        const count = await ProbeService.countBy({});
+        return sendListResponse(req, res, probe, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

@@ -7,30 +7,34 @@ class BlockChart extends Component {
       let bar =null;
       let title =null;
       let title1 = null;
-      if(this.props.time){
-        if(this.props.time.downTime >1 && this.props.time.downTime< 10){
-            bar = 'bar mid';
-            title = moment((this.props.time.date).split('T')[0]).format('LL');
-            title1 = `<br>degraded for ${this.props.time.downTime} minutes`;
-          } 
-          else if(this.props.time.downTime >= 10) {
-            var downtime = `${this.props.time.downTime} minutes`;
+      if(this.props.time && (this.props.time.downTime || this.props.time.upTime || this.props.time.degradedTime )){
+        if(this.props.time.downTime){
+            let downtime = `${this.props.time.downTime} minutes`;
             if(this.props.time.downTime > 60){
                 downtime = `${Math.floor(this.props.time.downTime / 60)} hrs ${this.props.time.downTime % 60} minutes`;
                 }
-              bar = 'bar down';
-              title = moment((this.props.time.date).split('T')[0]).format('LL');
-              title1 = `<br>down for ${downtime}`;
+            bar = 'bar down';
+            title = moment(this.props.time.date).format('LL');
+            title1 = `<br>down for ${downtime} minutes`;
+          }
+          else if(this.props.time.degradedTime) {
+            let degradedtime = `${this.props.time.degradedTime} minutes`;
+            if(this.props.time.degradedTime > 60){
+                degradedtime = `${Math.floor(this.props.time.degradedTime / 60)} hrs ${this.props.time.degradedTime % 60} minutes`;
+                }
+              bar = 'bar mid';
+              title = moment(this.props.time.date).format('LL');
+              title1 = `<br>degraded for ${degradedtime}`;
           }
           else {
               bar = 'bar';
-              title = moment((this.props.time.date).split('T')[0]).format('LL');
+              title = moment(this.props.time.date).format('LL');
               title1 = '<br>No downtime';
           }
     }
     else {
           bar = 'bar empty';
-          title = moment(new Date(this.props.emptytime)).format('LL');
+          title = moment(this.props.time.date).format('LL');
           title1 = '<br>No data Available';
     }
     return (
@@ -46,7 +50,6 @@ BlockChart.propTypes = {
         PropTypes.object,
         PropTypes.bool
     ]).isRequired,
-    emptytime: PropTypes.number
 }
 
 export default BlockChart;

@@ -1,11 +1,12 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var userSchema = new Schema({
+const Schema = mongoose.Schema;
+const userSchema = new Schema({
     name: String,
     email: String,
+    tempEmail: String,
     password: String,
-    isVerified: { 
+    isVerified: {
         type: Boolean,
         default: false
     },
@@ -15,8 +16,15 @@ var userSchema = new Schema({
     referral: String,
     companyPhoneNumber: String,
 
+    airtableId: String,
+
     onCallAlert: Array,
     profilePic: String,
+
+    twoFactorAuthEnabled: {type: Boolean, default: false},
+    twoFactorSecretCode: String,
+    otpauth_url: String,
+    backupCodes: Array,
 
     jwtRefreshToken: String,
     stripeCustomerId: String,
@@ -33,7 +41,7 @@ var userSchema = new Schema({
     },
     coupon: String,
 
-    disabled: { 
+    disabled: {
         type: Boolean,
         default: false
     },
@@ -43,11 +51,19 @@ var userSchema = new Schema({
     },
     role: {
         type: String,
-        enum: ['master-admin']
+        enum: ['master-admin', 'user']
     },
+    isBlocked: {
+        type: Boolean,
+        default: false
+    },
+    adminNotes: [{
+        note: { type: String },
+        createdAt: { type: Date }
+    }],
 
-    deleted: { type: Boolean, default: false},
-    
+    deleted: { type: Boolean, default: false },
+
     deletedAt: {
         type: Date
     },
@@ -56,7 +72,9 @@ var userSchema = new Schema({
     alertPhoneNumber: {
         type: String,
         default: ''
-    }
+    },
+    tempAlertPhoneNumber: String,
+    tutorial: Object
 });
 
 module.exports = mongoose.model('User', userSchema);

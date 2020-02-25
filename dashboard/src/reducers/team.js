@@ -5,6 +5,9 @@ import {
 	TEAM_LOADING_REQUEST,
 	TEAM_LOADING_SUCCESS,
 	TEAM_LOADING_FAILURE,
+	TEAM_MEMBER_REQUEST,
+	TEAM_MEMBER_SUCCESS,
+	TEAM_MEMBER_FAILURE,
 	TEAM_SUBPROJECT_LOADING_REQUEST,
 	TEAM_SUBPROJECT_LOADING_SUCCESS,
 	TEAM_SUBPROJECT_LOADING_FAILURE,
@@ -16,7 +19,8 @@ import {
 	TEAM_UPDATE_ROLE_FAILURE,
 	PAGINATE_NEXT,
 	PAGINATE_PREV,
-	PAGINATE_RESET
+	PAGINATE_RESET,
+	TEAM_DELETE_RESET
 } from '../constants/team';
 
 
@@ -48,11 +52,15 @@ const initialState = {
 		success: false,
 		deleting: []
 	},
+	teamMember: {
+		error: null,
+		requesting: false,
+		success: false,
+		member: null
+	},
 	teamMembers: [],
 	subProjectTeamMembers: [],
-	pages: {
-		counter: 1
-	}
+	pages: {}
 };
 
 export default (state = initialState, action) => {
@@ -62,6 +70,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamLoading: {
+					...state.teamLoading,
 					error: null,
 					requesting: true,
 					success: false,
@@ -69,31 +78,36 @@ export default (state = initialState, action) => {
 			};
 
 		case TEAM_LOADING_SUCCESS:
-			var team = action.payload;
-			return {
-				...state,
-				teamLoading: {
-					error: null,
-					requesting: false,
-					success: true,
-				},
-				teamMembers: team
-			};
+			{
+				const team = action.payload;
+				return {
+					...state,
+					teamLoading: {
+						error: null,
+						requesting: false,
+						success: true,
+					},
+					teamMembers: team
+				};
+			}
 
 		case TEAM_LOADING_FAILURE:
 			return {
 				...state,
 				teamLoading: {
+					...state.teamLoading,
 					error: action.payload,
 					requesting: false,
 					success: false,
 				}
 			};
 
+
 		case TEAM_SUBPROJECT_LOADING_REQUEST:
 			return {
 				...state,
 				teamLoading: {
+					...state.teamLoading,
 					error: null,
 					requesting: true,
 					success: false,
@@ -101,21 +115,25 @@ export default (state = initialState, action) => {
 			};
 
 		case TEAM_SUBPROJECT_LOADING_SUCCESS:
-			var teamMembers = action.payload;
-			return {
-				...state,
-				teamLoading: {
-					error: null,
-					requesting: false,
-					success: true,
-				},
-				subProjectTeamMembers: teamMembers
-			};
+			{
+				const teamMembers = action.payload;
+				return {
+					...state,
+					teamLoading: {
+						...state.teamLoading,
+						error: null,
+						requesting: false,
+						success: true,
+					},
+					subProjectTeamMembers: teamMembers
+				};
+			}
 
 		case TEAM_SUBPROJECT_LOADING_FAILURE:
 			return {
 				...state,
 				teamLoading: {
+					...state.teamLoading,
 					error: action.payload,
 					requesting: false,
 					success: false,
@@ -126,6 +144,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamCreate: {
+					...state.teamCreate,
 					error: action.payload,
 					requesting: false,
 					success: false,
@@ -136,6 +155,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamCreate: {
+					...state.teamCreate,
 					error: null,
 					requesting: false,
 					success: true,
@@ -152,6 +172,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamCreate: {
+					...state.teamCreate,
 					error: null,
 					requesting: true,
 					success: false,
@@ -162,6 +183,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamdelete: {
+					...state.teamdelete,
 					error: null,
 					requesting: true,
 					success: false,
@@ -173,6 +195,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamdelete: {
+					...state.teamdelete,
 					error: null,
 					requesting: false,
 					success: true,
@@ -190,6 +213,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamdelete: {
+					...state.teamdelete,
 					error: action.payload,
 					requesting: false,
 					success: false,
@@ -197,10 +221,59 @@ export default (state = initialState, action) => {
 				},
 			};
 
+		case TEAM_DELETE_RESET:
+			return {
+				...state,
+				teamdelete: {
+					...state.teamdelete,
+					error: null,
+					requesting: false,
+					success: false,
+					deleting: []
+				},
+			};
+
+		case TEAM_MEMBER_REQUEST:
+			return {
+				...state,
+				teamMember: {
+					...state.teamMember,
+					error: null,
+					requesting: true,
+					success: false,
+					member: action.payload
+				},
+			};
+
+		case TEAM_MEMBER_SUCCESS:
+			return {
+				...state,
+				teamMember: {
+					...state.teamMember,
+					error: null,
+					requesting: false,
+					success: true,
+					member: action.payload
+				}
+			};
+
+		case TEAM_MEMBER_FAILURE:
+			return {
+				...state,
+				teamMember: {
+					...state.teamMember,
+					error: action.payload,
+					requesting: false,
+					success: false,
+					member: []
+				}
+			};
+
 		case TEAM_UPDATE_ROLE_REQUEST:
 			return {
 				...state,
 				teamUpdateRole: {
+					...state.teamUpdateRole,
 					error: null,
 					requesting: true,
 					success: false,
@@ -212,6 +285,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamUpdateRole: {
+					...state.teamUpdateRole,
 					error: null,
 					requesting: false,
 					success: true,
@@ -229,6 +303,7 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				teamUpdateRole: {
+					...state.teamUpdateRole,
 					error: action.payload,
 					requesting: false,
 					success: false,
@@ -240,7 +315,8 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				pages: {
-					counter: state.pages.counter + 1
+					...state.pages,
+					[action.payload]: state.pages[action.payload] ? state.pages[action.payload] + 1 : 2
 				}
 			}
 
@@ -248,16 +324,15 @@ export default (state = initialState, action) => {
 			return {
 				...state,
 				pages: {
-					counter: state.pages.counter - 1
+					...state.pages,
+					[action.payload]: state.pages[action.payload] ? state.pages[action.payload] - 1 : 1
 				}
 			}
 
 		case PAGINATE_RESET:
 			return {
 				...state,
-				pages: {
-					counter: 1
-				}
+				pages: {}
 			}
 
 		default: return state;

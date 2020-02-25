@@ -4,13 +4,13 @@ import { withKnobs, boolean } from '@storybook/addon-knobs';
 import { reduxForm } from 'redux-form'
 import { TeamMember } from '../../../components/team/TeamMember'
 
-let TeamMember_Decorated = new reduxForm({
+const TeamMemberDecorated = new reduxForm({
     form: 'TeamMember',
     enableReinitialize: true
 })(TeamMember);
 
 
-let props = {
+const props = {
   'array': {},
   'anyTouched': false,
   'asyncValidating': false,
@@ -116,6 +116,6 @@ storiesOf('Team', module)
             {story()}</div>
     ))
     .add('OnCallAlertSetting', () =>
-        <TeamMember_Decorated updating={boolean('updating', false)}  {...props} />
+        <TeamMemberDecorated updating={boolean('updating', false)}  {...props} />
     )
 

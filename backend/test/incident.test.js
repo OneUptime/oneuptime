@@ -1,39 +1,45 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
 
-var incidentData = require('./data/incident');
-var UserService = require('../backend/services/userService');
-var UserModel = require('../backend/models/user');
-var ProjectService = require('../backend/services/projectService');
-var ProjectModel = require('../backend/models/project');
-var IncidentService = require('../backend/services/incidentService');
-var MonitorService = require('../backend/services/monitorService');
-var NotificationService = require('../backend/services/notificationService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var AlertModel = require('../backend/models/alert');
-var sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
-var TwilioConfig = require('../backend/config/twilio');
+const incidentData = require('./data/incident');
+const UserService = require('../backend/services/userService');
+const UserModel = require('../backend/models/user');
+const ProjectService = require('../backend/services/projectService');
+const ProjectModel = require('../backend/models/project');
+const IncidentService = require('../backend/services/incidentService');
+const MonitorService = require('../backend/services/monitorService');
+const NotificationService = require('../backend/services/notificationService');
+const AirtableService = require('../backend/services/airtableService');
+
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const AlertModel = require('../backend/models/alert');
+const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+const TwilioConfig = require('../backend/config/twilio');
 
 
-var token, userId, projectId, monitorId, incidentId, monitor = {
+let token, userId, airtableId, projectId, monitorId, incidentId;
+const monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
 };
 
 describe('Incident API', function () {
-    this.timeout(100000);
+    this.timeout(120000);
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(60000);
+        createUser(request, userData.user, function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -41,7 +47,7 @@ describe('Incident API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${token}`;
+                        const authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
                             monitorId = res.body._id;
                             expect(res).to.have.status(200);
@@ -56,10 +62,11 @@ describe('Incident API', function () {
 
     after(async function () {
         await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should create an incident', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/incident/${projectId}/${monitorId}`).set('Authorization', authorization).send(incidentData).end(function (err, res) {
             incidentId = res.body._id;
             expect(res).to.have.status(200);
@@ -69,8 +76,8 @@ describe('Incident API', function () {
     });
 
     it('should get incidents belonging to a monitor', function (done) {
-        var authorization = `Basic ${token}`;
-        request.get(`/incident/${projectId}/monitor/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
+        const authorization = `Basic ${token}`;
+        request.post(`/incident/${projectId}/monitor/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('data');
@@ -80,7 +87,7 @@ describe('Incident API', function () {
     });
 
     it('should get all incidents in a project', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/incident/${projectId}/incident`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -91,7 +98,7 @@ describe('Incident API', function () {
     });
 
     it('should get an incident by incidentId', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/incident/${projectId}/incident/${incidentId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -102,7 +109,7 @@ describe('Incident API', function () {
 
 
     it('should acknowledge an incident', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/incident/${projectId}/acknowledge/${incidentId}`).set('Authorization', authorization).send({
         }).end(function (err, res) {
             expect(res).to.have.status(200);
@@ -113,7 +120,7 @@ describe('Incident API', function () {
     });
 
     it('should resolve an incident', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/incident/${projectId}/resolve/${incidentId}`).set('Authorization', authorization).send({
         }).end(function (err, res) {
             expect(res).to.have.status(200);
@@ -124,7 +131,7 @@ describe('Incident API', function () {
     });
 
     it('should update the internal and investigation notes of an incident', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/incident/${projectId}/incident/${incidentId}`).set('Authorization', authorization).send({
             internalNote: 'Update the internal notes',
             investigationNote: 'Update the investigation notes'
@@ -137,56 +144,11 @@ describe('Incident API', function () {
     });
 
     it('should not send incident alert when balance is below minimum amount', async function () {
-        var authorization = `Basic ${token}`;
-        await UserModel.findByIdAndUpdate(userId, {
-            $set: {
-                alertPhoneNumber: TwilioConfig.testphoneNumber
-            }
-        });
-        var schedule = await request.post(`/schedule/${projectId}`)
-            .set('Authorization', authorization)
-            .send({
-                name: 'test schedule'
-            });
-        var selectMonitor = await request.put(`/schedule/${projectId}/${schedule.body._id}`)
-            .set('Authorization', authorization)
-            .send({
-                monitorIds: [monitorId]
-            });
-        if(selectMonitor){
-            var createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
-                .send([{
-                    callFrequency: 10,
-                    teamMember: [{
-                        member: userId,
-                        call: false,
-                        sms: true,
-                        startTime: '12:01 AM',
-                        endTime: '11:59 PM',
-                        timezone: 'American Samoa (GMT -11:00)',
-                        email: false
-                    }]
-                }]);
-            if(createEscalation){
-                var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
-                    .set('Authorization', authorization)
-                    .send(incidentData);
-                var alert = await AlertModel.findOne({
-                    incidentId: createdIncident.body._id
-                });
-            }
-        }
-        expect(alert).to.be.an('object');
-        expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
-    });
-
-    it('should send incident alert when balance is above minimum amount ', async function () {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
             $set: {
-                balance: 100,
                 alertEnable: true,
-                alertOptions:{
+                alertOptions: {
                     minimumBalance: 50,
                     rechargeToBalance: 100,
                     billingUS: true,
@@ -195,32 +157,103 @@ describe('Incident API', function () {
                 }
             }
         });
-        var createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
+        await sleep(5000);
+        await UserModel.findByIdAndUpdate(userId, {
+            $set: {
+                alertPhoneNumber: TwilioConfig.testphoneNumber
+            }
+        });
+        const schedule = await request.post(`/schedule/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'test schedule'
+            });
+        const selectMonitor = await request.put(`/schedule/${projectId}/${schedule.body._id}`)
+            .set('Authorization', authorization)
+            .send({
+                monitorIds: [monitorId]
+            });
+        let alert = null;
+        if (selectMonitor) {
+            const createEscalation = await request.post(`/schedule/${projectId}/${schedule.body._id}/addescalation`).set('Authorization', authorization)
+                .send([{
+                    emailReminders: 10,
+                    callReminders: 10,
+                    smsReminders: 10,
+                    call: true,
+                    sms: true,
+                    email: true,
+                    teams: [{
+                        teamMembers: [{
+                            userId: userId
+                        }]
+                    }]
+                }]);
+            if (createEscalation) {
+                const createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
+                    .set('Authorization', authorization)
+                    .send(incidentData);
+                alert = await AlertModel.findOne({
+                    incidentId: createdIncident.body._id
+                });
+            }
+        }
+
+        expect(alert).to.be.an('object');
+        expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
+    });
+
+    it('should not create an alert charge when an alert is not sent to a user.', async function () {
+        request.get(`alert/${projectId}/alert/charges`, function (err, res) {
+            expect(res).to.have.status(200);
+            expect(res.body).to.be.an('object');
+            expect(res.body).to.have.property('data');
+            expect(res.body.data).to.be.an('array');
+            expect(res.body.data.length).to.be.equal(0);
+        });
+    });
+    it('should send incident alert when balance is above minimum amount', async function () {
+        const authorization = `Basic ${token}`;
+        await ProjectModel.findByIdAndUpdate(projectId, {
+            $set: {
+                balance: 100
+            }
+        });
+        const createdIncident = await request.post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
             .send(incidentData);
         await sleep(10000);
-        var alert = await AlertModel.findOne({
+        const alert = await AlertModel.findOne({
             incidentId: createdIncident.body._id
         });
         expect(alert).to.be.an('object');
-        expect(alert.alertStatus).to.be.equal('success');
+        expect(alert.alertStatus).to.be.equal('Success');
+    });
+    it('should create an alert charge when an alert is sent to a user.', async function () {
+        request.get(`alert/${projectId}/alert/charges`, function (err, res) {
+            expect(res).to.have.status(200);
+            expect(res.body).to.be.an('object');
+            expect(res.body).to.have.property('data');
+            expect(res.body.data).to.be.an('array');
+            expect(res.body.data.length).to.be.equal(1);
+        });
     });
 });
 
 // eslint-disable-next-line no-unused-vars
-var subProjectId, newUserToken, subProjectIncidentId;
+let subProjectId, newUserToken, subProjectIncidentId;
 
 describe('Incident API with Sub-Projects', function () {
-    this.timeout(30000);
+    this.timeout(60000);
     before(function (done) {
-        this.timeout(30000);
-        var authorization = `Basic ${token}`;
+        this.timeout(60000);
+        const authorization = `Basic ${token}`;
         // create a subproject for parent project
-        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send([{ name: 'New SubProject' }]
+        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({ subProjectName: 'New SubProject' }
         ).end(function (err, res) {
             subProjectId = res.body[0]._id;
             // sign up second user (subproject user)
-            request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+            createUser(request, userData.newUser, function (err, res) {
                 userId = res.body.id;
                 VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -229,7 +262,7 @@ describe('Incident API with Sub-Projects', function () {
                             password: userData.newUser.password
                         }).end(function (err, res) {
                             newUserToken = res.body.tokens.jwtAccessToken;
-                            var authorization = `Basic ${token}`;
+                            const authorization = `Basic ${token}`;
                             // add second user to subproject
                             request.post(`/team/${subProjectId}`).set('Authorization', authorization).send({
                                 emails: userData.newUser.email,
@@ -252,14 +285,14 @@ describe('Incident API with Sub-Projects', function () {
     });
 
     it('should not create an incident for user not present in project', function (done) {
-        request.post('/user/signup').send(userData.anotherUser).end(function (err, res) {
+        createUser(request, userData.anotherUser, function (err, res) {
             VerificationTokenModel.findOne({ userId: res.body.id }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
                         email: userData.anotherUser.email,
                         password: userData.anotherUser.password
                     }).end(function (err, res) {
-                        var authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                        const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                         request.post(`/incident/${projectId}/${monitorId}`).set('Authorization', authorization).send(incidentData).end(function (err, res) {
                             expect(res).to.have.status(400);
                             expect(res.body.message).to.be.equal('You are not present in this project.');
@@ -272,7 +305,7 @@ describe('Incident API with Sub-Projects', function () {
     });
 
     it('should create an incident in parent project.', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/incident/${projectId}/${monitorId}`).set('Authorization', authorization).send(incidentData).end(function (err, res) {
             incidentId = res.body._id;
             expect(res).to.have.status(200);
@@ -282,7 +315,7 @@ describe('Incident API with Sub-Projects', function () {
     });
 
     it('should create an incident in sub-project.', function (done) {
-        var authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request.post(`/incident/${subProjectId}/${monitorId}`).set('Authorization', authorization).send(incidentData).end(function (err, res) {
             subProjectIncidentId = res.body._id;
             expect(res).to.have.status(200);
@@ -292,7 +325,7 @@ describe('Incident API with Sub-Projects', function () {
     });
 
     it('should get only sub-project\'s incidents for valid sub-project user', function (done) {
-        var authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request.get(`/incident/${subProjectId}/incident`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -305,7 +338,7 @@ describe('Incident API with Sub-Projects', function () {
     });
 
     it('should get both project and sub-project incidents for valid parent project user.', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/incident/${projectId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('array');
@@ -318,7 +351,7 @@ describe('Incident API with Sub-Projects', function () {
     });
 
     it('should acknowledge subproject incident', function (done) {
-        var authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request.post(`/incident/${subProjectId}/acknowledge/${incidentId}`).set('Authorization', authorization).send({
         }).end(function (err, res) {
             expect(res).to.have.status(200);
@@ -329,7 +362,7 @@ describe('Incident API with Sub-Projects', function () {
     });
 
     it('should resolve subproject incident', function (done) {
-        var authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request.post(`/incident/${subProjectId}/resolve/${incidentId}`).set('Authorization', authorization).send({
         }).end(function (err, res) {
             expect(res).to.have.status(200);

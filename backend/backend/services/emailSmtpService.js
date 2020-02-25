@@ -1,89 +1,78 @@
 module.exports = {
     create: async function (data) {
-        data.pass = await EncryptDecrypt.encrypt(data.pass);
-        var emailSmtpModel = new EmailSmtpModel();
-        emailSmtpModel.projectId = data.projectId;
-        emailSmtpModel.user = data.user;
-        emailSmtpModel.pass = data.pass;
-        emailSmtpModel.host = data.host;
-        emailSmtpModel.port = data.port;
-        emailSmtpModel.from = data.from;
-        emailSmtpModel.secure = false;
-        if(data.secure){
-            emailSmtpModel.secure = data.secure;
-        }
-        emailSmtpModel.enabled = true;
         try {
-            var emailSmtp = await emailSmtpModel.save();
+            data.pass = await EncryptDecrypt.encrypt(data.pass);
+            const emailSmtpModel = new EmailSmtpModel();
+            emailSmtpModel.projectId = data.projectId;
+            emailSmtpModel.user = data.user;
+            emailSmtpModel.pass = data.pass;
+            emailSmtpModel.host = data.host;
+            emailSmtpModel.port = data.port;
+            emailSmtpModel.from = data.from;
+            emailSmtpModel.secure = false;
+            if (data.secure) {
+                emailSmtpModel.secure = data.secure;
+            }
+            emailSmtpModel.enabled = true;
+            const emailSmtp = await emailSmtpModel.save();
             if (emailSmtp && emailSmtp.pass) {
                 emailSmtp.pass = await EncryptDecrypt.decrypt(emailSmtp.pass);
             }
+            return emailSmtp;
         } catch (error) {
-            ErrorService.log('emailSmtpModel.save', error);
+            ErrorService.log('emailSmtpService.create', error);
             throw error;
         }
-        return emailSmtp;
     },
 
-    update: async function (data) {
-        let _this = this;
-        if (!data._id) {
-            try {
-                let emailSmtp = await _this.create(data);
-                return emailSmtp;
-            } catch (error) {
-                ErrorService.log('EmailSmtpService.create', error);
-                throw error;
+    updateOneBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
             }
-        } else {
-            try {
-                var emailSmtp = await _this.findOneBy({ _id: data._id });
-                if (emailSmtp && emailSmtp.pass) {
-                    emailSmtp.pass = await EncryptDecrypt.encrypt(emailSmtp.pass);
-                }
-            } catch (error) {
-                ErrorService.log('EmailSmtpService.findOneBy', error);
-                throw error;
-            }
+
+            if (!query.deleted) query.deleted = false;
+
             if (data.pass) {
                 data.pass = await EncryptDecrypt.encrypt(data.pass);
             }
-            let user = data.user || emailSmtp.user;
-            let pass = data.pass || emailSmtp.pass;
-            let host = data.host || emailSmtp.host;
-            let port = data.port || emailSmtp.port;
-            let from = data.from || emailSmtp.from;
-            let secure = data.secure !== undefined ? data.secure : emailSmtp.secure;
-            let enabled = data.smtpswitch !== undefined ? data.smtpswitch : emailSmtp.enabled;
-            try {
-                var updatedEmailSmtp = await EmailSmtpModel.findByIdAndUpdate(data._id, {
-                    $set: {
-                        user: user,
-                        pass: pass,
-                        host: host,
-                        port: port,
-                        from: from,
-                        secure:secure,
-                        enabled: enabled
-                    }
-                }, {
-                    new: true
-                }).lean();
-                if (updatedEmailSmtp && updatedEmailSmtp.pass) {
-                    updatedEmailSmtp.pass = await EncryptDecrypt.decrypt(updatedEmailSmtp.pass);
-                }
-            } catch (error) {
-                ErrorService.log('EmailSmtpModel.findByIdAndUpdate', error);
-                throw error;
+
+            const updatedEmailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
+                $set: data
+            }, {
+                new: true
+            }).lean();
+            if (updatedEmailSmtp && updatedEmailSmtp.pass) {
+                updatedEmailSmtp.pass = await EncryptDecrypt.decrypt(updatedEmailSmtp.pass);
+            }
+            return updatedEmailSmtp;
+        } catch (error) {
+            ErrorService.log('EmailSmtpModel.findByIdAndUpdate', error);
+            throw error;
+        }
+    },
+
+    updateBy: async function (query, data) {
+        try {
+            if (!query) {
+                query = {};
             }
 
-            return updatedEmailSmtp;
+            if (!query.deleted) query.deleted = false;
+            let updatedData = await EmailSmtpModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('emailSmtpService.updateMany', error);
+            throw error;
         }
     },
 
     deleteBy: async function (query, userId) {
         try {
-            var emailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
+            const emailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedById: userId,
@@ -92,103 +81,101 @@ module.exports = {
             }, {
                 new: true
             });
+            return emailSmtp;
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.findOneAndUpdate', error);
+            ErrorService.log('emailSmtpService.deleteBy', error);
             throw error;
         }
-        return emailSmtp;
     },
 
     findBy: async function (query, skip, limit) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof (skip) === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof (limit) === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
         try {
-            var emailSmtp = await EmailSmtpModel.find(query)
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 10;
+
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const emailSmtp = await EmailSmtpModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
                 .lean();
-            if (emailSmtp && emailSmtp.pass) {
-                emailSmtp.pass = await EncryptDecrypt.decrypt(emailSmtp.pass);
-            }
-
+            emailSmtp.map(async es => {
+                if (es && es.pass) {
+                    es.pass = await EncryptDecrypt.decrypt(es.pass);
+                }
+            });
+            return emailSmtp;
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.find', error);
+            ErrorService.log('emailSmtpService.findBy', error);
             throw error;
         }
-
-        return emailSmtp;
     },
 
     findOneBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
-            var emailSmtp = await EmailSmtpModel.findOne(query)
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            let emailSmtp = await EmailSmtpModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .lean();
             if (emailSmtp && emailSmtp.pass) {
                 emailSmtp.pass = await EncryptDecrypt.decrypt(emailSmtp.pass);
             }
+            if (!emailSmtp) {
+                emailSmtp = {};
+            }
+
+            return emailSmtp;
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.findOne', error);
+            ErrorService.log('emailSmtpService.findOneBy', error);
             throw error;
         }
-        if (!emailSmtp) {
-            emailSmtp = {};
-        }
-
-        return emailSmtp;
     },
 
     countBy: async function (query) {
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
         try {
-            var count = await EmailSmtpModel.count(query);
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const count = await EmailSmtpModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.count', error);
+            ErrorService.log('emailSmtpService.countBy', error);
             throw error;
         }
-        return count;
     },
 
     hardDeleteBy: async function (query) {
         try {
             await EmailSmtpModel.deleteMany(query);
+            return 'Email Smtp(s) removed successfully';
         } catch (error) {
-            ErrorService.log('EmailSmtpModel.deleteMany', error);
+            ErrorService.log('emailSmtpService.hardDeleteBy', error);
             throw error;
         }
-        return 'Email Smtp(s) removed successfully';
     },
 };
 
-var EmailSmtpModel = require('../models/smtp');
-var ErrorService = require('./errorService');
-var EncryptDecrypt = require('../config/encryptDecrypt');
+const EmailSmtpModel = require('../models/smtp');
+const ErrorService = require('./errorService');
+const EncryptDecrypt = require('../config/encryptDecrypt');

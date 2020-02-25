@@ -3,13 +3,16 @@ import { Field, reduxForm } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { connect } from 'react-redux';
 import { Validate } from '../../config';
-import { FlatLoader } from '../basic/Loader.js';
+import { ButtonSpinner } from '../basic/Loader.js';
 import { loginError, loginSuccess, loginUser, resetLogin } from '../../actions/login';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import queryString from 'query-string';
 import { removeQuery } from '../../store';
 
+const errorStyle = {
+	color: '#c23d4b'
+}
 export class LoginForm extends Component {
 
 	state = {
@@ -18,7 +21,7 @@ export class LoginForm extends Component {
 
 	componentDidMount() {
 		const query = queryString.parse(this.props.location.search).status;
-		var serverResponse = '';
+		let serverResponse = '';
 		if (query === 'IIYQNdn4impaXQeeteTBEBmz0If1rlwC') {
 			serverResponse = 'Email already verified. You can now login.'
 		}
@@ -33,6 +36,16 @@ export class LoginForm extends Component {
 	render() {
 		const { handleSubmit } = this.props;
 		const { serverResponse } = this.state;
+		const loginError = this.props.login.error;
+		let header;
+		if (loginError) {
+			header = <span style={errorStyle}>{loginError}</span> 
+		}
+		else if (serverResponse) {
+			header = <span>{serverResponse}</span> 
+		} else {
+			header = <span>Welcome back!</span>
+		}
 
 		return (
 			<div id="main-body" className="box css">
@@ -41,11 +54,8 @@ export class LoginForm extends Component {
 						<form onSubmit={handleSubmit(this.props.onSubmit)}>
 							<div className="step email-password-step">
 								<h2>
-									{serverResponse ? (<span>{serverResponse}</span>) :
-										(<span > {this.props.login.error ? <span className="error" >{this.props.login.error}</span> : 'Welcome back!'} </span>
-										)}
+									{header}
 								</h2>
-
 								<p className="text">
 									<span>
 										<label htmlFor="email">
@@ -80,8 +90,8 @@ export class LoginForm extends Component {
 
 								<p className="submit">
 									<button type="submit" className="button blue medium" id="login-button" disabled={this.props.login.requesting}>
-										{!this.props.login.requesting && <span>Sign in to your account</span>}
-										{this.props.login.requesting && <FlatLoader />}
+										{!this.props.login.requesting && <span>Sign in</span>}
+										{this.props.login.requesting && <ButtonSpinner />}
 									</button>
 								</p>
 							</div>
@@ -95,7 +105,7 @@ export class LoginForm extends Component {
 
 LoginForm.displayName = 'LoginForm'
 
-let validate = function (values) {
+const validate = function (values) {
 	const errors = {};
 	if (!Validate.text(values.email)) {
 		errors.email = 'Email is required.'
@@ -114,7 +124,7 @@ let validate = function (values) {
 	return errors;
 }
 
-let loginForm = reduxForm({
+const loginForm = reduxForm({
 	form: 'LoginForm', // a unique identifier for this form
 	validate,
 	destroyOnUnmount: false
@@ -131,10 +141,6 @@ function mapStateToProps(state) {
 		login: state.login
 	};
 }
-
-LoginForm.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
 
 LoginForm.propTypes = {
 	onSubmit: PropTypes.func.isRequired,

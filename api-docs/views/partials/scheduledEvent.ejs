@@ -1,0 +1,769 @@
+<article id="scheduled-event" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Scheduled Event</h1>
+    </b>
+    <p>
+      <p>Scheduled Event API will allow you to create and manage scheduled events for your Fyipe project monitors.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/scheduledEvent/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container"></div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example"></section>
+</article>
+
+<article id="create-scheduled-event" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Scheduled Event<span class="requestType">POST</span></h3>
+    <p>
+      <p>Create Scheduled Event by Project ID and Monitor ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/scheduledEvent/:projectId/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/scheduledEvent/5e089f94b400211639928c94/5e08a21b25c59a1c8033c7e7</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "name": "Hello",
+  "startDate": "2020-01-14T20:49:47.069Z",
+  "endDate": "2020-01-15T20:49:47.069Z",
+  "description": "Hello",
+  "showEventOnStatusPage": true,
+  "callScheduleOnEvent": true,
+  "alertSubscriber": true
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "_id": "5e1e2a60b1df96583e883fe2",
+  "deleted": false,
+  "showEventOnStatusPage": true,
+  "callScheduleOnEvent": true,
+  "monitorDuringEvent": false,
+  "alertSubscriber": true,
+  "createdAt": "2020-01-14T20:53:52.379Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "name": "Hello",
+  "createdById": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  },
+  "startDate": "2020-01-14T20:49:47.069Z",
+  "endDate": "2020-01-15T20:49:47.069Z",
+  "description": "Hello",
+  "__v": 0
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-scheduled-events" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Scheduled Events<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Scheduled Events by Project ID and Monitor ID. Return by skipping and limiting the number of results.
+      </p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/scheduledEvent/:projectId/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/scheduledEvent/5e089f94b400211639928c94/5e08a21b25c59a1c8033c7e7?skip=0&limit=5</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e1e2a60b1df96583e883fe2",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-01-14T20:53:52.379Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": "5e08a21b25c59a1c8033c7e7",
+      "name": "Hello",
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-01-14T20:49:47.069Z",
+      "endDate": "2020-01-15T20:49:47.069Z",
+      "description": "Hello"
+    },
+    {
+      "_id": "5e1e2a07b1df96583e883fe1",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-01-14T20:52:23.198Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": "5e08a21b25c59a1c8033c7e7",
+      "name": "Hello 2",
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-01-14T20:49:47.069Z",
+      "endDate": "2020-01-15T20:49:47.069Z",
+      "description": "Hello"
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-status-page-scheduled-events" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Status Page Scheduled Events<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Status Page Scheduled Events by Project ID and Monitor ID. Return by skipping and limiting the number
+        of results.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/scheduledEvent/:projectId/:monitorId/statusPage</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/scheduledEvent/5e089f94b400211639928c94/5e08a21b25c59a1c8033c7e7/statusPage?skip=0&limit=5
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e1e2a60b1df96583e883fe2",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-01-14T20:53:52.379Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": "5e08a21b25c59a1c8033c7e7",
+      "name": "Hello",
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-01-14T20:49:47.069Z",
+      "endDate": "2020-01-15T20:49:47.069Z",
+      "description": "Hello"
+    },
+    {
+      "_id": "5e1e2a07b1df96583e883fe1",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-01-14T20:52:23.198Z",
+      "projectId": "5e089f94b400211639928c94",
+      "monitorId": "5e08a21b25c59a1c8033c7e7",
+      "name": "Hello 2",
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-01-14T20:49:47.069Z",
+      "endDate": "2020-01-15T20:49:47.069Z",
+      "description": "Hello"
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="edit-scheduled-event" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Edit Scheduled Event<span class="requestType">PUT</span></h3>
+    <p>
+      <p>Edit Scheduled Event by Project ID and Event ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/scheduledEvent/:projectId/:eventId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>eventId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The event id of the monitor scheduled event.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/scheduledEvent/5e089f94b400211639928c94/5e1e2a60b1df96583e883fe2</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "name": "Hello 3",
+  "startDate": "2020-01-14T20:49:47.069Z",
+  "endDate": "2020-01-15T20:49:47.069Z",
+  "description": "Hello",
+  "showEventOnStatusPage": true,
+  "callScheduleOnEvent": true,
+  "monitorDuringEvent": false,
+  "alertSubscriber": true
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "deleted": false,
+  "showEventOnStatusPage": true,
+  "callScheduleOnEvent": true,
+  "monitorDuringEvent": false,
+  "alertSubscriber": true,
+  "_id": "5e1e2a60b1df96583e883fe2",
+  "createdAt": "2020-01-14T20:53:52.379Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "name": "Hello 3",
+  "createdById": "5e089f88b400211639928c92",
+  "startDate": "2020-01-14T20:49:47.069Z",
+  "endDate": "2020-01-15T20:49:47.069Z",
+  "description": "Hello",
+  "__v": 0
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="delete-scheduled-event" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Delete Scheduled Event<span class="requestType">DELETE</span></h3>
+    <p>
+      <p>Delete Scheduled Event by Project ID and Event ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/scheduledEvent/:projectId/:eventId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>eventId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The event id of the monitor scheduled event.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/scheduledEvent/5e089f94b400211639928c94/5e1e2a60b1df96583e883fe2</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "deleted": true,
+  "showEventOnStatusPage": true,
+  "callScheduleOnEvent": true,
+  "monitorDuringEvent": false,
+  "alertSubscriber": true,
+  "_id": "5e1e2a60b1df96583e883fe2",
+  "createdAt": "2020-01-14T20:53:52.379Z",
+  "projectId": "5e089f94b400211639928c94",
+  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "name": "Pello",
+  "createdById": "5e089f88b400211639928c92",
+  "startDate": "2020-01-14T20:49:47.069Z",
+  "endDate": "2020-01-15T20:49:47.069Z",
+  "description": "Hello",
+  "__v": 0,
+  "deletedAt": "2020-01-14T20:57:57.751Z",
+  "deletedById": "5e089f88b400211639928c92"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>

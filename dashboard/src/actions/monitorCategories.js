@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi } from '../api';
+import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/monitorCategories';
 import errors from '../errors';
 
@@ -6,7 +6,7 @@ export function fetchMonitorCategories(projectId, skip, limit) {
     skip = parseInt(skip);
     limit = parseInt(limit);
     return function (dispatch) {
-        var promise = null;
+        let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(`monitorCategory/${projectId}?skip=${skip}&limit=${limit}`);
         } else {
@@ -59,7 +59,7 @@ export function fetchMonitorCategoriesFailure(error) {
 export function createMonitorCategory(projectId, values) {
 
     return function (dispatch) {
-        var promise = postApi(`monitorCategory/${projectId}`, values);
+        const promise = postApi(`monitorCategory/${projectId}`, values);
         dispatch(createMonitorCategoryRequest());
 
         promise.then(function (monitorCategory) {
@@ -78,6 +78,32 @@ export function createMonitorCategory(projectId, values) {
                 error = 'Network Error';
             }
             dispatch(createMonitorCategoryFailure(errors(error)));
+        });
+        return promise;
+    };
+}
+
+export function updateMonitorCategory(projectId, monitorCategoryId,values) {
+    return function (dispatch) {
+        const promise = putApi(`monitorCategory/${projectId}/${monitorCategoryId}`, values);
+        dispatch(updateMonitorCategoryRequest());
+
+        promise.then(function (updatedMonitorCategory) {
+            dispatch(updateMonitorCategorySuccess(updatedMonitorCategory.data));
+        }, function (error) {
+            if (error && error.response && error.response.data) {
+                error = error.response.data;
+            }
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            }
+            else {
+                error = 'Network Error';
+            }
+            dispatch(updateMonitorCategoryFailure(errors(error)));
         });
         return promise;
     };
@@ -103,11 +129,30 @@ export function createMonitorCategoryFailure(error) {
     };
 }
 
+export function updateMonitorCategoryRequest() {
+    return {
+        type: types.UPDATE_MONITOR_CATEGORY_REQUEST,
+    };
+}
+
+export function updateMonitorCategorySuccess(updatedMonitorCategory) {
+    return {
+        type: types.UPDATE_MONITOR_CATEGORY_SUCCESS,
+        payload: updatedMonitorCategory
+    };
+}
+
+export function updateMonitorCategoryFailure(error) {
+    return {
+        type: types.UPDATE_MONITOR_CATEGORY_FAILURE,
+        payload: error
+    };
+}
 
 export function deleteMonitorCategory(monitorCategoryId, projectId) {
     return function (dispatch) {
 
-        var promise = deleteApi(`monitorCategory/${projectId}/${monitorCategoryId}`);
+        const promise = deleteApi(`monitorCategory/${projectId}/${monitorCategoryId}`);
         dispatch(deleteMonitorCategoryRequest(monitorCategoryId));
 
         promise.then(function (monitorCategory) {
@@ -155,7 +200,7 @@ export function deleteMonitorCategoryFailure(error) {
 export function fetchMonitorCategoriesForNewMonitor(projectId) {
 
     return function (dispatch) {
-        var promise = getApi(`monitorCategory/${projectId}`);
+        const promise = getApi(`monitorCategory/${projectId}`);
         dispatch(fetchMonitorCategoriesForNewMonitorRequest());
 
         promise.then(function (monitorCategories) {

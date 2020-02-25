@@ -4,7 +4,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { showProfileMenu } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
-import ClickOutside from 'react-click-outside';
 import { API_URL,User } from '../../config';
 
 class TopContent extends Component {
@@ -33,9 +32,9 @@ class TopContent extends Component {
 	}
 
 	render() {
-		const IMG_URL = this.props.profilePic && this.props.profilePic !== '' ? `url(${API_URL}/file/${this.props.profilePic})` : 'url(https://secure.gravatar.com/avatar/0c44b8877b1dccab3029ba37888a1686?s=60&amp;d=https%3A%2F%2Fb.stripecdn.com%2Fmanage%2Fassets%2F404)';
-		var userId = User.getUserId();
-		var count = 0;
+		const IMG_URL = this.props.profilePic && this.props.profilePic !== '' ? `url(${API_URL}/file/${this.props.profilePic})` : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
+		const userId = User.getUserId();
+		let count = 0;
         if(this.props.notifications && this.props.notifications.notifications && this.props.notifications.notifications.length){
             this.props.notifications.notifications.map(notification => {
 				if(notification.read.indexOf(userId) > -1){
@@ -87,8 +86,7 @@ class TopContent extends Component {
 						</div>
 					</div>
 				</div>
-				<span className="db-World-topContent--left" />
-				<span className="db-World-topContent--right" />
+				
 			</div>
 		)
 	}

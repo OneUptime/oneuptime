@@ -2,17 +2,21 @@ import React from 'react';
 import PropTypes from 'prop-types'
 import { countries } from './CountryList';
 
-let errorStyle = {
-  color:'red',
+const errorStyle = {
+  color: '#c23d4b',
   topMargin:'5px'
+}
+
+const selectorStyle = {
+  color: '#000000'
 }
 
 const CountrySelector =  ({ input, meta: { touched, error } }) => (
     <span>
-      <select {...input} className="selector" id="country">
-        <option value="">Select Country...</option>
+      <select {...input} className="selector" id="country" style={{ width: 222 }}>
+        <option style = {selectorStyle} value="">Select Country...</option>
         {countries.map(val => (
-          <option value={val.name} key={val.code}>
+          <option style = {selectorStyle} value={val.name} key={val.code}>
             {val.name}
           </option>
         ))}

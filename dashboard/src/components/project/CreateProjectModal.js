@@ -6,6 +6,8 @@ import { withRouter } from 'react-router';
 import ProjectForm from './ProjectForm';
 import { hideForm, createProject,switchProject } from '../../actions/project';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class CreateProjectModal extends Component {
 
@@ -15,8 +17,8 @@ export class CreateProjectModal extends Component {
     }
     
 	createProject(values) {
-		if(window.location.href.indexOf('localhost') <= -1){
-		this.context.mixpanel.track('New Project Created',values);
+		if (!IS_DEV) {
+			logEvent('New Project Created', values);
 		}
 		const {switchProject,dispatch} = this.props;
 		return this.props.createProject(values).then(res => {
@@ -63,6 +65,7 @@ export class CreateProjectModal extends Component {
 const mapStateToProps = state => ({
 	visible: state.project.showForm,
 	errorStack: state.project.newProject.error,
+	requesting: state.project.newProject.requesting,
 	projects :state.project
 });
 
@@ -90,9 +93,5 @@ CreateProjectModal.propTypes = {
 	match: PropTypes.object.isRequired,
 	visible: PropTypes.bool
 }
-
-CreateProjectModal.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(CreateProjectModal));

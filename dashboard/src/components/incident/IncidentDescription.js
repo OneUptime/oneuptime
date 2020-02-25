@@ -1,5 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types'
+import ShouldRender from '../basic/ShouldRender';
+import { Link } from 'react-router-dom';
 
  function IncidentDescription(props) {
     return (
@@ -28,11 +30,54 @@ import PropTypes from 'prop-types'
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">Monitor</label>
                                             <div className="bs-Fieldset-fields" style={{ marginTop: '6px' }}>
-                                                <span className="value">{props.incident.monitorId.name}</span>
+                                                <span className="value">
+                                                    <Link to={'/project/' + props.projectId + '/monitors/' + props.incident.monitorId._id}>{props.incident.monitorId.name}</Link>
+                                                </span>
                                             </div>
                                         </div>
-
-                                    </div>
+                                            <ShouldRender if={props.incident.incidentType === 'online'}>
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">Incident Status</label>
+                                                    <div className="bs-Fieldset-fields" style={{ marginTop: '5px' }}>
+                                                        <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span >
+                                                                    Online
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
+                                            <ShouldRender if={props.incident.incidentType === 'degraded'}>
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">Incident Status</label>
+                                                    <div className="bs-Fieldset-fields" style={{ marginTop: '5px' }}>
+                                                        <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span >
+                                                                    Degraded
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
+                                            <ShouldRender if={props.incident.incidentType === 'offline'}>
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">Incident Status</label>
+                                                    <div className="bs-Fieldset-fields" style={{ marginTop: '5px' }}>
+                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span >
+                                                                    Offline
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
+                                        </div>
                                 </fieldset>
                             </div>
                         </div>
@@ -52,7 +97,8 @@ import PropTypes from 'prop-types'
 IncidentDescription.displayName = 'IncidentDescription'
 
 IncidentDescription.propTypes = {
-    incident: PropTypes.object.isRequired
+    incident: PropTypes.object.isRequired,
+    projectId: PropTypes.string.isRequired,
 }
 
 export default IncidentDescription

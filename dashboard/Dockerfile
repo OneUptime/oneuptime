@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:10
+FROM node:12.16.1
 
 #SET ENV Variables
 ENV PRODUCTION=true
@@ -14,7 +14,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY package*.json /usr/src/app/
-RUN npm install
+RUN npm ci
 
 # Copy app source
 COPY . /usr/src/app

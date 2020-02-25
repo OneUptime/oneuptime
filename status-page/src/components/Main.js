@@ -6,43 +6,118 @@ import UptimeGraphs from './UptimeGraphs';
 import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
-import { API_URL } from '../config';
+import { API_URL, ACCOUNTS_URL, getServiceStatus } from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { getStatusPage, getStatusPageIndividualNote } from '../actions/status';
-import { Redirect } from 'react-router-dom';
+import { getStatusPage, selectedProbe } from '../actions/status';
+import { getProbes } from '../actions/probe';
+
+const greenBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgb(117, 211, 128)'
+};
+const yellowBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgb(255, 222, 36)'
+};
+const redBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgb(250, 117, 90)'
+};
+const greyBackground = {
+	display: 'inline-block',
+	borderRadius: '50%',
+	height: '8px',
+	width: '8px',
+	margin: '0 8px 1px 0',
+	backgroundColor: 'rgba(107, 124, 147, 0.2)'
+};
 
 class Main extends Component {
 
-	componentDidMount() {
-		let projectId;
-		let url;
+	constructor(props) {
+		super(props);
 
+		this.state = {
+			now: Date.now(),
+			nowHandler: null
+		};
+	}
+
+	componentDidUpdate(prevProps) {
+		if (prevProps.probes !== this.props.probes) {
+			if (this.state.nowHandler) {
+				clearTimeout(this.state.nowHandler);
+			}
+
+			this.setLastAlive();
+		}
+	}
+
+	setLastAlive = () => {
+		this.setState({ now: Date.now() });
+
+		const nowHandler = setTimeout(() => {
+			this.setState({ now: Date.now() });
+		}, 300000);
+
+		this.setState({ nowHandler });
+	}
+
+	componentDidMount() {
 		if (window.location.search.substring(1) && window.location.search.substring(1) === 'embedded=true') {
 			document.getElementsByTagName('html')[0].style.background = 'none transparent';
 		}
+
+		let projectId, url;
 		if (window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('fyipeapp.com') > 0) {
 			projectId = window.location.host.split('.')[0];
 			url = 'null';
-		}
-		else {
+		} else {
 			projectId = 'null';
 			url = window.location.host;
 		}
-		this.props.getStatusPage(projectId, url);
+
+		this.props.getProbes(projectId, 0, 10).then(() => {
+			this.selectbutton(this.props.activeProbe);
+		});
+
+		this.props.getStatusPage(projectId, url).catch(err => {
+			if (err.message === 'Request failed with status code 401') {
+				const { loginRequired } = this.props.login;
+				if (loginRequired) {
+					window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
+				}
+			}
+		});
+
+		this.setLastAlive();
 	}
-	
+
 	groupBy(collection, property) {
-		var i = 0, val, index,
-			values = [], result = [];
+		let i = 0, val, index;
+		const values = [], result = [];
+
 		for (; i < collection.length; i++) {
-			val =  collection[i][property] ? collection[i][property]['name'] :'no-category';
+			val = collection[i][property] ? collection[i][property]['name'] : 'no-category';
 			index = values.indexOf(val);
-			if (index > -1)
+			if (index > -1) {
 				result[index].push(collection[i]);
-			else {
+			} else {
 				values.push(val);
 				result.push([collection[i]]);
 			}
@@ -51,75 +126,130 @@ class Main extends Component {
 	}
 
 	groupedMonitors = () => {
-		if (this.props.statusData && this.props.statusData.monitorIds != undefined && this.props.statusData.monitorIds.length > 0) {
-			let monitorData = this.props.statusData.monitorIds;
-			let groupedMonitorData = this.groupBy(monitorData, 'monitorCategoryId')
-			let monitorCategoryStyle = {
+		if (this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0) {
+			const monitorData = this.props.statusData.monitorsData;
+			const groupedMonitorData = this.groupBy(monitorData, 'monitorCategoryId');
+			const monitorCategoryStyle = {
 				display: 'inline-block',
 				marginBottom: 10,
-				fontSize:10,
+				fontSize: 10,
 				color: '#8898aa',
 				fontWeight: 'Bold'
-			}
-			let monitorCategoryGroupContainerStyle = {
-				marginBottom:40
-			}
+			};
+			const monitorCategoryGroupContainerStyle = {
+				marginBottom: 40
+			};
 			return groupedMonitorData.map((groupedMonitors, i) => {
 				return (
-				<div key={i} style = {monitorCategoryGroupContainerStyle} className="uptime-graph-header">
-					<div id={`monitorCategory${i}`} style={monitorCategoryStyle}>
-						<span>{groupedMonitors[0].monitorCategoryId ? groupedMonitors[0].monitorCategoryId.name.toUpperCase() : 'Uncategorized'.toUpperCase()}</span>
+					<div key={i} style={monitorCategoryGroupContainerStyle} className="uptime-graph-header">
+						<div id={`monitorCategory${i}`} style={monitorCategoryStyle}>
+							<span>{groupedMonitors[0].monitorCategoryId ? groupedMonitors[0].monitorCategoryId.name.toUpperCase() : 'Uncategorized'.toUpperCase()}</span>
+						</div>
+						{groupedMonitors.map((monitor, i) => {
+							return (<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />);
+						})}
 					</div>
-					{groupedMonitors.map((monitor, i) => {
-						return (<UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`}/>)
-					})}
-				</div>
-				)
-			})
+				);
+			});
 		} else {
-			return <NoMonitor />
+			return <NoMonitor />;
 		}
 	}
-	render() {
-		const { loginRequired } = this.props.login
 
-		const date = new Date();
+	selectbutton = (index) => {
+		this.props.selectedProbe(index);
+	}
+
+	renderError = () => {
+		const { error } = this.props.status;
+		if (error === 'Input data schema mismatch.') {
+			return 'Status Page Not present';
+		} else if (error === 'Project Not present') {
+			return 'Invalid Project.';
+		} else return error;
+	}
+
+	componentWillUnmount() {
+		if (this.state.nowHandler) {
+			clearTimeout(this.state.nowHandler);
+		}
+	}
+
+	render() {
+		const probes = this.props.probes;
 		let view = false;
 		let status = '';
+		let serviceStatus = '';
 		let statusMessage = '';
 		let faviconurl = '';
 		let isGroupedByMonitorCategory = false;
-
-		if (this.props.statusData && this.props.statusData.monitorIds) {
-
-			let count = this.props.statusData.monitorIds.length;
+		const error = this.renderError();
+		let heading, backgroundMain, contentBackground, secondaryText, primaryText, downtimeColor, uptimeColor, degradedColor;
+		let statusBackground;
+		if (this.props.statusData && this.props.statusData.monitorsData) {
+			serviceStatus = getServiceStatus(this.props.monitorState, probes);
 			isGroupedByMonitorCategory = this.props.statusData.isGroupedByMonitorCategory;
+			const colors = this.props.statusData.colors
 
-			this.props.statusData.monitorIds.forEach((el) => {
-				if (el.stat !== 'online') {
-					count--;
-				}
-			});
-			if (count === this.props.statusData.monitorIds.length) {
+			if (serviceStatus === 'all') {
 				status = 'status-bubble status-up';
-				statusMessage = 'All services are online';
+				statusMessage = 'All Services are Online';
 				faviconurl = '/greenfavicon.ico';
-			}
-			else if (count === 0) {
+			} else if (serviceStatus === 'none') {
 				status = 'status-bubble status-down';
-				statusMessage = 'All services are offline';
+				statusMessage = 'All Services are Offline';
 				faviconurl = '/redfavicon.ico';
-			}
-			else if (count < this.props.statusData.monitorIds.length) {
+			} else if (serviceStatus === 'some') {
 				status = 'status-bubble status-paused';
-				statusMessage = 'Some services are offline';
+				statusMessage = 'Some Services are Offline';
 				faviconurl = '/yellowfavicon.ico';
 			}
 			view = true;
+
+			heading = {
+				color: `rgba(${colors.heading.r}, ${colors.heading.g}, ${colors.heading.b}, ${colors.heading.a})`
+			};
+
+			secondaryText = {
+				color: `rgba(${colors.secondaryText.r}, ${colors.secondaryText.g}, ${colors.secondaryText.b}, ${colors.secondaryText.a})`
+			};
+
+			primaryText = {
+				color: `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`
+			};
+
+			downtimeColor = {
+				backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`
+			};
+			
+			uptimeColor = {
+				backgroundColor: `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`
+			};
+			
+			degradedColor = {
+				backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`
+			};
+
+			if (serviceStatus === 'all') {
+				statusBackground = uptimeColor;
+			} else if (serviceStatus === 'none') {
+				statusBackground = downtimeColor;
+			} else if (serviceStatus === 'some') {
+				statusBackground = degradedColor;
+			}
+			
+			backgroundMain = {
+				background: `rgba(${colors.pageBackground.r}, ${colors.pageBackground.g}, ${colors.pageBackground.b}, ${colors.pageBackground.a})`
+			};
+
+			contentBackground = {
+				background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`
+			};
 		}
 
 		return (
-			<div>
+			<div style={backgroundMain}>
+				{this.props.statusData && this.props.statusData.bannerPath ? <span><img src={`${API_URL}/file/${this.props.statusData.bannerPath}`} alt="" className="banner" /></span> : ''}
 				{view ? <div className="innernew">
 					<div className="header clearfix">
 						<div className="heading">
@@ -127,23 +257,54 @@ class Main extends Component {
 						</div>
 					</div>
 					<div className="content">
-						<div className="white box">
+						<div className="white box" style={contentBackground}>
 							<div className="largestatus">
-								<span className={status}></span>
+								<span className={status} style={{...statusBackground, width: '30px', height: '30px'}}></span>
 								<div className="title-wrapper">
-									<span className="title">{statusMessage}</span>
-									<label className="status-time">
-										As of <span className="current-time">{moment(date).format('LLLL')}</span>
+									<span className="title" style={heading}>{statusMessage}</span>
+									<label className="status-time" style={secondaryText}>
+										As of <span className="current-time">{moment(new Date()).format('LLLL')}</span>
 									</label>
 								</div>
 							</div>
-
-							<div className="statistics">
+							<div className="btn-group">
+								{probes.map((probe, index) =>
+									(<button
+										onClick={() => this.selectbutton(index)}
+										style={contentBackground}
+										key={`probes-btn${index}`}
+										id={`probes-btn${index}`}
+										className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
+										<span style={probe.lastAlive && moment(this.state.now).diff(moment(probe.lastAlive), 'seconds') >= 300 ?
+											greyBackground :
+											(serviceStatus === 'none' ? {...redBackground, backgroundColor: downtimeColor.backgroundColor} : (
+												serviceStatus === 'some' ? {...yellowBackground, backgroundColor: degradedColor.backgroundColor} : {...greenBackground, backgroundColor: uptimeColor.backgroundColor}))}></span>
+										<span style={heading}>{probe.probeName}</span>
+									</button>)
+								)}
+							</div>
+							<div className="statistics" style={contentBackground}>
 								<div className="inner-gradient"></div>
 								<div className="uptime-graphs box-inner">
-									{isGroupedByMonitorCategory ? this.groupedMonitors() : (this.props.statusData && this.props.statusData.monitorIds != undefined && this.props.statusData.monitorIds.length > 0 ? this.props.statusData.monitorIds.map((monitor, i) => <UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />) : <NoMonitor />)}
+									{isGroupedByMonitorCategory ?
+										this.groupedMonitors() :
+										(this.props.statusData &&
+											this.props.statusData.monitorsData !== undefined &&
+											this.props.statusData.monitorsData.length > 0 ?
+											this.props.statusData.monitorsData
+												.map((monitor, i) => {
+													return <UptimeGraphs monitor={monitor} key={i} id={`monitor${i}`} />
+												}) :
+											<NoMonitor />)}
 								</div>
-								{this.props.statusData && this.props.statusData.monitorIds != undefined && this.props.statusData.monitorIds.length > 0 ? <UptimeLegend /> : ''}
+								{this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0 ? <UptimeLegend
+									background={contentBackground}
+									secondaryTextColor={secondaryText}
+									downtimeColor={downtimeColor}
+									uptimeColor={uptimeColor}
+									degradedColor={degradedColor}
+									/> : ''
+								}
 							</div>
 						</div>
 					</div>
@@ -158,14 +319,14 @@ class Main extends Component {
 					<div id="footer">
 						<ul>
 							<ShouldRender if={this.props.statusData && this.props.statusData.copyright}>
-								<li> <span>&copy;</span> {this.props.statusData && this.props.statusData.copyright ? this.props.statusData.copyright : ''}</li>
+								<li> <span style={primaryText}>&copy;</span> {this.props.statusData && this.props.statusData.copyright ? <span style={primaryText}>{this.props.statusData.copyright}</span> : ''}</li>
 							</ShouldRender>
 							<ShouldRender if={this.props.statusData && this.props.statusData.links && (this.props.statusData.links).length}>
-								{this.props.statusData && this.props.statusData.links && this.props.statusData.links.map((link, i) => <Footer link={link} key={i} />)}
+								{this.props.statusData && this.props.statusData.links && this.props.statusData.links.map((link, i) => <Footer link={link} key={i} textColor={secondaryText}/>)}
 							</ShouldRender>
 						</ul>
 
-						<p><a href="https://fyipe.com" target="_blank" rel="noopener noreferrer">Powered by Fyipe</a></p>
+						<p><a href="https://fyipe.com" target="_blank" rel="noopener noreferrer" style={secondaryText}>Powered by Fyipe</a></p>
 					</div>
 				</div> : ''}
 
@@ -179,7 +340,7 @@ class Main extends Component {
 							'bottom': '0',
 							'left': '0',
 							'right': '0',
-							'backgroundColor': '#e6ebf1',
+							'backgroundColor': '#fdfdfd',
 							'zIndex': '999',
 							'display': 'flex',
 							'justifyContent': 'center',
@@ -193,37 +354,9 @@ class Main extends Component {
 						</div>
 					</div>
 				</ShouldRender>
-
-				<ShouldRender if={this.props.login.error}>
-					<div>error</div>
+				<ShouldRender if={error}>
 					<div id="app-loading">
-						<div>{this.props.login.error}</div>
-					</div>
-				</ShouldRender>
-
-				<ShouldRender if={this.props.status.error}>
-					<div>error</div>
-					<div id="app-loading">
-						<div>{this.props.status.error}</div>
-					</div>
-				</ShouldRender>
-
-				<ShouldRender if={this.props.status && this.props.status.error && this.props.status.error !== 'Project Not present' && this.props.status.error !== 'No Monitors Added yet'}>
-					<div>error</div>
-					<div id="app-loading">
-						<div>Cannot connect to server.</div>
-					</div>
-				</ShouldRender>
-				<ShouldRender if={loginRequired}>
-					<div>error</div>
-					<div id="app-loading">
-						<div>The status page you are trying to access is private, taking you to login,<Redirect to="/login" /></div>
-					</div>
-				</ShouldRender>
-				<ShouldRender if={this.props.status && this.props.status.error && this.props.status.error === 'Project Not present'}>
-					<div> error</div>
-					<div id="app-loading">
-						<div>Invalid Project.</div>
+						<div>{error}</div>
 					</div>
 				</ShouldRender>
 			</div>
@@ -237,18 +370,27 @@ const mapStateToProps = (state) => ({
 	status: state.status,
 	statusData: state.status.statusPage,
 	login: state.login,
+	activeProbe: state.status.activeProbe,
+	monitorState: state.status.statusPage.monitorsData,
+	probes: state.probe.probes
 });
 
 const mapDispatchToProps = (dispatch) => bindActionCreators({
 	getStatusPage,
-	getStatusPageIndividualNote,
+	getProbes,
+	selectedProbe
 }, dispatch);
 
 Main.propTypes = {
 	statusData: PropTypes.object,
 	status: PropTypes.object,
 	getStatusPage: PropTypes.func,
+	getProbes: PropTypes.func,
 	login: PropTypes.object.isRequired,
-}
+	monitorState: PropTypes.array,
+	selectedProbe: PropTypes.func,
+	activeProbe: PropTypes.number,
+	probes: PropTypes.array
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

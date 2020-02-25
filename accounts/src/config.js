@@ -10,11 +10,11 @@ let apiUrl = 'http://localhost:3002';
 let dashboardUrl = null;
 let domain = null;
 let adminDashboardUrl = null;
+let developmentEnv = false;
 
-
-function env(value) {
-    var { _env } = window;
-    return _env[`REACT_APP_${value}`];
+export function env(value) {
+    const { _env } = window;
+    return (_env && _env[`REACT_APP_${value}`]) || process.env[`REACT_APP_${value}`];
 }
 
 if (!isServer) {
@@ -23,10 +23,15 @@ if (!isServer) {
         dashboardUrl = 'http://localhost:3000';
         domain = 'localhost';
         adminDashboardUrl = 'http://localhost:3100';
-    } else if (env('BACKEND_HOST')) {
+        developmentEnv = true;
+    }
+    else if (env('BACKEND_HOST')) {
         apiUrl = env('BACKEND_HOST');
         dashboardUrl = env('DASHBOARD_HOST');
         domain = env('DOMAIN');
+        if (apiUrl.indexOf('staging')  > -1 || apiUrl.indexOf('app.local') > -1) {
+            developmentEnv = true;
+        }
     }
 }
 
@@ -38,6 +43,8 @@ export const DASHBOARD_URL = dashboardUrl;
 export const DOMAIN_URL = domain;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
+
+export const IS_DEV = developmentEnv;
 
 export const User = {
 
@@ -139,6 +146,21 @@ export const Validate = {
         }
     },
 
+    isValidNumber(number) {
+        // eslint-disable-next-line
+        if(number.match('^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$')) {
+            return true;
+        }
+        return false;
+    },
+
+    isStrongPassword(password) {
+        if(password.match('^(?=.{8,})')) { 
+            return true;
+        }
+        return false;
+    },
+
     email(email) {
         if (this.text(email))
             return isEmail(email);
@@ -154,7 +176,7 @@ export const Validate = {
     },
 
     card(cardNumber) {
-        var numberValidation = valid.number(cardNumber);
+        const numberValidation = valid.number(cardNumber);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -164,7 +186,7 @@ export const Validate = {
     },
 
     cardExpiration(expiry) {
-        var numberValidation = valid.expirationDate(expiry);
+        const numberValidation = valid.expirationDate(expiry);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -174,7 +196,7 @@ export const Validate = {
     },
 
     cvv(cvv) {
-        var numberValidation = valid.cvv(cvv);
+        const numberValidation = valid.cvv(cvv);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -184,13 +206,21 @@ export const Validate = {
     },
 
     postalCode(postalCode) {
-        var numberValidation = valid.postalCode(postalCode);
+        const numberValidation = valid.postalCode(postalCode);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
         }
 
         return true;
+    },
+
+    isValidName(name) { 
+        // eslint-disable-next-line
+        if(name.match('[A-Z][a-zA-Z][^#&<>\"~;$^%{}?]{1,20}$')) {
+            return true
+        }
+        return false;
     }
 }
 
@@ -203,14 +233,14 @@ export const PricingPlan = {
                 {
                     category: 'Basic',
                     planId: 'plan_EgTJMZULfh6THW',
-                    type: 'Month',
+                    type: 'month',
                     amount: 8,
                     details: '$8 / Month / User'
                 },
                 {
                     category: 'Basic',
                     planId: 'plan_EgTQAx3Z909Dne',
-                    type: 'Annual',
+                    type: 'annual',
                     amount: 80.4,
                     details: '$80.4 / Year / User'
                 },
@@ -248,14 +278,14 @@ export const PricingPlan = {
                 {
                     category: 'Basic',
                     planId: 'plan_EgT8cUrwsxaqCs',
-                    type: 'Month',
+                    type: 'month',
                     amount: 8,
                     details: '$8 / Month / User'
                 },
                 {
                     category: 'Basic',
                     planId: 'plan_EgT9hrq9GdIGQ6',
-                    type: 'Annual',
+                    type: 'annual',
                     amount: 80.4,
                     details: '$80.4 / Year / User'
                 },
@@ -292,7 +322,7 @@ export const PricingPlan = {
     },
 
     getPlanById(id) {
-        let plans = this.getPlans();
+        const plans = this.getPlans();
         if (id) return plans.find(plan => plan.planId === id);
         else return plans[0];
     },
@@ -340,7 +370,7 @@ export const tutorials = {
                 id: 's5',
                 title: 'Better Status Handling',
                 icon: 'bell',
-                description: <p>After adding monitors for your API, you won&quot;t miss out on any<br />
+                description: <p>After adding monitors for your API, you won&apos;t miss out on any<br />
                     downtime on your servers, Just let Fyipe alert notify you
                                 </p>,
             },
@@ -351,7 +381,7 @@ export const tutorials = {
 export function getQueryVar(variable, url) {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
-    var regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
+    const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
@@ -359,6 +389,6 @@ export function getQueryVar(variable, url) {
 }
 
 export function saveFile(content, filename){
-    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+    const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
     FileSaver.saveAs(blob, filename);
 }

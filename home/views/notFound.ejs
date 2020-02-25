@@ -5,10 +5,11 @@
 
 <head>
   <title>404 | Not Found.</title>
-  <meta name="description" content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
+  <meta name="description"
+    content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
   <% include ./head %>
-    <link rel="stylesheet" href="/css/home.css">
-    <script defer src="/js/home.js"></script>
+  <link rel="stylesheet" href="/css/home.css">
+  <script defer src="/js/home.js"></script>
 </head>
 
 <body>
@@ -16,120 +17,23 @@
 
     <main>
       <header>
-        <div id="stripes">
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
+
 
         <section id="intro">
-          <div class="container-lg" style="display: flex;">
-            <h1>
-              Sorry the page you requested does not exist.
-            </h1>
+          <div class="container-lg">
+            <h1 class="Header-title common-PageTitle header-font header-size black text-center">
+              404
+            </h1> <br />
+            <p class="text-center" style="max-width:100%">Sorry the page you requested does not exist. <br /> If you're
+              looking for a page and cannot find it. <a class="black-link" href="/support"> Please contact support.</a>
+            </p>
           </div>
         </section>
       </header>
     </main>
 
   </div>
-  <article class='globalFooterNav'>
-    <div class='container-lg'>
-
-      <ul class="metaNav">
-
-        <li class="space"></li>
-
-        <li class="select language">
-          <a class="rootLink item-language" href="https://hackerbay.io" target="_blank">
-            <img width="40" height="40" src="/img/HB-Logo-Grey.svg" alt="HB-Logo-Grey" />
-          </a>
-
-        </li>
-
-        <li style="margin-top: 8px;" class="copyright">&copy; HackerBay, Inc.</li>
-      </ul>
-
-      <div class="siteNav">
-        <div class="column">
-          <h4>Products</h4>
-          <div class="splitColumn">
-            <ul>
-              <li>
-                <a href="/product/status-page">
-                  <strong>Status Page</strong>
-                </a>
-              </li>
-              <li>
-                <a href="/product/oncall-management">
-                  <strong>On-call Management</strong>
-                </a>
-              </li>
-              <li>
-                <a href="/product/uptime-monitoring">
-                  <strong>Uptime Monitoring</strong>
-                </a>
-              </li>
-            </ul>
-
-          </div>
-        </div>
-        <div class="column">
-          <h4>Enterprise</h4>
-          <ul>
-            <li>
-              <a href="/enterprise/overview">Overview</a>
-            </li>
-            <li>
-              <a href="/enterprise/resources">Resources &amp; Whitepapers</a>
-            </li>
-            <li>
-              <a href="/enterprise/demo">Request Demo</a>
-            </li>
-            <li>
-              <a href="https://hackerbay.io" target="_blank">Consulting</a>
-            </li>
-          </ul>
-        </div>
-        <div class="column">
-          <h4>Company</h4>
-          <ul>
-            <li>
-              <a href="https://hackerbay.io" target="_blank">About HackerBay</a>
-            </li>
-            <li>
-              <a href="/customers">Customers</a>
-            </li>
-            <li>
-              <a href="https://angel.co/hackerbayinc/jobs" target="_blank">Jobs</a>
-            </li>
-            <li>
-              <a href="https://medium.com/fyipe" target="_blank">Blog</a>
-            </li>
-
-          </ul>
-        </div>
-
-        <div class="column">
-          <h4>More</h4>
-          <ul>
-            <li>
-              <a href="https://status.fyipe.com/" target="_blank">Platform Status</a>
-            </li>
-            <li>
-              <a href="/support">Contact &amp; Support</a>
-            </li>
-            <li>
-              <a href="/legal/terms">Legal Center</a>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-    </div>
-  </article>
+  <% include ./footer %>
 
 </body>
 

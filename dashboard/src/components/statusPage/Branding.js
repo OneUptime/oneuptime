@@ -8,14 +8,18 @@ import {
     updateStatusPageBranding, updateStatusPageBrandingRequest, updateStatusPageBrandingSuccess,
     updateStatusPageBrandingError, createLogoCache, createFaviconCache,
     resetLogoCache, resetFaviconCache, fetchProjectStatusPage,
+    createBannerCache, resetBannerCache, setStatusPageColors
 } from '../../actions/statusPage';
 import { RenderField } from '../basic/RenderField';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import { UploadFile } from '../basic/UploadFile';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
+import Colors from './Colors';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -40,12 +44,34 @@ function validate(values) {
 }
 
 export class Branding extends Component {
+    state = {
+        displayColorPicker: false,
+        currentColorPicker: '',
+    };
+
+    handleClick = (e) => {
+        this.setState({
+            displayColorPicker: !this.state.displayColorPicker,
+            currentColorPicker: e.currentTarget.id,
+        });
+    };
+
+    handleClose = () => {
+        this.setState({ displayColorPicker: false, currentColorPicker: '' });
+    };
+
+    handleChange = (color) => {
+        const { currentColorPicker } = this.state;
+        let newColors = this.props.colors;
+        newColors = {...newColors, [currentColorPicker]: color.rgb};
+        this.props.setStatusPageColors(newColors);
+    };
 
     changelogo = (e) => {
         e.preventDefault();
 
-        let reader = new FileReader();
-        let file = e.target.files[0];
+        const reader = new FileReader();
+        const file = e.target.files[0];
 
         reader.onloadend = () => {
             this.props.createLogoCache(reader.result);
@@ -55,16 +81,31 @@ export class Branding extends Component {
         } catch (error) {
             return
         }
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('New Logo Selected');
+        if (!IS_DEV) {
+            logEvent('New Logo Selected');
         }
     }
+
+    updloadBannerHandler = (e) => {
+        e.preventDefault();
+        const reader = new FileReader();
+        const file = e.target.files[0];
+
+        reader.onloadend = () => {
+            this.props.createBannerCache(reader.result);
+        }
+        try {
+            reader.readAsDataURL(file)
+        } catch (error) { return }
+
+        if (!IS_DEV) logEvent('New Banner Selected');
+    } 
 
     changefavicon = (e) => {
         e.preventDefault();
 
-        let reader = new FileReader();
-        let file = e.target.files[0];
+        const reader = new FileReader();
+        const file = e.target.files[0];
 
         reader.onloadend = () => {
             this.props.createFaviconCache(reader.result);
@@ -74,40 +115,69 @@ export class Branding extends Component {
         } catch (error) {
             return
         }
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('New Favicon Selected');
+        if (!IS_DEV) {
+            logEvent('New Favicon Selected');
         }
     }
 
-    submitForm = (values) => {
-        var { _id, projectId } = this.props.statusPage.status
+    removeImageHandler = (e) => {
+        const values = {};
+        const { _id } = this.props.statusPage.status;
+        let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
         if(_id) values._id = _id;
-        const { reset, resetLogoCache, resetFaviconCache } = this.props;
+        const { reset, resetLogoCache, resetFaviconCache, resetBannerCache } = this.props;
+        if (e.currentTarget.id === 'removeFavicon') { values.favicon = '' }
+        if (e.currentTarget.id === 'removeBanner') { values.banner = '' }
+        if (e.currentTarget.id === 'removeLogo') { values.logo = '' }
+        this.props.updateStatusPageBranding(projectId, values).then(() => {
+            this.props.fetchProjectStatusPage(projectId, true, 0, 10);
+            resetLogoCache();
+            resetFaviconCache();
+            resetBannerCache();
+            reset();
+        }, function () {});
+        if (!IS_DEV) logEvent('Updating status page Branding', values);
+    }
+
+    submitForm = (values) => {
+        const { _id } = this.props.statusPage.status
+        let{projectId} = this.props.statusPage.status
+        projectId = projectId ? projectId._id || projectId : null;
+        if(_id) values._id = _id;
+        const { reset, resetLogoCache, resetFaviconCache, resetBannerCache, colors } = this.props;
+        values.colors = colors;
         this.props.updateStatusPageBranding(projectId, values).then( ()=> {
             this.props.fetchProjectStatusPage(projectId, true, 0, 10);
             resetLogoCache();
             resetFaviconCache();
+            resetBannerCache();
             reset();
         }, function () {
 
         });
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Changed Logo, Style, Branding', values);
+        if (!IS_DEV) {
+            logEvent('Changed Logo, Style, Branding', values);
         }
     }
 
     render() {
         const { handleSubmit } = this.props;
-        var faviconImage = <span />;
-        var logoImage = <span />;
-        var logoUrl = this.props.logourl ? this.props.logourl : this.props.statusPage.status && this.props.statusPage.status.logoPath ? `${API_URL}/file/${this.props.statusPage.status.logoPath}` : '';
-        var faviconUrl = this.props.faviconurl ? this.props.faviconurl : this.props.statusPage.status && this.props.statusPage.status.faviconPath ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}` : '';
+        let faviconImage = <span />;
+        let logoImage = <span />;
+        let bannerImage = <span />;
+        const logoUrl = this.props.logourl ? this.props.logourl : this.props.statusPage.status && this.props.statusPage.status.logoPath ? `${API_URL}/file/${this.props.statusPage.status.logoPath}` : '';
+        const faviconUrl = this.props.faviconurl ? this.props.faviconurl : this.props.statusPage.status && this.props.statusPage.status.faviconPath ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}` : '';
+        const bannerUrl = this.props.bannerurl ? this.props.bannerurl : this.props.statusPage.status && this.props.statusPage.status.bannerPath ? `${API_URL}/file/${this.props.statusPage.status.bannerPath}` : '';
+        const colors = this.props.colors && Object.keys(this.props.colors).length > 0 ? this.props.colors : null;
         if ((this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.faviconPath) || this.props.faviconurl) {
             faviconImage = <img src={faviconUrl} alt="" className="image-small-circle" />;
         }
-        if ((this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.logoPath) || this.props.faviconurl) {
+        if ((this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.logoPath) || this.props.logourl) {
             logoImage = <img src={logoUrl} alt="" className="image-small-circle" />;
+        }
+        if ((this.props.statusPage && this.props.statusPage.status && this.props.statusPage.status.bannerPath) || this.props.bannerurl) {
+            bannerImage = <img src={bannerUrl} alt="" style={{maxWidth: '74px', maxHeight: '60px'}}/>;
         }
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -161,11 +231,11 @@ export class Branding extends Component {
                                                 <div className="bs-Fieldset-fields">
                                                     <div className="Box-root Flex-flex Flex-alignItems--center"><div>
                                                         <label className="bs-Button bs-DeprecatedButton bs-FileUploadButton" type="button" >
-                                                            <ShouldRender if={!this.props.statusPage.status.logoPath}>
+                                                            <ShouldRender if={!this.props.statusPage.status.faviconPath}>
                                                                 <span className="bs-Button--icon bs-Button--new"></span>
                                                                 <span>Upload favicon</span>
                                                             </ShouldRender>
-                                                            <ShouldRender if={this.props.statusPage.status.logoPath}>
+                                                            <ShouldRender if={this.props.statusPage.status.faviconPath}>
                                                                 <span className="bs-Button--icon bs-Button--edit"></span>
                                                                 <span>Change favicon</span>
                                                             </ShouldRender>
@@ -177,7 +247,21 @@ export class Branding extends Component {
                                                                     onChange={this.changefavicon}
                                                                     accept="image/jpeg, image/jpg, image/png"
                                                                 />
-                                                            </div></label></div></div>
+                                                            </div>
+                                                        </label>
+                                                        <ShouldRender if={this.props.statusPage.status.faviconPath}>
+                                                            <label
+                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                name="favicon"
+                                                                id="removeFavicon"
+                                                                onClick={this.removeImageHandler}
+                                                                type="button"
+                                                            >
+                                                                <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                <span>Remove Favicon</span>
+                                                            </label>
+                                                        </ShouldRender>
+                                                        </div></div>
                                                     <p className="bs-Fieldset-explanation"><span>Upload 64x64 favicon.
                                                     </span></p>
                                                     <ShouldRender if={this.props.statusPage.status.faviconPath || this.props.faviconurl}>
@@ -208,6 +292,18 @@ export class Branding extends Component {
                                                                 />
                                                             </div>
                                                         </label>
+                                                        <ShouldRender if={this.props.statusPage.status.logoPath}>
+                                                            <label
+                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                name="logo"
+                                                                id="removeLogo"
+                                                                onClick={this.removeImageHandler}
+                                                                type="button"
+                                                            >
+                                                                <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                <span>Remove Logo</span>
+                                                            </label>
+                                                        </ShouldRender>
                                                     </div>
                                                     </div>
                                                     <p className="bs-Fieldset-explanation"><span>Upload a square 400x400 logo.</span></p>
@@ -216,6 +312,59 @@ export class Branding extends Component {
                                                     </ShouldRender>
                                                 </div>
                                             </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">Banner</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <div className="Box-root Flex-flex Flex-alignItems--center"><div>
+                                                        <label className="bs-Button bs-DeprecatedButton bs-FileUploadButton" type="button" >
+                                                            <ShouldRender if={!this.props.statusPage.status.bannerPath}>
+                                                                <span className="bs-Button--icon bs-Button--new"></span>
+                                                                <span>Upload Banner</span>
+                                                            </ShouldRender>
+                                                            <ShouldRender if={this.props.statusPage.status.bannerPath}>
+                                                                <span className="bs-Button--icon bs-Button--edit"></span>
+                                                                <span>Change Banner</span>
+                                                            </ShouldRender>
+                                                            <div className="bs-FileUploadButton-inputWrap">
+                                                                <Field className="bs-FileUploadButton-input"
+                                                                    component={UploadFile}
+                                                                    name="banner"
+                                                                    id="banner"
+                                                                    onChange={this.updloadBannerHandler}
+                                                                    accept="image/jpeg, image/jpg, image/png"
+                                                                />
+                                                            </div>
+                                                        </label>
+                                                        <ShouldRender if={this.props.statusPage.status.bannerPath}>
+                                                            <label
+                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                type="button"
+                                                                name="banner"
+                                                                id="removeBanner"
+                                                                onClick={this.removeImageHandler}
+                                                            >
+                                                                <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                <span>Remove Banner</span>
+                                                            </label>
+                                                        </ShouldRender>
+                                                    </div>
+                                                    </div>
+                                                    <p className="bs-Fieldset-explanation"><span>Upload an image of at least 1900*700</span></p>
+                                                    <ShouldRender if={this.props.statusPage.status.bannerPath || this.props.bannerurl}>
+                                                        {bannerImage}
+                                                    </ShouldRender>
+                                                </div>
+                                            </div>
+                                            {colors &&
+                                                <Colors
+                                                    colors={colors}
+                                                    currentColorPicker={this.state.currentColorPicker}
+                                                    displayColorPicker={this.state.displayColorPicker}
+                                                    handleClick={this.handleClick}
+                                                    handleChange={this.handleChange}
+                                                    handleClose={this.handleClose}
+                                                />
+                                            }
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">Copyright</label>
                                                 <div className="bs-Fieldset-fields">
@@ -273,6 +422,9 @@ Branding.propTypes = {
     resetLogoCache: PropTypes.func.isRequired,
     createFaviconCache: PropTypes.func.isRequired,
     resetFaviconCache: PropTypes.func.isRequired,
+    createBannerCache: PropTypes.func.isRequired,
+    resetBannerCache: PropTypes.func.isRequired,
+    setStatusPageColors: PropTypes.func.isRequired,
     updateStatusPageBranding: PropTypes.func.isRequired,
     createLogoCache: PropTypes.func.isRequired,
     logourl: PropTypes.oneOfType([
@@ -283,6 +435,11 @@ Branding.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined])
     ]),
+    bannerurl: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined])
+    ]),
+    colors: PropTypes.object,
     reset: PropTypes.func.isRequired,
     copyright: PropTypes.oneOfType([
         PropTypes.string,
@@ -291,7 +448,7 @@ Branding.propTypes = {
     fetchProjectStatusPage: PropTypes.func.isRequired,
 }
 
-let BrandingForm = reduxForm({
+const BrandingForm = reduxForm({
     form: 'Branding', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for
@@ -302,6 +459,7 @@ const mapDispatchToProps = (dispatch) => {
         createLogoCache, createFaviconCache,
         resetLogoCache, resetFaviconCache,
         updateStatusPageBranding, updateStatusPageBrandingRequest,
+        createBannerCache, resetBannerCache, setStatusPageColors,
         updateStatusPageBrandingSuccess, updateStatusPageBrandingError, fetchProjectStatusPage,
     }, dispatch)
 }
@@ -312,6 +470,8 @@ function mapStateToProps(state) {
         statusPage: state.statusPage,
         logourl: state.statusPage.logocache.data,
         faviconurl: state.statusPage.faviconcache.data,
+        bannerurl: state.statusPage.bannercache.data,
+        colors: state.statusPage.colors,
         initialValues: {
             title: state.statusPage && state.statusPage.status && state.statusPage.status.title ? state.statusPage.status.title : '',
             description: state.statusPage && state.statusPage.status && state.statusPage.status.description ? state.statusPage.status.description : '',
@@ -320,9 +480,5 @@ function mapStateToProps(state) {
 
     };
 }
-
-Branding.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(BrandingForm);

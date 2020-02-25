@@ -4,9 +4,11 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import DeleteCaution from './DeleteCaution';
-import { hideDeleteModal, markProjectForDelete, switchProject } from '../../actions/project';
+import { hideDeleteModal, deleteProject, switchProject } from '../../actions/project';
 import { history } from '../../store'
 import DeleteRequestModal from './DeleteRequesModal';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class DeleteProjectModal extends Component {
 
@@ -21,32 +23,32 @@ export class DeleteProjectModal extends Component {
 	}
 
 	deleteProject(values) {
-		const { projectId, markProjectForDelete } = this.props;
+		const { projectId, deleteProject } = this.props;
 
-		markProjectForDelete(projectId, values.feedback).then(() => {
-			this.setState({deleted: true});
+		deleteProject(projectId, values.feedback).then(() => {
+			this.closeNotice();
 		});
-		if(window.location.href.indexOf('localhost') <= -1){
-			this.context.mixpanel.track('Project Marked for Deleted', {projectId});
+		if (!IS_DEV) {
+			logEvent('Project Marked for Deleted', { projectId });
 		}
 	}
 
 	closeNotice() {
 		const { switchProject, nextProject } = this.props;
-		this.props.hideDeleteModal()
-		if(nextProject)switchProject(nextProject);
+		this.props.hideDeleteModal();
+		if (nextProject) switchProject(nextProject);
 		else history.push('/')
-		this.props.hideDeleteModal()
+		this.props.hideDeleteModal();
 	}
 
-	handleKeyBoard = (e)=>{
-		switch(e.key){
+	handleKeyBoard = (e) => {
+		switch (e.key) {
 			case 'Escape':
-			return this.props.hideDeleteModal()
+				return this.props.hideDeleteModal()
 			default:
-			return false;
+				return false;
 		}
-    }
+	}
 
 	render() {
 		const { deleted } = this.state;
@@ -83,7 +85,7 @@ DeleteProjectModal.displayName = 'DeleteProjectModal'
 
 const mapDispatchToProps = dispatch => (
 	bindActionCreators({
-		markProjectForDelete,
+		deleteProject,
 		hideDeleteModal,
 		switchProject: project => switchProject(dispatch, project)
 	}, dispatch)
@@ -114,20 +116,16 @@ const mapStateToProps = (state, props) => {
 }
 
 DeleteProjectModal.propTypes = {
-	markProjectForDelete: PropTypes.func.isRequired,
+	deleteProject: PropTypes.func.isRequired,
 	switchProject: PropTypes.func.isRequired,
 	hideDeleteModal: PropTypes.func.isRequired,
 	nextProject: PropTypes.oneOfType([
-		PropTypes.oneOf([null,undefined]),
+		PropTypes.oneOf([null, undefined]),
 		PropTypes.object
 	]),
 	projectId: PropTypes.string,
 	visible: PropTypes.bool,
-	isRequesting:PropTypes.bool
+	isRequesting: PropTypes.bool
 }
-
-DeleteProjectModal.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(DeleteProjectModal));

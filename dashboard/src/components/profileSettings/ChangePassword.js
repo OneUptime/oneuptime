@@ -8,6 +8,9 @@ import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import { openModal } from '../../actions/modal';
+import MessageBox from '../modals/MessageBox';
+import uuid from 'uuid';
 
 //Client side validation
 function validate(values) {
@@ -27,15 +30,26 @@ function validate(values) {
 }
 
 export class ChangePasswordSetting extends Component {
+    state = {
+        MessageBoxId: uuid.v4()
+    }
+
     constructor(props) {
         super(props);
         this.props = props;
     }
 
-    submitForm =(values)=> {
-        const { reset } = this.props;
+    submitForm = (values) => {
+        const { reset, openModal } = this.props;
+        const { MessageBoxId } = this.state;
 
         this.props.updateChangePasswordSetting(values).then(function () {
+            openModal({
+                id: MessageBoxId,
+                content: MessageBox,
+                title: 'Message',
+                message: 'You’ve changed the password successfully.'
+            });
             reset()
 
         }, function () {
@@ -54,7 +68,7 @@ export class ChangePasswordSetting extends Component {
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <span>Change Password</span>
                             </span>
-                            <p><span>Change your password to something you can remember.</span></p>
+                            <p><span>We recommend you use password manager to store your Fyipe Password.</span></p>
                         </div>
                     </div>
                     <form onSubmit={handleSubmit(this.submitForm)}>
@@ -111,23 +125,23 @@ export class ChangePasswordSetting extends Component {
                             </div>
                         </div>
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12"><span className="db-SettingsForm-footerMessage"></span>
-                        <div className="bs-Tail-copy">
-                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
-                                <ShouldRender if={this.props.profileSettings && this.props.profileSettings.changePasswordSetting.error}>
+                            <div className="bs-Tail-copy">
+                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                    <ShouldRender if={this.props.profileSettings && this.props.profileSettings.changePasswordSetting.error}>
 
-                                    <div className="Box-root Margin-right--8">
-                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex">
+                                        <div className="Box-root Margin-right--8">
+                                            <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex">
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="Box-root">
-                                    <span style={{ color: 'red' }}>{this.props.profileSettings && this.props.profileSettings.changePasswordSetting.error}</span>
-                                    </div>
+                                        <div className="Box-root">
+                                            <span style={{ color: 'red' }}>{this.props.profileSettings && this.props.profileSettings.changePasswordSetting.error}</span>
+                                        </div>
 
-                                </ShouldRender>
+                                    </ShouldRender>
+                                </div>
                             </div>
-                        </div>
-                       
-                        
+
+
                             <div>
                                 <button
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
@@ -148,14 +162,14 @@ export class ChangePasswordSetting extends Component {
 
 ChangePasswordSetting.displayName = 'ChangePasswordSetting'
 
-let ChangePasswordSettingForm = reduxForm({
+const ChangePasswordSettingForm = reduxForm({
     form: 'ChangePasswordSetting', // a unique identifier for this form
     validate // <--- validation function given to redux-for
 })(ChangePasswordSetting);
 
 const mapDispatchToProps = (dispatch) => {
 
-    return bindActionCreators({ updateChangePasswordSetting, updateChangePasswordSettingRequest, updateChangePasswordSettingSuccess, updateChangePasswordSettingError }, dispatch)
+    return bindActionCreators({ updateChangePasswordSetting, updateChangePasswordSettingRequest, updateChangePasswordSettingSuccess, updateChangePasswordSettingError,openModal }, dispatch)
 }
 
 function mapStateToProps(state) {
@@ -171,8 +185,9 @@ ChangePasswordSetting.propTypes = {
     updateChangePasswordSetting: PropTypes.func.isRequired,
     profileSettings: PropTypes.oneOfType([
         PropTypes.object,
-        PropTypes.oneOf([null,undefined])
-    ])
+        PropTypes.oneOf([null, undefined])
+    ]),
+    openModal: PropTypes.func.isRequired
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(ChangePasswordSettingForm);

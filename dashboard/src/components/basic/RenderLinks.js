@@ -1,96 +1,134 @@
 import React from 'react';
 import PropTypes from 'prop-types'
-import { Field } from 'redux-form';
-import ShouldRender from '../basic/ShouldRender';
-import {RenderField} from './RenderField';
+import DataPathHoC from '../DataPathHoC';
+import UpdateFooterLink from '../modals/FooterLink';
+import RemoveFooterLink from '../modals/RemoveFooterLink';
 
-const RenderLinks = ({ fields, meta: { error, submitFailed } }) => {
+const RenderLinks = ({
+    fields,
+    openModal,
+    createFooterLinkModalId,
+    submitForm,
+    statusPage,
+    removeFooterLink,
+    removeFooterLinkModalId,
+    deleting,
+}) => {
     return (
         <ul>
-            {
-                fields.map((link, i) => {
-                    return (
-                        <li key={i}>
-                            <div className="bs-Fieldset-row">
-                                <label className="bs-Fieldset-label">Link {i + 1} Name</label>
-                                <div className="bs-Fieldset-fields">
-                                    <Field
-                                        id={`name_${i}`}
-                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                        type="text"
-                                        name={`${link}.name`}
-                                        component={RenderField}
-                                        placeholder="Home"
-                                    />
-                                </div>
+            <table className="Table">
+                <thead className="Table-body Box-background--offset bs-Fieldset">
+                    <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                    <span>Link Name</span>
+                                </span>
                             </div>
-                            <div className="bs-Fieldset-row">
-                                <label className="bs-Fieldset-label">Link {i + 1} URL</label>
-                                <div className="bs-Fieldset-fields">
-                                    <Field
-                                        id={`url_${i}`}
-                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                        type="text"
-                                        name={`${link}.url`}
-                                        component={RenderField}
-                                        placeholder="https://mycompany.com"
-                                    />
-                                </div>
+                        </td>
+                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                    <span>Link URL</span>
+                                </span>
                             </div>
-                            <div className="bs-Fieldset-row">
-                                <label className="bs-Fieldset-label"></label>
-                                <div className="bs-Fieldset-fields">
-                                    <div className="Box-root Flex-flex Flex-alignItems--center">
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton"
-                                            type="button"
-                                            onClick={() => fields.remove(i)}
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
-                                </div>
+                        </td>
+                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                    <span>Action</span>
+                                </span>
                             </div>
-                        </li>
-                    )
-                })
-            }
+                        </td>
+                    </tr>
+                </thead>
+                <tbody className="Table-body">
+                    {
+                        fields.getAll().map((link, i) => {
+                            return (
+                                <tr id={`name_${i}`} key={i} className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem" style={{ cursor: 'auto' }}>
+                                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ minWidth: '210px' }}>
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20" style={{ marginLeft: '-23px' }}>
+                                            <div className="bs-Fieldset-fields">
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-vertical--8">
+                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap" id={`name_${i}`}>
+                                                        {link.name}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ minWidth: '210px' }}>
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20" style={{ marginLeft: '-5px' }}>
+                                            <div className="bs-Fieldset-fields">
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-vertical--8">
+                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap" id={`name_${i}`}>
+                                                        {link.url}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ minWidth: '210px' }}>
+                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginLeft: '-5px' }}>
+                                                <div className="Box-root Margin-right--8">
+                                                    <button
+                                                        type="button"
+                                                        onClick={
+                                                            () => openModal({
+                                                                id: createFooterLinkModalId,
+                                                                content: DataPathHoC(UpdateFooterLink, {
+                                                                    footerName: link.name,
+                                                                    submitForm: submitForm,
+                                                                    statusPage: statusPage,
+                                                                }),
+                                                            })
+                                                        }
+                                                        className="Button bs-ButtonLegacy"
+                                                    >
+                                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                            <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                <span>Edit</span>
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                </div>
 
-            <li>
-                <div className="bs-Fieldset-row">
-                    <label className="bs-Fieldset-label"></label>
-                    <div className="bs-Fieldset-fields">
-                        <div className="Box-root Flex-flex Flex-alignItems--center"></div>
-                    </div>
-                </div>
-                <div className="bs-Fieldset-row">
-                    <label className="bs-Fieldset-label"></label>
-                    <div className="bs-Fieldset-fields">
-                        <div className="Box-root Flex-flex Flex-alignItems--center">
-                            <div>
-                                <ShouldRender if={fields.length < 5}>
-                                    <button
-                                        id="btnAddLink"
-                                        type="button"
-                                        className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                        onClick={() => fields.push({name: '', url: ''})}
-                                    >
-                                        Add Link
-                                    </button>
-                                    <ShouldRender if={submitFailed && error}>
-                                        <span>{error}</span>
-                                    </ShouldRender>
-                                </ShouldRender>
-                            </div>
-                        </div>
-                        <p className="bs-Fieldset-explanation">
-                            <span>
-                                You can add as many as five links that will show up on your status page.
-                            </span>
-                        </p>
-                    </div>
-                </div>
-            </li>
+                                                <div className="Box-root Margin-right--8" id="removeFooterLink">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            openModal({
+                                                                id: removeFooterLinkModalId,
+                                                                onClose: () => '',
+                                                                onConfirm: () => {
+                                                                    return new Promise((resolve)=>{
+                                                                        removeFooterLink(link.name);
+                                                                        resolve(true);
+                                                                    })
+                                                                },
+                                                                content: DataPathHoC(RemoveFooterLink, {deleting})
+                                                            })
+                                                        }}
+                                                        className="Button bs-ButtonLegacy"
+                                                    >
+                                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                            <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                <span>Remove</span>
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )
+                        })
+                    }
+                </tbody>
+            </table>
         </ul>
     )
 }
@@ -98,7 +136,13 @@ const RenderLinks = ({ fields, meta: { error, submitFailed } }) => {
 RenderLinks.displayName = 'RenderLinks'
 
 RenderLinks.propTypes = {
-    meta: PropTypes.object.isRequired,
+    submitForm: PropTypes.func.isRequired,
+    removeFooterLink: PropTypes.func.isRequired,
+    createFooterLinkModalId: PropTypes.string,
+    deleting: PropTypes.bool,
+    removeFooterLinkModalId: PropTypes.string,
+    statusPage: PropTypes.object,
+    openModal: PropTypes.func.isRequired,
     fields: PropTypes.oneOfType([
         PropTypes.array,
         PropTypes.object

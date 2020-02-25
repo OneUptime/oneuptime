@@ -11,7 +11,9 @@ import { Link } from 'react-router-dom';
 import queryString from 'query-string';
 import { removeQuery } from '../store';
 
-
+const errorStyle = {
+	color: '#c23d4b'
+}
 export class ResendTokenForm extends Component {
 	state = {
 		serverResponse: ''
@@ -24,7 +26,7 @@ export class ResendTokenForm extends Component {
   componentDidMount() {
     document.body.id = 'login';
     document.body.style.overflow = 'auto';
-    var query = queryString.parse(this.props.location.search).status;
+    const query = queryString.parse(this.props.location.search).status;
 		if(query === 'Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq'){
       this.setState({
         serverResponse: 'Verification link expired.'
@@ -40,6 +42,18 @@ export class ResendTokenForm extends Component {
   render() {
     const { serverResponse } = this.state;
     const { success } = this.props.resendTokenState;
+    const resendTokenError = this.props.resendTokenState.error;
+    let header;
+    if(success) {
+      header = <span>Verification Email Sent</span>
+    } else if (resendTokenError) {
+      header = <span style={errorStyle} id="error-msg">{resendTokenError}</span>
+    } else if (serverResponse) {
+      header = <span style={errorStyle} id="error-msg">{serverResponse}</span>
+    } else {
+      header = <span>Resend verification email.</span>
+    }
+
     return (
       <div id="wrap" style={{ paddingTop: 0 }}>
         <div id="header">
@@ -50,27 +64,20 @@ export class ResendTokenForm extends Component {
         <div id="main-body" className="box css">
           <div className="inner">
             <form onSubmit={this.props.handleSubmit(this.submitForm)} className="request-reset">
-              <div className="request-reset-step step" >
+              <div className="request-reset-step" >
                 <div className="title">
                   <h2>
-                    {success ? <span>Verification link Sent</span> :
-                          serverResponse ? <span>{serverResponse}</span> :
-                              <span > {this.props.resendTokenState.error ? 
-                                <span id="error-msg" className="error" >{this.props.resendTokenState.error}</span>
-                                 : 'Resend verification email'} </span>}
+                    {header}
                   </h2>
                 </div>
-
-                <p className="error-message hidden" />
-
-
-                {this.props.resendTokenState.success && <p id="reset-password-success" className="message"> An email is on its way to you with new verification link. Please don&apos;t forget to check spam. </p>}
+                
+                {this.props.resendTokenState.success && <p id="resend-verification-success" className="message"> An email is on its way to you with new verification link. Please don&apos;t forget to check spam. </p>}
                 {!this.props.resendTokenState.success && <p className="message"> Enter your email address below and we will resend you a verification link to activate your fyipe account.</p>}
 
 
                 {!this.props.resendTokenState.success && <div> <p className="text">
                   <span>
-                    <label htmlFor="email">  Your Email</label>
+                    <label htmlFor="email">Your Email</label>
                     <Field
                       component={RenderField}
                       type="email"
@@ -91,14 +98,6 @@ export class ResendTokenForm extends Component {
 
             </form>
           </div>
-        </div>
-
-        <div className="below-box">
-          <p>
-            <Link to="/login">
-              Know your password? <strong>Sign in</strong>.
-						</Link>
-          </p>
         </div>
         <div id="footer_spacer" />
         <div id="bottom">
@@ -126,7 +125,7 @@ export class ResendTokenForm extends Component {
 ResendTokenForm.displayName = 'ResendTokenForm'
 
 function validate(values) {
-  let errors = {};
+  const errors = {};
   if (!Validate.text(values.email)) {
     errors.email = 'Email is required.'
   }
@@ -136,7 +135,7 @@ function validate(values) {
   return errors;
 }
 
-let resendTokenForm = reduxForm({
+const resendTokenForm = reduxForm({
   form: 'resendTokenForm',
   validate
 })(ResendTokenForm);

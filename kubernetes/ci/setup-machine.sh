@@ -33,14 +33,8 @@ sudo iptables -P FORWARD ACCEPT
 echo "RUNNING COMMAND:  sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget"
 sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget
 #Install Docker and setup registry and insecure access to it.
-#IF docker is already installed, do not install docker.
-
-if [[ ! $(which docker) ]]
-then
-  echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
-  curl -sSL https://get.docker.com/ | sh 
-fi
-
+echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
+curl -sSL https://get.docker.com/ | sh
 echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
 sudo touch /etc/docker/daemon.json
 echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
@@ -48,14 +42,14 @@ echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /et
 echo "RUNNING COMMAND: sudo systemctl restart docker"
 sudo systemctl restart docker
 
-# We do not need to install kubectl here. 
+# We do not need to install kubectl here.
 # if [[ ! $(which kubectl) ]]
 # then
 #   #Install Kubectl
 #   echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
 #   curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
 #   echo "RUNNING COMMAND: chmod +x ./kubectl"
-#   chmod +x ./kubectl 
+#   chmod +x ./kubectl
 #   echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
 #   sudo mv ./kubectl /usr/local/bin/kubectl
 # fi
@@ -63,8 +57,8 @@ sudo systemctl restart docker
 #Install microK8s
 echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
 sudo snap set system refresh.retain=2
-echo "RUNNING COMMAND: sudo snap install microk8s --classic"
-sudo snap install microk8s --classic
+echo "RUNNING COMMAND: sudo snap install microk8s --channel=1.15/stable --classic"
+sudo snap install microk8s --channel=1.15/stable --classic
 echo "RUNNING COMMAND:  sudo usermod -a -G microk8s $USER"
 sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
 echo "RUNNING COMMAND: microk8s.start"
@@ -79,11 +73,11 @@ echo "RUNNING COMMAND: microk8s.enable ingress"
 microk8s.enable ingress
 echo "RUNNING COMMAND: sudo microk8s.inspect"
 sudo microk8s.inspect
-# Making 'k' as an alias to microk8s.kubectl 
+# Making 'k' as an alias to microk8s.kubectl
 echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl k"
 sudo snap alias microk8s.kubectl k
 echo "RUNNING COMMAND: microk8s.kubectl config view --raw > $HOME/.kube/config"
-microk8s.kubectl config view --raw > $HOME/.kube/config
+sudo microk8s.kubectl config view --raw > $HOME/.kube/config
 #Kubectl version.
 echo "RUNNING COMMAND: sudo k version"
 sudo k version
@@ -99,11 +93,14 @@ sudo apt-get install -y mongodb-org
 # Install JQ, a way for bash to interact with JSON
 echo "RUNNING COMMAND: sudo apt-get install -y jq"
 sudo apt-get install -y jq
+# Install jsonpath, a way for bash to interact with JSON
+echo "RUNNING COMMAND: sudo apt-get install -y python-jsonpath-rw"
+sudo apt-get install -y python-jsonpath-rw
 # Install nodeJS
 echo "RUNNING COMMAND: curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -"
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-echo "RUNNING COMMAND: sudo apt install nodejs"
-sudo apt install nodejs
+echo "RUNNING COMMAND: sudo apt-get install -y nodejs"
+sudo apt-get install -y nodejs
 # npm and node version check
 echo "RUNNING COMMAND: node -v"
 node -v
@@ -121,9 +118,6 @@ libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 li
 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 \
 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 \
 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils
-
-echo "RUNNING COMMAND: curl localhost:32000/v2"
-curl localhost:32000/v2
 
 echo "RUNNING COMMAND: sleep 2m"
 sleep 2m

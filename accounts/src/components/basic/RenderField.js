@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 
-let errorStyle = {
-    color:'red',
-    topMargin:'5px'
+const errorStyle = {
+    color:'#c23d4b',
+    width: '222px'
 }
 
 const RenderField = ({ input, placeholder, type, meta, className, id, disabled, initialValue, style }) => (
@@ -21,14 +21,13 @@ const RenderField = ({ input, placeholder, type, meta, className, id, disabled, 
                 style={style || {}}
             />
         </span>
-        <br/>
         {meta.error &&
             meta.touched &&
             <span style={errorStyle}>
                 {meta.error}
         </span>}
     </span>
-)
+)   
 
 RenderField.displayName = 'RenderField'
 

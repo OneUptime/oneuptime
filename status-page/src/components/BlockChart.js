@@ -11,17 +11,16 @@ class BlockChart extends Component {
 
         this.requestnotes = this.requestnotes.bind(this);
     }
+
     requestnotes = (need, date) => {
-        if (this.props.time) {
-            if (need) {
-                this.props.getStatusPageIndividualNote(this.props.statusData.projectId._id, this.props.time.monitorId, date, this.props.monitorName, need);
+        if (need) {
+            this.props.getStatusPageIndividualNote(this.props.statusData.projectId._id, this.props.monitorId, date, this.props.monitorName, need);
+        } else {
+            if (this.props.time && this.props.time.emptytime) {
+                this.props.notmonitoredDays(this.props.monitorId, this.props.time.emptytime, this.props.monitorName, 'No data available for this date');
+            } else {
+                this.props.notmonitoredDays(this.props.monitorId, date, this.props.monitorName, 'No incidents yet');
             }
-            else {
-                this.props.notmonitoredDays(date, this.props.monitorName, 'No incidents yet');
-            }
-        }
-        else if (this.props.emptytime || !need) {
-            this.props.notmonitoredDays(this.props.emptytime, this.props.monitorName, 'No data available for this date');
         }
     }
 
@@ -30,36 +29,49 @@ class BlockChart extends Component {
         let title = null;
         let title1 = null;
         let need = false;
-        if (this.props.time) {
-            if (this.props.time.downTime > 1 && this.props.time.downTime < 10) {
-                bar = 'bar mid';
-                title = moment((this.props.time.date).split('T')[0]).format('LL');
-                title1 = `<br>degraded for ${this.props.time.downTime} minutes`;
-                need = true;
-            }
-            else if (this.props.time.downTime >= 10) {
-                var downtime = `${this.props.time.downTime} minutes`;
+        let backgroundColor;
+
+        const { colors } = this.props.statusData
+        if (this.props.time && (this.props.time.downTime || this.props.time.degradedTime || this.props.time.upTime)) {
+            if (this.props.time.downTime > 1) {
+                let downtime = `${this.props.time.downTime} minutes`;
+
                 if (this.props.time.downTime > 60) {
                     downtime = `${Math.floor(this.props.time.downTime / 60)} hrs ${this.props.time.downTime % 60} minutes`;
                 }
+
                 bar = 'bar down';
-                title = moment((this.props.time.date).split('T')[0]).format('LL');
-                title1 = `<br>down for ${downtime}`;
+                title = moment((this.props.time.date)).format('LL');
+                title1 = `<br>Down for ${downtime}`;
                 need = true;
-            }
-            else {
+                if (colors) backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`;
+            } else if (this.props.time.degradedTime > 1) {
+                let degradedtime = `${this.props.time.degradedTime} minutes`;
+
+                if (this.props.time.degradedTime > 60) {
+                    degradedtime = `${Math.floor(this.props.time.degradedTime / 60)} hrs ${this.props.time.degradedTime % 60} minutes`;
+                }
+
+                bar = 'bar mid';
+                title = moment((this.props.time.date)).format('LL');
+                title1 = `<br>Degraded for ${degradedtime}`;
+                need = true;
+                if (colors) backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`;
+            } else {
                 bar = 'bar';
-                title = this.props.time.date ? moment((this.props.time.date).split('T')[0]).format('LL') : moment((new Date()).split('T')[0]).format('LL');
+                title = moment((this.props.time.date)).format('LL');
                 title1 = '<br>No downtime';
+                if (colors) backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
             }
-        }
-        else {
+        } else {
             bar = 'bar empty';
-            title = moment(this.props.emptytime).format('LL');
-            title1 = '<br>No data Available';
+            title = moment(this.props.time.date).format('LL');
+            title1 = '<br>No data available';
+            if (colors) backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
         }
+
         return (
-            <div className={bar} style={{ outline: 'none' }} title={title + title1} onClick={() => this.requestnotes(need, this.props.time.date)}></div>
+            <div className={bar} style={{ outline: 'none', backgroundColor: backgroundColor }} title={title + title1} onClick={() => this.requestnotes(need, this.props.time.date)}></div>
         );
     }
 }
@@ -71,7 +83,7 @@ const mapStateToProps = (state) => ({ statusData: state.status.statusPage });
 const mapDispatchToProps = (dispatch) => bindActionCreators({
     getStatusPageIndividualNote,
     notmonitoredDays
-}, dispatch)
+}, dispatch);
 
 BlockChart.propTypes = {
     time: PropTypes.oneOfType([
@@ -82,7 +94,7 @@ BlockChart.propTypes = {
     getStatusPageIndividualNote: PropTypes.func,
     notmonitoredDays: PropTypes.func,
     monitorName: PropTypes.any,
-    emptytime: PropTypes.any
-}
+    monitorId: PropTypes.any
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(BlockChart);

@@ -4,10 +4,11 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Field, reduxForm } from 'redux-form';
 import { createIncidentRequest, createIncidentError, createIncidentSuccess, createNewIncident } from '../../actions/incident';
-import { Validate } from '../../config';
+import { Validate, renderIfUserInSubProject } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject'
+import { history } from '../../store';
+import { RenderSelect } from '../basic/RenderSelect';
 
 function validate(value) {
 
@@ -26,10 +27,10 @@ class CreateIncident extends Component {
 		if (values.monitors) {
 			values = values.monitors;
 		}
-		var projectId = currentProject._id;
+		let projectId = currentProject._id;
 		const subProjectMonitor = monitors.find(subProjectMonitor => subProjectMonitor._id === data.subProjectId);
-		subProjectMonitor.monitors.forEach((monitor)=>{
-			if(monitor._id === values) projectId = monitor.projectId._id || monitor.projectId;
+		subProjectMonitor.monitors.forEach((monitor) => {
+			if (monitor._id === values) projectId = monitor.projectId._id || monitor.projectId;
 		});
 		createNewIncident(projectId, values)
 			.then(function () {
@@ -49,24 +50,18 @@ class CreateIncident extends Component {
 	}
 
 	render() {
-		const { handleSubmit, closeThisDialog, data, monitors } = this.props;
+		const { handleSubmit, subProjects, currentProject, closeThisDialog, data, monitors } = this.props;
 		const subProjectMonitor = monitors.find(subProjectMonitor => subProjectMonitor._id === data.subProjectId);
-		
-		const monitorOptions = subProjectMonitor && subProjectMonitor.monitors.map((monitor, i) =>
-				<RenderIfUserInSubProject subProjectId={monitor.projectId._id || monitor.projectId} key={i}>
-					<option value={monitor._id}>{monitor.name}</option>
-				</RenderIfUserInSubProject>
-			);
 
 		return (
 			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
 				<div className="bs-BIM">
 					<div className="bs-Modal bs-Modal--large">
 						<div className="bs-Modal-header">
-							<div className="bs-Modal-header-copy" 
-							style={{ marginBottom: '10px', marginTop:'10px' }}>
-							<span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-								<span>Create New Incident</span>
+							<div className="bs-Modal-header-copy"
+								style={{ marginBottom: '10px', marginTop: '10px' }}>
+								<span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+									<span>Create New Incident</span>
 								</span>
 							</div>
 						</div>
@@ -76,23 +71,36 @@ class CreateIncident extends Component {
 
 									<div className="bs-Modal-content">
 										<span className="bs-Fieldset">
-											{ subProjectMonitor.monitors.length > 0 ?
+											{subProjectMonitor && subProjectMonitor.monitors && subProjectMonitor.monitors.length > 0 ?
 												<div className="bs-Fieldset-rows">
 													<div className="bs-Fieldset-row">
 														<label className="bs-Fieldset-label"><span> Monitor </span></label>
-
-														
-															<Field id="monitorList" name="monitors" component="select" className="select-dropdown bs-Button bs-Button--icon bs-Button--icon--right" style={{ width: '200px' }}>
-																<option>Select a monitor</option>
-																{
-																	monitorOptions
-																}
-
-															</Field> 
-														<img src="/assets/img/show-more-button.svg" className="select-arrow" alt="arrow" />
+														<Field
+															id="monitorList"
+															name="monitors"
+															component={RenderSelect}
+															className="db-select-nw"
+															style={{ width: '200px' }}
+															options={[
+																{ value: '', label: 'Select a monitor' },
+																...(subProjectMonitor && subProjectMonitor.monitors.length > 0 ? subProjectMonitor.monitors.map(monitor => ({
+																	value: monitor._id,
+																	label: monitor.name,
+																	show: renderIfUserInSubProject(currentProject, subProjects, monitor.projectId._id || monitor.projectId)
+																})) : [])
+															]}
+														/>
 													</div>
 												</div> :
-												<label className="bs-Fieldset-label"><span> No monitor added yet. </span></label>
+												<label className="bs-Fieldset-label"><span> No monitor added yet. </span>
+													<div
+														className="bs-ObjectList-copy bs-is-highlighted"
+														style={{ display: 'inline', textAlign: 'left', cursor: 'pointer' }}
+														onClick={() => {
+															closeThisDialog();
+															history.push('/project/' + this.props.currentProject._id + '/monitoring')
+														}}
+													>Please create one.</div></label>
 											}
 										</span>
 									</div>
@@ -114,7 +122,7 @@ class CreateIncident extends Component {
 										</div>
 									</ShouldRender>
 									<button className="bs-Button bs-DeprecatedButton" type="button" onClick={closeThisDialog}><span>Cancel</span></button>
-									<ShouldRender if={subProjectMonitor.monitors.length > 0}>
+									<ShouldRender if={subProjectMonitor && subProjectMonitor.monitors && subProjectMonitor.monitors.length > 0}>
 										<button
 											id="createIncident"
 											className="bs-Button bs-DeprecatedButton bs-Button--blue"
@@ -129,14 +137,14 @@ class CreateIncident extends Component {
 						</form>
 					</div>
 				</div>
-			</div>
+			</div >
 		);
 	}
 }
 
 CreateIncident.displayName = 'CreateIncidentFormModal'
 
-let CreateIncidentForm = reduxForm({
+const CreateIncidentForm = reduxForm({
 	form: 'CreateNewIncident', // a unique identifier for this form
 	validate
 })(CreateIncident);
@@ -149,6 +157,7 @@ function mapStateToProps(state) {
 
 	return {
 		monitors: state.monitor.monitorsList.monitors,
+		subProjects: state.subProject.subProjects.subProjects,
 		currentProject: state.project.currentProject,
 		newIncident: state.incident.newIncident,
 	};
@@ -157,6 +166,7 @@ function mapStateToProps(state) {
 CreateIncident.propTypes = {
 	closeThisDialog: PropTypes.func.isRequired,
 	createNewIncident: PropTypes.func.isRequired,
+	subProjects: PropTypes.array,
 	currentProject: PropTypes.object,
 	handleSubmit: PropTypes.func,
 	monitors: PropTypes.array,

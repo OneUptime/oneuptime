@@ -5,6 +5,8 @@ import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import ReactHoverObserver from 'react-hover-observer';
 import { switchProject, hideProjectSwitcher, showForm } from '../../actions/project';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class ProjectSwitcher extends Component {
 
@@ -14,20 +16,22 @@ export class ProjectSwitcher extends Component {
         this.handleClick = this.handleClick.bind(this);
     }
 
-    handleClick =()=>{
+    handleClick = () => {
         this.props.showForm();
         this.props.hideProjectSwitcher();
     }
 
     selectProject(project) {
-        const { switchProject, hideProjectSwitcher, dispatch } = this.props;
-        
-        switchProject(dispatch, project);
+        const { switchProject, hideProjectSwitcher, currentProject, dispatch } = this.props;
+
+        if (project._id !== currentProject._id) {
+            switchProject(dispatch, project);
+            if (!IS_DEV) {
+                logEvent('Project Switched', project);
+            }
+        }
 
         hideProjectSwitcher();
-        if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Project Switched', project);
-        }
     }
 
     render() {
@@ -64,15 +68,15 @@ export class ProjectSwitcher extends Component {
         }
 
         return (
-            <div 
-                className="ContextualLayer-layer--topleft ContextualLayer-layer--anytop ContextualLayer-layer--anyleft ContextualLayer-context--topleft ContextualLayer-context--anytop ContextualLayer-context--anyleft ContextualLayer-container ContextualLayer--pointerEvents" 
+            <div
+                className="ContextualLayer-layer--topleft ContextualLayer-layer--anytop ContextualLayer-layer--anyleft ContextualLayer-context--topleft ContextualLayer-context--anytop ContextualLayer-context--anyleft ContextualLayer-container ContextualLayer--pointerEvents"
                 style={{ left: '0px', top: '12px', width: 'calc(100% - 5px)', visibility: !this.props.visible ? 'collapse' : 'visible' }}
             >
                 <span>
                     <div id="selector" className="db-AccountSwitcher Card-root Card-shadow--medium">
                         <div className="ScrollableMenu db-AccountSwitcher-menu" id="accountSwitcher" role="listbox">
 
-                            { projectOptions }
+                            {projectOptions}
 
                             <ReactHoverObserver>
                                 {({ isHovering }) => (
@@ -111,7 +115,8 @@ export class ProjectSwitcher extends Component {
 ProjectSwitcher.displayName = 'ProjectSwitcher'
 
 const mapStateToProps = state => ({
-    project: state.project
+    project: state.project,
+    currentProject: state.project.currentProject,
 })
 
 const mapDispatchToProps = dispatch => (
@@ -128,15 +133,12 @@ const mapDispatchToProps = dispatch => (
 
 ProjectSwitcher.propTypes = {
     showForm: PropTypes.func.isRequired,
-    hideProjectSwitcher:PropTypes.func.isRequired,
+    hideProjectSwitcher: PropTypes.func.isRequired,
     switchProject: PropTypes.func.isRequired,
     dispatch: PropTypes.func.isRequired,
     project: PropTypes.object.isRequired,
+    currentProject: PropTypes.object,
     visible: PropTypes.bool
 }
-
-ProjectSwitcher.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(ProjectSwitcher));

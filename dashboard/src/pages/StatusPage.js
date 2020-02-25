@@ -14,12 +14,34 @@ import PrivateStatusPage from '../components/statusPage/PrivateStatusPage';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { LoadingState } from '../components/basic/Loader';
 import PropTypes from 'prop-types';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
+import { history } from '../store';
+import { fetchSubProjectStatusPages, switchStatusPage, fetchProjectStatusPage } from '../actions/statusPage';
+
 
 class StatusPage extends Component {
 
-    componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('StatusPage Settings Loaded');
+    async componentDidMount() {
+        if (!this.props.statusPage.status._id) {
+            const projectId = history.location.pathname.split('project/')[1].split('/')[0];
+            const statusPageId = history.location.pathname.split('status-page/')[1].split('/')[0];
+            await this.props.fetchProjectStatusPage(projectId)
+            await this.props.fetchSubProjectStatusPages(projectId)
+
+            if (this.props.statusPage.subProjectStatusPages && this.props.statusPage.subProjectStatusPages.length > 0) {
+                const { subProjectStatusPages } = this.props.statusPage;
+                subProjectStatusPages.forEach(subProject => {
+                    const statusPages = subProject.statusPages;
+                    const statusPage = statusPages.find(page => page._id === statusPageId);
+                    if (statusPage) {
+                        this.props.switchStatusPage(statusPage);
+                    }
+                });
+            }
+        }
+        if (!IS_DEV) {
+            logEvent('StatusPage Settings Loaded');
         }
     }
 
@@ -27,7 +49,7 @@ class StatusPage extends Component {
 
         return (
             <Dashboard>
-                <div className="db-World-contentPane Box-root Padding-bottom--48">
+                <div className="Box-root">
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">
@@ -86,23 +108,21 @@ class StatusPage extends Component {
 
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({}, dispatch)
+    return bindActionCreators({ fetchSubProjectStatusPages, switchStatusPage, fetchProjectStatusPage }, dispatch)
 }
 
 
 function mapStateToProps(state) {
     return {
         statusPage: state.statusPage,
-
     };
 }
 
-StatusPage.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
-
 StatusPage.propTypes = {
     statusPage: PropTypes.object.isRequired,
+    switchStatusPage: PropTypes.func,
+    fetchProjectStatusPage: PropTypes.func,
+    fetchSubProjectStatusPages: PropTypes.func,
     match: PropTypes.object
 }
 

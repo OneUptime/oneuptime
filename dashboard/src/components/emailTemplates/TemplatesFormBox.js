@@ -1,8 +1,8 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { Field, reduxForm } from 'redux-form';
+import { bindActionCreators } from 'redux';
 import { Component } from 'react';
-import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import { emailTemplateTitles, emailTemplateDescriptions } from '../basic/EmailTitleList';
@@ -22,8 +22,8 @@ const style = {
 
 const bulletpoints = {
     display: 'listItem',
-      listStyleType: 'disc',
-      listStylePosition: 'inside'
+    listStyleType: 'disc',
+    listStylePosition: 'inside'
 }
 
 function validate(values) {
@@ -42,7 +42,7 @@ export class TemplatesFormBox extends Component {
     render() {
         const { template, handleSubmit, editEmailTemplates, resetEmailTemplates } = this.props;
         return (
-            <div className="bs-ContentSection Card-root Card-shadow--medium" style={{borderRadius:'0px',boxShadow:'none'}}>
+            <div className="bs-ContentSection Card-root Card-shadow--medium" style={{ borderRadius: '0px', boxShadow: 'none' }}>
                 <div className="Box-root">
                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
@@ -94,7 +94,7 @@ export class TemplatesFormBox extends Component {
 
                                             <ShouldRender if={!(this.props.revealVariable && this.props.revealVariable === template.emailType)}>
                                                 <span style={{ display: 'block', marginLeft: '120px' }}>
-                                                    <a onClick={() => this.props.setRevealVariable(template.emailType)} style={{cursor:'pointer'}}> Click here to reveal available variables.</a>
+                                                    <button className="button-as-anchor" onClick={() => this.props.setRevealVariable(template.emailType)} > Click here to reveal available variables.</button>
                                                 </span>
                                             </ShouldRender>
                                             <ShouldRender if={(this.props.revealVariable && this.props.revealVariable === template.emailType)}>
@@ -141,7 +141,7 @@ export class TemplatesFormBox extends Component {
                                         </ShouldRender>
                                     </button>
                                     <button
-                                        className={resetEmailTemplates && resetEmailTemplates.requesting ? 'bs-Button bs-Button--blue' :'bs-Button'}
+                                        className={resetEmailTemplates && resetEmailTemplates.requesting ? 'bs-Button bs-Button--blue' : 'bs-Button'}
                                         disabled={(resetEmailTemplates && resetEmailTemplates.requesting) || !template._id}
                                         type="button"
                                         onClick={() => { this.props.resetTemplate(template._id) }}
@@ -169,15 +169,15 @@ TemplatesFormBox.displayName = 'TemplatesFormBox'
 TemplatesFormBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     setRevealVariable: PropTypes.func.isRequired,
-    template: PropTypes.array.isRequired,
+    template: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
     editEmailTemplates: PropTypes.object.isRequired,
     resetEmailTemplates: PropTypes.object.isRequired,
-    revealVariable: PropTypes.object.isRequired,
-    submitForm :PropTypes.func.isRequired,
-    resetTemplate : PropTypes.func.isRequired,
+    revealVariable: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+    submitForm: PropTypes.func.isRequired,
+    resetTemplate: PropTypes.func.isRequired,
 }
 
-let TemplatesFormBoxForm = reduxForm({
+const TemplatesFormBoxForm = reduxForm({
     form: 'templatesform', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for
@@ -191,7 +191,7 @@ const mapDispatchToProps = (dispatch) => {
 
 function mapStateToProps(state) {
     const template = state.emailTemplates.showingTemplate;
-    var val = {
+    const val = {
         subject: template.subject,
         body: template.body,
         email_type: template.emailType,
@@ -204,9 +204,5 @@ function mapStateToProps(state) {
         revealVariable: state.emailTemplates.revealVariable
     };
 }
-
-TemplatesFormBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(TemplatesFormBoxForm);

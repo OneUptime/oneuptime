@@ -1,0 +1,719 @@
+<article id="team" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Team</h1>
+    </b>
+    <p>
+      <p>Team API will allow you to invite and manage team members in your Fyipe project team.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/team/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container"></div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example"></section>
+</article>
+
+<article id="create-team-member" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Team Member<span class="requestType">POST</span></h3>
+    <p>
+      <p>Create Team Member by Project ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/team/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/team/5e089f94b400211639928c94</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "emails": "nawazdhandala@gmail.com",
+  "role": "Member",
+  "projectId": "5e089f94b400211639928c94"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "projectId": "5e089f94b400211639928c94",
+    "team": [
+      {
+        "userId": "5e1b7f7241127144f8144ac0",
+        "email": "nawazdhandala3@gmail.com",
+        "name": null,
+        "role": "Member",
+        "lastActive": "2020-01-12T20:20:02.089Z"
+      },
+      {
+        "userId": "5e1b7f0f41127144f8144abb",
+        "email": "nawazdhandala2@gmail.com",
+        "name": null,
+        "role": "Member",
+        "lastActive": "2020-01-12T20:18:23.100Z"
+      },
+      {
+        "userId": "5e162d9f1b8ae8185921498f",
+        "email": "nawazdhandala1@yahoo.com",
+        "name": null,
+        "role": "Administrator",
+        "lastActive": "2020-01-08T19:29:35.404Z"
+      },
+      {
+        "userId": "5e089f88b400211639928c92",
+        "email": "nawazdhandala@hackerbay.io",
+        "name": "Nawaz Dhandala",
+        "role": "Administrator",
+        "lastActive": "2020-01-12T20:20:02.051Z"
+      }
+    ]
+  }
+]              
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-team-members" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Team Members<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Team Members by Project ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/team/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/team/5e089f94b400211639928c94</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "userId": "5e162d9f1b8ae8185921498f",
+    "email": "nawazdhandala1@yahoo.com",
+    "name": null,
+    "role": "Member",
+    "lastActive": "2020-01-08T19:29:35.404Z"
+  },
+  {
+    "userId": "5e089f88b400211639928c92",
+    "email": "nawazdhandala@hackerbay.io",
+    "name": "Nawaz Dhandala",
+    "role": "Owner",
+    "lastActive": "2020-01-12T19:45:29.603Z"
+  }
+]
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-subprojects-team-members" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All SubProjects Team Members<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All SubProjects Team Members by Project ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/team/:projectId/teamMembers</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/team/5e089f94b400211639928c94/teamMembers</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "teamMembers": [
+      {
+        "userId": "5e162d9f1b8ae8185921498f",
+        "email": "nawazdhandala1@yahoo.com",
+        "name": null,
+        "role": "Member",
+        "lastActive": "2020-01-08T19:29:35.404Z"
+      },
+      {
+        "userId": "5e089f88b400211639928c92",
+        "email": "nawazdhandala@hackerbay.io",
+        "name": "Nawaz Dhandala",
+        "role": "Owner",
+        "lastActive": "2020-01-12T19:46:44.316Z"
+      }
+    ],
+    "count": 2,
+    "_id": "5e089f94b400211639928c94"
+  }
+]              
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-team-member" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Team Member<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get Single Team Member by Project ID and Team Member ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/team/:projectId/:teamMemberId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>teamMemberId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The team member id of the project team member.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/team/5e089f94b400211639928c94/5e089f88b400211639928c92</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "id": "5e089f88b400211639928c92",
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "companyName": "Hackerbay",
+  "companyRole": null,
+  "companySize": null,
+  "referral": null,
+  "isVerified": true,
+  "companyPhoneNumber": "2348058486168",
+  "alertPhoneNumber": "+234 815 848 6068",
+  "profilePic": "c0df90baf454d1e4f1b547791a661b48",
+  "timezone": "Africa/El_Aaiun",
+  "tempEmail": null,
+  "tempAlertPhoneNumber": null
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="delete-team-member" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Delete Team Member<span class="requestType">DELETE</span></h3>
+    <p>
+      <p>Delete Team Member by Project ID and Team Member ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/team/:projectId/:teamMemberId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>teamMemberId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The team member id of the project team member.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/team/5e089f94b400211639928c94/5e089f88b400211639928c92</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "projectId": "5e089f94b400211639928c94",
+    "team": [
+      {
+        "userId": "5e1b7f0f41127144f8144abb",
+        "email": "nawazdhandala2@gmail.com",
+        "name": null,
+        "role": "Member",
+        "lastActive": "2020-01-12T20:18:23.100Z"
+      },
+      {
+        "userId": "5e162d9f1b8ae8185921498f",
+        "email": "nawazdhandala1@yahoo.com",
+        "name": null,
+        "role": "Administrator",
+        "lastActive": "2020-01-08T19:29:35.404Z"
+      },
+      {
+        "userId": "5e089f88b400211639928c92",
+        "email": "nawazdhandala@hackerbay.io",
+        "name": "Nawaz Dhandala",
+        "role": "Administrator",
+        "lastActive": "2020-01-12T20:22:45.095Z"
+      }
+    ]
+  }
+]
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="change-team-member-role" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Change Team Member Role<span class="requestType">PUT</span></h3>
+    <p>
+      <p>Change Team Member Role by Project ID and Team Member ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/team/:projectId/:teamMemberId/changerole</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>teamMemberId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The team member id of the project team member.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/team/5e089f94b400211639928c94/5e089f88b400211639928c92/changerole</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "teamMemberId": "5e162d9f1b8ae8185921498f",
+  "role": "Member"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "projectId": "5e089f94b400211639928c94",
+    "team": [
+      {
+        "userId": "5e162d9f1b8ae8185921498f",
+        "email": "nawazdhandala1@yahoo.com",
+        "name": null,
+        "role": "Member",
+        "lastActive": "2020-01-08T19:29:35.404Z"
+      },
+      {
+        "userId": "5e089f88b400211639928c92",
+        "email": "nawazdhandala@hackerbay.io",
+        "name": "Nawaz Dhandala",
+        "role": "Member",
+        "lastActive": "2020-01-12T19:51:34.323Z"
+      }
+    ]
+  }
+]              
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>

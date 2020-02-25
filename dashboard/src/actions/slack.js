@@ -38,7 +38,7 @@ export const resetdeleteSlackLink = () => {
 export function deleteSlackLink(projectId, teamId) {
 	return function (dispatch) {
 
-		var promise = deleteApi(`slack/${projectId}/unLink/${teamId}`, null);
+		const promise = deleteApi(`slack/${projectId}/unLink/${teamId}`, null);
 
 		dispatch(deleteSlackLinkRequest());
 
@@ -93,7 +93,7 @@ export const resetGetSlackTeams = () => {
 export function getSlackTeams(projectId, skip, limit) {
 
 	return function (dispatch) {
-        var promise = null;
+        let promise = null;
 		if (skip && limit)
             promise = getApi(`slack/${projectId}/teams?skip=${skip}&limit=${limit}`);
         else {

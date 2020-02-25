@@ -2,149 +2,283 @@ const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
 const should = require('should');
+const { Cluster } = require('puppeteer-cluster');
 
-let browser, page, subProjectName, userCredentials;
-
-let password = utils.generateRandomString(); 
-
+// user credentials
 let email = utils.generateRandomBusinessEmail();
-
-const user = {
-    email,
-    password
-};
-
-
+let password = '1234567890';
+let subProjectName;
 
 describe('Sub-Project API', () => {
-
     const operationTimeOut = 50000;
 
-    beforeAll(async () => {
-        jest.setTimeout(100000);
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-        page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-    
-        // intercept request and mock response for login
-        await page.setRequestInterception(true);
-        await page.on('request', async (request)=>{
-            if((await request.url()).match(/user\/login/)){
-                request.respond({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify(userCredentials)
-                });
-            }else{
-                request.continue();
+    beforeAll(async (done) => {
+        jest.setTimeout(200000);
+
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000
+        });
+
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
+
+        // Register user
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
             }
+
+            // user
+            await init.registerUser(user, page);
+            await init.loginUser(user, page);
         });
-        await page.on('response', async (response)=>{
-            try{
-                var res = await response.json();
-                if(res && res.tokens){
-                    userCredentials = res;
-                }
-            }catch(error){}
+
+        await cluster.queue({ email, password });
+
+        await cluster.idle();
+        await cluster.close();
+        done();
+    });
+
+    afterAll(async (done) => {
+        done();
+    });
+
+    test('should not create a sub-project with no name', async (done) => {
+        expect.assertions(1);
+
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 100000
         });
-    
-        await init.registerUser(user, page);
-        await init.loginUser(user, page);
-        
-    });
-    
-    afterAll(async () => {
-        await browser.close();
-        
-    });
-    
-    it('should not create a sub-project with no name', async() => {
 
-        await page.waitForSelector('#projectSettings');
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-        await page.click( '#projectSettings');
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
 
-        await page.waitForSelector('#btnAddSubProjects');
+            await init.loginUser(user, page);
+            await page.waitForSelector('#projectSettings');
 
-        await page.click('#btnAddSubProjects');
-                
-        await page.click('#btnSaveSubproject');
+            await page.click('#projectSettings');
 
-        await page.waitFor(5000);
+            await page.waitForSelector('#btn_Add_SubProjects');
 
-        const spanSelector = await page.$('#frmSubProjects > div > div > div > div.Box-root > span');
-        expect(await (await spanSelector.getProperty('innerText')).jsonValue()).toEqual('Subproject name must be present.')
-        
-        
+            await page.click('#btn_Add_SubProjects');
+
+            await page.click('#btnAddSubProjects');
+
+            await page.waitFor(5000);
+
+            const spanSelector = await page.$('#subProjectCreateErrorMessage');
+
+            expect(await (await spanSelector.getProperty('textContent')).jsonValue()).toEqual('Subproject name must be present.')
+        });
+
+        cluster.queue({ email, password });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 
-    it('should create a new sub-project', async() => {
+    test('should create a new sub-project', async (done) => {
+        expect.assertions(1);
 
-        subProjectName = utils.generateRandomString();
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 100000
+        });
 
-        await page.waitForSelector('#sub_project_name_0');
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-        await page.type('#sub_project_name_0', subProjectName);
-                
-        await page.click('#btnSaveSubproject');
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
 
-        await page.waitFor(5000);
+            await init.loginUser(user, page);
 
-        const subProjectSelector = await page.$('#sub_project_name_0');
-        expect(await (await subProjectSelector.getProperty('value')).jsonValue()).toEqual(subProjectName)
-        
-        
+            await page.waitForSelector('#projectSettings');
+
+            await page.click('#projectSettings');
+
+            await page.waitForSelector('#btn_Add_SubProjects');
+
+            await page.click('#btn_Add_SubProjects');
+
+            subProjectName = utils.generateRandomString();
+
+            await page.waitForSelector('#title');
+
+            await page.type('#title', subProjectName);
+
+            await page.click('#btnAddSubProjects');
+
+            await page.waitFor(5000);
+
+            const subProjectSelector = await page.$('#sub_project_name_0');
+
+            expect(await (await subProjectSelector.getProperty('textContent')).jsonValue()).toEqual(subProjectName)
+        });
+
+        cluster.queue({ email, password });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 
-    it('should rename a sub-project', async() => {
-        const editSubProjectName = utils.generateRandomString();
+    test('should rename a sub-project', async (done) => {
+        expect.assertions(1);
 
-        await page.click('#sub_project_name_0');
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 100000
+        });
 
-        await page.type('#sub_project_name_0', editSubProjectName);
-                
-        await page.click('#btnSaveSubproject');
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-        await page.waitFor(5000);
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
 
-        const subProjectSelector = await page.$('#sub_project_name_0');
-        expect(await (await subProjectSelector.getProperty('value')).jsonValue()).toEqual(subProjectName + editSubProjectName)
-        
-        subProjectName = subProjectName + editSubProjectName
-        
+            await init.loginUser(user, page);
+
+            await page.waitForSelector('#projectSettings');
+
+            await page.click('#projectSettings');
+
+            const editSubProjectName = utils.generateRandomString();
+
+            await page.click('#sub_project_edit_0');
+
+            await page.waitForSelector('#title');
+
+            await page.type('#title', editSubProjectName);
+
+            await page.click('#btnAddSubProjects');
+
+            await page.waitFor(5000);
+
+            const subProjectSelector = await page.$('#sub_project_name_0');
+
+            expect(await (await subProjectSelector.getProperty('textContent')).jsonValue()).toEqual(subProjectName + editSubProjectName)
+
+            subProjectName = subProjectName + editSubProjectName
+        });
+
+        cluster.queue({ email, password });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 
-    it('should not create a sub-project with an existing sub-project name', async() => {
- 
-        await page.click('#btnAddSubProjects');
+    test('should not create a sub-project with an existing sub-project name', async (done) => {
+        expect.assertions(1);
 
-        await page.click('#sub_project_name_1');
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 100000
+        });
 
-        await page.type('#sub_project_name_1', subProjectName);
-                
-        await page.click('#btnSaveSubproject');
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-        await page.waitFor(5000);
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
 
-        const spanSelector = await page.$('#frmSubProjects > div > div > div > div.Box-root > span');
-        expect(await (await spanSelector.getProperty('innerText')).jsonValue()).toEqual('You already have a sub-project with same name.')
-        
-        
+            await init.loginUser(user, page);
+
+            await page.waitForSelector('#projectSettings');
+
+            await page.click('#projectSettings');
+
+            await page.click('#btn_Add_SubProjects');
+
+            await page.click('#title');
+
+            await page.type('#title', subProjectName);
+
+            await page.click('#btnAddSubProjects');
+
+            await page.waitFor(5000);
+
+            const spanSelector = await page.$('#subProjectCreateErrorMessage');
+
+            expect(await (await spanSelector.getProperty('textContent')).jsonValue()).toEqual('You already have a sub-project with same name.')
+        });
+
+        cluster.queue({ email, password });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 
-    it('should delete a sub-project', async() => {
+    test('should delete a sub-project', async (done) => {
+        expect.assertions(1);
 
-        await page.click('#btnRemoveSubproject1');
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 100000
+        });
 
-        await page.click('#btnRemoveSubproject0');
-                
-        await page.click('#btnSaveSubproject');
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
 
-        await page.waitFor(5000);
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
 
-        const subProjectSelector = await page.$('#sub_project_name_0');
-        expect(subProjectSelector).toEqual(null)
-        
-        
+            await init.loginUser(user, page);
+            await page.waitForSelector('#projectSettings');
+            await page.click('#projectSettings');
+            await page.waitForSelector('#sub_project_delete_0');
+            await page.click('#sub_project_delete_0');
+            await page.click('#removeSubProject');
+
+            await page.waitFor(5000);
+
+            const subProjectSelector = await page.$('#sub_project_name_0');
+
+            expect(subProjectSelector).toEqual(null)
+        });
+
+        cluster.queue({ email, password });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 });

@@ -4,19 +4,25 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { openModal, closeModal } from '../../actions/modal';
 import CreateWebHook from '../modals/CreateWebHook';
+import DataPathHoC from '../DataPathHoC';
 
 class WebHookButton extends React.Component {
 
-    render(){
-        return(
+	render() {
+		const { monitorId } = this.props;
+
+		return (
 			<button
 				className="Button bs-ButtonLegacy ActionIconParent"
 				type="button"
-				onClick={ () =>
+				id="addWebhookButton"
+				onClick={() =>
 					this.props.openModal({
 						id: 'data._id',
 						onClose: () => '',
-						content: CreateWebHook
+						content: DataPathHoC(CreateWebHook, {
+							monitorId: monitorId,
+						})
 					})
 				}
 			>
@@ -30,31 +36,28 @@ class WebHookButton extends React.Component {
 					</span>
 				</div>
 			</button>
-        )
-    }
+		)
+	}
 }
 
 WebHookButton.displayName = 'WebHookButton';
 
 const mapDispatchToProps = dispatch => bindActionCreators(
-    {
+	{
 		openModal,
 		closeModal
 	}
-    , dispatch);
+	, dispatch);
 
 const mapStateToProps = state => (
-    {
+	{
 		currentProject: state.project.currentProject,
-    }
+	}
 );
-
-WebHookButton.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
 
 WebHookButton.propTypes = {
 	openModal: PropTypes.func.isRequired,
+	monitorId: PropTypes.string,
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookButton);

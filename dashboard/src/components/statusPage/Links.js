@@ -5,9 +5,15 @@ import { reduxForm, FieldArray } from 'redux-form';
 import { updateStatusPageLinks, updateStatusPageLinksRequest, updateStatusPageLinksSuccess, updateStatusPageLinksError, fetchProjectStatusPage } from '../../actions/statusPage';
 import { RenderLinks } from '../basic/RenderLinks';
 import { Validate } from '../../config';
-import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import uuid from 'uuid';
+import DataPathHoC from '../DataPathHoC';
+import CreateFooterLink from '../modals/FooterLink';
+import { openModal, closeModal } from '../../actions/modal';
+import MessageBox from '../modals/MessageBox';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -15,7 +21,7 @@ function validate(values) {
     const linksArrayErrors = [];
 
     if (values.links) {
-        for (var i = 0; i < values.links.length; i++) {
+        for (let i = 0; i < values.links.length; i++) {
             const linkErrors = {}
             if (values.links[i].name) {
 
@@ -44,77 +50,125 @@ function validate(values) {
 
 export class Links extends Component {
 
+    state = {
+        createFooterLinkModalId: uuid.v4(),
+        MessageBoxId: uuid.v4(),
+        removeFooterLinkModalId: uuid.v4(),
+    }
+
     submitForm = (values) => {
         const { _id, projectId } = this.props.statusPage.status
         if(_id) values._id = _id;
         this.props.updateStatusPageLinks(projectId._id || projectId, values).then(()=>{
             this.props.fetchProjectStatusPage(projectId._id || projectId, true);
+            this.props.closeModal({ id: this.state.createFooterLinkModalId });
         })
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Links Updated', values);
+        if (!IS_DEV) {
+            logEvent('Links Updated', values);
         }
     }
 
+    handleRemoveFooterLink = (linkName) => {
+        let { links } = this.props.initialValues;
+        links = links.filter(item => item.name !== linkName);
+        this.submitForm({ links });
+    }
+
     render() {
-        const { handleSubmit, statusPage } = this.props;
+        const { handleSubmit, statusPage, openModal } = this.props;
+        const { createFooterLinkModalId, MessageBoxId, removeFooterLinkModalId } = this.state;
+        let deleting = false;
+
+        if (this.props.statusPage.links && this.props.statusPage.links.requesting) {
+            deleting = true;
+        }
 
         return (
-            <div className="bs-ContentSection Card-root Card-shadow--medium">
+            <div className="bs-ContentSection Card-root Card-shadow--medium" onKeyDown={this.handleKeyBoard}>
                 <div className="Box-root">
-                    <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root">
-                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                <span>Custom Footer Links</span>
-                            </span>
-                            <p>
-                                <span>
-                                    This section belongs to customizing your footer and adding links to external pages. You can add upto five links.
+                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                    <span style={{ 'textTransform': 'capitalize' }}>Custom Footer Links</span>
                                 </span>
-                            </p>
+                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                    <span>
+                                        This section belongs to customizing your footer and adding links to external pages. You can add upto five links.
+                                    </span>
+                                </span>
+                            </div>
+                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                <div>
+                                    <button
+                                        id="btnAddLink"
+                                        type="button"
+                                        className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
+                                        onClick={
+                                            this.props.initialValues && this.props.initialValues.links.length >= 5 ? 
+                                            () => openModal({
+                                                id: MessageBoxId,
+                                                content: MessageBox,
+                                                title: 'Custom Footer Links',
+                                                message: 'You have already added 5 custom footer links'
+                                            }) :
+                                            () => openModal({
+                                                id: createFooterLinkModalId,
+                                                content: DataPathHoC(CreateFooterLink, {
+                                                    submitForm: this.submitForm,
+                                                    statusPage: statusPage
+                                                }),
+                                            })
+                                        }
+                                    >
+                                        Add Link
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
                     <form onSubmit={handleSubmit(this.submitForm)} >
-                        <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1">
                             <div>
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    <fieldset className="bs-Fieldset">
+                                <div className="bs-Fieldset-wrapper Box-root">
+                                    <fieldset className="Box-background--white">
                                         <div className="bs-Fieldset-rows">
-
-                                            <FieldArray name="links" component={RenderLinks} />
-
+                                            <FieldArray
+                                                name="links"
+                                                component={RenderLinks}
+                                                openModal={openModal}
+                                                createFooterLinkModalId={createFooterLinkModalId}
+                                                submitForm={this.submitForm}
+                                                statusPage={statusPage}
+                                                removeFooterLink={this.handleRemoveFooterLink}
+                                                removeFooterLinkModalId={removeFooterLinkModalId}
+                                                deleting={deleting}
+                                            />
                                         </div>
+                                        <ShouldRender if={this.props.initialValues.links.length === 0}>
+                                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '20px' }}>
+                                                You don&#39;t have any custom footer link added yet!
+                                            </div>
+                                        </ShouldRender>
                                     </fieldset>
                                 </div>
                             </div>
                         </div>
-                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
 
-                            <div className="bs-Tail-copy">
-                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
-                                    <ShouldRender if={this.props.statusPage.links.error}>
-                                        <div className="Box-root Margin-right--8">
-                                            <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex">
-                                            </div>
-                                        </div>
-                                        <div className="Box-root">
-                                            <span style={{ color: 'red' }}>
-                                                {this.props.statusPage.links.error}
+                        <div className="bs-ContentSection Card-root Card-shadow--medium">
+                            <div className="Box-root">
+                                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                    <div className="Box-root">
+                                        <p>
+                                            <span>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    {this.props.initialValues.links.length} Footer links
+                                                </span>
                                             </span>
-                                        </div>
-                                    </ShouldRender>
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div>
-                                <button
-                                    id="btnSaveLinks"
-                                    className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                    disabled={statusPage.links.requesting}
-                                    type="submit"
-                                >
-                                    {!statusPage.links.requesting && <span>Save</span>}
-                                    {statusPage.links.requesting && <FormLoader />}
-                                </button>
                             </div>
                         </div>
                     </form>
@@ -129,8 +183,11 @@ Links.displayName = 'Links'
 Links.propTypes = {
     updateStatusPageLinks: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
+    openModal: PropTypes.func,
+    closeModal: PropTypes.func,
     statusPage: PropTypes.object.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
+    initialValues: PropTypes.object,
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
@@ -140,12 +197,14 @@ const mapDispatchToProps = dispatch => bindActionCreators(
         updateStatusPageLinksSuccess,
         updateStatusPageLinksError,
         fetchProjectStatusPage,
+        openModal,
+        closeModal,
     }, dispatch
 )
 
 const mapStateToProps = state => {
     const status = state.statusPage.status || [];
-    let links = [];
+    const links = [];
 
     status.links && status.links.forEach((link) => {
         links.push({
@@ -161,14 +220,10 @@ const mapStateToProps = state => {
     };
 }
 
-let LinksForm = reduxForm({
+const LinksForm = reduxForm({
     form: 'Links', // a unique identifier for this form
     validate, // <--- validation function given to redux-for
     enableReinitialize: true
 })(Links);
-
-Links.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(LinksForm);

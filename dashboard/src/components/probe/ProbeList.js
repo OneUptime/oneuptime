@@ -4,6 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
+import ProbeStatus from './ProbeStatus';
 
 export class ProbeList extends Component {
 
@@ -32,8 +33,8 @@ export class ProbeList extends Component {
                             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Probe Location</span></span></div>
                             </td>
-                            <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Last Active</span></span></div>
+                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Last Active</span></span></div>
                             </td>
                             <td id="placeholder-left" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
@@ -57,50 +58,40 @@ export class ProbeList extends Component {
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                        <a className="db-ListViewItem-link" >
+                                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                        <div className="db-ListViewItem-link" >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root"><span>{probesData.lastAlive ? moment(probesData.lastAlive).format('dddd, MMMM Do YYYY, h:mm a') : ''}</span></div>
                                                 </span>
                                             </div>
-                                        </a>
+                                        </div>
                                     </td>
                                     <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                                        <a className="db-ListViewItem-link" >
+                                        <div className="db-ListViewItem-link" >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
-                                        </a>
+                                        </div>
                                     </td>
                                     <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                        <a className="db-ListViewItem-link" >
+                                        <div className="db-ListViewItem-link" >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root Flex-flex">
                                                         <div className="Box-root Flex-flex">
                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                {probesData && probesData.lastAlive && moment(Date.now()).diff(moment(probesData.lastAlive),'minutes') > 5 ?
-                                                                    (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                            <span>OFFLINE</span>
-                                                                        </span>
-                                                                    </div>)
-                                                                    : (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                            <span>ONLINE</span>
-                                                                        </span>
-                                                                    </div>)}
+                                                                <ProbeStatus lastAlive={probesData && probesData.lastAlive} />
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </span>
                                             </div>
-                                        </a>
+                                        </div>
                                     </td>
 
                                     <td aria-hidden="true" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                                        <a className="db-ListViewItem-link" >
+                                        <div className="db-ListViewItem-link" >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣</div>
-                                        </a>
+                                        </div>
                                     </td>
                                 </tr>
                             ))
@@ -114,14 +105,14 @@ export class ProbeList extends Component {
                 {this.props.probesList && this.props.probesList.requesting ? <ListLoader /> : null}
 
                 <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                    {this.props.probesList && (!this.props.probesList.data || !this.props.probesList.data.length) && !this.props.probesList.requesting && !this.props.probesList.error ? 'We don\'t have any probes yet' : null}
+                    {this.props.probesList && (!this.props.probesList.data || !this.props.probesList.data.length) && !this.props.probesList.requesting && !this.props.probesList.error ? 'Probes does not exist. Please contact admin to add one.' : null}
                     {this.props.probesList && this.props.probesList.error ? this.props.probesList.error : null}
                 </div>
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{this.props.probesList && this.props.probesList.count ? this.props.probesList.count : '0'}</span>
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">{this.props.probesList && this.props.probesList.count ? this.props.probesList.count : '0'} Probes</span>
                             </span>
                         </span>
                     </div>
@@ -158,15 +149,15 @@ function mapStateToProps(state) {
 ProbeList.displayName = 'ProbeList'
 
 ProbeList.propTypes = {
-    probesList:PropTypes.object,
-    skip:PropTypes.number,
-    limit:PropTypes.number,
-    count:PropTypes.number,
-    requesting:PropTypes.bool,
-    data:PropTypes.array,
-    error:PropTypes.object,
-    prevClicked:PropTypes.func,
-    nextClicked:PropTypes.func,
+    probesList: PropTypes.object,
+    skip: PropTypes.number,
+    limit: PropTypes.number,
+    count: PropTypes.number,
+    requesting: PropTypes.bool,
+    data: PropTypes.array,
+    error: PropTypes.object,
+    prevClicked: PropTypes.func,
+    nextClicked: PropTypes.func,
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProbeList);

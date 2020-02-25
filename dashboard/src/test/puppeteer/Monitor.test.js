@@ -2,129 +2,185 @@ const puppeteer = require('puppeteer');
 var should = require('should');
 var utils = require('./test-utils');
 var init = require('./test-init');
+const { Cluster } = require('puppeteer-cluster');
 
-let browser, page, userCredentials;
-
+// user credentials
 let email = utils.generateRandomBusinessEmail();
-let password = utils.generateRandomString();
-const user = {
-    email,
-    password
-};
+let password = '1234567890';
 let callSchedule = utils.generateRandomString();
-let subProjectName = utils.generateRandomString();
-
-
 
 describe('Monitor API', () => {
     const operationTimeOut = 50000;
 
-    beforeAll(async () => {
-        jest.setTimeout(150000);
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-        page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
-    
-        // intercept request and mock response for login
-        await page.setRequestInterception(true);
-        await page.on('request', async (request)=>{
-            if((await request.url()).match(/user\/login/)){
-                request.respond({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify(userCredentials)
-                });
-            }else{
-                request.continue();
+    beforeAll(async (done) => {
+        jest.setTimeout(200000);
+
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000
+        });
+
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
+
+        // Register user 
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
             }
+            
+            // user
+            await init.registerUser(user, page);
+            await init.loginUser(user, page);
+            await init.addSchedule(data.callSchedule, page);
         });
-        await page.on('response', async (response)=>{
-            try{
-                const res = await response.json();
-                if(res && res.tokens){
-                    userCredentials = res;
-                }
-            }catch(error){}
-        });
-    
-        await init.registerUser(user, page);
-        await init.loginUser(user, page);
-        await init.addSchedule(callSchedule, page);
-        
+
+        await cluster.queue({ email, password, callSchedule });
+
+        await cluster.idle();
+        await cluster.close();
+        done();
     });
     
-    afterAll(async () => {
-        await browser.close();
-        
+    afterAll(async (done) => {
+        done();
     });
 
-    it('Should create new monitor with correct details', async () => {
-        let monitorName = utils.generateRandomString();
-        await page.waitForSelector('#monitors');
-        await page.click('#monitors');
-        await page.waitForSelector('#frmNewMonitor');
-        await page.click('input[id=name]');
-        await page.type('input[id=name]', monitorName);
-        await page.select('select[name=type_1000]','url');
-        await page.waitForSelector('#url');
-        await page.click('#url');
-        await page.type('#url', 'https://google.com');
-        await page.click('button[type=submit]');
-        await page.waitFor(5000);
-        let spanElement;
-        spanElement = await page.$('span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap');
-        spanElement = await spanElement.getProperty('innerText');
-        spanElement = await spanElement.jsonValue();
-        spanElement.should.be.exactly(monitorName);
-        
-    }, operationTimeOut);
-
-    it('Should delete monitor', async () => {
-        await page.waitForSelector('#name');
-        await page.evaluate(() => {
-            document.querySelector('div.Box-root div.db-Trends-header div.db-Trends-controls div button.bs-Button.bs-DeprecatedButton.db-Trends-editButton.bs-Button--icon.bs-Button--delete').click();
+    test('Should create new monitor with correct details', async (done) => {
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 100000
         });
-        await page.evaluate(() => {
-            document.querySelector('button.bs-DeprecatedButton:nth-child(2)').click();
+        const monitorName = utils.generateRandomString();
+
+        cluster.on('taskerror', (err) => {
+            throw err;
         });
-        
+
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
+
+            await init.loginUser(user, page);
+            
+            await page.waitForSelector('#monitors');
+            await page.click('#monitors');
+            await page.waitForSelector('#frmNewMonitor');
+            await page.click('input[id=name]');
+            await page.type('input[id=name]', data.monitorName);
+            await init.selectByText('#type', 'url', page);
+            await page.waitForSelector('#url');
+            await page.click('#url');
+            await page.type('#url', 'https://google.com');
+            await page.click('button[type=submit]');
+            await page.waitFor(5000);
+
+            let spanElement;
+
+            spanElement = await page.$('span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap');
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            spanElement.should.be.exactly(data.monitorName);
+        });
+
+        cluster.queue({ email, password, monitorName });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 
-    it('Should create new monitor with call schedule', async () => {
-        let monitorName = utils.generateRandomString();
-        await page.waitFor(10000);
-        await page.waitForSelector('#name');
-        await page.click('input[id=name]');
-        await page.type('input[id=name]', monitorName);
-        await page.select('select[name=type_1000]','url');
-        await page.select('#callSchedule', callSchedule);
-        await page.waitFor(2000);
-        await page.waitForSelector('#url');
-        await page.type('#url', 'https://google.com');
-        await page.click('button[type=submit]');
-        await page.waitFor(5000);
-        let spanElement;
-        spanElement = await page.$('span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap');
-        spanElement = await spanElement.getProperty('innerText');
-        spanElement = await spanElement.jsonValue();
-        spanElement.should.be.exactly(monitorName);
-        
+    test('Should create new monitor with call schedule', async (done) => {
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 100000
+        });
+        const monitorName = utils.generateRandomString();
+
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
+
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
+
+            await init.loginUser(user, page);
+            
+            await page.waitFor(10000);
+            await page.waitForSelector('#name');
+            await page.click('input[id=name]');
+            await page.type('input[id=name]', data.monitorName);
+            await init.selectByText('#type', 'url', page);
+            await init.selectByText('#callSchedule', data.callSchedule, page);
+            await page.waitFor(2000);
+            await page.waitForSelector('#url');
+            await page.type('#url', 'https://google.com');
+            await page.click('button[type=submit]');
+            await page.waitFor(5000);
+
+            let spanElement;
+
+            spanElement = await page.$('span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap');
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            spanElement.should.be.exactly(data.monitorName);
+        });
+
+        cluster.queue({ email, password, monitorName, callSchedule });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 
-    it('Should not create new monitor when details that are incorrect', async () => {
-    
-        await page.waitFor(10000);
-        await page.waitForSelector('#name');
-        await page.select('select[name=type_1000]','url');
-        await page.waitForSelector('#url');
-        await page.type('#url', 'https://google.com');
-        await page.click('button[type=submit]');
-        await page.waitFor(5000);
-        let spanElement;
-        spanElement = await page.$('#frmNewMonitor > div > div > div > fieldset > div > div > div > span >  div > div > span');
-        spanElement = await spanElement.getProperty('innerText');
-        spanElement = await spanElement.jsonValue();
-        spanElement.should.be.exactly('This field cannot be left blank');
-        
+    test('Should not create new monitor when details that are incorrect', async (done) => {
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 100000
+        });
+
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
+
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
+
+            await init.loginUser(user, page);
+            await page.waitForSelector('#name');
+            await init.selectByText('#type', 'url', page);
+            await page.waitForSelector('#url');
+            await page.type('#url', 'https://google.com');
+            await page.click('button[type=submit]');
+            await page.waitFor(5000);
+
+            let spanElement;
+
+            spanElement = await page.$('#frmNewMonitor > div > div > div > fieldset > div > div > div > span >  div > div > span');
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            spanElement.should.be.exactly('This field cannot be left blank');
+        });
+
+        cluster.queue({ email, password });
+        await cluster.idle();
+        await cluster.close();
+        done();
     }, operationTimeOut);
 });

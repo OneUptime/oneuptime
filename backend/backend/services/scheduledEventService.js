@@ -1,119 +1,122 @@
-var ScheduledEventModel = require('../models/scheduledEvent');
-var UserModel = require('../models/user');
-var ErrorService = require('../services/errorService');
+const ScheduledEventModel = require('../models/scheduledEvent');
+const UserModel = require('../models/user');
+const ErrorService = require('../services/errorService');
 
 
 module.exports = {
 
     create: async function ({ projectId, monitorId }, data) {
-        var scheduledEvent = new ScheduledEventModel();
-
-        scheduledEvent.projectId = projectId;
-        scheduledEvent.monitorId = monitorId;
-        scheduledEvent.name = data.name;
-        scheduledEvent.createdById = data.createdById;
-        scheduledEvent.startDate = data.startDate;
-        scheduledEvent.endDate = data.endDate;
-        scheduledEvent.description = data.description;
-
-        if (data.showEventOnStatusPage) {
-            scheduledEvent.showEventOnStatusPage = data.showEventOnStatusPage;
-        }
-        if (data.callScheduleOnEvent) {
-            scheduledEvent.callScheduleOnEvent = data.callScheduleOnEvent;
-        }
-        if (data.monitorDuringEvent) {
-            scheduledEvent.monitorDuringEvent = data.monitorDuringEvent;
-        }
-        if (data.alertSubscriber) {
-            scheduledEvent.alertSubscriber = data.alertSubscriber;
-        }
-
         try {
+            const _this = this;
+            let scheduledEvent = new ScheduledEventModel();
+
+            scheduledEvent.projectId = projectId;
+            scheduledEvent.monitorId = monitorId;
+            scheduledEvent.name = data.name;
+            scheduledEvent.createdById = data.createdById;
+            scheduledEvent.startDate = data.startDate;
+            scheduledEvent.endDate = data.endDate;
+            scheduledEvent.description = data.description;
+
+            if (data.showEventOnStatusPage) {
+                scheduledEvent.showEventOnStatusPage = data.showEventOnStatusPage;
+            }
+            if (data.callScheduleOnEvent) {
+                scheduledEvent.callScheduleOnEvent = data.callScheduleOnEvent;
+            }
+            if (data.monitorDuringEvent) {
+                scheduledEvent.monitorDuringEvent = data.monitorDuringEvent;
+            }
+            if (data.alertSubscriber) {
+                scheduledEvent.alertSubscriber = data.alertSubscriber;
+            }
             scheduledEvent = await scheduledEvent.save();
+            scheduledEvent = await _this.findOneBy({ _id: scheduledEvent._id });
+            return scheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEvent.save', error);
+            ErrorService.log('scheduledEventService.create', error);
             throw error;
         }
-        return scheduledEvent;
     },
 
-    update: async function (data) {
+    updateOneBy: async function (query,data) {
+        if (!query) {
+            query = {};
+        }
+
+        if (!query.deleted) query.deleted = false;
         try {
-            var oldScheduledEvent = await ScheduledEventModel.findOne({ _id: data._id });
+            const updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
+                $set: data
+            }, { new: true })
+                .lean();
+            if (updatedScheduledEvent.createdById === 'API') {
+                updatedScheduledEvent.createdById = {name: 'API', _id: null};
+            } else {
+                const user = await UserModel.findOne({_id: updatedScheduledEvent.createdById}).lean();
+                updatedScheduledEvent.createdById = {_id: user._id, name: user.name};
+            }
+            return updatedScheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEvents.findOneBy', error);
+            ErrorService.log('scheduledEventService.updateOneBy', error);
             throw error;
         }
-        var name = data.name || oldScheduledEvent.name;
-        var startDate = data.startDate || oldScheduledEvent.startDate;
-        var endDate = data.endDate || oldScheduledEvent.endDate;
-        var description = data.description || oldScheduledEvent.description;
-        var showEventOnStatusPage = data.showEventOnStatusPage !== undefined ? data.showEventOnStatusPage : oldScheduledEvent.showEventOnStatusPage;
-        var callScheduleOnEvent = data.callScheduleOnEvent !== undefined ? data.callScheduleOnEvent : oldScheduledEvent.callScheduleOnEvent;
-        var monitorDuringEvent = data.monitorDuringEvent !== undefined ? data.monitorDuringEvent : oldScheduledEvent.monitorDuringEvent;
-        var alertSubscriber = data.alertSubscriber !== undefined ? data.alertSubscriber : oldScheduledEvent.alertSubscriber;
+    },
 
+    updateBy: async function (query, data) {
         try {
-            var updatedScheduledEvent = await ScheduledEventModel.findByIdAndUpdate(data._id, {
-                $set: {
-                    name,
-                    startDate,
-                    endDate,
-                    description,
-                    showEventOnStatusPage,
-                    callScheduleOnEvent,
-                    monitorDuringEvent,
-                    alertSubscriber
-                }
-            }, { new: true });
-        } catch (error){
-            ErrorService.log('ScheduledEventModel.findByIdAndUpdate', error);
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            let updatedData = await ScheduledEventModel.updateMany(query, {
+                $set: data
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('scheduledEventService.updateMany', error);
             throw error;
         }
-
-        return updatedScheduledEvent;
     },
 
     deleteBy: async function (query, userId) {
-        
         try {
-            var scheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
+            const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedAt: Date.now(),
                     deletedById: userId
                 }
             }, { new: true });
+            return scheduledEvent;
         } catch (error) {
-            ErrorService.log('ScheduledEvent.delete', error);
+            ErrorService.log('scheduledEventService.deleteBy', error);
             throw error;
         }
-        return scheduledEvent;
     },
 
     findBy: async function (query, limit, skip) {
-
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof (skip) === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof (limit) === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-
         try {
-            var scheduledEvents = await ScheduledEventModel.find(query)
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof (skip) === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof (limit) === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const scheduledEvents = await ScheduledEventModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
@@ -128,7 +131,7 @@ module.exports = {
                     return event;
                 }
                 else {
-                    var user = await UserModel.findOne({
+                    const user = await UserModel.findOne({
                         _id: event.createdById
                     })
                         .lean();
@@ -141,34 +144,67 @@ module.exports = {
             }));
 
             return scheduledEvents;
+        } catch (error) {
+            ErrorService.log('scheduledEventService.findBy', error);
+            throw error;
+        }
+    },
+
+    findOneBy: async function (query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const scheduledEvent = await ScheduledEventModel.findOne(query).lean();
+
+            if (scheduledEvent) {
+                if (scheduledEvent.createdById === 'API') {
+                    scheduledEvent.createdById = {
+                        name: 'API',
+                        _id: null
+                    };
+                } else {
+                    const user = await UserModel.findOne({
+                        _id: scheduledEvent.createdById
+                    }).lean();
+                    scheduledEvent.createdById = {
+                        _id: user._id,
+                        name: user.name
+                    };
+                }
+            }
+
+            return scheduledEvent;
         }
         catch (error) {
-            ErrorService.log('ScheduledEvents.findAll', error);
+            ErrorService.log('scheduledEventService.findOneBy', error);
             throw error;
         }
     },
 
     countBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-        query.deleted = false;
         try {
-            var count = await ScheduledEventModel.count(query);
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const count = await ScheduledEventModel.count(query);
+            return count;
         } catch (error) {
-            ErrorService.log('ScheduledEventModel.count', error);
+            ErrorService.log('scheduledEventService.countBy', error);
             throw error;
         }
-        return count;
     },
 
     hardDeleteBy: async function (query) {
         try {
             await ScheduledEventModel.deleteMany(query);
+            return 'Event(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('ScheduledEventModel.deleteMany', error);
+            ErrorService.log('scheduledEventService.hardDeleteBy', error);
             throw error;
         }
-        return 'Event(s) removed successfully!';
     },
 };

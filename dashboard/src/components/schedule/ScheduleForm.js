@@ -116,7 +116,7 @@ export class ScheduleForm extends React.Component{
 
 ScheduleForm.displayName = 'ScheduleForm'
 
-let CreateScheduleForm = reduxForm({
+const CreateScheduleForm = reduxForm({
     form: 'ScheduleModalForm',
     validate
 })(ScheduleForm);

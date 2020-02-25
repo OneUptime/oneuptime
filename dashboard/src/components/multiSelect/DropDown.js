@@ -8,20 +8,20 @@ class Dropdown extends React.Component {
         expanded: false
     }
 
-    UNSAFE_componentWillUpdate() {
+    componentDidUpdate() {
         document.addEventListener('touchstart', this.handleDocumentClick);
         document.addEventListener('mousedown', this.handleDocumentClick);
     }
 
-    UNSAFE_componentWillMount() {
+    componentDidMount() {
         document.addEventListener('touchstart', this.handleDocumentClick);
         document.addEventListener('mousedown', this.handleDocumentClick);
     }
 
     handleDocumentClick = e => {
 
-        if(this.wrapper && this.wrapper.contains(e.target)){
-            this.setState({expanded: false});
+        if (this.wrapper && this.wrapper.contains(e.target)) {
+            this.setState({ expanded: false });
         }
     }
 
@@ -40,20 +40,20 @@ class Dropdown extends React.Component {
                 return;
         }
     }
-    
+
     toggleExpanded = value => {
         const { isLoading } = this.props;
         const { expanded } = this.state;
 
-        if(isLoading){
+        if (isLoading) {
             return;
         }
 
         const tempExpanded = value === undefined ? !expanded : !!value;
 
-        this.setState({expanded: tempExpanded});
+        this.setState({ expanded: tempExpanded });
 
-        if(!tempExpanded && this.wrapper) {
+        if (!tempExpanded && this.wrapper) {
             this.wrapper.focus();
         }
     }
@@ -61,7 +61,7 @@ class Dropdown extends React.Component {
     handleBlur = () => {
         const { hasFocus } = this.state;
 
-        if(hasFocus) {
+        if (hasFocus) {
             this.setState({ hasFocus: false });
         }
     }
@@ -69,7 +69,7 @@ class Dropdown extends React.Component {
     handleFocus = e => {
         const { hasFocus } = this.state;
 
-        if(e.target === this.wrapper && !hasFocus) {
+        if (e.target === this.wrapper && !hasFocus) {
             this.setState({ hasFocus: true });
         }
     }
@@ -81,11 +81,11 @@ class Dropdown extends React.Component {
     handleMouseLeave = () => {
         this.handleHover(false)
     }
-    
+
     handleHover = toggleExpanded => {
         const { shouldToggleOnHover } = this.props;
 
-        if(shouldToggleOnHover) {
+        if (shouldToggleOnHover) {
             this.toggleExpanded(toggleExpanded)
         }
     }
@@ -111,7 +111,7 @@ class Dropdown extends React.Component {
                 aria-expanded={expanded}
                 aria-readonly="true"
                 aria-disabled={disabled}
-                ref={ref => this.wrapper = ref }
+                ref={ref => this.wrapper = ref}
                 onKeyDown={this.handleKeyDown}
                 onFocus={this.handleFocus}
                 onBlur={this.handleBlur}

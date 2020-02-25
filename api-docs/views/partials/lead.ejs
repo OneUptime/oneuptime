@@ -1,0 +1,134 @@
+<article id="lead" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Lead</h1>
+    </b>
+    <p>
+      <p>Lead API will allow you to create customer leads for Fyipe.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/lead/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container"></div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example"></section>
+</article>
+
+<article id="create-lead" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Lead<span class="requestType">POST</span></h3>
+    <p>
+      <p>Create Customer Lead for Fyipe.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/lead/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/lead/</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "type": "demo",
+  "name": "Nawaz Dhandala",
+  "email": "nawazdhandala@hackerbay.io",
+  "phone": "+18058486168",
+  "website": "https://fyipe.me",
+  "companySize": "10",
+  "country": "United States",
+  "message": "Hello"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "deleted": false,
+  "_id": "5e1a4abeba543f2f2168213d",
+  "createdAt": "2020-01-11T22:22:54.142Z",
+  "type": "demo",
+  "email": "nawazdhandala@hackerbay.io",
+  "phone": "+18058486168",
+  "website": "https://fyipe.me",
+  "companySize": "10",
+  "country": "United States",
+  "message": "Hello"
+  "whitepaperName": null,
+  "__v": 0
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>

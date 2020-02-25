@@ -1,3 +1,6 @@
+// Load env vars from the backend. 
+require('custom-env').env(null, '../backend');
+
 var puppeteer = require('puppeteer');
 var expect = require('chai').expect;
 var chai = require('chai');
@@ -10,19 +13,34 @@ var token, authorization, projectId, monitorCategoryId, monitorId, statusPageId,
 var testData = require('./data/data');
 var VerificationTokenModel = require('../../../backend/backend/models/verificationToken');
 var UserService = require('../../../backend/backend/services/userService');
+var payment = require('../../../backend/backend/config/payment');
+var stripe = require('stripe')(payment.paymentPrivateKey);
 var monitor = testData.monitor;
 var monitorCategory = testData.monitorCategory;
 var statusPage = testData.statusPage;
 
 var browser, page, statusPageURL;
 
-
 describe('Status page monitors check', function () {
     this.timeout(30000);
     before(async function () {
         this.enableTimeouts(false);
+        await UserService.hardDeleteBy({ email: testData.user.email });
 
-        var signUpRequest = await request.post('/user/signup').send(testData.user);
+        var checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: testData.user.email,
+            companyName: testData.user.companyName
+        });
+        var confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
+
+        var signUpRequest = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id
+            },
+            ...testData.user
+        });
+
         projectId = signUpRequest.body.project._id;
 
         userId = signUpRequest.body.id;
@@ -72,7 +90,9 @@ describe('Status page monitors check', function () {
     });
 
     after(async function () {
-        await browser.close();
+        if (browser) {
+            await browser.close();
+        }
         await UserService.hardDeleteBy({ _id: userId })
     });
 
@@ -131,9 +151,9 @@ describe('Status page monitors check', function () {
                 isGroupedByMonitorCategory: true
             });
         await page.reload({
-                waitUntil: 'networkidle0'
-            });
-        let monitorCategoryNameSelector = '#monitorCategory0';
+            waitUntil: 'networkidle0'
+        });
+        let monitorCategoryNameSelector = '#monitorCategory1';
         let monitorCategoryName = await page.$eval(monitorCategoryNameSelector, el => el.textContent);
         expect(monitorCategoryName).to.be.equal(monitorCategory.monitorCategoryName.toUpperCase());
     });

@@ -1,7 +1,7 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var incidentSMSActionSchema = new Schema({
+const Schema = mongoose.Schema;
+const incidentSMSActionSchema = new Schema({
     incidentId: { type: String, ref: 'Incident' }, //which project this incident belongs to.
     userId: { type: String, ref: 'User' }, // which User will perfom this action.
     number:  { type: String },

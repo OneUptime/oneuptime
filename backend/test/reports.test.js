@@ -4,34 +4,41 @@ const userData = require('./data/user');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
-var moment = require('moment');
+const moment = require('moment');
 
 const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
 
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var IncidentService = require('../backend/services/incidentService');
-var MonitorService = require('../backend/services/monitorService');
-var NotificationService = require('../backend/services/notificationService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const IncidentService = require('../backend/services/incidentService');
+const MonitorService = require('../backend/services/monitorService');
+const NotificationService = require('../backend/services/notificationService');
+const AirtableService = require('../backend/services/airtableService');
 
-let token, userId, projectId, monitorId, monitor = {
+const VerificationTokenModel = require('../backend/models/verificationToken');
+
+let token, userId, airtableId, projectId, monitorId;
+const monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
 };
-let endDate = moment().format('YYYY-MM-DD');
-let startDate = moment().subtract(7, 'd').format('YYYY-MM-DD');
+const endDate = moment().format('YYYY-MM-DD');
+const startDate = moment().subtract(7, 'd').format('YYYY-MM-DD');
+const filter = 'month';
 
 describe('Reports API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
-            let project = res.body.project;
+        this.timeout(40000);
+        createUser(request, userData.user, function (err, res) {
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -39,7 +46,7 @@ describe('Reports API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${token}`;
+                        const authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
                             monitorId = res.body._id;
                             done();
@@ -56,6 +63,7 @@ describe('Reports API', function () {
         await IncidentService.hardDeleteBy({ monitorId: monitorId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
 
@@ -86,18 +94,18 @@ describe('Reports API', function () {
             });
     });
 
-    it('should return average resolved incident in a month', (done) => {
+    it('should return average resolved incidents time', (done) => {
         const authorization = `Basic ${token}`;
-        request.get(`/reports/${projectId}/average-resolved`).set('Authorization', authorization).end((err, res) => {
+        request.get(`/reports/${projectId}/average-resolved?startDate=${startDate}&&endDate=${endDate}&&filter=${filter}`).set('Authorization', authorization).end((err, res) => {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             done();
         });
     });
 
-    it('should return monthly average time to resolve incidents', (done) => {
+    it('should return number of incidents', (done) => {
         const authorization = `Basic ${token}`;
-        request.get(`/reports/${projectId}/monthly-incidents`).set('Authorization', authorization).end((err, res) => {
+        request.get(`/reports/${projectId}/incidents?startDate=${startDate}&&endDate=${endDate}&&filter=${filter}`).set('Authorization', authorization).end((err, res) => {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             done();

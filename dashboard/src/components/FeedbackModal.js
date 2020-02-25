@@ -7,20 +7,22 @@ import { reduxForm, Field } from 'redux-form';
 import { RenderTextArea } from './basic/RenderTextArea';
 import { reset } from 'redux-form';
 import PropTypes from 'prop-types';
+import { logEvent } from '../analytics';
+import { IS_DEV } from '../config';
 
 export class FeedbackModal extends Component {
 
 	submitForm = (values) => {
-		const { reset } = this.props;
+		const { reset, page } = this.props;
 
 		if (values.feedback) {
-
-			this.props.createFeedback(this.props.currentProject._id,values).then(function () {
+			this.props.createFeedback(this.props.currentProject._id, values.feedback, page.title).then(function () {
 
 			}, function () {
 			});
-			if (window.location.href.indexOf('localhost') <= -1) {
-				this.context.mixpanel.track('Feedback Values', values);
+
+			if (!IS_DEV) {
+				logEvent('Feedback Values', values);
 			}
 			this.props.closeFeedbackModal();
 
@@ -34,7 +36,7 @@ export class FeedbackModal extends Component {
 
 		return this.props.feedback.feedbackModalVisble ?
 
-			(<div  className="db-FeedbackModal" style={{ position: 'absolute', right: '40px', top: '20px', zIndex: '999' }}>
+			(<div className="db-FeedbackModal" style={{ position: 'absolute', right: '40px', top: '20px', zIndex: '999' }}>
 				<div className="db-FeedbackModal-background" />
 				<div className="db-FeedbackModal-content">
 					<div className="db-FeedbackModal-contentInner">
@@ -80,24 +82,22 @@ export class FeedbackModal extends Component {
 
 FeedbackModal.displayName = 'FeedbackModal'
 
-let FeedbackModalForm = reduxForm({
+const FeedbackModalForm = reduxForm({
 	form: 'FeedbackModal', // a unique identifier for this form
 })(FeedbackModal);
 
 const mapStateToProps = state => ({
 	feedback: state.feedback,
-	currentProject : state.project.currentProject,
+	page: state.page,
+	currentProject: state.project.currentProject,
 });
 
 const mapDispatchToProps = dispatch => (
 	bindActionCreators({ createFeedback, closeFeedbackModal, reset }, dispatch)
 );
 
-FeedbackModal.contextTypes = {
-	mixpanel: PropTypes.object.isRequired
-};
-
 FeedbackModal.propTypes = {
+	page: PropTypes.object,
 	createFeedback: PropTypes.func.isRequired,
 	closeFeedbackModal: PropTypes.func.isRequired,
 	reset: PropTypes.func.isRequired,

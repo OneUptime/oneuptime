@@ -6,14 +6,13 @@ main{
 main a{
     outline:none
 }
+
+.grey{
+    color:#797979
+}
+
 main h2[class^=common-Uppercase]{
-    color:#24b47e
-}
-.globalNav .colorize{
-    color:#fff
-}
-.globalNav .colorize.active,.globalNav .colorize:hover{
-    color:hsla(0,0%,100%,.5)
+    color:#000000
 }
 main header{
     position:relative
@@ -125,7 +124,7 @@ main header{
 }
 @media (min-width:880px){
     #intro{
-        height:760px
+        height:650px
     }
 }
 #intro .container-lg{
@@ -253,7 +252,7 @@ main header{
     font-size:12px;
     line-height:16px;
     font-weight:600;
-    background:#24b47e;
+    background:#000000;
     text-transform:uppercase;
     border-radius:10px
 }
@@ -266,7 +265,6 @@ main header{
 #intro h1{
     font-size:32px;
     font-weight:400;
-    color:#fff
 }
 @media (min-width:880px){
     #intro h1{
@@ -276,7 +274,9 @@ main header{
 #intro p{
     max-width:500px;
     margin-top:20px;
-    color:#d9fcff
+    color: #444444;
+    font-size: 20px;
+    line-height: 28px;
 }
 @media (min-width:670px){
     #intro p{
@@ -301,7 +301,7 @@ main header{
 #intro li:first-child a{
     margin-right:23px;
     color:#fff;
-    background:#00c2ff;
+    background:#000000;
     text-shadow:0 1px 3px rgba(36,180,126,.4)
 }
 #intro li:first-child svg{
@@ -317,7 +317,7 @@ main header{
         display:block
     }
     #intro li:last-child a{
-        color:#299fc4
+        color:#000000
     }
 }
 #app-illustrations{
@@ -519,18 +519,9 @@ main header{
 }
 #developers-first{
     position:relative;
-    padding-top:110px
+    margin-bottom:60px;
 }
-#developers-first:before{
-    content:"";
-    position:absolute;
-    z-index:-1;
-    width:100%;
-    height:180%;
-    top:0;
-    transform:skewY(-12deg);
-    background:#f6f9fc
-}
+
 #developers-first .common-UppercaseTitle{
     text-align:center;
     position:relative
@@ -614,7 +605,7 @@ main header{
     width:100%;
     font-family:Open Sans,Segoe UI,sans-serif;
     font-size:17px;
-    color:#24b47e;
+    color:#000000;
     border-radius:2px;
     padding:7px 12px;
     border:none;
@@ -713,13 +704,13 @@ main header{
         transition:fill .3s
     }
     #notebook nav .selected{
-        color:#24b47e
+        color:#000000
     }
     #notebook nav .selected path{
-        fill:#24b47e
+        fill:#000000
     }
     #notebook nav button:not(.selected):hover path{
-        fill:#32325d
+        fill:#000000
     }
     #notebook nav a{
         display:block;
@@ -741,7 +732,7 @@ main header{
 }
 #always-improving,#global-scale{
     padding:20px 0;
-    border:1px solid #f6f9fc
+    border:1px solid #f9f9f9
 }
 #always-improving{
     border-width:0 0 1px
@@ -782,7 +773,7 @@ main header{
     margin:15px 0 18px
 }
 #customer-logos{
-    border-top:2px solid #f6f9fc
+    border-top:2px solid #f9f9f9
 }
 #customer-logos a{
     display:block;
@@ -898,7 +889,7 @@ main header{
     grid:repeat(2,200px)/1fr minmax(0,1000px) 1fr;
     -ms-flex-line-pack:justify;
     align-content:space-between;
-    background:linear-gradient(100grad,#545fdd,#14aad9 50%)
+    background:linear-gradient(100grad,#545fdd,#000000 50%)
 }
 @media (min-width:670px){
     #comparison .stripes{
@@ -962,18 +953,26 @@ main header{
         grid-gap:0 12px
     }
 }
+
+.main-page-title{
+    font-family: 'Source Sans Pro', sans-serif; 
+    font-weight:900; 
+    font-size:75px !important; 
+    margin-top:120px
+}
+
 #comparison .common-Uppercase{
     padding:11px 0;
     text-align:center;
     border-radius:4px 4px 0 0
 }
 #comparison section:first-child .common-Uppercase{
-    color:#525f7f;
+    color:#000000;
     background:#f4f8fb
 }
 #comparison section:last-child .common-Uppercase{
-    color:#24b47e;
-    background:#f2feef
+    color:#FFFFFF;
+    background:#000000
 }
 #comparison .common-BodyText{
     margin:20px
@@ -996,7 +995,7 @@ main header{
     padding:7px 0
 }
 #comparison li:nth-child(2n+1){
-    background:rgba(228,237,245,.4)
+    background:rgba(224, 224, 224, 0.4)
 }
 #comparison .centered-label{
     display:block;
@@ -1017,11 +1016,11 @@ main header{
 }
 #comparison li:first-child .label{
     margin-left:7px;
-    background:#68d4f8
+    background:#000000
 }
 #comparison li:nth-child(2) .label{
     margin-left:18%;
-    background:#7795f8
+    background:#797979
 }
 #comparison li:nth-child(3) .label{
     margin-left:24%;
@@ -1042,7 +1041,7 @@ main header{
 }
 #comparison li:last-child .label{
     margin-right:7px;
-    background:#00c2ff
+    background:#000000
 }
 #comparison section:first-child li:last-child{
     -ms-flex-pack:end;
@@ -1068,7 +1067,7 @@ main header{
     height:var(--size);
     border-radius:50%;
     background:#fff;
-    border:2px solid #00c2ff
+    border:2px solid black
 }
 #comparison .launch-marker-bar{
     display:block;
@@ -1089,5 +1088,48 @@ main header{
     .status-image{
         height: 120px;
         width: 650px;
+    }
+}
+
+#cookie-consent{
+    bottom: 0; 
+    top: auto; 
+    background: black; 
+    position: fixed; 
+    width: 100%; 
+    z-index: 500; 
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap
+}
+
+.p-White{
+    padding-top: 7px;
+    color: #fff;
+}
+
+.flex-Box{
+    display: flex;
+}
+@media screen and (max-width:330px){
+    #intro h1 {
+        font-weight: 300;
+        font-size: 60px !important;
+    }
+    #intro li:last-child {
+        display: block;
+    }
+}
+@media screen and (max-width:420px){
+    #intro li:last-child {
+        margin-top: 15px;
+        display: block;
+        margin-left: -20px;
+    }
+    #intro ul {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-right: calc(50% - 150px);
     }
 }

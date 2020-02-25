@@ -2,7 +2,7 @@ import React from 'react';
 import { storiesOf, action } from '@storybook/react';
 import {IncidentStatus} from '../../../components/incident/IncidentStatus'
 
-let props = {
+const props = {
     'incident': {
         'acknowledged': false,
         'resolved': false,

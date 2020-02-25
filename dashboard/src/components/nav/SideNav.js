@@ -1,49 +1,51 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import NavItem from './SideNavItem';
 import { groups } from '../../routes';
 import { openModal, closeModal } from '../../actions/modal';
-import ProjectSwitcher from '../project/ProjectSwitcher'
+import ProjectSwitcher from '../project/ProjectSwitcher';
 import ClickOutside from 'react-click-outside';
-import { showProjectSwitcher, hideProjectSwitcher, hideForm } from '../../actions/project'
+import { showProjectSwitcher, hideProjectSwitcher, hideForm } from '../../actions/project';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class SideNav extends Component {
 
 	hideSwitcher = () => {
-		if (this.props.project.projectSwitcherVisible){
+		if (this.props.project.projectSwitcherVisible) {
 			this.props.hideProjectSwitcher();
-			if(window.location.href.indexOf('localhost') <= -1){
-				this.context.mixpanel.track('Project Switcher hidden', {});
+			if (!IS_DEV) {
+				logEvent('Project Switcher hidden', {});
 			}
 		}
 	}
 
 	showSwitcher = () => {
-		if (!this.props.project.projectSwitcherVisible){
+		if (!this.props.project.projectSwitcherVisible) {
 			this.props.showProjectSwitcher();
-			if(window.location.href.indexOf('localhost') <= -1){
-				this.context.mixpanel.track('Project Switcher Visible', {});
+			if (!IS_DEV) {
+				logEvent('Project Switcher Visible', {});
 			}
 		}
 	}
 
-	handleKeyBoard = (e)=>{
-		switch(e.key){
+	handleKeyBoard = (e) => {
+		switch (e.key) {
 			case 'Escape':
-			this.hideSwitcher()
-			this.props.hideForm()
-			return true;
+				this.hideSwitcher()
+				this.props.hideForm()
+				return true;
 			default:
-			return false;
+				return false;
 		}
 	}
 
 	render() {
-		
+
 		return (
-			<div onKeyDown={this.handleKeyBoard}  className="db-World-sideNavContainer">
+			<div onKeyDown={this.handleKeyBoard} className="db-World-sideNavContainer">
 				<div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
 					<div className="Box-root Margin-bottom--20">
 						<div>
@@ -118,11 +120,11 @@ class SideNav extends Component {
 
 SideNav.displayName = 'SideNav'
 
-let mapStateToProps = function (state) {
+const mapStateToProps = function (state) {
 	return { project: state.project };
 }
 
-let mapDispatchToProps = function (dispatch) {
+const mapDispatchToProps = function (dispatch) {
 	return bindActionCreators(
 		{
 			openModal, closeModal, showProjectSwitcher, hideProjectSwitcher, hideForm
@@ -137,7 +139,5 @@ SideNav.propTypes = {
 	showProjectSwitcher: PropTypes.func.isRequired,
 	hideForm: PropTypes.func.isRequired
 }
-SideNav.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
+
 export default connect(mapStateToProps, mapDispatchToProps)(SideNav);

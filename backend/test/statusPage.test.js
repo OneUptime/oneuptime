@@ -1,36 +1,41 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var UserService = require('../backend/services/userService');
-var StatusService = require('../backend/services/statusPageService');
-var MonitorService = require('../backend/services/monitorService');
-var ProjectService = require('../backend/services/projectService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const StatusService = require('../backend/services/statusPageService');
+const MonitorService = require('../backend/services/monitorService');
+const ProjectService = require('../backend/services/projectService');
+const AirtableService = require('../backend/services/airtableService');
+
+const VerificationTokenModel = require('../backend/models/verificationToken');
 
 // eslint-disable-next-line
-var token, projectId, monitorId, monitorCategoryId, statusPageId, userId, monitor = {
+let token, projectId, monitorId, monitorCategoryId, statusPageId, userId, airtableId, monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
 };
 
-var monitorCategory = {
-    monitorCategoryName:'New Monitor Category'
+const monitorCategory = {
+    monitorCategoryName: 'New Monitor Category'
 };
 
 describe('Status API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -38,7 +43,7 @@ describe('Status API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${token}`;
+                        const authorization = `Basic ${token}`;
                         request.post(`/monitorCategory/${projectId}`).set('Authorization', authorization).send(monitorCategory)
                             .end(function (err, res) {
                                 monitorCategoryId = res.body._id;
@@ -56,11 +61,12 @@ describe('Status API', function () {
 
     after(async function () {
         await MonitorService.hardDeleteBy({ _id: monitorId });
-        await StatusService.hardDeleteBy({projectId: projectId});
+        await StatusService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should not add status if monitor ids is missing', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/statusPage/${projectId}`).set('Authorization', authorization)
             .send({
                 links: [],
@@ -76,7 +82,7 @@ describe('Status API', function () {
 
 
     it('should not add status if monitor is not an array', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/statusPage/${projectId}`).set('Authorization', authorization)
             .send({
                 links: [],
@@ -84,7 +90,7 @@ describe('Status API', function () {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitorsId: {_id: '2121'}
+                monitorsId: { _id: '2121' }
             }).end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
@@ -92,7 +98,7 @@ describe('Status API', function () {
     });
 
     it('should add status', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/statusPage/${projectId}`).set('Authorization', authorization)
             .send({
                 links: [],
@@ -110,7 +116,7 @@ describe('Status API', function () {
     });
 
     it('should not update status settings when domain is not string', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/statusPage/${projectId}`).set('Authorization', authorization)
             .send({
                 links: [],
@@ -119,7 +125,7 @@ describe('Status API', function () {
                 copyright: 'status copyright',
                 projectId,
                 domain: 5,
-                monitorIds: [ monitorId ]
+                monitorIds: [monitorId]
             }).end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
@@ -127,7 +133,7 @@ describe('Status API', function () {
     });
 
     it('should not update status settings when domain is not valid', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/statusPage/${projectId}`).set('Authorization', authorization)
             .send({
                 links: [],
@@ -136,7 +142,7 @@ describe('Status API', function () {
                 copyright: 'status copyright',
                 projectId,
                 domain: 'wwwtest',
-                monitorIds: [ monitorId ]
+                monitorIds: [monitorId]
             }).end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
@@ -144,7 +150,7 @@ describe('Status API', function () {
     });
 
     it('should update status settings', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/statusPage/${projectId}`).set('Authorization', authorization)
             .send({
                 _id: statusPageId,
@@ -154,40 +160,41 @@ describe('Status API', function () {
                 copyright: 'status copyright',
                 projectId,
                 domain: 'http://www.test.com',
-                monitorIds: [ monitorId ]
+                monitorIds: [monitorId]
             }).end(function (err, res) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should return monitor category with monitors in status page data', function(done){
-        var authorization = `Basic ${token}`;
+    it('should return monitor category with monitors in status page data', function (done) {
+        const authorization = `Basic ${token}`;
         request.get(`/statusPage/${statusPageId}`).set('Authorization', authorization)
             .send().end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
                 expect(res.body).to.have.property('monitorIds');
                 expect(res.body.monitorIds).to.be.an('array').with.length.greaterThan(0);
-                expect(res.body.monitorIds[0]).to.have.property('monitorCategoryId');
+                expect(res.body.monitorsData).to.be.an('array').with.length.greaterThan(0);
+                expect(res.body.monitorsData[0]).to.have.property('monitorCategoryId');
                 done();
             });
     });
 });
 
 // eslint-disable-next-line no-unused-vars
-var subProjectId, newUserToken, anotherUserToken, subProjectStatusPageId, subProjectUserId;
+let subProjectId, newUserToken, anotherUserToken, subProjectStatusPageId, subProjectUserId;
 
-describe('StatusPage API with Sub-Projects', function(){
+describe('StatusPage API with Sub-Projects', function () {
     this.timeout(30000);
-    before(function(done){
+    before(function (done) {
         this.timeout(30000);
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         // create a subproject for parent project
-        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send([{ name: 'New SubProject' }]).end(function(err, res){
+        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({ subProjectName: 'New SubProject' }).end(function (err, res) {
             subProjectId = res.body[0]._id;
             // sign up second user (subproject user)
-            request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+            createUser(request, userData.newUser, function (err, res) {
                 subProjectUserId = res.body.id;
                 VerificationTokenModel.findOne({ userId: subProjectUserId }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -196,7 +203,7 @@ describe('StatusPage API with Sub-Projects', function(){
                             password: userData.newUser.password
                         }).end(function (err, res) {
                             newUserToken = res.body.tokens.jwtAccessToken;
-                            var authorization = `Basic ${token}`;
+                            const authorization = `Basic ${token}`;
                             // add second user to subproject
                             request.post(`/team/${subProjectId}`).set('Authorization', authorization).send({
                                 emails: userData.newUser.email,
@@ -217,7 +224,7 @@ describe('StatusPage API with Sub-Projects', function(){
     });
 
     it('should not create a statupage for user not present in project', function (done) {
-        request.post('/user/signup').send(userData.anotherUser).end(function (err, res) {
+        createUser(request, userData.anotherUser, function (err, res) {
             VerificationTokenModel.findOne({ userId: res.body.id }, function (err, res) {
                 request.get(`/user/confirmation/${res.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -225,7 +232,7 @@ describe('StatusPage API with Sub-Projects', function(){
                         password: userData.anotherUser.password
                     }).end(function (err, res) {
                         anotherUserToken = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${anotherUserToken}`;
+                        const authorization = `Basic ${anotherUserToken}`;
                         request.post(`/statusPage/${projectId}`).set('Authorization', authorization).send({
                             links: [],
                             title: 'Status title',
@@ -245,7 +252,7 @@ describe('StatusPage API with Sub-Projects', function(){
     });
 
     it('should not create a statusPage for user that is not `admin` in sub-project.', function (done) {
-        var authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request.post(`/statusPage/${subProjectId}`).set('Authorization', authorization).send({
             links: [],
             title: 'Status title',
@@ -261,7 +268,7 @@ describe('StatusPage API with Sub-Projects', function(){
     });
 
     it('should create a statusPage in parent project by valid admin.', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/statusPage/${projectId}`).set('Authorization', authorization).send({
             links: [],
             title: 'Status title',
@@ -276,12 +283,13 @@ describe('StatusPage API with Sub-Projects', function(){
             done();
         });
     });
-    
+
     it('should create a statusPage in sub-project by valid admin.', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/statusPage/${subProjectId}`).set('Authorization', authorization).send({
             links: [],
             title: 'Status title',
+            name: 'New StatusPage',
             description: 'status description',
             copyright: 'status copyright',
             projectId,
@@ -295,7 +303,7 @@ describe('StatusPage API with Sub-Projects', function(){
     });
 
     it('should get only sub-project\'s statuspages for valid sub-project user', function (done) {
-        var authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request.get(`/statusPage/${subProjectId}/statuspage`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -307,7 +315,7 @@ describe('StatusPage API with Sub-Projects', function(){
     });
 
     it('should get both project and sub-project statuspage for valid parent project user.', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/statusPage/${projectId}/statuspages`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('array');
@@ -321,12 +329,12 @@ describe('StatusPage API with Sub-Projects', function(){
     });
 
     it('should get status page for viewer in sub-project', function (done) {
-        var authorization = `Basic ${anotherUserToken}`;
+        const authorization = `Basic ${anotherUserToken}`;
         request.post(`/team/${subProjectId}`).set('Authorization', authorization).send({
             emails: userData.anotherUser.email,
             role: 'Viewer'
         }).end(function () {
-            request.get(`/statusPage/${subProjectStatusPageId}`).set('Authorization', authorization).end(function (err, res){
+            request.get(`/statusPage/${subProjectStatusPageId}`).set('Authorization', authorization).end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('monitorIds');
@@ -336,7 +344,7 @@ describe('StatusPage API with Sub-Projects', function(){
     });
 
     it('should not delete a status page for user that is not `admin` in sub-project.', function (done) {
-        var authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request.delete(`/statusPage/${subProjectId}/${subProjectStatusPageId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('You cannot edit the project because you\'re not an admin.');
@@ -345,19 +353,17 @@ describe('StatusPage API with Sub-Projects', function(){
     });
 
     it('should delete sub-project status page', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/statusPage/${subProjectId}/${subProjectStatusPageId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
 
     it('should delete parent project status page', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/statusPage/${projectId}/${statusPageId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });

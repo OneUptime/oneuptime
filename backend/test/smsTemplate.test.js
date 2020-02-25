@@ -1,30 +1,34 @@
 /* eslint-disable no-useless-escape */
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var SmsTemplateService = require('../backend/services/smsTemplateService');
-var NotificationService = require('../backend/services/notificationService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const SmsTemplateService = require('../backend/services/smsTemplateService');
+const NotificationService = require('../backend/services/notificationService');
+const AirtableService = require('../backend/services/airtableService');
 
+const VerificationTokenModel = require('../backend/models/verificationToken');
 
-var token, projectId, userId, smsTemplateId;
+let token, projectId, userId, airtableId, smsTemplateId;
 
 describe('SMS Template API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
-            let project = res.body.project;
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -44,14 +48,15 @@ describe('SMS Template API', function () {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await SmsTemplateService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     // 'post /:projectId'
     it('should create an sms template with valid data', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/smsTemplate/${projectId}`).set('Authorization', authorization).send({
             body: 'SMS Body',
-            smsType: 'Subscriber Incident'
+            smsType: 'Subscriber Incident Created'
         }).end(function (err, res) {
             smsTemplateId = res.body._id;
             expect(res).to.have.status(200);
@@ -62,19 +67,19 @@ describe('SMS Template API', function () {
     });
 
     it('should sanitize dirty template data sent to endpoint', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/smsTemplate/${projectId}`).set('Authorization', authorization).send({
-            body: '{{abc<iframe/\/src=jAva&Tab;script:alert(3)>def}}',
-            smsType: 'Subscriber Incident'
+            body: '<img src=x onerror=alert(1)//>',
+            smsType: 'Subscriber Incident Created'
         }).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.body).to.be.equal('{{abcdef}}');
+            expect(res.body.body).to.be.equal('<img src="x">');
             done();
         });
     });
 
     it('should get an array of sms templates by valid projectId', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/smsTemplate/${projectId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('array');
@@ -83,7 +88,7 @@ describe('SMS Template API', function () {
     });
 
     it('should get an sms template by valid smsTemplateId', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -92,7 +97,7 @@ describe('SMS Template API', function () {
     });
 
     it('should update an sms template by valid smsTemplateId', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`).send({
             body: 'New SMS Body'
         }).set('Authorization', authorization).end(function (err, res) {
@@ -105,10 +110,9 @@ describe('SMS Template API', function () {
     });
 
     it('should deleted an sms template', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });

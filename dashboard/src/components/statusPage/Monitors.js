@@ -11,6 +11,8 @@ import MonitorInputs from '../schedule/MonitorInputs';
 import ShouldRender from '../basic/ShouldRender';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class Monitors extends Component {
 
@@ -18,6 +20,7 @@ export class Monitors extends Component {
         const { status } = this.props.statusPage;
         const { projectId } = status;
         const monitorIds = [];
+        /* eslint-disable no-unused-vars */
         for (const id in values) {
             if (Object.prototype.hasOwnProperty.call(values, id)) {
                 values[id] && monitorIds.push(id);
@@ -28,8 +31,8 @@ export class Monitors extends Component {
             .then(() => {
                 this.props.fetchProjectStatusPage(this.props.currentProject._id, true, 0, 10)
             })
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('StatusPage Monitors Updated', values);
+        if (!IS_DEV) {
+            logEvent('StatusPage Monitors Updated', values);
         }
     }
 
@@ -62,17 +65,18 @@ export class Monitors extends Component {
                                                     <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                         <div className="Box-root" style={{ height: '5px' }}></div>
                                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        {
-                                                            this.props.currentProject._id === status.projectId._id || this.props.currentProject._id === status.projectId ?
+                                                        { status.projectId &&
+                                                            (this.props.currentProject._id === status.projectId._id || this.props.currentProject._id === status.projectId )?
                                                             <MonitorInputs monitors={this.props.monitors} subProject={this.props.currentProject} /> : false
                                                         }
-                                                        {
+                                                        { status.projectId &&
                                                             subProjects.map((subProject, i)=>{
                                                                 if((subProject._id === status.projectId._id) || (subProject._id === status.projectId)){
                                                                     return (<MonitorInputs monitors={this.props.monitors} subProject={subProject} key={i} />)
                                                                 }
-                                                            }) 
-                                                        } 
+                                                                return false;
+                                                            })
+                                                        }
                                                         </div>
                                                     </div>
                                                 </div>
@@ -138,7 +142,7 @@ Monitors.propTypes = {
     subProjects: PropTypes.array.isRequired,
 }
 
-let MonitorsForm = reduxForm({
+const MonitorsForm = reduxForm({
     form: 'StatuspageMonitors', // a unique identifier for this form
     enableReinitialize: true
 })(Monitors);
@@ -154,7 +158,7 @@ const mapDispatchToProps = dispatch => bindActionCreators(
 )
 
 const mapStateToProps = state => {
-    let initialValues = {};
+    const initialValues = {};
     const { currentProject } = state.project;
     
     const monitors = state.monitor.monitorsList.monitors.map(monitor => monitor.monitors).flat();
@@ -165,13 +169,8 @@ const mapStateToProps = state => {
             initialValues[_id] = status.monitorIds.some(id => _id === id._id || _id === id);
         });
     }
-    let subProjects = state.subProject.subProjects.subProjects;
+    const subProjects = state.subProject.subProjects.subProjects;
     return { initialValues, monitors, statusPage, currentProject, subProjects };
 }
-
-
-Monitors.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorsForm);

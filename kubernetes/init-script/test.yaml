@@ -1,0 +1,27 @@
+#########
+#Since Kubernetes jobs are immitable (you cannot update it with a new image). 
+# To update these jobs, CI deletes the old jobs and recreates them using this file. 
+#########
+
+#########
+#UPDATE: Any update to this file should also be accompanied with ../test.yaml
+#########
+
+########-INIT-SCRIPT-##########
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-script
+spec:
+  template:
+    spec:
+      containers:
+      - name: init-script
+        image: localhost:32000/init-script:master
+        imagePullPolicy: Always
+        env:
+          - name: MONGO_URL
+            value: "mongodb://admin:372b60f4-704c-4205-8e5c-45cdbf44b1fc@mongo-0.mongo.default.svc.cluster.local:27017,mongo-1.mongo.default.svc.cluster.local:27017,mongo-2.mongo.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0"
+      restartPolicy: Never
+---
+###########################

@@ -30,6 +30,10 @@
         "valid-typeof": "error",
         "no-func-assign": "error",
         "no-extra-semi": "error",
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
         "no-unused-vars": [
             "error",
             {
@@ -66,11 +70,16 @@
         "react/jsx-uses-vars": "error",
         "react/prop-types": "error",
         "react/react-in-jsx-scope": "error",
-        "react/no-string-refs": "warn",
+        "react/no-string-refs": "error",
         "jsx-a11y/href-no-hash": [0],
         "react/no-unescaped-entities": "error",
         "react/display-name": ["error", {
             "ignoreTranspilerName": true
-        }]
+        }],
+        "prefer-const": ["error", {
+            "destructuring": "any",
+            "ignoreReadBeforeAssign": false
+        }],
+        "no-var": "error"
     }
 }

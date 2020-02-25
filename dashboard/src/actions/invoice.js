@@ -30,21 +30,46 @@ export function getInvoiceReset() {
     }
 }
 
+export function incrementNextCount() {
+  return {
+    type: types.INCREMENT_NEXT_COUNT
+  }
+}
+
+export function decrementNextCount() {
+  return {
+    type: types.DECREMENT_NEXT_COUNT
+  }
+}
+
+
 // Get invoice from the backend
-export function getInvoice(projectId, startingAfter) {
+export function getInvoice(projectId, startingAfter, endingBefore) {
 
     return function (dispatch) {
-        var promise = null;
-        if (startingAfter !== undefined) {
+        let promise = null;
+        const reqFornext = Boolean(startingAfter) && !endingBefore;
+        const reqForPrev = Boolean(endingBefore) && Boolean(startingAfter)
+
+        if (reqFornext) {
             promise = postApi(`invoice/${projectId}?startingAfter=${startingAfter}`, null)
+        } else if (reqForPrev) {
+            promise = postApi(`invoice/${projectId}?endingBefore=${endingBefore}`, null)
         } else {
             promise = postApi(`invoice/${projectId}`, null)
         }
 
         dispatch(getInvoiceRequest(promise));
-
+        
         promise.then(function (invoices) {
             dispatch(getInvoiceSuccess(invoices.data))
+            if (reqFornext) {
+              dispatch(incrementNextCount())
+            }
+            if (reqForPrev) {
+                dispatch(decrementNextCount())
+            }
+  
         }, function (error) {
             if (error && error.response && error.response.data)
                 error = error.response.data;

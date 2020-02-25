@@ -30,11 +30,11 @@ export function createStatusPageError(error) {
 export function createStatusPage(projectId, data) {
 	return function (dispatch) {
 
-		var promise = postApi(`statusPage/${projectId}`, data);
+		const promise = postApi(`statusPage/${projectId}`, data);
 		dispatch(createStatusPageRequest());
 		promise.then(function (response) {
 
-			var statusPage = response.data;
+			const statusPage = response.data;
 			dispatch(createStatusPageSuccess(statusPage));
 		}, function (error) {
 
@@ -83,11 +83,11 @@ export function updateStatusPageSettingError(error) {
 export function updateStatusPageSetting(projectId, data) {
 	return function (dispatch) {
 
-		var promise = putApi(`statusPage/${projectId}`, data);
+		const promise = putApi(`statusPage/${projectId}`, data);
 		dispatch(updateStatusPageSettingRequest());
 		promise.then(function (response) {
 
-			var statusPage = response.data;
+			const statusPage = response.data;
 			dispatch(updateStatusPageSettingSuccess(statusPage));
 			dispatch(fetchProjectStatusPage(projectId, true));
 		}, function (error) {
@@ -137,11 +137,11 @@ export function updateStatusPageMonitorsError(error) {
 export function updateStatusPageMonitors(projectId, values) {
 	return function (dispatch) {
 
-		var promise = putApi(`statusPage/${projectId}`, values);
+		const promise = putApi(`statusPage/${projectId}`, values);
 		dispatch(updateStatusPageMonitorsRequest());
 
 		promise.then(function (response) {
-			var statusPage = response.data;
+			const statusPage = response.data;
 			dispatch(updateStatusPageMonitorsSuccess(statusPage));
 		}, function (error) {
 			if (error && error.response && error.response.data)
@@ -162,7 +162,7 @@ export function updateStatusPageMonitors(projectId, values) {
 	};
 }
 
-//Update private status page
+//Update private status page Main box
 
 export function updatePrivateStatusPageRequest() {
 	return {
@@ -189,11 +189,11 @@ export function updatePrivateStatusPageError(error) {
 export function updatePrivateStatusPage(projectId, values) {
 	return function (dispatch) {
 
-		var promise = putApi(`statusPage/${projectId}`, values);
+		const promise = putApi(`statusPage/${projectId}`, values);
 		dispatch(updatePrivateStatusPageRequest());
 
 		promise.then(function (response) {
-			var statusPage = response.data;
+			const statusPage = response.data;
 			dispatch(updatePrivateStatusPageSuccess(statusPage));
 		}, function (error) {
 			if (error && error.response && error.response.data)
@@ -213,7 +213,56 @@ export function updatePrivateStatusPage(projectId, values) {
 
 	};
 }
+// Update status page advanace subscriber options. 
+export function updateSubscriberOptionRequest() {
+	return {
+		type: types.UPDATE_SUBSCRIBER_OPTION_REQUEST,
+	};
+}
 
+export function updateSubscriberOptionSuccess(statusPage) {
+
+	return {
+		type: types.UPDATE_SUBSCRIBER_OPTION_SUCCESS,
+		payload: statusPage
+	};
+}
+
+export function updateSubscriberOptionError(error) {
+	return {
+		type: types.UPDATE_SUBSCRIBER_OPTION_FAILURE,
+		payload: error
+	};
+}
+
+// Calls the API to update private statuspages.
+export function updateSubscriberOption(projectId, values) {
+	return function (dispatch) {
+
+		const promise = putApi(`statusPage/${projectId}`, values);
+		dispatch(updateSubscriberOptionRequest());
+
+		promise.then(function (response) {
+			const statusPage = response.data;
+			dispatch(updateSubscriberOptionSuccess(statusPage));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else{
+				error = 'Network Error';
+			}
+			dispatch(updateSubscriberOptionError(errors(error)));
+		});
+		return promise;
+
+	};
+}
 // Update status page branding
 
 export function updateStatusPageBrandingRequest() {
@@ -238,29 +287,60 @@ export function updateStatusPageBrandingError(error) {
 	};
 }
 
+// Update status page name
+export function updateStatusPageNameRequest() {
+	return {
+		type: types.UPDATE_STATUSPAGE_NAME_REQUEST,
+	};
+}
+
+export function updateStatusPageNameSuccess(statusPage) {
+	return {
+		type: types.UPDATE_STATUSPAGE_NAME_SUCCESS,
+		payload: statusPage
+	};
+}
+
+export function updateStatusPageNameError(error) {
+	return {
+		type: types.UPDATE_STATUSPAGE_NAME_FAILURE,
+		payload: error
+	};
+}
+
 // Calls the API to update branding.
 export function updateStatusPageBranding(projectId, values) {
 	return function (dispatch) {
 
-		let data = new FormData();
+		const data = new FormData();
 		if (values.favicon && values.favicon[0]) {
 			data.append('favicon', values.favicon[0], values.favicon[0].name);
+		} else if (values.favicon === '') {
+			data.append('favicon', values.favicon);
 		}
 		if (values.logo && values.logo[0]) {
 			data.append('logo', values.logo[0], values.logo[0].name);
+		} else if (values.logo === '') {
+			data.append('logo', values.logo);
 		}
-		data.append('title', values.title);
-		data.append('description', values.description);
-		data.append('copyright', values.copyright);
+		if (values.banner && values.banner[0]) {
+			data.append('banner', values.banner[0], values.banner[0].name);
+		} else if (values.banner === '') {
+			data.append('banner', values.banner);
+		}
+		if (values.title) data.append('title', values.title);
+		if (values.description) data.append('description', values.description);
+		if (values.copyright) data.append('copyright', values.copyright);
+		if (values.colors) data.append('colors', JSON.stringify(values.colors));
 
 		if (values._id) data.append('_id', values._id);
 
-		var promise = putApi(`statusPage/${projectId}`, data);
+		const promise = putApi(`statusPage/${projectId}`, data);
 		dispatch(updateStatusPageBrandingRequest());
 
 		promise.then(function (response) {
 
-			var statusPage = response.data;
+			const statusPage = response.data;
 			dispatch(updateStatusPageBrandingSuccess(statusPage));
 		}, function (error) {
 
@@ -276,6 +356,34 @@ export function updateStatusPageBranding(projectId, values) {
 				error = 'Network Error';
 			}
 			dispatch(updateStatusPageBrandingError(errors(error)));
+		});
+		return promise;
+	};
+}
+
+// Calls the API to update status page name.
+export function updateStatusPageName(projectId, values) {
+	return function (dispatch) {
+
+		const promise = putApi(`statusPage/${projectId}`, values);
+		dispatch(updateStatusPageNameRequest());
+
+		promise.then(function (response) {
+			const statusPage = response.data;
+			dispatch(updateStatusPageNameSuccess(statusPage));
+		}, function (error) {
+			if (error && error.response && error.response.data)
+				error = error.response.data;
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else{
+				error = 'Network Error';
+			}
+			dispatch(updateStatusPageNameError(errors(error)));
 		});
 		return promise;
 	};
@@ -309,11 +417,11 @@ export function updateStatusPageLinksError(error) {
 export function updateStatusPageLinks(projectId, values) {
 	return function (dispatch) {
 
-		var promise = putApi(`statusPage/${projectId}`, values);
+		const promise = putApi(`statusPage/${projectId}`, values);
 		dispatch(updateStatusPageLinksRequest());
 
 		promise.then(function (response) {
-			var statusPage = response.data;
+			const statusPage = response.data;
 			dispatch(updateStatusPageLinksSuccess(statusPage));
 		}, function (error) {
 			if (error && error.response && error.response.data)
@@ -368,12 +476,11 @@ export function fetchProjectStatusPageError(error) {
 // Gets list of statuspages in a project.
 export function fetchProjectStatusPage(projectId, refresh, skip, limit) {
 	return function (dispatch) {
-		var promise;
-		promise = getApi(`statusPage/${projectId}/statuspage?skip=${skip}&limit=${limit}`);
+		const promise = getApi(`statusPage/${projectId}/statuspage?skip=${skip}&limit=${limit}`);
 		if (!refresh) dispatch(fetchProjectStatusPageRequest());
 
 		promise.then(function (response) {
-			var data = response.data;
+			const data = response.data;
 			data.projectId = projectId;
 			dispatch(fetchProjectStatusPageSuccess(data));
 		}, function (error) {
@@ -429,12 +536,12 @@ export function fetchSubProjectStatusPagesError(error) {
 // Gets status pages by subProjectId.
 export function fetchSubProjectStatusPages(projectId, refresh) {
 	return function (dispatch) {
-		var promise;
-		promise = getApi(`statusPage/${projectId}/statuspages`);
+		
+		const promise = getApi(`statusPage/${projectId}/statuspages`);
 		if (!refresh) dispatch(fetchSubProjectStatusPagesRequest());
 
 		promise.then(function (response) {
-			var data = response.data;
+			const data = response.data;
 			dispatch(fetchSubProjectStatusPagesSuccess(data));
 		}, function (error) {
 			if (error && error.response && error.response.data)
@@ -487,11 +594,10 @@ export function deleteStatusPageError(error) {
 // Calls the API to get status page.
 export function deleteStatusPage(projectId, statusPageId) {
 	return function (dispatch) {
-		var promise;
-		promise = deleteApi(`statusPage/${projectId}/${statusPageId}`,null);
+		const promise = deleteApi(`statusPage/${projectId}/${statusPageId}`,null);
 		dispatch(deleteStatusPageRequest());
 		promise.then(function (response) {
-			var data = response.data;
+			const data = response.data;
 			dispatch(deleteStatusPageSuccess(data));
 		}, function (error) {
 			if (error && error.response && error.response.data)
@@ -525,6 +631,27 @@ export function createLogoCache(imageUrl) {
 	return {
 		type: types.LOGO_CACHE_INSERT,
 		payload: imageUrl
+	};
+}
+
+// Banner
+export function createBannerCache(imageUrl) {
+	return {
+		type: types.BANNER_CACHE_INSERT,
+		payload: imageUrl
+	};
+}
+
+export function resetBannerCache() {
+	return {
+		type: types.BANNER_CACHE_RESET
+	};
+}
+
+export function setStatusPageColors(color) {
+	return {
+		type: types.SET_STATUS_PAGE_COLORS,
+		payload: color
 	};
 }
 

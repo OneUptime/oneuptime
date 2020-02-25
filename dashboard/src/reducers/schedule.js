@@ -115,7 +115,7 @@ const initialState = {
         requesting: false,
         error: null
     },
-    escalationData:[],
+    escalations:[],
     pages: {
 		counter: 1
 	}
@@ -142,26 +142,20 @@ export default function schedule(state = initialState, action) {
         case SCHEDULE_FETCH_REQUEST:
             return Object.assign({}, state, {
                 schedules: {
+                    ...state.schedules,
                     requesting: true,
                     success: false,
                     error: null,
-                    data: state.schedules.data,
-                    count: state.schedules.count,
-                    limit: state.schedules.limit,
-                    skip: state.schedules.skip
                 }
             });
 
         case SCHEDULE_FETCH_FAILED:
             return Object.assign({}, state, {
                 schedules: {
+                    ...state.schedules,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    data: [],
-                    count: null,
-                    limit: null,
-                    skip: null
                 },
             });
 
@@ -196,7 +190,6 @@ export default function schedule(state = initialState, action) {
                     error: null,
                     success: false,
                 },
-                subProjectSchedules: []
             });
 
         case SUBPROJECT_SCHEDULE_FETCH_FAILED:
@@ -206,7 +199,6 @@ export default function schedule(state = initialState, action) {
                     error: action.payload,
                     success: false,
                 },
-                subProjectSchedules: []
         });
 
         case SUBPROJECT_SCHEDULE_FETCH_RESET:
@@ -223,14 +215,14 @@ export default function schedule(state = initialState, action) {
                     success: true,
                 },
                 subProjectSchedules: state.subProjectSchedules.map((schedule)=>{
-                    return schedule._id === action.payload.projectId ? 
+                    return schedule._id === action.payload.projectId ?
                     {
-                        _id: action.payload.projectId, 
-                        schedules: [...action.payload.data], 
-                        count: action.payload.count, 
-                        skip: action.payload.skip, 
+                        _id: action.payload.projectId,
+                        schedules: [...action.payload.data],
+                        count: action.payload.count,
+                        skip: action.payload.skip,
                         limit: action.payload.limit
-                    } 
+                    }
                     : schedule
                 })
             });
@@ -267,14 +259,14 @@ export default function schedule(state = initialState, action) {
                     error: null
                 },
                 subProjectSchedules: isExistingSchedule ? state.subProjectSchedules.length > 0 ? state.subProjectSchedules.map((schedule)=>{
-                    return schedule._id === action.payload.projectId ? 
+                    return schedule._id === action.payload.projectId ?
                     {
-                        _id: action.payload.projectId, 
-                        schedules: [action.payload, ...schedule.schedules.filter((status, index) => index < 9)], 
-                        count: schedule.count + 1, 
-                        skip: schedule.skip, 
+                        _id: action.payload.projectId,
+                        schedules: [action.payload, ...schedule.schedules.filter((status, index) => index < 9)],
+                        count: schedule.count + 1,
+                        skip: schedule.skip,
                         limit: schedule.limit
-                    } 
+                    }
                     : schedule
                 }) : [{_id: action.payload.projectId, schedules: [action.payload], count: 1, skip: 0, limit: 0 }]
                 : state.subProjectSchedules.concat([{_id: action.payload.projectId, schedules: [action.payload], count: 1, skip: 0, limit: 0 }])
@@ -315,14 +307,14 @@ export default function schedule(state = initialState, action) {
                     error: null
                 },
                 subProjectSchedules: state.subProjectSchedules.map((schedule)=>{
-                    return schedule._id === action.payload[0].projectId._id ? 
+                    return schedule._id === action.payload[0].projectId._id ?
                     {
-                        _id: action.payload[0].projectId._id, 
-                        schedules: schedule.schedules.map(schedule => schedule._id === action.payload[0]._id ? action.payload[0] : schedule), 
-                        count: schedule.count, 
-                        skip: schedule.skip, 
+                        _id: action.payload[0].projectId._id,
+                        schedules: schedule.schedules.map(schedule => schedule._id === action.payload[0]._id ? action.payload[0] : schedule),
+                        count: schedule.count,
+                        skip: schedule.skip,
                         limit: schedule.limit
-                    } 
+                    }
                     : schedule
                 })
             });
@@ -432,14 +424,14 @@ export default function schedule(state = initialState, action) {
                     data
                 },
                 subProjectSchedules: state.subProjectSchedules.map((schedule)=>{
-                    return schedule._id === action.payload[0].projectId._id ? 
+                    return schedule._id === action.payload[0].projectId._id ?
                     {
-                        _id: action.payload[0].projectId._id, 
-                        schedules: schedule.schedules.map(schedule => schedule._id === action.payload[0]._id ? action.payload[0] : schedule), 
-                        count: schedule.count, 
-                        skip: schedule.skip, 
+                        _id: action.payload[0].projectId._id,
+                        schedules: schedule.schedules.map(schedule => schedule._id === action.payload[0]._id ? action.payload[0] : schedule),
+                        count: schedule.count,
+                        skip: schedule.skip,
                         limit: schedule.limit
-                    } 
+                    }
                     : schedule
                 })
             });
@@ -518,13 +510,13 @@ export default function schedule(state = initialState, action) {
             });
 
         case ESCALATION_SUCCESS:
-            return Object.assign({}, state, {  
+            return Object.assign({}, state, {
                 escalation: {
                     requesting: false,
                     success: true,
                     error: null
                 },
-                escalationData:action.payload.data,
+                escalations:action.payload.data,
             });
 
         case ESCALATION_REQUEST:

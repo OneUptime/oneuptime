@@ -1,21 +1,55 @@
 import React from 'react';
+import PropTypes from 'prop-types'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ProjectList from '../components/project/ProjectList';
-import { fetchProjects } from '../actions/project';
+import { fetchProjects, searchProjects } from '../actions/project';
 import Dashboard from '../components/Dashboard';
 
 class Projects extends React.Component {
+
+    constructor(props){
+        super(props);
+
+        this.state = {
+            searchBox: null
+        }
+    }
+
     prevClicked = (skip, limit) => {
-        this.props.fetchProjects((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
+        const { searchBox } = this.state;
+        const { fetchProjects, searchProjects } = this.props;
+
+        if(searchBox && searchBox !== ''){
+            searchProjects(searchBox, (skip || 0) > (limit || 10) ? skip - limit : 0, 10);
+        }else{
+            fetchProjects((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
+        }
     }
 
     nextClicked = (skip, limit) => {
-        this.props.fetchProjects(skip + limit, 10);
+        const { searchBox } = this.state;
+        const { fetchProjects, searchProjects } = this.props;
+
+        if(searchBox && searchBox !== ''){
+            searchProjects(searchBox, skip + limit, 10);
+        }else{
+            fetchProjects(skip + limit, 10);
+        }
     }
+
     ready = () => {
         this.props.fetchProjects();
     }
+
+    onChange = (e) => {
+        const value = e.target.value;
+        const { searchProjects } = this.props;
+
+        this.setState({ searchBox: value });
+        searchProjects(value, 0, 10);
+    }
+
     render(){
         return (
             <Dashboard ready={this.ready}>
@@ -37,12 +71,21 @@ class Projects extends React.Component {
                                                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                                             <span style={{'textTransform':'capitalize'}}>Fyipe Projects</span>
                                                             </span>
-                                                            <span style={{'textTransform':'lowercase'}} className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                 <span>Here is a list of all fyipe projects</span>
                                                             </span>
                                                         </div>
                                                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                                             <div className="Box-root">
+                                                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                                    <div>
+                                                                        <input
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            placeholder="search project's name"
+                                                                            onChange={this.onChange}
+                                                                        />
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -52,11 +95,12 @@ class Projects extends React.Component {
                                     </div>
                                 </div>
                                 </div>
-                                    <ProjectList 
-                                        projects={this.props.projects || {}} 
-                                        prevClicked={this.prevClicked} 
-                                        nextClicked={this.nextClicked} 
+                                    <ProjectList
+                                        projects={this.props.projects || {}}
+                                        prevClicked={this.prevClicked}
+                                        nextClicked={this.nextClicked}
                                         userId={this.props.userId}
+                                        requesting={this.props.requesting}
                                     />
                                     </div>
                                 </div>
@@ -73,13 +117,26 @@ class Projects extends React.Component {
 Projects.displayName = 'Projects';
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ fetchProjects }, dispatch)
+    return bindActionCreators({ fetchProjects, searchProjects }, dispatch)
 }
 
 const mapStateToProps = state => {
+    const projects = state.project.projects;
+    const searchProjects = state.project.searchProjects;
+    const requesting = projects && searchProjects ? projects.requesting || searchProjects.requesting ? true : false : false;
+
     return {
-        projects: state.project.projects
+        projects,
+        requesting
     };
+}
+
+Projects.propTypes = {
+    fetchProjects: PropTypes.func.isRequired,
+    searchProjects: PropTypes.func.isRequired,
+    requesting: PropTypes.bool,
+    projects: PropTypes.object,
+    userId: PropTypes.string
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Projects);

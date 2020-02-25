@@ -12,7 +12,7 @@ export default function UpgradePlanFields(props) {
     const list = [];
     const plans = PricingPlan.getPlans();
 
-    let reducedPlans = plans.reduce((filtered, plan, index) => {
+    const reducedPlans = plans.reduce((filtered, plan, index) => {
         if (currentProject.stripePlanId === plan.planId) {
             for (let i = 0; i < plans.length; i++) {
                 if (i > index && plans[index].category !== plans[i].category) {
@@ -41,7 +41,7 @@ export default function UpgradePlanFields(props) {
                 <div className="bs-Fieldset-fields .Flex-justifyContent--center" style={{flex: 1, padding: 0}} key={i}>
                     {
                         reducedPlans.map((plan, index) => (
-                            <ShouldRender if={index === i * 2 || index - i * 2 === 1} key={index}>
+                            <ShouldRender if={index === i * 2 || index - ( i * 2 ) === 1} key={index}>
                                 <ShouldRender if={index === i * 2}>
                                     <span className="Margin-bottom--12 Text-fontWeight--medium">
                                         {plan.category} Plan

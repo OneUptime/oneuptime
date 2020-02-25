@@ -3,50 +3,69 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, Field } from 'redux-form';
-import { editSmsTemplates, resetSmsTemplates, changeShowingTemplate } from '../../actions/smsTemplates';
+import {
+    editSmsTemplates,
+    resetSmsTemplates,
+    changeShowingTemplate,
+} from '../../actions/smsTemplates';
 import SmsTemplatesFormBox from './SmsTemplatesFormBox';
 import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
+import { RenderSelect } from '../basic/RenderSelect';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 class SmsTemplatesBox extends React.Component {
-    submitForm = (values) => {
+    submitForm = values => {
         const { currentProject } = this.props;
-        let val = this.props.smsTemplates.smsTemplates.templates.map(tmp => {
+        const val = this.props.smsTemplates.smsTemplates.templates.map(tmp => {
             if (tmp.smsType === values.sms_type) {
                 tmp.body = values.body;
                 return tmp;
-            }
-            else {
+            } else {
                 return tmp;
             }
-        })
+        });
         this.props.editSmsTemplates(currentProject._id, val);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('SMS Templates Updated');
+        if (!IS_DEV) {
+            logEvent('SMS Templates Updated');
         }
-    }
+    };
 
-    resetTemplate = (templateId) => {
+    resetTemplate = templateId => {
         const { currentProject } = this.props;
         this.props.resetSmsTemplates(currentProject._id, templateId);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('SMS Templates Reset');
+        if (!IS_DEV) {
+            logEvent('SMS Templates Reset');
         }
-    }
+    };
 
-    templateChange = (e) => {
-        this.props.changeShowingTemplate(e.target.value);
-    }
+    templateChange = (e, value) => {
+        this.props.changeShowingTemplate(value);
+    };
     render() {
-        var templates = this.props.smsTemplates && this.props.smsTemplates.smsTemplates && this.props.smsTemplates.smsTemplates.templates ? this.props.smsTemplates.smsTemplates.templates : [];
+        const templates =
+            this.props.smsTemplates &&
+            this.props.smsTemplates.smsTemplates &&
+            this.props.smsTemplates.smsTemplates.templates
+                ? this.props.smsTemplates.smsTemplates.templates
+                : [];
         return (
-            <div className="db-World-contentPane Box-root">
+            <div className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
-
                     <div className="Box-root Margin-bottom--12">
                         <div className="Box-root Margin-bottom--12">
-                            <div className={this.props.smsTemplates && this.props.smsTemplates.showingTemplate && this.props.smsTemplates.showingTemplate.smsType ? '' : 'bs-ContentSection Card-root Card-shadow--medium'}>
-                                <div className="Box-root">
+                            <div
+                                className={
+                                    this.props.smsTemplates &&
+                                    this.props.smsTemplates.showingTemplate &&
+                                    this.props.smsTemplates.showingTemplate
+                                        .smsType
+                                        ? ''
+                                        : 'bs-ContentSection Card-root Card-shadow--medium'
+                                }
+                            >
+                                <div className="Box-root bs-ContentSection Card-root Card-shadow--medium">
                                     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
@@ -55,67 +74,118 @@ class SmsTemplatesBox extends React.Component {
                                                 </span>
                                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <span>
-                                                        Customize your sms templates
-                                                        </span>
+                                                        Customize your SMS
+                                                        templates.
+                                                    </span>
                                                 </span>
                                             </div>
                                             <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                <div className="Box-root">
-                                                </div>
+                                                <div className="Box-root"></div>
                                             </div>
                                         </div>
                                     </div>
-                                    {IsAdmin(this.props.currentProject) || IsOwner(this.props.currentProject) ?
+                                    {IsAdmin(this.props.currentProject) ||
+                                    IsOwner(this.props.currentProject) ? (
                                         <form>
-                                            <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2" style={{ boxShadow: 'none' }}>
+                                            <div
+                                                className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
+                                                style={{ boxShadow: 'none' }}
+                                            >
                                                 <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">Templates</label>
+                                                    <label className="bs-Fieldset-label">
+                                                        Templates
+                                                    </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={'select'}
-                                                            name='type_Templates'
-                                                            id='type'
+                                                        <Field
+                                                            className="db-select-nw"
+                                                            component={
+                                                                RenderSelect
+                                                            }
+                                                            name="type_Templates"
+                                                            id="type"
                                                             placeholder="Templates"
                                                             required="required"
-                                                            onChange={this.templateChange}
-                                                        >
-                                                            <option value="">Select a template.</option>
-                                                            {templates.map((temp, i) => <option value={temp.smsType} key={i}>{temp.smsType}</option>)}
-                                                        </Field>
+                                                            onChange={(e, v) =>
+                                                                this.templateChange(
+                                                                    e,
+                                                                    v
+                                                                )
+                                                            }
+                                                            style={{
+                                                                height: '28px',
+                                                            }}
+                                                            options={[
+                                                                {
+                                                                    value: '',
+                                                                    label:
+                                                                        'Select a template',
+                                                                },
+                                                                ...(templates &&
+                                                                templates.length >
+                                                                    0
+                                                                    ? templates.map(
+                                                                          template => ({
+                                                                              value:
+                                                                                  template.smsType,
+                                                                              label:
+                                                                                  template.smsType,
+                                                                          })
+                                                                      )
+                                                                    : []),
+                                                            ]}
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
-
-                                        </form> :
-                                        <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2" style={{ boxShadow: 'none' }}>
-                                            <div className="bs-Fieldset-row" style={{ textAlign: 'center' }}>
-                                                <label className="bs-Fieldset-label" style={{ flex: 'none' }}>SMS Template settings are available to only admins and owners.</label>
+                                        </form>
+                                    ) : (
+                                        <div
+                                            className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
+                                            style={{ boxShadow: 'none' }}
+                                        >
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ textAlign: 'center' }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label"
+                                                    style={{ flex: 'none' }}
+                                                >
+                                                    SMS Template settings are
+                                                    available to only admins and
+                                                    owners.
+                                                </label>
                                             </div>
                                         </div>
-                                    }
-                                    {this.props.smsTemplates.showingTemplate &&
-                                        this.props.smsTemplates.showingTemplate.smsType ?
+                                    )}
+                                </div>
+                                {this.props.smsTemplates.showingTemplate &&
+                                this.props.smsTemplates.showingTemplate
+                                    .smsType ? (
+                                    <div className="bs-ContentSection Card-root Card-shadow--medium Margin-vertical--12">
                                         <SmsTemplatesFormBox
                                             submitForm={this.submitForm}
                                             resetTemplate={this.resetTemplate}
-                                        /> : ''}
-                                    <br />
-                                </div>
+                                        />
+                                    </div>
+                                ) : (
+                                    ''
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 }
 
 SmsTemplatesBox.displayName = 'SmsTemplatesBox';
 
-let SmsTemplatesBoxForm = new reduxForm({
+const SmsTemplatesBoxForm = new reduxForm({
     form: 'SmsTemplates',
     enableReinitialize: true,
-    destroyOnUnmount: false
+    destroyOnUnmount: false,
 })(SmsTemplatesBox);
 
 SmsTemplatesBox.propTypes = {
@@ -124,22 +194,23 @@ SmsTemplatesBox.propTypes = {
     currentProject: PropTypes.object.isRequired,
     resetSmsTemplates: PropTypes.func.isRequired,
     changeShowingTemplate: PropTypes.func.isRequired,
-}
+};
 
-const mapDispatchToProps = dispatch => bindActionCreators(
-    { editSmsTemplates, resetSmsTemplates, changeShowingTemplate }
-    , dispatch);
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        { editSmsTemplates, resetSmsTemplates, changeShowingTemplate },
+        dispatch
+    );
 
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
     return {
         monitor: state.monitor,
         currentProject: state.project.currentProject,
         smsTemplates: state.smsTemplates,
     };
-}
-
-SmsTemplatesBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(SmsTemplatesBoxForm);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(SmsTemplatesBoxForm);

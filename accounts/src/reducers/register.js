@@ -12,12 +12,22 @@ import {
 	IS_USER_INVITED_REQUEST,
 	IS_USER_INVITED_RESET,
 	IS_USER_INVITED_SUCCESS,
-	SKIP_CARD_STEP
+	SKIP_CARD_STEP,
+	ADD_CARD_REQUEST,
+	ADD_CARD_SUCCESS,
+	ADD_CARD_FAILED,
+	SAVE_PLAN_ID
 } from '../constants/register.js'
 
 
 // The register state reducer.
 const initialState = {
+	addCard: {
+        requesting: false,
+        error: null,
+        success: false,
+        card: {}
+    },
 	requesting: false,
 	step: 1,
 	user: {},
@@ -25,6 +35,7 @@ const initialState = {
 	company: {},
 	error: null,
 	success: false,
+	planId: null,
 	isUserInvited: {
 		requesting: false,
 		isUserInvited: null,
@@ -53,7 +64,6 @@ export default function register(state = initialState, action) {
 				requesting: false,
 				isAuthenticated: false,
 				error: action.payload,
-				step: 1,
                 isUserInvited : {
 					...state.isUserInvited,
 					requesting: false,
@@ -141,6 +151,40 @@ export default function register(state = initialState, action) {
 					error: null,
 					success: false
 				}
+			});
+		case ADD_CARD_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+                addCard: {
+                    ...state.addCard,
+                    requesting: true
+                }
+            });
+
+        case ADD_CARD_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+                addCard: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    card: action.payload
+                }
+            });
+
+        case ADD_CARD_FAILED:
+            return Object.assign({}, state, {
+                ...state,
+                addCard: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload
+                }
+			});
+		case SAVE_PLAN_ID:
+
+			return Object.assign({}, state, {
+				planId: action.payload
 			});
 
 		default:

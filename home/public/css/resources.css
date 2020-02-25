@@ -2,17 +2,11 @@ main{
     position:relative;
     display:block
 }
-.globalNav .colorize{
-    color:#6b7c93
-}
-.globalNav .colorize.active,.globalNav .colorize:hover{
-    color:#8898aa
-}
 .productNav .colorize{
-    color:#525f7f
+    color:#000000
 }
 .productNav .colorize.active,.productNav .colorize:hover{
-    color:#6b7c93
+    color:#797979
 }
 .common-Button{
     cursor:pointer
@@ -62,7 +56,7 @@ main{
 .fyipeBackground .s1{
     width:26%;
     bottom:60px;
-    background:linear-gradient(90deg,#edf6ff,#fff);
+    background:linear-gradient(90deg,#000000,#fff);
     left:27%
 }
 .fyipeBackground .s2{
@@ -80,7 +74,7 @@ main{
 .fyipeBackground .s4{
     width:27%;
     bottom:120px;
-    background:#f6f9fc;
+    background:#f9f9f9;
     left:13%
 }
 .fyipeBackground .s5{
@@ -140,11 +134,11 @@ main{
 }
 .guide-header h1{
     margin-top:20px;
-    color:#32325d
+    color:#000000
 }
 .guide-header p{
     margin-top:10px;
-    color:#8898aa
+    color:#757575
 }
 .common-ProductLockupBack{
     color:#e37c4c
@@ -156,10 +150,10 @@ main{
     box-shadow:none
 }
 .common-ProductLockupBack:hover{
-    color:#32325d
+    color:#000000
 }
 .common-ProductLockupBack:hover:before{
-    color:#8898aa
+    color:#757575
 }
 .guide-SubTitle{
     margin-left:auto;
@@ -168,13 +162,13 @@ main{
     max-width:800px
 }
 p.note{
-    color:#8898aa
+    color:#757575
 }
 article.guide-content{
     margin-top:50px;
     font-size:17px;
     line-height:28px;
-    color:#525f7f;
+    color:#000000;
     & h1 a,h2 a,h3 a,h4 a{
         text-decoration:none!important
     }
@@ -275,7 +269,7 @@ article.guide-content p{
     font-weight:400;
     font-size:17px;
     line-height:28px;
-    color:#525f7f;
+    color:#000000;
     margin-bottom:10px
 }
 article.guide-content h1{
@@ -284,11 +278,11 @@ article.guide-content h1{
     font-size:28px;
     line-height:34px;
     position:relative;
-    color:#32325d;
+    color:#000000;
     margin-top:160px
 }
 article.guide-content h1 a{
-    color:#32325d
+    color:#000000
 }
 article.guide-content h1:after{
     content:"";
@@ -300,7 +294,7 @@ article.guide-content h1:after{
     margin-left:auto;
     margin-right:auto;
     left:48%;
-    background:linear-gradient(#32325d 50%,#fff 0);
+    background:linear-gradient(black 50%,#fff 0);
     background-size:100% 4px
 }
 article.guide-content h1:first-of-type{
@@ -314,13 +308,13 @@ article.guide-content h2{
     font-weight:500;
     font-size:22px;
     line-height:30px;
-    color:#32325d;
+    color:#000000;
     margin-top:30px;
     margin-bottom:10px;
     position:relative
 }
 article.guide-content h2 a{
-    color:#32325d
+    color:#000000
 }
 article.guide-content .guide-MainContent .common-IntroText{
     font-weight:400;
@@ -334,7 +328,7 @@ article.guide-content h3{
     line-height:28px;
     margin-top:20px;
     margin-bottom:10px;
-    color:#32325d
+    color:#000000
 }
 article.guide-content h4{
     display:block;
@@ -349,11 +343,11 @@ article.guide-content h4{
 }
 article.guide-content p a{
     position:relative;
-    color:#32325d;
+    color:#000000;
     text-decoration:underline
 }
 article.guide-content a:hover{
-    color:#525f7f
+    color:#000000
 }
 article.guide-content a.common-Button{
     color:#fff;
@@ -373,7 +367,7 @@ article.guide-content .collect-email-guide h3{
 }
 article.guide-content strong{
     font-weight:500;
-    color:#32325d
+    color:#000000
 }
 article.guide-content ul{
     position:relative;
@@ -391,15 +385,15 @@ article.guide-content ul li:before{
     top:11px;
     left:-20px;
     border-radius:50%;
-    background-color:#cfd7df
+    background-color:#dbdbdb
 }
 article.guide-content ul li a{
     position:relative;
-    color:#32325d;
+    color:#000000;
     text-decoration:underline
 }
 article.guide-content ul li a:hover{
-    color:#525f7f
+    color:#000000
 }
 article.guide-content blockquote{
     position:relative;
@@ -415,10 +409,10 @@ article.guide-content blockquote{
     }
 }
 article.guide-content blockquote p{
-    color:#32325d;
+    color:#000000;
     margin-bottom:20px;
     font-weight:500;
-    background:#f6f9fc;
+    background:#f9f9f9;
     display:inline;
     margin-bottom:30px
 }
@@ -432,7 +426,7 @@ article.guide-content hr{
     padding-top:0;
     margin-top:30px;
     margin-bottom:30px;
-    border:1px solid #e6ebf1
+    border:1px solid #fdfdfd
 }
 article.guide-content aside{
     display:-ms-flexbox;
@@ -442,7 +436,7 @@ article.guide-content aside{
     -ms-flex-direction:column;
     flex-direction:column;
     padding:25px 30px 25px 40px;
-    background-color:#f6f9fc;
+    background-color:#f9f9f9;
     border-radius:6px;
     margin:20px -25px
 }
@@ -462,7 +456,7 @@ article.guide-content aside.footer:before{
     margin-right:auto;
     z-index:1;
     left:49%;
-    background:linear-gradient(180deg,#32325d,#32325d 50%,#fff 0,#fff);
+    background:linear-gradient(180deg,black,black 50%,#fff 0,#fff);
     background-size:100% 4px
 }
 article.guide-content aside.footer img{
@@ -536,7 +530,7 @@ ol li:before{
     width:20px;
     height:20px;
     background-color:rgba(82,95,127,.14);
-    color:#32325d;
+    color:#000000;
     text-align:center;
     font-size:12px;
     line-height:20px;
@@ -547,7 +541,7 @@ ol li:before{
     text-decoration:none
 }
 .guide-content h1 a:hover,h2 a:hover{
-    color:#32325d
+    color:#000000
 }
 .guide-content h1 a:before{
     font-size:27px;
@@ -657,13 +651,13 @@ ol li:before{
 .guide-sidebar .byline h4{
     font-weight:500;
     font-size:16px;
-    color:#32325d;
+    color:#000000;
     margin:10px 0 5px
 }
 .guide-sidebar .byline p{
     font-size:15px;
     line-height:24px;
-    color:#6b7c93;
+    color:#797979;
     max-width:400px;
     margin:0 auto
 }
@@ -678,14 +672,14 @@ ol li:before{
     font-family:Camphor,Open Sans,Segoe UI,sans-serif;
     font-size:15px;
     line-height:24px;
-    color:#32325d;
+    color:#000000;
     margin-bottom:0;
     position:relative;
     display:inline-block;
     margin-left:15px
 }
 .guide-sidebar .download-pdf a:hover{
-    color:#525f7f
+    color:#000000
 }
 .guide-sidebar .download-pdf a:hover:before{
     opacity:.7
@@ -713,14 +707,14 @@ ol li:before{
 .guide-sidebar .share a{
     font-size:15px;
     line-height:24px;
-    color:#32325d;
+    color:#000000;
     margin-bottom:0;
     position:relative;
     display:inline-block;
     margin-left:15px
 }
 .guide-sidebar .share a:hover{
-    color:#525f7f
+    color:#000000
 }
 .guide-sidebar .share a:hover:before{
     opacity:.7
@@ -753,10 +747,10 @@ ol li:before{
     font-size:16px;
     line-height:22px;
     font-weight:500;
-    color:#32325d
+    color:#000000
 }
 .guide-sidebar .toc>ul .current{
-    color:#14aad9
+    color:#000000
 }
 .guide-sidebar .toc>ul a{
     font-weight:500;
@@ -771,7 +765,7 @@ ol li:before{
     will-change:height
 }
 .guide-sidebar .toc .sub ul{
-    color:#6b7c93;
+    color:#797979;
     margin-top:5px
 }
 .guide-sidebar .toc .sub ul li a{
@@ -786,15 +780,15 @@ ol li:before{
     position:relative;
     width:100%;
     font-size:17px;
-    color:#6b7c93;
+    color:#797979;
     padding-top:25px;
-    border-top:1px solid #e6ebf1;
+    border-top:1px solid #fdfdfd;
     margin-top:20px
 }
 .guide-sidebar .toc>.cta h3{
     font-size:16px;
     font-weight:500;
-    color:#32325d;
+    color:#000000;
     margin-bottom:5px;
     text-transform:uppercase;
     letter-spacing:.025em;
@@ -802,7 +796,7 @@ ol li:before{
 }
 .guide-sidebar .toc>.cta p{
     line-height:25px;
-    color:#8898aa;
+    color:#757575;
     margin-bottom:5px
 }
 .guide-sidebar .toc>.cta .common-Button{
@@ -831,7 +825,6 @@ html.guides .covers{
     color:#fff;
     padding-top:38px;
     padding-bottom:60px;
-    border-bottom:2px solid #e6ebf1;
     transform:translateZ(0)
 }
 html.guides .grid{
@@ -1073,7 +1066,7 @@ html.guides .atlas-header{
     }
 }
 html.guides .atlas-header .icon-title{
-    color:#32325d
+    color:#000000
 }
 @media (min-width:880px){
     html.guides .atlas-header .icon-title{

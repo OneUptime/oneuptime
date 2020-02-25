@@ -1,0 +1,2144 @@
+<article id="zapier" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Zapier</h1>
+    </b>
+    <p>
+      <p>Zapier API will allow you to use Zapier templates to connect your Fyipe project.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container"></div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example"></section>
+</article>
+
+<article id="test-zapier" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Test Zapier<span class="requestType">GET</span></h3>
+    <p>
+      <p>Test Zapier by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/test</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/test?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "$__": {
+    "strictMode": true,
+    "selected": {},
+    "getters": {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      }
+    },
+    "_id": "5e2ecf45516aae26b133f354",
+    "wasPopulated": false,
+    "scope": {
+      "alertOptions": {
+        "billingUS": true,
+        "billingNonUSCountries": false,
+        "billingRiskCountries": false
+      },
+      "seats": "1",
+      "deleted": false,
+      "alertEnable": false,
+      "alertLimitReached": false,
+      "balance": 0,
+      "isBlocked": false,
+      "_id": "5e2ecf45516aae26b133f354",
+      "users": [
+        {
+          "_id": "5e2ecf45516aae26b133f355",
+          "userId": "5e2ecf3f516aae26b133f352",
+          "role": "Owner"
+        }
+      ],
+      "createdAt": "2020-01-27T11:53:41.352Z",
+      "adminNotes": null,
+      "name": "Bello",
+      "slug": "Unnamed-Project-41282",
+      "apiKey": "a98ab430-40fb-11ea-b3a8-83c18e01a99f",
+      "stripePlanId": "plan_EgTJMZULfh6THW",
+      "stripeSubscriptionId": "sub_GclhCoRrdskNuu",
+      "parentProjectId": null,
+      "__v": 0
+    },
+    "activePaths": {
+      "paths": {
+        "seats": "init",
+        "deleted": "init",
+        "alertEnable": "init",
+        "alertLimitReached": "init",
+        "balance": "init",
+        "alertOptions.billingUS": "init",
+        "alertOptions.billingNonUSCountries": "init",
+        "alertOptions.billingRiskCountries": "init",
+        "isBlocked": "init",
+        "_id": "init",
+        "users": "init",
+        "createdAt": "init",
+        "adminNotes": "init",
+        "name": "init",
+        "slug": "init",
+        "apiKey": "init",
+        "stripePlanId": "init",
+        "stripeSubscriptionId": "init",
+        "parentProjectId": "init",
+        "__v": "init"
+      },
+      "states": {
+        "ignore": {},
+        "default": {},
+        "init": {
+          "_id": true,
+          "alertOptions.billingUS": true,
+          "alertOptions.billingNonUSCountries": true,
+          "alertOptions.billingRiskCountries": true,
+          "seats": true,
+          "deleted": true,
+          "alertEnable": true,
+          "alertLimitReached": true,
+          "balance": true,
+          "isBlocked": true,
+          "users": true,
+          "createdAt": true,
+          "adminNotes": true,
+          "name": true,
+          "slug": true,
+          "apiKey": true,
+          "stripePlanId": true,
+          "stripeSubscriptionId": true,
+          "parentProjectId": true,
+          "__v": true
+        },
+        "modify": {},
+        "require": {}
+      },
+      "stateNames": [
+        "require",
+        "modify",
+        "init",
+        "default",
+        "ignore"
+      ]
+    },
+    "pathsToScopes": {},
+    "cachedRequired": {},
+    "$setCalled": {},
+    "emitter": {
+      "_events": {},
+      "_eventsCount": 0,
+      "_maxListeners": 0
+    },
+    "$options": {
+      "skipId": true,
+      "isNew": false,
+      "willInit": true
+    },
+    "nestedPath": "alertOptions"
+  },
+  "isNew": false,
+  "_doc": {
+    "alertOptions": {
+      "billingUS": true,
+      "billingNonUSCountries": false,
+      "billingRiskCountries": false
+    },
+    "seats": "1",
+    "deleted": false,
+    "alertEnable": false,
+    "alertLimitReached": false,
+    "balance": 0,
+    "isBlocked": false,
+    "_id": "5e2ecf45516aae26b133f354",
+    "users": [
+      {
+        "_id": "5e2ecf45516aae26b133f355",
+        "userId": "5e2ecf3f516aae26b133f352",
+        "role": "Owner"
+      }
+    ],
+    "createdAt": "2020-01-27T11:53:41.352Z",
+    "adminNotes": null,
+    "name": "Bello",
+    "slug": "Unnamed-Project-41282",
+    "apiKey": "a98ab430-40fb-11ea-b3a8-83c18e01a99f",
+    "stripePlanId": "plan_EgTJMZULfh6THW",
+    "stripeSubscriptionId": "sub_GclhCoRrdskNuu",
+    "parentProjectId": null,
+    "__v": 0
+  },
+  "$locals": {},
+  "$init": true,
+  "projectName": "Bello"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-monitors" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Monitors<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Monitors by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/monitors</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/monitors?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "id": "5e3f0bb2b0f9007445bab676",
+    "name": "Mello"
+  },
+  {
+    "id": "5e343f60598e9625817c0164",
+    "name": "Ubuntu Machine"
+  },
+  {
+    "id": "5e321f87542c6f61d1292a83",
+    "name": "Google Home"
+  },
+  {
+    "id": "5e3154a8e991437d71ed1f16",
+    "name": "Tello"
+  }
+]
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="create-incident" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Incident<span class="requestType">POST</span></h3>
+    <p>
+      <p>Create Incident by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/incident/createIncident</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/incident/createIncident?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "monitors": [
+    "5e3154a8e991437d71ed1f16"
+  ]
+}
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "projectName": "Bello",
+  "projectId": "5e2ecf45516aae26b133f354",
+  "incidents": [
+    {
+      "acknowledged": false,
+      "acknowledgedByZapier": false,
+      "resolved": false,
+      "resolvedByZapier": false,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": true,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "deleted": false,
+      "_id": "5e431275a23f88655ae3afa8",
+      "probes": [],
+      "createdAt": "2020-02-11T20:45:42.126Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": "5e3154a8e991437d71ed1f16",
+      "__v": 0
+    }
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-incidents" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Incidents<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Incidents by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/incidents</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/incidents?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "projectName": "Bello",
+    "projectId": "5e2ecf45516aae26b133f354",
+    "id": "5e42fe43a23f88655ae3af3d",
+    "incidentId": "5e42fe43a23f88655ae3af3d",
+    "acknowledged": false,
+    "resolved": false,
+    "internalNote": "",
+    "investigationNote": "",
+    "createdAt": "2020-02-11T19:19:31.492Z",
+    "createdById": "Nawaz Dhandala",
+    "monitorName": "Tello",
+    "monitorType": "manual"
+  }
+]
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-resolved-incidents" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Resolved Incidents<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Resolved Incidents by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/incident/resolved</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/incident/resolved?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "projectName": "Bello",
+    "projectId": "5e2ecf45516aae26b133f354",
+    "acknowledgedAt": "2020-01-29T12:36:21.375Z",
+    "acknowledgedBy": "Nawaz Dhandala",
+    "resolvedAt": "2020-01-29T12:36:21.375Z",
+    "resolvedBy": "Nawaz Dhandala",
+    "id": "5e317c3628a21b084739f676",
+    "incidentId": "5e317c3628a21b084739f676",
+    "acknowledged": true,
+    "resolved": true,
+    "internalNote": "",
+    "investigationNote": "",
+    "createdAt": "2020-01-29T12:36:06.704Z",
+    "createdById": "Nawaz Dhandala",
+    "monitorName": "Tello",
+    "monitorType": "manual"
+  },
+  {
+    "projectName": "Bello",
+    "projectId": "5e2ecf45516aae26b133f354",
+    "acknowledgedAt": "2020-01-29T12:36:21.375Z",
+    "acknowledgedBy": "Nawaz Dhandala",
+    "resolvedAt": "2020-01-29T12:36:21.375Z",
+    "resolvedBy": "Nawaz Dhandala",
+    "id": "5e317c3628a21b084739f676",
+    "incidentId": "5e317c3628a21b084739f676",
+    "acknowledged": true,
+    "resolved": true,
+    "internalNote": "",
+    "investigationNote": "",
+    "createdAt": "2020-01-29T12:36:06.704Z",
+    "createdById": "Nawaz Dhandala",
+    "monitorName": "Tello",
+    "monitorType": "manual"
+  },
+  {
+    "projectName": "Bello",
+    "projectId": "5e2ecf45516aae26b133f354",
+    "acknowledgedAt": "2020-01-29T12:36:21.375Z",
+    "acknowledgedBy": "Nawaz Dhandala",
+    "resolvedAt": "2020-01-29T12:36:21.375Z",
+    "resolvedBy": "Nawaz Dhandala",
+    "id": "5e317c3628a21b084739f676",
+    "incidentId": "5e317c3628a21b084739f676",
+    "acknowledged": true,
+    "resolved": true,
+    "internalNote": "",
+    "investigationNote": "",
+    "createdAt": "2020-01-29T12:36:06.704Z",
+    "createdById": "Nawaz Dhandala",
+    "monitorName": "Tello",
+    "monitorType": "manual"
+  },
+  {
+    "projectName": "Bello",
+    "projectId": "5e2ecf45516aae26b133f354",
+    "acknowledgedAt": "2020-01-29T12:36:21.375Z",
+    "acknowledgedBy": "Nawaz Dhandala",
+    "resolvedAt": "2020-01-29T12:36:21.375Z",
+    "resolvedBy": "Nawaz Dhandala",
+    "id": "5e317c3628a21b084739f676",
+    "incidentId": "5e317c3628a21b084739f676",
+    "acknowledged": true,
+    "resolved": true,
+    "internalNote": "",
+    "investigationNote": "",
+    "createdAt": "2020-01-29T12:36:06.704Z",
+    "createdById": "Nawaz Dhandala",
+    "monitorName": "Tello",
+    "monitorType": "manual"
+  },
+  {
+    "projectName": "Bello",
+    "projectId": "5e2ecf45516aae26b133f354",
+    "acknowledgedAt": "2020-01-29T12:36:21.375Z",
+    "acknowledgedBy": "Nawaz Dhandala",
+    "resolvedAt": "2020-01-29T12:36:21.375Z",
+    "resolvedBy": "Nawaz Dhandala",
+    "id": "5e317c3628a21b084739f676",
+    "incidentId": "5e317c3628a21b084739f676",
+    "acknowledged": true,
+    "resolved": true,
+    "internalNote": "",
+    "investigationNote": "",
+    "createdAt": "2020-01-29T12:36:06.704Z",
+    "createdById": "Nawaz Dhandala",
+    "monitorName": "Tello",
+    "monitorType": "manual"
+  },
+  {
+    "projectName": "Bello",
+    "projectId": "5e2ecf45516aae26b133f354",
+    "acknowledgedAt": "2020-01-29T12:36:21.375Z",
+    "acknowledgedBy": "Nawaz Dhandala",
+    "resolvedAt": "2020-01-29T12:36:21.375Z",
+    "resolvedBy": "Nawaz Dhandala",
+    "id": "5e317c3628a21b084739f676",
+    "incidentId": "5e317c3628a21b084739f676",
+    "acknowledged": true,
+    "resolved": true,
+    "internalNote": "",
+    "investigationNote": "",
+    "createdAt": "2020-01-29T12:36:06.704Z",
+    "createdById": "Nawaz Dhandala",
+    "monitorName": "Tello",
+    "monitorType": "manual"
+  },
+  {
+    "projectName": "Bello",
+    "projectId": "5e2ecf45516aae26b133f354",
+    "acknowledgedAt": "2020-01-29T12:36:21.375Z",
+    "acknowledgedBy": "Nawaz Dhandala",
+    "resolvedAt": "2020-01-29T12:36:21.375Z",
+    "resolvedBy": "Nawaz Dhandala",
+    "id": "5e317c3628a21b084739f676",
+    "incidentId": "5e317c3628a21b084739f676",
+    "acknowledged": true,
+    "resolved": true,
+    "internalNote": "",
+    "investigationNote": "",
+    "createdAt": "2020-01-29T12:36:06.704Z",
+    "createdById": "Nawaz Dhandala",
+    "monitorName": "Tello",
+    "monitorType": "manual"
+  },
+  ...
+]
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="resolve-last-incident" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Resolve Last Incident<span class="requestType">POST</span></h3>
+    <p>
+      <p>Resolve Last Incident by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/incident/resolveLastIncident</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/incident/resolveLastIncident?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "monitors": [
+    "5e3154a8e991437d71ed1f16"
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "projectName": "Bello",
+  "projectId": "5e2ecf45516aae26b133f354",
+  "incidents": [
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": null,
+      "resolved": true,
+      "resolvedByZapier": true,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": false,
+      "notClosedBy": [
+        "5e2ecf3f516aae26b133f352"
+      ],
+      "manuallyCreated": true,
+      "deleted": false,
+      "_id": "5e42fe43a23f88655ae3af3d",
+      "probes": [],
+      "createdAt": "2020-02-11T19:19:31.492Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e3154a8e991437d71ed1f16",
+        "name": "Tello"
+      },
+      "createdById": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      },
+      "incidentType": "degraded",
+      "__v": 0,
+      "acknowledgedAt": "2020-02-11T19:30:05.346Z",
+      "acknowledgedBy": {
+        "_id": "5e2ecf3f516aae26b133f352",
+        "name": "Nawaz Dhandala"
+      },
+      "resolvedAt": "2020-02-11T20:49:05.376Z",
+      "resolvedBy": null
+    }
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="resolve-all-incidents" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Resolve All Incidents<span class="requestType">POST</span></h3>
+    <p>
+      <p>Resolve All Incidents by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/incident/resolveAllIncidents</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/incident/resolveAllIncidents?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "monitors": [
+    "5e3154a8e991437d71ed1f16"
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "projectName": "Bello",
+  "projectId": "5e2ecf45516aae26b133f354",
+  "incidents": [
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": true,
+      "resolved": true,
+      "resolvedByZapier": true,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": true,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "deleted": false,
+      "_id": "5e431275a23f88655ae3afa8",
+      "probes": [],
+      "createdAt": "2020-02-11T20:45:42.126Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e3154a8e991437d71ed1f16",
+        "name": "Tello"
+      },
+      "__v": 0,
+      "acknowledgedAt": "2020-02-11T20:50:57.840Z",
+      "acknowledgedBy": null,
+      "resolvedAt": "2020-02-11T20:50:57.840Z",
+      "resolvedBy": null
+    }
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="resolve-incident" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Resolve Incident<span class="requestType">POST</span></h3>
+    <p>
+      <p>Resolve Incident by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/incident/resolveIncident</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/incident/resolveIncident?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "incidents": [
+    "5e431566a23f88655ae3afb6"
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "projectName": "Bello",
+  "projectId": "5e2ecf45516aae26b133f354",
+  "incidents": [
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": true,
+      "resolved": true,
+      "resolvedByZapier": true,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": true,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "deleted": false,
+      "_id": "5e431566a23f88655ae3afb6",
+      "probes": [],
+      "createdAt": "2020-02-11T20:58:14.519Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e3154a8e991437d71ed1f16",
+        "name": "Tello"
+      },
+      "__v": 0,
+      "acknowledgedAt": "2020-02-11T20:59:29.678Z",
+      "acknowledgedBy": null,
+      "resolvedAt": "2020-02-11T21:00:18.403Z",
+      "resolvedBy": null
+    }
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-acknowledged-incidents" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Acknowledged Incidents<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Acknowledged Incidents by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/incident/acknowledged</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/incident/acknowledged?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "projectName": "Bello",
+    "projectId": "5e2ecf45516aae26b133f354",
+    "acknowledgedAt": "2020-02-11T19:30:05.346Z",
+    "acknowledgedBy": "Nawaz Dhandala",
+    "id": "5e42fe43a23f88655ae3af3d",
+    "incidentId": "5e42fe43a23f88655ae3af3d",
+    "acknowledged": true,
+    "resolved": false,
+    "internalNote": "",
+    "investigationNote": "",
+    "createdAt": "2020-02-11T19:19:31.492Z",
+    "createdById": "Nawaz Dhandala",
+    "monitorName": "Tello",
+    "monitorType": "manual"
+  }
+]
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="acknowledge-last-incident" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Acknowledge Last Incident<span class="requestType">POST</span></h3>
+    <p>
+      <p>Acknowledge Last Incident by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/incident/acknowledgeLastIncident</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/incident/acknowledgeLastIncident?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "monitors": [
+    "5e3154a8e991437d71ed1f16"
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "projectName": "Bello",
+  "projectId": "5e2ecf45516aae26b133f354",
+  "incidents": [
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": true,
+      "resolved": false,
+      "resolvedByZapier": false,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": true,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "deleted": false,
+      "_id": "5e4314cea23f88655ae3afae",
+      "probes": [],
+      "createdAt": "2020-02-11T20:55:42.300Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e3154a8e991437d71ed1f16",
+        "name": "Tello"
+      },
+      "__v": 0,
+      "acknowledgedAt": "2020-02-11T20:55:55.505Z",
+      "acknowledgedBy": null
+    }
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="acknowledge-all-incidents" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Acknowledge All Incidents<span class="requestType">POST</span></h3>
+    <p>
+      <p>Acknowledge All Incidents by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/incident/acknowledgeAllIncidents</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/incident/acknowledgeAllIncidents?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "monitors": [
+    "5e3154a8e991437d71ed1f16"
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "projectName": "Bello",
+  "projectId": "5e2ecf45516aae26b133f354",
+  "incidents": [
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": true,
+      "resolved": false,
+      "resolvedByZapier": false,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": true,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "deleted": false,
+      "_id": "5e43151ca23f88655ae3afb2",
+      "probes": [],
+      "createdAt": "2020-02-11T20:57:00.858Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e3154a8e991437d71ed1f16",
+        "name": "Tello"
+      },
+      "__v": 0,
+      "acknowledgedAt": "2020-02-11T20:57:22.439Z",
+      "acknowledgedBy": null
+    }
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="acknowledge-incident" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Acknowledge Incident<span class="requestType">POST</span></h3>
+    <p>
+      <p>Acknowledge Incident by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/incident/acknowledgeIncident</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/incident/acknowledgeIncident?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "incidents": [
+    "5e431566a23f88655ae3afb6"
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "projectName": "Bello",
+  "projectId": "5e2ecf45516aae26b133f354",
+  "incidents": [
+    {
+      "acknowledged": true,
+      "acknowledgedByZapier": true,
+      "resolved": false,
+      "resolvedByZapier": false,
+      "internalNote": "",
+      "investigationNote": "",
+      "createdByZapier": true,
+      "notClosedBy": [],
+      "manuallyCreated": false,
+      "deleted": false,
+      "_id": "5e431566a23f88655ae3afb6",
+      "probes": [],
+      "createdAt": "2020-02-11T20:58:14.519Z",
+      "projectId": "5e321f54542c6f61d1292a5a",
+      "monitorId": {
+        "_id": "5e3154a8e991437d71ed1f16",
+        "name": "Tello"
+      },
+      "__v": 0,
+      "acknowledgedAt": "2020-02-11T20:59:29.678Z",
+      "acknowledgedBy": null
+    }
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="subscribe-webhook" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Subscribe WebHook<span class="requestType">POST</span></h3>
+    <p>
+      <p>Subscribe WebHook by Project ID and API Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/subscribe</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/subscribe?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "url": "https://google.com",
+  "type": "email",
+  "input": {
+    "monitors": [
+      "5e3154a8e991437d71ed1f16"
+    ]
+  }
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "id": "5e431988a23f88655ae3b05a"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="unsubscribe-webhook" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Unsubscribe WebHook<span class="requestType">DELETE</span></h3>
+    <p>
+      <p>Unsubscribe WebHook by Project ID, API Key and WebHook ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/zapier/unsubscribe/:id</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>apiKey</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The api key of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>id</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the webhook integration.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/zapier/unsubscribe/5e431988a23f88655ae3b05a?projectId=5e2ecf45516aae26b133f354&apiKey=a98ab430-40fb-11ea-b3a8-83c18e01a99f
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p></p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>

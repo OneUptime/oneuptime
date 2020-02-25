@@ -8,429 +8,432 @@ import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderField } from '../basic/RenderField';
+import { RenderSelect } from '../basic/RenderSelect';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
 
 function validate(values) {
 
-	const errors = {};
+    const errors = {};
 
-	if (!Validate.text(values.alertVia)) {
-		errors.alertVia = 'Please select a subscribe method.'
-	}else{
-		if(values.alertVia === 'sms'){
-			if(!Validate.text(values.countryCode)){
-				errors.countryCode = 'Please select a country code.'
-			}
-			if(!Validate.text(values.contactPhone)){
-				errors.contactPhone = 'Please enter a contact number.'
-			}
-		}
-		if(values.alertVia === 'email'){
-			if(!Validate.text(values.email)){
-				errors.email = 'Please enter an email address.'
-			}else{
-				if(!Validate.email(values.email)){
-					errors.email = 'Please enter a valid email address.'
-				}
-			}
-		}
-		if(values.alertVia === 'webhook'){
-			if(!Validate.text(values.endpoint)){
-				errors.endpoint = 'Please enter an endpoint url.'
-			}else{
-				if(!Validate.url(values.endpoint)){
-					errors.endpoint = 'Please enter a valid url.'
-				}
-			}
-			if(!Validate.text(values.email)){
-				errors.email = 'Please enter an email address.'
-			}else{
-				if(!Validate.email(values.email)){
-					errors.email = 'Please enter a valid email address.'
-				}
-			}
-		}
-	}
+    if (!Validate.text(values.alertVia)) {
+        errors.alertVia = 'Please select a subscribe method.'
+    } else {
+        if (values.alertVia === 'sms') {
+            if (!Validate.text(values.countryCode)) {
+                errors.countryCode = 'Please select a country code.'
+            }
+            if (!Validate.text(values.contactPhone)) {
+                errors.contactPhone = 'Please enter a contact number.'
+            }
+        }
+        if (values.alertVia === 'email') {
+            if (!Validate.text(values.email)) {
+                errors.email = 'Please enter an email address.'
+            } else {
+                if (!Validate.email(values.email)) {
+                    errors.email = 'Please enter a valid email address.'
+                }
+            }
+        }
+        if (values.alertVia === 'webhook') {
+            if (!Validate.text(values.endpoint)) {
+                errors.endpoint = 'Please enter an endpoint url.'
+            } else {
+                if (!Validate.url(values.endpoint)) {
+                    errors.endpoint = 'Please enter a valid url.'
+                }
+            }
+            if (!Validate.text(values.email)) {
+                errors.email = 'Please enter an email address.'
+            } else {
+                if (!Validate.email(values.email)) {
+                    errors.email = 'Please enter a valid email address.'
+                }
+            }
+        }
+    }
 
-	return errors;
+    return errors;
 }
 
 const selector = formValueSelector('CreateSubscriber');
 
 class CreateSubscriber extends Component {
-	submitForm = (values) => {
-		values.contactEmail = values.email;
-		values.contactWebhook = values.endpoint;
-		const { createSubscriber, closeThisDialog, data, fetchMonitorsSubscribers } = this.props;
-		const { monitorId, subProjectId } = data;
-		createSubscriber(subProjectId, monitorId, values)
-			.then(function () {
-				fetchMonitorsSubscribers(subProjectId, monitorId, 0, 5)
-				closeThisDialog();
-			}, function () {
-				//do nothing. 
-			});
-	}
+    submitForm = (values) => {
+        values.contactEmail = values.email;
+        values.contactWebhook = values.endpoint;
+        const { createSubscriber, closeThisDialog, data, fetchMonitorsSubscribers } = this.props;
+        const { monitorId, subProjectId } = data;
+        createSubscriber(subProjectId, monitorId, values)
+            .then(function () {
+                fetchMonitorsSubscribers(subProjectId, monitorId, 0, 5)
+                closeThisDialog();
+            }, function () {
+                //do nothing. 
+            });
+    }
 
-	handleKeyBoard = (e) => {
-		switch (e.key) {
-			case 'Escape':
-				return this.props.closeThisDialog()
-			default:
-				return false;
-		}
-	}
+    handleKeyBoard = (e) => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog()
+            default:
+                return false;
+        }
+    }
 
-	render() {
-		const { handleSubmit, closeThisDialog } = this.props;
+    render() {
+        const { handleSubmit, closeThisDialog } = this.props;
 
-		return (
-			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
-				<div className="bs-BIM">
-					<div className="bs-Modal bs-Modal--large">
-						<div className="bs-Modal-header">
-							<div className="bs-Modal-header-copy" 
-							style={{ marginBottom: '10px',marginTop:'10px' }}>
-							<span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-								<span>Add New Subscriber</span>
-								</span>
-							</div>
-						</div>
-						<form onSubmit={handleSubmit(this.submitForm)}>
-							<div className="bs-Modal-content bs-u-paddingless">
-								<div className="bs-Modal-block bs-u-paddingless">
+        return (
+            <div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
+                <div className="bs-BIM">
+                    <div className="bs-Modal bs-Modal--large">
+                        <div className="bs-Modal-header">
+                            <div className="bs-Modal-header-copy"
+                                style={{ marginBottom: '10px', marginTop: '10px' }}>
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span>Add New Subscriber</span>
+                                </span>
+                            </div>
+                        </div>
+                        <form onSubmit={handleSubmit(this.submitForm)}>
+                            <div className="bs-Modal-content bs-u-paddingless">
+                                <div className="bs-Modal-block bs-u-paddingless">
 
-									<div className="bs-Modal-content">
-										<span className="bs-Fieldset">
-											<div className="bs-Fieldset-row">
-												<label className="bs-Fieldset-label">Alert Via</label>
-												<div className="bs-Fieldset-fields">
-													<Field className="db-BusinessSettings-input TextInput bs-TextInput"
-														component={'select'}
-														name="alertVia"
-														id="alertViaId"
-														required="required"
-													>
-														<option value="">Select an alert method</option>
-														<option value="sms">SMS</option>
-														<option value="email">E-Mail</option>
-														<option value="webhook">Webhook</option>
-													</Field>
-												</div>
-											</div>
-											{(this.props.type === 'webhook') && <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">URL</label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={RenderField}
-                                                            type="url"
-                                                            name="endpoint"
-                                                            id="endpointId"
-                                                            placeholder="https://mywebsite.com"
-                                                        />
+                                    <div className="bs-Modal-content">
+                                        <span className="bs-Fieldset">
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">Alert Via</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field className="db-select-nw"
+                                                        component={RenderSelect}
+                                                        name="alertVia"
+                                                        id="alertViaId"
+                                                        required="required"
+                                                        options={[
+                                                            { value: '', label: 'Select an alert method' },
+                                                            { value: 'sms', label: 'SMS' },
+                                                            { value: 'email', label: 'E-Mail' },
+                                                            { value: 'webhook', label: 'Webhook' }
+                                                        ]}
+                                                    />
+                                                </div>
+                                            </div>
+                                            {(this.props.type === 'webhook') && <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">URL</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        component={RenderField}
+                                                        type="url"
+                                                        name="endpoint"
+                                                        id="endpointId"
+                                                        placeholder="https://mywebsite.com"
+                                                    />
 
+                                                </div>
+                                            </div>}
+                                            {(this.props.type === 'email' || this.props.type === 'webhook') && <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">E-Mail</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        component={RenderField}
+                                                        type="text"
+                                                        name="email"
+                                                        id="emailId"
+                                                        placeholder="user@mail.com"
+                                                        required="required"
+                                                    />
+
+                                                </div>
+                                            </div>}
+                                            {(this.props.type === 'sms') && <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">Country Code</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field className="db-select-nw"
+                                                        component={RenderSelect}
+                                                        name="countryCode"
+                                                        id="countryCodeId"
+                                                        required="required"
+                                                        options={[
+                                                            { value: '', label: 'Select an country code' },
+                                                            { value: 'us', label: 'United States (+1)' },
+                                                            { value: 'af', label: 'Afghanistan (+93)' },
+                                                            { value: 'al', label: 'Albania (+355)' },
+                                                            { value: 'dz', label: 'Algeria (+213)' },
+                                                            { value: 'as', label: 'American Samoa (+1)' },
+                                                            { value: 'ad', label: 'Andorra (+376)' },
+                                                            { value: 'ao', label: 'Angola (+244)' },
+                                                            { value: 'ai', label: 'Anguilla (+1)' },
+                                                            { value: 'ag', label: 'Antigua and Barbuda (+1)' },
+                                                            { value: 'ar', label: 'Argentina (+54)' },
+                                                            { value: 'am', label: 'Armenia (+374)' },
+                                                            { value: 'aw', label: 'Aruba (+297)' },
+                                                            { value: 'au', label: 'Australia/Cocos/Christmas Island (+61)' },
+                                                            { value: 'at', label: 'Austria (+43)' },
+                                                            { value: 'az', label: 'Azerbaijan (+994)' },
+                                                            { value: 'bs', label: 'Bahamas (+1)' },
+                                                            { value: 'bh', label: 'Bahrain (+973)' },
+                                                            { value: 'bd', label: 'Bangladesh (+880)' },
+                                                            { value: 'bb', label: 'Barbados (+1)' },
+                                                            { value: 'by', label: 'Belarus (+375)' },
+                                                            { value: 'be', label: 'Belgium (+32)' },
+                                                            { value: 'bz', label: 'Belize (+501)' },
+                                                            { value: 'bj', label: 'Benin (+229)' },
+                                                            { value: 'bm', label: 'Bermuda (+1)' },
+                                                            { value: 'bo', label: 'Bolivia (+591)' },
+                                                            { value: 'ba', label: 'Bosnia and Herzegovina (+387)' },
+                                                            { value: 'bw', label: 'Botswana (+267)' },
+                                                            { value: 'br', label: 'Brazil (+55)' },
+                                                            { value: 'bn', label: 'Brunei (+673)' },
+                                                            { value: 'bg', label: 'Bulgaria (+359)' },
+                                                            { value: 'bf', label: 'Burkina Faso (+226)' },
+                                                            { value: 'bi', label: 'Burundi (+257)' },
+                                                            { value: 'kh', label: 'Cambodia (+855)' },
+                                                            { value: 'cm', label: 'Cameroon (+237)' },
+                                                            { value: 'ca', label: 'Canada (+1)' },
+                                                            { value: 'cv', label: 'Cape Verde (+238)' },
+                                                            { value: 'ky', label: 'Cayman Islands (+1)' },
+                                                            { value: 'cf', label: 'Central Africa (+236)' },
+                                                            { value: 'td', label: 'Chad (+235)' },
+                                                            { value: 'cl', label: 'Chile (+56)' },
+                                                            { value: 'cn', label: 'China (+86)' },
+                                                            { value: 'co', label: 'Colombia (+57)' },
+                                                            { value: 'km', label: 'Comoros (+269)' },
+                                                            { value: 'cg', label: 'Congo (+242)' },
+                                                            { value: 'cd', label: 'Congo, Dem Rep (+243)' },
+                                                            { value: 'cr', label: 'Costa Rica (+506)' },
+                                                            { value: 'hr', label: 'Croatia (+385)' },
+                                                            { value: 'cy', label: 'Cyprus (+357)' },
+                                                            { value: 'cz', label: 'Czech Republic (+420)' },
+                                                            { value: 'dk', label: 'Denmark (+45)' },
+                                                            { value: 'dj', label: 'Djibouti (+253)' },
+                                                            { value: 'dm', label: 'Dominica (+1)' },
+                                                            { value: 'do', label: 'Dominican Republic (+1)' },
+                                                            { value: 'eg', label: 'Egypt (+20)' },
+                                                            { value: 'sv', label: 'El Salvador (+503)' },
+                                                            { value: 'gq', label: 'Equatorial Guinea (+240)' },
+                                                            { value: 'ee', label: 'Estonia (+372)' },
+                                                            { value: 'et', label: 'Ethiopia (+251)' },
+                                                            { value: 'fo', label: 'Faroe Islands (+298)' },
+                                                            { value: 'fj', label: 'Fiji (+679)' },
+                                                            { value: 'fi', label: 'Finland/Aland Islands (+358)' },
+                                                            { value: 'fr', label: 'France (+33)' },
+                                                            { value: 'gf', label: 'French Guiana (+594)' },
+                                                            { value: 'pf', label: 'French Polynesia (+689)' },
+                                                            { value: 'ga', label: 'Gabon (+241)' },
+                                                            { value: 'gm', label: 'Gambia (+220)' },
+                                                            { value: 'ge', label: 'Georgia (+995)' },
+                                                            { value: 'de', label: 'Germany (+49)' },
+                                                            { value: 'gh', label: 'Ghana (+233)' },
+                                                            { value: 'gi', label: 'Gibraltar (+350)' },
+                                                            { value: 'gr', label: 'Greece (+30)' },
+                                                            { value: 'gl', label: 'Greenland (+299)' },
+                                                            { value: 'gd', label: 'Grenada (+1)' },
+                                                            { value: 'gp', label: 'Guadeloupe (+590)' },
+                                                            { value: 'gu', label: 'Guam (+1)' },
+                                                            { value: 'gt', label: 'Guatemala (+502)' },
+                                                            { value: 'gn', label: 'Guinea (+224)' },
+                                                            { value: 'gy', label: 'Guyana (+592)' },
+                                                            { value: 'ht', label: 'Haiti (+509)' },
+                                                            { value: 'hn', label: 'Honduras (+504)' },
+                                                            { value: 'hk', label: 'Hong Kong (+852)' },
+                                                            { value: 'hu', label: 'Hungary (+36)' },
+                                                            { value: 'is', label: 'Iceland (+354)' },
+                                                            { value: 'in', label: 'India (+91)' },
+                                                            { value: 'id', label: 'Indonesia (+62)' },
+                                                            { value: 'ir', label: 'Iran (+98)' },
+                                                            { value: 'iq', label: 'Iraq (+964)' },
+                                                            { value: 'ie', label: 'Ireland (+353)' },
+                                                            { value: 'il', label: 'Israel (+972)' },
+                                                            { value: 'it', label: 'Italy (+39)' },
+                                                            { value: 'jm', label: 'Jamaica (+1)' },
+                                                            { value: 'jp', label: 'Japan (+81)' },
+                                                            { value: 'jo', label: 'Jordan (+962)' },
+                                                            { value: 'ke', label: 'Kenya (+254)' },
+                                                            { value: 'kr', label: 'Korea, Republic of (+82)' },
+                                                            { value: 'kw', label: 'Kuwait (+965)' },
+                                                            { value: 'kg', label: 'Kyrgyzstan (+996)' },
+                                                            { value: 'la', label: 'Laos (+856)' },
+                                                            { value: 'lv', label: 'Latvia (+371)' },
+                                                            { value: 'lb', label: 'Lebanon (+961)' },
+                                                            { value: 'ls', label: 'Lesotho (+266)' },
+                                                            { value: 'lr', label: 'Liberia (+231)' },
+                                                            { value: 'ly', label: 'Libya (+218)' },
+                                                            { value: 'li', label: 'Liechtenstein (+423)' },
+                                                            { value: 'lt', label: 'Lithuania (+370)' },
+                                                            { value: 'lu', label: 'Luxembourg (+352)' },
+                                                            { value: 'mo', label: 'Macao (+853)' },
+                                                            { value: 'mk', label: 'Macedonia (+389)' },
+                                                            { value: 'mg', label: 'Madagascar (+261)' },
+                                                            { value: 'mw', label: 'Malawi (+265)' },
+                                                            { value: 'my', label: 'Malaysia (+60)' },
+                                                            { value: 'mv', label: 'Maldives (+960)' },
+                                                            { value: 'ml', label: 'Mali (+223)' },
+                                                            { value: 'mt', label: 'Malta (+356)' },
+                                                            { value: 'mq', label: 'Martinique (+596)' },
+                                                            { value: 'mr', label: 'Mauritania (+222)' },
+                                                            { value: 'mu', label: 'Mauritius (+230)' },
+                                                            { value: 'mx', label: 'Mexico (+52)' },
+                                                            { value: 'mc', label: 'Monaco (+377)' },
+                                                            { value: 'mn', label: 'Mongolia (+976)' },
+                                                            { value: 'me', label: 'Montenegro (+382)' },
+                                                            { value: 'ms', label: 'Montserrat (+1)' },
+                                                            { value: 'ma', label: 'Morocco/Western Sahara (+212)' },
+                                                            { value: 'mz', label: 'Mozambique (+258)' },
+                                                            { value: 'na', label: 'Namibia (+264)' },
+                                                            { value: 'np', label: 'Nepal (+977)' },
+                                                            { value: 'nl', label: 'Netherlands (+31)' },
+                                                            { value: 'nz', label: 'New Zealand (+64)' },
+                                                            { value: 'ni', label: 'Nicaragua (+505)' },
+                                                            { value: 'ne', label: 'Niger (+227)' },
+                                                            { value: 'ng', label: 'Nigeria (+234)' },
+                                                            { value: 'no', label: 'Norway (+47)' },
+                                                            { value: 'om', label: 'Oman (+968)' },
+                                                            { value: 'pk', label: 'Pakistan (+92)' },
+                                                            { value: 'ps', label: 'Palestinian Territory (+970)' },
+                                                            { value: 'pa', label: 'Panama (+507)' },
+                                                            { value: 'py', label: 'Paraguay (+595)' },
+                                                            { value: 'pe', label: 'Peru (+51)' },
+                                                            { value: 'ph', label: 'Philippines (+63)' },
+                                                            { value: 'pl', label: 'Poland (+48)' },
+                                                            { value: 'pt', label: 'Portugal (+351)' },
+                                                            { value: 'pr', label: 'Puerto Rico (+1)' },
+                                                            { value: 'qa', label: 'Qatar (+974)' },
+                                                            { value: 're', label: 'Reunion/Mayotte (+262)' },
+                                                            { value: 'ro', label: 'Romania (+40)' },
+                                                            { value: 'ru', label: 'Russia/Kazakhstan (+7)' },
+                                                            { value: 'rw', label: 'Rwanda (+250)' },
+                                                            { value: 'ws', label: 'Samoa (+685)' },
+                                                            { value: 'sm', label: 'San Marino (+378)' },
+                                                            { value: 'sa', label: 'Saudi Arabia (+966)' },
+                                                            { value: 'sn', label: 'Senegal (+221)' },
+                                                            { value: 'rs', label: 'Serbia (+381)' },
+                                                            { value: 'sc', label: 'Seychelles (+248)' },
+                                                            { value: 'sl', label: 'Sierra Leone (+232)' },
+                                                            { value: 'sg', label: 'Singapore (+65)' },
+                                                            { value: 'sk', label: 'Slovakia (+421)' },
+                                                            { value: 'si', label: 'Slovenia (+386)' },
+                                                            { value: 'za', label: 'South Africa (+27)' },
+                                                            { value: 'es', label: 'Spain (+34)' },
+                                                            { value: 'lk', label: 'Sri Lanka (+94)' },
+                                                            { value: 'kn', label: 'St Kitts and Nevis (+1)' },
+                                                            { value: 'lc', label: 'St Lucia (+1)' },
+                                                            { value: 'vc', label: 'St Vincent Grenadines (+1)' },
+                                                            { value: 'sd', label: 'Sudan (+249)' },
+                                                            { value: 'sr', label: 'Suriname (+597)' },
+                                                            { value: 'sz', label: 'Swaziland (+268)' },
+                                                            { value: 'se', label: 'Sweden (+46)' },
+                                                            { value: 'ch', label: 'Switzerland (+41)' },
+                                                            { value: 'sy', label: 'Syria (+963)' },
+                                                            { value: 'tw', label: 'Taiwan (+886)' },
+                                                            { value: 'tj', label: 'Tajikistan (+992)' },
+                                                            { value: 'tz', label: 'Tanzania (+255)' },
+                                                            { value: 'th', label: 'Thailand (+66)' },
+                                                            { value: 'tg', label: 'Togo (+228)' },
+                                                            { value: 'to', label: 'Tonga (+676)' },
+                                                            { value: 'tt', label: 'Trinidad and Tobago (+1)' },
+                                                            { value: 'tn', label: 'Tunisia (+216)' },
+                                                            { value: 'tr', label: 'Turkey (+90)' },
+                                                            { value: 'tc', label: 'Turks and Caicos Islands (+1)' },
+                                                            { value: 'ug', label: 'Uganda (+256)' },
+                                                            { value: 'ua', label: 'Ukraine (+380)' },
+                                                            { value: 'ae', label: 'United Arab Emirates (+971)' },
+                                                            { value: 'gb', label: 'United Kingdom (+44)' },
+                                                            { value: 'us', label: 'United States (+1)' },
+                                                            { value: 'uy', label: 'Uruguay (+598)' },
+                                                            { value: 'uz', label: 'Uzbekistan (+998)' },
+                                                            { value: 've', label: 'Venezuela (+58)' },
+                                                            { value: 'vn', label: 'Vietnam (+84)' },
+                                                            { value: 'vg', label: 'Virgin Islands, British (+1)' },
+                                                            { value: 'vi', label: 'Virgin Islands, U.S. (+1)' },
+                                                            { value: 'ye', label: 'Yemen (+967)' },
+                                                            { value: 'zm', label: 'Zambia (+260)' },
+                                                            { value: 'zw', label: 'Zimbabwe (+263)' }
+                                                        ]}
+                                                    />
+                                                </div>
+                                            </div>}
+                                            {(this.props.type === 'sms') && <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">Contact Number</label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        component={RenderField}
+                                                        type="text"
+                                                        name="contactPhone"
+                                                        id="contactPhoneId"
+                                                        placeholder="6505551234"
+                                                        required="required"
+                                                    />
+                                                </div>
+                                            </div>}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bs-Modal-footer">
+                                <div className="bs-Modal-footer-actions">
+                                    <ShouldRender if={this.props.newSubscriber && this.props.newSubscriber.error}>
+                                        <div className="bs-Tail-copy">
+                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
+                                                <div className="Box-root Margin-right--8">
+                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex">
                                                     </div>
-                                                </div>}
-											{(this.props.type === 'email' || this.props.type === 'webhook') && <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">E-Mail</label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={RenderField}
-                                                            type="text"
-                                                            name="email"
-                                                            id="emailId"
-															placeholder="user@mail.com"
-															required="required"
-                                                        />
-
-                                                    </div>
-                                                </div>}
-											{(this.props.type === 'sms') && <div className="bs-Fieldset-row">
-													<label className="bs-Fieldset-label">Country Code</label>
-													<div className="bs-Fieldset-fields">
-														<Field className="db-BusinessSettings-input TextInput bs-TextInput"
-															component={'select'}
-															name="countryCode"
-															id="countryCodeId"
-															required="required"
-														>
-															<option value="">ex. United States (+1)</option>
-															<option value="af">Afghanistan (+93)</option>
-															<option value="al">Albania (+355)</option>
-															<option value="dz">Algeria (+213)</option>
-															<option value="as">American Samoa (+1)</option>
-															<option value="ad">Andorra (+376)</option>
-															<option value="ao">Angola (+244)</option>
-															<option value="ai">Anguilla (+1)</option>
-															<option value="ag">Antigua and Barbuda (+1)</option>
-															<option value="ar">Argentina (+54)</option>
-															<option value="am">Armenia (+374)</option>
-															<option value="aw">Aruba (+297)</option>
-															<option value="au">Australia/Cocos/Christmas Island (+61)</option>
-															<option value="at">Austria (+43)</option>
-															<option value="az">Azerbaijan (+994)</option>
-															<option value="bs">Bahamas (+1)</option>
-															<option value="bh">Bahrain (+973)</option>
-															<option value="bd">Bangladesh (+880)</option>
-															<option value="bb">Barbados (+1)</option>
-															<option value="by">Belarus (+375)</option>
-															<option value="be">Belgium (+32)</option>
-															<option value="bz">Belize (+501)</option>
-															<option value="bj">Benin (+229)</option>
-															<option value="bm">Bermuda (+1)</option>
-															<option value="bo">Bolivia (+591)</option>
-															<option value="ba">Bosnia and Herzegovina (+387)</option>
-															<option value="bw">Botswana (+267)</option>
-															<option value="br">Brazil (+55)</option>
-															<option value="bn">Brunei (+673)</option>
-															<option value="bg">Bulgaria (+359)</option>
-															<option value="bf">Burkina Faso (+226)</option>
-															<option value="bi">Burundi (+257)</option>
-															<option value="kh">Cambodia (+855)</option>
-															<option value="cm">Cameroon (+237)</option>
-															<option value="ca">Canada (+1)</option>
-															<option value="cv">Cape Verde (+238)</option>
-															<option value="ky">Cayman Islands (+1)</option>
-															<option value="cf">Central Africa (+236)</option>
-															<option value="td">Chad (+235)</option>
-															<option value="cl">Chile (+56)</option>
-															<option value="cn">China (+86)</option>
-															<option value="co">Colombia (+57)</option>
-															<option value="km">Comoros (+269)</option>
-															<option value="cg">Congo (+242)</option>
-															<option value="cd">Congo, Dem Rep (+243)</option>
-															<option value="cr">Costa Rica (+506)</option>
-															<option value="hr">Croatia (+385)</option>
-															<option value="cy">Cyprus (+357)</option>
-															<option value="cz">Czech Republic (+420)</option>
-															<option value="dk">Denmark (+45)</option>
-															<option value="dj">Djibouti (+253)</option>
-															<option value="dm">Dominica (+1)</option>
-															<option value="do">Dominican Republic (+1)</option>
-															<option value="eg">Egypt (+20)</option>
-															<option value="sv">El Salvador (+503)</option>
-															<option value="gq">Equatorial Guinea (+240)</option>
-															<option value="ee">Estonia (+372)</option>
-															<option value="et">Ethiopia (+251)</option>
-															<option value="fo">Faroe Islands (+298)</option>
-															<option value="fj">Fiji (+679)</option>
-															<option value="fi">Finland/Aland Islands (+358)</option>
-															<option value="fr">France (+33)</option>
-															<option value="gf">French Guiana (+594)</option>
-															<option value="pf">French Polynesia (+689)</option>
-															<option value="ga">Gabon (+241)</option>
-															<option value="gm">Gambia (+220)</option>
-															<option value="ge">Georgia (+995)</option>
-															<option value="de">Germany (+49)</option>
-															<option value="gh">Ghana (+233)</option>
-															<option value="gi">Gibraltar (+350)</option>
-															<option value="gr">Greece (+30)</option>
-															<option value="gl">Greenland (+299)</option>
-															<option value="gd">Grenada (+1)</option>
-															<option value="gp">Guadeloupe (+590)</option>
-															<option value="gu">Guam (+1)</option>
-															<option value="gt">Guatemala (+502)</option>
-															<option value="gn">Guinea (+224)</option>
-															<option value="gy">Guyana (+592)</option>
-															<option value="ht">Haiti (+509)</option>
-															<option value="hn">Honduras (+504)</option>
-															<option value="hk">Hong Kong (+852)</option>
-															<option value="hu">Hungary (+36)</option>
-															<option value="is">Iceland (+354)</option>
-															<option value="in">India (+91)</option>
-															<option value="id">Indonesia (+62)</option>
-															<option value="ir">Iran (+98)</option>
-															<option value="iq">Iraq (+964)</option>
-															<option value="ie">Ireland (+353)</option>
-															<option value="il">Israel (+972)</option>
-															<option value="it">Italy (+39)</option>
-															<option value="jm">Jamaica (+1)</option>
-															<option value="jp">Japan (+81)</option>
-															<option value="jo">Jordan (+962)</option>
-															<option value="ke">Kenya (+254)</option>
-															<option value="kr">Korea, Republic of (+82)</option>
-															<option value="kw">Kuwait (+965)</option>
-															<option value="kg">Kyrgyzstan (+996)</option>
-															<option value="la">Laos (+856)</option>
-															<option value="lv">Latvia (+371)</option>
-															<option value="lb">Lebanon (+961)</option>
-															<option value="ls">Lesotho (+266)</option>
-															<option value="lr">Liberia (+231)</option>
-															<option value="ly">Libya (+218)</option>
-															<option value="li">Liechtenstein (+423)</option>
-															<option value="lt">Lithuania (+370)</option>
-															<option value="lu">Luxembourg (+352)</option>
-															<option value="mo">Macao (+853)</option>
-															<option value="mk">Macedonia (+389)</option>
-															<option value="mg">Madagascar (+261)</option>
-															<option value="mw">Malawi (+265)</option>
-															<option value="my">Malaysia (+60)</option>
-															<option value="mv">Maldives (+960)</option>
-															<option value="ml">Mali (+223)</option>
-															<option value="mt">Malta (+356)</option>
-															<option value="mq">Martinique (+596)</option>
-															<option value="mr">Mauritania (+222)</option>
-															<option value="mu">Mauritius (+230)</option>
-															<option value="mx">Mexico (+52)</option>
-															<option value="mc">Monaco (+377)</option>
-															<option value="mn">Mongolia (+976)</option>
-															<option value="me">Montenegro (+382)</option>
-															<option value="ms">Montserrat (+1)</option>
-															<option value="ma">Morocco/Western Sahara (+212)</option>
-															<option value="mz">Mozambique (+258)</option>
-															<option value="na">Namibia (+264)</option>
-															<option value="np">Nepal (+977)</option>
-															<option value="nl">Netherlands (+31)</option>
-															<option value="nz">New Zealand (+64)</option>
-															<option value="ni">Nicaragua (+505)</option>
-															<option value="ne">Niger (+227)</option>
-															<option value="ng">Nigeria (+234)</option>
-															<option value="no">Norway (+47)</option>
-															<option value="om">Oman (+968)</option>
-															<option value="pk">Pakistan (+92)</option>
-															<option value="ps">Palestinian Territory (+970)</option>
-															<option value="pa">Panama (+507)</option>
-															<option value="py">Paraguay (+595)</option>
-															<option value="pe">Peru (+51)</option>
-															<option value="ph">Philippines (+63)</option>
-															<option value="pl">Poland (+48)</option>
-															<option value="pt">Portugal (+351)</option>
-															<option value="pr">Puerto Rico (+1)</option>
-															<option value="qa">Qatar (+974)</option>
-															<option value="re">Reunion/Mayotte (+262)</option>
-															<option value="ro">Romania (+40)</option>
-															<option value="ru">Russia/Kazakhstan (+7)</option>
-															<option value="rw">Rwanda (+250)</option>
-															<option value="ws">Samoa (+685)</option>
-															<option value="sm">San Marino (+378)</option>
-															<option value="sa">Saudi Arabia (+966)</option>
-															<option value="sn">Senegal (+221)</option>
-															<option value="rs">Serbia (+381)</option>
-															<option value="sc">Seychelles (+248)</option>
-															<option value="sl">Sierra Leone (+232)</option>
-															<option value="sg">Singapore (+65)</option>
-															<option value="sk">Slovakia (+421)</option>
-															<option value="si">Slovenia (+386)</option>
-															<option value="za">South Africa (+27)</option>
-															<option value="es">Spain (+34)</option>
-															<option value="lk">Sri Lanka (+94)</option>
-															<option value="kn">St Kitts and Nevis (+1)</option>
-															<option value="lc">St Lucia (+1)</option>
-															<option value="vc">St Vincent Grenadines (+1)</option>
-															<option value="sd">Sudan (+249)</option>
-															<option value="sr">Suriname (+597)</option>
-															<option value="sz">Swaziland (+268)</option>
-															<option value="se">Sweden (+46)</option>
-															<option value="ch">Switzerland (+41)</option>
-															<option value="sy">Syria (+963)</option>
-															<option value="tw">Taiwan (+886)</option>
-															<option value="tj">Tajikistan (+992)</option>
-															<option value="tz">Tanzania (+255)</option>
-															<option value="th">Thailand (+66)</option>
-															<option value="tg">Togo (+228)</option>
-															<option value="to">Tonga (+676)</option>
-															<option value="tt">Trinidad and Tobago (+1)</option>
-															<option value="tn">Tunisia (+216)</option>
-															<option value="tr">Turkey (+90)</option>
-															<option value="tc">Turks and Caicos Islands (+1)</option>
-															<option value="ug">Uganda (+256)</option>
-															<option value="ua">Ukraine (+380)</option>
-															<option value="ae">United Arab Emirates (+971)</option>
-															<option value="gb">United Kingdom (+44)</option>
-															<option value="us">United States (+1)</option>
-															<option value="uy">Uruguay (+598)</option>
-															<option value="uz">Uzbekistan (+998)</option>
-															<option value="ve">Venezuela (+58)</option>
-															<option value="vn">Vietnam (+84)</option>
-															<option value="vg">Virgin Islands, British (+1)</option>
-															<option value="vi">Virgin Islands, U.S. (+1)</option>
-															<option value="ye">Yemen (+967)</option>
-															<option value="zm">Zambia (+260)</option>
-															<option value="zw">Zimbabwe (+263)</option>
-														</Field>
-													</div>
-												</div>}
-												{(this.props.type === 'sms') && <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">Contact Number</label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={RenderField}
-                                                            type="text"
-                                                            name="contactPhone"
-                                                            id="contactPhoneId"
-															placeholder="ex. 6505551234"
-															required="required"
-                                                        />
-
-                                                    </div>
-                                                </div>}
-										</span>
-									</div>
-								</div>
-							</div>
-							<div className="bs-Modal-footer">
-								<div className="bs-Modal-footer-actions">
-									<ShouldRender if={this.props.newSubscriber && this.props.newSubscriber.error}>
-										<div className="bs-Tail-copy">
-											<div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
-												<div className="Box-root Margin-right--8">
-													<div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex">
-													</div>
-												</div>
-												<div className="Box-root">
-													<span style={{ color: 'red' }}>{this.props.newSubscriber.error}</span>
-												</div>
-											</div>
-										</div>
-									</ShouldRender>
-									<button className="bs-Button bs-DeprecatedButton" type="button" onClick={closeThisDialog}><span>Cancel</span></button>
-									<button
-										className="bs-Button bs-DeprecatedButton bs-Button--blue"
-										disabled={this.props.newSubscriber && this.props.newSubscriber.requesting}
-										type="submit">
-										{this.props.newSubscriber && !this.props.newSubscriber.requesting && <span>Create</span>}
-										{this.props.newSubscriber && this.props.newSubscriber.requesting && <FormLoader />}
-									</button>
-								</div>
-							</div>
-						</form>
-					</div>
-				</div>
-			</div>
-		);
-	}
+                                                </div>
+                                                <div className="Box-root">
+                                                    <span style={{ color: 'red' }}>{this.props.newSubscriber.error}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </ShouldRender>
+                                    <button className="bs-Button bs-DeprecatedButton" type="button" onClick={closeThisDialog}><span>Cancel</span></button>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        disabled={this.props.newSubscriber && this.props.newSubscriber.requesting}
+                                        type="submit" id="createSubscriber">
+                                        {this.props.newSubscriber && !this.props.newSubscriber.requesting && <span>Create</span>}
+                                        {this.props.newSubscriber && this.props.newSubscriber.requesting && <FormLoader />}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 }
 
 CreateSubscriber.displayName = 'CreateSubscriberFormModal'
 
-let CreateSubscriberForm = reduxForm({
-	form: 'CreateSubscriber', // a unique identifier for this form
-	validate
+const CreateSubscriberForm = reduxForm({
+    form: 'CreateSubscriber', // a unique identifier for this form
+    validate
 })(CreateSubscriber);
 
 const mapDispatchToProps = (dispatch) => {
-	return bindActionCreators({ createSubscriberRequest, createSubscriberError, createSubscriberSuccess, createSubscriber, fetchMonitorsSubscribers }, dispatch)
+    return bindActionCreators({ createSubscriberRequest, createSubscriberError, createSubscriberSuccess, createSubscriber, fetchMonitorsSubscribers }, dispatch)
 }
 
 function mapStateToProps(state) {
-	return {
-		monitors: state.monitor.monitorsList.monitors,
-		currentProject: state.project.currentProject,
-		newSubscriber: state.subscriber.newSubscriber,
-		type: selector(state, 'alertVia')
-	};
+    return {
+        monitors: state.monitor.monitorsList.monitors,
+        currentProject: state.project.currentProject,
+        newSubscriber: state.subscriber.newSubscriber,
+        type: selector(state, 'alertVia')
+    };
 }
 
 CreateSubscriber.propTypes = {
-	closeThisDialog: PropTypes.func.isRequired,
-	createSubscriber: PropTypes.func.isRequired,
-	handleSubmit: PropTypes.func,
-	fetchMonitorsSubscribers: PropTypes.func,
-	newSubscriber: PropTypes.object,
-	error: PropTypes.object,
-	requesting: PropTypes.bool,
-	type: PropTypes.string,
-	data: PropTypes.string.isRequired,
+    closeThisDialog: PropTypes.func.isRequired,
+    createSubscriber: PropTypes.func.isRequired,
+    handleSubmit: PropTypes.func,
+    fetchMonitorsSubscribers: PropTypes.func,
+    newSubscriber: PropTypes.object,
+    error: PropTypes.object,
+    requesting: PropTypes.bool,
+    type: PropTypes.string,
+    data: PropTypes.oneOfType([PropTypes.string, PropTypes.object])
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(CreateSubscriberForm);

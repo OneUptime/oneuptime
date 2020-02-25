@@ -2,7 +2,7 @@ body{
     background-color:#fbfcfd
 }
 body .gradient-background{
-    background:linear-gradient(90deg,#748df8,#6fa7f8);
+    background:linear-gradient(90deg,#000000,#000000);
     overflow-x:hidden;
     opacity:1;
     transition:opacity 1s ease;
@@ -17,7 +17,7 @@ body .gradient-background{
 }
 @media(min-width:880px){
     body .gradient-background{
-        background:linear-gradient(90deg,#777bf8,#68d4f8 200%)
+        background:linear-gradient(90deg,#000000,#000000 200%)
     }
 }
 body.form-submitted .gradient-background{
@@ -94,6 +94,11 @@ section.ctas .cta .icon-column{
 @media(min-width:880px){
     section.ctas .cta .icon-column{
         padding-bottom:0
+    }
+}
+@media (max-width:420px){
+    section.ctas .cta .icon-column{
+        min-width: 55px;
     }
 }
 section.ctas .cta .copy-column{
@@ -175,7 +180,7 @@ section.form-section .customers{
     }
 }
 section.form-section .customers .copy-1{
-    color:#32325d;
+    color:#000000;
     font-size:24px;
     font-weight:500;
     line-height:36px
@@ -385,7 +390,7 @@ section.form-section .form-row.submit{
     justify-content:flex-end
 }
 section.form-section .form-row label{
-    color:#6b7c93;
+    color:#797979;
     font-size:12px;
     font-weight:600;
     letter-spacing:.43px;
@@ -426,7 +431,7 @@ html[lang=es] section.form-section .form-row label,html[lang=fr] section.form-se
     }
 }
 section.form-section .form-row.has-focus label{
-    color:#14aad9
+    color:#000000
 }
 section.form-section .form-row.has-focus .select-wrapper select{
     background-color:transparent;
@@ -444,7 +449,7 @@ section.form-section .form-row label.contains-summary{
 }
 section.form-section .form-row summary{
     display:block;
-    color:#6b7c93;
+    color:#797979;
     font-weight:400;
     font-size:13px;
     line-height:17px;
@@ -464,7 +469,7 @@ section.form-section .form-row input,section.form-section .form-row select,secti
     outline:none;
     width:100%;
     border-radius:4px;
-    color:#32325d;
+    color:#000000;
     font-family:Open Sans,Segoe UI,sans-serif;
     font-weight:400;
     font-size:17px;
@@ -474,7 +479,7 @@ section.form-section .form-row input,section.form-section .form-row select,secti
 }
 @media(min-width:670px){
     section.form-section .form-row input,section.form-section .form-row select,section.form-section .form-row textarea{
-        background-color:#f6f9fc;
+        background-color:#f9f9f9;
         padding:5px 20px 8px 13px;
         -ms-flex:68%;
         flex:68%;
@@ -491,18 +496,18 @@ section.form-section .form-row .select-wrapper{
     cursor:pointer
 }
 section.form-section .form-row .select-wrapper select{
-    color:#8898aa;
+    color:#757575;
     width:100%;
     pointer-events:none;
     background-color:transparent
 }
 @media(min-width:670px){
     section.form-section .form-row .select-wrapper select{
-        background-color:#f6f9fc
+        background-color:#f9f9f9
     }
 }
 section.form-section .form-row .select-wrapper select.has-value{
-    color:#32325d
+    color:#000000
 }
 section.form-section .form-row input:focus,section.form-section .form-row select:focus,section.form-section .form-row textarea:focus{
     box-shadow:0 0 0 1px #fff
@@ -514,19 +519,19 @@ section.form-section .form-row input:focus,section.form-section .form-row select
     }
 }
 section.form-section .form-row input::-webkit-input-placeholder,section.form-section .form-row textarea::-webkit-input-placeholder{
-    color:#8898aa;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.form-section .form-row input::-moz-placeholder,section.form-section .form-row textarea::-moz-placeholder{
-    color:#8898aa;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.form-section .form-row input:-ms-input-placeholder,section.form-section .form-row textarea:-ms-input-placeholder{
-    color:#8898aa;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.form-section .form-row input::placeholder,section.form-section .form-row textarea::placeholder{
-    color:#8898aa;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.form-section .form-row textarea::-webkit-input-placeholder{
@@ -563,7 +568,7 @@ section.form-section .form-row select{
     align-self:flex-start
 }
 section.form-section .form-row select.dropdown-open,section.form-section .form-row select:focus{
-    color:#14aad9
+    color:#000000
 }
 section.form-section .form-row input{
     -ms-flex-item-align:center;
@@ -591,7 +596,7 @@ section.form-section .submit-button{
     font-family:inherit
 }
 section.form-section .submit-button:focus{
-    background-color:#7795f8
+    background-color:#797979
 }
 section.form-section .submit-row{
     text-align:right;
@@ -706,7 +711,7 @@ section.form-section .select-wrapper select.invalid-missing{
 }
 section.form-section .select-wrapper select.dropdown-open,section.form-section .select-wrapper select.dropdown-open.invalid-missing{
     background-image:url(/img/v3/contact_sales/form/dropdown-active.svg);
-    color:#14aad9
+    color:#000000
 }
 section.form-section .form-row input.invalid-missing,section.form-section .form-row input.invalid-value,section.form-section .form-row textarea.invalid-missing{
     background-position-x:calc(100% - 16px);
@@ -720,7 +725,7 @@ section.form-section .form-row input.invalid-missing,section.form-section .form-
     }
 }
 section.form-section .form-row.has-focus input,section.form-section .form-row.has-focus textarea,section.form-section .form-row input:focus,section.form-section .form-row textarea:focus{
-    color:#8898aa!important;
+    color:#757575!important;
     background-position-x:-5000px!important;
     box-shadow:0 0 0 1px #fff
 }
@@ -729,99 +734,7 @@ section.form-section .form-row.has-focus input,section.form-section .form-row.ha
         box-shadow:0 0 0 1px #e4effa
     }
 }
-body footer .globalFooterNav{
-    padding-top:35px;
-    padding-bottom:18px
-}
-@media (min-width:670px){
-    body footer .globalFooterNav{
-        padding-top:17px;
-        padding-bottom:12px
-    }
-}
-body footer .globalFooterNav .container-lg{
-    padding:0 28px
-}
-@media (min-width:670px){
-    body footer .globalFooterNav .container-lg{
-        padding:0 20px
-    }
-}
-body footer .globalFooterNav .metaNav{
-    margin:0
-}
-.globalFooter .metaNav{
-    display:block
-}
-@media (min-width:670px){
-    .globalFooter .metaNav{
-        display:-ms-flexbox;
-        display:flex;
-        -ms-flex-direction:row;
-        flex-direction:row
-    }
-}
-@media (min-width:670px){
-    .globalFooter .metaNav .country{
-        margin-right:35px
-    }
-}
-.globalFooter .metaNav .copyright{
-    position:absolute;
-    right:28px;
-    top:35px
-}
-@media (min-width:670px){
-    .globalFooter .metaNav .copyright{
-        position:static
-    }
-}
-.globalFooter .siteNav{
-    display:none
-}
-@media(min-width:670px){
-    .globalNav .navSection.logo{
-        padding-left:20px
-    }
-}
-@media(min-width:880px){
-    .globalNav .navSection.logo{
-        padding-left:inherit
-    }
-}
-@media(min-width:670px){
-    .globalNav .navSection.secondary{
-        padding-right:20px
-    }
-}
-@media(min-width:880px){
-    .globalNav .navSection.secondary{
-        padding-right:inherit
-    }
-}
-.globalNav .navSection.primary{
-    display:none
-}
-.globalNav .colorize{
-    color:#32325d
-}
-.globalNav .colorize.active,.globalNav .colorize:hover{
-    color:#555abf
-}
-.globalNav .navSection.mobile .rootLink{
-    padding:0 25px;
-    top:1px
-}
-.globalNav .navSection.mobile .rootLink h2:before{
-    top:-6px
-}
-.globalNav .navSection.mobile .rootLink h2:after{
-    top:6px
-}
-.globalNav .navSection.mobile .rootLink h2,.globalNav .navSection.mobile .rootLink h2:after,.globalNav .navSection.mobile .rootLink h2:before{
-    width:18px;
-    height:2px
-}
+
 section.contact-sales-header .stripes-container{
     pointer-events:none;
     position:absolute;
@@ -849,13 +762,13 @@ section.contact-sales-header .stripes-container{
 section.contact-sales-header .stripes-container.initial .gradient{
     height:5000px;
     bottom:0;
-    background:linear-gradient(270deg,#f6f9fc,#fff);
+    background:linear-gradient(270deg,#f9f9f9,#fff);
     left:0;
     right:0
 }
 section.contact-sales-header .stripes-container.initial .s1{
     height:200px;
-    background:#f6f9fc;
+    background:#f9f9f9;
     right:calc(50% + 255px);
     left:0;
     top:-110%;
@@ -878,7 +791,7 @@ section.contact-sales-header .stripes-container.initial .s2{
     right:0;
     left:calc(50% - 25px);
     bottom:-54px;
-    background:#87b3f8;
+    background:#d7d7d7;
     transition:transform .6s ease-out
 }
 @media(min-width:880px){
@@ -955,7 +868,7 @@ section.contact-sales-header .stripes-container.initial .s6{
     right:0;
     bottom:0;
     opacity:.1;
-    background:#87b3f8
+    background:#d7d7d7
 }
 @media(min-width:670px){
     section.contact-sales-header .stripes-container.initial .s6{
@@ -973,7 +886,7 @@ section.contact-sales-header .stripes-container.initial .s7{
     left:0;
     right:calc(50% + 225px);
     bottom:-54px;
-    background:#e2e9ff;
+    background:#d7d7d7;
     transition:transform .6s ease-out;
     display:none
 }
@@ -1115,7 +1028,6 @@ section.contact-sales-header .stripes-container .left-dots-container:before{
 .form-submitted section.contact-sales-header .stripes-container.initial .s3{
     transform:translate(-110px);
     opacity:1;
-    background-color:#ecf3fc
 }
 .form-submitted section.contact-sales-header .stripes-container.initial .s2{
     display:none
@@ -1174,7 +1086,7 @@ html[lang=it] section.contact-sales-header .headline{
 section.contact-sales-header .headline-text{
     font-size:40px;
     line-height:50px;
-    color:#32325d;
+    color:#000000;
     font-weight:400;
     margin-bottom:20px;
     margin-left:auto;
@@ -1187,7 +1099,7 @@ section.contact-sales-header .headline-text{
     }
 }
 section.contact-sales-header .common-IntroText{
-    color:#6b7c93
+    color:#797979
 }
 .form-submitted section.contact-sales-header .background-container.success{
     opacity:1
@@ -1217,14 +1129,14 @@ section.success .phone-number-container .copy-container{
     padding:20px
 }
 section.success .phone-number-container .phone-number-headline{
-    color:#32325d;
+    color:#000000;
     font-size:40px;
     font-weight:400;
     line-height:50px;
     margin-bottom:5px
 }
 section.success .phone-number-container .phone-number-subhead{
-    color:#6b7c93;
+    color:#797979;
     font-size:17px;
     font-weight:400;
     line-height:26px;
@@ -1264,7 +1176,7 @@ section.success .phone-number-form-container label{
 section.success .phone-number-form-container .phone-country-code-placeholder{
     max-width:20px;
     background:#fff;
-    color:#32325d;
+    color:#000000;
     font-weight:400;
     font-size:17px;
     line-height:26px;
@@ -1283,7 +1195,7 @@ section.success .phone-number-form-container input#phone{
     outline:none;
     background:#fff;
     border-radius:4px;
-    color:#32325d;
+    color:#000000;
     font-weight:400;
     font-size:17px;
     line-height:26px;
@@ -1298,19 +1210,19 @@ section.success .phone-number-form-container input#phone{
     }
 }
 section.success .phone-number-form-container input#phone::-webkit-input-placeholder{
-    color:#8898aa;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone::-moz-placeholder{
-    color:#8898aa;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone:-ms-input-placeholder{
-    color:#8898aa;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone::placeholder{
-    color:#8898aa;
+    color:#757575;
     transition:color .08s ease-in
 }
 section.success .phone-number-form-container input#phone::-ms-clear{
@@ -1377,7 +1289,7 @@ section.success .phone-number-container{
     width:calc(100% + 12px);
     padding:5px;
     padding-bottom:0;
-    border:1px solid #e6ebf1;
+    border:1px solid #fdfdfd;
     border-radius:4px;
     transition:opacity .08s ease-out,transform .08s ease-out;
     opacity:0;
@@ -1430,7 +1342,7 @@ section.form-section .searchable-select-container input.searchable-select-input{
 }
 .searchable-select-container .searchable-select-no-results{
     font-weight:300;
-    color:#8898aa;
+    color:#757575;
     padding:8px 0;
     padding-left:12px;
     font-size:17px;
@@ -1443,12 +1355,12 @@ section.form-section .searchable-select-container input.searchable-select-input{
     font-weight:300;
     font-size:17px;
     line-height:26px;
-    color:#6b7c93;
+    color:#797979;
     cursor:pointer
 }
 .searchable-select-container .searchable-select-result.highlighted{
     background:#f2f7fc;
-    color:#32325d;
+    color:#000000;
     font-weight:400
 }
 .searchable-select-container .searchable-select-result.selected{
@@ -1533,10 +1445,10 @@ section.success .thank-you{
     opacity:1
 }
 section.success .divider{
-    background:#cfd7df;
+    background:#dbdbdb;
     border:none;
-    border-top:1px solid #cfd7df;
-    color:#cfd7df;
+    border-top:1px solid #dbdbdb;
+    color:#dbdbdb;
     margin:20px auto;
     max-width:750px;
     opacity:1;
@@ -1552,14 +1464,14 @@ section.success .thank-you .copy-container{
     margin:0 auto
 }
 section.success .thank-you .success-headline{
-    color:#32325d;
+    color:#000000;
     font-size:40px;
     font-weight:400;
     line-height:50px;
     margin-bottom:8px
 }
 section.success .thank-you .success-subhead{
-    color:#87b3f8;
+    color:#000000;
     font-size:30px;
     font-weight:300;
     transition:opacity .2s ease-out

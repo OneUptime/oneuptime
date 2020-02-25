@@ -6,9 +6,9 @@ import { User } from '../../config';
 // params 1: props
 // returns JSX.Element or NULL
 export function RenderIfSubProjectAdmin(props) {
-    const {children, currentProject, subProjects, subProjectId} = props;
-    var userId = User.getUserId();
-    var renderItems = null;
+    const { children, currentProject, subProjects, subProjectId } = props;
+    const userId = User.getUserId();
+    let renderItems = null;
     if (
         userId && currentProject &&
         currentProject.users &&
@@ -17,14 +17,14 @@ export function RenderIfSubProjectAdmin(props) {
             && (user.role === 'Administrator' || user.role === 'Owner')).length > 0
     ) {
         renderItems = children
-    }else{
-        if(subProjects){
-            subProjects.forEach((subProject)=>{
-                if(subProjectId){
-                    if (subProject._id === subProjectId && subProject.users.filter(user => user.userId === userId && (user.role === 'Administrator' || user.role === 'Owner')).length > 0){
+    } else {
+        if (subProjects) {
+            subProjects.forEach((subProject) => {
+                if (subProjectId) {
+                    if (subProject._id === subProjectId && subProject.users.filter(user => user.userId === userId && (user.role === 'Administrator' || user.role === 'Owner')).length > 0) {
                         renderItems = children
                     }
-                }else{
+                } else {
                     if (
                         userId && subProject &&
                         subProject.users &&

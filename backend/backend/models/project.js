@@ -1,9 +1,8 @@
-var slugify = require('slugify');
-var generate = require('nanoid/generate');
-var mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var projectSchema = new Schema({
+const mongoose = require('../config/db');
+
+const Schema = mongoose.Schema;
+const projectSchema = new Schema({
     name: String,
     slug: {
         type: String
@@ -18,8 +17,6 @@ var projectSchema = new Schema({
 
     stripePlanId: String,
     stripeSubscriptionId: String, // this is for plans.
-    stripeExtraUserSubscriptionId: String,
-    stripeMeteredSubscriptionId: String, // this is for alert metering.
     parentProjectId: { type: String, ref: 'Project' },
     seats: { type: String, default: '1' },
     createdAt: {
@@ -36,6 +33,11 @@ var projectSchema = new Schema({
 
     apiKey: String,
     alertEnable: {
+        type: Boolean,
+        default: false
+    },
+    alertLimit: String,
+    alertLimitReached: {
         type: Boolean,
         default: false
     },
@@ -64,15 +66,15 @@ var projectSchema = new Schema({
             type: Boolean,
             default: false
         }
-    }
-});
-
-projectSchema.pre('save', function (next) {
-    let name = this.get('name');
-    name = slugify(name);
-    name = `${name}-${generate('1234567890', 5)}`;
-    this.slug = name;
-    next();
+    },
+    isBlocked: {
+        type: Boolean,
+        default: false
+    },
+    adminNotes: [{
+        note: { type: String },
+        createdAt: { type: Date }
+    }],
 });
 
 module.exports = mongoose.model('Project', projectSchema);

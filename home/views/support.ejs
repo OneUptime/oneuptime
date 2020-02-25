@@ -3,49 +3,42 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Fyipe | Contact Us</title>
+  <title>Fyipe | Help and Support</title>
 
-  <meta name="description" content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
+  <meta name="description"
+    content="Fyipe lets you monitor any website, API or dashboard and alerts your team if something goes wrong. Fyipe also keeps your customers updated about any downtime.">
   <% include ./head %>
-    <link rel="stylesheet" href="/css/contact.css">
+  <link rel="preload" href="/css/contact.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="/css/contact.css"></noscript>
+  <link rel="preload" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap"></noscript>
+  <script src="/js/amplitude.js"></script>
+  <script>
+    var IS_DEV = false;
+    if (!IS_DEV) {
+      amplitude.getInstance().logEvent('Contact us page viewed');
+    }
+  </script>
 </head>
 
 <body>
 
-
-
   <% include ./nav %>
-
-
-
 
   <div class="globalContent">
     <main>
       <div class="fyipeBackground-container">
         <div class="fyipeBackground-large">
-          <div class="fyipe s1"></div>
-          <div class="fyipe s2"></div>
-          <div class="fyipe s3"></div>
-          <div class="fyipe s4"></div>
-          <div class="fyipe s5"></div>
-          <div class="fyipe s6"></div>
-          <div class="fyipe s7"></div>
-          <div class="fyipe s8"></div>
-          <div class="fyipe s9"></div>
-          <div class="fyipe s10"></div>
-          <div class="fyipe s11"></div>
-          <div class="fyipe s12"></div>
-          <div class="fyipe s13"></div>
-          <div class="gradient"></div>
-          <div class="fyipe below"></div>
-          <div class="dots"></div>
+         
         </div>
       </div>
 
+
       <div class="container Header-container">
         <header class="Header">
-          <h1 class="common-PageTitle">Contact us</h1>
-          <p class="Header-subTitle common-IntroText">Get in touch and let us know how we can help.</p>
+          <h1 class="Header-title common-PageTitle header-font header-size">
+            Friendly folks, standing by. </h1>
+          <p class="Header-subTitle common-IntroText">Always humans, never bots. The hands-down, sharpest and friendliest support team in the biz. <br/>Contact us and  <span class="highlight"> we’ll get back to you in less than 1 business day.</span></p>
         </header>
       </div>
 
@@ -54,7 +47,7 @@
           <div class="row">
             <a href="mailto:sales@fyipe.com" class="contactCalloutBox">
               <div class="contactCalloutInnerContainer">
-                <div class="contactCallout-Icon sales"></div>
+                <div class="sales"></div>
                 <h2 class="ContactCalloutTitle common-BodyTitle">Sales</h2>
                 <p class="ContactCalloutTagline common-BodyText">We’d love to talk about how we can work together.</p>
               </div>
@@ -65,7 +58,7 @@
 
             <a href="mailto:support@fyipe.com" class="contactCalloutBox">
               <div class="contactCalloutInnerContainer">
-                <div class="contactCallout-Icon support"></div>
+                <div class="contactCallout-Icon"></div>
                 <h2 class="ContactCalloutTitle common-BodyTitle">Help &amp; Support</h2>
                 <p class="ContactCalloutTagline common-BodyText">We’re here to help with any questions or code.</p>
               </div>
@@ -93,7 +86,7 @@
           <section>
             <h3 class="common-BodyTitle">Join us on Slack</h3>
             <p class="common-BodyText">If you have technical questions, chat live with developers on our Slack Group.
-              <br/><a href='https://slack.fyipe.com' class='common-Link '>Send me an invite to join.</a>
+              <br /><a href='https://slack.fyipe.com' class='common-Link '>Send me an invite to join.</a>
           </section>
           <section>
             <h3 class="common-BodyTitle">General communication</h3>

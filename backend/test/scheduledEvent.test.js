@@ -1,19 +1,27 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var ScheduledEventService = require('../backend/services/scheduledEventService');
-var ScheduledEventModel = require('../backend/models/scheduledEvent');
-var MonitorService = require('../backend/services/monitorService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const ScheduledEventService = require('../backend/services/scheduledEventService');
+const ScheduledEventModel = require('../backend/models/scheduledEvent');
+const MonitorService = require('../backend/services/monitorService');
+const AirtableService = require('../backend/services/airtableService');
 
-var token, userId, token_, projectId, scheduleEventId, apiKey, monitorId, authorization, scheduledEvent = {
+const payment = require('../backend/config/payment');
+const stripe = require('stripe')(payment.paymentPrivateKey);
+
+const VerificationTokenModel = require('../backend/models/verificationToken');
+
+let token, userId, airtableId, token_, projectId, scheduleEventId, apiKey, monitorId, authorization;
+
+const scheduledEvent = {
         name: 'New scheduled Event',
         startDate: '2019-06-11 11:01:52.178',
         endDate: '2019-06-26 11:31:53.302',
@@ -22,11 +30,6 @@ var token, userId, token_, projectId, scheduleEventId, apiKey, monitorId, author
         alertSubscriber: true,
         callScheduleOnEvent: true,
         monitorDuringEvent: false
-    },
-    monitor = {
-        name: 'New Monitor',
-        type: 'url',
-        data: { url: 'http://www.tests.org' }
     },
     invisibleScheduledEvent = {
         name: 'New invisible scheduled Event',
@@ -43,11 +46,13 @@ describe('Scheduled event API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
-            let project = res.body.project;
+        this.timeout(40000);
+        createUser(request, userData.user, function (err, res) {
+            const project = res.body.project;
             userId = res.body.id;
             projectId = project._id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -55,8 +60,12 @@ describe('Scheduled event API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${token}`;
-                        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
+                        const authorization = `Basic ${token}`;
+                        request.post(`/monitor/${projectId}`).set('Authorization', authorization).send({
+                            name: 'New Monitor 1',
+                            type: 'url',
+                            data: { url: 'http://www.tests.org' }
+                        }).end(function (err, res) {
                             monitorId = res.body._id;
                             done();
                         });
@@ -71,6 +80,7 @@ describe('Scheduled event API', function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
         await ScheduledEventService.hardDeleteBy({ _id: scheduleEventId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should reject the request of an unauthenticated user', function (done) {
@@ -81,7 +91,7 @@ describe('Scheduled event API', function () {
     });
 
     it('should not create a scheduled event when the fields are null', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).send({
             name: null,
             startDate: '',
@@ -94,7 +104,7 @@ describe('Scheduled event API', function () {
     });
 
     it('should create a new scheduled event when proper fields are given by an authenticated user', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).send(scheduledEvent).end(function (err, res) {
             scheduleEventId = res.body._id;
             expect(res).to.have.status(200);
@@ -104,7 +114,7 @@ describe('Scheduled event API', function () {
     });
 
     it('should get all scheduled events for an authenticated user by projectId and monitorId', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -118,7 +128,7 @@ describe('Scheduled event API', function () {
     });
 
     it('should update a scheduled event when scheduledEventId is valid', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/scheduledEvent/${projectId}/${scheduleEventId}`).set('Authorization', authorization).send({
             name: 'updated name'
         }).end(function (err, res) {
@@ -129,10 +139,9 @@ describe('Scheduled event API', function () {
     });
 
     it('should delete a scheduled event when scheduledEventId is valid', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/scheduledEvent/${projectId}/${scheduleEventId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
@@ -142,11 +151,11 @@ describe('User from other project have access to read / write and delete API.', 
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
-            let project = res.body.project;
+        this.timeout(40000);
+        createUser(request, userData.user, function (err, res) {
+            const project = res.body.project;
             projectId = project._id;
-            request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+            createUser(request, userData.newUser, function (err, res) {
                 userId = res.body.id;
                 VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                     request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
@@ -169,28 +178,28 @@ describe('User from other project have access to read / write and delete API.', 
     });
 
     it('should not be able to create new scheduled event', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).send(scheduledEvent).end(function (err, res) {
             expect(res).to.have.status(400);
             done();
         });
     });
     it('should not be able to delete a scheduled event', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/scheduledEvent/${projectId}/${scheduleEventId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(400);
             done();
         });
     });
     it('should not be able to get all scheduled events', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(400);
             done();
         });
     });
     it('should not be able to update a scheduled event', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/scheduledEvent/${projectId}/${scheduleEventId}`).set('Authorization', authorization).send({
             name: 'updated name'
         }).end(function (err, res) {
@@ -203,35 +212,51 @@ describe('User from other project have access to read / write and delete API.', 
 describe('Scheduled Event API - Check pagination for 12 scheduled events', function () {
     this.timeout(20000);
 
-    var scheduledEvents = Array(12).fill({
-        name: 'testPagination',
-        description: 'testPaginationDescription',
-        startDate: '2019-06-11 11:01:52.178',
-        endDate: '2019-06-26 11:31:53.302',
-    });
+    const scheduledEvents = [];
+
+    for (let i = 0; i < 12; i++) {
+        scheduledEvents.push({
+            name: `testPagination${i}`,
+            description: 'testPaginationDescription',
+            startDate: '2019-06-11 11:01:52.178',
+            endDate: '2019-06-26 11:31:53.302',
+        });
+    }
 
 
     before(async function () {
         this.timeout(30000);
-        var signUp = await request.post('/user/signup').send(userData.user);
-        let project = signUp.body.project;
+        const checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: userData.email,
+            companyName: userData.companyName
+        });
+        const confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
+
+        const signUp = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id
+            },
+            ...userData.user
+        });
+        const project = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;
-        var verificationToken = await VerificationTokenModel.findOne({ userId });
-        try{
+        const verificationToken = await VerificationTokenModel.findOne({ userId });
+        try {
             await request.get(`/user/confirmation/${verificationToken.token}`).redirects(0);
-        } catch(error){
+        } catch (error) {
             //catch
         }
-        var login = await request.post('/user/login').send({
+        const login = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password
         });
         token = login.body.tokens.jwtAccessToken;
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
 
-        var createdScheduledEvents = scheduledEvents.map(async scheduledEvent => {
-            var sentRequests = await request.post(`/scheduledEvent/${projectId}/${monitorId}`)
+        const createdScheduledEvents = scheduledEvents.map(async scheduledEvent => {
+            const sentRequests = await request.post(`/scheduledEvent/${projectId}/${monitorId}`)
                 .set('Authorization', authorization)
                 .send(scheduledEvent);
             return sentRequests;
@@ -247,8 +272,8 @@ describe('Scheduled Event API - Check pagination for 12 scheduled events', funct
     });
 
     it('should get first 10 scheduled events with data length 10, skip 0, limit 10 and count 12', async function () {
-        var authorization = `Basic ${token}`;
-        var res = await request.get(`/scheduledEvent/${projectId}/${monitorId}?skip=0&limit=10`).set('Authorization', authorization);
+        const authorization = `Basic ${token}`;
+        const res = await request.get(`/scheduledEvent/${projectId}/${monitorId}?skip=0&limit=10`).set('Authorization', authorization);
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('data');
@@ -264,8 +289,8 @@ describe('Scheduled Event API - Check pagination for 12 scheduled events', funct
     });
 
     it('should get 2 last scheduled events with data length 2, skip 10, limit 10 and count 12', async function () {
-        var authorization = `Basic ${token}`;
-        var res = await request.get(`/scheduledEvent/${projectId}/${monitorId}?skip=10&limit=10`).set('Authorization', authorization);
+        const authorization = `Basic ${token}`;
+        const res = await request.get(`/scheduledEvent/${projectId}/${monitorId}?skip=10&limit=10`).set('Authorization', authorization);
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('data');
@@ -280,8 +305,8 @@ describe('Scheduled Event API - Check pagination for 12 scheduled events', funct
     });
 
     it('should get 0 scheduled events with data length 0, skip 20, limit 10 and count 12', async function () {
-        var authorization = `Basic ${token}`;
-        var res = await request.get(`/scheduledEvent/${projectId}/${monitorId}?skip=20&limit=10`).set('Authorization', authorization);
+        const authorization = `Basic ${token}`;
+        const res = await request.get(`/scheduledEvent/${projectId}/${monitorId}?skip=20&limit=10`).set('Authorization', authorization);
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('data');
@@ -300,54 +325,52 @@ describe('Scheduled Event API - Check pagination for 12 scheduled events', funct
 describe('Non-admin user access to create, delete and access scheduled events.', function () {
     this.timeout(20000);
 
-    var projectIdSecondUser = '';
-    var emailToBeInvited = '';
+    let projectIdSecondUser = '';
+    let emailToBeInvited = '';
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user)
-            .end(function (err, res) {
-                let project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
-                VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
-                    request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
-                        request.post('/user/login').send({
-                            email: userData.user.email,
-                            password: userData.user.password
-                        }).end(function (err, res) {
-                            token = res.body.tokens.jwtAccessToken;
-                            var authorization = `Basic ${token}`;
-                            request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).send(scheduledEvent)
-                                .end(function (err, res) {
-                                    scheduleEventId = res.body._id;
-                                    request.post('/user/signup').send(userData.newUser)
-                                        .end(function (err, res) {
-                                            projectIdSecondUser = res.body.project._id;
-                                            emailToBeInvited = userData.newUser.email;
-                                            userId = res.body.id;
-                                            request.post(`/team/${projectId}`).set('Authorization', authorization).send({
-                                                emails: emailToBeInvited,
-                                                role: 'Member'
-                                            }).end(function () {
-                                                VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
-                                                    request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
-                                                        request.post('/user/login').send({
-                                                            email: userData.newUser.email,
-                                                            password: userData.newUser.password
-                                                        }).end(function (err, res) {
-                                                            token = res.body.tokens.jwtAccessToken;
-                                                            done();
-                                                        });
-                                                    });
+        this.timeout(40000);
+        createUser(request, userData.user, function (err, res) {
+            const project = res.body.project;
+            projectId = project._id;
+            userId = res.body.id;
+            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
+                    request.post('/user/login').send({
+                        email: userData.user.email,
+                        password: userData.user.password
+                    }).end(function (err, res) {
+                        token = res.body.tokens.jwtAccessToken;
+                        const authorization = `Basic ${token}`;
+                        request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).send(scheduledEvent)
+                            .end(function (err, res) {
+                                scheduleEventId = res.body._id;
+                                createUser(request, userData.newUser, function (err, res) {
+                                    projectIdSecondUser = res.body.project._id;
+                                    emailToBeInvited = userData.newUser.email;
+                                    userId = res.body.id;
+                                    request.post(`/team/${projectId}`).set('Authorization', authorization).send({
+                                        emails: emailToBeInvited,
+                                        role: 'Member'
+                                    }).end(function () {
+                                        VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                                            request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
+                                                request.post('/user/login').send({
+                                                    email: userData.newUser.email,
+                                                    password: userData.newUser.password
+                                                }).end(function (err, res) {
+                                                    token = res.body.tokens.jwtAccessToken;
+                                                    done();
                                                 });
                                             });
                                         });
+                                    });
                                 });
-                        });
+                            });
                     });
                 });
             });
+        });
     });
 
     after(async function () {
@@ -358,21 +381,21 @@ describe('Non-admin user access to create, delete and access scheduled events.',
     });
 
     it('should not be able to create a new scheduled event', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).send(scheduledEvent).end(function (err, res) {
             expect(res).to.have.status(400);
             done();
         });
     });
     it('should not be able to delete a scheduled event', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/scheduledEvent/${projectId}/${scheduleEventId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(400);
             done();
         });
     });
     it('should not be able to update a scheduled event', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/scheduledEvent/${projectId}/${scheduleEventId}`).set('Authorization', authorization).send({
             name: 'updated name'
         }).end(function (err, res) {
@@ -381,7 +404,7 @@ describe('Non-admin user access to create, delete and access scheduled events.',
         });
     });
     it('should be able to get all scheduled events', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/scheduledEvent/${projectId}/${monitorId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -399,9 +422,9 @@ describe('Scheduled events APIs accesible through API key', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
-            let project = res.body.project;
+        this.timeout(40000);
+        createUser(request, userData.user, function (err, res) {
+            const project = res.body.project;
             projectId = project._id;
             apiKey = project.apiKey;
             done();
@@ -418,7 +441,6 @@ describe('Scheduled events APIs accesible through API key', function () {
         request.post(`/scheduledEvent/${projectId}/${monitorId}`).set('apiKey', apiKey).send(scheduledEvent).end(function (err, res) {
             scheduleEventId = res.body._id;
             expect(res).to.have.status(200);
-            expect(res.body.name).to.be.equal(scheduledEvent.name);
             done();
         });
     });
@@ -449,7 +471,6 @@ describe('Scheduled events APIs accesible through API key', function () {
     it('should delete a scheduled event when scheduledEventId is valid', function (done) {
         request.delete(`/scheduledEvent/${projectId}/${scheduleEventId}`).set('apiKey', apiKey).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
@@ -460,28 +481,55 @@ describe('Scheduled events APIs for status page', function () {
 
     before(async function () {
         this.timeout(30000);
-        var signUpRequest = await request.post('/user/signup').send(userData.user);
+
+        let checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: userData.email,
+            companyName: userData.companyName
+        });
+        let confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
+
+        let signUpRequest = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id
+            },
+            ...userData.user
+        });
+
         projectId = signUpRequest.body.project._id;
         userId = signUpRequest.body.id;
 
-        var verificationToken = await VerificationTokenModel.findOne({ userId });
-        try{
+        let verificationToken = await VerificationTokenModel.findOne({ userId });
+        try {
             await request.get(`/user/confirmation/${verificationToken.token}`).redirects(0);
-        } catch(error){
+        } catch (error) {
             //catch
         }
 
-        var loginRequest = await request.post('/user/login')
+        let loginRequest = await request.post('/user/login')
             .send({ email: userData.user.email, password: userData.user.password });
         token = loginRequest.body.tokens.jwtAccessToken;
 
+        checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: userData.email,
+            companyName: userData.companyName
+        });
+        confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
 
-        signUpRequest = await request.post('/user/signup').send(userData.newUser);
+        signUpRequest = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id
+            },
+            ...userData.newUser
+        });
+
+
         userId = signUpRequest.body.id;
         verificationToken = await VerificationTokenModel.findOne({ userId });
-        try{
+        try {
             await request.get(`/user/confirmation/${verificationToken.token}`).redirects(0);
-        } catch(error){
+        } catch (error) {
             //catch
         }
 
@@ -491,13 +539,17 @@ describe('Scheduled events APIs for status page', function () {
 
         authorization = `Basic ${token}`;
 
-        var monitorRequest = await request.post(`/monitor/${projectId}`)
-            .set('Authorization', authorization).send(monitor);
+        const monitorRequest = await request.post(`/monitor/${projectId}`)
+            .set('Authorization', authorization).send({
+                name: 'New Monitor 2',
+                type: 'url',
+                data: { url: 'http://www.tests.org' }
+            });
         monitorId = monitorRequest.body._id;
 
         await request.post(`/scheduledEvent/${projectId}/${monitorId}`)
             .set('Authorization', authorization).send(scheduledEvent);
-        var scheduleEventRequest = await request.post(`/scheduledEvent/${projectId}/${monitorId}`)
+        const scheduleEventRequest = await request.post(`/scheduledEvent/${projectId}/${monitorId}`)
             .set('Authorization', authorization).send(invisibleScheduledEvent);
         scheduleEventId = scheduleEventRequest.body._id;
     });

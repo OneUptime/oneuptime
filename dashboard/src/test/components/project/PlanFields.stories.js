@@ -3,7 +3,7 @@ import { storiesOf } from '@storybook/react';
 import PlanFields from '../../../components/project/PlanFields'
 import {reduxForm} from 'redux-form'
 
-let PlanFields_Decorated = new reduxForm({
+const PlanFieldsDecorated = new reduxForm({
     form: 'PlanFields',
 })(PlanFields);
 
@@ -14,5 +14,5 @@ storiesOf('Project', module)
             {story()}</div>
     ))
     .add('PlanFields', () =>
-        <PlanFields_Decorated />
+        <PlanFieldsDecorated />
     )

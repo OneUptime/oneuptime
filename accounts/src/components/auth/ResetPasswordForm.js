@@ -3,10 +3,14 @@ import PropTypes from 'prop-types'
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import { Validate } from '../../config';
-import { FlatLoader } from '../basic/Loader.js';
+import { ButtonSpinner } from '../basic/Loader.js';
 import { resetPasswordError, resetPasswordSuccess, resetPassword, resetResetPassword } from '../../actions/resetPassword';
 import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField';
+
+const errorStyle = {
+	color: '#c23d4b'
+}
 
 export class ResetPasswordForm extends Component {
 
@@ -16,20 +20,25 @@ export class ResetPasswordForm extends Component {
 
   render() {
 
+    const resetPasswordError = this.props.resetPasswordState.error;
+		let header;
+		if (resetPasswordError) {
+			header = <span style={errorStyle} id="error-msg">{resetPasswordError}</span> 
+		} else {
+			header = <span>Reset Password.</span>
+		}
+
+
     return (
       <div id="main-body" className="box css">
         <div className="inner">
           <form onSubmit={this.props.handleSubmit(this.submitForm)} className="request-reset">
-            <div className="request-reset-step step" >
+            <div className="request-reset-step" >
               <div className="title">
                 <h2>
-                  <span > {this.props.resetPasswordState.error ? <span id="error-msg" className="error" >{this.props.resetPasswordState.error}</span> : 'Reset Password'} </span>
+                  {header}
                 </h2>
               </div>
-
-              <p className="error-message hidden" />
-
-
               {this.props.resetPasswordState.success && <p id="reset-password-success" className="message"> An email is on its way to you. Follow the instructions to
 														reset your password. Please don&apos;t forget to check spam. </p>}
               {!this.props.resetPasswordState.success && <p className="message"> Enter your email address below and we will send you a link to
@@ -51,7 +60,7 @@ export class ResetPasswordForm extends Component {
                 <p className="submit">
                   <button type="submit" className="button blue medium" disabled={this.props.resetPasswordState.requesting}>
                     {!this.props.resetPasswordState.requesting && <span>Reset Password</span>}
-                    {this.props.resetPasswordState.requesting && <FlatLoader />}
+                    {this.props.resetPasswordState.requesting && <ButtonSpinner />}
                   </button>
                 </p> </div>}
             </div>
@@ -67,7 +76,7 @@ export class ResetPasswordForm extends Component {
 ResetPasswordForm.displayName = 'ResetPasswordForm'
 
 function validate(values) {
-  let errors = {};
+  const errors = {};
   if (!Validate.text(values.email)) {
     errors.email = 'Email is required.'
   }
@@ -77,7 +86,7 @@ function validate(values) {
   return errors;
 }
 
-let resetPasswordForm = reduxForm({
+const resetPasswordForm = reduxForm({
   form: 'resetPasswordForm', // a unique identifier for this form
   validate
 })(ResetPasswordForm);

@@ -3,13 +3,13 @@ import { storiesOf, action } from '@storybook/react';
 import { withKnobs, boolean } from '@storybook/addon-knobs';
 import { IncidentInternal } from '../../../components/incident/IncidentInternal'
 
-let mock_setData = (details)=>{
+const mock_setData = (details)=>{
     const submitAction = action('setdata');
   submitAction(details);
 }
 
 
-let props = {
+const props = {
     'incident': {
         'acknowledged': false,
         'resolved': false,

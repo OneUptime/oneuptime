@@ -3,14 +3,8 @@ main{
     display:block
 }
 main h2[class^=common-Uppercase]{
-    color:#32325d;
+    color:#000000;
     margin-bottom:20px
-}
-.globalNav .colorize{
-    color:#fff
-}
-.globalNav .colorize.active,.globalNav .colorize:hover{
-    color:hsla(0,0%,100%,.5)
 }
 .columns{
     display:-ms-flexbox;
@@ -323,7 +317,7 @@ main header .intro .common-ButtonGroup .primary:hover{
     background-color:#555abf
 }
 main header .intro .common-ButtonGroup .primary:active{
-    background-color:#32325d
+    background-color:#000000
 }
 main header .icosahedron{
     position:relative;
@@ -452,7 +446,7 @@ section.techguide .chart .x-axis{
 section.techguide .chart .x-axis .label{
     position:relative;
     font-size:15px;
-    color:#6b7c93
+    color:#797979
 }
 section.techguide .chart .x-axis .label:nth-child(1){
     width:10%
@@ -483,7 +477,7 @@ section.techguide .chart .effectiveness .label{
     flex-shrink:0;
     font-size:15px;
     font-weight:500;
-    color:#32325d;
+    color:#000000;
     text-align:center
 }
 section.techguide .chart .effectiveness .label.min{
@@ -498,7 +492,7 @@ section.techguide .chart .effectiveness .slider{
     flex-grow:1;
     height:4px;
     border-radius:2px;
-    background-color:#e6ebf1;
+    background-color:#fdfdfd;
     overflow:hidden;
     -webkit-mask-image:url(data:image/png;
     base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA5JREFUeNpiYGBgAAgwAAAEAAGbA+oJAAAAAElFTkSuQmCC)
@@ -509,7 +503,7 @@ section.techguide .chart .effectiveness .slider .fill{
     height:100%;
     left:0;
     top:0;
-    background-color:#7795f8;
+    background-color:#797979;
     pointer-events:none;
     transform-origin:0 0
 }
@@ -551,7 +545,7 @@ section.simplify:before{
     height:1000%;
     top:-80px;
     transform:skewY(-12deg);
-    background-color:#f6f9fc;
+    background-color:#f9f9f9;
     z-index:-1
 }
 section.simplify .intro-copy{
@@ -610,7 +604,7 @@ section.simplify .rules .rule-builder .header{
 section.simplify .rules .rule-builder .header h3{
     font-size:17px;
     font-weight:500;
-    color:#32325d;
+    color:#000000;
     margin-bottom:3px
 }
 section.simplify .rules .rule-builder .header h3 span{
@@ -619,20 +613,20 @@ section.simplify .rules .rule-builder .header h3 span{
 section.simplify .rules .rule-builder .header p{
     font-size:16px;
     line-height:23px;
-    color:#6b7c93
+    color:#797979
 }
 section.simplify .rules .rule-builder .group{
     position:relative;
     padding:10px 15px;
     margin-bottom:10px;
     border-radius:4px;
-    background-color:#f6f9fc
+    background-color:#f9f9f9
 }
 section.simplify .rules .rule-builder .text-field{
     font-family:Source Code Pro;
     font-size:15px;
     font-weight:500;
-    color:#6b7c93;
+    color:#797979;
     padding-top:7px
 }
 section.simplify .rules .rule-builder .text-field span.token{
@@ -651,7 +645,7 @@ section.simplify .rules .rule-builder .stats h4{
     font-size:16px;
     line-height:23px;
     font-weight:400;
-    color:#6b7c93;
+    color:#797979;
     text-align:center
 }
 section.simplify .rules .rule-builder .stats .numbers{
@@ -672,11 +666,11 @@ section.simplify .rules .rule-builder .stats .numbers .stat{
 section.simplify .rules .rule-builder .stats .numbers .stat h1{
     font-size:20px;
     font-weight:400;
-    color:#32325d
+    color:#000000
 }
 section.simplify .rules .rule-builder .stats .numbers .stat p{
     font-size:14px;
-    color:#6b7c93
+    color:#797979
 }
 section.simplify .rules .rule-builder .add-button{
     position:relative;
@@ -802,7 +796,7 @@ section.simplify .manual-review .review-queue .charge:nth-child(1) .content,sect
     box-shadow:0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08)
 }
 section.simplify .manual-review .review-queue .charge:nth-child(1) .risk-icon,section.simplify .manual-review .review-queue .charge:nth-child(2) .risk-icon,section.simplify .manual-review .review-queue .charge:nth-child(4) .risk-icon,section.simplify .manual-review .review-queue .charge:nth-child(5) .risk-icon{
-    background-color:#e6ebf1
+    background-color:#fdfdfd
 }
 section.simplify .manual-review .review-queue .charge:nth-child(1) .detail h3,section.simplify .manual-review .review-queue .charge:nth-child(2) .detail h3,section.simplify .manual-review .review-queue .charge:nth-child(4) .detail h3,section.simplify .manual-review .review-queue .charge:nth-child(5) .detail h3{
     color:rgba(50,50,93,0)
@@ -821,7 +815,7 @@ section.simplify .manual-review .review-queue .charge.refunded .button.refund{
     background-color:rgba(136,152,170,0)
 }
 section.simplify .manual-review .review-queue .charge.refunded .button.refund svg path{
-    fill:#8898aa
+    fill:#757575
 }
 section.simplify .manual-review .review-queue .charge.refunded .button.accept{
     opacity:0
@@ -906,7 +900,7 @@ section.simplify .manual-review .review-queue .charge .detail h3{
     max-width:100%;
     font-size:15px;
     font-weight:500;
-    color:#32325d;
+    color:#000000;
     margin-bottom:3px;
     white-space:nowrap;
     overflow:hidden;
@@ -927,7 +921,7 @@ section.simplify .manual-review .review-queue .charge .detail h3:after{
     bottom:3px;
     left:0;
     border-radius:2px;
-    background-color:#cfd7df;
+    background-color:#dbdbdb;
     pointer-events:none;
     opacity:0;
     transition:opacity .5s cubic-bezier(.645,.045,.355,1)
@@ -937,7 +931,7 @@ section.simplify .manual-review .review-queue .charge .detail p{
     position:relative;
     max-width:100%;
     font-size:14px;
-    color:#6b7c93;
+    color:#797979;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
@@ -957,7 +951,7 @@ section.simplify .manual-review .review-queue .charge .detail p:after{
     bottom:4px;
     left:0;
     border-radius:2px;
-    background-color:#e6ebf1;
+    background-color:#fdfdfd;
     pointer-events:none;
     opacity:0;
     transition:opacity .5s cubic-bezier(.645,.045,.355,1)
@@ -999,7 +993,7 @@ section.simplify .manual-review .review-queue .charge .button.click:after{
     animation:button-highlight .35s ease-in-out
 }
 section.simplify .manual-review .review-queue .charge .button.refund{
-    background-color:#8898aa
+    background-color:#757575
 }
 section.simplify .manual-review .review-queue .charge .button.refund svg{
     margin-left:-2px
@@ -1127,7 +1121,7 @@ section.take-action .video-container .video:active .play{
     transform:none
 }
 section.take-action .video-container .video video{
-    background-color:#32325d;
+    background-color:#000000;
     display:block;
     position:relative;
     border-radius:6px;

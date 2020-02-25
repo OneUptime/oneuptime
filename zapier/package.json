@@ -3,14 +3,15 @@
   "version": "1.0.8",
   "description": "Fyipe is an automation tool that helps you monitor the performance and downtime of your APIs and Web apps.",
   "homepage": "https://fyipe.com",
-  "author": "Olalekan Ayodele <longyarnz@gmail.com>",
+  "author": "HackerBay <hello@hackerbay.io>",
   "license": "MIT",
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",
     "test": "mocha --recursive",
     "fix-lint": "eslint . --fix",
-    "audit": "npm-audit-ci-wrapper --threshold=high"
+    "audit": "npm-audit-ci-wrapper --threshold=high",
+    "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*'"
   },
   "engine": {
     "node": "6.10.3",
@@ -22,6 +23,7 @@
   "devDependencies": {
     "babel-eslint": "^10.0.2",
     "babel-preset-react": "^6.24.1",
+    "depcheck": "^0.9.2",
     "eslint": "^6.0.1",
     "eslint-plugin-react": "^7.14.2",
     "mocha": "^6.1.4",

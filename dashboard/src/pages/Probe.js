@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ProbeList from '../components/probe/ProbeList';
-import { getProbes} from '../actions/probe';
+import { getProbes } from '../actions/probe';
 
 class Probe extends React.Component {
 
@@ -19,27 +19,27 @@ class Probe extends React.Component {
 
   prevClicked = () => {
     this.props.getProbes(this.props.currentProject._id, (this.props.probes.skip ? (parseInt(this.props.probes.skip, 10) - 10) : 10), 10);
-   /* if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('Previous Incident Requested', {
-        projectId: this.props.currentProject._id,
-      });
-    }*/
-}
+    /* if (!IS_DEV) {
+       logEvent('Previous Incident Requested', {
+         projectId: this.props.currentProject._id,
+       });
+     }*/
+  }
 
   nextClicked = () => {
     this.props.getProbes(this.props.currentProject._id, (this.props.probes.skip ? (parseInt(this.props.probes.skip, 10) + 10) : 10), 10);
-   /* if (window.location.href.indexOf('localhost') <= -1) {
-      this.context.mixpanel.track('Next Incident Requested', {
-        projectId: this.props.currentProject._id,
-      });
-    }*/
-}
+    /* if (!IS_DEV) {
+       logEvent('Next Incident Requested', {
+         projectId: this.props.currentProject._id,
+       });
+     }*/
+  }
 
   render() {
     return (
 
       <Dashboard ready={this.ready}>
-        <div className="db-World-contentPane Box-root Padding-bottom--48">
+        <div className="Box-root Margin-vertical--12">
           <div>
             <div>
               <div className="db-RadarRulesLists-page">
@@ -58,7 +58,7 @@ class Probe extends React.Component {
                               </span>
                               <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span>
-                                Here’s a list of probe which will monitor resources in this project.
+                                  Probes will monitor resources in your project like API&apos;s, Websites and more from different locations around the world.
                                 </span>
                               </span>
                             </div>
@@ -68,8 +68,8 @@ class Probe extends React.Component {
                             </div>
                           </div>
                         </div>
-                       <ProbeList probesList={this.props.probes} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
-                       </div>
+                        <ProbeList probesList={this.props.probes} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -93,15 +93,15 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch => {
-  return bindActionCreators({getProbes}, dispatch);
+  return bindActionCreators({ getProbes }, dispatch);
 }
 
 Probe.propTypes = {
-  getProbes:PropTypes.func,
-  currentProject:PropTypes.object,
-  _id:PropTypes.string,
-  probes:PropTypes.object,
-  skip:PropTypes.number,
+  getProbes: PropTypes.func,
+  currentProject: PropTypes.object,
+  _id: PropTypes.string,
+  probes: PropTypes.object,
+  skip: PropTypes.number,
 }
 
 Probe.displayName = 'Probe'

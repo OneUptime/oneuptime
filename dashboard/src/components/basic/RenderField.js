@@ -16,11 +16,11 @@ const RenderField = ({ input, placeholder, type, meta, className, id, disabled, 
                 style={style || {}}
             />
         </span>
-        <br/>
+        <br />
         {meta.error &&
             meta.touched &&
-            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{marginTop:'5px'}}>
-                <div className="Box-root Margin-right--8" style={{marginTop:'2px'}}>
+            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '5px' }}>
+                <div className="Box-root Margin-right--8" style={{ marginTop: '2px' }}>
                     <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex">
                     </div>
                 </div>
@@ -42,7 +42,7 @@ RenderField.propTypes = {
     ]),
     input: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
-    type: PropTypes.string.isRequired,
+    type: PropTypes.string,
     className: PropTypes.string,
     id: PropTypes.string,
     meta: PropTypes.object.isRequired,
@@ -51,7 +51,7 @@ RenderField.propTypes = {
     style: PropTypes.object
 }
 
-export {RenderField}
+export { RenderField }
 
 
 

@@ -2,86 +2,67 @@ module.exports = {
 
     // process messages to be sent to slack workspace channels
     sendNotification: async function (projectId, incidentId, userId, text, incident) {
-        var self = this;
-
-        try{
-            var project = await ProjectService.findOneBy({_id: projectId});
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        try{
-            var integrations = await IntegrationModel.find({
+        try {
+            const self = this;
+            const project = await ProjectService.findOneBy({_id: projectId});
+            const integrations = await IntegrationModel.find({
                 projectId,
                 integrationType: 'slack'
             });
-        }catch(error){
-            ErrorService.log('IntegrationModel.find', error);
-            throw error;
-        }
-        if (integrations.length === 0) return 'no connected slack workspace to notify';
-        for (const integration of integrations) {
 
-            try{
+            if (integrations.length === 0) return 'no connected slack workspace to notify';
+            for (const integration of integrations) {
                 // call the notify function that just sends the slack notification
-                var response = await self.notify(integration, project, text, incident, incidentId);
-            }catch(error){
-                ErrorService.log('slackservice.notify', error);
-                throw error;
+                const response = await self.notify(integration, project, text, incident, incidentId);
+                return response;
             }
-            return response;
+        } catch (error) {
+            ErrorService.log('slackService.sendNotification', error);
+            throw error;  
         }
     },
 
     // send notification to slack workspace channels
-    async notify(team, project, text, incident, incidentId) {
-
-        const token = team.data.accessToken;
-        const web = new WebClient(token);
-        const channelId = team.data.channelId; //project.channelId;
-        const color = incident ? 'danger' : 'good';
-
-        const slackText = `${project.name}: ${text}`;
-
-        if (incident) {
-            const incAttachment = {
-                text: slackText,
-                fallback: slackText,
-                callback_id: incidentId,
-                color: color,
-                attachment_type: 'default',
-            };
-            try{
-                var response = await web.chat.postMessage({
+    async notify(team, project, text, incident, incidentId) {        
+        try {
+            const token = team.data.accessToken;
+            const web = new WebClient(token);
+            const channelId = team.data.channelId; //project.channelId;
+            const color = incident ? 'danger' : 'good';
+    
+            const slackText = `${project.name}: ${text}`;
+            if (incident) {
+                const incAttachment = {
+                    text: slackText,
+                    fallback: slackText,
+                    callback_id: incidentId,
+                    color: color,
+                    attachment_type: 'default',
+                };
+                const response = await web.chat.postMessage({
                     channel: channelId,
                     text: slackText,
                     attachments: [incAttachment]
                 });
-            }catch(error){
-                ErrorService.log('web.chat.postMessage', error);
-                throw error;
-            }
-            return response;
 
-        } else {
-            try{
-                var res = await web.chat.postMessage({
+                return response;
+            } else {
+                const res = await web.chat.postMessage({
                     channel: channelId,
                     text: slackText
                 });
-            }catch(error){
-                ErrorService.log('', error);
-                throw error;
+                return (`Message sent: ${res.ts}`);
             }
-            return (`Message sent: ${res.ts}`);
+        } catch (error) {
+            ErrorService.log('slackService.notify', error);
+            throw error; 
         }
     }
 };
 
-var {
+const {
     WebClient
 } = require('@slack/client');
-var IntegrationModel = require('../models/integration');
-var ProjectService = require('./projectService');
-var ErrorService = require('./errorService');
-
+const IntegrationModel = require('../models/integration');
+const ProjectService = require('./projectService');
+const ErrorService = require('./errorService');

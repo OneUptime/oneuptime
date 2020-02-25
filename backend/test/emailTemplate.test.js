@@ -1,29 +1,33 @@
 /* eslint-disable no-useless-escape */
-var expect = require('chai').expect;
+const expect = require('chai').expect;
 process.env.PORT = 3020;
-var userData = require('./data/user');
-var chai = require('chai');
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var EmailTemplateService = require('../backend/services/emailTemplateService');
-var NotificationService = require('../backend/services/notificationService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const EmailTemplateService = require('../backend/services/emailTemplateService');
+const NotificationService = require('../backend/services/notificationService');
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const AirtableService = require('../backend/services/airtableService');
 
-var token, projectId, emailTemplateId, userId;
+let token, projectId, emailTemplateId, userId, airtableId;
 
 describe('Email Template API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
-            let project = res.body.project;
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -40,18 +44,19 @@ describe('Email Template API', function () {
 
     after(async function () {
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
-        await ProjectService.hardDeleteBy({_id: projectId});
-        await NotificationService.hardDeleteBy({projectId: projectId});
-        await EmailTemplateService.hardDeleteBy({projectId: projectId});
+        await ProjectService.hardDeleteBy({ _id: projectId });
+        await NotificationService.hardDeleteBy({ projectId: projectId });
+        await EmailTemplateService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     // 'post /:projectId'
     it('should create an email template with valid data', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/emailTemplate/${projectId}`).set('Authorization', authorization).send({
             subject: 'Mail Subject',
             body: 'Mail Body',
-            emailType: 'Subscriber Incident'
+            emailType: 'Subscriber Incident Created'
         }).end(function (err, res) {
             emailTemplateId = res.body._id;
             expect(res).to.have.status(200);
@@ -62,20 +67,20 @@ describe('Email Template API', function () {
     });
 
     it('should sanitize dirty template data sent to endpoint', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/emailTemplate/${projectId}`).set('Authorization', authorization).send({
             subject: 'Mail Subject',
-            body: '<p>{{abc<iframe/\/src=jAva&Tab;script:alert(3)>def}}',
-            emailType: 'Subscriber Incident'
+            body: '<img src=x onerror=alert(1)//>',
+            emailType: 'Subscriber Incident Created'
         }).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.body).to.be.equal('<html><head></head><body><p>{{abcdef}}</p></body></html>');
+            expect(res.body.body).to.be.equal('<html><head></head><body><img src="x"></body></html>');
             done();
         });
     });
 
     it('should get an array of email templates by valid projectId', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/emailTemplate/${projectId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('array');
@@ -84,7 +89,7 @@ describe('Email Template API', function () {
     });
 
     it('should get an email template by valid emailTemplateId', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get(`/emailTemplate/${projectId}/emailTemplate/${emailTemplateId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -93,7 +98,7 @@ describe('Email Template API', function () {
     });
 
     it('should update an email template by valid emailTemplateId', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/emailTemplate/${projectId}/emailTemplate/${emailTemplateId}`).send({
             subject: 'New Mail Subject'
         }).set('Authorization', authorization).end(function (err, res) {
@@ -104,8 +109,8 @@ describe('Email Template API', function () {
         });
     });
 
-    it('should deleted an email template', function(done){
-        var authorization = `Basic ${token}`;
+    it('should deleted an email template', function (done) {
+        const authorization = `Basic ${token}`;
         request.delete(`/emailTemplate/${projectId}/emailTemplate/${emailTemplateId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body.deleted).to.be.equal(true);

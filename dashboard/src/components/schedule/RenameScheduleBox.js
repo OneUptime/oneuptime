@@ -11,6 +11,8 @@ import { renameSchedule } from '../../actions/schedule';
 import PropTypes from 'prop-types';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 function validate(value) {
 
@@ -26,8 +28,8 @@ function validate(value) {
 
 export class RenameScheduleBox extends Component {
     componentDidMount() {
-        if(window.location.href.indexOf('localhost') <= -1){
-        this.context.mixpanel.track('Schedule settings page Loaded');
+        if(!IS_DEV){
+        logEvent('Schedule settings page Loaded');
         }
     }
 
@@ -39,8 +41,8 @@ export class RenameScheduleBox extends Component {
 
         if (scheduleName) {
             renameSchedule(subProjectId, scheduleId, scheduleName);
-            if(window.location.href.indexOf('localhost') <= -1){
-            this.context.mixpanel.track('Rename Schedule', values);
+            if(!IS_DEV){
+            logEvent('Rename Schedule', values);
             }
         }
     }
@@ -59,7 +61,7 @@ export class RenameScheduleBox extends Component {
                                 </span>
                                 <p>
                                     <RenderIfSubProjectAdmin>
-                                        <span>Use the field below to rename the schedule.</span>
+                                        <span>Use the field below to name the schedule.</span>
                                     </RenderIfSubProjectAdmin>
                                     <RenderIfSubProjectMember>
                                         <span>Basic information about this schedule.</span>
@@ -124,11 +126,11 @@ export class RenameScheduleBox extends Component {
 
 RenameScheduleBox.displayName = 'RenameScheduleBox'
 
-let formName = 'RenameSchedule' + Math.floor((Math.random() * 10) + 1);
+const formName = 'RenameSchedule' + Math.floor((Math.random() * 10) + 1);
 
-let onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
+const onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
 
-let RenameScheduleForm = new reduxForm({
+const RenameScheduleForm = new reduxForm({
     form: formName,
     validate,
     onSubmitSuccess,
@@ -142,7 +144,7 @@ const mapDispatchToProps = dispatch => (
 const mapStateToProps = (state, props) => {
     const { scheduleId, subProjectId } = props.match.params;
 
-    var schedule = state.schedule.subProjectSchedules.map((subProjectSchedule)=>{
+    let schedule = state.schedule.subProjectSchedules.map((subProjectSchedule)=>{
         return subProjectSchedule.schedules.find(schedule => schedule._id === scheduleId)
     });
     
@@ -157,10 +159,6 @@ const mapStateToProps = (state, props) => {
         isRequesting: state.schedule.renameSchedule.requesting,
     }
 }
-
-RenameScheduleBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 RenameScheduleBox.propTypes = {
     scheduleId: PropTypes.string,

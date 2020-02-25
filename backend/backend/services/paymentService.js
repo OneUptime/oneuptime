@@ -1,26 +1,16 @@
 module.exports = {
-    //Description: Create token in stripe for user.
+    //Description: Retrieve payment intent.
     //Params:
-    //Param 1: cardNumber: Card number.
-    //Param 2: cvc: Card cvc.
-    //Param 3: expMonth: Card expiry month.
-    //Param 4: expYear: Card expiry year.
+    //Param 1: paymentIntent: Payment Intent
     //Returns: promise
-    createToken: async function (cardNumber, cvc, expMonth, expYear, zipCode) {
-        try{
-            var token = await stripe.tokens.create({
-                card: {
-                    'number': cardNumber,
-                    'exp_month': expMonth,
-                    'exp_year': expYear,
-                    'cvc': cvc,
-                    'address_zip': zipCode
-                }});
-        }catch(error){
-            ErrorService.log('stripe.tokens.create', error);
+    checkPaymentIntent: async function (paymentIntent) {
+        try {
+            const processedPaymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
+            return processedPaymentIntent;
+        } catch (error) {
+            ErrorService.log('paymentService.checkPaymentIntent', error);
             throw error;
         }
-        return token.id;
     },
 
     //Description: Create customer in stripe for  user.
@@ -28,42 +18,31 @@ module.exports = {
     //Param 1: stripeToken: Token generated from frontend
     //Param 2: user: User details
     //Returns: promise
-    createCustomer: async function (stripeToken, user) {
+    createCustomer: async function (email, companyName) {
 
-        if (!user) {
-            let error = new Error('User is null');
-            error.code = 400;
-            ErrorService.log('PaymentService.createCustomer', error);
+        try {
+            const customer = await stripe.customers.create({
+                email: email,
+                description: companyName
+            });
+            return customer.id;
+        } catch (error) {
+            ErrorService.log('paymentService.createCustomer', error);
             throw error;
-
-        } else {
-            try{
-                var customer = await stripe.customers.create({
-                    source: stripeToken,
-                    email: user.email,
-                    description: user.companyName
-                });
-            }catch(error){
-                ErrorService.log('stripe.customers.create', error);
-                throw error;
-            }
         }
-
-        //return a promise;
-        return customer.id;
     },
 
     // eslint-disable-next-line no-unused-vars
     addPayment: async function (customerId, stripeToken) {
-        try{
-            var card = await stripe.customers.createSource(
+        try {
+            const card = await stripe.customers.createSource(
                 customerId,
             );
-        }catch(error){
-            ErrorService.log('stripe.customers.createSource', error);
+            return card;
+        } catch (error) {
+            ErrorService.log('paymentService.addPayment', error);
             throw error;
         }
-        return card;
     },
 
     //Description: Subscribe plan to user.
@@ -72,60 +51,30 @@ module.exports = {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
     subscribePlan: async function (stripePlanId, stripeCustomerId, coupon) {
-
-        var items = [];
-        items.push({
-            plan: stripePlanId,
-            quantity: 1
-        });
-
-        var alertItems = [];
-        var extraUserItems = [];
-        var subscriptionObj = {};
-
-        Plans.getAlertsPlans().map((planId) => alertItems.push({ plan: planId }));
-        var extraUserplanId = Plans.getPlanById(stripePlanId);
-        extraUserItems.push({
-            plan: extraUserplanId.extraUserPlanId,
-            quantity: 0
-        });
-        if (coupon) {
-            subscriptionObj = { customer: stripeCustomerId, items: items, coupon: coupon, trial_period_days: 14 };
-        }
-
-        else {
-            subscriptionObj = { customer: stripeCustomerId, items: items, trial_period_days: 14 };
-        }
-
-        try{
-            var subscription1 = await stripe.subscriptions.create(subscriptionObj);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.create', error);
-            throw error;
-        }
-        try{
-            var subscription2 = await stripe.subscriptions.create({
-                customer: stripeCustomerId,
-                items: alertItems
+        try {
+            const items = [];
+            items.push({
+                plan: stripePlanId,
+                quantity: 1
             });
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.create', error);
-            throw error;
-        }
-        try{
-            var subscription3 = await stripe.subscriptions.create({
-                customer: stripeCustomerId,
-                items: extraUserItems
+    
+            let subscriptionObj = {};
+    
+            if (coupon) {
+                subscriptionObj = { customer: stripeCustomerId, items: items, coupon: coupon, trial_period_days: 14 };
+            }
+    
+            else {
+                subscriptionObj = { customer: stripeCustomerId, items: items, trial_period_days: 14 };
+            }
+            const subscription = await stripe.subscriptions.create(subscriptionObj);
+            return ({
+                stripeSubscriptionId: subscription.id,
             });
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.create', error);
+        } catch (error) {
+            ErrorService.log('paymentService.subscribePlan', error);
             throw error;
         }
-        return ({
-            stripeSubscriptionId: subscription1.id,
-            stripeMeteredSubscriptionId: subscription2.id,
-            stripeExtraUserSubscriptionId : subscription3.id
-        });
     },
 
     //Description: Call this fuction when you add and remove a team member from Fyipe. This would add and remove seats based on how many users are in the project.
@@ -134,172 +83,99 @@ module.exports = {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
     changeSeats: async function (subscriptionId, seats) {
-        try{
-            var subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.retrieve', error);
-            throw error;
-        }
-        var plan = null;
-        var items = [];
-        if (!subscription || !subscription.items || !subscription.items.data || !subscription.items.data.length > 0) {
-            let error = new Error('Your subscription cannot be retrieved.');
-            error.code = 400;
-            ErrorService.log('PaymentService.changeSeats', error);
-            throw error;
-        } else {
-            for (var i = 0; i < subscription.items.data.length; i++) {
-                try{
-                    plan = await Plans.getPlanByExtraUserId(subscription.items.data[i].plan.id);
-                }catch(error){
-                    ErrorService.log('Plans.getPlanByExtraUserId', error);
-                    throw error;
-                }
-                if (plan) {
-                    var item = {
-                        plan: plan.extraUserPlanId,
-                        id: subscription.items.data[i].id,
-                        quantity: seats
-                    };
+        try {
+            let subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-                    items.push(item);
-                }
-
-            }
-            try{
-                subscription = await stripe.subscriptions.update(subscriptionId, { items: items });
-            }catch(error){
-                ErrorService.log('stripe.subscriptions.update', error);
+            let plan = null;
+            const items = [];
+            if (!subscription || !subscription.items || !subscription.items.data || !subscription.items.data.length > 0) {
+                const error = new Error('Your subscription cannot be retrieved.');
+                error.code = 400;
+                ErrorService.log('paymentService.changeSeats', error);
                 throw error;
+            } else {
+                for (let i = 0; i < subscription.items.data.length; i++) {
+                    plan = await Plans.getPlanById(subscription.items.data[i].plan.id);
+
+                    if (plan) {
+                        const item = {
+                            plan: plan.planId,
+                            id: subscription.items.data[i].id,
+                            quantity: seats
+                        };
+    
+                        items.push(item);
+                    }
+                }
+                subscription = await stripe.subscriptions.update(subscriptionId, { items: items });
+
+                return(subscription.id);
             }
-            return(subscription.id);
+        } catch (error) {
+            ErrorService.log('paymentService.changeSeats', error);
+            throw error;
         }
     },
 
-    removeSubscription: async function (stripeSubscriptionId, stripeMeteredSubscriptionId,stripeExtraUserSubscriptionId) {
-
-        var confirmations = [];
-        try{
+    removeSubscription: async function (stripeSubscriptionId) {
+        try {
+            const confirmations = [];
             confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.del', error);
+            return confirmations;
+        } catch (error) {
+            ErrorService.log('paymentService.removeSubscription', error);
             throw error;
         }
-        try{
-            confirmations[1] = await stripe.subscriptions.del(stripeMeteredSubscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.del', error);
-            throw error;
-        }
-        try{
-            confirmations[2] = await stripe.subscriptions.del(stripeExtraUserSubscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.del', error);
-            throw error;
-        }
-        return confirmations;
     },
 
 
     changePlan: async function (subscriptionId, planId, seats ,trialLeft) {
-        var subscriptionObj = {};
-        try{
-            var subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.retrieve', error);
-            throw error;
-        }
-        try{
+        try {
+            let subscriptionObj = {};
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
             await stripe.subscriptions.del(subscriptionId);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.del', error);
+
+            const items = [];
+            items.push({
+                plan: planId,
+                quantity: seats
+            });
+            if (trialLeft && trialLeft < 14) {
+                trialLeft = 14 - trialLeft;
+                subscriptionObj = { customer: subscription.customer, items: items,trial_period_days: trialLeft };
+            }
+            else {
+                subscriptionObj = { customer: subscription.customer, items: items,};
+            }
+            const subscriptions = await stripe.subscriptions.create(subscriptionObj);
+            return subscriptions.id;
+        } catch (error) {
+            ErrorService.log('paymentService.changePlan', error);
             throw error;
         }
-        var items = [];
-        items.push({
-            plan: planId,
-            quantity: seats
-        });
-        if (trialLeft && trialLeft < 14) {
-            trialLeft = 14 - trialLeft;
-            subscriptionObj = { customer: subscription.customer, items: items,trial_period_days: trialLeft };
-        }
-        else {
-            subscriptionObj = { customer: subscription.customer, items: items,};
-        }
-        try{
-            var subscriptions = await stripe.subscriptions.create(subscriptionObj);
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.create', error);
-            throw error;
-        }
-        return subscriptions.id;
     },
-
-    // chargeAlert: async function (planId, stripeMeteredSubscriptionId) {
-    //     try{
-    //         var subscription = await stripe.subscriptions.retrieve(stripeMeteredSubscriptionId);
-    //     }catch(error){
-    //         ErrorService.log('stripe.subscriptions.retrieve', error);
-    //         throw error;
-    //     }
-    //     try{
-    //         var plan = await Plans.getPlanById(planId);
-    //     }catch(error){
-    //         ErrorService.log('Plans.getPlanById', error);
-    //         throw error;
-    //     }
-    //     var subscriptionItemId = null;
-    //     if (!subscription || !subscription.items || !subscription.items.data || !subscription.items.data.length > 0) {
-    //         let error = new Error('Your subscription cannot be retrieved.');
-    //         error.code = 400;
-    //         ErrorService.log('PaymentService.chargeAlert', error);
-    //         throw error;
-    //     } else {
-    //         for (var i = 0; i < subscription.items.data.length; i++) {
-
-    //             if (subscription.items.data[i].plan.id === plan.alertPlanId) {
-    //                 subscriptionItemId = subscription.items.data[i].id;
-    //                 break;
-    //                 //do nothing.
-    //             }
-    //         }
-    //         var today = new Date();
-    //         try{
-    //             var subscriptionItem = await stripe.usageRecords.create(subscriptionItemId, {
-    //                 quantity: 1,
-    //                 timestamp: today.getTime() + today.getTimezoneOffset(),
-    //                 action: 'increment'
-    //             });
-    //         }catch(error){
-    //             ErrorService.log('stripe.usageRecords.create', error);
-    //             throw error;
-    //         }
-    //         return subscriptionItem;
-    //     }
-    // },
-
     chargeAlert: async function(userId, projectId, chargeAmount){
-        try{
-            var project = await ProjectService.findOneBy({
+        try {
+            const project = await ProjectService.findOneBy({
                 _id: projectId
             });
-            var { balance } = project;
-            var { minimumBalance, rechargeToBalance } = project.alertOptions;
+            const { balance } = project;
+            const { minimumBalance, rechargeToBalance } = project.alertOptions;
             if ( balance < minimumBalance ){
-                var chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, project.id);
+                const chargeForBalance = await StripeService.chargeCustomerForBalance(userId, rechargeToBalance, project.id);
                 if (!(chargeForBalance.paid)){
                     //create notification
-                    var message = 'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
-                    var meta = {
+                    const message = 'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
+                    const meta = {
                         type: 'action',
                         client_secret: chargeForBalance.client_secret
                     };
-                    NotificationService.create(projectId, message, userId, null, meta);
+                    await NotificationService.create(projectId, message, userId, null, meta);
                 }
+                
             }
-            var balanceAfterAlertSent = balance - chargeAmount;
-            var updatedProject = await ProjectModel.findByIdAndUpdate(
+            const balanceAfterAlertSent = balance - chargeAmount;
+            const updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId, {
                     $set: {
                         balance: balanceAfterAlertSent
@@ -307,7 +183,7 @@ module.exports = {
                 }, { new: true });
             return updatedProject;
         } catch (error) {
-            ErrorService.log('PaymentService.chargeAlert', error);
+            ErrorService.log('paymentService.chargeAlert', error);
             throw error;
         }
     },
@@ -317,8 +193,8 @@ module.exports = {
     //Param 1: stripeCustomerId: Received during signup process.
     //Returns : promise
     chargeExtraUser: async function (stripeCustomerId, extraUserPlanId, extraUsersToAdd) {
-        try{
-            var subscription = await stripe.subscriptions.create({
+        try {
+            const subscription = await stripe.subscriptions.create({
                 customer: stripeCustomerId,
                 items: [
                     {
@@ -327,48 +203,19 @@ module.exports = {
                     },
                 ]
             });
-        }catch(error){
-            ErrorService.log('stripe.subscriptions.create', error);
+            return subscription;
+        } catch (error) {
+            ErrorService.log('paymentService.chargeExtraUser', error);
             throw error;
         }
-        return subscription;
-    },
-
-    //Description: Call this fuction when a user is almost done with signing up.
-    //             This verifies if the card is billable during sign-up
-    //             by charging $1 on the user's account.
-    //Params:
-    //Param 1: stripeCustomerId: Received during signup process.
-    //Returns : promise
-    testCardCharge: async function(customerId) {
-        var testChargeValue = 100;
-        try{
-            var charge = await stripe.charges.create(
-                {
-                    amount: testChargeValue,
-                    currency: 'usd',
-                    customer: customerId,
-                    description: 'Verify if card is billable.'
-                });
-        }catch(error){
-            ErrorService.log('stripe.charges.create', error);
-            throw error;
-        }
-        if (!charge || !charge.paid) {
-            let error = new Error('Card is not billable. Account will be disabled in 15 days.');
-            error.code;
-            ErrorService.log('paymentService.create', error);
-            throw error;
-        }
-        return charge;
     }
 };
 
-var payment = require('../config/payment');
-var stripe = require('stripe')(payment.paymentPrivateKey);
-var Plans = require('../config/plans');
-var ErrorService = require('./errorService');
-var ProjectService = require('./projectService');
-var ProjectModel = require('../models/project');
-var StripeService = require('./stripeService');
-var NotificationService = require('./notificationService');
+const payment = require('../config/payment');
+const stripe = require('stripe')(payment.paymentPrivateKey);
+const Plans = require('../config/plans');
+const ErrorService = require('./errorService');
+const ProjectService = require('./projectService');
+const ProjectModel = require('../models/project');
+const StripeService = require('./stripeService');
+const NotificationService = require('./notificationService');

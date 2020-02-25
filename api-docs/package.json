@@ -1,6 +1,6 @@
 {
   "name": "fyipe-api-docs",
-  "version": "1.0.0",
+  "version": "3.0.1797",
   "description": "fyipe api refernce",
   "main": "Gruntfile.js",
   "repository": {
@@ -14,16 +14,18 @@
   },
   "homepage": "https://github.com/fyipe/api-docs#readme",
   "dependencies": {
-    "express": "^4.16.4",
+    "ejs": "^3.0.1",
+    "express": "^4.17.1",
     "path": "^0.12.7"
   },
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"no test required\""
+    "dev": "nodemon server.js",
+    "test": "echo \"no test required\"",
+    "audit": "npm-audit-ci-wrapper --threshold=high"
   },
   "devDependencies": {
-    "grunt": "~0.4.5",
-    "grunt-contrib-concat": "^0.5.1",
-    "grunt-release": "^0.13.0"
+    "nodemon": "^2.0.2",
+    "npm-audit-ci-wrapper": "^2.4.3"
   }
 }

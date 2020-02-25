@@ -1,184 +1,249 @@
-var CB = require('cloudboost');
-
-CB.CloudApp.init('hcaarmonukbk', 'cc7427bc-ca50-450e-a8a4-d2fc42155847');
 
 module.exports = {
-    sendIncidentCreated: async (incident) => {
-        try{
-            var project = await ProjectService.findOneBy({ _id: incident.projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
-        try{
-            CB.CloudNotification.publish(`incidentCreated-${projectId}`, incident);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`incidentCreated`)', error);
+    sendCreatedIncident: async (incident) => {
+        try {
+            
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: incident.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+            
+            global.io.emit(`incidentCreated-${projectId}`, incident);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendCreatedIncident', error);
             throw error;
         }
     },
 
-    sendMonitorCreated: async (monitor) =>{
-        try{
-            var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
-        try{
-            CB.CloudNotification.publish(`createMonitor-${projectId}`,monitor);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`createMonitor`)', error);
+    updateIncidentNote: async (incident) => {
+        try {
+            const project = await ProjectService.findOneBy({ _id: incident.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+
+            global.io.emit(`updateIncidentNote-${projectId}`, incident);
+        } catch (error) {
+            ErrorService.log('realTimeService.updateIncidentNote', error);
             throw error;
         }
     },
 
-    sendMonitorDelete: async (monitor) =>{
-        try{
-            var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
+    sendMonitorCreated: async (monitor) => {
+        try {
+
+            if(!global || !global.io){
+                return;
+            }
+
+
+            const project = await ProjectService.findOneBy({ _id: monitor.projectId._id });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId._id;
+
+            global.io.emit(`createMonitor-${projectId}`, monitor);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendMonitorCreated', error);
             throw error;
         }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
-        try{
-            CB.CloudNotification.publish(`deleteMonitor-${projectId}`, monitor);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`deleteMonitor`)', error);
+    },
+
+    sendMonitorDelete: async (monitor) => {
+        try {
+
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: monitor.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
+
+            global.io.emit(`deleteMonitor-${projectId}`, monitor);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendMonitorDelete', error);
             throw error;
         }
     },
 
     incidentResolved: async (incident) => {
-        try{
-            var project = await ProjectService.findOneBy({ _id: incident.projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
-        try{
-            CB.CloudNotification.publish(`incidentResolved-${projectId}`, incident);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`incidentResolved`)', error);
+        try {
+
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: incident.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+
+            global.io.emit(`incidentResolved-${projectId}`, incident);
+        } catch (error) {
+            ErrorService.log('realTimeService.incidentResolved', error);
             throw error;
         }
     },
 
-    incidentAcknowledged: async (incident) =>{
-        try{
-            var project = await ProjectService.findOneBy({ _id: incident.projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
-        try{
-            CB.CloudNotification.publish(`incidentAcknowledged-${projectId}`,incident);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`incidentAcknowledged`)', error);
+    incidentAcknowledged: async (incident) => {
+        try {
+
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: incident.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : incident.projectId;
+
+            global.io.emit(`incidentAcknowledged-${projectId}`, incident);
+        } catch (error) {
+            ErrorService.log('realTimeService.incidentAcknowledged', error);
             throw error;
         }
     },
 
-    monitorEdit: async (monitor) =>{
-        try{
-            var project = await ProjectService.findOneBy({ _id: monitor.projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
-        try{
-            CB.CloudNotification.publish(`updateMonitor-${projectId}`,monitor);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`updateMonitor`)', error);
+    statusPageEdit: async (statusPage) => {
+        try {
+            const project = await ProjectService.findOneBy({ _id: statusPage.projectId._id });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : statusPage.projectId._id;
+
+            global.io.emit(`updateStatusPage-${projectId}`, statusPage);
+        } catch (error) {
+            ErrorService.log('realTimeService.statusPageEdit', error);
             throw error;
         }
     },
 
-    updateResponseTime: async (data,projectId) =>{
-        try{
-            var project = await ProjectService.findOneBy({ _id: projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-        try{
-            CB.CloudNotification.publish(`updateResponseTime-${projectId}`,data);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`updateResponseTime`)', error);
+    monitorEdit: async (monitor) => {
+        try {
+
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: monitor.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : monitor.projectId;
+
+            global.io.emit(`updateMonitor-${projectId}`, monitor);
+        } catch (error) {
+            ErrorService.log('realTimeService.monitorEdit', error);
             throw error;
         }
     },
 
-    sendNotification: async (data) =>{
-        try{
-            var project = await ProjectService.findOneBy({ _id: data.projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        var projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : data.projectId;
-        try{
-            CB.CloudNotification.publish(`NewNotification-${projectId}`,data);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`NewNotification`)', error);
+    updateMonitorLog: async (data, projectId) => {
+        try {
+
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            const parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+
+            global.io.emit(`updateMonitorLog-${parentProjectId}`, { projectId, monitorId: data.monitorId, data });
+        } catch (error) {
+            ErrorService.log('realTimeService.updateMonitorLog', error);
             throw error;
         }
     },
 
-    updateTeamMemberRole: async (projectId,data) =>{
-        try{
-            var project = await ProjectService.findOneBy({ _id: projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-        try{
-            CB.CloudNotification.publish(`TeamMemberRoleUpdate-${projectId}`,data);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`TeamMemberRoleUpdate`)', error);
+    updateMonitorStatus: async (data, projectId) => {
+        try {
+
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            const parentProjectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+
+            global.io.emit(`updateMonitorStatus-${parentProjectId}`, { projectId, monitorId: data.monitorId, data });
+        } catch (error) {
+            ErrorService.log('realTimeService.updateMonitorStatus', error);
             throw error;
         }
     },
 
-    createTeamMember: async (projectId,data) =>{
-        try{
-            var project = await ProjectService.findOneBy({ _id: projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
-            throw error;
-        }
-        projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-        try{
-            CB.CloudNotification.publish(`TeamMemberCreate-${projectId}`,data);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`TeamMemberCreate`)', error);
+    updateProbe: async (data, monitorId) => {
+        try {
+
+            if(!global || !global.io){
+                return;
+            }
+
+            const monitor = await MonitorService.findOneBy({ _id: monitorId });
+            const project = await ProjectService.findOneBy({ _id: monitor.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+
+            global.io.emit(`updateProbe-${projectId}`, data);
+        } catch (error) {
+            ErrorService.log('realTimeService.updateProbe', error);
             throw error;
         }
     },
 
-    deleteTeamMember: async (projectId, data) =>{
-        try{
-            var project = await ProjectService.findOneBy({ _id: projectId });
-        }catch(error){
-            ErrorService.log('ProjectService.findOneBy', error);
+    sendNotification: async (data) => {
+        try {
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: data.projectId });
+            const projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : data.projectId;
+
+            global.io.emit(`NewNotification-${projectId}`, data);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendNotification', error);
             throw error;
         }
-        projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
-        try{
-            CB.CloudNotification.publish(`TeamMemberDelete-${projectId}`, data);
-        }catch(error){
-            ErrorService.log('CB.CloudNotification.publish(`TeamMemberDelete`)', error);
+    },
+
+    updateTeamMemberRole: async (projectId, data) => {
+        try {
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: projectId });
+
+            projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+            global.io.emit(`TeamMemberRoleUpdate-${projectId}`, data);
+        } catch (error) {
+            ErrorService.log('realTimeService.updateTeamMemberRole', error);
+            throw error;
+        }
+    },
+
+    createTeamMember: async (projectId, data) => {
+        try {
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: projectId });
+
+            projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+            global.io.emit(`TeamMemberCreate-${projectId}`, data);
+        } catch (error) {
+            ErrorService.log('realTimeService.createTeamMember', error);
+            throw error;
+        }
+    },
+
+    deleteTeamMember: async (projectId, data) => {
+        try {
+            if(!global || !global.io){
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: projectId });
+
+            projectId = project ? project.parentProjectId ? project.parentProjectId._id : project._id : projectId;
+            global.io.emit(`TeamMemberDelete-${projectId}`, data);
+        } catch (error) {
+            ErrorService.log('realTimeService.deleteTeamMember', error);
             throw error;
         }
     },
 };
 
-var ErrorService = require('./errorService');
-var ProjectService = require('./projectService');
+const ErrorService = require('./errorService');
+const ProjectService = require('./projectService');
+const MonitorService = require('./monitorService');

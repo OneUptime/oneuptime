@@ -53,6 +53,10 @@
             "allowBind": false,
             "ignoreRefs": false
         }],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
         "react/no-children-prop": "error",
         "react/no-deprecated": "error",
         "react/no-array-index-key": "off",
@@ -72,6 +76,11 @@
         "react/no-unescaped-entities": "error",
         "react/display-name": ["error", {
             "ignoreTranspilerName": true
-        }]
+        }],
+        "prefer-const": ["error", {
+            "destructuring": "any",
+            "ignoreReadBeforeAssign": false
+        }],
+        "no-var": "error"
     }
 }

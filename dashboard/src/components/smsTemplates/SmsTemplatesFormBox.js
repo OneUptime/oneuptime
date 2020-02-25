@@ -20,8 +20,8 @@ const style = {
 
 const bulletpoints = {
     display: 'listItem',
-      listStyleType: 'disc',
-      listStylePosition: 'inside'
+    listStyleType: 'disc',
+    listStylePosition: 'inside'
 }
 
 function validate(values) {
@@ -37,7 +37,7 @@ export class SmsTemplatesFormBox extends Component {
     render() {
         const { template, handleSubmit, editSmsTemplates, resetSmsTemplates } = this.props;
         return (
-            <div className="bs-ContentSection Card-root Card-shadow--medium" style={{borderRadius:'0px',boxShadow:'none'}}>
+            <div className="bs-ContentSection Card-root Card-shadow--medium" style={{ borderRadius: '0px', boxShadow: 'none' }}>
                 <div className="Box-root">
                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
@@ -77,7 +77,7 @@ export class SmsTemplatesFormBox extends Component {
 
                                             <ShouldRender if={!(this.props.revealVariable && this.props.revealVariable === template.smsType)}>
                                                 <span style={{ display: 'block', marginLeft: '120px' }}>
-                                                    <a onClick={() => this.props.setRevealVariable(template.smsType)}> Click here to reveal available variables.</a>
+                                                    <button className="button-as-anchor" onClick={() => this.props.setRevealVariable(template.smsType)}> Click here to reveal available variables.</button>
                                                 </span>
                                             </ShouldRender>
                                             <ShouldRender if={(this.props.revealVariable && this.props.revealVariable === template.smsType)}>
@@ -150,15 +150,15 @@ SmsTemplatesFormBox.displayName = 'SmsTemplatesFormBox'
 SmsTemplatesFormBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     setRevealVariable: PropTypes.func.isRequired,
-    template: PropTypes.array.isRequired,
+    template: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
     editSmsTemplates: PropTypes.object.isRequired,
     resetSmsTemplates: PropTypes.object.isRequired,
-    revealVariable: PropTypes.object.isRequired,
-    submitForm :PropTypes.func.isRequired,
-    resetTemplate : PropTypes.func.isRequired,
+    revealVariable: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+    submitForm: PropTypes.func.isRequired,
+    resetTemplate: PropTypes.func.isRequired,
 }
 
-let SmsTemplatesFormBoxForm = reduxForm({
+const SmsTemplatesFormBoxForm = reduxForm({
     form: 'smstemplatesform', // a unique identifier for this form
     enableReinitialize: true,
     validate // <--- validation function given to redux-for
@@ -172,7 +172,7 @@ const mapDispatchToProps = (dispatch) => {
 
 function mapStateToProps(state) {
     const template = state.smsTemplates.showingTemplate;
-    var val = {
+    const val = {
         body: template.body,
         sms_type: template.smsType,
     }
@@ -184,9 +184,5 @@ function mapStateToProps(state) {
         revealVariable: state.smsTemplates.revealVariable
     };
 }
-
-SmsTemplatesFormBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(SmsTemplatesFormBoxForm);

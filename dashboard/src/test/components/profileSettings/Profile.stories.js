@@ -3,13 +3,13 @@ import { storiesOf, action } from '@storybook/react';
 import { reduxForm } from 'redux-form'
 import { ProfileSetting } from '../../../components/profileSettings/Profile'
 
-let ProfileSetting_Decorated = new reduxForm({
+const ProfileSettingDecorated = new reduxForm({
     form: 'Profile',
     enableReinitialize: true
 })(ProfileSetting);
 
 
-let props = {
+const props = {
     'array': {},
     'anyTouched': false,
     'asyncValidating': false,
@@ -84,7 +84,7 @@ let props = {
     resetFile:action('resetFile')
   }
 
-  let props_error = {
+  const props_error = {
     ...props,
     profileSettings:{
       ...props.profileSettings,
@@ -98,10 +98,10 @@ storiesOf('Profile Settings', module)
             {story()}</div>
     ))
     .add('Profile Settings', () =>
-        <ProfileSetting_Decorated  {...props} />
+        <ProfileSettingDecorated  {...props} />
     )
     .add('Profile Error', () =>
-        <ProfileSetting_Decorated  {...props_error} />
+        <ProfileSettingDecorated  {...props_error} />
     )
 
 

@@ -3,13 +3,13 @@ import { storiesOf, action } from '@storybook/react';
 import { reduxForm } from 'redux-form'
 import { ChangePasswordSetting } from '../../../components/profileSettings/ChangePassword'
 
-let ChangePasswordSetting_Decorated = new reduxForm({
+const ChangePasswordSettingDecorated = new reduxForm({
     form: 'ChangePasswordSetting',
     enableReinitialize: true
 })(ChangePasswordSetting);
 
 
-let props = {
+const props = {
     'array': {},
     'anyTouched': false,
     'asyncValidating': false,
@@ -83,6 +83,6 @@ storiesOf('Profile Settings', module)
             {story()}</div>
     ))
     .add('ChangePasswordSetting', () =>
-        <ChangePasswordSetting_Decorated  {...props} />
+        <ChangePasswordSettingDecorated  {...props} />
     )
 

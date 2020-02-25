@@ -51,20 +51,20 @@ export default function incident(state = initialState, action) {
         case types.EMAIL_TEMPLATES_REQUEST:
             return Object.assign({}, state, {
                 emailTemplates: {
+                    ...state.emailTemplates,
                     requesting: true,
                     error: null,
                     success: false,
-                    templates: [],
                 },
             });
 
         case types.EMAIL_TEMPLATES_FAILED:
             return Object.assign({}, state, {
                 emailTemplates: {
+                    ...state.emailTemplates,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    templates: [],
                 },
             });
 
@@ -97,6 +97,7 @@ export default function incident(state = initialState, action) {
         case types.EDIT_EMAIL_TEMPLATES_REQUEST:
             return Object.assign({}, state, {
                 editEmailTemplates: {
+                    ...state.editEmailTemplates,
                     requesting: action.payload,
                     error: null,
                     success: false
@@ -106,6 +107,7 @@ export default function incident(state = initialState, action) {
         case types.EDIT_EMAIL_TEMPLATES_FAILED:
             return Object.assign({}, state, {
                 editEmailTemplates: {
+                    ...state.editEmailTemplates,
                     requesting: false,
                     error: action.payload,
                     success: false

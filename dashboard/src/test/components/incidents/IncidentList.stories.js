@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 
 import { IncidentList } from '../../../components/incident/IncidentList'
 
-let props = {
+const props = {
     'incidents': {
         'createdAt': '2018-06-12T03:44:32.892Z',
         'pollTime': '2018-06-12T03:44:32.892Z',
@@ -197,7 +197,7 @@ let props = {
     prevClicked: action('prevClicked')
 }
 
-class Mock_Incident_Pagination extends React.Component {
+class MockIncidentPagination extends React.Component {
 
     prevClicked = () => {
         this.props.getIncidents(this.props.currentProject._id, ((this.props.incidents.skip || 0) > (this.props.incidents.limit || 10)) ? this.props.incidents.skip - this.props.incidents.limit : 0, 10);
@@ -215,13 +215,13 @@ class Mock_Incident_Pagination extends React.Component {
     }
 }
 
-Mock_Incident_Pagination.displayName = 'Mock_Incident_Pagination'
+MockIncidentPagination.displayName = 'MockIncidentPagination'
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators({ incidentsRequest, incidentsError, incidentsSuccess, resetIncidents }, dispatch);
 }
 
-Mock_Incident_Pagination.propTypes = {
+MockIncidentPagination.propTypes = {
     currentProject: PropTypes.object.isRequired,
     getIncidents: PropTypes.func,
     incidents: PropTypes.object,
@@ -229,9 +229,9 @@ Mock_Incident_Pagination.propTypes = {
 }
 
 
-let Mock_Incident_Pagination_Dcorated = connect(null, mapDispatchToProps)(Mock_Incident_Pagination);
+const MockIncidentPaginationDecorated = connect(null, mapDispatchToProps)(MockIncidentPagination);
 
-let mock_getIncidents = (details)=>{
+const mock_getIncidents = (details)=>{
     const submitAction = action('getNext/getPrev');
   submitAction(details);
 }
@@ -243,5 +243,5 @@ storiesOf('Incidents', module)
             {story()}</div>
     ))
     .add('IncidentList', () =>
-        <Mock_Incident_Pagination_Dcorated getIncidents ={mock_getIncidents} {...props}/>
+        <MockIncidentPaginationDecorated getIncidents ={mock_getIncidents} {...props}/>
     )

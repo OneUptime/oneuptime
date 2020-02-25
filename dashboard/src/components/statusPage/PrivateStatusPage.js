@@ -9,25 +9,45 @@ import {
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import uuid from 'uuid';
+import { openModal } from '../../actions/modal';
+import DataPathHoC from '../DataPathHoC';
+import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class PrivateStatusPage extends Component {
+
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            subscriberAdvanceOptionModalId: uuid.v4(),
+        }
+    }
 
     submitForm = (values) => {
         const { status } = this.props.statusPage;
         const { projectId } = status;
 
-        this.props.updatePrivateStatusPage(projectId._id || projectId, { _id: status._id, isPrivate: values.isPrivate, isSubscriberEnabled: values.isEnabled, isGroupedByMonitorCategory: values.isGroupedByMonitorCategory})
+        this.props.updatePrivateStatusPage(projectId._id || projectId, {
+            _id: status._id,
+            isPrivate: values.isPrivate,
+            isSubscriberEnabled: values.isSubscriberEnabled,
+            isGroupedByMonitorCategory: values.isGroupedByMonitorCategory,
+            showScheduledEvents: values.showScheduledEvents,
+        })
             .then(() => {
                 this.props.fetchProjectStatusPage(projectId, true)
             })
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Private StatusPage Updated', values);
+        if (!IS_DEV) {
+            logEvent('Private StatusPage Updated', values);
         }
     }
 
     render() {
         const { handleSubmit } = this.props;
-
+        const { subscriberAdvanceOptionModalId } = this.state;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -69,7 +89,7 @@ export class PrivateStatusPage extends Component {
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'padding-left': '5px' }}>
+                                                            <div className="Box-root" style={{ paddingLeft: '5px' }}>
                                                                 <label><span>Group Monitor by Categories</span></label>
                                                                 <p className="bs-Fieldset-explanation"><span>Group monitor on public  status page by categories.
 																				</span></p>
@@ -99,9 +119,38 @@ export class PrivateStatusPage extends Component {
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'padding-left': '5px' }}>
+                                                            <div className="Box-root" style={{ paddingLeft: '5px' }}>
                                                                 <label><span>Private Status Page</span></label>
                                                                 <p className="bs-Fieldset-explanation"><span>Making the status page private will only make it visible to your internal team.
+																				</span></p>
+                                                            </div>
+                                                        </label>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label" style={{ flex: '25% 0 0' }}><span></span></label>
+                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                    <div className="Box-root" style={{ height: '5px' }}></div>
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <label className="Checkbox">
+                                                            <Field
+                                                                component="input"
+                                                                type="checkbox"
+                                                                name={'showScheduledEvents'}
+                                                                data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                className="Checkbox-source"
+                                                                id='statuspage.showScheduledEvents'
+                                                            />
+                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                <div className="Checkbox-target Box-root">
+                                                                    <div className="Checkbox-color Box-root"></div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="Box-root" style={{ paddingLeft: '5px' }}>
+                                                                <label><span>Show Scheduled events</span></label>
+                                                                <p className="bs-Fieldset-explanation"><span> Enable this to allow your users to see scheduled events like Database migration, Scheduled downtime, etc.
 																				</span></p>
                                                             </div>
                                                         </label>
@@ -119,23 +168,49 @@ export class PrivateStatusPage extends Component {
                                                             <Field
                                                                 component="input"
                                                                 type="checkbox"
-                                                                name={'isEnabled'}
+                                                                name={'isSubscriberEnabled'}
                                                                 data-test="RetrySettings-failedPaymentsCheckbox"
                                                                 className="Checkbox-source"
-                                                                id='statuspage.isEnabled'
+                                                                id='statuspage.isSubscriberEnabled'
                                                             />
                                                             <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                                                 <div className="Checkbox-target Box-root">
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'padding-left': '5px' }}>
+                                                            <div className="Box-root" style={{ paddingLeft: '5px' }}>
                                                                 <label><span>Enable Subscribers</span></label>
                                                                 <p className="bs-Fieldset-explanation"><span>Enabling this will allow your users to subscribe and get notifications for your incidents.
 																				</span></p>
                                                             </div>
                                                         </label>
 
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label" style={{ flex: '25% 0 0' }}><span></span></label>
+                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                    <div className="Box-root" style={{ height: '5px' }}></div>
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <label className="Checkbox">
+                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+                                                                <label>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="button-as-anchor"
+                                                                        style={{ cursor: 'pointer' }}
+                                                                        onClick={() => {
+                                                                            this.props.openModal({
+                                                                                id: subscriberAdvanceOptionModalId,
+                                                                                content: DataPathHoC(SubscriberAdvanceOptions, {})
+                                                                            })
+                                                                        }}>
+                                                                        Advance options for subscribers
+                                                                    </button>
+                                                                </label>
+                                                            </div>
+                                                        </label>
                                                     </div>
                                                 </div>
                                             </div>
@@ -149,7 +224,6 @@ export class PrivateStatusPage extends Component {
                             <div className="bs-Tail-copy">
                                 <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
                                     <ShouldRender if={this.props.statusPage.privateStatusPage.error} >
-
                                         <div className="Box-root Margin-right--8">
                                             <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex">
                                             </div>
@@ -157,15 +231,13 @@ export class PrivateStatusPage extends Component {
                                         <div className="Box-root">
                                             <span style={{ color: 'red' }}>{this.props.statusPage.privateStatusPage.error}</span>
                                         </div>
-
                                     </ShouldRender>
                                 </div>
                             </div>
                             <div>
-
                                 <button className="bs-Button bs-DeprecatedButton bs-Button--blue" disabled={this.props.statusPage.privateStatusPage.requesting} type="submit">{!this.props.statusPage.privateStatusPage.requesting && <span>Save </span>}
-                                    {this.props.statusPage.privateStatusPage.requesting && <FormLoader />}</button>
-
+                                    {this.props.statusPage.privateStatusPage.requesting && <FormLoader />}
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -177,13 +249,14 @@ export class PrivateStatusPage extends Component {
 
 PrivateStatusPage.displayName = 'PrivateStatusPage'
 
-let PrivateStatusPageForm = reduxForm({
+const PrivateStatusPageForm = reduxForm({
     form: 'PrivateStatusPages', // a unique identifier for this form
     enableReinitialize: true
 })(PrivateStatusPage);
 
 PrivateStatusPage.propTypes = {
     updatePrivateStatusPage: PropTypes.func.isRequired,
+    openModal: PropTypes.func.isRequired,
     statusPage: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
@@ -195,26 +268,24 @@ const mapDispatchToProps = dispatch => bindActionCreators(
         updatePrivateStatusPageRequest,
         updatePrivateStatusPageSuccess,
         updatePrivateStatusPageError,
-        fetchProjectStatusPage
+        fetchProjectStatusPage,
+        openModal
     }, dispatch
 )
 
 const mapStateToProps = state => {
-    let initialValues = {};
+    const initialValues = {};
     const { currentProject } = state.project;
     const { statusPage, statusPage: { status } } = state;
 
     if (status) {
         initialValues.isPrivate = status.isPrivate;
-        initialValues.isEnabled = status.isSubscriberEnabled;
+        initialValues.isSubscriberEnabled = status.isSubscriberEnabled;
         initialValues.isGroupedByMonitorCategory = status.isGroupedByMonitorCategory;
+        initialValues.showScheduledEvents = status.showScheduledEvents;
     }
 
     return { initialValues, statusPage, currentProject };
 }
-
-PrivateStatusPage.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(PrivateStatusPageForm);

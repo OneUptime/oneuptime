@@ -1,53 +1,61 @@
-var faker = require('faker');
+const faker = require('faker');
 
-var ACCOUNTS_URL = 'http://localhost:3003';
-var DASHBOARD_URL = 'http://localhost:3000';
+const ACCOUNTS_URL = 'http://localhost:3003';
+const DASHBOARD_URL = 'http://localhost:3000';
 
-var puppeteerLaunchConfig = {
+const puppeteerLaunchConfig = {
     args: [
-    '--proxy-server=',
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-accelerated-2d-canvas',
-    '--disable-gpu',
-    '--window-size=1920x1080',
+        '--proxy-server=',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+        '--window-size=1920x1080',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-web-security'
     ],
-  };
+};
 
-var user = faker.helpers.createCard();
-var cvv = '542';
-var expiryDate = '09/2020';
+const user = faker.helpers.createCard();
+const cvv = '542';
+const expiryDate = '09/2020';
 
 
 function generateWrongEmail() {
     return Math.random().toString(36).substring(8) + '@' + Math.random().toString(24).substring(8) + '.com';
 }
 
-function generateRandomString(){
-    return faker.lorem.word();
+function generateRandomWebsite() {
+    return 'http://' + Math.random().toString(36).substring(10) + '.com';
 }
 
-function generateRandomBusinessEmail(){
+function generateRandomString() {
+    return Math.random().toString(36).substring(10)
+}
+
+function generateRandomBusinessEmail() {
     return `${Math.random().toString(36).substring(7)}@${Math.random().toString(36).substring(5)}.com`;
 }
 
 
-var cardNumber = '4111111111111111';
+const cardNumber = '4111111111111111';
 
-var monitorCategoryName = 'e2e_monitor_category';
- 
-var monitorName = 'e2e_monitor';
+const monitorCategoryName = 'e2e_monitor_category';
 
-var monitorUrl = 'https://www.test.com';
+const monitorName = 'e2e_monitor';
 
-var scheduledEventDescription = 'event description';
+const monitorUrl = 'https://www.test.com';
 
-var scheduledEventName = 'event name';
+const scheduledEventDescription = 'event description';
 
-var updatedScheduledEventDescription = 'event description updated';
+const scheduledEventName = 'event name';
 
-var updatedScheduledEventName = 'event name updated';
+const updatedScheduledEventDescription = 'event description updated';
+
+const updatedScheduledEventName = 'event name updated';
 
 module.exports = {
     ACCOUNTS_URL,
@@ -66,5 +74,6 @@ module.exports = {
     updatedScheduledEventName,
     updatedScheduledEventDescription,
     generateRandomString,
-    generateRandomBusinessEmail
+    generateRandomBusinessEmail,
+    generateRandomWebsite
 };

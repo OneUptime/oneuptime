@@ -6,30 +6,46 @@ import Dropdown, {
     MenuItem
 } from '@trendmicro/react-dropdown';
 import { reduxForm } from 'redux-form';
-import { teamDelete, teamUpdateRole } from '../../actions/team';
+import { teamDelete, teamUpdateRole, resetTeamDelete } from '../../actions/team';
 import { changeProjectRoles } from '../../actions/project';
-import { FormLoader, TeamListLoader } from '../basic/Loader';
+import { TeamListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
+import uuid from 'uuid';
+import DataPathHoC from '../DataPathHoC';
+import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
+import { openModal, closeModal } from '../../actions/modal';
+import { history } from '../../store';
 
 import '@trendmicro/react-dropdown/dist/react-dropdown.css';
+import { logEvent } from '../../analytics';
+import { IS_DEV } from '../../config';
 
 export class TeamMember extends Component {
     constructor(props) {
         super(props);
+        this.state = { removeUserModalId: uuid.v4() }
         this.removeTeamMember = this.removeTeamMember.bind(this);
         this.updateTeamMemberRole = this.updateTeamMemberRole.bind(this);
     }
 
     removeTeamMember(values) {
-        this.props.teamDelete(this.props.subProjectId, values.userId);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Team Member Removed', { projectId: this.props.subProjectId, userId: values.userId });
+        const { resetTeamDelete, teamDelete, subProjectId, closeModal } = this.props;
+        teamDelete(subProjectId, values.userId).then(value => {
+            if (!value.error) {
+                resetTeamDelete();
+                return closeModal({
+                    id: this.state.removeUserModalId
+                });
+            } else return null;
+        });
+        if (!IS_DEV) {
+            logEvent('Team Member Removed', { projectId: this.props.subProjectId, userId: values.userId });
         }
     }
 
     updateTeamMemberRole(values, to) {
-        var data = {};
+        const data = {};
         data.teamMemberId = values.userId;
         if (values.role === to) {
             return;
@@ -40,8 +56,8 @@ export class TeamMember extends Component {
         const { changeProjectRoles } = this.props;
         this.props.teamUpdateRole(this.props.subProjectId, data)
             .then((team) => changeProjectRoles(team.data));
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Team Member Role Changed', { projectId: this.props.subProjectId, role: data.role });
+        if (!IS_DEV) {
+            logEvent('Team Member Role Changed', { projectId: this.props.subProjectId, role: data.role });
         }
     }
 
@@ -60,7 +76,11 @@ export class TeamMember extends Component {
 
         return (
             <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
-                <div className="bs-ObjectList-cell bs-u-v-middle">
+                <div
+                    className="bs-ObjectList-cell bs-u-v-middle"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => { history.push('/profile/' + this.props.userId) }}
+                >
                     <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{this.props.name}</div>
                     <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
                         {this.props.email}
@@ -76,7 +96,7 @@ export class TeamMember extends Component {
                     <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                             <span>
-                                {this.props.name ? 'Online ' + this.props.lastActive + ' ago' : 'Invitation Sent'}
+                                {this.props.name ? 'Online ' + this.props.lastActive : 'Invitation Sent'}
                             </span>
                         </span>
                     </div>
@@ -130,7 +150,7 @@ export class TeamMember extends Component {
                                     >
                                         Member
                                 </MenuItem>
-                                <MenuItem
+                                    <MenuItem
                                         title="Viewer"
                                         onClick={handleSubmit(values =>
                                             this.updateTeamMemberRole({
@@ -150,15 +170,22 @@ export class TeamMember extends Component {
                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
                                 type="button"
                                 onClick={handleSubmit(values =>
-                                    this.removeTeamMember({
-                                        ...values,
-                                        userId: userId
-                                    }))
+                                    this.props.openModal({
+                                        id: this.state.removeUserModalId,
+                                        content: DataPathHoC(RemoveTeamUserModal, {
+                                            removeUserModalId: this.state.removeUserModalId,
+                                            values: {
+                                                ...values,
+                                                userId: userId
+                                            },
+                                            displayName: this.props.name || this.props.email,
+                                            removeTeamMember: this.removeTeamMember,
+                                        })
+                                    })
+                                )
                                 }
-                                style={deleting ? { backgroundColor: '#ce636f' } : {}}
                             >
                                 {!deleting && <span>Remove</span>}
-                                {deleting && <FormLoader />}
                             </button>
                         </div>
                     </ShouldRender>
@@ -171,30 +198,30 @@ export class TeamMember extends Component {
 TeamMember.displayName = 'TeamMember'
 
 TeamMember.propTypes = {
-    team: PropTypes.object.isRequired,
-    deleting: PropTypes.oneOf([null, false, true]),
-    userId: PropTypes.string.isRequired,
-    handleSubmit: PropTypes.func.isRequired,
-    teamDelete: PropTypes.func.isRequired,
     changeProjectRoles: PropTypes.func.isRequired,
-    teamUpdateRole: PropTypes.func.isRequired,
+    closeModal: PropTypes.func.isRequired,
+    deleting: PropTypes.oneOf([null, false, true]),
     email: PropTypes.string.isRequired,
-    name: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined])
-    ]),
-    role: PropTypes.string.isRequired,
+    handleSubmit: PropTypes.func.isRequired,
     lastActive: PropTypes.string.isRequired,
-    updating:PropTypes.oneOf([null, false, true]),
-    subProjectId:PropTypes.string.isRequired,
+    name: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null, undefined])]),
+    openModal: PropTypes.func,
+    resetTeamDelete: PropTypes.func.isRequired,
+    role: PropTypes.string.isRequired,
+    subProjectId: PropTypes.string.isRequired,
+    team: PropTypes.object.isRequired,
+    teamDelete: PropTypes.func.isRequired,
+    teamUpdateRole: PropTypes.func.isRequired,
+    updating: PropTypes.oneOf([null, false, true]),
+    userId: PropTypes.string.isRequired
 }
 
-let TeamMemberForm = reduxForm({
+const TeamMemberForm = reduxForm({
     form: 'TeamMember'
 })(TeamMember)
 
 const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ teamDelete, teamUpdateRole, changeProjectRoles }, dispatch)
+    return bindActionCreators({ teamDelete, teamUpdateRole, changeProjectRoles, openModal, closeModal, resetTeamDelete }, dispatch)
 }
 
 function mapStateToProps(state, props) {
@@ -205,9 +232,5 @@ function mapStateToProps(state, props) {
         currentProject: state.project.currentProject
     };
 }
-
-TeamMember.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(TeamMemberForm);

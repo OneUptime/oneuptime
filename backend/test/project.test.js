@@ -1,31 +1,36 @@
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var plans = require('../backend/config/plans').getPlans();
-var log = require('./data/log');
-var UserService = require('../backend/services/userService');
-var ProjectService = require('../backend/services/projectService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const plans = require('../backend/config/plans').getPlans();
+const log = require('./data/log');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const AirtableService = require('../backend/services/airtableService');
 
-// var token, userId, projectId;
-var token, projectId, subProjectId, userId;
+const VerificationTokenModel = require('../backend/models/verificationToken');
+
+// let token, userId, projectId;
+let token, projectId, subProjectId, userId, airtableId;
 
 describe('Project API', function () {
     this.timeout(30000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
-            let project = res.body.project;
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(err, verificationToken){
-                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function(){
+            airtableId = res.body.airtableId;
+
+            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
                         email: userData.user.email,
                         password: userData.user.password
@@ -41,6 +46,7 @@ describe('Project API', function () {
     after(async function () {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
+        await AirtableService.deleteUser(airtableId);
     });
 
     // 'post /user/signup'
@@ -55,7 +61,7 @@ describe('Project API', function () {
     });
 
     it('should not create a project when `projectName` is not given', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post('/project/create').set('Authorization', authorization).send({
             projectName: null,
             planId: plans[0].planId
@@ -66,7 +72,7 @@ describe('Project API', function () {
     });
 
     it('should not create a project when `planId` is not given', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post('/project/create').set('Authorization', authorization).send({
             projectName: 'Unnamed Project',
             planId: null
@@ -77,7 +83,7 @@ describe('Project API', function () {
     });
 
     it('should create a new project when `planId` and `projectName` is given', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post('/project/create').set('Authorization', authorization).send({
             projectName: 'Test Project',
             planId: plans[0].planId
@@ -89,7 +95,7 @@ describe('Project API', function () {
     });
 
     it('should get projects for a valid user', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.get('/project/projects').set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
@@ -100,7 +106,7 @@ describe('Project API', function () {
     });
 
     it('should reset the API key for a project given the `projectId`', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post('/project/create').set('Authorization', authorization).send({
             projectName: 'Token Project',
             planId: plans[0].planId
@@ -115,7 +121,7 @@ describe('Project API', function () {
     });
 
     it('should not rename a project when the `projectName` is null or invalid', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.put(`/project/${projectId}/renameProject`).set('Authorization', authorization).send({
             projectName: null,
         }).end(function (err, res) {
@@ -125,11 +131,11 @@ describe('Project API', function () {
     });
 
     it('should rename a project when `projectName` is given', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post('/project/create').set('Authorization', authorization).send({
             projectName: 'Old Project',
             planId: plans[0].planId
-        }).end( function (err, res) {
+        }).end(function (err, res) {
             request.put(`/project/${res.body._id}/renameProject`).set('Authorization', authorization).send({
                 projectName: 'Renamed Project',
             }).end(function (err, res) {
@@ -142,7 +148,7 @@ describe('Project API', function () {
     });
 
     it('should delete a project when `projectId` is given', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post('/project/create').set('Authorization', authorization).send({
             projectName: 'To-Delete Project',
             planId: plans[0].planId
@@ -150,7 +156,6 @@ describe('Project API', function () {
             request.delete(`/project/${res.body._id}/deleteProject`)
                 .set('Authorization', authorization).end(function (err, res) {
                     expect(res).to.have.status(200);
-                    expect(res.body.deleted).to.be.equal(true);
                     ProjectService.hardDeleteBy({ _id: res.body._id });
                     done();
                 });
@@ -158,7 +163,7 @@ describe('Project API', function () {
     });
 
     it('should change the subscription plan of the user for a project', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.post(`/project/${projectId}/changePlan`).set('Authorization', authorization).send({
             projectName: 'New Project Name',
             planId: plans[1].planId,
@@ -172,7 +177,7 @@ describe('Project API', function () {
     });
 
     it('should remove a user from a project', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/project/${projectId}/user/${userId}/exitProject`).set('Authorization', authorization).end(function (err, res) {
             log(res.text);
             expect(res).to.have.status(200);
@@ -182,16 +187,16 @@ describe('Project API', function () {
     });
 });
 
-describe('Projects SubProjects API', function(){
+describe('Projects SubProjects API', function () {
     this.timeout(30000);
-    before(function(done){
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
-            let project = res.body.project;
+    before(function (done) {
+        this.timeout(40000);
+        createUser(request, userData.user, function(err, res) {
+            const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(err, verificationToken){
-                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function(){
+            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
                         email: userData.user.email,
                         password: userData.user.password
@@ -209,53 +214,39 @@ describe('Projects SubProjects API', function(){
         await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
     });
 
-    it('should not create a subproject when subproject payload is an object and not an array.', function(done){
-        var authorization = `Basic ${token}`;
-        request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send({}).end(function(err, res){
-            expect(res).to.have.status(400);
-            expect(res.body.message).to.be.equal('Subprojects are expected in array format.');
-            done();
-        });
-    });
-
-    it('should not create a subproject without a name.', function(done){
-        var authorization = `Basic ${token}`;
+    it('should not create a subproject without a name.', function (done) {
+        const authorization = `Basic ${token}`;
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send(
-            [
-                { name: '' }
-            ]
-        ).end(function(err, res){
+            { subProjectName: '' }
+        ).end(function (err, res) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('Subproject name must be present.');
             done();
         });
     });
 
-    it('should create a subproject.', function(done){
-        var authorization = `Basic ${token}`;
+    it('should create a subproject.', function (done) {
+        const authorization = `Basic ${token}`;
         request.post(`/project/${projectId}/subProject`).set('Authorization', authorization).send(
-            [
-                { name: 'New SubProject' }
-            ]
-        ).end(function(err, res){
+            { subProjectName: 'New SubProject' }
+        ).end(function (err, res) {
             subProjectId = res.body[0]._id;
             expect(res).to.have.status(200);
-            expect(res.body).to.be.an('array');
             done();
         });
     });
 
-    it('should not get subprojects for a user not present in the project.', function(done){
-        request.post('/user/signup').send(userData.newUser).end(function (err, res) {
+    it('should not get subprojects for a user not present in the project.', function (done) {
+        createUser(request, userData.newUser, function(err, res) {
             userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(err, verificationToken){
-                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function(){
+            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
+                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
                         email: userData.newUser.email,
                         password: userData.newUser.password
                     }).end(function (err, res) {
-                        var authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
-                        request.get(`/project/${projectId}/subProjects`).set('Authorization', authorization).end(function(err, res){
+                        const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                        request.get(`/project/${projectId}/subProjects`).set('Authorization', authorization).end(function (err, res) {
                             expect(res).to.have.status(400);
                             expect(res.body.message).to.be.equal('You are not present in this project.');
                             done();
@@ -266,9 +257,9 @@ describe('Projects SubProjects API', function(){
         });
     });
 
-    it('should get subprojects for a valid user.', function(done){
-        var authorization = `Basic ${token}`;
-        request.get(`/project/${projectId}/subProjects`).set('Authorization', authorization).end(function(err, res){
+    it('should get subprojects for a valid user.', function (done) {
+        const authorization = `Basic ${token}`;
+        request.get(`/project/${projectId}/subProjects`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body.data).to.be.an('array');
             expect(res.body.data[0]._id).to.be.equal(subProjectId);
@@ -277,9 +268,9 @@ describe('Projects SubProjects API', function(){
     });
 
     it('should not rename a subproject when the subproject is null or invalid or empty', function (done) {
-        var authorization = `Basic ${token}`;
-        request.put(`/project/${subProjectId}/renameProject`).set('Authorization', authorization).send({
-            projectName: null,
+        const authorization = `Basic ${token}`;
+        request.put(`/project/${projectId}/${subProjectId}`).set('Authorization', authorization).send({
+            subProjectName: null,
         }).end(function (err, res) {
             expect(res).to.have.status(400);
             done();
@@ -287,9 +278,9 @@ describe('Projects SubProjects API', function(){
     });
 
     it('should rename a subproject with valid name', function (done) {
-        var authorization = `Basic ${token}`;
-        request.put(`/project/${subProjectId}/renameProject`).set('Authorization', authorization).send({
-            projectName: 'Renamed SubProject',
+        const authorization = `Basic ${token}`;
+        request.put(`/project/${projectId}/${subProjectId}`).set('Authorization', authorization).send({
+            subProjectName: 'Renamed SubProject',
         }).end(function (err, res) {
             expect(res).to.have.status(200);
             expect(res.body.name).to.be.equal('Renamed SubProject');
@@ -298,11 +289,10 @@ describe('Projects SubProjects API', function(){
     });
 
     it('should delete a subproject', function (done) {
-        var authorization = `Basic ${token}`;
-        request.delete(`/project/${subProjectId}/deleteProject`)
+        const authorization = `Basic ${token}`;
+        request.delete(`/project/${projectId}/${subProjectId}`)
             .set('Authorization', authorization).end(function (err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.deleted).to.be.equal(true);
                 done();
             });
     });

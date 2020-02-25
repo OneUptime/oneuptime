@@ -54,6 +54,6 @@ ConnectToStore.propTypes = {
 
 ConnectToStore.displayName = 'ConnectToStore'
 
-let MockCurrentProject = connect(mapStateToProps,mapDispatchToProps)(ConnectToStore)
+const MockCurrentProject = connect(mapStateToProps,mapDispatchToProps)(ConnectToStore)
 
 export {MockCurrentProject}

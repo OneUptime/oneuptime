@@ -4,102 +4,81 @@ import { bindActionCreators } from 'redux';
 import Dashboard from '../components/Dashboard';
 import APISettings from '../components/settings/APISettings';
 import ProjectSettings from '../components/settings/ProjectSettings';
-import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
 import SubProjects from '../components/settings/SubProjects';
-import MonitorCategories from '../components/settings/MonitorCategories';
 import DeleteProject from '../components/settings/DeleteProject';
-import ChangePlan from '../components/settings/ChangePlan';
 import RenderIfMember from '../components/basic/RenderIfMember';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
-import RenderIfAdmin from '../components/basic/RenderIfAdmin';
 import ExitProject from '../components/settings/ExitProject';
 import { hideDeleteModal } from '../actions/project';
 import PropTypes from 'prop-types';
+import { IS_DEV } from '../config';
+import { logEvent } from '../analytics'; 
 
 class Settings extends Component {
-    componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Project Settings Page Loaded');
-        }
+  componentDidMount() {
+    if (!IS_DEV) {
+      logEvent('Project Settings Page Loaded');
     }
+  }
 
-    handleKeyBoard = (e) => {
-        switch (e.key) {
-            case 'Escape':
-                this.props.hideDeleteModal()
-                return true;
-            default:
-                return false;
-        }
+  handleKeyBoard = e => {
+    switch (e.key) {
+      case 'Escape':
+        this.props.hideDeleteModal();
+        return true;
+      default:
+        return false;
     }
+  };
 
-    render() {
-        return (
-            <Dashboard>
-                <div onKeyDown={this.handleKeyBoard} className="db-World-contentPane Box-root Padding-bottom--48">
+  render() {
+    return (
+      <Dashboard>
+        <div onKeyDown={this.handleKeyBoard} className="Margin-vertical--12">
+          <div>
+            <div>
+              <div className="db-BackboneViewContainer">
+                <div className="react-settings-view react-view">
+                  <span>
                     <div>
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <span>
-                                        <div>
-                                            <div>
+                      <div>
+                        <RenderIfOwner>
+                          <ProjectSettings />
+                        </RenderIfOwner>
 
-                                                <RenderIfOwner>
-                                                    <ProjectSettings />
-                                                </RenderIfOwner>
-                                                <RenderIfOwner>
-                                                    <AlertAdvanceOption />
-                                                </RenderIfOwner>
+                        <APISettings />
 
-                                                <APISettings />
+                        <RenderIfOwner>
+                          <SubProjects />
+                        </RenderIfOwner>
 
-                                                <RenderIfOwner>
-                                                    <ChangePlan />
-                                                </RenderIfOwner>
+                        <RenderIfOwner>
+                          <DeleteProject />
+                        </RenderIfOwner>
 
-                                                 <RenderIfOwner>
-                                                    <SubProjects />
-                                                </RenderIfOwner>
-
-                                                <RenderIfAdmin>
-                                                    <MonitorCategories />
-                                                </RenderIfAdmin>
-
-                                                <RenderIfOwner>
-                                                    <DeleteProject />
-                                                </RenderIfOwner>
-
-                                                <RenderIfMember>
-                                                    <ExitProject />
-                                                </RenderIfMember>
-
-                                            </div>
-                                        </div>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                        <RenderIfMember>
+                          <ExitProject />
+                        </RenderIfMember>
+                      </div>
                     </div>
+                  </span>
                 </div>
-            </Dashboard>
-        )
-    }
+              </div>
+            </div>
+          </div>
+        </div>
+      </Dashboard>
+    );
+  }
 }
 
-const mapDispatchToProps = dispatch => (
-    bindActionCreators({ hideDeleteModal }, dispatch)
-)
-
+const mapDispatchToProps = dispatch =>
+  bindActionCreators({ hideDeleteModal }, dispatch);
 
 Settings.propTypes = {
-    hideDeleteModal: PropTypes.func.isRequired,
+  hideDeleteModal: PropTypes.func.isRequired
 };
 
-Settings.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
-
-Settings.displayName = 'Settings'
+Settings.displayName = 'Settings';
 
 export default connect(null, mapDispatchToProps)(Settings);

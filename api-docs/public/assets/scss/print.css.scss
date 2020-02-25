@@ -1,0 +1,122 @@
+@charset "utf-8";
+@import 'normalize';
+@import 'variables';
+@import 'icon-font';
+
+$print-color: #999;
+$print-color-light: #ccc;
+$print-font-size: 12px;
+
+body{
+  @extend %default-font;
+}
+
+.fyipefy, fyipe-footer, .lang-selector, .search, #nav-button{
+  display: none;
+}
+
+.fyipefy-wrapper> img {
+  margin: 0, auto;
+  display: none;
+}
+
+.content {
+  font-size: 12px;
+  
+  pre, code {
+    @extend %code-font;
+    @extend %break-words;
+    border: 1px solid $print-color;
+    border-radius: 5px;
+    font-size: 0.8em;
+  }
+
+  pre {
+    code {
+      border: 0;
+    }
+  }
+
+  pre {
+    padding: 1.3em;
+  }
+
+  code {
+    padding: 0.2em;
+  }
+
+  table {
+    border: 1px solid $print-color;
+    tr {
+      border-bottom: 1px solid $print-color;
+    }
+    td, th {
+      padding: 0.7em;
+    }
+  }
+
+  p {
+    line-height: 1.5;
+  }
+
+  a {
+    @extend %header-font;
+    font-size: 2.5em;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    margin-bottom: $h1-margin-bottom;
+    border: 2px solid $print-color-light;
+    border-width: 2px 0;
+    text-align: center;
+  }
+
+  h2 {
+    @extend %header-font;
+    font-size: 18px;
+    margin-top: 2em;
+    border-top: 2px solid $print-color-light;
+    padding-top: 0.8em;
+  }
+
+  h3, h4 {
+    @extend %header-font;
+    font-size: 0.8em;
+    margin-top: 1.5em;
+    margin-bottom: 0.8em;
+    text-transform: uppercase;
+  }
+
+  h5, h6 {
+    text-transform: uppercase;
+  }
+
+  aside {
+    padding: 1em;
+    border:  1px solid $print-color-light;
+    border-radius: 5px;
+    margin-top: 1.5em;
+    margin-bottom: 1.5em;
+    line-height: 1.6;
+  }
+
+  aside:before{
+    vertical-align: middle;
+    padding-right: 0.5em;
+    font-size: 14px;
+  }
+  /*
+  aside.notice:before {
+    @extend %icon-info-sign;
+  }
+
+  aside.exclamation:before {
+    @extend %icon-info-sign;
+  }
+
+  aside.warning:before {
+    @extend %icon-ok-sign;
+  }*/
+
+  
+}
+

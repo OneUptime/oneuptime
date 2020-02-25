@@ -1,0 +1,22 @@
+{
+  "name": "slack",
+  "version": "3.0.1797",
+  "description": "Slack invite page for Slack",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo 'no tests'",
+    "lint": "eslint .",
+    "fix-lint": "eslint . --fix",
+    "audit": "npm-audit-ci-wrapper --threshold=high"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "slackin-extended": "^1.1.11"
+  },
+  "devDependencies": {
+    "eslint": "^6.7.2",
+    "npm-audit-ci-wrapper": "^2.4.3"
+  }
+}

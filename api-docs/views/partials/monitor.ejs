@@ -1,0 +1,2895 @@
+<article id="monitor" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Monitor</h1>
+    </b>
+    <p>
+      <p>Monitor API will allow you to create monitors and monitor any resource like APIs, Websites, Servers,
+        Containers, IoT devices and more.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container"></div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+  </section>
+</article>
+
+<article id="create-monitor" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Monitor<span class="requestType">POST</span></h3>
+    <p>
+      <p>Create Monitor by Project ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for the project or sub project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>name</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Monitor Name</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorCategoryId (optional)</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Monitor category ID of the monitor category you want to attach with the monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>type</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The type of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>type</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The type of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>data</span>
+                <span class="item-type">json</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>If monitor type is `url`. Data should be {url: 'https://anyurl.com'} which is the URL that you
+                  would like to monitor. <br /> If monitor type is `device`. Data should be `{deviceId: 'any-id'}.
+                  Device ID is any ID of an IoT device that you would like to monitor. <br /> If Monitor Type is
+                  `Manual`. Data can be null. </p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": {
+    "url": "https://google.com"
+  },
+  "criteria": {
+    "up": {
+      "and": [
+        {
+          "responseType": "statusCode",
+          "filter": "gtEqualTo",
+          "field1": "200"
+        },
+        {
+          "responseType": "statusCode",
+          "filter": "lessThan",
+          "field1": "300"
+        },
+        {
+          "responseType": "doesRespond",
+          "filter": "isUp"
+        },
+        {
+          "responseType": "responseTime",
+          "filter": "ltEqualTo",
+          "field1": "5000"
+        }
+      ],
+      "or": [],
+      "createAlert": false,
+      "autoAcknowledge": false,
+      "autoResolve": false
+    },
+    "degraded": {
+      "and": [
+        {
+          "responseType": "responseTime",
+          "filter": "greaterThan",
+          "field1": "5000"
+        }
+      ],
+      "or": [],
+      "createAlert": true,
+      "autoAcknowledge": true,
+      "autoResolve": true
+    },
+    "down": {
+      "and": [],
+      "or": [
+        {
+          "responseType": "doesRespond",
+          "filter": "isDown"
+        },
+        {
+          "responseType": "statusCode",
+          "filter": "gtEqualTo",
+          "field1": "400"
+        }
+      ],
+      "createAlert": true,
+      "autoAcknowledge": true,
+      "autoResolve": true
+    }
+  },
+  "projectId": "5e089f94b400211639928c94",
+  "name": "Zello",
+  "type": "url"
+}
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "formData": [],
+    "headers": [],
+    "_id": "5e1f4a6e10175840348794bd",
+    "createdAt": "2020-01-15T17:22:54.367Z",
+    "pollTime": "2020-01-15T17:22:54.367Z",
+    "lastPingTime": "2020-01-15T17:22:54.367Z",
+    "updateTime": "2020-01-15T17:22:54.367Z",
+    "name": "Zello",
+    "type": "url",
+    "createdById": "5e089f88b400211639928c92",
+    "data": {
+      "url": "https://google.com"
+    },
+    "projectId": {
+      "_id": "5e089f94b400211639928c94",
+      "name": "Bello"
+    },
+    "criteria": {
+      "up": {
+        "and": [
+          {
+            "responseType": "statusCode",
+            "filter": "gtEqualTo",
+            "field1": "200"
+          },
+          {
+            "responseType": "statusCode",
+            "filter": "lessThan",
+            "field1": "300"
+          },
+          {
+            "responseType": "doesRespond",
+            "filter": "isUp"
+          },
+          {
+            "responseType": "responseTime",
+            "filter": "ltEqualTo",
+            "field1": "5000"
+          }
+        ],
+        "or": [],
+        "createAlert": false,
+        "autoAcknowledge": false,
+        "autoResolve": false
+      },
+      "degraded": {
+        "and": [
+          {
+            "responseType": "responseTime",
+            "filter": "greaterThan",
+            "field1": "5000"
+          }
+        ],
+        "or": [],
+        "createAlert": true,
+        "autoAcknowledge": true,
+        "autoResolve": true
+      },
+      "down": {
+        "and": [],
+        "or": [
+          {
+            "responseType": "doesRespond",
+            "filter": "isDown"
+          },
+          {
+            "responseType": "statusCode",
+            "filter": "gtEqualTo",
+            "field1": "400"
+          }
+        ],
+        "createAlert": true,
+        "autoAcknowledge": true,
+        "autoResolve": true
+      }
+    },
+    "probes": [
+      {
+        "_id": "5e08a2c83ccfdd73a3bb5f21",
+        "createdAt": "2019-12-29T12:43:52.563Z",
+        "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4",
+        "probeName": "US East",
+        "lastAlive": "2020-01-06T20:12:55.011Z",
+        "probeStatus": [],
+        "status": "",
+        "responseTime": ""
+      },
+      {
+        "_id": "5e08a3753ccfdd73a3bb60fe",
+        "createdAt": "2019-12-29T12:43:52.563Z",
+        "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce5",
+        "probeName": "US West",
+        "lastAlive": "2019-12-29T12:43:52.563Z",
+        "probeStatus": [],
+        "status": "",
+        "responseTime": ""
+      }
+    ],
+    "count": 0,
+    "incidents": [],
+    "skip": 0,
+    "limit": 3
+  }
+]              
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-monitors" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Monitors<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Monitors by Project ID. Return by skipping and limiting the number of results.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94?skip=0&limit=5</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "monitors": [
+      {
+        "formData": [],
+        "headers": [],
+        "_id": "5e1f4a6e10175840348794bd",
+        "createdAt": "2020-01-15T17:22:54.367Z",
+        "pollTime": "2020-01-15T17:22:54.367Z",
+        "lastPingTime": "2020-01-15T17:22:54.367Z",
+        "updateTime": "2020-01-15T17:22:54.367Z",
+        "name": "Zello",
+        "type": "url",
+        "createdById": "5e089f88b400211639928c92",
+        "data": {
+          "url": "https://google.com"
+        },
+        "projectId": {
+          "_id": "5e089f94b400211639928c94",
+          "name": "Bello"
+        },
+        "criteria": {
+          "up": {
+            "and": [
+              {
+                "responseType": "statusCode",
+                "filter": "gtEqualTo",
+                "field1": "200"
+              },
+              {
+                "responseType": "statusCode",
+                "filter": "lessThan",
+                "field1": "300"
+              },
+              {
+                "responseType": "doesRespond",
+                "filter": "isUp"
+              },
+              {
+                "responseType": "responseTime",
+                "filter": "ltEqualTo",
+                "field1": "5000"
+              }
+            ],
+            "or": [],
+            "createAlert": false,
+            "autoAcknowledge": false,
+            "autoResolve": false
+          },
+          "degraded": {
+            "and": [
+              {
+                "responseType": "responseTime",
+                "filter": "greaterThan",
+                "field1": "5000"
+              }
+            ],
+            "or": [],
+            "createAlert": true,
+            "autoAcknowledge": true,
+            "autoResolve": true
+          },
+          "down": {
+            "and": [],
+            "or": [
+              {
+                "responseType": "doesRespond",
+                "filter": "isDown"
+              },
+              {
+                "responseType": "statusCode",
+                "filter": "gtEqualTo",
+                "field1": "400"
+              }
+            ],
+            "createAlert": true,
+            "autoAcknowledge": true,
+            "autoResolve": true
+          }
+        },
+        "probes": [
+          {
+            "_id": "5e08a2c83ccfdd73a3bb5f21",
+            "createdAt": "2019-12-29T12:43:52.563Z",
+            "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4",
+            "probeName": "US East",
+            "lastAlive": "2020-01-06T20:12:55.011Z",
+            "probeStatus": [],
+            "status": "",
+            "responseTime": ""
+          },
+          {
+            "_id": "5e08a3753ccfdd73a3bb60fe",
+            "createdAt": "2019-12-29T12:43:52.563Z",
+            "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce5",
+            "probeName": "US West",
+            "lastAlive": "2019-12-29T12:43:52.563Z",
+            "probeStatus": [],
+            "status": "",
+            "responseTime": ""
+          }
+        ],
+        "count": 0,
+        "incidents": [],
+        "skip": 0,
+        "limit": 3
+      },
+      {
+        "formData": [],
+        "headers": [],
+        "_id": "5e1633101b8ae81859214adf",
+        "createdAt": "2020-01-08T19:52:48.011Z",
+        "pollTime": "2020-01-08T19:52:48.011Z",
+        "lastPingTime": "2020-01-08T19:52:48.011Z",
+        "updateTime": "2020-01-08T19:52:48.011Z",
+        "name": "Cello",
+        "type": "url",
+        "createdById": "5e089f88b400211639928c92",
+        "data": {
+          "url": "https://google.com"
+        },
+        "projectId": {
+          "_id": "5e089f94b400211639928c94",
+          "name": "Bello"
+        },
+        "criteria": {
+          "up": {
+            "and": [
+              {
+                "responseType": "statusCode",
+                "filter": "gtEqualTo",
+                "field1": "200"
+              },
+              {
+                "responseType": "statusCode",
+                "filter": "lessThan",
+                "field1": "300"
+              },
+              {
+                "responseType": "doesRespond",
+                "filter": "isUp"
+              },
+              {
+                "responseType": "responseTime",
+                "filter": "ltEqualTo",
+                "field1": "5000"
+              }
+            ],
+            "or": [],
+            "createAlert": false,
+            "autoAcknowledge": false,
+            "autoResolve": false
+          },
+          "degraded": {
+            "and": [
+              {
+                "responseType": "responseTime",
+                "filter": "greaterThan",
+                "field1": "5000"
+              }
+            ],
+            "or": [],
+            "createAlert": true,
+            "autoAcknowledge": true,
+            "autoResolve": true
+          },
+          "down": {
+            "and": [],
+            "or": [
+              {
+                "responseType": "doesRespond",
+                "filter": "isDown"
+              },
+              {
+                "responseType": "statusCode",
+                "filter": "gtEqualTo",
+                "field1": "400"
+              }
+            ],
+            "createAlert": true,
+            "autoAcknowledge": true,
+            "autoResolve": true
+          }
+        },
+        "probes": [
+          {
+            "_id": "5e08a2c83ccfdd73a3bb5f21",
+            "createdAt": "2019-12-29T12:43:52.563Z",
+            "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4",
+            "probeName": "US East",
+            "lastAlive": "2020-01-06T20:12:55.011Z",
+            "probeStatus": [],
+            "status": "",
+            "responseTime": ""
+          },
+          {
+            "_id": "5e08a3753ccfdd73a3bb60fe",
+            "createdAt": "2019-12-29T12:43:52.563Z",
+            "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce5",
+            "probeName": "US West",
+            "lastAlive": "2019-12-29T12:43:52.563Z",
+            "probeStatus": [],
+            "status": "",
+            "responseTime": ""
+          }
+        ],
+        "count": 3,
+        "incidents": [
+          {
+            "acknowledged": true,
+            "acknowledgedByZapier": null,
+            "resolved": true,
+            "resolvedByZapier": null,
+            "internalNote": "",
+            "investigationNote": "",
+            "createdByZapier": false,
+            "notClosedBy": [
+              "5e1b7f0f41127144f8144abb",
+              "5e162d9f1b8ae8185921498f"
+            ],
+            "manuallyCreated": true,
+            "_id": "5e1ce0f3e6a04216343592b9",
+            "probes": [],
+            "createdAt": "2020-01-13T21:28:19.916Z",
+            "projectId": "5e089f94b400211639928c94",
+            "monitorId": {
+              "_id": "5e1633101b8ae81859214adf",
+              "name": "Cello"
+            },
+            "createdById": {
+              "_id": "5e089f88b400211639928c92",
+              "name": "Nawaz Dhandala"
+            },
+            "incidentType": "offline",
+            "acknowledgedAt": "2020-01-13T22:03:55.776Z",
+            "acknowledgedBy": {
+              "_id": "5e089f88b400211639928c92",
+              "name": "Nawaz Dhandala"
+            },
+            "resolvedAt": "2020-01-13T22:03:55.776Z",
+            "resolvedBy": {
+              "_id": "5e089f88b400211639928c92",
+              "name": "Nawaz Dhandala"
+            }
+          },
+          {
+            "acknowledged": true,
+            "acknowledgedByZapier": null,
+            "resolved": true,
+            "resolvedByZapier": null,
+            "internalNote": "Test",
+            "investigationNote": "Test",
+            "createdByZapier": false,
+            "notClosedBy": [
+              "5e162d9f1b8ae8185921498f"
+            ],
+            "manuallyCreated": true,
+            "_id": "5e1725db1f31a13e98acd8d9",
+            "probes": [],
+            "createdAt": "2020-01-09T13:08:43.790Z",
+            "projectId": "5e089f94b400211639928c94",
+            "monitorId": {
+              "_id": "5e1633101b8ae81859214adf",
+              "name": "Cello"
+            },
+            "createdById": {
+              "_id": "5e089f88b400211639928c92",
+              "name": "Nawaz Dhandala"
+            },
+            "incidentType": "offline",
+            "acknowledgedAt": "2020-01-09T13:10:42.766Z",
+            "acknowledgedBy": {
+              "_id": "5e089f88b400211639928c92",
+              "name": "Nawaz Dhandala"
+            },
+            "resolvedAt": "2020-01-09T13:10:42.766Z",
+            "resolvedBy": {
+              "_id": "5e089f88b400211639928c92",
+              "name": "Nawaz Dhandala"
+            }
+          },
+          {
+            "acknowledged": true,
+            "acknowledgedByZapier": null,
+            "resolved": true,
+            "resolvedByZapier": null,
+            "internalNote": "",
+            "investigationNote": "",
+            "createdByZapier": false,
+            "notClosedBy": [
+              "5e162d9f1b8ae8185921498f"
+            ],
+            "manuallyCreated": true,
+            "_id": "5e1724591f31a13e98acd8d5",
+            "probes": [],
+            "createdAt": "2020-01-09T13:02:17.254Z",
+            "projectId": "5e089f94b400211639928c94",
+            "monitorId": {
+              "_id": "5e1633101b8ae81859214adf",
+              "name": "Cello"
+            },
+            "createdById": {
+              "_id": "5e089f88b400211639928c92",
+              "name": "Nawaz Dhandala"
+            },
+            "incidentType": "offline",
+            "acknowledgedAt": "2020-01-09T13:07:50.158Z",
+            "acknowledgedBy": {
+              "_id": "5e089f88b400211639928c92",
+              "name": "Nawaz Dhandala"
+            },
+            "resolvedAt": "2020-01-09T13:07:50.158Z",
+            "resolvedBy": {
+              "_id": "5e089f88b400211639928c92",
+              "name": "Nawaz Dhandala"
+            }
+          }
+        ],
+        "skip": 0,
+        "limit": 3
+      },
+      ...
+    ],
+    "count": 5,
+    "_id": "5e089f94b400211639928c94",
+    "skip": 0,
+    "limit": 5
+  }
+]                               
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-monitors-by-type" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Monitors By Type<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Monitors by Project ID and Monitor Type. Return by skipping and limiting the number of results.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/monitor</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>type</span>
+                <span class="item-type">'url' | 'api' | 'device' | 'server-monitor' | 'script'</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The type of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94/monitor?skip=0&limit=5&type=url</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "formData": [],
+      "headers": [],
+      "_id": "5e1f4a6e10175840348794bd",
+      "createdAt": "2020-01-15T17:22:54.367Z",
+      "pollTime": "2020-01-15T17:22:54.367Z",
+      "lastPingTime": "2020-01-15T17:22:54.367Z",
+      "updateTime": "2020-01-15T17:22:54.367Z",
+      "name": "Zello",
+      "type": "url",
+      "createdById": "5e089f88b400211639928c92",
+      "data": {
+        "url": "https://google.com"
+      },
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "criteria": {
+        "up": {
+          "and": [
+            {
+              "responseType": "statusCode",
+              "filter": "gtEqualTo",
+              "field1": "200"
+            },
+            {
+              "responseType": "statusCode",
+              "filter": "lessThan",
+              "field1": "300"
+            },
+            {
+              "responseType": "doesRespond",
+              "filter": "isUp"
+            },
+            {
+              "responseType": "responseTime",
+              "filter": "ltEqualTo",
+              "field1": "5000"
+            }
+          ],
+          "or": [],
+          "createAlert": false,
+          "autoAcknowledge": false,
+          "autoResolve": false
+        },
+        "degraded": {
+          "and": [
+            {
+              "responseType": "responseTime",
+              "filter": "greaterThan",
+              "field1": "5000"
+            }
+          ],
+          "or": [],
+          "createAlert": true,
+          "autoAcknowledge": true,
+          "autoResolve": true
+        },
+        "down": {
+          "and": [],
+          "or": [
+            {
+              "responseType": "doesRespond",
+              "filter": "isDown"
+            },
+            {
+              "responseType": "statusCode",
+              "filter": "gtEqualTo",
+              "field1": "400"
+            }
+          ],
+          "createAlert": true,
+          "autoAcknowledge": true,
+          "autoResolve": true
+        }
+      }
+    },
+    {
+      "formData": [],
+      "headers": [],
+      "_id": "5e1633101b8ae81859214adf",
+      "createdAt": "2020-01-08T19:52:48.011Z",
+      "pollTime": "2020-01-08T19:52:48.011Z",
+      "lastPingTime": "2020-01-08T19:52:48.011Z",
+      "updateTime": "2020-01-08T19:52:48.011Z",
+      "name": "Cello",
+      "type": "url",
+      "createdById": "5e089f88b400211639928c92",
+      "data": {
+        "url": "https://google.com"
+      },
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "criteria": {
+        "up": {
+          "and": [
+            {
+              "responseType": "statusCode",
+              "filter": "gtEqualTo",
+              "field1": "200"
+            },
+            {
+              "responseType": "statusCode",
+              "filter": "lessThan",
+              "field1": "300"
+            },
+            {
+              "responseType": "doesRespond",
+              "filter": "isUp"
+            },
+            {
+              "responseType": "responseTime",
+              "filter": "ltEqualTo",
+              "field1": "5000"
+            }
+          ],
+          "or": [],
+          "createAlert": false,
+          "autoAcknowledge": false,
+          "autoResolve": false
+        },
+        "degraded": {
+          "and": [
+            {
+              "responseType": "responseTime",
+              "filter": "greaterThan",
+              "field1": "5000"
+            }
+          ],
+          "or": [],
+          "createAlert": true,
+          "autoAcknowledge": true,
+          "autoResolve": true
+        },
+        "down": {
+          "and": [],
+          "or": [
+            {
+              "responseType": "doesRespond",
+              "filter": "isDown"
+            },
+            {
+              "responseType": "statusCode",
+              "filter": "gtEqualTo",
+              "field1": "400"
+            }
+          ],
+          "createAlert": true,
+          "autoAcknowledge": true,
+          "autoResolve": true
+        }
+      }
+    }
+    ...
+  ],
+  "count": 5,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-monitor" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Monitor<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get Single Monitor by Project ID and Monitor ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/monitor/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94/monitor/5e1f4a6e10175840348794bd</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "formData": [],
+  "headers": [],
+  "deleted": false,
+  "_id": "5e1f4a6e10175840348794bd",
+  "createdAt": "2020-01-15T17:22:54.367Z",
+  "pollTime": "2020-01-15T17:22:54.367Z",
+  "lastPingTime": "2020-01-15T17:22:54.367Z",
+  "updateTime": "2020-01-15T17:22:54.367Z",
+  "name": "Zello",
+  "type": "url",
+  "createdById": "5e089f88b400211639928c92",
+  "data": {
+    "url": "https://google.com"
+  },
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "criteria": {
+    "up": {
+      "and": [
+        {
+          "responseType": "statusCode",
+          "filter": "gtEqualTo",
+          "field1": "200"
+        },
+        {
+          "responseType": "statusCode",
+          "filter": "lessThan",
+          "field1": "300"
+        },
+        {
+          "responseType": "doesRespond",
+          "filter": "isUp"
+        },
+        {
+          "responseType": "responseTime",
+          "filter": "ltEqualTo",
+          "field1": "5000"
+        }
+      ],
+      "or": [],
+      "createAlert": false,
+      "autoAcknowledge": false,
+      "autoResolve": false
+    },
+    "degraded": {
+      "and": [
+        {
+          "responseType": "responseTime",
+          "filter": "greaterThan",
+          "field1": "5000"
+        }
+      ],
+      "or": [],
+      "createAlert": true,
+      "autoAcknowledge": true,
+      "autoResolve": true
+    },
+    "down": {
+      "and": [],
+      "or": [
+        {
+          "responseType": "doesRespond",
+          "filter": "isDown"
+        },
+        {
+          "responseType": "statusCode",
+          "filter": "gtEqualTo",
+          "field1": "400"
+        }
+      ],
+      "createAlert": true,
+      "autoAcknowledge": true,
+      "autoResolve": true
+    }
+  },
+  "__v": 0
+}                   
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="edit-monitor" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Edit Monitor<span class="requestType">PUT</span></h3>
+    <p>
+      <p>Edit Monitor by Project ID and Monitor ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for the project or sub project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>name</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Monitor Name</p>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>type</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The type of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>data</span>
+                <span class="item-type">json</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>If monitor type is `url`. Data should be {url: 'https://anyurl.com'} which is the URL that you
+                  would like to monitor. <br /> If monitor type is `device`. Data should be `{deviceId: 'any-id'}.
+                  Device ID is any ID of an IoT device that you would like to monitor. <br /> If Monitor Type is
+                  `Manual`. Data can be null. </p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94/5e1f4a6e10175840348794bd</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": {
+    "url": "https://google.com"
+  },
+  "criteria": {
+    "up": {
+      "and": [
+        {
+          "responseType": "statusCode",
+          "filter": "gtEqualTo",
+          "field1": "200"
+        },
+        {
+          "responseType": "statusCode",
+          "filter": "lessThan",
+          "field1": "300"
+        },
+        {
+          "responseType": "doesRespond",
+          "filter": "isUp"
+        },
+        {
+          "responseType": "responseTime",
+          "filter": "ltEqualTo",
+          "field1": "5000"
+        }
+      ],
+      "or": [],
+      "createAlert": false,
+      "autoAcknowledge": false,
+      "autoResolve": false
+    },
+    "degraded": {
+      "and": [
+        {
+          "responseType": "responseTime",
+          "filter": "greaterThan",
+          "field1": "5000"
+        }
+      ],
+      "or": [],
+      "createAlert": true,
+      "autoAcknowledge": true,
+      "autoResolve": true
+    },
+    "down": {
+      "and": [],
+      "or": [
+        {
+          "responseType": "doesRespond",
+          "filter": "isDown"
+        },
+        {
+          "responseType": "statusCode",
+          "filter": "gtEqualTo",
+          "field1": "400"
+        }
+      ],
+      "createAlert": true,
+      "autoAcknowledge": true,
+      "autoResolve": true
+    }
+  },
+  "projectId": "5e089f94b400211639928c94",
+  "name": "Wello",
+  "type": "url"
+}                      
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "formData": [],
+    "headers": [],
+    "_id": "5e1f4a6e10175840348794bd",
+    "createdAt": "2020-01-15T17:22:54.367Z",
+    "pollTime": "2020-01-15T17:22:54.367Z",
+    "lastPingTime": "2020-01-15T17:22:54.367Z",
+    "updateTime": "2020-01-15T17:22:54.367Z",
+    "name": "Wello",
+    "type": "url",
+    "createdById": "5e089f88b400211639928c92",
+    "data": {
+      "url": "https://google.com"
+    },
+    "projectId": {
+      "_id": "5e089f94b400211639928c94",
+      "name": "Bello"
+    },
+    "criteria": {
+      "up": {
+        "and": [
+          {
+            "responseType": "statusCode",
+            "filter": "gtEqualTo",
+            "field1": "200"
+          },
+          {
+            "responseType": "statusCode",
+            "filter": "lessThan",
+            "field1": "300"
+          },
+          {
+            "responseType": "doesRespond",
+            "filter": "isUp"
+          },
+          {
+            "responseType": "responseTime",
+            "filter": "ltEqualTo",
+            "field1": "5000"
+          }
+        ],
+        "or": [],
+        "createAlert": false,
+        "autoAcknowledge": false,
+        "autoResolve": false
+      },
+      "degraded": {
+        "and": [
+          {
+            "responseType": "responseTime",
+            "filter": "greaterThan",
+            "field1": "5000"
+          }
+        ],
+        "or": [],
+        "createAlert": true,
+        "autoAcknowledge": true,
+        "autoResolve": true
+      },
+      "down": {
+        "and": [],
+        "or": [
+          {
+            "responseType": "doesRespond",
+            "filter": "isDown"
+          },
+          {
+            "responseType": "statusCode",
+            "filter": "gtEqualTo",
+            "field1": "400"
+          }
+        ],
+        "createAlert": true,
+        "autoAcknowledge": true,
+        "autoResolve": true
+      }
+    },
+    "probes": [
+      {
+        "_id": "5e08a2c83ccfdd73a3bb5f21",
+        "createdAt": "2019-12-29T12:43:52.563Z",
+        "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4",
+        "probeName": "US East",
+        "lastAlive": "2020-01-06T20:12:55.011Z",
+        "probeStatus": [],
+        "status": "",
+        "responseTime": ""
+      },
+      {
+        "_id": "5e08a3753ccfdd73a3bb60fe",
+        "createdAt": "2019-12-29T12:43:52.563Z",
+        "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce5",
+        "probeName": "US West",
+        "lastAlive": "2019-12-29T12:43:52.563Z",
+        "probeStatus": [],
+        "status": "",
+        "responseTime": ""
+      }
+    ],
+    "count": 0,
+    "incidents": [],
+    "skip": 0,
+    "limit": 3
+  }
+]                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="delete-monitor" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Delete Monitor<span class="requestType">DELETE</span></h3>
+    <p>
+      <p>Delete Monitor by Project ID and Monitor ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94/5e1f4a6e10175840348794bd</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "formData": [],
+  "headers": [],
+  "deleted": true,
+  "_id": "5e1f4a6e10175840348794bd",
+  "createdAt": "2020-01-15T17:22:54.367Z",
+  "pollTime": "2020-01-15T17:22:54.367Z",
+  "lastPingTime": "2020-01-15T17:22:54.367Z",
+  "updateTime": "2020-01-15T17:22:54.367Z",
+  "name": "Wello",
+  "type": "url",
+  "createdById": "5e089f88b400211639928c92",
+  "data": {
+    "url": "https://google.com"
+  },
+  "projectId": "5e089f94b400211639928c94",
+  "criteria": {
+    "up": {
+      "and": [
+        {
+          "responseType": "statusCode",
+          "filter": "gtEqualTo",
+          "field1": "200"
+        },
+        {
+          "responseType": "statusCode",
+          "filter": "lessThan",
+          "field1": "300"
+        },
+        {
+          "responseType": "doesRespond",
+          "filter": "isUp"
+        },
+        {
+          "responseType": "responseTime",
+          "filter": "ltEqualTo",
+          "field1": "5000"
+        }
+      ],
+      "or": [],
+      "createAlert": false,
+      "autoAcknowledge": false,
+      "autoResolve": false
+    },
+    "degraded": {
+      "and": [
+        {
+          "responseType": "responseTime",
+          "filter": "greaterThan",
+          "field1": "5000"
+        }
+      ],
+      "or": [],
+      "createAlert": true,
+      "autoAcknowledge": true,
+      "autoResolve": true
+    },
+    "down": {
+      "and": [],
+      "or": [
+        {
+          "responseType": "doesRespond",
+          "filter": "isDown"
+        },
+        {
+          "responseType": "statusCode",
+          "filter": "gtEqualTo",
+          "field1": "400"
+        }
+      ],
+      "createAlert": true,
+      "autoAcknowledge": true,
+      "autoResolve": true
+    }
+  },
+  "__v": 0,
+  "deletedAt": "2020-01-15T18:27:41.119Z",
+  "deletedById": {
+    "_id": "5e089f88b400211639928c92",
+    "name": "Nawaz Dhandala"
+  }
+}                    
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="create-server-monitor-log" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Server Monitor Log<span class="requestType">POST</span></h3>
+    <p>
+      <p>Create Server Monitor Log by Project ID and Monitor ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/log/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94/log/5e1f4a6e10175840348794bd</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": {
+    "load": {
+      "avgload": 0.31,
+      "currentload": 11.993297816580107,
+      "currentload_user": 9.221739863479614,
+      "currentload_system": 2.712832208199919,
+      "currentload_nice": 0.05872574490057444,
+      "currentload_idle": 88.00670218341989,
+      "currentload_irq": 0,
+      "raw_currentload": 65372600,
+      "raw_currentload_user": 50265500,
+      "raw_currentload_system": 14787000,
+      "raw_currentload_nice": 320100,
+      "raw_currentload_idle": 479703500,
+      "raw_currentload_irq": 0,
+      "cpus": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "memory": {
+      "total": 6097825792,
+      "free": 149876736,
+      "used": 5947949056,
+      "active": 4246343680,
+      "available": 688734208,
+      "buffcache": 1701605376,
+      "swaptotal": 6143602688,
+      "swapused": 684810240,
+      "swapfree": 5458792448
+    },
+    "disk": {
+      "fs": "/dev/sda7",
+      "type": "ext4",
+      "size": 267669123072,
+      "used": 79250288640,
+      "use": 29.61,
+      "mount": "/"
+    },
+    "traffic": [
+      {
+        "iface": "wlp2s0",
+        "operstate": "up",
+        "rx_bytes": 259915784,
+        "rx_dropped": 0,
+        "rx_errors": 0,
+        "tx_bytes": 20517137,
+        "tx_dropped": 0,
+        "tx_errors": 0,
+        "rx_sec": -1,
+        "tx_sec": -1,
+        "ms": 0
+      }
+    ],
+    "temperature": {
+      "main": 47,
+      "cores": [
+        47,
+        47
+      ],
+      "max": 47
+    },
+    "resources": {
+      "manufacturer": "Intel®",
+      "brand": "Core™ i5-7200U",
+      "vendor": "GenuineIntel",
+      "family": "6",
+      "model": "142",
+      "stepping": "9",
+      "revision": "",
+      "voltage": "",
+      "speed": "2.50",
+      "speedmin": "0.40",
+      "speedmax": "3.10",
+      "cores": 4,
+      "physicalCores": 2,
+      "processors": 1,
+      "socket": "",
+      "cache": {
+        "l1d": 65536,
+        "l1i": 65536,
+        "l2": 524288,
+        "l3": 3
+      }
+    },
+    "users": [
+      {
+        "user": "hibeekaey",
+        "tty": ": 0",
+        "date": "2020-01-14",
+        "time": "23: 12",
+        "ip": ": 0",
+        "command": "/usr/lib/gdm3/gdm-x-session --run-script env GNOME_SHELL_SESSION_MODE=ubuntu /usr/bin/gnome-session --systemd --session=ubuntu"
+      }
+    ],
+    "network": [],
+    "vbox": []
+  }
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "incidentIds": [
+    "5e1f596f96e8204612e8d775"
+  ],
+  "_id": "5e1f596e96e8204612e8d773",
+  "createdAt": "2020-01-15T18:26:54.704Z",
+  "monitorId": "5e1f4a6e10175840348794bd",
+  "data": {
+    "load": {
+      "avgload": 0.31,
+      "currentload": 11.993297816580107,
+      "currentload_user": 9.221739863479614,
+      "currentload_system": 2.712832208199919,
+      "currentload_nice": 0.05872574490057444,
+      "currentload_idle": 88.00670218341989,
+      "currentload_irq": 0,
+      "raw_currentload": 65372600,
+      "raw_currentload_user": 50265500,
+      "raw_currentload_system": 14787000,
+      "raw_currentload_nice": 320100,
+      "raw_currentload_idle": 479703500,
+      "raw_currentload_irq": 0,
+      "cpus": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "memory": {
+      "total": 6097825792,
+      "free": 149876736,
+      "used": 5947949056,
+      "active": 4246343680,
+      "available": 688734208,
+      "buffcache": 1701605376,
+      "swaptotal": 6143602688,
+      "swapused": 684810240,
+      "swapfree": 5458792448
+    },
+    "disk": {
+      "fs": "/dev/sda7",
+      "type": "ext4",
+      "size": 267669123072,
+      "used": 79250288640,
+      "use": 29.61,
+      "mount": "/"
+    },
+    "traffic": [
+      {
+        "iface": "wlp2s0",
+        "operstate": "up",
+        "rx_bytes": 259915784,
+        "rx_dropped": 0,
+        "rx_errors": 0,
+        "tx_bytes": 20517137,
+        "tx_dropped": 0,
+        "tx_errors": 0,
+        "rx_sec": -1,
+        "tx_sec": -1,
+        "ms": 0
+      }
+    ],
+    "temperature": {
+      "main": 47,
+      "cores": [
+        47,
+        47
+      ],
+      "max": 47
+    },
+    "resources": {
+      "manufacturer": "Intel®",
+      "brand": "Core™ i5-7200U",
+      "vendor": "GenuineIntel",
+      "family": "6",
+      "model": "142",
+      "stepping": "9",
+      "revision": "",
+      "voltage": "",
+      "speed": "2.50",
+      "speedmin": "0.40",
+      "speedmax": "3.10",
+      "cores": 4,
+      "physicalCores": 2,
+      "processors": 1,
+      "socket": "",
+      "cache": {
+        "l1d": 65536,
+        "l1i": 65536,
+        "l2": 524288,
+        "l3": 3
+      }
+    },
+    "users": [
+      {
+        "user": "hibeekaey",
+        "tty": ": 0",
+        "date": "2020-01-14",
+        "time": "23: 12",
+        "ip": ": 0",
+        "command": "/usr/lib/gdm3/gdm-x-session --run-script env GNOME_SHELL_SESSION_MODE=ubuntu /usr/bin/gnome-session --systemd --session=ubuntu"
+      }
+    ],
+    "network": [],
+    "vbox": []
+  },
+  "status": "degraded",
+  "__v": 0
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-monitor-logs" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Monitor Logs<span class="requestType">POST</span></h3>
+    <p>
+      <p>Get Monitor Logs by Project ID and Monitor ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/monitorLogs/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94/monitorLogs/5e08a21b25c59a1c8033c7e7</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "skip": "0",
+  "limit": "5",
+  "probeValue": "5e08a2c83ccfdd73a3bb5f21"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": {
+    "monitorLogs": [
+      {
+        "incidentIds": [],
+        "_id": "5e1394b9a55da96da8d148bc",
+        "createdAt": "2020-01-06T20:12:41.149Z",
+        "monitorId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "probeId": {
+          "_id": "5e08a2c83ccfdd73a3bb5f21",
+          "probeName": "US East"
+        },
+        "responseTime": 6051,
+        "responseStatus": 408,
+        "status": "offline"
+      },
+      {
+        "incidentIds": [],
+        "_id": "5e13947fa55da96da8d148b1",
+        "createdAt": "2020-01-06T20:11:43.098Z",
+        "monitorId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "probeId": {
+          "_id": "5e08a2c83ccfdd73a3bb5f21",
+          "probeName": "US East"
+        },
+        "responseTime": 5059,
+        "responseStatus": 408,
+        "status": "offline"
+      },
+      {
+        "incidentIds": [],
+        "_id": "5e13943da55da96da8d148af",
+        "createdAt": "2020-01-06T20:10:37.854Z",
+        "monitorId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "probeId": {
+          "_id": "5e08a2c83ccfdd73a3bb5f21",
+          "probeName": "US East"
+        },
+        "responseTime": 5028,
+        "responseStatus": 408,
+        "status": "offline"
+      },
+      {
+        "incidentIds": [],
+        "_id": "5e1393faa55da96da8d148a8",
+        "createdAt": "2020-01-06T20:09:30.195Z",
+        "monitorId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "probeId": {
+          "_id": "5e08a2c83ccfdd73a3bb5f21",
+          "probeName": "US East"
+        },
+        "responseTime": 8709,
+        "responseStatus": 408,
+        "status": "offline"
+      },
+      {
+        "incidentIds": [],
+        "_id": "5e1393bea55da96da8d1489c",
+        "createdAt": "2020-01-06T20:08:30.212Z",
+        "monitorId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "probeId": {
+          "_id": "5e08a2c83ccfdd73a3bb5f21",
+          "probeName": "US East"
+        },
+        "responseTime": 5038,
+        "responseStatus": 408,
+        "status": "offline"
+      }
+    ],
+    "probes": [
+      {
+        "_id": "5e08a2c83ccfdd73a3bb5f21",
+        "probeName": "US East"
+      }
+    ]
+  },
+  "count": 113
+}                   
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-aggregate-monitor-logs" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Aggregate Monitor Logs<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get Aggregate Monitor Logs by Project ID and Monitor ID. Return results by Start Date and End Date.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/log/:monitorId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>startDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The start date of the date range.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>endDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The end date of the date range.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/monitor/5e089f94b400211639928c94/log/5e08a21b25c59a1c8033c7e7?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e08a2c83ccfdd73a3bb5f21",
+      "logs": [
+        {
+          "_id": {
+            "probeId": "5e08a2c83ccfdd73a3bb5f21",
+            "createdAt": "2020-01-06"
+          },
+          "monitorId": "5e08a21b25c59a1c8033c7e7",
+          "probeId": "5e08a2c83ccfdd73a3bb5f21",
+          "responseTime": 6051,
+          "responseStatus": 408,
+          "status": "offline",
+          "data": null,
+          "createdAt": "2020-01-06T20:12:41.149Z",
+          "avgResponseTime": 4506.742857142857,
+          "avgCpuLoad": null,
+          "avgMemoryUsed": null,
+          "avgStorageUsed": null,
+          "avgMainTemp": null,
+          "count": 70,
+          "intervalDate": "Jan 6th 2020"
+        },
+        {
+          "_id": {
+            "probeId": "5e08a2c83ccfdd73a3bb5f21",
+            "createdAt": "2019-12-31"
+          },
+          "monitorId": "5e08a21b25c59a1c8033c7e7",
+          "probeId": "5e08a2c83ccfdd73a3bb5f21",
+          "responseTime": 5730,
+          "responseStatus": 408,
+          "status": "offline",
+          "data": null,
+          "createdAt": "2019-12-31T16:14:00.756Z",
+          "avgResponseTime": 3369.521739130435,
+          "avgCpuLoad": null,
+          "avgMemoryUsed": null,
+          "avgStorageUsed": null,
+          "avgMainTemp": null,
+          "count": 23,
+          "intervalDate": "Dec 31st 2019"
+        },
+        {
+          "_id": {
+            "probeId": "5e08a2c83ccfdd73a3bb5f21",
+            "createdAt": "2019-12-30"
+          },
+          "monitorId": "5e08a21b25c59a1c8033c7e7",
+          "probeId": "5e08a2c83ccfdd73a3bb5f21",
+          "responseTime": 5001,
+          "responseStatus": 408,
+          "status": "offline",
+          "data": null,
+          "createdAt": "2019-12-30T15:03:20.050Z",
+          "avgResponseTime": 4295.090909090909,
+          "avgCpuLoad": null,
+          "avgMemoryUsed": null,
+          "avgStorageUsed": null,
+          "avgMainTemp": null,
+          "count": 11,
+          "intervalDate": "Dec 30th 2019"
+        },
+        {
+          "_id": {
+            "probeId": "5e08a2c83ccfdd73a3bb5f21",
+            "createdAt": "2019-12-29"
+          },
+          "monitorId": "5e08a21b25c59a1c8033c7e7",
+          "probeId": "5e08a2c83ccfdd73a3bb5f21",
+          "responseTime": 1369,
+          "responseStatus": 200,
+          "status": "online",
+          "data": null,
+          "createdAt": "2019-12-29T13:17:01.395Z",
+          "avgResponseTime": 1593.5,
+          "avgCpuLoad": null,
+          "avgMemoryUsed": null,
+          "avgStorageUsed": null,
+          "avgMainTemp": null,
+          "count": 4,
+          "intervalDate": "Dec 29th 2019"
+        }
+      ]
+    }
+  ],
+  "count": 1
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="add-monitor-seat-to-project" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Add Monitor Seat To Project<span class="requestType">POST</span></h3>
+    <p>
+      <p>Add Monitor Seat To Project by Project ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/addseat</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94/addseat</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>A new seat added. Now you can add a monitor</p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="update-device-monitor-ping-time" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Update Device Monitor Ping Time<span class="requestType">POST</span> or <span class="requestType">GET</span>
+    </h3>
+    <p>
+      <p>Update Device Monitor Ping Time by Project ID and Device ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/inbound/:deviceId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>deviceId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The device id of the device monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94/inbound/12345</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "formData": [],
+  "headers": [],
+  "deleted": false,
+  "_id": "5e1f5b0796e8204612e8d83b",
+  "createdAt": "2020-01-15T18:33:43.474Z",
+  "pollTime": "2020-01-15T18:33:43.474Z",
+  "lastPingTime": "2020-01-15T18:33:43.474Z",
+  "updateTime": "2020-01-15T18:33:43.474Z",
+  "name": "Hello",
+  "type": "device",
+  "createdById": "5e089f88b400211639928c92",
+  "data": {
+    "deviceId": "12345"
+  },
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "__v": 0,
+  "probes": [
+    {
+      "deleted": false,
+      "_id": "5e08a2c83ccfdd73a3bb5f21",
+      "createdAt": "2019-12-29T12:43:52.563Z",
+      "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4",
+      "probeName": "US East",
+      "lastAlive": "2020-01-06T20:12:55.011Z",
+      "probeStatus": [],
+      "status": "",
+      "responseTime": ""
+    },
+    {
+      "deleted": false,
+      "_id": "5e08a3753ccfdd73a3bb60fe",
+      "createdAt": "2019-12-29T12:43:52.563Z",
+      "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce5",
+      "probeName": "US West",
+      "lastAlive": "2019-12-29T12:43:52.563Z",
+      "probeStatus": [],
+      "status": "",
+      "responseTime": ""
+    }
+  ],
+  "count": 0,
+  "incidents": [],
+  "skip": 0,
+  "limit": 3
+}                                     
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-device-monitor-ping-time" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Device Monitor Ping Time<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get Device Monitor Ping Time by Project ID and Device ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/inbound/:deviceId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>deviceId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The device id of the device monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/monitor/5e089f94b400211639928c94/inbound/12345</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "formData": [],
+  "headers": [],
+  "deleted": false,
+  "_id": "5e1f5b0796e8204612e8d83b",
+  "createdAt": "2020-01-15T18:33:43.474Z",
+  "pollTime": "2020-01-15T18:33:43.474Z",
+  "lastPingTime": "2020-01-15T18:33:43.474Z",
+  "updateTime": "2020-01-15T18:33:43.474Z",
+  "name": "Hello",
+  "type": "device",
+  "createdById": "5e089f88b400211639928c92",
+  "data": {
+    "deviceId": "12345"
+  },
+  "projectId": {
+    "_id": "5e089f94b400211639928c94",
+    "name": "Bello"
+  },
+  "__v": 0,
+  "probes": [
+    {
+      "deleted": false,
+      "_id": "5e08a2c83ccfdd73a3bb5f21",
+      "createdAt": "2019-12-29T12:43:52.563Z",
+      "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4",
+      "probeName": "US East",
+      "lastAlive": "2020-01-06T20:12:55.011Z",
+      "probeStatus": [],
+      "status": "",
+      "responseTime": ""
+    },
+    {
+      "deleted": false,
+      "_id": "5e08a3753ccfdd73a3bb60fe",
+      "createdAt": "2019-12-29T12:43:52.563Z",
+      "probeKey": "33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce5",
+      "probeName": "US West",
+      "lastAlive": "2019-12-29T12:43:52.563Z",
+      "probeStatus": [],
+      "status": "",
+      "responseTime": ""
+    }
+  ],
+  "count": 0,
+  "incidents": [],
+  "skip": 0,
+  "limit": 3
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>

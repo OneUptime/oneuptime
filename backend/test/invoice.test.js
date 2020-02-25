@@ -1,46 +1,65 @@
-
 process.env.PORT = 3020;
-var expect = require('chai').expect;
-var userData = require('./data/user');
-var chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-var app = require('../server');
+const app = require('../server');
 
-var request = chai.request.agent(app);
-var UserService = require('../backend/services/userService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
-var ProjectService = require('../backend/services/projectService');
-var payment = require('../backend/config/payment');
-var stripe = require('stripe')(payment.paymentPrivateKey);
+const request = chai.request.agent(app);
+const UserService = require('../backend/services/userService');
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const ProjectService = require('../backend/services/projectService');
+const AirtableService = require('../backend/services/airtableService');
 
+const payment = require('../backend/config/payment');
+const stripe = require('stripe')(payment.paymentPrivateKey);
 
-var token, userId, projectId, stripeCustomerId, testPlan;
+let token, userId, airtableId, projectId, stripeCustomerId, testPlan;
 
-describe('Invoice API', function () {
+describe('Invoice API', function() {
     this.timeout(20000);
 
-    before(async function () {
+    before(async function() {
         this.timeout(30000);
+        const checkCardData = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: userData.email,
+            companyName: userData.companyName,
+        });
+        const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
+            checkCardData.body.id
+        );
 
-        var signUp = await request.post('/user/signup').send(userData.user);
-        let project = signUp.body.project;
+        const signUp = await request.post('/user/signup').send({
+            paymentIntent: {
+                id: confirmedPaymentIntent.id,
+            },
+            ...userData.user,
+        });
+
+        const project = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;
+        airtableId = signUp.body.airtableId;
 
-        var verificationToken = await VerificationTokenModel.findOne({ userId });
-        try{
-            await request.get(`/user/confirmation/${verificationToken.token}`).redirects(0);
-        } catch(error){
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
+        });
+        try {
+            await request
+                .get(`/user/confirmation/${verificationToken.token}`)
+                .redirects(0);
+        } catch (error) {
             //catch
         }
 
-        var login = await request.post('/user/login').send({
+        const login = await request.post('/user/login').send({
             email: userData.user.email,
-            password: userData.user.password
+            password: userData.user.password,
         });
         token = login.body.tokens.jwtAccessToken;
 
-        var user = await UserService.findOneBy({ _id: userId });
+        const user = await UserService.findOneBy({ _id: userId });
         stripeCustomerId = user.stripeCustomerId;
 
         testPlan = await stripe.plans.create({
@@ -48,36 +67,54 @@ describe('Invoice API', function () {
             interval: 'month',
             product: {
                 name: 'Test plan',
-                type: 'service'
+                type: 'service',
             },
             currency: 'usd',
         });
 
         await stripe.subscriptions.create({
             customer: stripeCustomerId,
-            items:[{
-                quantity: 1,
-                plan: testPlan.id
-            }]
+            items: [
+                {
+                    quantity: 1,
+                    plan: testPlan.id,
+                },
+            ],
         });
     });
 
-    after(async function () {
-        await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
+    after(async function() {
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [
+                    userData.user.email,
+                    userData.newUser.email,
+                    userData.anotherUser.email,
+                ],
+            },
+        });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await stripe.plans.del(testPlan.id);
+        await stripe.products.del(testPlan.product);
+        await AirtableService.deleteUser(airtableId);
     });
 
-    it('should filter 0$ bills', async function () {
-        var authorization = `Basic ${token}`;
-        var invoices = await request.post(`/invoice/${projectId}`).set('Authorization', authorization);
+    it('should return invoices', async function() {
+        const authorization = `Basic ${token}`;
+        const invoices = await request
+            .post(`/invoice/${userId}`)
+            .set('Authorization', authorization);
         expect(invoices.status).to.be.equal(200);
         expect(invoices.body).to.be.an('object');
         expect(invoices.body).to.have.property('data');
-        expect(invoices.body.data).to.be.an('array');
-        expect(invoices.body.data).to.have.length(1);
+        expect(invoices.body.data).to.be.an('object');
+        expect(invoices.body.data).to.have.property('data');
+        expect(invoices.body.data.data).to.be.an('array');
+        expect(invoices.body.data.data).to.have.length(3);
         expect(invoices.body).to.have.property('count');
-        expect(invoices.body.count).to.be.an('number').to.be.equal(1);
-        expect(invoices.body.data[0].total).to.be.equal(5000);
+        expect(invoices.body.count)
+            .to.be.an('number')
+            .to.be.equal(3);
+        expect(invoices.body.data.data[0].total).to.be.equal(5000);
     });
 });

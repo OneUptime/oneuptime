@@ -4,8 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import 'imrc-datetime-picker/dist/imrc-datetime-picker.css';
-import { DatetimePickerTrigger } from 'imrc-datetime-picker';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, formValueSelector } from 'redux-form';
 
 import { updateScheduledEvent } from '../../actions/scheduledEvent';
 import { closeModal } from '../../actions/modal';
@@ -13,6 +12,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
 import { RenderTextArea } from '../basic/RenderTextArea';
+import DateTimeSelector from '../basic/DateTimeSelector';
 
 
 
@@ -23,43 +23,27 @@ function validate(values) {
     if (!values.name) {
         errors.name = 'Event name is required'
     }
+    if (!values.description) {
+        errors.description = 'Event description is required';
+    }
     return errors;
 }
 
 class UpdateSchedule extends React.Component {
 
     state = {
-        startDate: moment(this.props.initialValues.startDate),
-        endDate: moment(this.props.initialValues.endDate),
-        startDateCleared: false,
-        endDateCleared: false
+        currentDate: moment(),
     };
-
-
-    handleChangeStartDate = (moment) => {
-        this.setState({
-            startDate: moment,
-            startDateCleared: false
-        });
-    }
-
-    handleChangeEndDate = (moment) => {
-        this.setState({
-            endDate: moment,
-            endDateCleared: false
-        });
-    }
 
     submitForm = (values) => {
         const { updateScheduledEvent, closeModal, updateScheduledEventModalId } = this.props;
-        const { startDate, endDate } = this.state;
         const projectId = this.props.currentProject._id;
         const scheduledEventId = this.props.initialValues._id;
         const postObj = {};
 
         postObj.name = values.name;
-        postObj.startDate = startDate;
-        postObj.endDate = endDate;
+        postObj.startDate = moment(values.startDate);
+        postObj.endDate = moment(values.endDate);
         postObj.description = values.description;
         postObj.showEventOnStatusPage = values.showEventOnStatusPage;
         postObj.callScheduleOnEvent = values.callScheduleOnEvent;
@@ -87,13 +71,8 @@ class UpdateSchedule extends React.Component {
     }
 
     render() {
-        const { startDate, startDateCleared, endDate, endDateCleared } = this.state;
-        const { requesting, error} = this.props;
-
-        const valueStartDate = !startDateCleared && startDate ? startDate.format('MMMM Do YYYY, h:mm a') : '';
-        const valueEndDate = !endDateCleared && endDate ? endDate.format('MMMM Do YYYY, h:mm a') : '';
-
-
+        const { currentDate } = this.state;
+        const { requesting, scheduledEventError, startDate } = this.props;
         const { handleSubmit, closeModal } = this.props;
 
         return (
@@ -145,13 +124,15 @@ class UpdateSchedule extends React.Component {
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <div className="bs-Fieldset-field">
-                                                                <DatetimePickerTrigger
-                                                                    moment={startDate}
-                                                                    onChange={this.handleChangeStartDate}
-                                                                    showTimePicker={true}
-                                                                    closeOnSelectDay={true}>
-                                                                    <input type="text" value={valueStartDate} style={{width:200}}/>
-                                                                </DatetimePickerTrigger>
+                                                                <Field
+                                                                    className="bs-TextInput"
+                                                                    type="text"
+                                                                    name="startDate"
+                                                                    component={DateTimeSelector}
+                                                                    placeholder="10pm"
+                                                                    style={{ width: '300px' }}
+                                                                    minDate={currentDate}
+                                                                />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -165,13 +146,16 @@ class UpdateSchedule extends React.Component {
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <div className="bs-Fieldset-field">
-                                                                <DatetimePickerTrigger
-                                                                    moment={endDate}
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    type="text"
+                                                                    name="endDate"
+                                                                    component={DateTimeSelector}
+                                                                    placeholder="10pm"
+                                                                    style={{ width: '300px' }}
+                                                                    minDate={startDate}
                                                                     onChange={this.handleChangeEndDate}
-                                                                    showTimePicker={true}
-                                                                    closeOnSelectDay={true}>
-                                                                    <input type="text" value={valueEndDate}  style={{width:200}} />
-                                                                </DatetimePickerTrigger>
+                                                                />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -192,7 +176,7 @@ class UpdateSchedule extends React.Component {
                                                                     rows="5"
                                                                     id="description"
                                                                     placeholder="Event Description"
-                                                                    style={{ width: '250px', resize: 'none' }}
+                                                                    style={{ width: '300px', resize: 'none' }}
                                                                 />
                                                             </div>
                                                         </div>
@@ -204,7 +188,7 @@ class UpdateSchedule extends React.Component {
                                                 <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
+                                                        <label className="Checkbox" htmlFor="showEventOnStatusPage">
                                                             <Field
                                                                 component="input"
                                                                 type="checkbox"
@@ -217,8 +201,10 @@ class UpdateSchedule extends React.Component {
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Show this event on Status Page</span></label>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>Show this event on Status Page</span>
+                                                                </span>
                                                             </div>
                                                         </label>
 
@@ -230,7 +216,7 @@ class UpdateSchedule extends React.Component {
                                                 <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
+                                                        <label className="Checkbox" htmlFor="callScheduleOnEvent">
                                                             <Field
                                                                 component="input"
                                                                 type="checkbox"
@@ -243,8 +229,10 @@ class UpdateSchedule extends React.Component {
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Execute call schedule when this event occurs</span></label>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>Alert your team members who are on call when this event starts</span>
+                                                                </span>
                                                             </div>
                                                         </label>
                                                     </div>
@@ -255,7 +243,7 @@ class UpdateSchedule extends React.Component {
                                                 <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
+                                                        <label className="Checkbox" htmlFor="alertSubscriber">
                                                             <Field
                                                                 component="input"
                                                                 type="checkbox"
@@ -268,8 +256,10 @@ class UpdateSchedule extends React.Component {
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Alert subscribers about this scheduled event</span></label>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>Alert subscribers about this scheduled event</span>
+                                                                </span>
                                                             </div>
                                                         </label>
 
@@ -281,7 +271,7 @@ class UpdateSchedule extends React.Component {
                                                 <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
+                                                        <label className="Checkbox" htmlFor="monitorDuringEvent">
                                                             <Field
                                                                 component="input"
                                                                 type="checkbox"
@@ -294,8 +284,10 @@ class UpdateSchedule extends React.Component {
                                                                     <div className="Checkbox-color Box-root"></div>
                                                                 </div>
                                                             </div>
-                                                            <div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-                                                                <label><span>Do not monitor this monitor during this event</span></label>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>Do not monitor this monitor during this event</span>
+                                                                </span>
                                                             </div>
                                                         </label>
 
@@ -308,7 +300,7 @@ class UpdateSchedule extends React.Component {
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
-                                    <ShouldRender if={error}>
+                                    <ShouldRender if={scheduledEventError}>
                                         <div className="bs-Tail-copy">
                                             <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
                                                 <div className="Box-root Margin-right--8">
@@ -316,7 +308,7 @@ class UpdateSchedule extends React.Component {
                                                     </div>
                                                 </div>
                                                 <div className="Box-root">
-                                                    <span style={{ color: 'red' }}>{error}</span>
+                                                    <span style={{ color: 'red' }}>{scheduledEventError}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -353,11 +345,12 @@ UpdateSchedule.propTypes = {
     updateScheduledEvent: PropTypes.func.isRequired,
     updateScheduledEventModalId: PropTypes.string,
     requesting: PropTypes.bool,
-    error: PropTypes.object,
-    initialValues: PropTypes.object
+    scheduledEventError: PropTypes.object,
+    initialValues: PropTypes.object,
+    startDate: PropTypes.object,
 };
 
-let NewUpdateSchedule = reduxForm({
+const NewUpdateSchedule = reduxForm({
     form: 'newUpdateSchedule',
     enableReinitialize: true,
     validate,
@@ -371,15 +364,19 @@ const mapDispatchToProps = dispatch => bindActionCreators(
     }
     , dispatch);
 
+
+const selector = formValueSelector('newUpdateSchedule');
+
 const mapStateToProps = state => {
 
-    let scheduledEventToBeUpdated = state.modal.modals[0].event;
-    let initialValues = {};
+    const scheduledEventToBeUpdated = state.modal.modals[0].event;
+    const initialValues = {};
+    const startDate = selector(state, 'startDate');
 
-    if (scheduledEventToBeUpdated){
+    if (scheduledEventToBeUpdated) {
         initialValues.name = scheduledEventToBeUpdated.name;
-        initialValues.startDate = scheduledEventToBeUpdated.startDate;
-        initialValues.endDate = scheduledEventToBeUpdated.endDate;
+        initialValues.startDate = scheduledEventToBeUpdated.startDate ? scheduledEventToBeUpdated.startDate : null;
+        initialValues.endDate = scheduledEventToBeUpdated.startDate ? scheduledEventToBeUpdated.endDate : null;
         initialValues.description = scheduledEventToBeUpdated.description;
         initialValues.showEventOnStatusPage = scheduledEventToBeUpdated.showEventOnStatusPage;
         initialValues.callScheduleOnEvent = scheduledEventToBeUpdated.callScheduleOnEvent;
@@ -388,14 +385,15 @@ const mapStateToProps = state => {
         initialValues._id = scheduledEventToBeUpdated._id
     }
 
-   
-   return  {
+
+    return {
         currentProject: state.project.currentProject,
         updatedScheduledEvent: state.scheduledEvent.updatedScheduledEvent,
-        error: state.scheduledEvent.updatedScheduledEvent.error,
+        scheduledEventError: state.scheduledEvent.updatedScheduledEvent.error,
         requesting: state.scheduledEvent.updatedScheduledEvent.requesting,
         updateScheduledEventModalId: state.modal.modals[0].id,
-        initialValues
+        initialValues,
+        startDate
     }
 }
 

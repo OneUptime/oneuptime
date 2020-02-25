@@ -4,16 +4,16 @@
  *
  */
 
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
-var emailTemplateSchema = new Schema({
+const Schema = mongoose.Schema;
+const emailTemplateSchema = new Schema({
     projectId: { type: String, ref: 'Project' },
     subject: { type: String},
     body: { type: String },
     emailType: {
         type: String,
-        enum: ['Subscriber Incident'],
+        enum: ['Subscriber Incident Created', 'Subscriber Incident Acknowldeged', 'Subscriber Incident Resolved'],
         required: true
     },
     allowedVariables: [{ type: String, required: true }],

@@ -1,0 +1,1233 @@
+<article id="schedule" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Schedule</h1>
+    </b>
+    <p>
+      <p>Schedule API will allow you to connect your team members to specific monitors, so only on-duty members
+        who are responsible for certain monitors are alerted when an incident is created.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/schedule/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container"></div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+  </section>
+</article>
+
+<article id="create-schedule" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Schedule<span class="requestType">POST</span></h3>
+    <p>
+      <p>Create Schedule by Project ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/schedule/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for the project or sub project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>name</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Schedule Name</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>userIds</span>
+                <span class="item-type">Array</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Who in your team will be alerted for this schedule.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorIds</span>
+                <span class="item-type">Array</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Which monitors do you want to include in this schedule.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "name": "Call Team Members"
+}  
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "userIds": [],
+  "monitorIds": [],
+  "escalationIds": [],
+  "deleted": false,
+  "_id": "5e1e1e25b1df96583e883f23",
+  "createdAt": "2020-01-14T20:01:41.409Z",
+  "name": "Call Team Members",
+  "projectId": "5e089f94b400211639928c94",
+  "createdById": "5e089f88b400211639928c92",
+  "__v": 0
+}                              
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-schedules" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Schedules<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Schedules by Project ID. Return by skipping and limiting the number of results.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/schedule/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94?skip=0&limit=5</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "userIds": [],
+      "monitorIds": [
+        {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        }
+      ],
+      "escalationIds": [],
+      "_id": "5e1e1e25b1df96583e883f23",
+      "createdAt": "2020-01-14T20:01:41.409Z",
+      "name": "Call Team Members",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "userIds": [],
+      "monitorIds": [
+        {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        }
+      ],
+      "escalationIds": [],
+      "_id": "5e1e1d2bb1df96583e883f22",
+      "createdAt": "2020-01-14T19:57:31.646Z",
+      "name": "Call Nilanshu",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-schedules" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Schedules<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Schedules by Project ID. Return by skipping and limiting the number of results.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/schedule/:projectId/schedule</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/schedule?skip=0&limit=5</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "userIds": [],
+      "monitorIds": [
+        {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        }
+      ],
+      "escalationIds": [],
+      "_id": "5e1e1e25b1df96583e883f23",
+      "createdAt": "2020-01-14T20:01:41.409Z",
+      "name": "Call Team Members",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    },
+    {
+      "userIds": [],
+      "monitorIds": [
+        {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        }
+      ],
+      "escalationIds": [],
+      "_id": "5e1e1d2bb1df96583e883f22",
+      "createdAt": "2020-01-14T19:57:31.646Z",
+      "name": "Call Nilanshu",
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "createdById": {
+        "_id": "5e089f88b400211639928c92",
+        "name": "Nawaz Dhandala"
+      }
+    }
+  ],
+  "count": 2,
+  "skip": 0,
+  "limit": 5
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-subprojects-schedules" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All SubProjects Schedules<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All SubProjects Schedules by Project ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/schedule/:projectId/schedules</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/schedules</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "schedules": [
+      {
+        "userIds": [],
+        "monitorIds": [
+          {
+            "_id": "5e08a21b25c59a1c8033c7e7",
+            "name": "Google Home"
+          }
+        ],
+        "escalationIds": [],
+        "_id": "5e1e1e25b1df96583e883f23",
+        "createdAt": "2020-01-14T20:01:41.409Z",
+        "name": "Call Team Members",
+        "projectId": {
+          "_id": "5e089f94b400211639928c94",
+          "name": "Bello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      },
+      {
+        "userIds": [],
+        "monitorIds": [
+          {
+            "_id": "5e08a21b25c59a1c8033c7e7",
+            "name": "Google Home"
+          }
+        ],
+        "escalationIds": [],
+        "_id": "5e1e1d2bb1df96583e883f22",
+        "createdAt": "2020-01-14T19:57:31.646Z",
+        "name": "Call Nilanshu",
+        "projectId": {
+          "_id": "5e089f94b400211639928c94",
+          "name": "Bello"
+        },
+        "createdById": {
+          "_id": "5e089f88b400211639928c92",
+          "name": "Nawaz Dhandala"
+        }
+      }
+    ],
+    "count": 2,
+    "_id": "5e089f94b400211639928c94",
+    "skip": 0,
+    "limit": 10
+  }
+]
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="edit-schedule" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Edit Schedule<span class="requestType">PUT</span></h3>
+    <p>
+      <p>Edit Schedule by Project ID and Schedule ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/schedule/:projectId/:scheduleId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>scheduleId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The schedule id of the project schedule.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>api-key</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>API Key for the project or sub project</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>name</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Schedule Name</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>userIds</span>
+                <span class="item-type">Array</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Who in your team will be alerted for this schedule.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorIds</span>
+                <span class="item-type">Array</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Which monitors do you want to include in this schedule.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/5e1e1e25b1df96583e883f23</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "name": "Call Nilanshu",
+  "monitorIds": [
+    "5e08a21b25c59a1c8033c7e7"
+  ]
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "userIds": [],
+    "monitorIds": [
+      {
+        "_id": "5e08a21b25c59a1c8033c7e7",
+        "name": "Google Home"
+      }
+    ],
+    "escalationIds": [],
+    "_id": "5e1e1e25b1df96583e883f23",
+    "createdAt": "2020-01-14T20:01:41.409Z",
+    "name": "Call Nilanshu",
+    "projectId": {
+      "_id": "5e089f94b400211639928c94",
+      "name": "Bello"
+    },
+    "createdById": {
+      "_id": "5e089f88b400211639928c92",
+      "name": "Nawaz Dhandala"
+    }
+  }
+]               
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="delete-schedule" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Delete Schedule<span class="requestType">DELETE</span></h3>
+    <p>
+      <p>Delete Schedule by Project ID and Schedule ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/monitor/:projectId/:scheduleId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>scheduleId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The schedule id of the project schedule.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/5e1e1e25b1df96583e883f23</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "userIds": [],
+  "monitorIds": [
+    "5e08a21b25c59a1c8033c7e7"
+  ],
+  "escalationIds": [
+    "5e1e2355b1df96583e883f2b"
+  ],
+  "deleted": true,
+  "_id": "5e1e1e25b1df96583e883f23",
+  "createdAt": "2020-01-14T20:01:41.409Z",
+  "name": "Call Nilanshu",
+  "projectId": "5e089f94b400211639928c94",
+  "createdById": "5e089f88b400211639928c92",
+  "__v": 0,
+  "deletedAt": "2020-01-14T20:24:35.106Z",
+  "deletedById": "5e089f88b400211639928c92"
+}                   
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="add-escalation" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Add Escalation<span class="requestType">POST</span></h3>
+    <p>
+      <p>Add Schedule Escalation by Project ID and Schedule ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/schedule/:projectId/:scheduleId/addEscalation</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>scheduleId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The schedule id of the project schedule.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div> -->
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/5e1e1e25b1df96583e883f23/addEscalation
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "callReminders": 3,
+    "smsReminders": 3,
+    "emailReminders": 3,
+    "email": true,
+    "sms": true,
+    "call": false,
+    "team": [
+      {
+        "teamMember": [
+          {
+            "member": "5e089f88b400211639928c92",
+            "timezone": "Africa/Algiers",
+            "startTime": "Tue Jan 14 2020 09:00:06 GMT+0100 (West Africa Standard Time)",
+            "endTime": "Tue Jan 14 2020 17:00:06 GMT+0100 (West Africa Standard Time)"
+          }
+        ]
+      }
+    ],
+    "rotateBy": "day"
+  }
+]
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+    "call": false,
+    "email": true,
+    "sms": true,
+    "_id": "5e1e2355b1df96583e883f2b",
+    "team": [
+      {
+        "teamMember": [
+          {
+            "_id": "5e1e2355b1df96583e883f2d",
+            "member": "5e089f88b400211639928c92",
+            "startTime": "Tue Jan 14 2020 09:00:06 GMT+0100 (West Africa Standard Time)",
+            "endTime": "Tue Jan 14 2020 17:00:06 GMT+0100 (West Africa Standard Time)",
+            "timezone": "Africa/Algiers"
+          }
+        ],
+        "_id": "5e1e2355b1df96583e883f2c"
+      }
+    ],
+    "createdAt": "2020-01-14T20:23:49.525Z",
+    "callReminders": "10",
+    "smsReminders": "10",
+    "emailReminders": "10",
+    "rotateBy": "day",
+    "rotationInterval": null,
+    "projectId": {
+      "_id": "5e089f94b400211639928c94",
+      "name": "Bello"
+    },
+    "scheduleId": null,
+    "createdById": "5e089f88b400211639928c92"
+  }
+]              
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-escalation" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Escalation<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get Schedule Escalation by Project ID and Schedule ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/schedule/:projectId/:scheduleId/getescalation</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>scheduleId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The schedule id of the project schedule.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/schedule/5e089f94b400211639928c94/5e1e1e25b1df96583e883f23/getescalation
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "call": false,
+      "email": true,
+      "sms": true,
+      "_id": "5e1e2355b1df96583e883f2b",
+      "team": [
+        {
+          "teamMember": [
+            {
+              "_id": "5e1e2355b1df96583e883f2d",
+              "member": "5e089f88b400211639928c92",
+              "startTime": "Tue Jan 14 2020 09:00:06 GMT+0100 (West Africa Standard Time)",
+              "endTime": "Tue Jan 14 2020 17:00:06 GMT+0100 (West Africa Standard Time)",
+              "timezone": "Africa/Algiers"
+            }
+          ],
+          "_id": "5e1e2355b1df96583e883f2c"
+        }
+      ],
+      "createdAt": "2020-01-14T20:23:49.525Z",
+      "callReminders": "10",
+      "smsReminders": "10",
+      "emailReminders": "10",
+      "rotateBy": "day",
+      "rotationInterval": null,
+      "projectId": {
+        "_id": "5e089f94b400211639928c94",
+        "name": "Bello"
+      },
+      "scheduleId": null,
+      "createdById": "5e089f88b400211639928c92"
+    }
+  ],
+  "count": 1
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>

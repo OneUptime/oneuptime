@@ -1,21 +1,19 @@
 /**
- * 
- * Copyright HackerBay, Inc. 
- * 
+ *
+ * Copyright HackerBay, Inc.
+ *
  */
 
 
-var GridFsStorage = require('multer-gridfs-storage');
-var crypto = require('crypto');
-var keys = require('../config/keys');
-
-var mongoUri = keys.dbURL;
+const GridFsStorage = require('multer-gridfs-storage');
+const crypto = require('crypto');
+const mongoUri = process.env['MONGO_URL'];
 
 // Description: Generating random name of files.
 // Returns: fileinfo, error.
 module.exports = new GridFsStorage({
     url: mongoUri,
-    
+
     // eslint-disable-next-line no-unused-vars
     file: (req, file) => {
         return new Promise((resolve, reject) => {

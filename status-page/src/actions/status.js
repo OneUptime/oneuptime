@@ -1,7 +1,7 @@
-import { getApi } from '../api';
+import { getApi, postApi } from '../api';
 import errors from '../errors';
 import {
-    loginRequired,loginError,
+	loginRequired, loginError,
 } from '../actions/login';
 
 export const STATUSPAGE_REQUEST = 'STATUSPAGE_REQUEST';
@@ -38,7 +38,7 @@ export const getStatusPage = (statusPageId, url) => {
 		promise.then((Data) => {
 			dispatch(statusPageSuccess(Data.data));
 		}, (error) => {
-			if(error && error.response && error.response.status && error.response.status === 401){
+			if (error && error.response && error.response.status && error.response.status === 401) {
 				dispatch(loginRequired(statusPageId));
 			}
 			if (error && error.response && error.response.data)
@@ -46,15 +46,16 @@ export const getStatusPage = (statusPageId, url) => {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			if(error.length > 100){
+			if (error.length > 100) {
 				error = 'Network Error';
 			}
 			dispatch(statusPageFailure(errors(error)));
 			dispatch(loginError(errors(error)));
 		});
+		return promise;
 	};
 }
 
@@ -104,7 +105,7 @@ export const individualNoteDisable = () => {
 }
 
 // Calls the API to get status
-export const getStatusPageNote = (projectId,statusPageId,skip) => {
+export const getStatusPageNote = (projectId, statusPageId, skip) => {
 	return function (dispatch) {
 		const promise = getApi(`statusPage/${projectId}/${statusPageId}/notes?skip=${skip}`);
 
@@ -119,10 +120,10 @@ export const getStatusPageNote = (projectId,statusPageId,skip) => {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			if(error.length > 100){
+			if (error.length > 100) {
 				error = 'Network Error';
 			}
 			dispatch(statusPageNoteFailure(errors(error)));
@@ -141,8 +142,9 @@ export const getStatusPageIndividualNote = (projectId, monitorId, date, name, ne
 			dispatch(individualNoteEnable({
 				message: Data.data.message,
 				name: {
+					_id: monitorId,
 					name,
-					date: date.split('T')[0]
+					date
 				}
 			}));
 		}, (error) => {
@@ -151,10 +153,10 @@ export const getStatusPageIndividualNote = (projectId, monitorId, date, name, ne
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			if(error.length > 100){
+			if (error.length > 100) {
 				error = 'Network Error';
 			}
 			dispatch(statusPageNoteFailure(errors(error)));
@@ -162,12 +164,13 @@ export const getStatusPageIndividualNote = (projectId, monitorId, date, name, ne
 	};
 }
 
-export const notmonitoredDays = (date, name,message) => {
+export const notmonitoredDays = (monitorId, date, name, message) => {
 	return function (dispatch) {
 		dispatch(statusPageNoteReset());
 		dispatch(individualNoteEnable({
 			message: message,
 			name: {
+				_id: monitorId,
 				name,
 				date
 			}
@@ -199,7 +202,7 @@ export const moreNoteFailure = (error) => {
 	};
 }
 
-export const getMoreNote = (projectId,statusPageId,skip) => {
+export const getMoreNote = (projectId, statusPageId, skip) => {
 	return function (dispatch) {
 		const promise = getApi(`statusPage/${projectId}/${statusPageId}/notes?skip=${skip}`);
 
@@ -212,13 +215,77 @@ export const getMoreNote = (projectId,statusPageId,skip) => {
 			if (error && error.data) {
 				error = error.data;
 			}
-			if(error && error.message){
+			if (error && error.message) {
 				error = error.message;
 			}
-			if(error.length > 100){
+			if (error.length > 100) {
 				error = 'Network Error';
 			}
 			dispatch(moreNoteFailure(errors(error)));
 		});
+	};
+}
+
+export const SELECT_PROBE = 'SELECT_PROBE';
+
+export function selectedProbe(val) {
+	return function (dispatch) {
+		dispatch({
+			type: SELECT_PROBE,
+			payload: val
+		});
+	};
+}
+
+// Fetch Monitor Statuses
+export const FETCH_MONITOR_STATUSES_REQUEST = 'FETCH_MONITOR_STATUSES_REQUEST';
+export const FETCH_MONITOR_STATUSES_SUCCESS = 'FETCH_MONITOR_STATUSES_SUCCESS';
+export const FETCH_MONITOR_STATUSES_FAILURE = 'FETCH_MONITOR_STATUSES_FAILURE';
+
+// Fetch Monitor Statuses list
+export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
+	return function (dispatch) {
+		const promise = postApi(`statusPage/${projectId}/${monitorId}/monitorStatuses`, { startDate, endDate });
+		dispatch(fetchMonitorStatusesRequest());
+
+		promise.then(function (monitorStatuses) {
+			dispatch(fetchMonitorStatusesSuccess({ projectId, monitorId, statuses: monitorStatuses.data }));
+		}, function (error) {
+			if (error && error.response && error.response.data) {
+				error = error.response.data;
+			}
+			if (error && error.data) {
+				error = error.data;
+			}
+			if (error && error.message) {
+				error = error.message;
+			}
+			else {
+				error = 'Network Error';
+			}
+			dispatch(fetchMonitorStatusesFailure(errors(error)));
+		});
+
+		return promise;
+	};
+}
+
+export function fetchMonitorStatusesRequest() {
+	return {
+		type: FETCH_MONITOR_STATUSES_REQUEST,
+	};
+}
+
+export function fetchMonitorStatusesSuccess(monitorStatuses) {
+	return {
+		type: FETCH_MONITOR_STATUSES_SUCCESS,
+		payload: monitorStatuses
+	};
+}
+
+export function fetchMonitorStatusesFailure(error) {
+	return {
+		type: FETCH_MONITOR_STATUSES_FAILURE,
+		payload: error
 	};
 }

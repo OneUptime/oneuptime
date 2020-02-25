@@ -9,10 +9,10 @@ function Row(props) {
     const { projectId } = props.match.params;
     const { subProjectId } = props;
 
-    const path = `/project/${projectId}/subProject/${subProjectId}/schedule/${props.id}`;
+    const path = `/project/${projectId}/sub-project/${subProjectId}/schedule/${props.id}`;
 
     return (
-        <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink" onClick={() => { history.push(path) }}>
+        <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink scheduleListItem" onClick={() => { history.push(path) }}>
             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '270px' }}>
 
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -48,13 +48,13 @@ Row.propTypes = {
 
 function parseSchedule(schedule) {
     const { name, monitorIds, _id } = schedule;
-    var { escalationIds } = schedule;
-    let userIds = [];
+    const { escalationIds } = schedule;
+    const userIds = [];
     if (escalationIds && escalationIds.length) {
         for (let i = 0; i < escalationIds.length; i++) {
             if (escalationIds[i] && escalationIds[i].teamMember && escalationIds[i].teamMember.length) {
                 for (let j = 0; j < escalationIds[i].teamMember.length; j++) {
-                    escalationIds[i].teamMember[j] && escalationIds[i].teamMember[j].member && userIds.push(escalationIds[i].teamMember[j].member);
+                    escalationIds[i].teamMember[j] && escalationIds[i].teamMember[j].userId && userIds.push(escalationIds[i].teamMember[j].userId);
                 }
             }
         }
@@ -62,7 +62,7 @@ function parseSchedule(schedule) {
     const gt = i => monitorIds.length > i;
     const ut = i => userIds.length > i;
 
-    let id = _id;
+    const id = _id;
 
     let users = ut(0) ? userIds[0].name : 'Not Yet Added';
     users += ut(1) ? ` and ${userIds.length -1} other${ut(2) ? 's' : ''}` : '';
@@ -77,7 +77,7 @@ function OnCallTableRows({ schedules, isRequesting, match, subProjectId }) {
 
     return schedules.length > 0 ? (
         schedules.map((schedule, index) => {
-            if(Array.isArray(schedule)) return;
+            if(Array.isArray(schedule)) return null;
             schedule = parseSchedule(schedule);
             return (
                 <Row

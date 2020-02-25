@@ -1,8 +1,8 @@
-var mongoose = require('../config/db');
+const mongoose = require('../config/db');
 
-var Schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 
-var integrationSchema = new Schema({
+const integrationSchema = new Schema({
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', alias: 'project' },
     createdById: { type: Schema.Types.ObjectId, ref: 'User', alias: 'user' },
     integrationType: {
@@ -11,18 +11,20 @@ var integrationSchema = new Schema({
         required: true
     },
     data: {},
-    monitors: [{ type: Schema.Types.ObjectId, ref: 'Monitor', alias: 'monitor' }],
+    monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor', alias: 'monitor' },
     createdAt: {
         type: Date,
         default: Date.now,
     },
-
+    notificationOptions: {
+        incidentCreated: { type: Boolean, default: false},
+        incidentAcknowledged: { type: Boolean, default: false},
+        incidentResolved: { type: Boolean, default: false},
+    },
     deleted: { type: Boolean, default: false},
-
     deletedAt: {
         type: Date
     },
-
     deletedById: { type: String, ref: 'User' },
 });
 

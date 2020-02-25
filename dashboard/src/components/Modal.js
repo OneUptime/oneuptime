@@ -18,7 +18,7 @@ const composableComponent = (ComposedComponent) => {
             }
         }
         onConfirm = (value)=> {
-            var _this = this;
+            const _this = this;
             if (this.props.item.onConfirm) {
                 this.props.item.onConfirm(value)
                 .then(() => _this.props.onClose(_this.props.item),
@@ -47,12 +47,13 @@ const composableComponent = (ComposedComponent) => {
                             opacity: 1,
                             transform: 'none',
                             display: 'block',
-                            pointerEvents: 'auto'
+                            pointerEvents: 'auto',
+                            zIndex: 20,
                         }}
                     >
 
                         <div className="modal_container" style={modalContainerStyle}>
-                            <ComposedComponent closeThisDialog={this.onClose} confirmThisDialog={this.onConfirm} />
+                            <ComposedComponent closeThisDialog={this.onClose} confirmThisDialog={this.onConfirm} title={this.props.title} body={this.props.body} />
                         </div>
                     </div>
                 </div>
@@ -64,7 +65,9 @@ const composableComponent = (ComposedComponent) => {
         item: PropTypes.object.isRequired,
         onClose:PropTypes.func.isRequired,
         extraClasses: PropTypes.string,
-        zIndex: PropTypes.number.isRequired
+        zIndex: PropTypes.number.isRequired,
+        title: PropTypes.string,
+        body: PropTypes.object,
     }
 
     Modal.displayName = 'Modal'

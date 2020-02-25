@@ -1,21 +1,25 @@
 
 process.env.PORT = 3020;
-let expect = require('chai').expect;
-let userData = require('./data/user');
-let chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
-let app = require('../server');
-let request = chai.request.agent(app);
+const app = require('../server');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
 
-let UserService = require('../backend/services/userService');
-let StatusPageService = require('../backend/services/statusPageService');
-let ProjectService = require('../backend/services/projectService');
-let NotificationService = require('../backend/services/notificationService');
-let SubscriberService = require('../backend/services/subscriberService');
-let MonitorService = require('../backend/services/monitorService');
-var VerificationTokenModel = require('../backend/models/verificationToken');
+const UserService = require('../backend/services/userService');
+const StatusPageService = require('../backend/services/statusPageService');
+const ProjectService = require('../backend/services/projectService');
+const NotificationService = require('../backend/services/notificationService');
+const SubscriberService = require('../backend/services/subscriberService');
+const MonitorService = require('../backend/services/monitorService');
+const AirtableService = require('../backend/services/airtableService');
 
-let projectId, userId, monitorId, token, subscriberId, statusPageId, monitor = {
+const VerificationTokenModel = require('../backend/models/verificationToken');
+
+let projectId, userId, airtableId, monitorId, token, subscriberId, statusPageId;
+const monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' }
@@ -25,10 +29,12 @@ describe('Subscriber API', function () {
     this.timeout(20000);
 
     before(function (done) {
-        this.timeout(30000);
-        request.post('/user/signup').send(userData.user).end(function (err, res) {
+        this.timeout(40000);
+        createUser(request, userData.user, function (err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
+            airtableId = res.body.airtableId;
+
             VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
                 request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
                     request.post('/user/login').send({
@@ -36,7 +42,7 @@ describe('Subscriber API', function () {
                         password: userData.user.password
                     }).end(function (err, res) {
                         token = res.body.tokens.jwtAccessToken;
-                        var authorization = `Basic ${token}`;
+                        const authorization = `Basic ${token}`;
                         request.post(`/monitor/${projectId}`).set('Authorization', authorization).send(monitor).end(function (err, res) {
                             monitorId = res.body._id;
                             expect(res.body.name).to.be.equal(monitor.name);
@@ -67,6 +73,7 @@ describe('Subscriber API', function () {
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await SubscriberService.hardDeleteBy({ projectId: projectId });
         await MonitorService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 
     it('should register subscriber with valid monitorIds and contact email or phone number', (done) => {
@@ -125,10 +132,9 @@ describe('Subscriber API', function () {
     });
 
     it('should delete a subscriber', function (done) {
-        var authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request.delete(`/subscriber/${projectId}/${subscriberId}`).set('Authorization', authorization).end(function (err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.deleted).to.be.equal(true);
             done();
         });
     });
