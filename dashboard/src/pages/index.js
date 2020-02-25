@@ -27,6 +27,7 @@ import MonitorView from './MonitorView';
 import Reports from './Reports';
 
 import Probe from './Probe';
+import ProfileBilling from './ProfileBilling';
 
 export default {
     ChangePassword,
@@ -49,5 +50,6 @@ export default {
     SmsTemplates,
     Reports,
     MonitorView,
-    Probe
+    Probe,
+    ProfileBilling,
 };
