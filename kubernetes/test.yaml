@@ -704,7 +704,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: mongo
-          image: mongo:4
+          image: mongo:4.2.3
           command:
             - mongod
           args:
