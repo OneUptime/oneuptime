@@ -10,7 +10,6 @@ const filesToCache = [
 
 self.addEventListener('install', function(event) {
     self.skipWaiting();
-    // cache a cat SVG
     event.waitUntil(
         caches.open(cacheName).then(function(cache) {
             return cache.addAll(filesToCache);
