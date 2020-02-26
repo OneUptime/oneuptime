@@ -10677,6 +10677,9 @@ table {
     .ContentHeader-end .bs-ButtonLegacy-fill {
         padding: 0 !important;
     }
+    .ContentHeader-end button#downloadCSVButton > .bs-ButtonLegacy-fill {
+        padding: 4px 8px !important;
+    }
     .ContentHeader-end .bs-ButtonLegacy-fill * { 
         margin: 0 !important;
     }
