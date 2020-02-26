@@ -276,6 +276,56 @@ export function getIncident(projectId, incidentId) {
             }
             dispatch(incidentError(errors(error)));
         });
+
+        return promise;
+    };
+}
+
+// Calls the API to get the incident timeline
+export function getIncidentTimeline(projectId, incidentId, skip, limit) {
+
+    return function (dispatch) {
+        let promise = null;
+        promise = getApi(`incident/${projectId}/timeline/${incidentId}?skip=${skip}&limit=${limit}`);
+        dispatch(incidentTimelineRequest(promise));
+
+        promise.then(function (timeline) {
+            dispatch(incidentTimelineSuccess(timeline.data));
+        }, function (error) {
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            }
+            else {
+                error = 'Network Error';
+            }
+            dispatch(incidentTimelineError(errors(error)));
+        });
+    };
+}
+
+export function incidentTimelineRequest(promise) {
+    return {
+        type: types.INCIDENT_TIMELINE_REQUEST,
+        payload: promise
+    };
+}
+
+export function incidentTimelineSuccess(timeline) {
+    return {
+        type: types.INCIDENT_TIMELINE_SUCCESS,
+        payload: timeline
+    };
+}
+
+export function incidentTimelineError(error) {
+    return {
+        type: types.INCIDENT_TIMELINE_FAILED,
+        payload: error
     };
 }
 

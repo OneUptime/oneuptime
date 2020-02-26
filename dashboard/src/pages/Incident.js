@@ -1,7 +1,16 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { incidentRequest, incidentError, incidentSuccess, resetIncident, getIncident, setInvestigationNote, setinternalNote } from '../actions/incident';
+import {
+  incidentRequest,
+  incidentError,
+  incidentSuccess,
+  resetIncident,
+  getIncident,
+  getIncidentTimeline,
+  setInvestigationNote,
+  setinternalNote
+} from '../actions/incident';
 import { fetchIncidentAlert, fetchSubscriberAlert } from '../actions/alert';
 import Dashboard from '../components/Dashboard';
 import IncidentDescription from '../components/incident/IncidentDescription';
@@ -15,7 +24,7 @@ import IncidentDeleteBox from '../components/incident/IncidentDeleteBox'
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
 import IncidentTimelineBox from '../components/incident/IncidentTimelineBox';
-import {getMonitorLogs} from '../actions/monitor';
+import { getMonitorLogs } from '../actions/monitor';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 
@@ -70,6 +79,26 @@ class Incident extends React.Component {
     }
   }
 
+  nextTimeline = () => {
+    this.props.getIncidentTimeline(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.incidentTimeline.skip, 10) + parseInt(this.props.incidentTimeline.limit, 10)), parseInt(this.props.incidentTimeline.limit, 10));
+    if (!IS_DEV) {
+      logEvent('Next Incident Timeline Requested', {
+        projectId: this.props.match.params.projectId,
+        incidentId: this.props.match.params.incidentId
+      });
+    }
+  }
+
+  previousTimeline = () => {
+    this.props.getIncidentTimeline(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.incidentTimeline.skip, 10) - parseInt(this.props.incidentTimeline.limit, 10)), parseInt(this.props.incidentTimeline.limit, 10));
+    if (!IS_DEV) {
+      logEvent('Previous Incident Timeline Requested', {
+        projectId: this.props.match.params.projectId,
+        incidentId: this.props.match.params.incidentId
+      });
+    }
+  }
+
   nextSubscribers = () => {
     this.props.fetchSubscriberAlert(this.props.match.params.projectId, this.props.match.params.incidentId, (parseInt(this.props.subscribersAlerts.skip, 10) + parseInt(this.props.subscribersAlerts.limit, 10)), parseInt(this.props.subscribersAlerts.limit, 10));
     if (!IS_DEV) {
@@ -93,10 +122,12 @@ class Incident extends React.Component {
   ready = () => {
     const monitorId = this.props.incident && this.props.incident.monitorId && this.props.incident.monitorId._id ? this.props.incident.monitorId._id : null;
 
-    this.props.getIncident(this.props.match.params.projectId, this.props.match.params.incidentId);
+    this.props.getIncident(this.props.match.params.projectId, this.props.match.params.incidentId).then(() => {
+      this.props.getIncidentTimeline(this.props.match.params.projectId, this.props.match.params.incidentId, 0, 10);
+    });
     this.props.fetchIncidentAlert(this.props.match.params.projectId, this.props.match.params.incidentId, 0, 10);
     this.props.fetchSubscriberAlert(this.props.match.params.projectId, this.props.match.params.incidentId, 0, 10);
-    this.props.getMonitorLogs(this.props.match.params.projectId, monitorId, 0, 10,null,null,null,this.props.match.params.incidentId);
+    this.props.getMonitorLogs(this.props.match.params.projectId, monitorId, 0, 10, null, null, null, this.props.match.params.incidentId);
     if (!IS_DEV) {
       logEvent('Incident Page Ready, Data Requested', {
         projectId: this.props.match.params.projectId,
@@ -119,7 +150,7 @@ class Incident extends React.Component {
             <MonitorViewLogsBox incidentId={this.props.incident._id} monitorId={monitorId} monitorName={monitorName} />
           </div>
           <div className="Box-root Margin-bottom--12">
-            <IncidentTimelineBox />
+            <IncidentTimelineBox next={this.nextTimeline} previous={this.previousTimeline} incident={this.props.incident} />
           </div>
           <SubscriberAlert next={this.nextSubscribers} previous={this.previousSubscribers} incident={this.props.incident} />
           <IncidentInvestigation incident={this.props.incident} setdata={this.investigationNote} />
@@ -159,6 +190,7 @@ const mapStateToProps = state => {
   return {
     currentProject: state.project.currentProject,
     incident: state.incident.incident.incident,
+    incidentTimeline: state.incident.incident,
     count: state.alert.incidentalerts.count,
     skip: state.alert.incidentalerts.skip,
     limit: state.alert.incidentalerts.limit,
@@ -168,26 +200,40 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch => {
-  return bindActionCreators({ getMonitorLogs,setInvestigationNote, setinternalNote, fetchIncidentAlert, fetchSubscriberAlert, incidentRequest, incidentError, incidentSuccess, resetIncident, getIncident }, dispatch);
-}
+  return bindActionCreators({
+    getMonitorLogs,
+    setInvestigationNote,
+    setinternalNote,
+    fetchIncidentAlert,
+    fetchSubscriberAlert,
+    incidentRequest,
+    incidentError,
+    incidentSuccess,
+    resetIncident,
+    getIncident,
+    getIncidentTimeline
+  }, dispatch);
+};
 
 Incident.propTypes = {
-  currentProject: PropTypes.object.isRequired,
+  currentProject: PropTypes.object,
   deleting: PropTypes.bool.isRequired,
   fetchIncidentAlert: PropTypes.func,
   fetchSubscriberAlert: PropTypes.func,
   getIncident: PropTypes.func,
+  getIncidentTimeline: PropTypes.func,
   getMonitorLogs: PropTypes.func,
   incident: PropTypes.object,
+  incidentTimeline: PropTypes.object,
   limit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   match: PropTypes.object,
   setInvestigationNote: PropTypes.func,
   setinternalNote: PropTypes.func,
   skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   subscribersAlerts: PropTypes.object.isRequired
-}
+};
 
-Incident.displayName = 'Incident'
+Incident.displayName = 'Incident';
 
 
 export default connect(mapStateToProps, mapDispatchToProps)(Incident);

@@ -73,7 +73,7 @@ describe('User Feedback', () => {
             await init.loginUser(user, page);
             await page.waitForSelector('#feedback-div');
             await page.click('#feedback-div', { clickCount: 2 });
-            await page.type('textarea[name="feedback"]', data.testFeedback);
+            await page.type('#feedback-textarea', data.testFeedback);
             await page.click('#feedback-button');
             await page.waitFor(3000);
             

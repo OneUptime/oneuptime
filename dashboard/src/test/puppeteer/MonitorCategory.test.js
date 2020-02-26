@@ -79,7 +79,7 @@ describe('Monitor Category', () => {
             await page.click('#addMonitorCategoryButton');
             await page.waitFor(5000);
 
-            var createdMonitorCategorySelector = '#monitorCategoryList > div > div > div:nth-child(2) > div:nth-child(1)'
+            var createdMonitorCategorySelector = '#monitorCategoryList #monitor-category-name:nth-child(2)'
             var createdMonitorCategoryName = await page.$eval(createdMonitorCategorySelector, el => el.textContent);
 
             expect(createdMonitorCategoryName).toEqual(utils.monitorCategoryName);

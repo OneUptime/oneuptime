@@ -187,7 +187,7 @@ spec:
             - name: MAIL_FROM
               value: "Fyipe"
             - name: MAIL_SERVER_SMTP
-              value: "smtp.google.com"
+              value: "smtp.gmail.com"
             - name: MAIL_PORT_SMTP
               value: "465"
             - name: MAIL_SMTP_SECURE
@@ -722,7 +722,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: mongo
-          image: mongo:4
+          image: mongo:4.2.3
           command:
             - mongod
           args:

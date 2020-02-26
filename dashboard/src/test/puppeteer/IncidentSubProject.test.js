@@ -293,6 +293,71 @@ describe('Incident API With SubProjects', () => {
 
     }, operationTimeOut);
 
+    test('should get incident timeline and paginate for incident timeline in sub-project', async (done) => {
+        expect.assertions(3);
+
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 140000
+        });
+        let internalNote = utils.generateRandomString();
+
+        cluster.on('taskerror', (err) => {
+            throw err;
+        });
+
+        await cluster.task(async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password
+            }
+
+            await init.loginUser(user, page);
+            // switch to invited project for new user
+            await init.switchProject(data.projectName, page);
+
+            await page.waitForSelector(`#incident_${data.subProjectMonitorName}_0`);
+            await page.click(`#incident_${data.subProjectMonitorName}_0`);
+
+            for (let i = 0; i < 10; i++) {
+                // update internal note
+                await page.waitForSelector('#txtInternalNote');
+                await page.type('#txtInternalNote', data.internalNote);
+                await page.click('#btnUpdateInternalNote');
+                await page.waitFor(5000);
+            }
+
+            let incidentTimelineRows = await page.$$('tr.incidentListItem');
+            let countIncidentTimelines = incidentTimelineRows.length;
+
+            expect(countIncidentTimelines).toEqual(10);
+
+            const nextSelector = await page.$('#btnTimelineNext');
+
+            await nextSelector.click();
+            await page.waitFor(5000);
+            incidentTimelineRows = await page.$$('tr.incidentListItem');
+            countIncidentTimelines = incidentTimelineRows.length;
+            expect(countIncidentTimelines).toEqual(5);
+
+            const prevSelector = await page.$('#btnTimelinePrev');
+
+            await prevSelector.click();
+            await page.waitFor(5000);
+            incidentTimelineRows = await page.$$('tr.incidentListItem');
+            countIncidentTimelines = incidentTimelineRows.length;
+            expect(countIncidentTimelines).toEqual(10);
+        });
+
+        cluster.queue({ email: newEmail, password: newPassword, subProjectMonitorName, projectName, internalNote, counter: 0, limit: 10 });
+        await cluster.idle();
+        await cluster.close();
+        done();
+
+    }, 200000);
+
     test('should get list of incidents and paginate for incidents in sub-project', async (done) => {
         expect.assertions(3);
 

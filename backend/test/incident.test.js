@@ -130,6 +130,17 @@ describe('Incident API', function () {
         });
     });
 
+    it('should get incident timeline by incidentId', function (done) {
+        const authorization = `Basic ${token}`;
+        request.get(`/incident/${projectId}/timeline/${incidentId}`).set('Authorization', authorization).end(function (err, res) {
+            expect(res).to.have.status(200);
+            expect(res.body).to.be.an('object');
+            expect(res.body).to.have.property('data');
+            expect(res.body).to.have.property('count');
+            done();
+        });
+    });
+
     it('should update the internal and investigation notes of an incident', function (done) {
         const authorization = `Basic ${token}`;
         request.put(`/incident/${projectId}/incident/${incidentId}`).set('Authorization', authorization).send({

@@ -165,24 +165,28 @@ module.exports = {
     saveMonitorLog: async function (data) {
         try {
             const _this = this;
-            let monitor, autoAcknowledge, autoResolve, incidentIds;
             const monitorStatus = await MonitorStatusService.findOneBy({ monitorId: data.monitorId, probeId: data.probeId });
-            let log = await MonitorLogService.create(data);
             const lastStatus = monitorStatus && monitorStatus.status ? monitorStatus.status : null;
+
+            let log = await MonitorLogService.create(data);
+
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
-                // if different, create a new monitor status and incident
+                // if different, resolve last incident, create a new incident and monitor status
+                if (lastStatus) {
+                    const monitor = await MonitorService.findOneBy({ _id: data.monitorId });
+                    const autoAcknowledge = lastStatus && lastStatus === 'degraded' ? monitor.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? monitor.criteria.down.autoAcknowledge : false;
+                    const autoResolve = lastStatus === 'degraded' ? monitor.criteria.degraded.autoResolve : lastStatus === 'offline' ? monitor.criteria.down.autoResolve : false;
+                    await _this.incidentResolveOrAcknowledge(data, lastStatus, autoAcknowledge, autoResolve);
+                }
+
+                const incidentIds = await _this.incidentCreateOrUpdate(data);
                 await MonitorStatusService.create(data);
-                const incident = await _this.incidentCreateOrUpdate(data);
-                monitor = incident.monitor;
-                incidentIds = incident.incidentIds;
-                autoAcknowledge = lastStatus && lastStatus === 'degraded' ? monitor.criteria.degraded.autoAcknowledge : lastStatus === 'offline' ? monitor.criteria.down.autoAcknowledge : false;
-                autoResolve = lastStatus === 'degraded' ? monitor.criteria.degraded.autoResolve : lastStatus === 'offline' ? monitor.criteria.down.autoResolve : false;
-                await _this.incidentResolveOrAcknowledge(data, lastStatus, autoAcknowledge, autoResolve);
-            }
-            if (incidentIds && incidentIds.length) {
-                log = await MonitorLogService.updateOneBy({ _id: log._id }, { incidentIds });
+
+                if (incidentIds && incidentIds.length) {
+                    log = await MonitorLogService.updateOneBy({ _id: log._id }, { incidentIds });
+                }
             }
             return log;
         } catch (error) {
@@ -211,7 +215,7 @@ module.exports = {
             if (data.status === 'online' && monitor && monitor.criteria && monitor.criteria.up && monitor.criteria.up.createAlert) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async (incident) => {
-                        return await IncidentService.updateOneBy({
+                        const newIncident = await IncidentService.updateOneBy({
                             _id: incident._id
                         }, {
                             probes: incident.probes.concat({
@@ -221,6 +225,14 @@ module.exports = {
                                 reportedStatus: data.status
                             })
                         });
+
+                        await IncidentTimelineService.create({
+                            incidentId: incident._id,
+                            probeId: data.probeId,
+                            status: data.status
+                        });
+
+                        return newIncident;
                     });
                 }
                 else {
@@ -236,7 +248,7 @@ module.exports = {
             else if (data.status === 'degraded' && monitor && monitor.criteria && monitor.criteria.degraded && monitor.criteria.degraded.createAlert) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async (incident) => {
-                        return await IncidentService.updateOneBy({
+                        const newIncident = await IncidentService.updateOneBy({
                             _id: incident._id
                         }, {
                             probes: incident.probes.concat({
@@ -246,6 +258,14 @@ module.exports = {
                                 reportedStatus: data.status
                             })
                         });
+
+                        await IncidentTimelineService.create({
+                            incidentId: incident._id,
+                            probeId: data.probeId,
+                            status: data.status
+                        });
+
+                        return newIncident;
                     });
                 }
                 else {
@@ -261,7 +281,7 @@ module.exports = {
             else if (data.status === 'offline' && monitor && monitor.criteria && monitor.criteria.down && monitor.criteria.down.createAlert) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async (incident) => {
-                        return await IncidentService.updateOneBy({
+                        const newIncident = await IncidentService.updateOneBy({
                             _id: incident._id
                         }, {
                             probes: incident.probes.concat({
@@ -271,6 +291,14 @@ module.exports = {
                                 reportedStatus: data.status
                             })
                         });
+
+                        await IncidentTimelineService.create({
+                            incidentId: incident._id,
+                            probeId: data.probeId,
+                            status: data.status
+                        });
+
+                        return newIncident;
                     });
                 }
                 else {
@@ -285,7 +313,7 @@ module.exports = {
             }
             incidentIds = await Promise.all(incidentIds);
             incidentIds = incidentIds.map(i => i._id);
-            return { monitor, incidentIds };
+            return incidentIds;
         } catch (error) {
             ErrorService.log('ProbeService.incidentCreateOrUpdate', error);
             throw error;
@@ -299,11 +327,9 @@ module.exports = {
             const incidentsV2 = [];
             if (incidents && incidents.length) {
                 if (lastStatus && lastStatus !== data.status) {
-                    incidents.map(async (incident) => {
-                        incident = incident.toObject();
+                    incidents.forEach(incident => {
                         incident.probes.some(probe => {
-                            const probeId = data.probeId ? data.probeId.toString() : null;
-                            if (probe.probeId === probeId) {
+                            if (String(probe.probeId._id) === String(data.probeId)) {
                                 incidentsV1.push(incident);
                                 return true;
                             }
@@ -324,13 +350,20 @@ module.exports = {
                     }])
                 });
                 incidentsV2.push(newIncident);
+
+                await IncidentTimelineService.create({
+                    incidentId: incident._id,
+                    probeId: data.probeId,
+                    status: data.status
+                });
+
                 return newIncident;
             }));
 
-            incidentsV2.map(async (incident) => {
+            incidentsV2.forEach(async (incident) => {
                 const trueArray = [];
                 const falseArray = [];
-                incident.probes.map(probe => {
+                incident.probes.forEach(probe => {
                     if (probe.status) {
                         trueArray.push(probe);
                     }
@@ -341,14 +374,11 @@ module.exports = {
                 if (trueArray.length === falseArray.length) {
                     if (autoAcknowledge) {
                         if (!incident.acknowledged) {
-                            await IncidentService.acknowledge(incident._id, null, 'fyipe');
+                            await IncidentService.acknowledge(incident._id, null, 'fyipe', data.probeId);
                         }
                     }
                     if (autoResolve) {
-                        await IncidentService.resolve(incident._id, null, 'fyipe');
-                        incident.probes.map(async probe => {
-                            await MonitorStatusService.create({ monitorId: incident.monitorId, probeId: probe.probeId, status: 'online' });
-                        });
+                        await IncidentService.resolve(incident._id, null, 'fyipe', data.probeId);
                     }
                 }
             });
@@ -959,3 +989,4 @@ const MonitorService = require('./monitorService');
 const MonitorStatusService = require('./monitorStatusService');
 const MonitorLogService = require('./monitorLogService');
 const IncidentService = require('./incidentService');
+const IncidentTimelineService = require('./incidentTimelineService');
