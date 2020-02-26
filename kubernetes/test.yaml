@@ -176,7 +176,7 @@ spec:
             - name: MAIL_PASSWORD
               value: "qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD"
             - name: MAIL_SERVER_SMTP
-              value: "smtp.google.com"
+              value: "smtp.gmail.com"
             - name: MAIL_PORT_SMTP
               value: "465"
             - name: MAIL_SMTP_SECURE
