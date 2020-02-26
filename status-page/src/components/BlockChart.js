@@ -29,7 +29,9 @@ class BlockChart extends Component {
         let title = null;
         let title1 = null;
         let need = false;
+        let backgroundColor;
 
+        const { colors } = this.props.statusData
         if (this.props.time && (this.props.time.downTime || this.props.time.degradedTime || this.props.time.upTime)) {
             if (this.props.time.downTime > 1) {
                 let downtime = `${this.props.time.downTime} minutes`;
@@ -42,6 +44,7 @@ class BlockChart extends Component {
                 title = moment((this.props.time.date)).format('LL');
                 title1 = `<br>Down for ${downtime}`;
                 need = true;
+                if (colors) backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`;
             } else if (this.props.time.degradedTime > 1) {
                 let degradedtime = `${this.props.time.degradedTime} minutes`;
 
@@ -53,19 +56,22 @@ class BlockChart extends Component {
                 title = moment((this.props.time.date)).format('LL');
                 title1 = `<br>Degraded for ${degradedtime}`;
                 need = true;
+                if (colors) backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`;
             } else {
                 bar = 'bar';
                 title = moment((this.props.time.date)).format('LL');
                 title1 = '<br>No downtime';
+                if (colors) backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
             }
         } else {
             bar = 'bar empty';
             title = moment(this.props.time.date).format('LL');
             title1 = '<br>No data available';
+            if (colors) backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
         }
 
         return (
-            <div className={bar} style={{ outline: 'none' }} title={title + title1} onClick={() => this.requestnotes(need, this.props.time.date)}></div>
+            <div className={bar} style={{ outline: 'none', backgroundColor: backgroundColor }} title={title + title1} onClick={() => this.requestnotes(need, this.props.time.date)}></div>
         );
     }
 }

@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const userData = require('./data/user');
@@ -17,41 +16,46 @@ const stripe = require('stripe')(payment.paymentPrivateKey);
 
 let token, userId, airtableId, projectId, stripeCustomerId, testPlan;
 
-describe('Invoice API', function () {
+describe('Invoice API', function() {
     this.timeout(20000);
 
-    before(async function () {
+    before(async function() {
         this.timeout(30000);
         const checkCardData = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
             email: userData.email,
-            companyName: userData.companyName
+            companyName: userData.companyName,
         });
-        const confirmedPaymentIntent = await stripe.paymentIntents.confirm(checkCardData.body.id);
+        const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
+            checkCardData.body.id
+        );
 
         const signUp = await request.post('/user/signup').send({
             paymentIntent: {
-                id: confirmedPaymentIntent.id
+                id: confirmedPaymentIntent.id,
             },
-            ...userData.user
+            ...userData.user,
         });
-
 
         const project = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;
         airtableId = signUp.body.airtableId;
 
-        const verificationToken = await VerificationTokenModel.findOne({ userId });
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
+        });
         try {
-            await request.get(`/user/confirmation/${verificationToken.token}`).redirects(0);
+            await request
+                .get(`/user/confirmation/${verificationToken.token}`)
+                .redirects(0);
         } catch (error) {
             //catch
         }
 
         const login = await request.post('/user/login').send({
             email: userData.user.email,
-            password: userData.user.password
+            password: userData.user.password,
         });
         token = login.body.tokens.jwtAccessToken;
 
@@ -63,31 +67,43 @@ describe('Invoice API', function () {
             interval: 'month',
             product: {
                 name: 'Test plan',
-                type: 'service'
+                type: 'service',
             },
             currency: 'usd',
         });
 
         await stripe.subscriptions.create({
             customer: stripeCustomerId,
-            items: [{
-                quantity: 1,
-                plan: testPlan.id
-            }]
+            items: [
+                {
+                    quantity: 1,
+                    plan: testPlan.id,
+                },
+            ],
         });
     });
 
-    after(async function () {
-        await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
+    after(async function() {
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [
+                    userData.user.email,
+                    userData.newUser.email,
+                    userData.anotherUser.email,
+                ],
+            },
+        });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await stripe.plans.del(testPlan.id);
         await stripe.products.del(testPlan.product);
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should return invoices', async function () {
+    it('should return invoices', async function() {
         const authorization = `Basic ${token}`;
-        const invoices = await request.post(`/invoice/${projectId}`).set('Authorization', authorization);
+        const invoices = await request
+            .post(`/invoice/${userId}`)
+            .set('Authorization', authorization);
         expect(invoices.status).to.be.equal(200);
         expect(invoices.body).to.be.an('object');
         expect(invoices.body).to.have.property('data');
@@ -96,7 +112,9 @@ describe('Invoice API', function () {
         expect(invoices.body.data.data).to.be.an('array');
         expect(invoices.body.data.data).to.have.length(3);
         expect(invoices.body).to.have.property('count');
-        expect(invoices.body.count).to.be.an('number').to.be.equal(3);
+        expect(invoices.body.count)
+            .to.be.an('number')
+            .to.be.equal(3);
         expect(invoices.body.data.data[0].total).to.be.equal(5000);
     });
 });

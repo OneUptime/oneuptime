@@ -184,7 +184,8 @@ class Main extends Component {
 		let faviconurl = '';
 		let isGroupedByMonitorCategory = false;
 		const error = this.renderError();
-		let heading, backgroundMain, contentBackground;
+		let heading, backgroundMain, contentBackground, secondaryText, primaryText, downtimeColor, uptimeColor, degradedColor;
+		let statusBackground;
 		if (this.props.statusData && this.props.statusData.monitorsData) {
 			serviceStatus = getServiceStatus(this.props.monitorState, probes);
 			isGroupedByMonitorCategory = this.props.statusData.isGroupedByMonitorCategory;
@@ -208,6 +209,34 @@ class Main extends Component {
 			heading = {
 				color: `rgba(${colors.heading.r}, ${colors.heading.g}, ${colors.heading.b}, ${colors.heading.a})`
 			};
+
+			secondaryText = {
+				color: `rgba(${colors.secondaryText.r}, ${colors.secondaryText.g}, ${colors.secondaryText.b}, ${colors.secondaryText.a})`
+			};
+
+			primaryText = {
+				color: `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`
+			};
+
+			downtimeColor = {
+				backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`
+			};
+			
+			uptimeColor = {
+				backgroundColor: `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`
+			};
+			
+			degradedColor = {
+				backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`
+			};
+
+			if (serviceStatus === 'all') {
+				statusBackground = uptimeColor;
+			} else if (serviceStatus === 'none') {
+				statusBackground = downtimeColor;
+			} else if (serviceStatus === 'some') {
+				statusBackground = degradedColor;
+			}
 			
 			backgroundMain = {
 				background: `rgba(${colors.pageBackground.r}, ${colors.pageBackground.g}, ${colors.pageBackground.b}, ${colors.pageBackground.a})`
@@ -228,12 +257,12 @@ class Main extends Component {
 						</div>
 					</div>
 					<div className="content">
-						<div className="white box">
+						<div className="white box" style={contentBackground}>
 							<div className="largestatus">
-								<span className={status}></span>
+								<span className={status} style={{...statusBackground, width: '30px', height: '30px'}}></span>
 								<div className="title-wrapper">
 									<span className="title" style={heading}>{statusMessage}</span>
-									<label className="status-time">
+									<label className="status-time" style={secondaryText}>
 										As of <span className="current-time">{moment(new Date()).format('LLLL')}</span>
 									</label>
 								</div>
@@ -248,8 +277,9 @@ class Main extends Component {
 										className={this.props.activeProbe === index ? 'icon-container selected' : 'icon-container'}>
 										<span style={probe.lastAlive && moment(this.state.now).diff(moment(probe.lastAlive), 'seconds') >= 300 ?
 											greyBackground :
-											(serviceStatus === 'none' ? redBackground : (serviceStatus === 'some' ? yellowBackground : greenBackground))}></span>
-										<span>{probe.probeName}</span>
+											(serviceStatus === 'none' ? {...redBackground, backgroundColor: downtimeColor.backgroundColor} : (
+												serviceStatus === 'some' ? {...yellowBackground, backgroundColor: degradedColor.backgroundColor} : {...greenBackground, backgroundColor: uptimeColor.backgroundColor}))}></span>
+										<span style={heading}>{probe.probeName}</span>
 									</button>)
 								)}
 							</div>
@@ -267,7 +297,14 @@ class Main extends Component {
 												}) :
 											<NoMonitor />)}
 								</div>
-								{this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0 ? <UptimeLegend background={contentBackground} /> : ''}
+								{this.props.statusData && this.props.statusData.monitorsData !== undefined && this.props.statusData.monitorsData.length > 0 ? <UptimeLegend
+									background={contentBackground}
+									secondaryTextColor={secondaryText}
+									downtimeColor={downtimeColor}
+									uptimeColor={uptimeColor}
+									degradedColor={degradedColor}
+									/> : ''
+								}
 							</div>
 						</div>
 					</div>
@@ -282,14 +319,14 @@ class Main extends Component {
 					<div id="footer">
 						<ul>
 							<ShouldRender if={this.props.statusData && this.props.statusData.copyright}>
-								<li> <span>&copy;</span> {this.props.statusData && this.props.statusData.copyright ? this.props.statusData.copyright : ''}</li>
+								<li> <span style={primaryText}>&copy;</span> {this.props.statusData && this.props.statusData.copyright ? <span style={primaryText}>{this.props.statusData.copyright}</span> : ''}</li>
 							</ShouldRender>
 							<ShouldRender if={this.props.statusData && this.props.statusData.links && (this.props.statusData.links).length}>
-								{this.props.statusData && this.props.statusData.links && this.props.statusData.links.map((link, i) => <Footer link={link} key={i} />)}
+								{this.props.statusData && this.props.statusData.links && this.props.statusData.links.map((link, i) => <Footer link={link} key={i} textColor={secondaryText}/>)}
 							</ShouldRender>
 						</ul>
 
-						<p><a href="https://fyipe.com" target="_blank" rel="noopener noreferrer">Powered by Fyipe</a></p>
+						<p><a href="https://fyipe.com" target="_blank" rel="noopener noreferrer" style={secondaryText}>Powered by Fyipe</a></p>
 					</div>
 				</div> : ''}
 
