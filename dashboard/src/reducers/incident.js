@@ -22,6 +22,9 @@ const initialState = {
         error: null,
         success: false,
         incident: null,
+        count: 0,
+        skip: 0,
+        limit: 10,
         deleteIncident: {
             requesting: false,
             error: null,
@@ -48,7 +51,8 @@ const initialState = {
         requesting: false,
         error: null,
         success: false,
-    }
+    },
+    fetchIncidentTimelineRequest: false
 };
 
 
@@ -209,6 +213,35 @@ export default function incident(state = initialState, action) {
                     success: false,
                     incident: null
                 },
+            });
+
+        case types.INCIDENT_TIMELINE_REQUEST:
+            return Object.assign({}, state, {
+                fetchIncidentTimelineRequest: true
+            });
+
+        case types.INCIDENT_TIMELINE_SUCCESS: {
+            const incident = Object.assign({}, state.incident.incident);
+            if (incident) incident.timeline = action.payload.data;
+            return Object.assign({}, state, {
+                incident: {
+                    ...state.incident,
+                    incident,
+                    count: action.payload.count,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit
+                },
+                fetchIncidentTimelineRequest: false
+            });
+        }
+
+        case types.INCIDENT_TIMELINE_FAILED:
+            return Object.assign({}, state, {
+                incident: {
+                    ...state.incident,
+                    error: action.payload
+                },
+                fetchIncidentTimelineRequest: false
             });
 
         case types.PROJECT_INCIDENTS_SUCCESS:

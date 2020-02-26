@@ -64,6 +64,13 @@ module.exports = {
                 incident = await _this.findOneBy({ _id: incident._id });
                 await _this._sendIncidentCreatedAlert(incident);
 
+                await IncidentTimelineService.create({
+                    incidentId: incident._id,
+                    createdById: data.createdById,
+                    probeId: data.probeId,
+                    status: data.incidentType
+                });
+
                 return incident;
             } else {
                 const error = new Error('Monitor is not present.');
@@ -155,7 +162,6 @@ module.exports = {
             ErrorService.log('incidentService.updateOneBy', error);
             throw error;
         }
-       
     },
 
     updateBy: async function (query, data) {
@@ -212,7 +218,7 @@ module.exports = {
      * @param {string} name Name of user performing the action.
      * @returns {object} Promise with incident or error.
      */
-    acknowledge: async function (incidentId, userId, name, zapier) {
+    acknowledge: async function (incidentId, userId, name, probeId, zapier) {
         try {
             const _this = this;
             let incident = await _this.findOneBy({ _id: incidentId, acknowledged: false });
@@ -242,6 +248,15 @@ module.exports = {
                 // Ping webhook
                 const monitor = await MonitorService.findOneBy({ _id: incident.monitorId });
                 incident = await _this.findOneBy({ _id: incident._id });
+
+                await IncidentTimelineService.create({
+                    incidentId: incidentId,
+                    createdById: userId,
+                    probeId: probeId,
+                    createdByZapier: zapier,
+                    status: 'acknowledged'
+                });
+
                 await AlertService.sendAcknowledgedIncidentToSubscribers(incident);
 
                 await WebHookService.sendNotification(incident.projectId, incident, monitor, 'acknowledged');
@@ -250,6 +265,7 @@ module.exports = {
             } else {
                 incident = await _this.findOneBy({ _id: incidentId, acknowledged: true });
             }
+
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.acknowledge', error);
@@ -261,13 +277,13 @@ module.exports = {
     // Params:
     // Param 1: data: {incidentId}
     // Returns: promise with incident or error.
-    resolve: async function (incidentId, userId, name, zapier) {
+    resolve: async function (incidentId, userId, name, probeId, zapier) {
         try {
             const _this = this;
             const data = {};
             let incident = await _this.findOneBy({ _id: incidentId });
 
-            if(!incident){
+            if (!incident) {
                 return;
             }
 
@@ -276,6 +292,14 @@ module.exports = {
                 data.acknowledgedBy = userId;
                 data.acknowledgedAt = Date.now();
                 data.acknowledgedByZapier = zapier;
+
+                await IncidentTimelineService.create({
+                    incidentId: incidentId,
+                    createdById: userId,
+                    probeId: probeId,
+                    createdByZapier: zapier,
+                    status: 'acknowledged'
+                });
             }
             data.resolved = true;
             data.resolvedBy = userId;
@@ -286,16 +310,35 @@ module.exports = {
             incident = await _this.findOneBy({ _id: incident._id });
 
             if (incident.probes && incident.probes.length > 0) {
-                incident.probes.map(async probe => {
-                    await MonitorStatusService.create({ monitorId: incident.monitorId._id, probeId: probe.probeId._id, status: 'online' });
+                incident.probes.forEach(async probe => {
+                    await MonitorStatusService.create({
+                        monitorId: incident.monitorId._id,
+                        probeId: probe.probeId._id,
+                        manuallyCreated: userId ? true : false,
+                        status: 'online'
+                    });
                 });
             } else {
-                await MonitorStatusService.create({ monitorId: incident.monitorId._id, status: 'online' });
+                await MonitorStatusService.create({
+                    monitorId: incident.monitorId._id,
+                    probeId,
+                    manuallyCreated: userId ? true : false,
+                    status: 'online'
+                });
             }
+
+            await IncidentTimelineService.create({
+                incidentId: incidentId,
+                createdById: userId,
+                probeId: probeId,
+                createdByZapier: zapier,
+                status: 'resolved'
+            });
 
             await _this.sendIncidentResolvedNotification(incident, name);
             await RealTimeService.incidentResolved(incident);
             await ZapierService.pushToZapier('incident_resolve', incident);
+
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.resolve', error);
@@ -305,10 +348,16 @@ module.exports = {
 
     //
     close: async function (incidentId, userId) {
-        const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
-            $pull: { notClosedBy: userId }
-        });
-        return incident;
+        try {
+            const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
+                $pull: { notClosedBy: userId }
+            });
+
+            return incident;
+        } catch (error) {
+            ErrorService.log('incidentService.close', error);
+            throw error;
+        }
     },
 
     getUnresolvedIncidents: async function (subProjectIds, userId) {
@@ -425,6 +474,7 @@ module.exports = {
 };
 
 const IncidentModel = require('../models/incident');
+const IncidentTimelineService = require('./incidentTimelineService');
 const MonitorService = require('./monitorService');
 const AlertService = require('./alertService');
 const RealTimeService = require('./realTimeService');
