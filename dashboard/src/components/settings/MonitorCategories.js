@@ -80,85 +80,87 @@ export class MonitorCategories extends Component {
                         </div>
                         <div id="monitorCategoryList" className="bs-ContentSection-content Box-root">
                             <div className="bs-ObjectList db-UserList">
-                                <div className="bs-ObjectList-rows">
-                                    <header className="bs-ObjectList-row bs-ObjectList-row--header">
-                                        <div className="bs-ObjectList-cell">
-                                            Monitor category
+                                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                                    <div className="bs-ObjectList-rows">
+                                        <header className="bs-ObjectList-row bs-ObjectList-row--header">
+                                            <div className="bs-ObjectList-cell">
+                                                Monitor category
 										</div>
-                                        <div className="bs-ObjectList-cell">
-                                            Created
+                                            <div className="bs-ObjectList-cell">
+                                                Created
 										</div>
-                                        <div className="bs-ObjectList-cell">
-                                            Action
+                                            <div className="bs-ObjectList-cell">
+                                                Action
 										</div>
-                                    </header>
-                                    {monitorCategories.map(({ createdAt, name, _id }) =>
-                                        (<div key={_id} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{this.props.name}</div>
-                                                <div id="monitor-category-name" className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
-                                                    {name}
+                                        </header>
+                                        {monitorCategories.map(({ createdAt, name, _id }) =>
+                                            (<div key={_id} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{this.props.name}</div>
+                                                    <div id="monitor-category-name" className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
+                                                        {name}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {moment(createdAt).fromNow()}
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {moment(createdAt).fromNow()}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                                    
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
 
-                                                    <div className="Box-root">
-                                                        <button onClick={() => {
-                                                            this.props.openModal({
-                                                                id: this.state.EditMonitorCategoryModalId,
-                                                                content: DataPathHoC(EditMonitorCategory, { monitorCategoryId: _id }),
-                                                            })
-                                                        }} 
-                                                        className="Button bs-ButtonLegacy" 
-                                                        type="button" >
-                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                    <span>Edit</span>
-                                                                </span>
-                                                            </div>
-                                                        </button>
-                                                    </div>
-                                                    <div className="Box-root Margin-left--8" id="deleteMonitorCategoryBtn">
-                                                        <button onClick={() => {
-                                                            this.props.openModal({
-                                                                id: this.state.removeMonitorCategoryModalId,
-                                                                onClose: () => '',
-                                                                onConfirm: () => {
-                                                                    return new Promise((resolve)=>{
-                                                                        this.handleDeleteMonitorCategory(_id)
-                                                                        resolve(true);
-                                                                    })
-                                                                },
-                                                                content: RemoveMonitorCategory
-                                                            })
-                                                        }} 
-                                                        className="Button bs-ButtonLegacy"
-                                                        type="button">
-                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                    <span>Delete</span>
-                                                                </span>
-                                                            </div>
-                                                        </button>
+
+                                                        <div className="Box-root">
+                                                            <button onClick={() => {
+                                                                this.props.openModal({
+                                                                    id: this.state.EditMonitorCategoryModalId,
+                                                                    content: DataPathHoC(EditMonitorCategory, { monitorCategoryId: _id }),
+                                                                })
+                                                            }}
+                                                                className="Button bs-ButtonLegacy"
+                                                                type="button" >
+                                                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                        <span>Edit</span>
+                                                                    </span>
+                                                                </div>
+                                                            </button>
+                                                        </div>
+                                                        <div className="Box-root Margin-left--8" id="deleteMonitorCategoryBtn">
+                                                            <button onClick={() => {
+                                                                this.props.openModal({
+                                                                    id: this.state.removeMonitorCategoryModalId,
+                                                                    onClose: () => '',
+                                                                    onConfirm: () => {
+                                                                        return new Promise((resolve) => {
+                                                                            this.handleDeleteMonitorCategory(_id)
+                                                                            resolve(true);
+                                                                        })
+                                                                    },
+                                                                    content: RemoveMonitorCategory
+                                                                })
+                                                            }}
+                                                                className="Button bs-ButtonLegacy"
+                                                                type="button">
+                                                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                        <span>Delete</span>
+                                                                    </span>
+                                                                </div>
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>))}
-                                    <ShouldRender if={!((!monitorCategories || monitorCategories.length === 0) && !isRequesting && !error)}>
-                                        <div style={footerBorderTopStyle}></div>
-                                    </ShouldRender>
+                                            </div>))}
+                                        <ShouldRender if={!((!monitorCategories || monitorCategories.length === 0) && !isRequesting && !error)}>
+                                            <div style={footerBorderTopStyle}></div>
+                                        </ShouldRender>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <ShouldRender if={(!monitorCategories || monitorCategories.length === 0) && !isRequesting && !error}>
-                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '20px' }}>
+                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ textAlign: 'center', marginTop: '20px', padding: '0 10px' }}>
                                 {(!monitorCategories || monitorCategories.length === 0) && !isRequesting && !error ? 'You have no monitor category at this time' : null}
                                 {error ? error : null}
                             </div>

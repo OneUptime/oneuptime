@@ -10632,7 +10632,7 @@ table {
     .db-World-topContent {
         left: 0;
     }
-    .Flex-direction--row {
+    .ContentHeader .Flex-direction--row, .bs-ContentSection-content {
         flex-wrap: wrap;
     }
     .ContentHeader-center {
@@ -10670,7 +10670,8 @@ table {
     }
     .ContentHeader button,
     .db-Trends-header button,
-    .db-Trends-timeControls {
+    .db-Trends-timeControls, 
+    .bs-ContentSection-content button {
         margin: 10px 10px 0 0 !important;
     }
     .ContentHeader-end .bs-ButtonLegacy-fill {

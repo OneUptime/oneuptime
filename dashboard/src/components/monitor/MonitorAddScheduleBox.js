@@ -93,65 +93,67 @@ export class ScheduledEventBox extends Component {
                 </div>
                 <div className="bs-ContentSection-content Box-root">
                     <div className="bs-ObjectList db-UserList">
-                        <div id="scheduledEventsList" className="bs-ObjectList-rows">
-                            <header className="bs-ObjectList-row bs-ObjectList-row--header">
-                                <div className="bs-ObjectList-cell">
-                                    Event
+                        <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                            <div id="scheduledEventsList" className="bs-ObjectList-rows">
+                                <header className="bs-ObjectList-row bs-ObjectList-row--header">
+                                    <div className="bs-ObjectList-cell">
+                                        Event
 								</div>
-                                <div className="bs-ObjectList-cell">
-                                    Created by
+                                    <div className="bs-ObjectList-cell">
+                                        Created by
 								</div>
-                                <div className="bs-ObjectList-cell">
-                                    Start Date
+                                    <div className="bs-ObjectList-cell">
+                                        Start Date
                                 </div>
-                                <div className="bs-ObjectList-cell">
-                                    End Date
+                                    <div className="bs-ObjectList-cell">
+                                        End Date
                                 </div>
-                                <div className="bs-ObjectList-cell">
-                                    Action
+                                    <div className="bs-ObjectList-cell">
+                                        Action
 								</div>
-                            </header>
-                            {scheduledEvents.length > 0 && scheduledEvents.map((scheduledEvent) =>
-                                <div key={scheduledEvent._id} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName" style={{ backgroundColor: 'white' }}>
-                                    <div onClick={() => this.props.openModal({
-                                        id: createScheduledEventModalId,
-                                        content: EditSchedule,
-                                        event: scheduledEvent
-                                    })} className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent db-ListViewItem--hasLink">
-                                        <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{this.props.name}</div>
-                                        <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            {scheduledEvent.name}
+                                </header>
+                                {scheduledEvents.length > 0 && scheduledEvents.map((scheduledEvent) =>
+                                    <div key={scheduledEvent._id} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName" style={{ backgroundColor: 'white' }}>
+                                        <div onClick={() => this.props.openModal({
+                                            id: createScheduledEventModalId,
+                                            content: EditSchedule,
+                                            event: scheduledEvent
+                                        })} className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent db-ListViewItem--hasLink">
+                                            <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{this.props.name}</div>
+                                            <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                {scheduledEvent.name}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                        <div className="bs-ObjectList-cell-row">
-                                            {scheduledEvent.createdById.name}
+                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                            <div className="bs-ObjectList-cell-row">
+                                                {scheduledEvent.createdById.name}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                        <div className="bs-ObjectList-cell-row">
-                                            {moment(scheduledEvent.startDate).format('MMMM Do YYYY, h:mm a')}<br />
-                                            <strong>{profileSettings.timezone}</strong>
+                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                            <div className="bs-ObjectList-cell-row">
+                                                {moment(scheduledEvent.startDate).format('MMMM Do YYYY, h:mm a')}<br />
+                                                <strong>{profileSettings.timezone}</strong>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                        <div className="bs-ObjectList-cell-row">
-                                            {moment(scheduledEvent.endDate).format('MMMM Do YYYY, h:mm a')}<br />
-                                            <strong>{profileSettings.timezone}</strong>
+                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                            <div className="bs-ObjectList-cell-row">
+                                                {moment(scheduledEvent.endDate).format('MMMM Do YYYY, h:mm a')}<br />
+                                                <strong>{profileSettings.timezone}</strong>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                        <button onClick={() => this.props.deleteScheduledEvent(this.props.currentProject._id, scheduledEvent._id)} className="Button bs-ButtonLegacy delete-schedule" type="button">
-                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Delete</span></span></div>
-                                        </button>
-                                    </div>
-                                </div>)}
-                            <ShouldRender if={!((!scheduledEvents || scheduledEvents.length === 0) && !requesting && !error)}>
-                                <div style={footerBorderTopStyle}></div>
-                            </ShouldRender>
+                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                            <button onClick={() => this.props.deleteScheduledEvent(this.props.currentProject._id, scheduledEvent._id)} className="Button bs-ButtonLegacy delete-schedule" type="button">
+                                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Delete</span></span></div>
+                                            </button>
+                                        </div>
+                                    </div>)}
+                                <ShouldRender if={!((!scheduledEvents || scheduledEvents.length === 0) && !requesting && !error)}>
+                                    <div style={footerBorderTopStyle}></div>
+                                </ShouldRender>
+                            </div>
                         </div>
                         <ShouldRender if={(!scheduledEvents || scheduledEvents.length === 0) && !requesting && !error}>
-                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ paddingTop: '20px', backgroundColor:'white'}}>
+                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ textAlign: 'center', backgroundColor: 'white', padding: '20px 10px 0' }}>
                                 <span>
                                     {(!scheduledEvents || scheduledEvents.length === 0) && !requesting && !error ? 'You have no scheduled event at this time' : null}
                                     {error ? error : null}

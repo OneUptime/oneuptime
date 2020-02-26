@@ -80,23 +80,25 @@ export class SubProjects extends Component {
               </div>
               <div className='bs-ContentSection-content Box-root'>
                 <div className='bs-ObjectList db-UserList'>
-                  <div className='bs-ObjectList-rows'>
-                    <header className='bs-ObjectList-row bs-ObjectList-row--header'>
-                      <div className='bs-ObjectList-cell'>Name</div>
-                      <div className='bs-ObjectList-cell'>Project Id</div>
-                      <div className='bs-ObjectList-cell'>Created</div>
-                      <div className='bs-ObjectList-cell'>Actions</div>
-                    </header>
-                    {subProjects && subProjects.length > 0
-                      ? subProjects.map((subProject,i) => {
-                          return <SubProjectTable subProject={subProject} key={subProject._id} loop={i}/>
+                  <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                    <div className='bs-ObjectList-rows'>
+                      <header className='bs-ObjectList-row bs-ObjectList-row--header'>
+                        <div className='bs-ObjectList-cell'>Name</div>
+                        <div className='bs-ObjectList-cell'>Project Id</div>
+                        <div className='bs-ObjectList-cell'>Created</div>
+                        <div className='bs-ObjectList-cell'>Actions</div>
+                      </header>
+                      {subProjects && subProjects.length > 0
+                        ? subProjects.map((subProject, i) => {
+                          return <SubProjectTable subProject={subProject} key={subProject._id} loop={i} />
                         })
-                      : ''}
+                        : ''}
+                    </div>
                   </div>
                 </div>
               </div>
               <ShouldRender if={subProjects && subProjects.length <= 0}>
-                <div className='Flex-flex Flex-alignItems--center Flex-justifyContent--center' style={{ marginTop: '20px' }}>
+                <div className='Flex-flex Flex-alignItems--center Flex-justifyContent--center' style={{ textAlign: 'center', marginTop: '20px', padding: '0 10px' }}>
                   You don&#39;t have any sub project at this time!
                 </div>
               </ShouldRender>

@@ -81,7 +81,7 @@ class ResolveTime extends Component {
         if (resolveTime && resolveTime.length > 0) {
             return (
                 <ResponsiveContainer width="100%" height={300}>
-                    <Chart data={resolveTime}>
+                    <Chart data={resolveTime} margin={{ left: -15 }}>
                         <Legend verticalAlign="top" height={36} />
                         <XAxis dataKey={filter} />
                         <YAxis />

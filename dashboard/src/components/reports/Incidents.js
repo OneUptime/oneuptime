@@ -81,7 +81,7 @@ class Incidents extends Component {
         if (incidents && incidents.length > 0) {
             return (
                 <ResponsiveContainer width="100%" height={300}>
-                    <Chart data={incidents}>
+                    <Chart data={incidents} margin={{ left: -15 }}>
                         <Legend verticalAlign="top" height={36} />
                         <XAxis dataKey={filter} />
                         <YAxis />
