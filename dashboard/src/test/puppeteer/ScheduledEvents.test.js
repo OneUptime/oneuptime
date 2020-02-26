@@ -101,9 +101,9 @@ describe('Scheduled event', () => {
             await page.waitFor(5000);
             
             await page.click('input[name=startDate]');
-            await page.click('div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)');
+            await page.click('div.MuiDialogActions-root button:nth-child(2)');
             await page.click('input[name=endDate]');
-            await page.click('div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)');
+            await page.click('div.MuiDialogActions-root button:nth-child(2)');
 
             await page.type('input[name=name]', utils.scheduledEventName);
             await page.type('textarea[name=description]', utils.scheduledEventDescription);
@@ -115,7 +115,7 @@ describe('Scheduled event', () => {
             await page.click('#createScheduledEventButton');
 
 
-            createdScheduledEventSelector = '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
+            createdScheduledEventSelector = '#scheduledEventsList .scheduled-event-name';
             await page.waitFor(5000);
 
             var createdScheduledEventName = await page.$eval(createdScheduledEventSelector, el => el.textContent);
@@ -152,7 +152,7 @@ describe('Scheduled event', () => {
             await init.loginUser(user, page);
             await page.waitForSelector(`#more_details_${data.monitorName}`);
             await page.click(`#more_details_${data.monitorName}`);
-            createdScheduledEventSelector = '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
+            createdScheduledEventSelector = '#scheduledEventsList .scheduled-event-name';
             await page.waitForSelector(createdScheduledEventSelector);
             await page.click(createdScheduledEventSelector);
 
@@ -212,7 +212,7 @@ describe('Scheduled event', () => {
             await page.waitForSelector(`#more_details_${data.monitorName}`);
             await page.click(`#more_details_${data.monitorName}`);
             
-            var deleteButtonSelector = '#scheduledEventsList > div > div:nth-child(5) > button'
+            var deleteButtonSelector = '#scheduledEventsList button.delete-schedule';
 
             await page.waitForSelector(deleteButtonSelector);
             await page.click(deleteButtonSelector);

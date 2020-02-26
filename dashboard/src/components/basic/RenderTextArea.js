@@ -5,7 +5,7 @@ const RenderTextArea = ({ input, placeholder, type, meta, className, maxlength, 
 
     <span>
         <span>
-            <textarea {...input} type={type} rows={rows} placeholder={placeholder} maxLength={maxlength} className={className} disabled={disabled || false} style={style || {}} />
+            <textarea id="feedback-textarea" {...input} type={type} rows={rows} placeholder={placeholder} maxLength={maxlength} className={className} disabled={disabled || false} style={style || {}} />
         </span>
         <br />
         {meta.error &&
