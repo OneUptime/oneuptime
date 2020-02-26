@@ -14,7 +14,7 @@ describe('Resend Verification API', () => {
 
    	beforeAll(async () => {
 
-		jest.setTimeout(15000);
+		jest.setTimeout(30000);
 		browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
 		page = await browser.newPage();
 		await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');

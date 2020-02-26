@@ -1,5 +1,5 @@
 const utils = require('./test-utils');
-
+const cards = ['4000056655665556', '4242424242424242', '5555555555554444', '2223003122003222', '5200828282828210', '5105105105105100']
 module.exports = { 
     /**
      * 
@@ -36,7 +36,7 @@ module.exports = {
         elementHandle = await page.$('iframe[name=__privateStripeFrame5]');
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=cardnumber]');
-        await frame.type('input[name=cardnumber]', '42424242424242424242', {
+        await frame.type('input[name=cardnumber]', cards[Math.floor(Math.random() * cards.length)], {
             delay:50
         });
 
@@ -64,8 +64,12 @@ module.exports = {
         await page.click('input[name=zipCode]');
         await page.type('input[name=zipCode]', utils.user.address.zipcode);
         await page.select('#country', 'India')
+        await page.waitFor(60000); //wait for a second because of stripe rate limits. 
         await page.click('button[type=submit]');
-        await page.waitFor(25000);
+        await page.waitForSelector('.request-reset-step', {
+            timeout: 60000
+          })
+        
     },
     loginUser: async function (user, page){
         const { email, password } = user;
@@ -76,6 +80,6 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await page.click('button[type=submit]');
-        await page.waitFor(5000);
+        await page.waitFor(10000);
     }
 }
