@@ -88,18 +88,18 @@ export class IncidentList extends Component {
                                                                                         <span>online</span>
                                                                                     </span>
                                                                                 </div>)
-                                                                            : incident && incident.incidentType && incident.incidentType === 'degraded' ?
-                                                                                (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>degraded</span>
-                                                                                    </span>
-                                                                                </div>)
-                                                                                :
-                                                                                (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>Unknown Status</span>
-                                                                                    </span>
-                                                                                </div>)
+                                                                                : incident && incident.incidentType && incident.incidentType === 'degraded' ?
+                                                                                    (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>degraded</span>
+                                                                                        </span>
+                                                                                    </div>)
+                                                                                    :
+                                                                                    (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>Unknown Status</span>
+                                                                                        </span>
+                                                                                    </div>)
                                                                         }
                                                                     </div>
                                                                 </div>
@@ -174,7 +174,7 @@ export class IncidentList extends Component {
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                : null }  
+                                                                    : null}
                                                             </div>
                                                         </span>
                                                     </div>
@@ -201,7 +201,7 @@ export class IncidentList extends Component {
                                                                         <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                 <span>
-                                                                                {incident.resolvedBy === null ? incident.resolvedByZapier ? 'Zapier' : 'fyipe' : incident.resolvedBy.name}
+                                                                                    {incident.resolvedBy === null ? incident.resolvedByZapier ? 'Zapier' : 'fyipe' : incident.resolvedBy.name}
                                                                                 </span>
                                                                             </span>
                                                                         </div>
@@ -218,7 +218,7 @@ export class IncidentList extends Component {
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
-                                                                        : null }
+                                                                            : null}
                                                                     </div>
                                                                 )
                                                         }
@@ -240,7 +240,7 @@ export class IncidentList extends Component {
 
                 {(this.props.incidents && this.props.incidents.requesting) || (this.props.monitorState && this.props.monitorState.fetchMonitorsIncidentRequest && this.props.incidents.incidents && this.props.incidents.incidents[0] && this.props.monitorState.fetchMonitorsIncidentRequest === this.props.incidents.incidents[0].monitorId) ? <ListLoader /> : null}
 
-                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                <div style={{ textAlign: 'center', marginTop: '10px', padding: '0 10px' }}>
                     {this.props.incidents && (!this.props.incidents.incidents || !this.props.incidents.incidents.length) && !this.props.incidents.requesting && !this.props.incidents.error ? 'We don\'t have any incidents yet' : null}
                     {this.props.incidents && this.props.incidents.error ? this.props.incidents.error : null}
                 </div>

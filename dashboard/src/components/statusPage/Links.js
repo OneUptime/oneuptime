@@ -58,8 +58,8 @@ export class Links extends Component {
 
     submitForm = (values) => {
         const { _id, projectId } = this.props.statusPage.status
-        if(_id) values._id = _id;
-        this.props.updateStatusPageLinks(projectId._id || projectId, values).then(()=>{
+        if (_id) values._id = _id;
+        this.props.updateStatusPageLinks(projectId._id || projectId, values).then(() => {
             this.props.fetchProjectStatusPage(projectId._id || projectId, true);
             this.props.closeModal({ id: this.state.createFooterLinkModalId });
         })
@@ -105,20 +105,20 @@ export class Links extends Component {
                                         type="button"
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                         onClick={
-                                            this.props.initialValues && this.props.initialValues.links.length >= 5 ? 
-                                            () => openModal({
-                                                id: MessageBoxId,
-                                                content: MessageBox,
-                                                title: 'Custom Footer Links',
-                                                message: 'You have already added 5 custom footer links'
-                                            }) :
-                                            () => openModal({
-                                                id: createFooterLinkModalId,
-                                                content: DataPathHoC(CreateFooterLink, {
-                                                    submitForm: this.submitForm,
-                                                    statusPage: statusPage
-                                                }),
-                                            })
+                                            this.props.initialValues && this.props.initialValues.links.length >= 5 ?
+                                                () => openModal({
+                                                    id: MessageBoxId,
+                                                    content: MessageBox,
+                                                    title: 'Custom Footer Links',
+                                                    message: 'You have already added 5 custom footer links'
+                                                }) :
+                                                () => openModal({
+                                                    id: createFooterLinkModalId,
+                                                    content: DataPathHoC(CreateFooterLink, {
+                                                        submitForm: this.submitForm,
+                                                        statusPage: statusPage
+                                                    }),
+                                                })
                                         }
                                     >
                                         Add Link
@@ -129,7 +129,7 @@ export class Links extends Component {
                     </div>
 
                     <form onSubmit={handleSubmit(this.submitForm)} >
-                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1">
+                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1" style={{ overflow: 'hidden', overflowX: 'auto' }}>
                             <div>
                                 <div className="bs-Fieldset-wrapper Box-root">
                                     <fieldset className="Box-background--white">
@@ -147,7 +147,7 @@ export class Links extends Component {
                                             />
                                         </div>
                                         <ShouldRender if={this.props.initialValues.links.length === 0}>
-                                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '20px' }}>
+                                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ textAlign: 'center', marginTop: '20px', padding: '0 10px' }}>
                                                 You don&#39;t have any custom footer link added yet!
                                             </div>
                                         </ShouldRender>

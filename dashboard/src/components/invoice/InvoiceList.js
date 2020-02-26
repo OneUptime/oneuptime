@@ -9,157 +9,159 @@ import moment from 'moment';
 export class InvoiceList extends Component {
 
     constructor(props) {
-    super(props);
-    this.props = props;
-    
-  }
-    
+        super(props);
+        this.props = props;
+
+    }
+
     render() {
         const {
-          has_more, invoices, isRequesting,
-          error, nextClicked, nextCount,
-          total_count, count, prevClicked
+            has_more, invoices, isRequesting,
+            error, nextClicked, nextCount,
+            total_count, count, prevClicked
         } = this.props;
         const canPrev = Boolean(nextCount);
         const canNext = Boolean(has_more) || (!nextCount && total_count > count);
 
         return (
-          <div>
-              <table className="Table">
-                <thead className="Table-body">
-                    <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
-                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Invoice ID</span></span></div>
-                        </td>
-                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
-                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Invoice Description</span></span></div>
-                        </td>
-                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Date</span></span></div>
-                        </td>
-                        <td id="placeholder-left" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
-                        </td>
-                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Amount($)</span></span></div>
-                        </td>
-                        <td id="placeholder-right" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
-                        </td>
-                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Status</span></span></div>
-                        </td>
-                        <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Download</span></span></div>
-                        </td>
-                        <td id="overflow" type="action" className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
-                        </td>
-                    </tr>
-                </thead>
-                <tbody className="Table-body">
-                    {
-                        (invoices && invoices.data) && invoices.data.length > 0  ?
-                        invoices.data.map((invoice) => {
-                            let invoiceDescription;
-                            if(invoice.billing_reason === 'subscription_update'){
-                                invoiceDescription = 'Regular Plan';
-                            } else {
-                                invoiceDescription = invoice.description;
-                            }
-                            return (
-                            <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem" key={invoice.id} >
-                                
+            <div>
+                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                    <table className="Table">
+                        <thead className="Table-body">
+                            <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                        <span>{invoice.id}</span>
-                                        </span>
-                                    </div>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Invoice ID</span></span></div>
                                 </td>
                                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                        <span>{invoiceDescription}</span>
-                                        </span>
-                                    </div>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Invoice Description</span></span></div>
                                 </td>
                                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                        <span>{moment(invoice.date * 1000).format('ll')}</span>
-                                        </span>
-                                    </div>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Date</span></span></div>
                                 </td>
                                 <td id="placeholder-left" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
                                 </td>
                                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                        <span>{((invoice.total)/100).toFixed(2)}</span>
-                                        </span>
-                                    </div>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Amount($)</span></span></div>
                                 </td>
                                 <td id="placeholder-right" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
                                 </td>
                                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        {
-                                            !invoice.paid ? (
-                                            <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span>Unpaid</span>
-                                                </span>
-                                            </div>
-                                            ) : (
-                                            <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span>Paid</span>
-                                                </span>
-                                            </div>
-                                            )
-                                        }
-                                    </div>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Status</span></span></div>
                                 </td>
                                 <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                    <a href={invoice.invoice_pdf}>
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <button
-                                                className="bs-Button bs-DeprecatedButton"
-                                                type="button"
-                                            >
-                                                <span>Download</span>
-                                            </button>
-                                        </div>
-                                    </a>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Download</span></span></div>
                                 </td>
                                 <td id="overflow" type="action" className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
                                 </td>
                             </tr>
-                            )})
-                        :
-                        <tr></tr>
-                   }
-                      
-                </tbody>
+                        </thead>
+                        <tbody className="Table-body">
+                            {
+                                (invoices && invoices.data) && invoices.data.length > 0 ?
+                                    invoices.data.map((invoice) => {
+                                        let invoiceDescription;
+                                        if (invoice.billing_reason === 'subscription_update') {
+                                            invoiceDescription = 'Regular Plan';
+                                        } else {
+                                            invoiceDescription = invoice.description;
+                                        }
+                                        return (
+                                            <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem" key={invoice.id} >
 
-            </table>
+                                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                            <span>{invoice.id}</span>
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', minWidth: '270px' }}>
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                            <span>{invoiceDescription}</span>
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <span>{moment(invoice.date * 1000).format('ll')}</span>
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td id="placeholder-left" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                                    </div>
+                                                </td>
+                                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <span>{((invoice.total) / 100).toFixed(2)}</span>
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td id="placeholder-right" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                                    </div>
+                                                </td>
+                                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        {
+                                                            !invoice.paid ? (
+                                                                <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                    <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                        <span>Unpaid</span>
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                            <span>Paid</span>
+                                                                        </span>
+                                                                    </div>
+                                                                )
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                                    <a href={invoice.invoice_pdf}>
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            <button
+                                                                className="bs-Button bs-DeprecatedButton"
+                                                                type="button"
+                                                            >
+                                                                <span>Download</span>
+                                                            </button>
+                                                        </div>
+                                                    </a>
+                                                </td>
+                                                <td id="overflow" type="action" className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })
+                                    :
+                                    <tr></tr>
+                            }
 
-            {(invoices && isRequesting) ? <ListLoader /> : null}
+                        </tbody>
 
-            <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                    </table>
+                </div>
+                {(invoices && isRequesting) ? <ListLoader /> : null}
+
+                <div style={{ textAlign: 'center', marginTop: '10px', padding: '0 10px' }}>
                     {!invoices && !invoices.length > 0 && !isRequesting && !error ? 'You don\'t have any invoices' : null}
                     {invoices && invoices.error ? invoices.error : null}
-                    { error && error === 'You cannot edit the project because you\'re not an owner.' ? 'Invoices are available to only owners.' : error }
+                    {error && error === 'You cannot edit the project because you\'re not an owner.' ? 'Invoices are available to only owners.' : error}
                 </div>
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
@@ -184,7 +186,7 @@ export class InvoiceList extends Component {
                         </div>
                     </div>
                 </div>
-          </div>
+            </div>
         )
     }
 }
@@ -198,7 +200,7 @@ const mapStateToProps = state => {
     const { has_more, total_count, count } = invoices;
     const isRequesting = state.invoice.requesting;
     const error = state.invoice.error;
-    
+
 
     return {
         invoices, isRequesting, error, has_more,
@@ -207,15 +209,15 @@ const mapStateToProps = state => {
 }
 
 InvoiceList.propTypes = {
-    nextClicked:PropTypes.func.isRequired,
+    nextClicked: PropTypes.func.isRequired,
     invoices: PropTypes.oneOfType([
         PropTypes.array,
-        PropTypes.oneOf([null,undefined])
+        PropTypes.oneOf([null, undefined])
     ]),
     isRequesting: PropTypes.bool,
     error: PropTypes.oneOfType([
         PropTypes.object,
-        PropTypes.oneOf([null,undefined])
+        PropTypes.oneOf([null, undefined])
     ]),
     has_more: PropTypes.bool,
     nextCount: PropTypes.number.isRequired,

@@ -197,7 +197,7 @@ export class MonitorLogsList extends Component {
                                                                         <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                 {log.data && typeof log.data === 'string' ?
-                                                                                <span>{log.data ? log.data.length > 20 ? log.data.substr(0, 20) + '&hellip;': log.data : ''}</span> : ''}
+                                                                                    <span>{log.data ? log.data.length > 20 ? log.data.substr(0, 20) + '&hellip;' : log.data : ''}</span> : ''}
                                                                             </span>
                                                                         </div>
                                                                     </div>
@@ -257,7 +257,7 @@ export class MonitorLogsList extends Component {
 
                 {monitorLogs && monitorLogs.requesting ? <ListLoader /> : null}
 
-                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                <div style={{ textAlign: 'center', marginTop: '10px', padding: '0 10px' }}>
                     {!monitorLogs || (monitorLogs && (!monitorLogs.logs || !monitorLogs.logs.length) && !monitorLogs.requesting && !monitorLogs.error) ? 'We don\'t have any Logs yet' : null}
                     {monitorLogs && monitorLogs.error ? monitorLogs.error : null}
                 </div>
@@ -303,12 +303,12 @@ function mapStateToProps(state, props) {
 MonitorLogsList.displayName = 'MonitorLogsList'
 
 MonitorLogsList.propTypes = {
-  monitorId: PropTypes.string,
-  monitorLogs: PropTypes.object,
-  monitorName: PropTypes.string,
-  nextClicked: PropTypes.func.isRequired,
-  openModal: PropTypes.func,
-  prevClicked: PropTypes.func.isRequired
+    monitorId: PropTypes.string,
+    monitorLogs: PropTypes.object,
+    monitorName: PropTypes.string,
+    nextClicked: PropTypes.func.isRequired,
+    openModal: PropTypes.func,
+    prevClicked: PropTypes.func.isRequired
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorLogsList);

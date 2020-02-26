@@ -78,116 +78,117 @@ class Monitors extends Component {
 
     return (
       <div>
-        <table className="Table">
-          <thead className="Table-body">
-            <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-              <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
-                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Monitor</span></span></div>
-              </td>
-              {/* <td id="placeholder-left" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
+        <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+          <table className="Table">
+            <thead className="Table-body">
+              <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
+                  <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Monitor</span></span></div>
+                </td>
+                {/* <td id="placeholder-left" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
                     </td> */}
-              <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', textAlign: 'center' }}>
-                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Incidents Created</span></span></div>
-              </td>
-              {/* <td id="placeholder-right" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
+                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', textAlign: 'center' }}>
+                  <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Incidents Created</span></span></div>
+                </td>
+                {/* <td id="placeholder-right" className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px', maxWidth: '48px', minWidth: '48px', width: '48px' }}>
                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Texan style={{ color: 'darkorange'}}>{averageAcknowledgeTimet-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
                     </td> */}
-              <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Average Acknowledge Time</span></span></div>
-              </td>
-              <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Average Resolve Time</span></span></div>
-              </td>
-              <td id="overflow" type="action" className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
-              </td>
-            </tr>
-          </thead>
+                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                  <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Average Acknowledge Time</span></span></div>
+                </td>
+                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                  <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Average Resolve Time</span></span></div>
+                </td>
+                <td id="overflow" type="action" className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                  <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span></div>
+                </td>
+              </tr>
+            </thead>
 
-          <tbody className="Table-body">
-            {this.state.monitors.map((monitor) => {
-              const {
-                monitorName,
-                incidents,
-                monitorId,
-                averageAcknowledgeTime,
-                averageResolved
-              } = monitor;
-              return (
-                <tr
-                  key={monitorId}
-                  className="Table-row db-ListViewItem bs-ActionsParent"
-                >
-                  <td
-                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                    style={{ height: '1px', width: '187px', minWidth: '120px' }}
+            <tbody className="Table-body">
+              {this.state.monitors.map((monitor) => {
+                const {
+                  monitorName,
+                  incidents,
+                  monitorId,
+                  averageAcknowledgeTime,
+                  averageResolved
+                } = monitor;
+                return (
+                  <tr
+                    key={monitorId}
+                    className="Table-row db-ListViewItem bs-ActionsParent"
                   >
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                      <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                        <div className="Box-root Margin-right--16">
-                          <span>{monitorName}</span>
-                        </div>
-                      </span>
-                    </div>
-                  </td>
-                  <td
-                    aria-hidden="true"
-                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                    style={{
-                      height: '1px'
-                    }}
-                  >
-                    {/* <a className="db-ListViewItem-link"> */}
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8" style={{ textAlign: 'center' }}>
-                      ⁣<span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center">
-                          <div>{incidents}</div>
-                        </div>
-                      </span>
-                    </div>
-                    {/* </a> */}
-                  </td>
-                  <td
-                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                    style={{ height: '1px' }}
-                  >
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                      <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                        <div className="Box-root">
-                          <div style={{ width: '100%' }}><span style={{ color: 'darkorange' }}>{humanize(averageAcknowledgeTime, { round: true, largest: 2 })}</span></div>
-                        </div>
-                      </span>
-                    </div>
-                  </td>
-                  <td
-                    aria-hidden="true"
-                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                    style={{
-                      height: '1px'
-                    }}
-                  >
-                    {/* <a className="db-ListViewItem-link"> */}
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                      ⁣<span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center">
-                          <div style={{ width: '100%' }}><span style={{ color: 'green' }}>{humanize(averageResolved, { round: true, largest: 2 })}</span></div>
-                        </div>
-                      </span>
-                    </div>
-                    {/* </a> */}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
+                    <td
+                      className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                      style={{ height: '1px', width: '187px', minWidth: '120px' }}
+                    >
+                      <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                          <div className="Box-root Margin-right--16">
+                            <span>{monitorName}</span>
+                          </div>
+                        </span>
+                      </div>
+                    </td>
+                    <td
+                      aria-hidden="true"
+                      className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                      style={{
+                        height: '1px'
+                      }}
+                    >
+                      {/* <a className="db-ListViewItem-link"> */}
+                      <div className="db-ListViewItem-cellContent Box-root Padding-all--8" style={{ textAlign: 'center' }}>
+                        ⁣<span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                          <div className="Box-root Flex-inlineFlex Flex-alignItems--center">
+                            <div>{incidents}</div>
+                          </div>
+                        </span>
+                      </div>
+                      {/* </a> */}
+                    </td>
+                    <td
+                      className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                      style={{ height: '1px' }}
+                    >
+                      <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                          <div className="Box-root">
+                            <div style={{ width: '100%' }}><span style={{ color: 'darkorange' }}>{humanize(averageAcknowledgeTime, { round: true, largest: 2 })}</span></div>
+                          </div>
+                        </span>
+                      </div>
+                    </td>
+                    <td
+                      aria-hidden="true"
+                      className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                      style={{
+                        height: '1px'
+                      }}
+                    >
+                      {/* <a className="db-ListViewItem-link"> */}
+                      <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                        ⁣<span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                          <div className="Box-root Flex-inlineFlex Flex-alignItems--center">
+                            <div style={{ width: '100%' }}><span style={{ color: 'green' }}>{humanize(averageResolved, { round: true, largest: 2 })}</span></div>
+                          </div>
+                        </span>
+                      </div>
+                      {/* </a> */}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
         {(this.props.activeMonitors && this.props.activeMonitors.requesting)
           ? (
             <ListLoader />
           ) : null}
-        <div style={{ textAlign: 'center', marginTop: '10px' }}>
+        <div style={{ textAlign: 'center', marginTop: '10px', padding: '0 10px' }}>
           {this.props.activeMonitors && (!this.props.activeMonitors.monitors || !this.props.activeMonitors.monitors.length) && !this.props.activeMonitors.requesting && !this.props.activeMonitors.error ? 'We don\'t have any report for this period' : null}
           {this.props.activeMonitors && this.props.activeMonitors.error ? this.props.activeMonitors.error : null}
         </div>

@@ -95,27 +95,37 @@ class WebHookList extends React.Component {
 
         return (
             <React.Fragment>
-                <table className="Table" id="webhookList" onKeyDown={this.handleKeyBoard}>
-                    <thead className="Table-body">
-                        <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                            <WebHookTableHeader text="Endpoint" />
-                            {!monitorId && <WebHookTableHeader text="Monitors" />}
-                            <WebHookTableHeader text="Type" />
-                            <WebHookTableHeader text="Action" />
-                        </tr>
-                    </thead>
-                    <tbody className="Table-body">
-                        <ShouldRender if={numberOfWebHooks > 0}>
-                            {(webHooks ? webHooks : []).map(hook =>
-                                <WebHookItem key={`${hook._id}`} data={hook} monitorId={monitorId} />
-                            )}
-                        </ShouldRender>
-                    </tbody>
-                </table>
+                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                    <table className="Table" id="webhookList" onKeyDown={this.handleKeyBoard}>
+                        <thead className="Table-body">
+                            <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                                <WebHookTableHeader text="Endpoint" />
+                                {!monitorId && <WebHookTableHeader text="Monitors" />}
+                                <WebHookTableHeader text="Type" />
+                                <WebHookTableHeader text="Action" />
+                            </tr>
+                        </thead>
+                        <tbody className="Table-body">
+                            <ShouldRender if={numberOfWebHooks > 0}>
+                                {(webHooks ? webHooks : []).map(hook =>
+                                    <WebHookItem key={`${hook._id}`} data={hook} monitorId={monitorId} />
+                                )}
+                            </ShouldRender>
+                        </tbody>
+                    </table>
+                </div>
                 <ShouldRender if={numberOfWebHooks === 0 && !isRequesting}>
                     <div className="Box-root">
                         <br />
-                        <div id="app-loading" style={{ 'zIndex': '1', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'flexDirection': 'column' }}>
+                        <div id="app-loading" style={{
+                            'zIndex': '1',
+                            'display': 'flex',
+                            'justifyContent': 'center',
+                            'alignItems': 'center',
+                            'flexDirection': 'column',
+                            'textAlign': 'center',
+                            'padding': '0 10px'
+                        }}>
                             <span>You don&#39;t have any webhook added. Do you want to add one?</span>
                             <br />
 

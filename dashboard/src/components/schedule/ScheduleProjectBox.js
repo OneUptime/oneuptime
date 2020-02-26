@@ -55,29 +55,31 @@ const ScheduleProjectBox = (props) => (
                     </div>
                 </div>
             </div>
-            <table className="Table">
-                <thead className="Table-body">
-                    <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                        <OnCallTableHeader text="Schedule Name" />
+            <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                <table className="Table">
+                    <thead className="Table-body">
+                        <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                            <OnCallTableHeader text="Schedule Name" />
 
-                        <OnCallTableHeader text="Monitor" />
+                            <OnCallTableHeader text="Monitor" />
 
-                        <OnCallTableHeader text="Team Members" />
-                    </tr>
-                </thead>
-                <tbody className="Table-body">
+                            <OnCallTableHeader text="Team Members" />
+                        </tr>
+                    </thead>
+                    <tbody className="Table-body">
 
-                    <OnCallTableRows schedules={props.schedules} requesting={props.isRequesting} subProjectId={props.subProjectSchedule._id} />
+                        <OnCallTableRows schedules={props.schedules} requesting={props.isRequesting} subProjectId={props.subProjectSchedule._id} />
 
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
             <ShouldRender if={!props.isRequesting && props.schedules.length === 0}>
-                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '20px' }}>
+                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ textAlign: 'center', marginTop: '20px', padding: '0 10px' }}>
                     You don&#39;t have any schedule at this time!
                 </div>
             </ShouldRender>
             <ShouldRender if={props.isRequesting}>
-                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '10px' }}>
+                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ textAlign: 'center', marginTop: '10px', padding: '0 10px' }}>
                     <ListLoader />
                 </div>
             </ShouldRender>

@@ -287,11 +287,11 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                     }
                 </div>
             </div>
-            <div className="block-chart-main line-chart">
-                <ShouldRender if={!isCurrentlyNotMonitoring}>
+            <ShouldRender if={!isCurrentlyNotMonitoring}>
+                <div className="block-chart-main line-chart">
                     <AreaChart type={type} data={data} name={'response time'} symbol="ms" />
-                </ShouldRender>
-            </div>
+                </div>
+            </ShouldRender>
         </div>
     } else if (type === 'manual') {
         monitorInfo = <div className="db-Trend">
@@ -347,12 +347,12 @@ export function MonitorChart({ start, end, monitor, data, statuses, status, show
                         <div className="db-Trend-col db-Trend-colValue"><span> <span className="chart-font">{responseTime} ms</span></span></div>
                     </div>
                 </div>
-            </ShouldRender>
-            <div className="block-chart-main">
-                <div className="block-chart">
-                    {block}
+                <div className="block-chart-main">
+                    <div className="block-chart">
+                        {block}
+                    </div>
                 </div>
-            </div>
+            </ShouldRender>
         </div>
     }
 

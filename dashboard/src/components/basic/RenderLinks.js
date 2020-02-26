@@ -15,7 +15,7 @@ const RenderLinks = ({
     deleting,
 }) => {
     return (
-        <ul>
+        <div>
             <table className="Table">
                 <thead className="Table-body Box-background--offset bs-Fieldset">
                     <tr className="Table-row db-ListViewItem db-ListViewItem-header">
@@ -103,12 +103,12 @@ const RenderLinks = ({
                                                                 id: removeFooterLinkModalId,
                                                                 onClose: () => '',
                                                                 onConfirm: () => {
-                                                                    return new Promise((resolve)=>{
+                                                                    return new Promise((resolve) => {
                                                                         removeFooterLink(link.name);
                                                                         resolve(true);
                                                                     })
                                                                 },
-                                                                content: DataPathHoC(RemoveFooterLink, {deleting})
+                                                                content: DataPathHoC(RemoveFooterLink, { deleting })
                                                             })
                                                         }}
                                                         className="Button bs-ButtonLegacy"
@@ -129,7 +129,7 @@ const RenderLinks = ({
                     }
                 </tbody>
             </table>
-        </ul>
+        </div>
     )
 }
 
@@ -149,4 +149,4 @@ RenderLinks.propTypes = {
     ]).isRequired
 }
 
-export {RenderLinks}
+export { RenderLinks }

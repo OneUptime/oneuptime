@@ -3578,6 +3578,12 @@ figure.bs-Number > figcaption {
   border-radius: 4px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.07), 0 2px 15px rgba(84, 96, 103, 0.25);
 }
+@media only screen and (max-width: 470px) {
+  .bs-Modal {
+    margin: 0 10px 20px;
+    width: auto;
+  }
+}
 .bs-Modal:focus {
   outline: none;
 }

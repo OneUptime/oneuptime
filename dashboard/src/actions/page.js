@@ -24,3 +24,15 @@ export const loadPage = function (title) {
     dispatch(pageLoadSuccess(title));
   }
 }
+
+export function openSideNav() {
+  return {
+    type: 'OPEN_SIDENAV'
+  }
+}
+
+export function closeSideNav() {
+  return {
+    type: 'CLOSE_SIDENAV'
+  }
+}

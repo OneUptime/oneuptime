@@ -160,7 +160,20 @@ export class DashboardApp extends Component {
                         </ShouldRender>
 
                         <ShouldRender if={project.projects.error}>
-                            <div id="app-loading" style={{ 'backgroundColor': '#E6EBF1', 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'zIndex': '999', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }}>
+                            <div id="app-loading" style={{
+                                'backgroundColor': '#E6EBF1',
+                                'position': 'fixed',
+                                'top': '0',
+                                'bottom': '0',
+                                'left': '0',
+                                'right': '0',
+                                'zIndex': '999',
+                                'display': 'flex',
+                                'justifyContent': 'center',
+                                'alignItems': 'center',
+                                'textAlign': 'center',
+                                'padding': '0 10px'
+                            }}>
                                 <div>Cannot connect to server.</div>
                             </div>
                         </ShouldRender>
@@ -169,7 +182,21 @@ export class DashboardApp extends Component {
 
                             <div>
 
-                                <div id="app-loading" style={{ 'position': 'fixed', 'top': '0', 'bottom': '0', 'left': '0', 'right': '0', 'zIndex': '1', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'fontSize': '20px', 'flexDirection': 'column' }}>
+                                <div id="app-loading" style={{
+                                    'position': 'fixed',
+                                    'top': '0',
+                                    'bottom': '0',
+                                    'left': '0',
+                                    'right': '0',
+                                    'zIndex': '1',
+                                    'display': 'flex',
+                                    'justifyContent': 'center',
+                                    'alignItems': 'center',
+                                    'fontSize': '20px',
+                                    'flexDirection': 'column',
+                                    'textAlign': 'center',
+                                    'padding': '0 10px'
+                                }}>
                                     <div>You don&#39;t have any projects. Would you like to create one?</div>
                                     <div>
                                         <button id="createButton" className={'bs-Button bs-DeprecatedButton bs-Button--blue'} style={{ alignSelf: 'flex-end', marginTop: '20px' }} onClick={this.showProjectForm}>

@@ -11,14 +11,14 @@ import { ListLoader } from '../basic/Loader';
 export class IncidentAlert extends Component {
 
     render() {
-        if(this.props.alerts && this.props.count && typeof this.props.count === 'string'){
-            this.props.count = parseInt(this.props.count,10);
+        if (this.props.alerts && this.props.count && typeof this.props.count === 'string') {
+            this.props.count = parseInt(this.props.count, 10);
         }
-        if(this.props.incidents && this.props.skip && typeof this.props.skip === 'string'){
-            this.props.skip = parseInt(this.props.skip,10);
+        if (this.props.incidents && this.props.skip && typeof this.props.skip === 'string') {
+            this.props.skip = parseInt(this.props.skip, 10);
         }
-        if(this.props.incidents && this.props.limit && typeof this.props.limit === 'string'){
-            this.props.limit = parseInt(this.props.limit,10);
+        if (this.props.incidents && this.props.limit && typeof this.props.limit === 'string') {
+            this.props.limit = parseInt(this.props.limit, 10);
         }
         let canNext = (this.props.alerts && this.props.count) && this.props.count > (this.props.skip + this.props.limit) ? true : false;
         let canPrev = (this.props.alerts && this.props.skip <= 0) ? false : true;
@@ -41,21 +41,22 @@ export class IncidentAlert extends Component {
                                         </div>
                                     </div>
                                 </div>
-                                <table className="Table">
-                                    <thead className="Table-body">
+                                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                                    <table className="Table">
+                                        <thead className="Table-body">
 
-                                        <AlertTableHeader />
+                                            <AlertTableHeader />
 
-                                    </thead>
-                                    <tbody className="Table-body">
+                                        </thead>
+                                        <tbody className="Table-body">
 
-                                        <AlertTableRows alerts={this.props.alerts} isRequesting={this.props.isRequesting} />
+                                            <AlertTableRows alerts={this.props.alerts} isRequesting={this.props.isRequesting} />
 
-                                    </tbody>
-                                </table>
-
+                                        </tbody>
+                                    </table>
+                                </div>
                                 <ShouldRender if={!this.props.isRequesting && this.props.alerts.length === 0}>
-                                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '20px' }}>
+                                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ textAlign: 'center', marginTop: '20px', padding: '0 10px' }}>
                                         There are no alerts at this time!
                                 </div>
                                 </ShouldRender>
@@ -78,7 +79,7 @@ export class IncidentAlert extends Component {
                                     </ShouldRender>
                                     <ShouldRender if={this.props.error}>
                                         <div className="bs-Tail-copy" style={{ padding: '10px' }}>
-                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
+                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ textAlign: 'center', marginTop: '10px', padding: '0 10px' }}>
 
 
                                                 <div className="Box-root Margin-right--8">
@@ -143,20 +144,20 @@ IncidentAlert.propTypes = {
     count: PropTypes.PropTypes.oneOfType([
         PropTypes.string.isRequired,
         PropTypes.number.isRequired
-      ]),
+    ]),
     skip: PropTypes.PropTypes.oneOfType([
         PropTypes.string.isRequired,
         PropTypes.number.isRequired
-      ]),
+    ]),
     limit: PropTypes.PropTypes.oneOfType([
         PropTypes.string.isRequired,
         PropTypes.number.isRequired
-      ]),
-    incidents:PropTypes.array,
-    next:PropTypes.func.isRequired,
+    ]),
+    incidents: PropTypes.array,
+    next: PropTypes.func.isRequired,
     error: PropTypes.oneOfType([
         PropTypes.string,
-        PropTypes.oneOf([null,undefined])
+        PropTypes.oneOf([null, undefined])
     ])
 }
 

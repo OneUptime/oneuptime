@@ -16,7 +16,7 @@ class BackupCodesModal extends React.Component {
 		const { profileSettings: { data } } = this.props;
 		if (data.backupCodes && data.backupCodes.length > 0) {
 			const codes = data.backupCodes.map(code => code.code);
-			this.setState({codes});
+			this.setState({ codes });
 		}
 	}
 
@@ -33,16 +33,16 @@ class BackupCodesModal extends React.Component {
 		this.setState({ copied: true });
 	}
 
-    render(){
+	render() {
 		const { closeThisDialog, profileSettings: { data } } = this.props;
 
-        return(
+		return (
 			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
 				<div className="bs-BIM">
 					<div className="bs-Modal" style={{ width: 450 }}>
 						<div className="bs-Modal-header">
 							<div className="bs-Modal-header-copy"
-							style={{ marginBottom: '5px',marginTop:'5px' }}>
+								style={{ marginBottom: '5px', marginTop: '5px' }}>
 								<span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
 									<span>Two Factor Authentication Backup Codes</span>
 								</span>
@@ -55,24 +55,26 @@ class BackupCodesModal extends React.Component {
 										<fieldset style={{ marginTop: -10 }}>
 											<div className="bs-Fieldset-rows">
 												<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-													<table className="Table">
-														<tbody className="Table-body">
-															{data.backupCodes && data.backupCodes.length > 0 ? data.backupCodes.map(code => (
-																<tr className="Table-row db-ListViewItem bs-ActionsParent scheduleListItem" key={code.code}>
-																	<td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px' }}>
-																		<div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-																			<span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-																				<div className="Margin-right--7">
-																					<span>{code.code}</span>
-																				</div>
-																			</span>
-																		</div>
-																	</td>
-																</tr>
-															)) : <ListLoader />
-															}
-														</tbody>
-													</table>
+													<div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+														<table className="Table">
+															<tbody className="Table-body">
+																{data.backupCodes && data.backupCodes.length > 0 ? data.backupCodes.map(code => (
+																	<tr className="Table-row db-ListViewItem bs-ActionsParent scheduleListItem" key={code.code}>
+																		<td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px' }}>
+																			<div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+																				<span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+																					<div className="Margin-right--7">
+																						<span>{code.code}</span>
+																					</div>
+																				</span>
+																			</div>
+																		</td>
+																	</tr>
+																)) : <ListLoader />
+																}
+															</tbody>
+														</table>
+													</div>
 												</div>
 											</div>
 										</fieldset>
@@ -103,7 +105,7 @@ class BackupCodesModal extends React.Component {
 										type="button"
 										onClick={this.copyCodesHandler}
 									>
-										{this.state.copied ? <span>Copied</span>: <span>Copy to clipboard</span>}
+										{this.state.copied ? <span>Copied</span> : <span>Copy to clipboard</span>}
 									</button>
 								</CopyToClipboard>
 							</div>
@@ -111,8 +113,8 @@ class BackupCodesModal extends React.Component {
 					</div>
 				</div>
 			</div>
-        )
-    }
+		)
+	}
 }
 
 BackupCodesModal.displayName = 'BackupCodesModal';
@@ -123,14 +125,15 @@ BackupCodesModal.propTypes = {
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({}, dispatch);
+	return bindActionCreators({}, dispatch);
 };
 
 const mapStateToProps = (state) => {
-	return(
-    {
-        profileSettings: state.profileSettings.profileSetting,
-	}
-)};
+	return (
+		{
+			profileSettings: state.profileSettings.profileSetting,
+		}
+	)
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(BackupCodesModal);

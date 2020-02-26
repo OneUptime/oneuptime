@@ -46,45 +46,47 @@ const StatusPageProjectBox = (props) => (
                 </div>
             </div>
         </div>
-        <table className="Table">
-            <thead className="Table-body">
-                <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                    <td>
-                        <div className="bs-ObjectList-cell">
-                            Name
+        <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+            <table className="Table">
+                <thead className="Table-body">
+                    <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                        <td>
+                            <div className="bs-ObjectList-cell">
+                                Name
                         </div>
-                    </td>
-                    <td>
-                        <div className="bs-ObjectList-cell">
-                            Description
+                        </td>
+                        <td>
+                            <div className="bs-ObjectList-cell">
+                                Description
                         </div>
-                    </td>
-                    <td>
-                        <div className="bs-ObjectList-cell">
-                            Monitors
+                        </td>
+                        <td>
+                            <div className="bs-ObjectList-cell">
+                                Monitors
                         </div>
-                    </td>
-                </tr>
-            </thead>
-            <tbody>
-                {
-                    props.statusPages.map((o, i) => {
-                        return (
-                            <StatusPage
-                                projectId={props.currentProjectId}
-                                subProjectId={props.subProjectStatusPage._id}
-                                switchStatusPages={props.switchStatusPages}
-                                key={i}
-                                statusPage={o}
-                            />
-                        )
-                    })
-                }
-            </tbody>
-        </table>
+                        </td>
+                    </tr>
+                </thead>
+                <tbody>
+                    {
+                        props.statusPages.map((o, i) => {
+                            return (
+                                <StatusPage
+                                    projectId={props.currentProjectId}
+                                    subProjectId={props.subProjectStatusPage._id}
+                                    switchStatusPages={props.switchStatusPages}
+                                    key={i}
+                                    statusPage={o}
+                                />
+                            )
+                        })
+                    }
+                </tbody>
+            </table>
+        </div>
         {props.statusPage.requesting ? <ListLoader /> : null}
         <ShouldRender if={!props.statusPage.requesting && props.statusPages.length === 0}>
-            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '20px' }}>
+            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ textAlign: 'center', marginTop: '20px', padding: '0 10px' }}>
                 You don&#39;t have any status page at this time!
             </div>
         </ShouldRender>

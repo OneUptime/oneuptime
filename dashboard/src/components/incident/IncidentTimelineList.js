@@ -181,7 +181,7 @@ const IncidentTimelineList = (props) => {
 
             {incident && incident.requesting ? <ListLoader /> : null}
 
-            <div style={{ textAlign: 'center', marginTop: '10px' }}>
+            <div style={{ textAlign: 'center', marginTop: '10px', padding: '0 10px' }}>
                 {!probes || !probes.length ? 'We don\'t have any Probes yet' : null}
                 {incident && incident.error ? incident.error : null}
             </div>

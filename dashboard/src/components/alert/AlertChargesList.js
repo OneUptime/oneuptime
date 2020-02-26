@@ -41,83 +41,85 @@ export class AlertChargesList extends Component {
         const canPrev = (parseInt(skip) <= 0) ? false : true;
         return (
             <div>
-                <table className="Table">
-                    <thead className="Table-body">
-                        <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Monitor Name</span></span></div>
-                            </td>
-                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Incident ID</span></span></div>
-                            </td>
-                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Time</span></span></div>
-                            </td>
-                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Alert Type</span></span></div>
-                            </td>
-                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Alert Charge($)</span></span></div>
-                            </td>
-                            <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Closing Balance($)</span></span></div>
-                            </td>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {!isRequesting && alertCharges && alertCharges.length > 0 &&
-                            alertCharges.map(alertCharge =>
-                                <tr className="Table-row db-ListViewItem bs-ActionsParent" key={alertCharge.alertId._id}>
-                                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink" style={{ height: '1px' }}>
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--cyan">
-                                                <div onClick={() => { history.push('/project/' + projectId + '/monitors/' + alertCharge.monitorId._id) }} className="Box-root Margin-right--16"><span>{alertCharge.monitorId.name}</span></div>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink" style={{ height: '1px', minWidth: '180px' }}>
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--cyan">
-                                                <div onClick={() => { history.push('/project/' + projectId + '/incidents/' + alertCharge.incidentId) }} className="Box-root Margin-right--16"><span>{alertCharge.incidentId}</span></div>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '150px' }}>
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <div className="Box-root Margin-right--16"><span>{moment(alertCharge.createdAt).format('lll')}</span></div>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '100px' }}>
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <div className="Box-root Margin-right--16"><span>{alertCharge.alertId.alertVia}</span></div>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '100px' }}>
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <div className="Box-root Margin-right--16"><span>{alertCharge.chargeAmount}</span></div>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '100px' }}>
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <div className="Box-root Margin-right--16"><span>{alertCharge.closingAccountBalance}</span></div>
-                                            </span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )
-                        }
-                    </tbody>
+                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                    <table className="Table">
+                        <thead className="Table-body">
+                            <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Monitor Name</span></span></div>
+                                </td>
+                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Incident ID</span></span></div>
+                                </td>
+                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Time</span></span></div>
+                                </td>
+                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Alert Type</span></span></div>
+                                </td>
+                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Alert Charge($)</span></span></div>
+                                </td>
+                                <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell" style={{ height: '1px' }}>
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"><span>Closing Balance($)</span></span></div>
+                                </td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {!isRequesting && alertCharges && alertCharges.length > 0 &&
+                                alertCharges.map(alertCharge =>
+                                    <tr className="Table-row db-ListViewItem bs-ActionsParent" key={alertCharge.alertId._id}>
+                                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink" style={{ height: '1px' }}>
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--cyan">
+                                                    <div onClick={() => { history.push('/project/' + projectId + '/monitors/' + alertCharge.monitorId._id) }} className="Box-root Margin-right--16"><span>{alertCharge.monitorId.name}</span></div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink" style={{ height: '1px', minWidth: '180px' }}>
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--cyan">
+                                                    <div onClick={() => { history.push('/project/' + projectId + '/incidents/' + alertCharge.incidentId) }} className="Box-root Margin-right--16"><span>{alertCharge.incidentId}</span></div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '150px' }}>
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <div className="Box-root Margin-right--16"><span>{moment(alertCharge.createdAt).format('lll')}</span></div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '100px' }}>
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <div className="Box-root Margin-right--16"><span>{alertCharge.alertId.alertVia}</span></div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '100px' }}>
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <div className="Box-root Margin-right--16"><span>{alertCharge.chargeAmount}</span></div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord" style={{ height: '1px', minWidth: '100px' }}>
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <div className="Box-root Margin-right--16"><span>{alertCharge.closingAccountBalance}</span></div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            }
+                        </tbody>
 
-                </table>
+                    </table>
+                </div>
                 {isRequesting ? <ListLoader /> : null}
-                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                <div style={{ textAlign: 'center', marginTop: '10px', padding: '0 10px' }}>
                     {(!alertCharges || alertCharges.length === 0) && !isRequesting && !error ? 'No Alert charge' : null}
                     {error && error ? error : null}
                     {error && error === 'You cannot edit the project because you\'re not an owner.' ? 'Alert Charges are available to only owners.' : error}

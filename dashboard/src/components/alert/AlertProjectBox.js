@@ -22,23 +22,23 @@ const AlertProjectBox = ({ currentProjectId, subProjectAlert, subProjectName, ca
                     </div>
                 </div>
             </div>
+            <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                <table className="Table">
+                    <thead className="Table-body">
 
-            <table className="Table">
-                <thead className="Table-body">
+                        <AlertTableHeader />
 
-                    <AlertTableHeader />
+                    </thead>
 
-                </thead>
+                    <tbody className="Table-body" style={{ pointerEvents: 'none' }}>
 
-                <tbody className="Table-body" style={{ pointerEvents: 'none' }}>
+                        <AlertTableRows alerts={subProjectAlert.alerts} isRequesting={isRequesting} />
 
-                    <AlertTableRows alerts={subProjectAlert.alerts} isRequesting={isRequesting} />
-
-                </tbody>
-            </table>
-
+                    </tbody>
+                </table>
+            </div>
             <ShouldRender if={!isRequesting && subProjectAlert.alerts.length === 0}>
-                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '20px' }}>
+                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ textAlign: 'center', marginTop: '20px', padding: '0 10px' }}>
                     There are no alerts at this time!
             </div>
             </ShouldRender>
@@ -61,7 +61,7 @@ const AlertProjectBox = ({ currentProjectId, subProjectAlert, subProjectName, ca
                 </ShouldRender>
                 <ShouldRender if={error}>
                     <div className="bs-Tail-copy" style={{ padding: '10px' }}>
-                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
+                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ textAlign: 'center', marginTop: '10px', padding: '0 10px' }}>
 
 
                             <div className="Box-root Margin-right--8">

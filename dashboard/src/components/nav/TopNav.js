@@ -9,6 +9,7 @@ import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
 import ClickOutside from 'react-click-outside';
 import { userSettings } from '../../actions/profile';
 import { getVersion } from '../../actions/version';
+import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
@@ -79,13 +80,18 @@ class TopContent extends Component {
 			<div tabIndex="0" onKeyDown={this.handleKeyBoard} style={{ zIndex: '2' }} className="db-World-topContent Box-root Box-background--surface Padding-vertical--20">
 
 				<div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+					<div className="Box-root" onClick={this.props.openSideNav}>
+						<div className="db-MenuContainer">
+							<div className={'db-MenuIcon Box-root Box-background--white'}>
+								<div className="db-MenuIcon--content db-MenuIcon--menu" />
+							</div>
+						</div>
+					</div>
+
 					<ClickOutside onClickOutside={this.hideFeedbackModal}>
 						<FeedBackModal />
 					</ClickOutside>
-					<div className="db-SearchField db-SearchField--tokenizable">
 
-						<span />
-					</div>
 					<div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
 						<div className="Box-root Margin-right--16">
 							<div
@@ -107,10 +113,10 @@ class TopContent extends Component {
 									>
 										<span className="Text-color--disabled Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
 											{
-												
+
 											}
 											{((this.props.feedback.feedback.success || this.props.feedback.feedback.requesting)) ? <span>Thank you for your feedback.</span> : null}
-											{((!this.props.feedback.feedback.success && !this.props.feedback.feedback.requesting && !this.props.feedback.feedback.error )) ? <span>Feedback about this page?</span> : null}
+											{((!this.props.feedback.feedback.success && !this.props.feedback.feedback.requesting && !this.props.feedback.feedback.error)) ? <span>Feedback about this page?</span> : null}
 											{(this.props.feedback.feedback.error) ? <span>Sorry, Please try again.</span> : null}
 										</span>
 
@@ -150,7 +156,7 @@ class TopContent extends Component {
 						</div>
 					</div>
 				</div>
-				
+
 			</div>
 		)
 	}
@@ -170,11 +176,20 @@ const mapStateToProps = (state) => {
 }
 
 const mapDispatchToProps = dispatch => bindActionCreators(
-	{ showProfileMenu, openFeedbackModal, closeFeedbackModal, userSettings, openNotificationMenu, getVersion }
+	{
+		showProfileMenu,
+		openFeedbackModal,
+		closeFeedbackModal,
+		userSettings,
+		openNotificationMenu,
+		getVersion,
+		openSideNav
+	}
 	, dispatch)
 
 TopContent.propTypes = {
 	getVersion: PropTypes.func,
+	openSideNav: PropTypes.func,
 	userSettings: PropTypes.func.isRequired,
 	openFeedbackModal: PropTypes.func.isRequired,
 	closeFeedbackModal: PropTypes.func.isRequired,
