@@ -86,7 +86,7 @@ describe('Monitor Detail API', () => {
                 let spanElement;
 
                 spanElement = await page.$(
-                    'span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap'
+                    'span#monitor-content-header'
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();

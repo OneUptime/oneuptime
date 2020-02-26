@@ -85,7 +85,7 @@ describe('Monitor API', () => {
 
             let spanElement;
 
-            spanElement = await page.$('span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap');
+            spanElement = await page.$('span#monitor-content-header');
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(data.monitorName);
@@ -132,7 +132,7 @@ describe('Monitor API', () => {
 
             let spanElement;
 
-            spanElement = await page.$('span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap');
+            spanElement = await page.$('span#monitor-content-header');
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(data.monitorName);
@@ -172,7 +172,7 @@ describe('Monitor API', () => {
 
             let spanElement;
 
-            spanElement = await page.$('#frmNewMonitor > div > div > div > fieldset > div > div > div > span >  div > div > span');
+            spanElement = await page.$('#frmNewMonitor span#field-error');
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('This field cannot be left blank');
