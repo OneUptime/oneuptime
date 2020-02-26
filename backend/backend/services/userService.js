@@ -321,7 +321,7 @@ module.exports = {
                 backupCodes,
             };
             await _this.updateOneBy({_id : userId}, data);
-            return {otpauthUrl: secretCode.otpauth_url};
+            return {otpauth_url: secretCode.otpauth_url};
         } catch (error) {
             ErrorService.log('userService.generateTwoFactorSecret', error);
             throw error;
