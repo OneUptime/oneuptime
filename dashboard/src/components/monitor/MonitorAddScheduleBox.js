@@ -119,7 +119,7 @@ export class ScheduledEventBox extends Component {
                                         event: scheduledEvent
                                     })} className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent db-ListViewItem--hasLink">
                                         <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{this.props.name}</div>
-                                        <div className="Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                             {scheduledEvent.name}
                                         </div>
                                     </div>
@@ -141,7 +141,7 @@ export class ScheduledEventBox extends Component {
                                         </div>
                                     </div>
                                     <div className="bs-ObjectList-cell bs-u-v-middle">
-                                        <button onClick={() => this.props.deleteScheduledEvent(this.props.currentProject._id, scheduledEvent._id)} className="Button bs-ButtonLegacy" type="button">
+                                        <button onClick={() => this.props.deleteScheduledEvent(this.props.currentProject._id, scheduledEvent._id)} className="Button bs-ButtonLegacy delete-schedule" type="button">
                                             <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"><span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap"><span>Delete</span></span></div>
                                         </button>
                                     </div>

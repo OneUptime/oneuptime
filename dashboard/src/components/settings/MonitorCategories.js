@@ -96,7 +96,7 @@ export class MonitorCategories extends Component {
                                         (<div key={_id} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
                                             <div className="bs-ObjectList-cell bs-u-v-middle">
                                                 <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">{this.props.name}</div>
-                                                <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
+                                                <div id="monitor-category-name" className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
                                                     {name}
                                                 </div>
                                             </div>

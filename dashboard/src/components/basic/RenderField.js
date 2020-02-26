@@ -25,7 +25,7 @@ const RenderField = ({ input, placeholder, type, meta, className, id, disabled, 
                     </div>
                 </div>
                 <div className="Box-root">
-                    <span style={{ color: 'red' }}>
+                    <span id="field-error" style={{ color: 'red' }}>
                         {meta.error}
                     </span>
                 </div>
