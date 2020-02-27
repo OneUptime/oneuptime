@@ -36,7 +36,7 @@ export class FeedbackModal extends Component {
 
 		return this.props.feedback.feedbackModalVisble ?
 
-			(<div className="db-FeedbackModal" style={{ position: 'absolute', right: '40px', top: '20px', zIndex: '999' }}>
+			(<div className="db-FeedbackModal" style={{ position: 'absolute', right: '20px', top: '20px', zIndex: '999' }}>
 				<div className="db-FeedbackModal-background" />
 				<div className="db-FeedbackModal-content">
 					<div className="db-FeedbackModal-contentInner">

@@ -125,7 +125,7 @@ export class EmailSmtpBox extends Component {
                                                         <div className="bs-Fieldset-row">
                                                             <div className="Box-root Margin-bottom--12">
                                                                 <div data-test="RetrySettings-failedPaymentsRow" className="Box-root">
-                                                                    <label className="Checkbox" htmlFor='smtpswitch' style={{ marginLeft: '150px' }}>
+                                                                    <label className="Checkbox responsive" htmlFor='smtpswitch' style={{ marginLeft: '150px' }}>
                                                                         <Field
                                                                             component="input"
                                                                             type="checkbox"
@@ -243,7 +243,7 @@ export class EmailSmtpBox extends Component {
                                                             <div className="bs-Fieldset-row">
                                                                 <div className="Box-root Margin-bottom--12">
                                                                     <div data-test="RetrySettings-failedPaymentsRow" className="Box-root">
-                                                                        <label className="Checkbox" htmlFor='secure' style={{ marginLeft: '200px' }}>
+                                                                        <label className="Checkbox responsive" htmlFor='secure' style={{ marginLeft: '200px' }}>
                                                                             <Field
                                                                                 component="input"
                                                                                 type="checkbox"

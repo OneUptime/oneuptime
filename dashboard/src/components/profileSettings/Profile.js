@@ -350,7 +350,7 @@ export class ProfileSetting extends Component {
                       </div>
                       <div className='bs-Fieldset-row'>
                         <label className='bs-Fieldset-label'>Email</label>
-                        <div className='bs-Fieldset-fields'>
+                        <div className='bs-Fieldset-fields' style={{ flex: 'unset' }}>
                           <Field
                             className='db-BusinessSettings-input TextInput bs-TextInput'
                             type='text'
@@ -362,7 +362,7 @@ export class ProfileSetting extends Component {
                           />
                         </div>
                         <ShouldRender if={emailValue}>
-                          <div className='bs-Fieldset-fields' style={{ marginLeft: -80, marginTop: 5 }}>
+                          <div className='bs-Fieldset-fields' style={{ marginTop: 5 }}>
                             {!verifiedEmail ? (
                               <div className='Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2'>
                                 <span className='Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap'>
@@ -434,7 +434,7 @@ export class ProfileSetting extends Component {
                       </ShouldRender>
                       <div className='bs-Fieldset-row'>
                         <label className='bs-Fieldset-label'>Phone</label>
-                        <div className='bs-Fieldset-fields'>
+                        <div className='bs-Fieldset-fields' style={{ flex: 'unset' }}>
                           <ReactPhoneInput
                             defaultCountry={'us'}
                             value={profileSettingState.alertPhoneNumber}
@@ -444,7 +444,7 @@ export class ProfileSetting extends Component {
                           />
                         </div>
                         <ShouldRender if={profileSettingState.alertPhoneNumber}>
-                          <div className='bs-Fieldset-fields' style={{ marginLeft: -80, marginTop: 5 }}>
+                          <div className='bs-Fieldset-fields' style={{ marginTop: 5 }}>
                             {!verifiedPhone ? (
                               <div className='Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2'>
                                 <span className='Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap'>
@@ -621,7 +621,7 @@ export class ProfileSetting extends Component {
                       <div className='bs-Fieldset-row'>
                         <label className='bs-Fieldset-label'>Profile Picture</label>
                         <div className='bs-Fieldset-fields'>
-                          <div className='Box-root Flex-flex Flex-alignItems--center'>
+                          <div className='Box-root Flex-flex Flex-alignItems--center' style={{ flexWrap: 'wrap' }}>
                             <div>
                               <label className='bs-Button bs-DeprecatedButton bs-FileUploadButton' type='button'>
                                 <ShouldRender if={!profilePic}>
@@ -647,12 +647,13 @@ export class ProfileSetting extends Component {
                               </label>
                             </div>
                             <ShouldRender if={profilePic}>
-                              <div className='bs-Fieldset-fields'>
+                              <div className='bs-Fieldset-fields' style={{ padding: '0' }}>
                                 <button
                                   className='bs-Button bs-DeprecatedButton bs-FileUploadButton'
                                   type='button'
                                   onClick={this.removeProfilePic}
-                                  disabled={profileSettings && profileSettings.requesting}>
+                                  disabled={profileSettings && profileSettings.requesting}
+                                  style={{ margin: '10px 10px 0 0' }}>
                                   <span className='bs-Button--icon bs-Button--delete'></span>
                                   <span>Remove Profile Picture</span>
                                 </button>
@@ -740,7 +741,7 @@ export class ProfileSetting extends Component {
             </div>
           </form>
         </div>
-      </div>
+      </div >
     )
   }
 }

@@ -15,10 +15,7 @@ function Colors({
             <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label">Background Colors</label>
                 <div className="bs-Fieldset-fields">
-                    <div
-                        className="Box-root Flex-flex"
-                        style={{ width: '700px' }}
-                    >
+                    <div lassName="Box-root">
                         <Color
                             id="pageBackground"
                             title="Page Background"
@@ -55,10 +52,7 @@ function Colors({
             <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label">Status Colors</label>
                 <div className="bs-Fieldset-fields">
-                    <div
-                        className="Box-root Flex-flex"
-                        style={{ width: '700px' }}
-                    >
+                    <div className="Box-root">
                         <Color
                             id="uptime"
                             title="Uptime"
@@ -73,7 +67,6 @@ function Colors({
                             id="downtime"
                             title="Downtime"
                             color={colors.downtime}
-                            style={{ marginLeft: '60px' }}
                             currentColorPicker={currentColorPicker}
                             displayColorPicker={displayColorPicker}
                             handleClick={handleClick}
@@ -84,7 +77,6 @@ function Colors({
                             id="degraded"
                             title="Degraded"
                             color={colors.degraded}
-                            style={{ marginLeft: '84px' }}
                             currentColorPicker={currentColorPicker}
                             displayColorPicker={displayColorPicker}
                             handleClick={handleClick}
@@ -98,10 +90,7 @@ function Colors({
             <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label">Text Colors</label>
                 <div className="bs-Fieldset-fields">
-                    <div
-                        className="Box-root Flex-flex"
-                        style={{ width: '800px' }}
-                    >
+                    <div className="Box-root">
                         <Color
                             id="heading"
                             title="Heading Text"
@@ -116,7 +105,6 @@ function Colors({
                             id="subheading"
                             title="Sub Heading Text"
                             color={colors.subheading}
-                            style={{ marginLeft: '25px' }}
                             currentColorPicker={currentColorPicker}
                             displayColorPicker={displayColorPicker}
                             handleClick={handleClick}
@@ -127,7 +115,6 @@ function Colors({
                             id="secondaryText"
                             title="Secondary Text"
                             color={colors.secondaryText}
-                            style={{ marginLeft: '40px' }}
                             currentColorPicker={currentColorPicker}
                             displayColorPicker={displayColorPicker}
                             handleClick={handleClick}
@@ -138,7 +125,6 @@ function Colors({
                             id="primaryText"
                             title="Primary Text"
                             color={colors.primaryText}
-                            style={{ marginLeft: '20px' }}
                             currentColorPicker={currentColorPicker}
                             displayColorPicker={displayColorPicker}
                             handleClick={handleClick}

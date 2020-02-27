@@ -22,6 +22,7 @@ export const loadPage = function (title) {
   return function (dispatch) {
     dispatch(pageLoadRequest(title));
     dispatch(pageLoadSuccess(title));
+    dispatch(closeSideNav());
   }
 }
 

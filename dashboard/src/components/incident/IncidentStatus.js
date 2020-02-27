@@ -88,25 +88,25 @@ export class IncidentStatus extends Component {
                                                     <span className="value">
                                                         {this.props.incident && this.props.incident.incidentType && this.props.incident.incidentType === 'offline' ?
                                                             (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                     <span>offline</span>
                                                                 </span>
                                                             </div>)
                                                             : this.props.incident && this.props.incident.incidentType && this.props.incident.incidentType === 'online' ?
                                                                 (<div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                         <span>online</span>
                                                                     </span>
                                                                 </div>)
                                                                 : this.props.incident && this.props.incident.incidentType && this.props.incident.incidentType === 'degraded' ?
                                                                     (<div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                        <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                        <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                             <span>degraded</span>
                                                                         </span>
                                                                     </div>)
                                                                     :
                                                                     (<div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                             <span>Unknown Status</span>
                                                                         </span>
                                                                     </div>)
@@ -121,7 +121,7 @@ export class IncidentStatus extends Component {
                                                         <label className="bs-Fieldset-label">Acknowledge</label>
                                                         <div className="bs-Fieldset-fields" style={{ marginTop: '5px' }}>
                                                             <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                     <span id={`AcknowledgeText_${this.props.count}`}>
                                                                         Acknowledged by {this.props.incident.acknowledgedBy === null ? this.props.incident.acknowledgedByZapier ? 'Zapier' : 'Fyipe' : this.props.incident.acknowledgedBy.name} {moment(this.props.incident.acknowledgedAt).fromNow() + '.'}
                                                                     </span>
@@ -132,7 +132,7 @@ export class IncidentStatus extends Component {
                                                     <div className="bs-Fieldset-row" style={{ marginTop: '-6px' }}>
                                                         <label className="bs-Fieldset-label">Time to Acknowledge</label>
                                                         <div className="bs-Fieldset-fields" style={{ marginTop: '6px' }}>
-                                                            <span className="Badge-text Text-display--inline Text-fontSize--10 Text-lineHeight--16 Text-wrap--noWrap">
+                                                            <span className="Badge-text Text-display--inline Text-fontSize--10 Text-lineHeight--16">
                                                                 {moment(this.props.incident.acknowledgedAt).from(this.props.incident.createdAt).split('ago')[0]} ({moment(this.props.incident.acknowledgedAt).format('MMMM Do YYYY, h:mm:ss a')})
                                                             </span>
                                                         </div>
@@ -155,7 +155,7 @@ export class IncidentStatus extends Component {
                                                     <label className="bs-Fieldset-label">Acknowledge</label>
                                                     <div className="bs-Fieldset-fields" style={{ marginTop: '5px' }}>
                                                         <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                 <span>
                                                                     Not Acknowledged
                                                             </span>
@@ -170,7 +170,7 @@ export class IncidentStatus extends Component {
                                                         <label className="bs-Fieldset-label">Resolve</label>
                                                         <div className="bs-Fieldset-fields" style={{ marginTop: '5px' }}>
                                                             <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                     <span id={`ResolveText_${this.props.count}`}>
                                                                         Resolved by {this.props.incident.resolvedBy === null ? this.props.incident.resolvedByZapier ? 'Zapier' : 'Fyipe' : this.props.incident.resolvedBy.name} {moment(this.props.incident.resolvedAt).fromNow() + '.'}
                                                                     </span>
@@ -181,7 +181,7 @@ export class IncidentStatus extends Component {
                                                     <div className="bs-Fieldset-row" style={{ marginTop: '-6px' }}>
                                                         <label className="bs-Fieldset-label">Time to Resolve</label>
                                                         <div className="bs-Fieldset-fields" style={{ marginTop: '6px' }}>
-                                                            <span className="Badge-text Text-display--inline Text-fontSize--10 Text-lineHeight--16 Text-wrap--noWrap">
+                                                            <span className="Badge-text Text-display--inline Text-fontSize--10 Text-lineHeight--16">
                                                                 {moment(this.props.incident.resolvedAt).from(this.props.incident.createdAt).split('ago')[0]} ({moment(this.props.incident.resolvedAt).format('MMMM Do YYYY, h:mm:ss a')})
                                                             </span>
                                                         </div>
@@ -205,7 +205,7 @@ export class IncidentStatus extends Component {
                                                         <label className="bs-Fieldset-label">Resolve</label>
                                                         <div className="bs-Fieldset-fields" style={{ marginTop: '5px' }}>
                                                             <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                     <span>
                                                                         Not Resolved
                                                                 </span>

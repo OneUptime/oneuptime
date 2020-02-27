@@ -3,10 +3,8 @@ import PropTypes from 'prop-types'
 
 const RenderTextArea = ({ input, placeholder, type, meta, className, maxlength, rows, disabled, style }) => (
 
-    <span>
-        <span>
-            <textarea id="feedback-textarea" {...input} type={type} rows={rows} placeholder={placeholder} maxLength={maxlength} className={className} disabled={disabled || false} style={style || {}} />
-        </span>
+    <span style={{ display: 'block', width: '100%' }}>
+        <textarea id="feedback-textarea" {...input} type={type} rows={rows} placeholder={placeholder} maxLength={maxlength} className={className} disabled={disabled || false} style={style || {}} />
         <br />
         {meta.error &&
             meta.touched &&

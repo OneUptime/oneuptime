@@ -68,7 +68,7 @@ class CreateWebHook extends React.Component {
 		return (
 			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
 				<div className="bs-BIM">
-					<div className="bs-Modal" style={{ width: 500 }}>
+					<div className="bs-Modal">
 						<div className="bs-Modal-header">
 							<div className="bs-Modal-header-copy"
 								style={{ marginBottom: '10px', marginTop: '10px' }}>
@@ -78,180 +78,174 @@ class CreateWebHook extends React.Component {
 							</div>
 						</div>
 						<form onSubmit={handleSubmit(this.submitForm)}>
-							<div className="bs-Modal-content Padding-horizontal--12">
-								<div className="bs-Modal-block bs-u-paddingless">
+							<div className="bs-Modal-content">
+								<div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+									<fieldset className="Margin-bottom--16">
+										<div className="bs-Fieldset-rows">
+											<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+												<label className="bs-Fieldset-label Text-align--left" htmlFor="endpoint">
+													<span>Endpoint URL</span>
+												</label>
+												<div className="bs-Fieldset-fields">
+													<div className="bs-Fieldset-field" style={{ width: '70%' }}>
+														<Field
+															component={RenderField}
+															name="endpoint"
+															type="url"
+															placeholder="Enter webhook url"
+															id="endpoint"
+															className="db-BusinessSettings-input TextInput bs-TextInput"
+															style={{ width: 250, padding: '3px 5px' }}
+														/>
+													</div>
+												</div>
+											</div>
+										</div>
+									</fieldset>
 
-									<div className="bs-Modal-content">
-
-										<div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-											<fieldset className="Margin-bottom--16">
-												<div className="bs-Fieldset-rows">
-													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-														<label className="bs-Fieldset-label Text-align--left" htmlFor="endpoint">
-															<span>Endpoint URL</span>
-														</label>
-														<div className="bs-Fieldset-fields">
-															<div className="bs-Fieldset-field" style={{ width: '70%' }}>
-																<Field
-																	component={RenderField}
-																	name="endpoint"
-																	type="url"
-																	placeholder="Enter webhook url"
-																	id="endpoint"
-																	className="db-BusinessSettings-input TextInput bs-TextInput"
-																	style={{ width: 300, padding: '3px 5px' }}
-																/>
-															</div>
+									<ShouldRender if={!monitorId}>
+										<fieldset className="Margin-bottom--16">
+											<div className="bs-Fieldset-rows">
+												<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+													<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId">
+														<span>Monitor</span>
+													</label>
+													<div className="bs-Fieldset-fields">
+														<div className="bs-Fieldset-field" style={{ width: '250px' }}>
+															<Field
+																component={RenderSelect}
+																name="monitorId"
+																id="monitorId"
+																placeholder="Select monitor"
+																disabled={this.props.newWebHook.requesting}
+																validate={ValidateField.select}
+																options={[
+																	{ value: '', label: 'Select monitor' },
+																	...(monitorList && monitorList.length > 0 ? monitorList.map(monitor => ({ value: monitor.value, label: monitor.label })) : [])
+																]}
+																className="db-select-nw db-MultiSelect-input"
+															/>
 														</div>
 													</div>
 												</div>
-											</fieldset>
+											</div>
+										</fieldset>
+									</ShouldRender>
 
-											<ShouldRender if={!monitorId}>
-												<fieldset className="Margin-bottom--16">
-													<div className="bs-Fieldset-rows">
-														<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-															<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId">
-																<span>Monitor</span>
-															</label>
-															<div className="bs-Fieldset-fields">
-																<div className="bs-Fieldset-field" style={{ width: '300px' }}>
-																	<Field
-																		component={RenderSelect}
-																		name="monitorId"
-																		id="monitorId"
-																		placeholder="Select monitor"
-																		disabled={this.props.newWebHook.requesting}
-																		validate={ValidateField.select}
-																		options={[
-																			{ value: '', label: 'Select monitor' },
-																			...(monitorList && monitorList.length > 0 ? monitorList.map(monitor => ({ value: monitor.value, label: monitor.label })) : [])
-																		]}
-																		className="db-select-nw db-MultiSelect-input"
-																	/>
+									<fieldset className="Margin-bottom--16">
+										<div className="bs-Fieldset-rows">
+											<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+												<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId">
+													<span>Endpoint Type</span>
+												</label>
+												<div className="bs-Fieldset-fields">
+													<div className="bs-Fieldset-field" style={{ width: '250px' }}>
+														<Field
+															component={RenderSelect}
+															name="endpointType"
+															id="endpointType"
+															placeholder="Select endpoint type"
+															disabled={this.props.newWebHook.requesting}
+															validate={ValidateField.select}
+															options={[
+																{ value: '', label: 'Select endpoint type' },
+																{ value: 'get', label: 'GET' },
+																{ value: 'post', label: 'POST' },
+															]}
+															className="db-select-nw db-MultiSelect-input"
+														/>
+													</div>
+												</div>
+											</div>
+										</div>
+									</fieldset>
+
+									<fieldset className="Margin-bottom--16">
+										<div className="bs-Fieldset-rows">
+											<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+												<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
+												<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
+													<div className="bs-Fieldset-field">
+														<label className="Checkbox" style={{ marginRight: '12px' }}>
+															<Field
+																component="input"
+																type="checkbox"
+																name='incidentCreated'
+																className="Checkbox-source"
+																id='incidentCreated'
+															/>
+															<div className="Checkbox-box Box-root Margin-right--2">
+																<div className="Checkbox-target Box-root">
+																	<div className="Checkbox-color Box-root"></div>
 																</div>
 															</div>
-														</div>
-													</div>
-												</fieldset>
-											</ShouldRender>
-
-											<fieldset className="Margin-bottom--16">
-												<div className="bs-Fieldset-rows">
-													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId">
-															<span>Endpoint Type</span>
+															<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+																<label><span>Ping when incident is Created</span></label>
+															</div>
 														</label>
-														<div className="bs-Fieldset-fields">
-															<div className="bs-Fieldset-field" style={{ width: '300px' }}>
-																<Field
-																	component={RenderSelect}
-																	name="endpointType"
-																	id="endpointType"
-																	placeholder="Select endpoint type"
-																	disabled={this.props.newWebHook.requesting}
-																	validate={ValidateField.select}
-																	options={[
-																		{ value: '', label: 'Select endpoint type' },
-																		{ value: 'get', label: 'GET' },
-																		{ value: 'post', label: 'POST' },
-																	]}
-																	className="db-select-nw db-MultiSelect-input"
-																/>
-															</div>
-														</div>
 													</div>
 												</div>
-											</fieldset>
-
-											<fieldset className="Margin-bottom--16">
-												<div className="bs-Fieldset-rows">
-													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
-														<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
-															<div className="bs-Fieldset-field">
-																<label className="Checkbox" style={{ marginRight: '12px' }}>
-																	<Field
-																		component="input"
-																		type="checkbox"
-																		name='incidentCreated'
-																		className="Checkbox-source"
-																		id='incidentCreated'
-																	/>
-																	<div className="Checkbox-box Box-root Margin-right--2">
-																		<div className="Checkbox-target Box-root">
-																			<div className="Checkbox-color Box-root"></div>
-																		</div>
-																	</div>
-																	<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-																		<label><span>Ping when incident is Created</span></label>
-																	</div>
-																</label>
-															</div>
-														</div>
-													</div>
-												</div>
-											</fieldset>
-
-											<fieldset className="Margin-bottom--16">
-												<div className="bs-Fieldset-rows">
-													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
-														<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
-															<div className="bs-Fieldset-field">
-																<label className="Checkbox" style={{ marginRight: '12px' }}>
-																	<Field
-																		component="input"
-																		type="checkbox"
-																		name='incidentAcknowledged'
-																		className="Checkbox-source"
-																		id='incidentAcknowledged'
-																	/>
-																	<div className="Checkbox-box Box-root Margin-right--2">
-																		<div className="Checkbox-target Box-root">
-																			<div className="Checkbox-color Box-root"></div>
-																		</div>
-																	</div>
-																	<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-																		<label><span>Ping when incident is Acknowledged</span></label>
-																	</div>
-																</label>
-															</div>
-														</div>
-													</div>
-												</div>
-											</fieldset>
-
-											<fieldset className="Margin-bottom--16">
-												<div className="bs-Fieldset-rows">
-													<div className="bs-Fieldset-row" style={{ padding: 0 }}>
-														<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
-														<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
-															<div className="bs-Fieldset-field">
-																<label className="Checkbox" style={{ marginRight: '12px' }}>
-																	<Field
-																		component="input"
-																		type="checkbox"
-																		name='incidentResolved'
-																		className="Checkbox-source"
-																		id='incidentResolved'
-																	/>
-																	<div className="Checkbox-box Box-root Margin-right--2">
-																		<div className="Checkbox-target Box-root">
-																			<div className="Checkbox-color Box-root"></div>
-																		</div>
-																	</div>
-																	<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
-																		<label><span>Ping when incident is Resolved</span></label>
-																	</div>
-																</label>
-															</div>
-														</div>
-													</div>
-												</div>
-											</fieldset>
+											</div>
 										</div>
-									</div>
+									</fieldset>
+
+									<fieldset className="Margin-bottom--16">
+										<div className="bs-Fieldset-rows">
+											<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+												<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
+												<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
+													<div className="bs-Fieldset-field">
+														<label className="Checkbox" style={{ marginRight: '12px' }}>
+															<Field
+																component="input"
+																type="checkbox"
+																name='incidentAcknowledged'
+																className="Checkbox-source"
+																id='incidentAcknowledged'
+															/>
+															<div className="Checkbox-box Box-root Margin-right--2">
+																<div className="Checkbox-target Box-root">
+																	<div className="Checkbox-color Box-root"></div>
+																</div>
+															</div>
+															<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+																<label><span>Ping when incident is Acknowledged</span></label>
+															</div>
+														</label>
+													</div>
+												</div>
+											</div>
+										</div>
+									</fieldset>
+
+									<fieldset className="Margin-bottom--16">
+										<div className="bs-Fieldset-rows">
+											<div className="bs-Fieldset-row" style={{ padding: 0 }}>
+												<label className="bs-Fieldset-label Text-align--left" htmlFor="monitorId"><span></span></label>
+												<div className="bs-Fieldset-fields" style={{ paddingTop: '6px' }}>
+													<div className="bs-Fieldset-field">
+														<label className="Checkbox" style={{ marginRight: '12px' }}>
+															<Field
+																component="input"
+																type="checkbox"
+																name='incidentResolved'
+																className="Checkbox-source"
+																id='incidentResolved'
+															/>
+															<div className="Checkbox-box Box-root Margin-right--2">
+																<div className="Checkbox-target Box-root">
+																	<div className="Checkbox-color Box-root"></div>
+																</div>
+															</div>
+															<div className="Box-root" style={{ 'paddingLeft': '5px' }}>
+																<label><span>Ping when incident is Resolved</span></label>
+															</div>
+														</label>
+													</div>
+												</div>
+											</div>
+										</div>
+									</fieldset>
 								</div>
 							</div>
 							<div className="bs-Modal-footer">

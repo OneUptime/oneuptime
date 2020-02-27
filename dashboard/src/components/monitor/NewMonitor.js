@@ -264,7 +264,7 @@ class NewMonitor extends Component {
                                 <p>
                                     <ShouldRender if={!this.props.edit}>
                                         <span>
-                                        Monitor any resources (Websites, API, Servers, IoT Devices and more) constantly and notify your team when they do not behave the way you want.
+                                            Monitor any resources (Websites, API, Servers, IoT Devices and more) constantly and notify your team when they do not behave the way you want.
                                         </span>
                                     </ShouldRender>
                                     <ShouldRender if={this.props.edit}>
@@ -376,7 +376,7 @@ class NewMonitor extends Component {
                                                                         <p> <b>Server Monitor</b></p>
                                                                         <p> Monitor servers constantly and notify your team when they do not behave the way you want.</p>
                                                                     </div>
-                                                                    
+
                                                                 </Tooltip>
                                                             </span>
                                                             <span className="Text-color--inherit Text-display--inline Text-lineHeight--24 Text-typeface--base Text-wrap--wrap" style={{ marginTop: 10 }}>

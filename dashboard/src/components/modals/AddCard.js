@@ -106,7 +106,7 @@ class _CardForm extends React.Component {
                     style={{ marginTop: '40px' }}
                 >
                     <div className="bs-BIM">
-                        <div className="bs-Modal" style={{ width: 500 }}>
+                        <div className="bs-Modal">
                             <div className="bs-Modal-header">
                                 <div
                                     className="bs-Modal-header-copy"
@@ -126,19 +126,15 @@ class _CardForm extends React.Component {
                                     </p>
                                 </div>
                             </div>
-                            <div className="bs-Modal-content Padding-horizontal--12">
-                                <div className="bs-Modal-block bs-u-paddingless">
-                                    <div className="bs-Modal-content">
-                                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                            <label>
-                                                <CardElement
-                                                    {...createOptions(
-                                                        elementFontSize
-                                                    )}
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
+                            <div className="bs-Modal-content">
+                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--20i">
+                                    <label>
+                                        <CardElement
+                                            {...createOptions(
+                                                elementFontSize
+                                            )}
+                                        />
+                                    </label>
                                 </div>
                             </div>
                             <div className="bs-Modal-footer">

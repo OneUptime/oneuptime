@@ -110,7 +110,7 @@ export class SmsSmtpBox extends Component {
                                                             <div className="bs-Fieldset-row">
                                                                 <div className="Box-root Margin-bottom--12">
                                                                     <div data-test="RetrySettings-failedPaymentsRow" className="Box-root">
-                                                                        <label className="Checkbox" htmlFor='smssmtpswitch' style={{ marginLeft: '150px' }}>
+                                                                        <label className="Checkbox responsive" htmlFor='smssmtpswitch' style={{ marginLeft: '150px' }}>
                                                                             <Field
                                                                                 component="input"
                                                                                 type="checkbox"

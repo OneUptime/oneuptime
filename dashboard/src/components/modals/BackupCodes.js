@@ -39,7 +39,7 @@ class BackupCodesModal extends React.Component {
 		return (
 			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
 				<div className="bs-BIM">
-					<div className="bs-Modal" style={{ width: 450 }}>
+					<div className="bs-Modal">
 						<div className="bs-Modal-header">
 							<div className="bs-Modal-header-copy"
 								style={{ marginBottom: '5px', marginTop: '5px' }}>

@@ -20,7 +20,7 @@ const style = {
 const textboxstyle = {
     backgroundColor: '#fff',
     borderRadius: '4px',
-    width: '400px',
+    width: '250px',
     boxShadow: '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
 }
 const newSelector = formValueSelector('NewMonitor');
@@ -64,7 +64,7 @@ export class ApiAdvance extends Component {
                         </div>
 
                     </div>
-                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1">
                         <div>
                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                 <fieldset className="bs-Fieldset">
@@ -100,7 +100,7 @@ export class ApiAdvance extends Component {
                             </div>
                         </ShouldRender>
                     </div>
-                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1">
                         <div>
                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                 <fieldset className="bs-Fieldset">
@@ -132,12 +132,12 @@ export class ApiAdvance extends Component {
                                         <ShouldRender if={bodytype === 'form-data' || bodytype === 'x-www-form-urlencoded'}>
                                             <FieldArray name={`formData_${this.props.index}`} component={RenderHeaders} />
                                         </ShouldRender>
-                                        <ShouldRender if={['text', 'textPlain', 'applicationJson', 'applicationJavascript', 'applicationXml', 'textXml', 'textHtml'].indexOf(bodytype) > -1}>
+                                        <ShouldRender if={['text/plain', 'application/json', 'application/javascript', 'application/xml', 'text/xml', 'text/html'].indexOf(bodytype) > -1}>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">Body Content</label>
                                                 <div className="bs-Fieldset-fields">
                                                     <Field component={RenderTextArea}
-                                                        className="db-FeedbackForm-textarea"
+                                                        className="db-FeedbackForm-textarea fixed"
                                                         name={`text_${this.props.index}`}
                                                         style={textboxstyle}
                                                         rows={10}

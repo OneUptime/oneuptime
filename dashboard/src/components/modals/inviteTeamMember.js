@@ -14,16 +14,16 @@ import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
 
 export class FormModal extends Component {
-	constructor(props){
+	constructor(props) {
 		super(props);
-        this.state = { notificationModalId: uuid.v4() }
+		this.state = { notificationModalId: uuid.v4() }
 	}
- 
+
 	submitForm = (values) => {
 		const { teamCreate, closeThisDialog, data, closeModal, subProjects, currentProject, openModal } = this.props;
 		const { notificationModalId } = this.state;
 		values.projectId = data.subProjectId;
-		if(subProjects && subProjects.length >= 1 && data.subProjectId === currentProject._id){
+		if (subProjects && subProjects.length >= 1 && data.subProjectId === currentProject._id) {
 			openModal({
 				id: this.state.notificationModalId,
 				onClose: () => closeModal({ id: notificationModalId }),
@@ -35,7 +35,7 @@ export class FormModal extends Component {
 				}),
 				content: projectTeamMemberNotification
 			})
-		}else{
+		} else {
 			teamCreate(data.subProjectId, values).then(function () {
 				closeThisDialog();
 			}, function () {
@@ -63,7 +63,7 @@ export class FormModal extends Component {
 		return (
 			<div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
 				<div className="bs-BIM db-InviteSetting">
-					<div className="bs-Modal bs-Modal--large">
+					<div className="bs-Modal bs-Modal--medium">
 						<form id={`frm_${data.subProjectName}`} lpformnum="2" onSubmit={handleSubmit(this.submitForm)}>
 							<div className="bs-Modal-header">
 								<div className="bs-Modal-header-copy">
@@ -115,7 +115,7 @@ export class FormModal extends Component {
 										<div className="db-RoleRadioList-row">
 											<label className="bs-Radio" htmlFor={`Viewer_${data.subProjectName}`}>
 												<Field id={`Viewer_${data.subProjectName}`} className="bs-Radio-source" name="role" component="input" type="radio" value="Viewer" />
-												<span className="bs-Radio-button"></span><span className="bs-Radio-label"><div className="db-RoleRadioListLabel"><div className="db-RoleRadioListLabel-name"><span>Viewer</span></div><div className="db-RoleRadioListLabel-description"><span>Viewers are your internal team members or your customers who can only view private status page of this project.</span></div><div className="db-RoleRadioListLabel-info"><div className="Box-root Flex-inlineFlex"><div className="Box-root Flex-flex"><div className="Box-root Flex-flex"></div></div></div></div></div></span></label></div>	
+												<span className="bs-Radio-button"></span><span className="bs-Radio-label"><div className="db-RoleRadioListLabel"><div className="db-RoleRadioListLabel-name"><span>Viewer</span></div><div className="db-RoleRadioListLabel-description"><span>Viewers are your internal team members or your customers who can only view private status page of this project.</span></div><div className="db-RoleRadioListLabel-info"><div className="Box-root Flex-inlineFlex"><div className="Box-root Flex-flex"><div className="Box-root Flex-flex"></div></div></div></div></div></span></label></div>
 										<div className="db-RoleRadioList-row">
 											<label className="bs-Radio" htmlFor={`Member_${data.subProjectName}`}>
 												<Field id={`Member_${data.subProjectName}`} className="bs-Radio-source" name="role" component="input" type="radio" value="Member" />
@@ -128,8 +128,8 @@ export class FormModal extends Component {
 											<div className="db-RoleRadioList-row">
 												<label className="bs-Radio" htmlFor={`Owner_${data.subProjectName}`}>
 													<Field id={`Owner_${data.subProjectName}`} className="bs-Radio-source" name="role" component="input" type="radio" value="Owner" />
-													<span className="bs-Radio-button"></span><span className="bs-Radio-label"><div className="db-RoleRadioListLabel"><div className="db-RoleRadioListLabel-name"><span>Owner</span></div><div className="db-RoleRadioListLabel-description"><span>Owners have complete control over this Fyipe project including all the sub-projects. Owners can create and delete sub-projects and manage everything in Fyipe. </span></div><div className="db-RoleRadioListLabel-info"><div className="Box-root Flex-inlineFlex"><div className="Box-root Flex-flex"><div className="Box-root Flex-flex"></div></div></div></div></div></span></label></div>	
-											
+													<span className="bs-Radio-button"></span><span className="bs-Radio-label"><div className="db-RoleRadioListLabel"><div className="db-RoleRadioListLabel-name"><span>Owner</span></div><div className="db-RoleRadioListLabel-description"><span>Owners have complete control over this Fyipe project including all the sub-projects. Owners can create and delete sub-projects and manage everything in Fyipe. </span></div><div className="db-RoleRadioListLabel-info"><div className="Box-root Flex-inlineFlex"><div className="Box-root Flex-flex"><div className="Box-root Flex-flex"></div></div></div></div></div></span></label></div>
+
 										</ShouldRender>
 									</div>
 								</div>

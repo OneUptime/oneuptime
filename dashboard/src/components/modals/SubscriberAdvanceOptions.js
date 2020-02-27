@@ -13,22 +13,22 @@ import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
 
 class SubscriberAdvanceOption extends React.Component {
-    
+
     submitForm = (values) => {
         const { status } = this.props.statusPage;
         const { projectId } = status;
-        this.props.updateSubscriberOption(projectId._id || projectId, { 
+        this.props.updateSubscriberOption(projectId._id || projectId, {
             _id: status._id,
-            enableRSSFeed: values.enableRSSFeed, 
-            emailNotification: values.emailNotification, 
+            enableRSSFeed: values.enableRSSFeed,
+            emailNotification: values.emailNotification,
             smsNotification: values.smsNotification,
             webhookNotification: values.webhookNotification,
         })
-        .then(() => {
-            this.props.closeModal({
-                id: this.props.subscriberAdvanceOptionModalId
+            .then(() => {
+                this.props.closeModal({
+                    id: this.props.subscriberAdvanceOptionModalId
+                })
             })
-        })
         if (!IS_DEV) {
             logEvent('Private StatusPage Updated', values);
         }
@@ -53,7 +53,7 @@ class SubscriberAdvanceOption extends React.Component {
         return (
             <div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
                 <div className="bs-BIM">
-                    <div className="bs-Modal" style={{ width: 500 }}>
+                    <div className="bs-Modal">
                         <div className="bs-Modal-header">
                             <div className="bs-Modal-header-copy"
                                 style={{ marginBottom: '10px', marginTop: '10px' }}>
@@ -74,7 +74,7 @@ class SubscriberAdvanceOption extends React.Component {
                                         <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label" style={{ flex: '0% 0 0' }}><span></span></label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide" style={{flexBasis: '100%'}}>
+                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide" style={{ flexBasis: '100%' }}>
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
                                                         <label className="Checkbox">
@@ -100,10 +100,10 @@ class SubscriberAdvanceOption extends React.Component {
 
                                                     </div>
                                                 </div>
-                                            </div>      
+                                            </div>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label" style={{ flex: '0% 0 0' }}><span></span></label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide" style={{flexBasis: '100%'}}>
+                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide" style={{ flexBasis: '100%' }}>
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
                                                         <label className="Checkbox">
@@ -132,7 +132,7 @@ class SubscriberAdvanceOption extends React.Component {
                                             </div>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label" style={{ flex: '0% 0 0' }}><span></span></label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide" style={{flexBasis: '100%'}}>
+                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide" style={{ flexBasis: '100%' }}>
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
                                                         <label className="Checkbox">
@@ -161,7 +161,7 @@ class SubscriberAdvanceOption extends React.Component {
                                             </div>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label" style={{ flex: '0% 0 0' }}><span></span></label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide" style={{flexBasis: '100%'}}>
+                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide" style={{ flexBasis: '100%' }}>
                                                     <div className="Box-root" style={{ height: '5px' }}></div>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
                                                         <label className="Checkbox">

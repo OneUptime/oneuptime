@@ -85,14 +85,6 @@ class SideNav extends Component {
 											</div>
 										</div>
 									</div>
-
-									<div className="Box-root" onClick={this.props.closeSideNav}>
-										<div className="db-MenuContainer">
-											<div className={'db-MenuIcon Box-root Box-background--white'}>
-												<div className="db-MenuIcon--content db-MenuIcon--close" />
-											</div>
-										</div>
-									</div>
 								</div>
 							</div>
 						</div>

@@ -88,7 +88,7 @@ class CreateSubscriber extends Component {
         return (
             <div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
                 <div className="bs-BIM">
-                    <div className="bs-Modal bs-Modal--large">
+                    <div className="bs-Modal bs-Modal--medium">
                         <div className="bs-Modal-header">
                             <div className="bs-Modal-header-copy"
                                 style={{ marginBottom: '10px', marginTop: '10px' }}>

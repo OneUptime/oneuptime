@@ -1,9 +1,10 @@
 .db-select-nw {
     width: 250px;
     font-size: 14px;
-    position: absolute !important;
 }
-
+.Card-root, .bs-ContentSection {
+    overflow: unset !important;
+}
 .db-select-pr {
     width: 250px;
     font-size: 14px;
@@ -10453,7 +10454,7 @@ table {
 */
 .db-MultiSelect-input {
     min-width: 0;
-    width: 300px;
+    width: 250px;
     margin: 0px;
     padding: 0px;
     border-color: #000000;
@@ -10632,12 +10633,28 @@ table {
     .db-World-topContent {
         left: 0;
     }
-    .ContentHeader .Flex-direction--row, .bs-ContentSection-content {
+    .ContentHeader .Flex-direction--row,
+    .bs-ContentSection-content {
         flex-wrap: wrap;
     }
     .ContentHeader-center {
         flex: unset !important;
         flex-grow: 1;
+    }
+    .db-FeedbackForm-textarea {
+        width: 400px !important;
+    }
+    .db-FeedbackForm-textarea.fixed {
+        width: 250px !important;
+    }
+    .template-variable-1 {
+        margin-left: 100px !important;
+    }
+    .template-variable-2 {
+        margin-left: 80px !important;
+    }
+    .ace_editor {
+        width: 250px !important;
     }
 }
 @media screen and (max-width: 500px) {
@@ -10660,6 +10677,7 @@ table {
     }
     .bs-Fieldset-row {
         display: block;
+        word-break: break-word;
     }
     .bs-Fieldset-fields {
         padding-left: 0;
@@ -10670,7 +10688,7 @@ table {
     }
     .ContentHeader button,
     .db-Trends-header button,
-    .db-Trends-timeControls, 
+    .db-Trends-timeControls,
     .bs-ContentSection-content button {
         margin: 10px 10px 0 0 !important;
     }
@@ -10680,7 +10698,7 @@ table {
     .ContentHeader-end button#downloadCSVButton > .bs-ButtonLegacy-fill {
         padding: 4px 8px !important;
     }
-    .ContentHeader-end .bs-ButtonLegacy-fill * { 
+    .ContentHeader-end .bs-ButtonLegacy-fill * {
         margin: 0 !important;
     }
     .db-Trends-content {
@@ -10705,4 +10723,47 @@ table {
     div.block-chart-main {
         margin-top: 10px !important;
     }
+    .bs-Modal {
+        word-break: break-word;
+    }
+    .bs-Modal .bs-Fieldset-row {
+        padding: 10px 0;
+    }
+    .bs-Modal fieldset {
+        padding: 10px 0 !important;
+    }
+    .db-FeedbackModal {
+        right: 10px !important;
+    }
+    .db-RoleRadioListLabel {
+        flex-wrap: wrap;
+    }
+    .db-RoleRadioListLabel-name {
+        padding: 0;
+        font-weight: bold;
+    }
+    .Notify-fyipe-row-primary {
+        left: 0 !important;
+    }
+    .Checkbox.responsive {
+        margin-left: 0 !important;
+    }
+    .db-FeedbackForm-textarea {
+        width: 100% !important;
+    }
+    .db-FeedbackForm-textarea.fixed {
+        width: 250px !important;
+    }
+    .template-variable-1 {
+        margin-left: 40px !important;
+    }
+    .template-variable-2 {
+        margin-left: 20px !important;
+    }
+}
+.bs-Modal fieldset {
+    padding: 10px 20px 0;
+}
+.Margin-bottom--20i {
+    margin-bottom: 20px !important;
 }

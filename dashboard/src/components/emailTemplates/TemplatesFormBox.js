@@ -16,7 +16,7 @@ import RenderIfAdmin from '../basic/RenderIfAdmin';
 const style = {
     backgroundColor: '#fff',
     borderRadius: '4px',
-    width: '800px',
+    width: '600px',
     boxShadow: '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
 }
 
@@ -93,13 +93,13 @@ export class TemplatesFormBox extends Component {
                                             />
 
                                             <ShouldRender if={!(this.props.revealVariable && this.props.revealVariable === template.emailType)}>
-                                                <span style={{ display: 'block', marginLeft: '120px' }}>
+                                                <span className="template-variable-1" style={{ display: 'block', marginLeft: '120px' }}>
                                                     <button className="button-as-anchor" onClick={() => this.props.setRevealVariable(template.emailType)} > Click here to reveal available variables.</button>
                                                 </span>
                                             </ShouldRender>
                                             <ShouldRender if={(this.props.revealVariable && this.props.revealVariable === template.emailType)}>
-                                                <span style={{ display: 'block', marginLeft: '110px', padding: '10px' }}>You can use these available variables.</span>
-                                                <span style={{ display: 'block', marginLeft: '120px' }}>
+                                                <span className="template-variable-2" style={{ display: 'block', marginLeft: '110px', padding: '10px' }}>You can use these available variables.</span>
+                                                <span className="template-variable-1" style={{ display: 'block', marginLeft: '120px' }}>
                                                     {template && template.allowedVariables && template.allowedVariables.map((allowed, j) => {
                                                         return <span key={j} className='template-variables' style={bulletpoints}>{allowed}<br /></span>
                                                     })}</span>
