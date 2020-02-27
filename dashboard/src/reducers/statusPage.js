@@ -3,84 +3,68 @@ import {
     CREATE_STATUSPAGE_SUCCESS,
     CREATE_STATUSPAGE_FAILURE,
     CREATE_STATUSPAGE_RESET,
-
     UPDATE_STATUSPAGE_SETTING_REQUEST,
     UPDATE_STATUSPAGE_SETTING_SUCCESS,
     UPDATE_STATUSPAGE_SETTING_FAILURE,
     UPDATE_STATUSPAGE_SETTING_RESET,
-
     UPDATE_STATUSPAGE_MONITORS_REQUEST,
     UPDATE_STATUSPAGE_MONITORS_SUCCESS,
     UPDATE_STATUSPAGE_MONITORS_FAILURE,
     UPDATE_STATUSPAGE_MONITORS_RESET,
-
     UPDATE_PRIVATE_STATUSPAGE_REQUEST,
     UPDATE_PRIVATE_STATUSPAGE_SUCCESS,
     UPDATE_PRIVATE_STATUSPAGE_FAILURE,
     UPDATE_PRIVATE_STATUSPAGE_RESET,
-
     UPDATE_STATUSPAGE_BRANDING_REQUEST,
     UPDATE_STATUSPAGE_BRANDING_SUCCESS,
     UPDATE_STATUSPAGE_BRANDING_FAILURE,
     UPDATE_STATUSPAGE_BRANDING_RESET,
-
     UPDATE_STATUSPAGE_NAME_FAILURE,
     UPDATE_STATUSPAGE_NAME_REQUEST,
     UPDATE_STATUSPAGE_NAME_RESET,
     UPDATE_STATUSPAGE_NAME_SUCCESS,
-
     UPDATE_STATUSPAGE_LINKS_REQUEST,
     UPDATE_STATUSPAGE_LINKS_SUCCESS,
     UPDATE_STATUSPAGE_LINKS_FAILURE,
     UPDATE_STATUSPAGE_LINKS_RESET,
-
     FETCH_STATUSPAGE_REQUEST,
     FETCH_STATUSPAGE_SUCCESS,
     FETCH_STATUSPAGE_FAILURE,
     FETCH_STATUSPAGE_RESET,
-
     FETCH_SUBPROJECT_STATUSPAGE_REQUEST,
     FETCH_SUBPROJECT_STATUSPAGE_SUCCESS,
     FETCH_SUBPROJECT_STATUSPAGE_FAILURE,
     FETCH_SUBPROJECT_STATUSPAGE_RESET,
-
     FETCH_PROJECT_STATUSPAGE_REQUEST,
     FETCH_PROJECT_STATUSPAGE_SUCCESS,
     FETCH_PROJECT_STATUSPAGE_FAILURE,
     FETCH_PROJECT_STATUSPAGE_RESET,
-
     DELETE_PROJECT_STATUSPAGES,
     DELETE_STATUSPAGE_REQUEST,
     DELETE_STATUSPAGE_SUCCESS,
     DELETE_STATUSPAGE_FAILED,
     DELETE_STATUSPAGE_RESET,
-
     LOGO_CACHE_INSERT,
     FAVICON_CACHE_INSERT,
     LOGO_CACHE_RESET,
     FAVICON_CACHE_RESET,
     SWITCH_STATUSPAGE_SUCCESS,
-
     BANNER_CACHE_INSERT,
     BANNER_CACHE_RESET,
-
     SET_STATUS_PAGE_COLORS,
-
     UPDATE_SUBSCRIBER_OPTION_REQUEST,
     UPDATE_SUBSCRIBER_OPTION_SUCCESS,
     UPDATE_SUBSCRIBER_OPTION_FAILURE,
-    UPDATE_SUBSCRIBER_OPTION_RESET
-
+    UPDATE_SUBSCRIBER_OPTION_RESET,
 } from '../constants/statusPage';
 
 import {
     PAGINATE_NEXT,
-	PAGINATE_PREV,
-	PAGINATE_RESET
+    PAGINATE_PREV,
+    PAGINATE_RESET,
 } from '../constants/statusPage';
 
 const INITIAL_STATE = {
-
     setting: {
         error: null,
         requesting: false,
@@ -90,7 +74,7 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false,
-        statusPage: null
+        statusPage: null,
     },
     monitors: {
         error: null,
@@ -117,25 +101,25 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
     },
-    logocache:{
-        data : null
+    logocache: {
+        data: null,
     },
-    bannercache:{
-        data : null
+    bannercache: {
+        data: null,
     },
     colors: {},
-    faviconcache:{
-        data : null
+    faviconcache: {
+        data: null,
     },
     deleteStatusPage: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     subscriberOption: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     //this is for main status page object.
     error: null,
@@ -147,15 +131,14 @@ const INITIAL_STATE = {
     count: null,
     limit: null,
     skip: null,
-   pages:{
-    counter: 1
-   },
+    pages: {
+        counter: 1,
+    },
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
     let status, statusPage, isExistingStatusPage;
     switch (action.type) {
-
         //create statuspage
         case CREATE_STATUSPAGE_REQUEST:
             return Object.assign({}, state, {
@@ -164,29 +147,56 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                }
+                },
             });
 
         case CREATE_STATUSPAGE_SUCCESS:
-            isExistingStatusPage = state.subProjectStatusPages.find(statusPage => statusPage._id === action.payload.projectId);
+            isExistingStatusPage = state.subProjectStatusPages.find(
+                statusPage => statusPage._id === action.payload.projectId
+            );
             return Object.assign({}, state, {
                 newStatusPage: {
                     requesting: false,
                     error: null,
                     success: true,
-                    newStatusPage: action.payload
+                    newStatusPage: action.payload,
                 },
-                subProjectStatusPages: isExistingStatusPage ? state.subProjectStatusPages.length > 0 ? state.subProjectStatusPages.map((statusPage)=>{
-                    return statusPage._id === action.payload.projectId ?
-                    {
-                        _id: action.payload.projectId,
-                        statusPages: [action.payload, ...statusPage.statusPages.filter((status, index) => index < 9)],
-                        count: statusPage.count + 1,
-                        skip: statusPage.skip,
-                        limit: statusPage.limit}
-                    : statusPage
-                }) : [{_id: action.payload.projectId, statusPages: [action.payload], count: 1, skip: 0, limit: 0 }]
-                : state.subProjectStatusPages.concat([{_id: action.payload.projectId, statusPages: [action.payload], count: 1, skip: 0, limit: 0 }])
+                subProjectStatusPages: isExistingStatusPage
+                    ? state.subProjectStatusPages.length > 0
+                        ? state.subProjectStatusPages.map(statusPage => {
+                              return statusPage._id === action.payload.projectId
+                                  ? {
+                                        _id: action.payload.projectId,
+                                        statusPages: [
+                                            action.payload,
+                                            ...statusPage.statusPages.filter(
+                                                (status, index) => index < 9
+                                            ),
+                                        ],
+                                        count: statusPage.count + 1,
+                                        skip: statusPage.skip,
+                                        limit: statusPage.limit,
+                                    }
+                                  : statusPage;
+                          })
+                        : [
+                              {
+                                  _id: action.payload.projectId,
+                                  statusPages: [action.payload],
+                                  count: 1,
+                                  skip: 0,
+                                  limit: 0,
+                              },
+                          ]
+                    : state.subProjectStatusPages.concat([
+                          {
+                              _id: action.payload.projectId,
+                              statusPages: [action.payload],
+                              count: 1,
+                              skip: 0,
+                              limit: 0,
+                          },
+                      ]),
             });
 
         case CREATE_STATUSPAGE_FAILURE:
@@ -195,12 +205,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
 
         case CREATE_STATUSPAGE_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         //update setting
@@ -211,18 +221,17 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: null,
                     success: false,
                 },
-
             });
 
         case UPDATE_STATUSPAGE_SETTING_SUCCESS:
-            status = action.payload
+            status = action.payload;
             return Object.assign({}, state, {
                 setting: {
                     requesting: false,
                     error: null,
                     success: true,
                 },
-                status
+                status,
             });
 
         case UPDATE_STATUSPAGE_SETTING_FAILURE:
@@ -231,12 +240,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
 
         case UPDATE_STATUSPAGE_SETTING_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         // update monitor
@@ -257,7 +266,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                 },
-                status
+                status,
             });
 
         case UPDATE_STATUSPAGE_MONITORS_FAILURE:
@@ -266,12 +275,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
 
         case UPDATE_STATUSPAGE_MONITORS_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         // update private statuspages
@@ -292,7 +301,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                 },
-                status
+                status,
             });
 
         case UPDATE_PRIVATE_STATUSPAGE_FAILURE:
@@ -301,12 +310,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
 
         case UPDATE_PRIVATE_STATUSPAGE_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         // update subscriber options
@@ -327,7 +336,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                 },
-                status
+                status,
             });
 
         case UPDATE_SUBSCRIBER_OPTION_FAILURE:
@@ -336,12 +345,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
 
         case UPDATE_SUBSCRIBER_OPTION_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
         // update branding
         case UPDATE_STATUSPAGE_BRANDING_REQUEST:
@@ -361,7 +370,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                 },
-                status
+                status,
             });
 
         case UPDATE_STATUSPAGE_BRANDING_FAILURE:
@@ -370,12 +379,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
 
         case UPDATE_STATUSPAGE_BRANDING_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         // update status page name
@@ -387,7 +396,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
-        
+
         case UPDATE_STATUSPAGE_NAME_SUCCESS:
             status = action.payload;
             return Object.assign({}, state, {
@@ -396,21 +405,21 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                 },
-                status
+                status,
             });
-        
+
         case UPDATE_STATUSPAGE_NAME_FAILURE:
             return Object.assign({}, state, {
                 pageName: {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
-        
+
         case UPDATE_STATUSPAGE_NAME_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         // update links
@@ -420,7 +429,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                }
+                },
             });
 
         case UPDATE_STATUSPAGE_LINKS_SUCCESS:
@@ -431,7 +440,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                 },
-                status
+                status,
             });
 
         case UPDATE_STATUSPAGE_LINKS_FAILURE:
@@ -440,12 +449,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
 
         case UPDATE_STATUSPAGE_LINKS_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         // fetch status page
@@ -455,7 +464,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 error: null,
                 requesting: true,
                 success: false,
-                status: {}
+                status: {},
             });
 
         case FETCH_STATUSPAGE_FAILURE:
@@ -463,12 +472,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 status: {},
                 requesting: false,
                 success: false,
-                error: action.payload
+                error: action.payload,
             });
 
         case FETCH_STATUSPAGE_RESET:
             return Object.assign({}, state, {
-                status: INITIAL_STATE.statusPage
+                status: INITIAL_STATE.statusPage,
             });
 
         case FETCH_STATUSPAGE_SUCCESS:
@@ -476,7 +485,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 statusPages: action.payload.data,
                 error: null,
                 requesting: false,
-                success: false
+                success: false,
             });
 
         // fetch subproject status pages
@@ -486,7 +495,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 error: null,
                 requesting: true,
                 success: false,
-                status: {}
+                status: {},
             });
 
         case FETCH_SUBPROJECT_STATUSPAGE_FAILURE:
@@ -494,12 +503,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 status: {},
                 requesting: false,
                 success: false,
-                error: action.payload
+                error: action.payload,
             });
 
         case FETCH_SUBPROJECT_STATUSPAGE_RESET:
             return Object.assign({}, state, {
-                subProjectStatusPages: []
+                subProjectStatusPages: [],
             });
 
         case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS:
@@ -507,7 +516,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 subProjectStatusPages: action.payload,
                 error: null,
                 requesting: false,
-                success: true
+                success: true,
             });
 
         // fetch list of statuspages in a project
@@ -523,42 +532,47 @@ export default function statusPage(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 requesting: false,
                 success: false,
-                error: action.payload
+                error: action.payload,
             });
 
         case FETCH_PROJECT_STATUSPAGE_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         case FETCH_PROJECT_STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
-                subProjectStatusPages: state.subProjectStatusPages.map((statusPage)=>{
-                    return statusPage._id === action.payload.projectId ?
-                    {
-                        _id: action.payload.projectId,
-                        statusPages: [...action.payload.data],
-                        count: action.payload.count,
-                        skip: action.payload.skip,
-                        limit: action.payload.limit}
-                    : statusPage
-                }),
+                subProjectStatusPages: state.subProjectStatusPages.map(
+                    statusPage => {
+                        return statusPage._id === action.payload.projectId
+                            ? {
+                                  _id: action.payload.projectId,
+                                  statusPages: [...action.payload.data],
+                                  count: action.payload.count,
+                                  skip: action.payload.skip,
+                                  limit: action.payload.limit,
+                              }
+                            : statusPage;
+                    }
+                ),
                 error: null,
                 requesting: false,
-                success: true
+                success: true,
             });
 
         case SWITCH_STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 status: action.payload || {},
-                colors: action.payload.colors
+                colors: action.payload.colors,
             });
 
         case DELETE_PROJECT_STATUSPAGES:
             statusPage = Object.assign([], state.statusPage);
-            statusPage = statusPage.filter(status => status.projectId !== action.payload);
+            statusPage = statusPage.filter(
+                status => status.projectId !== action.payload
+            );
             return Object.assign({}, state, {
-                statusPage
+                statusPage,
             });
 
         case DELETE_STATUSPAGE_SUCCESS:
@@ -566,13 +580,19 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 deleteStatusPage: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
-                statusPages : state.statusPages.filter(({_id})=>_id !== action.payload._id),
-                subProjectStatusPages : state.subProjectStatusPages.map((subProjectStatusPage)=>{
-                    subProjectStatusPage.statusPages = subProjectStatusPage.statusPages.filter(({_id})=>_id !== action.payload._id);
-                    return subProjectStatusPage;
-                }),
+                statusPages: state.statusPages.filter(
+                    ({ _id }) => _id !== action.payload._id
+                ),
+                subProjectStatusPages: state.subProjectStatusPages.map(
+                    subProjectStatusPage => {
+                        subProjectStatusPage.statusPages = subProjectStatusPage.statusPages.filter(
+                            ({ _id }) => _id !== action.payload._id
+                        );
+                        return subProjectStatusPage;
+                    }
+                ),
             });
 
         case DELETE_STATUSPAGE_REQUEST:
@@ -580,8 +600,8 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 deleteStatusPage: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case DELETE_STATUSPAGE_FAILED:
@@ -590,7 +610,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case DELETE_STATUSPAGE_RESET:
@@ -599,80 +619,81 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case LOGO_CACHE_INSERT:
             return Object.assign({}, state, {
-                logocache:{
-                    data : action.payload
-                }
+                logocache: {
+                    data: action.payload,
+                },
             });
 
         case FAVICON_CACHE_INSERT:
             return Object.assign({}, state, {
-                faviconcache:{
-                    data:action.payload
-                }
+                faviconcache: {
+                    data: action.payload,
+                },
             });
 
         case LOGO_CACHE_RESET:
             return Object.assign({}, state, {
-                logocache:{
-                    data : null
-                }
+                logocache: {
+                    data: null,
+                },
             });
 
         case FAVICON_CACHE_RESET:
             return Object.assign({}, state, {
-                faviconcache:{
-                    data:null
-                }
+                faviconcache: {
+                    data: null,
+                },
             });
 
         case BANNER_CACHE_INSERT:
             return Object.assign({}, state, {
-                bannercache:{
-                    data : action.payload
-                }
+                bannercache: {
+                    data: action.payload,
+                },
             });
-        
+
         case BANNER_CACHE_RESET:
             return Object.assign({}, state, {
-                bannercache:{
-                    data:null
-                }
+                bannercache: {
+                    data: null,
+                },
             });
-        
+
         case SET_STATUS_PAGE_COLORS:
             return Object.assign({}, state, {
-                colors: action.payload
+                colors: action.payload,
             });
-        
+
         case PAGINATE_NEXT:
-			return {
-				...state,
-				pages: {
-					counter: state.pages.counter + 1
-				}
-			}
+            return {
+                ...state,
+                pages: {
+                    counter: state.pages.counter + 1,
+                },
+            };
 
-		case PAGINATE_PREV:
-			return {
-				...state,
-				pages: {
-					counter: state.pages.counter - 1
-				}
-			}
+        case PAGINATE_PREV:
+            return {
+                ...state,
+                pages: {
+                    counter: state.pages.counter - 1,
+                },
+            };
 
-		case PAGINATE_RESET:
-			return {
-				...state,
-				pages: {
-					counter: 1
-				}
-			}
+        case PAGINATE_RESET:
+            return {
+                ...state,
+                pages: {
+                    counter: 1,
+                },
+            };
 
-        default: return state;
+        default:
+            return state;
     }
 }

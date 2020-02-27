@@ -5,7 +5,7 @@ const key = EncryptionKeys.key;
 const iv = EncryptionKeys.iv;
 
 module.exports = {
-    encrypt: (plainText) => {
+    encrypt: plainText => {
         const promise = new Promise((resolve, reject) => {
             try {
                 const cipher = crypto.createCipheriv(algorithm, key, iv);
@@ -19,7 +19,7 @@ module.exports = {
         return promise;
     },
 
-    decrypt: (encText) => {
+    decrypt: encText => {
         const promise = new Promise((resolve, reject) => {
             try {
                 const decipher = crypto.createDecipheriv(algorithm, key, iv);
@@ -31,5 +31,5 @@ module.exports = {
             }
         });
         return promise;
-    }
+    },
 };

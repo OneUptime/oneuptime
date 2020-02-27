@@ -1,17 +1,17 @@
 module.exports = {
-    findBy: async function (query, limit, skip) {
+    findBy: async function(query, limit, skip) {
         try {
             if (!skip) skip = 0;
 
             if (!limit) limit = 10;
 
-            if (typeof (skip) === 'string') skip = parseInt(skip);
+            if (typeof skip === 'string') skip = parseInt(skip);
 
-            if (typeof (limit) === 'string') limit = parseInt(limit);
+            if (typeof limit === 'string') limit = parseInt(limit);
 
             if (!query) query = {};
 
-            if(!query.deleted) query.deleted = false;
+            if (!query.deleted) query.deleted = false;
             const schedules = await ScheduleModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
@@ -23,7 +23,7 @@ module.exports = {
                 .populate({
                     path: 'escalationIds',
                     select: 'teamMember',
-                    populate: { path: 'teamMember.userId', select: 'name' }
+                    populate: { path: 'teamMember.userId', select: 'name' },
                 });
             return schedules;
         } catch (error) {
@@ -32,13 +32,13 @@ module.exports = {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             if (!query) {
                 query = {};
             }
 
-            if(!query.deleted) query.deleted = false;
+            if (!query.deleted) query.deleted = false;
             const schedule = await ScheduleModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('userIds', 'name')
@@ -48,7 +48,7 @@ module.exports = {
                 .populate({
                     path: 'escalationIds',
                     select: 'teamMember',
-                    populate: { path: 'teamMember.userId', select: 'name' }
+                    populate: { path: 'teamMember.userId', select: 'name' },
                 });
             return schedule;
         } catch (error) {
@@ -57,7 +57,7 @@ module.exports = {
         }
     },
 
-    create: async function (data) {
+    create: async function(data) {
         try {
             const scheduleModel = new ScheduleModel();
             scheduleModel.name = data.name || null;
@@ -87,13 +87,13 @@ module.exports = {
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         try {
             if (!query) {
                 query = {};
             }
 
-            if(!query.deleted) query.deleted = false;
+            if (!query.deleted) query.deleted = false;
             const count = await ScheduleModel.count(query);
             return count;
         } catch (error) {
@@ -102,21 +102,29 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query, userId) {
+    deleteBy: async function(query, userId) {
         try {
-            const schedule = await ScheduleModel.findOneAndUpdate(query, {
-                $set: {
-                    deleted: true,
-                    deletedById: userId,
-                    deletedAt: Date.now()
+            const schedule = await ScheduleModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
                 }
-            }, {
-                new: true
-            });
+            );
 
             if (schedule && schedule._id) {
-                const escalations = await EscalationService.findBy({query: { scheduleId: schedule._id }});
-                await escalations.map(({ _id }) => EscalationService.deleteBy({ _id: _id }, userId));
+                const escalations = await EscalationService.findBy({
+                    query: { scheduleId: schedule._id },
+                });
+                await escalations.map(({ _id }) =>
+                    EscalationService.deleteBy({ _id: _id }, userId)
+                );
             }
 
             return schedule;
@@ -126,11 +134,14 @@ module.exports = {
         }
     },
 
-    removeMonitor: async function (monitorId) {
+    removeMonitor: async function(monitorId) {
         try {
-            const schedule = await ScheduleModel.findOneAndUpdate({monitorIds:monitorId}, {
-                $pull: {monitorIds: monitorId}
-            });
+            const schedule = await ScheduleModel.findOneAndUpdate(
+                { monitorIds: monitorId },
+                {
+                    $pull: { monitorIds: monitorId },
+                }
+            );
             return schedule;
         } catch (error) {
             ErrorService.log('scheduleService.removeMonitor', error);
@@ -138,7 +149,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -152,8 +163,7 @@ module.exports = {
                 for (const userId of data.userIds) {
                     userIds.push(userId);
                 }
-            }
-            else {
+            } else {
                 userIds = schedule.userIds;
             }
             data.userIds = userIds;
@@ -162,16 +172,19 @@ module.exports = {
                 for (const monitorId of data.monitorIds) {
                     monitorIds.push(monitorId);
                 }
-            }
-            else {
+            } else {
                 monitorIds = schedule.monitorIds;
             }
             data.monitorIds = monitorIds;
-            schedule = await ScheduleModel.findOneAndUpdate(query, {
-                $set: data
-            }, {
-                new: true
-            });
+            schedule = await ScheduleModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
             schedule = await _this.findBy({ _id: query._id }, 10, 0);
             return schedule;
         } catch (error) {
@@ -180,7 +193,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -188,7 +201,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             let updatedData = await ScheduleModel.updateMany(query, {
-                $set: data
+                $set: data,
             });
             updatedData = await this.findBy(query);
             return updatedData;
@@ -198,7 +211,7 @@ module.exports = {
         }
     },
 
-    saveSchedule: async function (schedule) {
+    saveSchedule: async function(schedule) {
         try {
             schedule = await schedule.save();
             return schedule;
@@ -208,16 +221,19 @@ module.exports = {
         }
     },
 
-    deleteMonitor: async function (monitorId) {
+    deleteMonitor: async function(monitorId) {
         try {
-            await ScheduleModel.update({ deleted: false }, { $pull: { monitorIds: monitorId } });
-        }catch(error){
+            await ScheduleModel.update(
+                { deleted: false },
+                { $pull: { monitorIds: monitorId } }
+            );
+        } catch (error) {
             ErrorService.log('scheduleService.deleteMonitor', error);
             throw error;
         }
     },
 
-    addEscalation: async function (scheduleId, escalations, userId) {
+    addEscalation: async function(scheduleId, escalations, userId) {
         try {
             const _this = this;
             const escalationIds = [];
@@ -226,7 +242,10 @@ module.exports = {
                 if (!data._id) {
                     escalation = await EscalationService.create(data);
                 } else {
-                    escalation = await EscalationService.updateOneBy({ _id: data._id }, data);
+                    escalation = await EscalationService.updateOneBy(
+                        { _id: data._id },
+                        data
+                    );
                 }
                 escalationIds.push(escalation._id);
             }
@@ -234,7 +253,10 @@ module.exports = {
             if (escalationIds && escalationIds.length) {
                 await _this.escalationCheck(escalationIds, scheduleId, userId);
             }
-            await _this.updateOneBy({ _id: scheduleId }, { escalationIds: escalationIds });
+            await _this.updateOneBy(
+                { _id: scheduleId },
+                { escalationIds: escalationIds }
+            );
 
             const scheduleEscalation = await _this.getEscalations(scheduleId);
 
@@ -245,15 +267,19 @@ module.exports = {
         }
     },
 
-    getEscalations: async function (scheduleId) {
+    getEscalations: async function(scheduleId) {
         try {
             const _this = this;
             const schedule = await _this.findOneBy({ _id: scheduleId });
 
             const escalationIds = schedule.escalationIds;
-            const escalations = await Promise.all(escalationIds.map(async (escalationId) => {
-                return await EscalationService.findOneBy({ _id: escalationId._id });
-            }));
+            const escalations = await Promise.all(
+                escalationIds.map(async escalationId => {
+                    return await EscalationService.findOneBy({
+                        _id: escalationId._id,
+                    });
+                })
+            );
             return { escalations, count: escalationIds.length };
         } catch (error) {
             ErrorService.log('scheduleService.getEscalations', error);
@@ -261,7 +287,7 @@ module.exports = {
         }
     },
 
-    escalationCheck: async function (escalationIds, scheduleId, userId) {
+    escalationCheck: async function(escalationIds, scheduleId, userId) {
         try {
             const _this = this;
             let scheduleIds = await _this.findOneBy({ _id: scheduleId });
@@ -269,7 +295,7 @@ module.exports = {
             scheduleIds = scheduleIds.escalationIds.map(i => i._id.toString());
             escalationIds = escalationIds.map(i => i.toString());
 
-            scheduleIds.map(async (id) => {
+            scheduleIds.map(async id => {
                 if (escalationIds.indexOf(id) < 0) {
                     await EscalationService.deleteBy({ _id: id }, userId);
                 }
@@ -280,65 +306,84 @@ module.exports = {
         }
     },
 
-    deleteEscalation: async function (escalationId) {
+    deleteEscalation: async function(escalationId) {
         try {
-            await ScheduleModel.update({ deleted: false }, { $pull: { escalationIds: escalationId } });
-        }catch(error){
+            await ScheduleModel.update(
+                { deleted: false },
+                { $pull: { escalationIds: escalationId } }
+            );
+        } catch (error) {
             ErrorService.log('scheduleService.deleteEscalation', error);
             throw error;
         }
     },
 
-    getSubProjectSchedules: async function (subProjectIds) {
+    getSubProjectSchedules: async function(subProjectIds) {
         const _this = this;
-        const subProjectSchedules = await Promise.all(subProjectIds.map(async (id) => {
-            const schedules = await _this.findBy({ projectId: id }, 10, 0);
-            const count = await _this.countBy({ projectId: id });
-            return { schedules, count, _id: id, skip: 0, limit: 10 };
-        }));
+        const subProjectSchedules = await Promise.all(
+            subProjectIds.map(async id => {
+                const schedules = await _this.findBy({ projectId: id }, 10, 0);
+                const count = await _this.countBy({ projectId: id });
+                return { schedules, count, _id: id, skip: 0, limit: 10 };
+            })
+        );
         return subProjectSchedules;
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await ScheduleModel.deleteMany(query);
             return 'Schedule(s) removed successfully';
-        } catch(error) {
+        } catch (error) {
             ErrorService.log('scheduleService.hardDeleteBy', error);
             throw error;
         }
     },
 
-    restoreBy: async function (query) {
+    restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
         let schedule = await _this.findBy(query);
         if (schedule && schedule.length > 1) {
-            const schedules = await Promise.all(schedule.map(async (schedule) => {
-                const scheduleId = schedule._id;
-                schedule = await _this.updateOneBy({ _id: scheduleId, deleted: true }, {
-                    deleted: false,
-                    deletedAt: null,
-                    deleteBy: null
-                });
-                await EscalationService.restoreBy({ scheduleId, deleted: true });
-                return schedule;
-            }));
+            const schedules = await Promise.all(
+                schedule.map(async schedule => {
+                    const scheduleId = schedule._id;
+                    schedule = await _this.updateOneBy(
+                        { _id: scheduleId, deleted: true },
+                        {
+                            deleted: false,
+                            deletedAt: null,
+                            deleteBy: null,
+                        }
+                    );
+                    await EscalationService.restoreBy({
+                        scheduleId,
+                        deleted: true,
+                    });
+                    return schedule;
+                })
+            );
             return schedules;
         } else {
             schedule = schedule[0];
             if (schedule) {
                 const scheduleId = schedule._id;
-                schedule = await _this.updateOneBy({ _id: scheduleId, deleted: true }, {
-                    deleted: false,
-                    deletedAt: null,
-                    deleteBy: null
+                schedule = await _this.updateOneBy(
+                    { _id: scheduleId, deleted: true },
+                    {
+                        deleted: false,
+                        deletedAt: null,
+                        deleteBy: null,
+                    }
+                );
+                await EscalationService.restoreBy({
+                    scheduleId,
+                    deleted: true,
                 });
-                await EscalationService.restoreBy({ scheduleId, deleted: true });
             }
             return schedule;
         }
-    }
+    },
 };
 
 const ScheduleModel = require('../models/schedule');

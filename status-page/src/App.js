@@ -2,7 +2,12 @@ import React from 'react';
 import './App.css';
 import Main from './components/Main';
 import Socket from './components/basic/Socket';
-import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
+import {
+    BrowserRouter as Router,
+    Route,
+    Switch,
+    Redirect,
+} from 'react-router-dom';
 import { User } from './config';
 import queryString from 'query-string';
 import { removeQuery } from './store/store';
@@ -26,9 +31,8 @@ const App = () => (
             </Switch>
         </Router>
     </>
-)
+);
 
-
-App.displayName = 'App'
+App.displayName = 'App';
 
 export default App;

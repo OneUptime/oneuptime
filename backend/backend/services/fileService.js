@@ -1,15 +1,14 @@
-
 /**
  *
  * Copyright HackerBay, Inc.
  *
  */
 module.exports = {
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             const gfs = await Grid(mongoose.connection.db, mongoose.mongo);
             gfs.collection('uploads');
-            if(!query){
+            if (!query) {
                 query = {};
             }
             // query.deleted = false;
@@ -24,7 +23,7 @@ module.exports = {
             ErrorService.log('fileService.findOneBy', error);
             throw error;
         }
-    }
+    },
 };
 
 const mongoose = require('../config/db');

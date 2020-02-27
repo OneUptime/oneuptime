@@ -10,10 +10,7 @@ user.message = 'Test message';
 
 const puppeteerLaunchConfig = {
     headless: true,
-    args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-    ]
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
 };
 
 const HOME_URL = process.env.HOME_URL || 'http://localhost:1444';
@@ -23,15 +20,27 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 const STATUSPAGE_URL = process.env.STATUSPAGE_URL || 'http://localhost:3006';
 const APIDOCS_URL = process.env.APIDOCS_URL || 'http://localhost:1445';
 
-
 function generateRandomBusinessEmail() {
-    return Math.random().toString(36).substring(8) + '@' + Math.random().toString(24).substring(8) + '.com';
+    return (
+        Math.random()
+            .toString(36)
+            .substring(8) +
+        '@' +
+        Math.random()
+            .toString(24)
+            .substring(8) +
+        '.com'
+    );
 }
 function generatePassword() {
-    return Math.random().toString(36).substring(7);
+    return Math.random()
+        .toString(36)
+        .substring(7);
 }
 function generateRandomString() {
-    return Math.random().toString(36).substring(8);
+    return Math.random()
+        .toString(36)
+        .substring(8);
 }
 
 module.exports = {
@@ -44,5 +53,5 @@ module.exports = {
     user,
     puppeteerLaunchConfig,
     generateRandomString,
-    generateRandomBusinessEmail
+    generateRandomBusinessEmail,
 };

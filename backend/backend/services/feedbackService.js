@@ -1,16 +1,16 @@
 /**
- * 
- * Copyright HackerBay, Inc. 
- * 
+ *
+ * Copyright HackerBay, Inc.
+ *
  */
 module.exports = {
     //Description: Create new project for user.
-    //Params: 
+    //Params:
     //Param 1: projectName: Project name.
     //Param 2: projectId: Project Id present in req.params.
     //Param 3: userId: User Id.
     //Returns: promise
-    create: async function (projectId, message, page, createdById) {
+    create: async function(projectId, message, page, createdById) {
         try {
             let feedback = new FeedbackModel();
 
@@ -31,7 +31,7 @@ module.exports = {
                 name: user.name,
                 email: user.email,
                 project: project.name,
-                page
+                page,
             });
             feedback.airtableId = record.id || null;
 
@@ -44,7 +44,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await FeedbackModel.deleteMany(query);
             return 'Feedback(s) removed successfully!';
@@ -52,7 +52,7 @@ module.exports = {
             ErrorService.log('feedbackService.hardDeleteBy', error);
             throw error;
         }
-    }
+    },
 };
 
 const FeedbackModel = require('../models/feedback');

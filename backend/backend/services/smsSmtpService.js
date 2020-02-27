@@ -1,5 +1,5 @@
 module.exports = {
-    create: async function (data) {
+    create: async function(data) {
         try {
             data.authToken = await EncryptDecrypt.encrypt(data.authToken);
             const smsSmtpModel = new SmsSmtpModel();
@@ -10,7 +10,9 @@ module.exports = {
             smsSmtpModel.enabled = true;
             const smsSmtp = await smsSmtpModel.save();
             if (smsSmtp && smsSmtp.authToken) {
-                smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
+                smsSmtp.authToken = await EncryptDecrypt.decrypt(
+                    smsSmtp.authToken
+                );
             }
             return smsSmtp;
         } catch (error) {
@@ -19,7 +21,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         if (!query) {
             query = {};
         }
@@ -30,13 +32,19 @@ module.exports = {
             data.authToken = await EncryptDecrypt.encrypt(data.authToken);
         }
         try {
-            const updatedSmsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
-                $set: data
-            }, {
-                new: true
-            }).lean();
+            const updatedSmsSmtp = await SmsSmtpModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            ).lean();
             if (updatedSmsSmtp && updatedSmsSmtp.authToken) {
-                updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(updatedSmsSmtp.authToken);
+                updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(
+                    updatedSmsSmtp.authToken
+                );
             }
             return updatedSmsSmtp;
         } catch (error) {
@@ -45,7 +53,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -53,7 +61,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             let updatedData = await SmsSmtpModel.updateMany(query, {
-                $set: data
+                $set: data,
             });
             updatedData = await this.findBy(query);
             return updatedData;
@@ -63,17 +71,21 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query, userId) {
+    deleteBy: async function(query, userId) {
         try {
-            const smsSmtp = await SmsSmtpModel.findOneAndUpdate(query, {
-                $set: {
-                    deleted: true,
-                    deletedById: userId,
-                    deletedAt: Date.now()
+            const smsSmtp = await SmsSmtpModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
                 }
-            }, {
-                new: true
-            });
+            );
             return smsSmtp;
         } catch (error) {
             ErrorService.log('smsSmtpService.deleteBy', error);
@@ -81,17 +93,17 @@ module.exports = {
         }
     },
 
-    findBy: async function (query, skip, limit) {
+    findBy: async function(query, skip, limit) {
         try {
             if (!skip) skip = 0;
 
             if (!limit) limit = 10;
 
-            if (typeof (skip) === 'string') {
+            if (typeof skip === 'string') {
                 skip = parseInt(skip);
             }
 
-            if (typeof (limit) === 'string') {
+            if (typeof limit === 'string') {
                 limit = parseInt(limit);
             }
 
@@ -107,7 +119,9 @@ module.exports = {
                 .populate('projectId', 'name')
                 .lean();
             if (smsSmtp && smsSmtp.authToken) {
-                smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
+                smsSmtp.authToken = await EncryptDecrypt.decrypt(
+                    smsSmtp.authToken
+                );
             }
 
             return smsSmtp;
@@ -117,7 +131,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -129,7 +143,9 @@ module.exports = {
                 .populate('projectId', 'name')
                 .lean();
             if (smsSmtp && smsSmtp.authToken) {
-                smsSmtp.authToken = await EncryptDecrypt.decrypt(smsSmtp.authToken);
+                smsSmtp.authToken = await EncryptDecrypt.decrypt(
+                    smsSmtp.authToken
+                );
             }
             if (!smsSmtp) {
                 smsSmtp = {};
@@ -142,7 +158,7 @@ module.exports = {
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -157,7 +173,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await SmsSmtpModel.deleteMany(query);
             return 'Sms Smtp(s) removed successfully';

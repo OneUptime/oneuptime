@@ -6,23 +6,28 @@ const testAuth = (z, bundle) => {
     // This method can return any truthy value to indicate the credentials are valid.
     // Raise an error to show
     if (bundle.cleanedRequest) return bundle.cleanedRequest;
-    return z.request({
-        url: 'https://api.fyipe.com/zapier/test',
-    }).then((response) => {
-        if (response.status === 400) {
-            throw new Error('The API Key or Project ID you supplied is invalid!');
-        }
-        else if (response.status === 401) {
-            throw new Error('The API Key or Project ID you supplied is invalid!');
-        }
-        else if(response.status === 500) {
-            throw new Error('Server Error!');
-        }
-        else if(response.status !== 200) {
-            throw new Error('An Error has occured please try after sometime!');
-        }
-        return response.json;
-    });
+    return z
+        .request({
+            url: 'https://api.fyipe.com/zapier/test',
+        })
+        .then(response => {
+            if (response.status === 400) {
+                throw new Error(
+                    'The API Key or Project ID you supplied is invalid!'
+                );
+            } else if (response.status === 401) {
+                throw new Error(
+                    'The API Key or Project ID you supplied is invalid!'
+                );
+            } else if (response.status === 500) {
+                throw new Error('Server Error!');
+            } else if (response.status !== 200) {
+                throw new Error(
+                    'An Error has occured please try after sometime!'
+                );
+            }
+            return response.json;
+        });
 };
 
 module.exports = {
@@ -31,23 +36,23 @@ module.exports = {
     // they connect their account.
     fields: [
         {
-            key: 'projectId', 
-            label: 'Project ID', 
-            helpText: 'Your Project ID and API Key are found on the project settings page on your Fyipe dashboard.',
-            required: true, 
-            type: 'string'
+            key: 'projectId',
+            label: 'Project ID',
+            helpText:
+                'Your Project ID and API Key are found on the project settings page on your Fyipe dashboard.',
+            required: true,
+            type: 'string',
         },
         {
-            key: 'apiKey', 
+            key: 'apiKey',
             label: 'API Key',
-            required: true, 
-            type: 'string'
-        }
-        
+            required: true,
+            type: 'string',
+        },
     ],
     // The test method allows Zapier to verify that the credentials a user provides are valid. We'll execute this
     // method whenver a user connects their account for the first time.
     test: testAuth,
     // assuming "username" is a key in the json returned from testAuth
-    connectionLabel: (z, bundle) => bundle.inputData.projectName
+    connectionLabel: (z, bundle) => bundle.inputData.projectName,
 };

@@ -1,13 +1,11 @@
-
-import reducer from '../../reducers/statusPage'
-import * as types from '../../constants/statusPage'
+import reducer from '../../reducers/statusPage';
+import * as types from '../../constants/statusPage';
 
 const initialState = {
     setting: {
         error: null,
         requesting: false,
         success: false,
-
     },
     monitors: {
         error: null,
@@ -30,15 +28,15 @@ const initialState = {
         success: false,
     },
     logocache: {
-        data: null
+        data: null,
     },
     faviconcache: {
-        data: null
+        data: null,
     },
     deleteStatusPage: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     //this is for main status page object.
     error: null,
@@ -50,15 +48,14 @@ const initialState = {
     limit: null,
     skip: null,
     pages: {
-        counter: 1
+        counter: 1,
     },
-    subProjectStatusPages: []
+    subProjectStatusPages: [],
 };
 
 describe('StatusPage Reducers', () => {
-
     it('should return initial state', () => {
-        expect(reducer(initialState, {})).toEqual(initialState)
+        expect(reducer(initialState, {})).toEqual(initialState);
     });
 
     it('should handle UPDATE_STATUSPAGE_SETTING_REQUEST action', () => {
@@ -69,12 +66,16 @@ describe('StatusPage Reducers', () => {
                 error: null,
                 success: false,
             },
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_SETTING_REQUEST })).toEqual(expected)
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_SETTING_REQUEST,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_SETTING_SUCCESS action', () => {
-        const payload = { test: 'test' }
+        const payload = { test: 'test' };
         const expected = {
             ...initialState,
             setting: {
@@ -82,26 +83,40 @@ describe('StatusPage Reducers', () => {
                 error: null,
                 success: true,
             },
-            status: { test: 'test' }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_SETTING_SUCCESS, payload: payload })).toEqual(expected)
+            status: { test: 'test' },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_SETTING_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_SETTING_FAILURE action', () => {
-        const payload = 'some error'
+        const payload = 'some error';
         const expected = {
             ...initialState,
             setting: {
                 requesting: false,
                 error: payload,
                 success: false,
-            }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_SETTING_FAILURE, payload: payload })).toEqual(expected)
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_SETTING_FAILURE,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_SETTING_RESET action', () => {
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_SETTING_RESET })).toEqual(initialState)
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_SETTING_RESET,
+            })
+        ).toEqual(initialState);
     });
 
     it('should handle UPDATE_STATUSPAGE_MONITORS_REQUEST action', () => {
@@ -111,13 +126,17 @@ describe('StatusPage Reducers', () => {
                 requesting: true,
                 error: null,
                 success: false,
-            }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_MONITORS_REQUEST })).toEqual(expected)
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_MONITORS_REQUEST,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_MONITORS_SUCCESS action', () => {
-        const payload = { test: 'test' }
+        const payload = { test: 'test' };
         const expected = {
             ...initialState,
             monitors: {
@@ -125,26 +144,40 @@ describe('StatusPage Reducers', () => {
                 error: null,
                 success: true,
             },
-            status: { test: 'test' }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_MONITORS_SUCCESS, payload: payload })).toEqual(expected)
+            status: { test: 'test' },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_MONITORS_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_MONITORS_FAILURE action', () => {
-        const payload = 'some error'
+        const payload = 'some error';
         const expected = {
             ...initialState,
             monitors: {
                 requesting: false,
                 error: payload,
                 success: false,
-            }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_MONITORS_FAILURE, payload: payload })).toEqual(expected)
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_MONITORS_FAILURE,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_MONITORS_RESET action', () => {
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_MONITORS_RESET })).toEqual(initialState)
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_MONITORS_RESET,
+            })
+        ).toEqual(initialState);
     });
 
     it('should handle UPDATE_STATUSPAGE_BRANDING_REQUEST action', () => {
@@ -154,13 +187,17 @@ describe('StatusPage Reducers', () => {
                 requesting: true,
                 error: null,
                 success: false,
-            }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_BRANDING_REQUEST })).toEqual(expected)
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_BRANDING_REQUEST,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_BRANDING_SUCCESS action', () => {
-        const payload = { test: 'test' }
+        const payload = { test: 'test' };
         const expected = {
             ...initialState,
             branding: {
@@ -168,26 +205,40 @@ describe('StatusPage Reducers', () => {
                 error: null,
                 success: true,
             },
-            status: { test: 'test' }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_BRANDING_SUCCESS, payload: payload })).toEqual(expected)
+            status: { test: 'test' },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_BRANDING_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_BRANDING_FAILURE action', () => {
-        const payload = 'some error'
+        const payload = 'some error';
         const expected = {
             ...initialState,
             branding: {
                 requesting: false,
                 error: payload,
                 success: false,
-            }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_BRANDING_FAILURE, payload: payload })).toEqual(expected)
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_BRANDING_FAILURE,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_BRANDING_RESET action', () => {
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_BRANDING_RESET })).toEqual(initialState)
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_BRANDING_RESET,
+            })
+        ).toEqual(initialState);
     });
 
     it('should handle UPDATE_STATUSPAGE_LINKS_REQUEST action', () => {
@@ -197,13 +248,17 @@ describe('StatusPage Reducers', () => {
                 requesting: true,
                 error: null,
                 success: false,
-            }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_LINKS_REQUEST })).toEqual(expected)
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_LINKS_REQUEST,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_LINKS_SUCCESS action', () => {
-        const payload = { test: 'test' }
+        const payload = { test: 'test' };
         const expected = {
             ...initialState,
             links: {
@@ -211,26 +266,38 @@ describe('StatusPage Reducers', () => {
                 error: null,
                 success: true,
             },
-            status: { test: 'test' }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_LINKS_SUCCESS, payload: payload })).toEqual(expected)
+            status: { test: 'test' },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_LINKS_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_LINKS_FAILURE action', () => {
-        const payload = 'some error'
+        const payload = 'some error';
         const expected = {
             ...initialState,
             links: {
                 requesting: false,
                 error: payload,
                 success: false,
-            }
-        }
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_LINKS_FAILURE, payload: payload })).toEqual(expected)
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_STATUSPAGE_LINKS_FAILURE,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_STATUSPAGE_LINKS_RESET action', () => {
-        expect(reducer(initialState, { type: types.UPDATE_STATUSPAGE_LINKS_RESET })).toEqual(initialState)
+        expect(
+            reducer(initialState, { type: types.UPDATE_STATUSPAGE_LINKS_RESET })
+        ).toEqual(initialState);
     });
 
     it('should handle FETCH_STATUSPAGE_REQUEST action', () => {
@@ -239,37 +306,46 @@ describe('StatusPage Reducers', () => {
             error: null,
             requesting: true,
             success: false,
-            status: {}
-        }
-        expect(reducer(initialState, { type: types.FETCH_STATUSPAGE_REQUEST })).toEqual(expected)
+            status: {},
+        };
+        expect(
+            reducer(initialState, { type: types.FETCH_STATUSPAGE_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle FETCH_STATUSPAGE_FAILURE action', () => {
-        const payload = 'some error'
+        const payload = 'some error';
         const expected = {
             ...initialState,
             status: {},
             requesting: false,
             success: false,
-            error: payload
-        }
-        expect(reducer(initialState, { type: types.FETCH_STATUSPAGE_FAILURE, payload: payload })).toEqual(expected)
+            error: payload,
+        };
+        expect(
+            reducer(initialState, {
+                type: types.FETCH_STATUSPAGE_FAILURE,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle FETCH_STATUSPAGE_RESET action', () => {
         const expected = {
             ...initialState,
-            status: undefined
-        }
-        expect(reducer(initialState, { type: types.FETCH_STATUSPAGE_RESET })).toEqual(expected)
+            status: undefined,
+        };
+        expect(
+            reducer(initialState, { type: types.FETCH_STATUSPAGE_RESET })
+        ).toEqual(expected);
     });
     it('should handle FETCH_STATUSPAGE_SUCCESS action', () => {
         const payload = {
             count: 10,
             skip: 5,
             limit: 5,
-            data: []
-        }
+            data: [],
+        };
         const expected = {
             ...initialState,
             statusPages: payload.data,
@@ -279,58 +355,88 @@ describe('StatusPage Reducers', () => {
             count: 10,
             skip: 5,
             limit: 5,
-        }
-        expect(reducer(initialState, { type: types.FETCH_STATUSPAGE_SUCCESS, payload: payload })).toEqual(expected)
+        };
+        expect(
+            reducer(initialState, {
+                type: types.FETCH_STATUSPAGE_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle DELETE_PROJECT_STATUSPAGES action', () => {
-        const payload = '_id'
+        const payload = '_id';
         const expected = {
             ...initialState,
-            statusPage: []
-        }
-        expect(reducer(initialState, { type: types.DELETE_PROJECT_STATUSPAGES, payload: payload })).toEqual(expected)
+            statusPage: [],
+        };
+        expect(
+            reducer(initialState, {
+                type: types.DELETE_PROJECT_STATUSPAGES,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle LOGO_CACHE_INSERT action', () => {
-        const payload = 'file url'
+        const payload = 'file url';
         const expected = {
             ...initialState,
             logocache: {
-                data: payload
-            }
-        }
-        expect(reducer(initialState, { type: types.LOGO_CACHE_INSERT, payload: payload })).toEqual(expected)
+                data: payload,
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.LOGO_CACHE_INSERT,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
     it('should handle FAVICON_CACHE_INSERT action', () => {
-        const payload = 'file url'
+        const payload = 'file url';
         const expected = {
             ...initialState,
             faviconcache: {
-                data: payload
-            }
-        }
-        expect(reducer(initialState, { type: types.FAVICON_CACHE_INSERT, payload: payload })).toEqual(expected)
+                data: payload,
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.FAVICON_CACHE_INSERT,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
     it('should handle LOGO_CACHE_RESET action', () => {
-        const payload = 'file url'
+        const payload = 'file url';
         const expected = {
             ...initialState,
             logocache: {
-                data: null
-            }
-        }
-        expect(reducer(initialState, { type: types.LOGO_CACHE_RESET, payload: payload })).toEqual(expected)
+                data: null,
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.LOGO_CACHE_RESET,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle FAVICON_CACHE_RESET action', () => {
-        const payload = 'file url'
+        const payload = 'file url';
         const expected = {
             ...initialState,
             faviconcache: {
-                data: null
-            }
-        }
-        expect(reducer(initialState, { type: types.FAVICON_CACHE_RESET, payload: payload })).toEqual(expected)
+                data: null,
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.FAVICON_CACHE_RESET,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 });

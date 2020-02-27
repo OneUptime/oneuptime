@@ -11,7 +11,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 //Public API to capture leads. Type is Demo or Whitepaper.
-router.post('/', async function (req, res) {
+router.post('/', async function(req, res) {
     try {
         const body = req.body;
         const data = {};
@@ -25,7 +25,8 @@ router.post('/', async function (req, res) {
         data.email = body.email;
         data.phone = body.phone;
         data.website = body.website;
-        data.companySize = body.volume && body.volume.text ? body.volume.text : null;
+        data.companySize =
+            body.volume && body.volume.text ? body.volume.text : null;
         data.country = body.country;
         data.message = body.message || null;
         data.whitepaperName = body.whitepaper_name || null;

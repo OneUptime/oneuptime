@@ -1,18 +1,17 @@
 const puppeteer = require('puppeteer');
-var should = require('should');
-var utils = require('./test-utils');
-var init = require('./test-init');
+const utils = require('./test-utils');
+const init = require('./test-init');
 const { Cluster } = require('puppeteer-cluster');
 
 // parent user credentials
-let email = utils.generateRandomBusinessEmail();
-let password = '1234567890';
-let projectName = utils.generateRandomString();
-let subProjectMonitorName = utils.generateRandomString();
+const email = utils.generateRandomBusinessEmail();
+const password = '1234567890';
+const projectName = utils.generateRandomString();
+const subProjectMonitorName = utils.generateRandomString();
 // sub-project user credentials
-let newEmail = utils.generateRandomBusinessEmail();
-let newPassword = '1234567890';
-let subProjectName = utils.generateRandomString();
+const newEmail = utils.generateRandomBusinessEmail();
+const newPassword = '1234567890';
+const subProjectName = utils.generateRandomString();
 
 describe('Monitor API With SubProjects', () => {
     const operationTimeOut = 50000;
@@ -202,7 +201,7 @@ describe('Monitor API With SubProjects', () => {
                 puppeteer,
                 timeout: 100000,
             });
-            let monitorName = utils.generateRandomString();
+            const monitorName = utils.generateRandomString();
 
             cluster.on('taskerror', err => {
                 throw err;
@@ -245,7 +244,8 @@ describe('Monitor API With SubProjects', () => {
     );
 
     test(
-        `should get only sub-project's monitors for valid sub-project user`,
+        // eslint-disable-next-line quotes
+        "should get only sub-project's monitors for valid sub-project user",
         async done => {
             expect.assertions(2);
 
@@ -311,7 +311,7 @@ describe('Monitor API With SubProjects', () => {
                 puppeteer,
                 timeout: 100000,
             });
-            let monitorName = utils.generateRandomString();
+            const monitorName = utils.generateRandomString();
 
             cluster.on('taskerror', err => {
                 throw err;
@@ -354,7 +354,7 @@ describe('Monitor API With SubProjects', () => {
                 await page.click('button[type=submit]');
                 await page.waitFor(5000);
 
-                const projectBadgeSelector = await page.$(`#badge_Project`);
+                const projectBadgeSelector = await page.$('#badge_Project');
                 let textContent = await projectBadgeSelector.getProperty(
                     'innerText'
                 );

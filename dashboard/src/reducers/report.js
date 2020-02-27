@@ -1,4 +1,4 @@
-import * as types from '../constants/report'
+import * as types from '../constants/report';
 
 const initialState = {
     activeMembers: {
@@ -6,14 +6,14 @@ const initialState = {
         error: null,
         success: false,
         members: [],
-        count: null
+        count: null,
     },
     activeMonitors: {
         requesting: false,
         error: null,
         success: false,
         monitors: [],
-        count: null
+        count: null,
     },
     incidents: {
         requesting: true,
@@ -26,8 +26,8 @@ const initialState = {
         error: null,
         success: false,
         reports: [],
-    }
-}
+    },
+};
 
 export default function incidents(state = initialState, action) {
     switch (action.type) {
@@ -48,7 +48,7 @@ export default function incidents(state = initialState, action) {
                     error: null,
                     success: true,
                     members: action.payload.data,
-                    count: action.payload.count
+                    count: action.payload.count,
                 },
             });
 
@@ -79,7 +79,7 @@ export default function incidents(state = initialState, action) {
                     error: null,
                     success: true,
                     monitors: action.payload.data,
-                    count: action.payload.count
+                    count: action.payload.count,
                 },
             });
 
@@ -109,7 +109,7 @@ export default function incidents(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    reports: action.payload.data
+                    reports: action.payload.data,
                 },
             });
 
@@ -139,7 +139,7 @@ export default function incidents(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    reports: action.payload.data
+                    reports: action.payload.data,
                 },
             });
 
@@ -153,6 +153,7 @@ export default function incidents(state = initialState, action) {
                 },
             });
 
-        default: return state
+        default:
+            return state;
     }
 }

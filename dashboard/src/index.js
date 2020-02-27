@@ -9,17 +9,18 @@ import App from './App';
 import './index.css';
 
 if (!isServer) {
-	ReactGA.initialize('UA-115085157-1');
+    ReactGA.initialize('UA-115085157-1');
 }
 
 const target = document.getElementById('root');
 
 render(
-	<Provider store={store} history={history}>
-		<Frontload noServerRender={true}>
-				<ErrorBoundary>
-					<App />
-				</ErrorBoundary>
-		</Frontload>
-	</Provider>, target
+    <Provider store={store} history={history}>
+        <Frontload noServerRender={true}>
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        </Frontload>
+    </Provider>,
+    target
 );

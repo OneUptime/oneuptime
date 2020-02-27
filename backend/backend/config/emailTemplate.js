@@ -1,8 +1,18 @@
-module.exports = [{
-    allowedVariables: ['{{userName}} : User display name.', '{{monitorName}} : Name of the monitor on which incident has occured.', '{{projectName}} : Name of the project on which the incident has occured.', '{{incidentTime}} : Time at which this incident occured.', '{{incidentType}} : Type of incident.', '{{userId}} : Unique identifier for user account.', '{{projectId}} : Unique identifier for the current project.', '{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they\'re opened.'],
-    emailType: 'Subscriber Incident Created',
-    subject: '{{projectName}}/{{monitorName}}: Incident Created',
-    body: `
+module.exports = [
+    {
+        allowedVariables: [
+            '{{userName}} : User display name.',
+            '{{monitorName}} : Name of the monitor on which incident has occured.',
+            '{{projectName}} : Name of the project on which the incident has occured.',
+            '{{incidentTime}} : Time at which this incident occured.',
+            '{{incidentType}} : Type of incident.',
+            '{{userId}} : Unique identifier for user account.',
+            '{{projectId}} : Unique identifier for the current project.',
+            "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+        ],
+        emailType: 'Subscriber Incident Created',
+        subject: '{{projectName}}/{{monitorName}}: Incident Created',
+        body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
   <head>
@@ -502,13 +512,22 @@ span.st-Delink.st-Delink--footer a {
     </table>
     <!-- /Background -->
 </body></html>
-`
-},
-{
-    allowedVariables: ['{{userName}} : User display name.', '{{monitorName}} : Name of the monitor on which incident has occured.', '{{projectName}} : Name of the project on which the incident has occured.', '{{incidentTime}} : Time at which this incident occured.', '{{incidentType}} : Type of incident.', '{{userId}} : Unique identifier for user account.', '{{projectId}} : Unique identifier for the current project.', '{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they\'re opened.'],
-    emailType: 'Subscriber Incident Acknowldeged',
-    subject: '{{projectName}}/{{monitorName}}: Incident Acknowldeged',
-    body: `
+`,
+    },
+    {
+        allowedVariables: [
+            '{{userName}} : User display name.',
+            '{{monitorName}} : Name of the monitor on which incident has occured.',
+            '{{projectName}} : Name of the project on which the incident has occured.',
+            '{{incidentTime}} : Time at which this incident occured.',
+            '{{incidentType}} : Type of incident.',
+            '{{userId}} : Unique identifier for user account.',
+            '{{projectId}} : Unique identifier for the current project.',
+            "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+        ],
+        emailType: 'Subscriber Incident Acknowldeged',
+        subject: '{{projectName}}/{{monitorName}}: Incident Acknowldeged',
+        body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
@@ -1007,13 +1026,22 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
   </table>
   <!-- /Background -->
 </body></html>
-`
-},
-{
-    allowedVariables: ['{{userName}} : User display name.', '{{monitorName}} : Name of the monitor on which incident has occured.', '{{projectName}} : Name of the project on which the incident has occured.', '{{incidentTime}} : Time at which this incident occured.', '{{incidentType}} : Type of incident.', '{{userId}} : Unique identifier for user account.', '{{projectId}} : Unique identifier for the current project.', '{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they\'re opened.'],
-    emailType: 'Subscriber Incident Resolved',
-    subject: '{{projectName}}/{{monitorName}}: Incident Resolved',
-    body: `
+`,
+    },
+    {
+        allowedVariables: [
+            '{{userName}} : User display name.',
+            '{{monitorName}} : Name of the monitor on which incident has occured.',
+            '{{projectName}} : Name of the project on which the incident has occured.',
+            '{{incidentTime}} : Time at which this incident occured.',
+            '{{incidentType}} : Type of incident.',
+            '{{userId}} : Unique identifier for user account.',
+            '{{projectId}} : Unique identifier for the current project.',
+            "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+        ],
+        emailType: 'Subscriber Incident Resolved',
+        subject: '{{projectName}}/{{monitorName}}: Incident Resolved',
+        body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
@@ -1497,6 +1525,6 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
   </table>
   <!-- /Background -->
 </body></html>
-`
-}
+`,
+    },
 ];

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { FormLoader } from '../basic/Loader';
@@ -15,18 +15,17 @@ function validate(values) {
 
     if (values.adminNotes) {
         for (let i = 0; i < values.adminNotes.length; i++) {
-            const adminNotesErrors = {}
+            const adminNotesErrors = {};
             if (values.adminNotes[i] && values.adminNotes[i].note) {
-
                 if (!Validate.text(values.adminNotes[i].note)) {
-                    adminNotesErrors.note = 'Note is not in text format.'
-                    adminNotesArrayErrors[i] = adminNotesErrors
+                    adminNotesErrors.note = 'Note is not in text format.';
+                    adminNotesArrayErrors[i] = adminNotesErrors;
                 }
             }
         }
 
         if (adminNotesArrayErrors.length) {
-            errors.adminNotes = adminNotesArrayErrors
+            errors.adminNotes = adminNotesArrayErrors;
         }
     }
 
@@ -34,13 +33,12 @@ function validate(values) {
 }
 
 export class AdminNotes extends Component {
-
-    submitForm = async (values) => {
+    submitForm = async values => {
         await this.props.addNote(this.props.id, values.adminNotes);
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Admin Notes Updated', values);
         }
-    }
+    };
 
     render() {
         const { handleSubmit, requesting } = this.props;
@@ -53,7 +51,9 @@ export class AdminNotes extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>Admin Notes</span>
                                 </span>
-                                <p><span>Leave a comment.</span></p>
+                                <p>
+                                    <span>Leave a comment.</span>
+                                </p>
                             </div>
                         </div>
                         <form onSubmit={handleSubmit(this.submitForm)}>
@@ -62,9 +62,9 @@ export class AdminNotes extends Component {
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
-                                                <FieldArray 
-                                                    name="adminNotes" 
-                                                    component={ AdminNote } 
+                                                <FieldArray
+                                                    name="adminNotes"
+                                                    component={AdminNote}
                                                 />
                                             </div>
                                         </fieldset>
@@ -72,50 +72,49 @@ export class AdminNotes extends Component {
                                 </div>
                             </div>
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                            <span className="db-SettingsForm-footerMessage"></span>
-                            <div>
-                                <button
-                                    className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                    disabled={requesting}
-                                    type="submit">
-                                    <ShouldRender if={requesting}>
-                                        <FormLoader />
-                                    </ShouldRender>
-                                    <ShouldRender if={!requesting}>
-                                        <span>Save</span>
-                                    </ShouldRender>
-                                </button>
+                                <span className="db-SettingsForm-footerMessage"></span>
+                                <div>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        disabled={requesting}
+                                        type="submit"
+                                    >
+                                        <ShouldRender if={requesting}>
+                                            <FormLoader />
+                                        </ShouldRender>
+                                        <ShouldRender if={!requesting}>
+                                            <span>Save</span>
+                                        </ShouldRender>
+                                    </button>
                                 </div>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 }
 
-AdminNotes.displayName = 'AdminNotes'
+AdminNotes.displayName = 'AdminNotes';
 
-const mapDispatchToProps = dispatch => bindActionCreators(
-    { }
-    , dispatch);
+const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
 const mapStateToProps = state_Ignored => {
     return {};
-}
+};
 
 AdminNotes.propTypes = {
     requesting: PropTypes.bool,
     addNote: PropTypes.func.isRequired,
     id: PropTypes.string.isRequired,
-    handleSubmit: PropTypes.func
-}
+    handleSubmit: PropTypes.func,
+};
 
 const AdminNotesForm = reduxForm({
     form: 'AdminNotes', // a unique identifier for this form
     validate, // <--- validation function given to redux-for
-    enableReinitialize: true
+    enableReinitialize: true,
 })(AdminNotes);
 
 export default connect(mapStateToProps, mapDispatchToProps)(AdminNotesForm);

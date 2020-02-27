@@ -7,7 +7,7 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false,
-        data: {}
+        data: {},
     },
     changePasswordSetting: {
         error: null,
@@ -19,19 +19,19 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false,
-        data: {}
+        data: {},
     },
     smsVerificationResult: {
         error: null,
         requesting: false,
         success: false,
-        data: {}
+        data: {},
     },
     emailVerificationResult: {
         error: null,
         requesting: false,
         success: false,
-        data: {}
+        data: {},
     },
     profileSettingState: {
         alertPhoneNumber: '',
@@ -51,32 +51,28 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false,
-        data: {}
+        data: {},
     },
     qrCode: {
         error: null,
         requesting: false,
         success: false,
-        data: {}
+        data: {},
     },
-    resendTimer: null
+    resendTimer: null,
 };
 
 export default function profileSettings(state = INITIAL_STATE, action) {
-
     switch (action.type) {
-
         //update profile setting
         case types.UPDATE_PROFILE_SETTING_REQUEST:
-
             return Object.assign({}, state, {
                 profileSetting: {
                     requesting: true,
                     error: null,
                     success: false,
-                    data: state.profileSetting.data
+                    data: state.profileSetting.data,
                 },
-
             });
 
         case types.UPDATE_PROFILE_SETTING_SUCCESS:
@@ -85,25 +81,23 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    data: action.payload
+                    data: action.payload,
                 },
             });
 
         case types.UPDATE_PROFILE_SETTING_FAILURE:
-
             return Object.assign({}, state, {
                 profileSetting: {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    data: state.profileSetting.data
+                    data: state.profileSetting.data,
                 },
             });
 
         case types.UPDATE_PROFILE_SETTING_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         // update change password setting.
@@ -117,7 +111,6 @@ export default function profileSettings(state = INITIAL_STATE, action) {
             });
 
         case types.UPDATE_CHANGE_PASSWORD_SETTING_SUCCESS:
-
             return Object.assign({}, state, {
                 changePasswordSetting: {
                     requesting: false,
@@ -127,7 +120,6 @@ export default function profileSettings(state = INITIAL_STATE, action) {
             });
 
         case types.UPDATE_CHANGE_PASSWORD_SETTING_FAILURE:
-
             return Object.assign({}, state, {
                 changePasswordSetting: {
                     requesting: false,
@@ -137,199 +129,179 @@ export default function profileSettings(state = INITIAL_STATE, action) {
             });
 
         case types.UPDATE_CHANGE_PASSWORD_SETTING_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         case types.SHOW_PROFILE_MENU:
-
             return Object.assign({}, state, {
                 menuVisible: true,
-                menuPosition: action.payload
+                menuPosition: action.payload,
             });
 
         case types.HIDE_PROFILE_MENU:
-
             return Object.assign({}, state, {
-                menuVisible: false
+                menuVisible: false,
             });
 
         case types.USER_SETTINGS_REQUEST:
-
             return Object.assign({}, state, {
                 profileSetting: {
                     ...state.profileSetting,
                     error: null,
                     requesting: true,
                     success: false,
-                }
+                },
             });
 
         case types.USER_SETTINGS_SUCCESS:
-
             return Object.assign({}, state, {
                 profileSetting: {
                     error: null,
                     requesting: false,
                     success: false,
-                    data: action.payload
-                }
+                    data: action.payload,
+                },
             });
 
         case types.USER_SETTINGS_FAILURE:
-
             return Object.assign({}, state, {
                 profileSetting: {
                     ...state.profileSetting,
                     error: action.payload,
                     requesting: false,
                     success: false,
-                }
+                },
             });
 
         case types.USER_SETTINGS_RESET:
-
             return Object.assign({}, state, {
                 profileSetting: {
                     error: null,
                     requesting: false,
                     success: false,
-                    data: {}
-                }
+                    data: {},
+                },
             });
 
         case 'LOG_FILE':
-
             return Object.assign({}, state, {
-                file: action.payload
+                file: action.payload,
             });
 
         case 'RESET_FILE':
-
             return Object.assign({}, state, {
-                file: null
+                file: null,
             });
 
         case types.SEND_VERIFICATION_SMS_REQUEST:
-
             return Object.assign({}, state, {
                 smsVerification: {
                     ...state.smsVerification,
                     error: null,
                     requesting: true,
                     success: false,
-                }
+                },
             });
 
         case types.SEND_VERIFICATION_SMS_SUCCESS:
-
             return Object.assign({}, state, {
                 smsVerification: {
                     error: null,
                     requesting: false,
                     success: false,
-                    data: action.payload
-                }
+                    data: action.payload,
+                },
             });
 
         case types.SEND_VERIFICATION_SMS_FAILURE:
-
             return Object.assign({}, state, {
                 smsVerification: {
                     ...state.smsVerification,
                     error: action.payload,
                     requesting: false,
                     success: false,
-                }
+                },
             });
 
         case types.SEND_VERIFICATION_SMS_RESET:
-
             return Object.assign({}, state, {
                 smsVerification: {
                     ...state.smsVerification,
                     error: null,
                     requesting: false,
                     success: false,
-                }
+                },
             });
 
         case types.SEND_EMAIL_VERIFICATION_REQUEST:
-
             return Object.assign({}, state, {
                 emailVerificationResult: {
                     ...state.emailVerificationResult,
                     error: null,
                     requesting: true,
                     success: false,
-                }
+                },
             });
 
         case types.SEND_EMAIL_VERIFICATION_SUCCESS:
-
             return Object.assign({}, state, {
                 emailVerificationResult: {
                     error: null,
                     requesting: false,
                     success: true,
-                    data: action.payload
-                }
+                    data: action.payload,
+                },
             });
 
         case types.SEND_EMAIL_VERIFICATION_FAILURE:
-
             return Object.assign({}, state, {
                 emailVerificationResult: {
                     ...state.emailVerificationResult,
                     error: action.payload,
                     requesting: false,
                     success: false,
-                }
+                },
             });
 
         case types.VERIFY_SMS_CODE_REQUEST:
-
             return Object.assign({}, state, {
                 smsVerificationResult: {
                     ...state.smsVerificationResult,
                     error: null,
                     requesting: true,
                     success: false,
-                }
+                },
             });
 
         case types.VERIFY_SMS_CODE_SUCCESS:
-
             return Object.assign({}, state, {
                 smsVerificationResult: {
                     error: null,
                     requesting: false,
                     success: false,
-                    data: action.payload
-                }
+                    data: action.payload,
+                },
             });
 
         case types.VERIFY_SMS_CODE_FAILURE:
-
             return Object.assign({}, state, {
                 smsVerificationResult: {
                     ...state.smsVerificationResult,
                     error: action.payload,
                     requesting: false,
                     success: false,
-                }
+                },
             });
 
         case types.VERIFY_SMS_CODE_RESET:
-
             return Object.assign({}, state, {
                 smsVerificationResult: {
                     ...state.smsVerificationResult,
                     error: null,
                     requesting: false,
                     success: false,
-                }
+                },
             });
 
         case types.SET_ALERT_PHONE_NUMBER:
@@ -337,15 +309,15 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     alertPhoneNumber: action.payload,
-                }
+                },
             });
-        
+
         case types.SET_TWO_FACTOR_AUTH:
             return Object.assign({}, state, {
                 profileSettingState: {
                     ...state.profileSettingState,
                     twoFactorAuthEnabled: action.payload,
-                }
+                },
             });
 
         //update user's two factor auth settings
@@ -363,7 +335,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 profileSetting: {
                     ...INITIAL_STATE.profileSetting,
-                    data: action.payload
+                    data: action.payload,
                 },
                 twoFactorAuthSetting: {
                     requesting: false,
@@ -385,7 +357,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
         case types.UPDATE_TWO_FACTOR_AUTH_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         //generate user's QR code
@@ -421,7 +393,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
         case types.GENERATE_TWO_FACTOR_QR_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         case types.SET_INIT_ALERT_EMAIL:
@@ -429,7 +401,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     initAlertEmail: action.payload,
-                }
+                },
             });
 
         case types.SET_INIT_PHONE_VERIFICATION:
@@ -437,7 +409,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     initPhoneVerification: action.payload,
-                }
+                },
             });
 
         case types.SET_VERIFIED:
@@ -445,7 +417,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     verified: action.payload,
-                }
+                },
             });
 
         case types.SET_PROFILE_PIC:
@@ -453,7 +425,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     profilePic: action.payload,
-                }
+                },
             });
 
         case types.SET_REMOVED_PIC:
@@ -461,7 +433,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     removedPic: action.payload,
-                }
+                },
             });
 
         case types.SET_FILE_INPUT_KEY:
@@ -469,7 +441,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     fileInputKey: action.payload,
-                }
+                },
             });
 
         case types.SET_IS_VERIFIED:
@@ -477,7 +449,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     isVerified: action.payload,
-                }
+                },
             });
 
         case types.SET_INITIAL_ALERT_PHONE_NUMBER:
@@ -485,7 +457,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     initialAlertPhoneNumber: action.payload,
-                }
+                },
             });
 
         case types.SET_USER_EMAIL:
@@ -493,7 +465,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     userEmail: action.payload,
-                }
+                },
             });
 
         case types.SET_INIT_PHONE_VERIFICATION_NUMBER:
@@ -501,14 +473,15 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     initPhoneVerificationNumber: action.payload,
-                }
+                },
             });
 
         case types.SET_RESEND_TIMER:
             return Object.assign({}, state, {
-                resendTimer: action.payload
+                resendTimer: action.payload,
             });
 
-        default: return state;
+        default:
+            return state;
     }
 }

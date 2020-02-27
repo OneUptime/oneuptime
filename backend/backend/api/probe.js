@@ -8,15 +8,17 @@ const express = require('express');
 const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
 const router = express.Router();
-const isAuthorizedAdmin = require('../middlewares/clusterAuthorization').isAuthorizedAdmin;
-const isAuthorizedProbe = require('../middlewares/probeAuthorization').isAuthorizedProbe;
+const isAuthorizedAdmin = require('../middlewares/clusterAuthorization')
+    .isAuthorizedAdmin;
+const isAuthorizedProbe = require('../middlewares/probeAuthorization')
+    .isAuthorizedProbe;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 
-router.post('/', getUser, isAuthorizedAdmin, async function (req, res) {
+router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const data = req.body;
         const probe = await ProbeService.create(data);
@@ -26,7 +28,7 @@ router.post('/', getUser, isAuthorizedAdmin, async function (req, res) {
     }
 });
 
-router.get('/', getUser, isAuthorizedAdmin, async function (req, res) {
+router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
@@ -38,17 +40,20 @@ router.get('/', getUser, isAuthorizedAdmin, async function (req, res) {
     }
 });
 
-router.put('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
+router.put('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const data = req.body;
-        const probe = await ProbeService.updateOneBy({ _id: req.params.id }, data);
+        const probe = await ProbeService.updateOneBy(
+            { _id: req.params.id },
+            data
+        );
         return sendItemResponse(req, res, probe);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.delete('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
+router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const probe = await ProbeService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, probe);
@@ -57,24 +62,41 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     }
 });
 
-router.get('/monitors', isAuthorizedProbe, async function (req, res) {
+router.get('/monitors', isAuthorizedProbe, async function(req, res) {
     try {
-        const monitors = await MonitorService.getProbeMonitors(new Date(new Date().getTime() - (60 * 1000)));
+        const monitors = await MonitorService.getProbeMonitors(
+            new Date(new Date().getTime() - 60 * 1000)
+        );
         return sendListResponse(req, res, monitors, monitors.length);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response) {
+router.post('/ping/:monitorId', isAuthorizedProbe, async function(
+    req,
+    response
+) {
     try {
         const { monitor, res, resp, type } = req.body;
         let status;
 
         if (type === 'api' || type === 'url') {
-            const validUp = await (monitor && monitor.criteria && monitor.criteria.up ? ProbeService.conditions(res, resp, monitor.criteria.up) : false);
-            const validDegraded = await (monitor && monitor.criteria && monitor.criteria.degraded ? ProbeService.conditions(res, resp, monitor.criteria.degraded) : false);
-            const validDown = await (monitor && monitor.criteria && monitor.criteria.down ? ProbeService.conditions(res, resp, monitor.criteria.down) : false);
+            const validUp = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.up
+                ? ProbeService.conditions(res, resp, monitor.criteria.up)
+                : false);
+            const validDegraded = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.degraded
+                ? ProbeService.conditions(res, resp, monitor.criteria.degraded)
+                : false);
+            const validDown = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.down
+                ? ProbeService.conditions(res, resp, monitor.criteria.down)
+                : false);
 
             if (validDown) {
                 status = 'offline';
@@ -108,7 +130,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (req, response
     }
 });
 
-router.post('/setTime/:monitorId', isAuthorizedProbe, async function (req, res) {
+router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req, res) {
     try {
         const data = req.body;
         data.probeId = req.probe.id;
@@ -120,7 +142,7 @@ router.post('/setTime/:monitorId', isAuthorizedProbe, async function (req, res) 
     }
 });
 
-router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) {
+router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req, res) {
     try {
         const data = req.body;
         data.probeId = req.probe.id;
@@ -132,7 +154,10 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) 
     }
 });
 
-router.get('/:projectId/probes', getUser, isAuthorized, async function (req, res) {
+router.get('/:projectId/probes', getUser, isAuthorized, async function(
+    req,
+    res
+) {
     try {
         const limit = req.query.limit || null;
         const skip = req.query.skip || null;

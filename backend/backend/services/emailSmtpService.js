@@ -1,5 +1,5 @@
 module.exports = {
-    create: async function (data) {
+    create: async function(data) {
         try {
             data.pass = await EncryptDecrypt.encrypt(data.pass);
             const emailSmtpModel = new EmailSmtpModel();
@@ -25,7 +25,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -37,13 +37,19 @@ module.exports = {
                 data.pass = await EncryptDecrypt.encrypt(data.pass);
             }
 
-            const updatedEmailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
-                $set: data
-            }, {
-                new: true
-            }).lean();
+            const updatedEmailSmtp = await EmailSmtpModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            ).lean();
             if (updatedEmailSmtp && updatedEmailSmtp.pass) {
-                updatedEmailSmtp.pass = await EncryptDecrypt.decrypt(updatedEmailSmtp.pass);
+                updatedEmailSmtp.pass = await EncryptDecrypt.decrypt(
+                    updatedEmailSmtp.pass
+                );
             }
             return updatedEmailSmtp;
         } catch (error) {
@@ -52,7 +58,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -60,7 +66,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             let updatedData = await EmailSmtpModel.updateMany(query, {
-                $set: data
+                $set: data,
             });
             updatedData = await this.findBy(query);
             return updatedData;
@@ -70,17 +76,21 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query, userId) {
+    deleteBy: async function(query, userId) {
         try {
-            const emailSmtp = await EmailSmtpModel.findOneAndUpdate(query, {
-                $set: {
-                    deleted: true,
-                    deletedById: userId,
-                    deletedAt: Date.now()
+            const emailSmtp = await EmailSmtpModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
                 }
-            }, {
-                new: true
-            });
+            );
             return emailSmtp;
         } catch (error) {
             ErrorService.log('emailSmtpService.deleteBy', error);
@@ -88,17 +98,17 @@ module.exports = {
         }
     },
 
-    findBy: async function (query, skip, limit) {
+    findBy: async function(query, skip, limit) {
         try {
             if (!skip) skip = 0;
 
             if (!limit) limit = 10;
 
-            if (typeof (skip) === 'string') {
+            if (typeof skip === 'string') {
                 skip = parseInt(skip);
             }
 
-            if (typeof (limit) === 'string') {
+            if (typeof limit === 'string') {
                 limit = parseInt(limit);
             }
 
@@ -125,7 +135,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -150,7 +160,7 @@ module.exports = {
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -165,7 +175,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await EmailSmtpModel.deleteMany(query);
             return 'Email Smtp(s) removed successfully';

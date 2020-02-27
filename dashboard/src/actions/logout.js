@@ -7,32 +7,36 @@ import { DOMAIN_URL, ACCOUNTS_URL } from '../config';
 // were calling the API to log the user out
 
 export function requestLogout() {
-  return {
-    type: types.LOGOUT_REQUEST,
-    isFetching: true,
-    isAuthenticated: true
-  }
+    return {
+        type: types.LOGOUT_REQUEST,
+        isFetching: true,
+        isAuthenticated: true,
+    };
 }
 
 export function receiveLogout() {
-  return {
-    type: types.LOGOUT_SUCCESS,
-    isFetching: false,
-    isAuthenticated: false
-  }
+    return {
+        type: types.LOGOUT_SUCCESS,
+        isFetching: false,
+        isAuthenticated: false,
+    };
 }
 
 // Logs the user out
 export function logoutUser() {
-  const cookies = new Cookies();
-  const logoutData = {
-    loggedIn: false
-  }
-  cookies.set('logoutData', logoutData, { path: '/', maxAge: 30, domain: DOMAIN_URL });
-  return dispatch => {
-    dispatch(requestLogout());
-    localStorage.clear();
-    dispatch(receiveLogout());
-    window.location = ACCOUNTS_URL;
-  }
+    const cookies = new Cookies();
+    const logoutData = {
+        loggedIn: false,
+    };
+    cookies.set('logoutData', logoutData, {
+        path: '/',
+        maxAge: 30,
+        domain: DOMAIN_URL,
+    });
+    return dispatch => {
+        dispatch(requestLogout());
+        localStorage.clear();
+        dispatch(receiveLogout());
+        window.location = ACCOUNTS_URL;
+    };
 }

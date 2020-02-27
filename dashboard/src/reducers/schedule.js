@@ -2,77 +2,71 @@ import {
     SCHEDULE_FETCH_SUCCESS,
     SCHEDULE_FETCH_FAILED,
     SCHEDULE_FETCH_REQUEST,
-    SCHEDULE_FETCH_RESET
+    SCHEDULE_FETCH_RESET,
 } from '../constants/schedule';
 
 import {
     SUBPROJECT_SCHEDULE_FETCH_SUCCESS,
     SUBPROJECT_SCHEDULE_FETCH_FAILED,
     SUBPROJECT_SCHEDULE_FETCH_REQUEST,
-    SUBPROJECT_SCHEDULE_FETCH_RESET
+    SUBPROJECT_SCHEDULE_FETCH_RESET,
 } from '../constants/schedule';
 
 import {
     PROJECT_SCHEDULE_FETCH_SUCCESS,
     PROJECT_SCHEDULE_FETCH_FAILED,
     PROJECT_SCHEDULE_FETCH_REQUEST,
-    PROJECT_SCHEDULE_FETCH_RESET
+    PROJECT_SCHEDULE_FETCH_RESET,
 } from '../constants/schedule';
-
 
 import {
     CREATE_SCHEDULE_SUCCESS,
     CREATE_SCHEDULE_FAILED,
     CREATE_SCHEDULE_REQUEST,
-    CREATE_SCHEDULE_RESET
+    CREATE_SCHEDULE_RESET,
 } from '../constants/schedule';
-
 
 import {
     RENAME_SCHEDULE_REQUEST,
     RENAME_SCHEDULE_SUCCESS,
     RENAME_SCHEDULE_FAILED,
-    RENAME_SCHEDULE_RESET
+    RENAME_SCHEDULE_RESET,
 } from '../constants/schedule';
-
 
 import {
     DELETE_SCHEDULE_REQUEST,
     DELETE_SCHEDULE_SUCCESS,
     DELETE_SCHEDULE_FAILED,
     DELETE_SCHEDULE_RESET,
-    DELETE_PROJECT_SCHEDULES
+    DELETE_PROJECT_SCHEDULES,
 } from '../constants/schedule';
-
 
 import {
     ADD_MONITOR_REQUEST,
     ADD_MONITOR_SUCCESS,
     ADD_MONITOR_FAILED,
-    ADD_MONITOR_RESET
+    ADD_MONITOR_RESET,
 } from '../constants/schedule';
-
 
 import {
     ADD_USER_REQUEST,
     ADD_USER_SUCCESS,
     ADD_USER_FAILED,
-    ADD_USER_RESET
+    ADD_USER_RESET,
 } from '../constants/schedule';
 
 import {
     ESCALATION_REQUEST,
     ESCALATION_SUCCESS,
     ESCALATION_FAILED,
-    ESCALATION_RESET
+    ESCALATION_RESET,
 } from '../constants/schedule';
 
 import {
     PAGINATE_NEXT,
-	PAGINATE_PREV,
-	PAGINATE_RESET
+    PAGINATE_PREV,
+    PAGINATE_RESET,
 } from '../constants/schedule';
-
 
 const initialState = {
     schedules: {
@@ -82,50 +76,48 @@ const initialState = {
         data: [],
         count: null,
         limit: null,
-        skip: null
+        skip: null,
     },
     subProjectSchedules: [],
     newSchedule: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     renameSchedule: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     deleteSchedule: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     addMonitor: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     addUser: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     escalation: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
-    escalations:[],
+    escalations: [],
     pages: {
-		counter: 1
-	}
+        counter: 1,
+    },
 };
-
 
 export default function schedule(state = initialState, action) {
     let data, index, isExistingSchedule;
     switch (action.type) {
-
         case SCHEDULE_FETCH_SUCCESS:
             return Object.assign({}, state, {
                 schedules: {
@@ -135,7 +127,7 @@ export default function schedule(state = initialState, action) {
                     data: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
+                    skip: action.payload.skip,
                 },
             });
 
@@ -146,7 +138,7 @@ export default function schedule(state = initialState, action) {
                     requesting: true,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case SCHEDULE_FETCH_FAILED:
@@ -168,7 +160,7 @@ export default function schedule(state = initialState, action) {
                     data: [],
                     count: null,
                     limit: null,
-                    skip: null
+                    skip: null,
                 },
             });
 
@@ -180,7 +172,7 @@ export default function schedule(state = initialState, action) {
                     error: null,
                     success: true,
                 },
-                subProjectSchedules: action.payload
+                subProjectSchedules: action.payload,
             });
 
         case SUBPROJECT_SCHEDULE_FETCH_REQUEST:
@@ -199,11 +191,11 @@ export default function schedule(state = initialState, action) {
                     error: action.payload,
                     success: false,
                 },
-        });
+            });
 
         case SUBPROJECT_SCHEDULE_FETCH_RESET:
             return Object.assign({}, state, {
-                subProjectSchedules: []
+                subProjectSchedules: [],
             });
 
         // fetch list of schedules in a project
@@ -214,17 +206,17 @@ export default function schedule(state = initialState, action) {
                     error: null,
                     success: true,
                 },
-                subProjectSchedules: state.subProjectSchedules.map((schedule)=>{
-                    return schedule._id === action.payload.projectId ?
-                    {
-                        _id: action.payload.projectId,
-                        schedules: [...action.payload.data],
-                        count: action.payload.count,
-                        skip: action.payload.skip,
-                        limit: action.payload.limit
-                    }
-                    : schedule
-                })
+                subProjectSchedules: state.subProjectSchedules.map(schedule => {
+                    return schedule._id === action.payload.projectId
+                        ? {
+                              _id: action.payload.projectId,
+                              schedules: [...action.payload.data],
+                              count: action.payload.count,
+                              skip: action.payload.skip,
+                              limit: action.payload.limit,
+                          }
+                        : schedule;
+                }),
             });
 
         case PROJECT_SCHEDULE_FETCH_REQUEST:
@@ -233,7 +225,7 @@ export default function schedule(state = initialState, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                }
+                },
             });
 
         case PROJECT_SCHEDULE_FETCH_FAILED:
@@ -242,34 +234,60 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
-        });
+                },
+            });
 
         case PROJECT_SCHEDULE_FETCH_RESET:
             return Object.assign({}, state, {
-                subProjectSchedules: []
+                subProjectSchedules: [],
             });
 
         case CREATE_SCHEDULE_SUCCESS:
-            isExistingSchedule = state.subProjectSchedules.find(schedule => schedule._id === action.payload.projectId);
+            isExistingSchedule = state.subProjectSchedules.find(
+                schedule => schedule._id === action.payload.projectId
+            );
             return Object.assign({}, state, {
                 newSchedule: {
                     success: false,
                     requesting: false,
-                    error: null
+                    error: null,
                 },
-                subProjectSchedules: isExistingSchedule ? state.subProjectSchedules.length > 0 ? state.subProjectSchedules.map((schedule)=>{
-                    return schedule._id === action.payload.projectId ?
-                    {
-                        _id: action.payload.projectId,
-                        schedules: [action.payload, ...schedule.schedules.filter((status, index) => index < 9)],
-                        count: schedule.count + 1,
-                        skip: schedule.skip,
-                        limit: schedule.limit
-                    }
-                    : schedule
-                }) : [{_id: action.payload.projectId, schedules: [action.payload], count: 1, skip: 0, limit: 0 }]
-                : state.subProjectSchedules.concat([{_id: action.payload.projectId, schedules: [action.payload], count: 1, skip: 0, limit: 0 }])
+                subProjectSchedules: isExistingSchedule
+                    ? state.subProjectSchedules.length > 0
+                        ? state.subProjectSchedules.map(schedule => {
+                              return schedule._id === action.payload.projectId
+                                  ? {
+                                        _id: action.payload.projectId,
+                                        schedules: [
+                                            action.payload,
+                                            ...schedule.schedules.filter(
+                                                (status, index) => index < 9
+                                            ),
+                                        ],
+                                        count: schedule.count + 1,
+                                        skip: schedule.skip,
+                                        limit: schedule.limit,
+                                    }
+                                  : schedule;
+                          })
+                        : [
+                              {
+                                  _id: action.payload.projectId,
+                                  schedules: [action.payload],
+                                  count: 1,
+                                  skip: 0,
+                                  limit: 0,
+                              },
+                          ]
+                    : state.subProjectSchedules.concat([
+                          {
+                              _id: action.payload.projectId,
+                              schedules: [action.payload],
+                              count: 1,
+                              skip: 0,
+                              limit: 0,
+                          },
+                      ]),
             });
 
         case CREATE_SCHEDULE_REQUEST:
@@ -277,8 +295,8 @@ export default function schedule(state = initialState, action) {
                 newSchedule: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case CREATE_SCHEDULE_FAILED:
@@ -295,7 +313,7 @@ export default function schedule(state = initialState, action) {
                 newSchedule: {
                     requesting: false,
                     success: false,
-                    error: null
+                    error: null,
                 },
             });
 
@@ -304,19 +322,23 @@ export default function schedule(state = initialState, action) {
                 renameSchedule: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
-                subProjectSchedules: state.subProjectSchedules.map((schedule)=>{
-                    return schedule._id === action.payload[0].projectId._id ?
-                    {
-                        _id: action.payload[0].projectId._id,
-                        schedules: schedule.schedules.map(schedule => schedule._id === action.payload[0]._id ? action.payload[0] : schedule),
-                        count: schedule.count,
-                        skip: schedule.skip,
-                        limit: schedule.limit
-                    }
-                    : schedule
-                })
+                subProjectSchedules: state.subProjectSchedules.map(schedule => {
+                    return schedule._id === action.payload[0].projectId._id
+                        ? {
+                              _id: action.payload[0].projectId._id,
+                              schedules: schedule.schedules.map(schedule =>
+                                  schedule._id === action.payload[0]._id
+                                      ? action.payload[0]
+                                      : schedule
+                              ),
+                              count: schedule.count,
+                              skip: schedule.skip,
+                              limit: schedule.limit,
+                          }
+                        : schedule;
+                }),
             });
 
         case RENAME_SCHEDULE_REQUEST:
@@ -324,8 +346,8 @@ export default function schedule(state = initialState, action) {
                 renameSchedule: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case RENAME_SCHEDULE_FAILED:
@@ -334,7 +356,7 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case RENAME_SCHEDULE_RESET:
@@ -343,39 +365,45 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case DELETE_SCHEDULE_SUCCESS:
             data = Object.assign([], state.schedules.data);
-            index = data.findIndex(schedule => schedule._id === action.payload.scheduleId);
-            action.payload.n === 1 && action.payload.ok === 1 && data.splice(index, 1);
+            index = data.findIndex(
+                schedule => schedule._id === action.payload.scheduleId
+            );
+            action.payload.n === 1 &&
+                action.payload.ok === 1 &&
+                data.splice(index, 1);
 
             return Object.assign({}, state, {
                 deleteSchedule: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 schedules: {
                     requesting: false,
                     error: null,
                     success: true,
-                    data
+                    data,
                 },
             });
 
         case DELETE_PROJECT_SCHEDULES:
             data = Object.assign([], state.schedules.data);
-            data = data.filter(schedule => action.payload !== schedule.projectId);
+            data = data.filter(
+                schedule => action.payload !== schedule.projectId
+            );
 
             return Object.assign({}, state, {
                 schedules: {
                     requesting: false,
                     error: null,
                     success: true,
-                    data
-                }
+                    data,
+                },
             });
 
         case DELETE_SCHEDULE_REQUEST:
@@ -383,8 +411,8 @@ export default function schedule(state = initialState, action) {
                 deleteSchedule: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case DELETE_SCHEDULE_FAILED:
@@ -393,7 +421,7 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case DELETE_SCHEDULE_RESET:
@@ -402,38 +430,44 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case ADD_MONITOR_SUCCESS:
             data = Object.assign([], state.schedules.data);
-            data = data.map((schedule) => {
-                return schedule._id === action.payload[0]._id ? action.payload[0] : schedule
+            data = data.map(schedule => {
+                return schedule._id === action.payload[0]._id
+                    ? action.payload[0]
+                    : schedule;
             });
 
             return Object.assign({}, state, {
                 addMonitor: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 schedules: {
                     requesting: false,
                     error: null,
                     success: false,
-                    data
+                    data,
                 },
-                subProjectSchedules: state.subProjectSchedules.map((schedule)=>{
-                    return schedule._id === action.payload[0].projectId._id ?
-                    {
-                        _id: action.payload[0].projectId._id,
-                        schedules: schedule.schedules.map(schedule => schedule._id === action.payload[0]._id ? action.payload[0] : schedule),
-                        count: schedule.count,
-                        skip: schedule.skip,
-                        limit: schedule.limit
-                    }
-                    : schedule
-                })
+                subProjectSchedules: state.subProjectSchedules.map(schedule => {
+                    return schedule._id === action.payload[0].projectId._id
+                        ? {
+                              _id: action.payload[0].projectId._id,
+                              schedules: schedule.schedules.map(schedule =>
+                                  schedule._id === action.payload[0]._id
+                                      ? action.payload[0]
+                                      : schedule
+                              ),
+                              count: schedule.count,
+                              skip: schedule.skip,
+                              limit: schedule.limit,
+                          }
+                        : schedule;
+                }),
             });
 
         case ADD_MONITOR_REQUEST:
@@ -441,8 +475,8 @@ export default function schedule(state = initialState, action) {
                 addMonitor: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case ADD_MONITOR_FAILED:
@@ -451,7 +485,7 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case ADD_MONITOR_RESET:
@@ -460,25 +494,27 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case ADD_USER_SUCCESS:
             data = Object.assign([], state.schedules.data);
-            index = data.findIndex(schedule => schedule._id === action.payload._id);
+            index = data.findIndex(
+                schedule => schedule._id === action.payload._id
+            );
             data[index] = action.payload;
 
             return Object.assign({}, state, {
                 addUser: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 schedules: {
                     requesting: false,
                     error: null,
                     success: false,
-                    data
+                    data,
                 },
             });
 
@@ -487,8 +523,8 @@ export default function schedule(state = initialState, action) {
                 addUser: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case ADD_USER_FAILED:
@@ -497,7 +533,7 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case ADD_USER_RESET:
@@ -506,7 +542,7 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case ESCALATION_SUCCESS:
@@ -514,9 +550,9 @@ export default function schedule(state = initialState, action) {
                 escalation: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
-                escalations:action.payload.data,
+                escalations: action.payload.data,
             });
 
         case ESCALATION_REQUEST:
@@ -524,8 +560,8 @@ export default function schedule(state = initialState, action) {
                 escalation: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case ESCALATION_FAILED:
@@ -534,7 +570,7 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case ESCALATION_RESET:
@@ -543,33 +579,34 @@ export default function schedule(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case PAGINATE_NEXT:
-			return {
-				...state,
-				pages: {
-					counter: state.pages.counter + 1
-				}
-			}
+            return {
+                ...state,
+                pages: {
+                    counter: state.pages.counter + 1,
+                },
+            };
 
-		case PAGINATE_PREV:
-			return {
-				...state,
-				pages: {
-					counter: state.pages.counter - 1
-				}
-			}
+        case PAGINATE_PREV:
+            return {
+                ...state,
+                pages: {
+                    counter: state.pages.counter - 1,
+                },
+            };
 
-		case PAGINATE_RESET:
-			return {
-				...state,
-				pages: {
-					counter: 1
-				}
-			}
+        case PAGINATE_RESET:
+            return {
+                ...state,
+                pages: {
+                    counter: 1,
+                },
+            };
 
-        default: return state;
+        default:
+            return state;
     }
 }

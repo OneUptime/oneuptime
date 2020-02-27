@@ -11,82 +11,93 @@ export const SUBSCRIBE_FAILURE = 'SUBSCRIBE_FAILURE';
 export const VALIDATION_ERROR = 'VALIDATION_ERROR';
 
 export const openSubscribeMenu = () => {
-	return {
-		type: OPEN_SUBSCRIBE_MENU
-	};
-}
+    return {
+        type: OPEN_SUBSCRIBE_MENU,
+    };
+};
 
-export const selectedMenu = (data) => {
-	return {
-		type: SELECTED_MENU,
-		payload: data
-	};
-}
+export const selectedMenu = data => {
+    return {
+        type: SELECTED_MENU,
+        payload: data,
+    };
+};
 
-export const userData = (data) => {
-	return {
-		type: USER_DATA,
-		payload: data
-	};
-}
+export const userData = data => {
+    return {
+        type: USER_DATA,
+        payload: data,
+    };
+};
 
 export const userDataReset = () => {
-	return {
-		type: USER_DATA_RESET
-	};
-}
+    return {
+        type: USER_DATA_RESET,
+    };
+};
 
 export const subscribeRequest = () => {
-	return {
-		type: SUBSCRIBE_REQUEST,
-	};
-}
+    return {
+        type: SUBSCRIBE_REQUEST,
+    };
+};
 
 export const subscribeSuccess = () => {
-	return {
-		type: SUBSCRIBE_SUCCESS,
-	};
-}
+    return {
+        type: SUBSCRIBE_SUCCESS,
+    };
+};
 
-export const subscribeFailure = (data) => {
-	return {
-		type: SUBSCRIBE_FAILURE,
-		payload: data
-	};
-}
+export const subscribeFailure = data => {
+    return {
+        type: SUBSCRIBE_FAILURE,
+        payload: data,
+    };
+};
 
-export const validationError = (error) => {
-	return {
-		type: VALIDATION_ERROR,
-		payload: error,
-	};
-}
+export const validationError = error => {
+    return {
+        type: VALIDATION_ERROR,
+        payload: error,
+    };
+};
 // Calls the API to get status
-export const subscribeUser = (userDetails, monitors, projectId, statusPageId) => {
-	return function (dispatch) {
-		const promise = postApi(`subscriber/${projectId}/${statusPageId}`, { userDetails, monitors });
+export const subscribeUser = (
+    userDetails,
+    monitors,
+    projectId,
+    statusPageId
+) => {
+    return function(dispatch) {
+        const promise = postApi(`subscriber/${projectId}/${statusPageId}`, {
+            userDetails,
+            monitors,
+        });
 
-		dispatch(subscribeRequest());
+        dispatch(subscribeRequest());
 
-		promise.then(() => {
-			dispatch(subscribeSuccess());
-			dispatch(userDataReset());
-			dispatch(selectedMenu(1));
-			dispatch(openSubscribeMenu());
-		}, (error) => {
-			if (error && error.response && error.response.data)
-				error = error.response.data;
-			if (error && error.data) {
-				error = error.data;
-			}
-			if (error && error.message) {
-				error = error.message;
-			}
-			if (error.length > 100) {
-				error = 'Network Error';
-			}
+        promise.then(
+            () => {
+                dispatch(subscribeSuccess());
+                dispatch(userDataReset());
+                dispatch(selectedMenu(1));
+                dispatch(openSubscribeMenu());
+            },
+            error => {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                }
+                if (error.length > 100) {
+                    error = 'Network Error';
+                }
 
-			dispatch(subscribeFailure(errors(error)));
-		});
-	};
-}
+                dispatch(subscribeFailure(errors(error)));
+            }
+        );
+    };
+};

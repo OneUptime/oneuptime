@@ -7,7 +7,7 @@ module.exports = {
             header['Content-Type'] = type;
         }
         if (val && val.length) {
-            val.map(head => {
+            val.forEach(head => {
                 header[head.key] = head.value;
             });
         }
@@ -17,24 +17,32 @@ module.exports = {
     body: async (val, type) => {
         let bodyContent = {};
         if (type && type === 'formData' && val && val[0] && val[0].key) {
-            val.map(bod => {
+            val.forEach(bod => {
                 bodyContent[bod.key] = bod.value;
             });
             bodyContent = JSON.stringify(bodyContent);
-        }
-        else if (type && type === 'text' && val && val.length) {
+        } else if (type && type === 'text' && val && val.length) {
             bodyContent = val;
         }
         return bodyContent;
     },
 
-    setMonitorTime: async function (monitorId, responseTime, responseStatus, status) {
-        return await postApi(`probe/setTime/${monitorId}`, { responseTime, responseStatus, status });
+    setMonitorTime: async function(
+        monitorId,
+        responseTime,
+        responseStatus,
+        status
+    ) {
+        return await postApi(`probe/setTime/${monitorId}`, {
+            responseTime,
+            responseStatus,
+            status,
+        });
     },
-    getMonitorTime: async function (monitorId, date) {
+    getMonitorTime: async function(monitorId, date) {
         return await postApi(`probe/getTime/${monitorId}`, { date });
     },
-    ping: async function (monitorId, data) {
+    ping: async function(monitorId, data) {
         return await postApi(`probe/ping/${monitorId}`, data);
-    }
+    },
 };

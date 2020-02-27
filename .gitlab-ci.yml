@@ -15,8 +15,25 @@ stages:
   - RollbackIfSmokeTestFail
   - CleanUp
 
-#BACKEND
-lint_n_audit_backend:
+# Run lint all projects
+lint-projects:
+  stage: BuildAndTest
+  allow_failure: true
+  script:
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
+    - npm ci
+    - npm run lint
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
+# BACKEND
+audit_backend:
   stage: BuildAndTest
   allow_failure: true
   script:
@@ -27,7 +44,6 @@ lint_n_audit_backend:
     - sudo apt-get install -y nodejs
     - cd backend
     - npm ci
-    - npm run lint
     - npm run audit
     - npm run dep-check
     - cd ..
@@ -52,7 +68,7 @@ build_n_test_backend:
       - hotfix-master
       - hotfix-release
 ##DASHBOARD
-lint_n_audit_dashboard:
+audit_dashboard:
   stage: BuildAndTest
   script:
     - sudo apt-get update
@@ -62,7 +78,6 @@ lint_n_audit_dashboard:
     - sudo apt-get install -y nodejs
     - cd dashboard
     - npm ci
-    - npm run lint
     - npm run audit
     - npm run dep-check
     - cd ..
@@ -100,7 +115,7 @@ build_n_test_dashboard:
       - hotfix-release
 
 ##HTTP_TEST_SERVER
-lint_n_audit_http_test_server:
+audit_http_test_server:
   stage: BuildAndTest
   script:
     - sudo apt-get update
@@ -110,7 +125,6 @@ lint_n_audit_http_test_server:
     - sudo apt-get install -y nodejs
     - cd http-test-server
     - npm ci
-    - npm run lint
     - npm run audit
     - npm run dep-check
     - cd ..
@@ -137,7 +151,7 @@ build_n_test_http_test_server:
       - hotfix-release
 
 ##ADMINDASHBOARD
-lint_n_audit_admin-dashboard:
+audit_admin-dashboard:
   stage: BuildAndTest
   allow_failure: true
   script:
@@ -148,7 +162,6 @@ lint_n_audit_admin-dashboard:
     - sudo apt-get install -y nodejs
     - cd admin-dashboard
     - npm ci
-    - npm run lint
     - npm run audit
     - npm run dep-check
     - cd ..
@@ -172,7 +185,7 @@ build_n_test_admin-dashboard:
       - hotfix-release
 
 ##ZAPIER
-lint_n_audit_zapier:
+audit_zapier:
   stage: BuildAndTest
   allow_failure: true
   script:
@@ -183,7 +196,6 @@ lint_n_audit_zapier:
     - sudo apt-get install -y nodejs
     - cd zapier
     - npm ci
-    - npm run lint
     - npm run audit
     - npm run dep-check
     - cd ..
@@ -202,7 +214,7 @@ build_n_test_zapier:
       - hotfix-release
 
 ## STATUS PAGE
-lint_n_audit_statuspage:
+audit_statuspage:
   stage: BuildAndTest
   allow_failure: true
   script:
@@ -213,7 +225,6 @@ lint_n_audit_statuspage:
     - sudo apt-get install -y nodejs
     - cd status-page
     - npm ci
-    - npm run lint
     - npm run audit
     - npm run dep-check
     - cd ..
@@ -254,7 +265,7 @@ build_n_test_statuspage:
       - hotfix-release
 
 ## ACCOUNTS
-lint_n_audit_accounts:
+audit_accounts:
   stage: BuildAndTest
   allow_failure: true
   script:
@@ -265,7 +276,6 @@ lint_n_audit_accounts:
     - sudo apt-get install -y nodejs
     - cd accounts
     - npm ci
-    - npm run lint
     - npm run audit
     - npm run dep-check
     - cd ..
@@ -362,7 +372,7 @@ build_n_test_accounts:
       - hotfix-release
 
 ## HOME
-lint_n_audit_home:
+audit_home:
   stage: BuildAndTest
   allow_failure: true
   script:
@@ -373,7 +383,6 @@ lint_n_audit_home:
     - sudo apt-get install -y nodejs
     - cd home
     - npm ci
-    - npm run lint
     - npm run audit
     - npm run dep-check
     - cd ..
@@ -435,7 +444,7 @@ build_n_test_home:
       - hotfix-release
 
 ## SLACK
-lint_n_audit_slack:
+audit_slack:
   stage: BuildAndTest
   allow_failure: true
   script:
@@ -446,7 +455,6 @@ lint_n_audit_slack:
     - sudo apt-get install -y nodejs
     - cd slack
     - npm ci
-    - npm run lint
     - npm run audit
     - cd ..
   except:
@@ -464,7 +472,7 @@ build_n_test_slack:
       - hotfix-release
 
 ## PROBE
-lint_n_audit_probe:
+audit_probe:
   stage: BuildAndTest
   allow_failure: true
   script:
@@ -475,7 +483,6 @@ lint_n_audit_probe:
     - sudo apt-get install -y nodejs
     - cd probe
     - npm ci
-    - npm run lint
     - npm run audit
     - npm run dep-check
     - cd ..
@@ -494,7 +501,7 @@ build_n_test_probe:
       - hotfix-release
 
 ## SERVER MONITOR
-lint_n_audit_server-monitor:
+audit_server-monitor:
   stage: BuildAndTest
   allow_failure: true
   script:
@@ -505,7 +512,6 @@ lint_n_audit_server-monitor:
     - sudo apt-get install -y nodejs
     - cd server-monitor
     - npm ci
-    - npm run lint
     - npm run audit
     - npm run dep-check
     - cd ..

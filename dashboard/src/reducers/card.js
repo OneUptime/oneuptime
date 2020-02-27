@@ -5,40 +5,38 @@ const initialState = {
         requesting: false,
         error: null,
         success: false,
-        card: {}
+        card: {},
     },
     fetchCards: {
         requesting: false,
         error: null,
         success: false,
-        cards: []
+        cards: [],
     },
     deleteCard: {
         requesting: false,
         error: null,
         success: false,
-        card: {}
+        card: {},
     },
     setDefaultCard: {
         requesting: false,
         requestingCardId: null,
         error: null,
         success: false,
-        card: {}
-    }
+        card: {},
+    },
 };
-
 
 export default function card(state = initialState, action) {
     switch (action.type) {
-
         case types.ADD_CARD_REQUEST:
             return Object.assign({}, state, {
                 ...state,
                 addCard: {
                     ...state.addCard,
-                    requesting: true
-                }
+                    requesting: true,
+                },
             });
 
         case types.ADD_CARD_SUCCESS:
@@ -48,12 +46,12 @@ export default function card(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    card: action.payload
+                    card: action.payload,
                 },
                 fetchCards: {
                     ...state.fetchCards,
-                    cards: state.fetchCards.cards.concat(action.payload)
-                }
+                    cards: state.fetchCards.cards.concat(action.payload),
+                },
             });
 
         case types.ADD_CARD_FAILED:
@@ -62,8 +60,8 @@ export default function card(state = initialState, action) {
                 addCard: {
                     requesting: false,
                     success: false,
-                    error: action.payload
-                }
+                    error: action.payload,
+                },
             });
 
         case types.FETCH_CARDS_REQUEST:
@@ -71,8 +69,8 @@ export default function card(state = initialState, action) {
                 ...state,
                 fetchCards: {
                     ...state.fetchCards,
-                    requesting: true
-                }
+                    requesting: true,
+                },
             });
 
         case types.FETCH_CARDS_SUCCESS:
@@ -81,15 +79,15 @@ export default function card(state = initialState, action) {
                 fetchCards: {
                     ...state.fetchCards,
                     requesting: false,
-                    success: true, 
+                    success: true,
                     error: null,
-                    cards: action.payload.sort(function(a, b){
-                        if(a.id > b.id){
-                            return -1
+                    cards: action.payload.sort(function(a, b) {
+                        if (a.id > b.id) {
+                            return -1;
                         }
-                        return 1
-                    })
-                }
+                        return 1;
+                    }),
+                },
             });
 
         case types.FETCH_CARDS_FAILED:
@@ -98,8 +96,8 @@ export default function card(state = initialState, action) {
                 fetchCards: {
                     ...state.fetchCards,
                     requesting: false,
-                    error: action.payload
-                }
+                    error: action.payload,
+                },
             });
 
         case types.DELETE_CARD_REQUEST:
@@ -107,8 +105,8 @@ export default function card(state = initialState, action) {
                 ...state,
                 deleteCard: {
                     ...state.deleteCard,
-                    requesting: true
-                }
+                    requesting: true,
+                },
             });
 
         case types.DELETE_CARD_SUCCESS:
@@ -117,17 +115,17 @@ export default function card(state = initialState, action) {
                 deleteCard: {
                     ...state.deleteCard,
                     requesting: false,
-                    success: true
+                    success: true,
                 },
                 fetchCards: {
                     ...state.fetchCards,
                     cards: state.fetchCards.cards.filter(card => {
                         if (action.payload.id === card.id) {
-                            return false
+                            return false;
                         }
-                        return true
-                    })
-                }
+                        return true;
+                    }),
+                },
             });
 
         case types.DELETE_CARD_FAILED:
@@ -137,8 +135,8 @@ export default function card(state = initialState, action) {
                     ...state.deleteCard,
                     requesting: false,
                     success: false,
-                    error: action.payload
-                }
+                    error: action.payload,
+                },
             });
 
         case types.SET_DEFAULT_CARD_REQUEST:
@@ -147,8 +145,8 @@ export default function card(state = initialState, action) {
                 setDefaultCard: {
                     ...state.setDefaultCard,
                     requesting: true,
-                    requestingCardId: action.payload.cardId
-                }
+                    requestingCardId: action.payload.cardId,
+                },
             });
 
         case types.SET_DEFAULT_CARD_SUCCESS:
@@ -158,8 +156,8 @@ export default function card(state = initialState, action) {
                     ...state.setDefaultCard,
                     requesting: false,
                     card: action.payload,
-                    requestingCardId: null
-                }
+                    requestingCardId: null,
+                },
             });
 
         case types.SET_DEFAULT_CARD_FAILED:
@@ -169,8 +167,8 @@ export default function card(state = initialState, action) {
                     ...state.setDefaultCard,
                     requesting: false,
                     error: action.payload,
-                    requestingCardId: null
-                }
+                    requestingCardId: null,
+                },
             });
 
         default:

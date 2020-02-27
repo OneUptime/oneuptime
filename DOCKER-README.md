@@ -19,7 +19,6 @@ is referred to as the “Fyipe Software” and a license for Fyipe Software is a
 
 You may not use the Container Image if you do not have a corresponding version and edition of the Fyipe License. Certain restrictions and additional terms may apply, which are described herein. If licensing terms herein conflict with Fyipe License, then this Supplemental License shall govern with respect to the Container Image. BY ACCEPTING THIS SUPPLEMENTAL LICENSE OR USING THE CONTAINER IMAGE, YOU AGREE TO ALL OF THESE TERMS. IF YOU DO NOT ACCEPT AND COMPLY WITH THESE TERMS, YOU MAY NOT USE THE CONTAINER IMAGE.
 
-
 LICENSE TERMS
 
 Fyipe License. The Fyipe License terms apply to your use of the Container Image and any Fyipe container(s) created with the Container Image which are distinct and separate from a virtual machine.
@@ -32,7 +31,7 @@ ADDITIONAL TERMS
 
 Fyipe Software - When running a Container Image on Client Fyipe Software you may run any number of the Container Image instantiated as Fyipe containers for test or development purposes only. You may not use these Fyipe containers in a production environment.
 
-Third Party Software. The Container Image may include third party applications that are licensed to you under this Supplemental License or under their own terms. 
+Third Party Software. The Container Image may include third party applications that are licensed to you under this Supplemental License or under their own terms.
 
 Open Source Components. The Container Image may contain third party copyrighted software licensed under open source licenses.
 

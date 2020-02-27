@@ -15,7 +15,7 @@ const puppeteerLaunchConfig = {
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
-        '--disable-web-security'
+        '--disable-web-security',
     ],
 };
 
@@ -23,23 +23,42 @@ const user = faker.helpers.createCard();
 const cvv = '542';
 const expiryDate = '09/2020';
 
-
 function generateWrongEmail() {
-    return Math.random().toString(36).substring(8) + '@' + Math.random().toString(24).substring(8) + '.com';
+    return (
+        Math.random()
+            .toString(36)
+            .substring(8) +
+        '@' +
+        Math.random()
+            .toString(24)
+            .substring(8) +
+        '.com'
+    );
 }
 
 function generateRandomWebsite() {
-    return 'http://' + Math.random().toString(36).substring(10) + '.com';
+    return (
+        'http://' +
+        Math.random()
+            .toString(36)
+            .substring(10) +
+        '.com'
+    );
 }
 
 function generateRandomString() {
-    return Math.random().toString(36).substring(10)
+    return Math.random()
+        .toString(36)
+        .substring(10);
 }
 
 function generateRandomBusinessEmail() {
-    return `${Math.random().toString(36).substring(7)}@${Math.random().toString(36).substring(5)}.com`;
+    return `${Math.random()
+        .toString(36)
+        .substring(7)}@${Math.random()
+        .toString(36)
+        .substring(5)}.com`;
 }
-
 
 const cardNumber = '4111111111111111';
 
@@ -75,5 +94,5 @@ module.exports = {
     updatedScheduledEventDescription,
     generateRandomString,
     generateRandomBusinessEmail,
-    generateRandomWebsite
+    generateRandomWebsite,
 };

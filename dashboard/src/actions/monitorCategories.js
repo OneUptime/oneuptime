@@ -5,31 +5,37 @@ import errors from '../errors';
 export function fetchMonitorCategories(projectId, skip, limit) {
     skip = parseInt(skip);
     limit = parseInt(limit);
-    return function (dispatch) {
+    return function(dispatch) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
-            promise = getApi(`monitorCategory/${projectId}?skip=${skip}&limit=${limit}`);
+            promise = getApi(
+                `monitorCategory/${projectId}?skip=${skip}&limit=${limit}`
+            );
         } else {
-            promise = getApi(`monitorCategory/${projectId}?skip=${0}&limit=${10}`);
+            promise = getApi(
+                `monitorCategory/${projectId}?skip=${0}&limit=${10}`
+            );
         }
         dispatch(fetchMonitorCategoriesRequest());
 
-        promise.then(function (monitorCategories) {
-            dispatch(fetchMonitorCategoriesSuccess(monitorCategories.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(monitorCategories) {
+                dispatch(fetchMonitorCategoriesSuccess(monitorCategories.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchMonitorCategoriesFailure(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(fetchMonitorCategoriesFailure(errors(error)));
-        });
+        );
         return promise;
     };
 }
@@ -37,7 +43,7 @@ export function fetchMonitorCategories(projectId, skip, limit) {
 export function fetchMonitorCategoriesSuccess(monitorCategories) {
     return {
         type: types.FETCH_MONITOR_CATEGORIES_SUCCESS,
-        payload: monitorCategories
+        payload: monitorCategories,
     };
 }
 
@@ -50,61 +56,67 @@ export function fetchMonitorCategoriesRequest() {
 export function fetchMonitorCategoriesFailure(error) {
     return {
         type: types.FETCH_MONITOR_CATEGORIES_FAILURE,
-        payload: error
+        payload: error,
     };
 }
 
-
-
 export function createMonitorCategory(projectId, values) {
-
-    return function (dispatch) {
+    return function(dispatch) {
         const promise = postApi(`monitorCategory/${projectId}`, values);
         dispatch(createMonitorCategoryRequest());
 
-        promise.then(function (monitorCategory) {
-            dispatch(createMonitorCategorySuccess(monitorCategory.data));
-        }, function (error) {
-            if (error && error.response && error.response.data) {
-                error = error.response.data;
+        promise.then(
+            function(monitorCategory) {
+                dispatch(createMonitorCategorySuccess(monitorCategory.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(createMonitorCategoryFailure(errors(error)));
             }
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(createMonitorCategoryFailure(errors(error)));
-        });
+        );
         return promise;
     };
 }
 
-export function updateMonitorCategory(projectId, monitorCategoryId,values) {
-    return function (dispatch) {
-        const promise = putApi(`monitorCategory/${projectId}/${monitorCategoryId}`, values);
+export function updateMonitorCategory(projectId, monitorCategoryId, values) {
+    return function(dispatch) {
+        const promise = putApi(
+            `monitorCategory/${projectId}/${monitorCategoryId}`,
+            values
+        );
         dispatch(updateMonitorCategoryRequest());
 
-        promise.then(function (updatedMonitorCategory) {
-            dispatch(updateMonitorCategorySuccess(updatedMonitorCategory.data));
-        }, function (error) {
-            if (error && error.response && error.response.data) {
-                error = error.response.data;
+        promise.then(
+            function(updatedMonitorCategory) {
+                dispatch(
+                    updateMonitorCategorySuccess(updatedMonitorCategory.data)
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateMonitorCategoryFailure(errors(error)));
             }
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(updateMonitorCategoryFailure(errors(error)));
-        });
+        );
         return promise;
     };
 }
@@ -112,7 +124,7 @@ export function updateMonitorCategory(projectId, monitorCategoryId,values) {
 export function createMonitorCategorySuccess(newMonitorCategory) {
     return {
         type: types.CREATE_MONITOR_CATEGORY_SUCCESS,
-        payload: newMonitorCategory
+        payload: newMonitorCategory,
     };
 }
 
@@ -125,7 +137,7 @@ export function createMonitorCategoryRequest() {
 export function createMonitorCategoryFailure(error) {
     return {
         type: types.CREATE_MONITOR_CATEGORY_FAILURE,
-        payload: error
+        payload: error,
     };
 }
 
@@ -138,40 +150,46 @@ export function updateMonitorCategoryRequest() {
 export function updateMonitorCategorySuccess(updatedMonitorCategory) {
     return {
         type: types.UPDATE_MONITOR_CATEGORY_SUCCESS,
-        payload: updatedMonitorCategory
+        payload: updatedMonitorCategory,
     };
 }
 
 export function updateMonitorCategoryFailure(error) {
     return {
         type: types.UPDATE_MONITOR_CATEGORY_FAILURE,
-        payload: error
+        payload: error,
     };
 }
 
 export function deleteMonitorCategory(monitorCategoryId, projectId) {
-    return function (dispatch) {
-
-        const promise = deleteApi(`monitorCategory/${projectId}/${monitorCategoryId}`);
+    return function(dispatch) {
+        const promise = deleteApi(
+            `monitorCategory/${projectId}/${monitorCategoryId}`
+        );
         dispatch(deleteMonitorCategoryRequest(monitorCategoryId));
 
-        promise.then(function (monitorCategory) {
-
-            dispatch(deleteMonitorCategorySuccess(monitorCategory.data._id));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(monitorCategory) {
+                dispatch(
+                    deleteMonitorCategorySuccess(monitorCategory.data._id)
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    deleteMonitorCategoryFailure({ error: errors(error) })
+                );
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(deleteMonitorCategoryFailure({ error: errors(error) }));
-        });
+        );
         return promise;
     };
 }
@@ -179,7 +197,7 @@ export function deleteMonitorCategory(monitorCategoryId, projectId) {
 export function deleteMonitorCategorySuccess(removedMonitorCategoryId) {
     return {
         type: types.DELETE_MONITOR_CATEGORY_SUCCESS,
-        payload: removedMonitorCategoryId
+        payload: removedMonitorCategoryId,
     };
 }
 
@@ -193,32 +211,39 @@ export function deleteMonitorCategoryRequest(monitorCategoryId) {
 export function deleteMonitorCategoryFailure(error) {
     return {
         type: types.DELETE_MONITOR_CATEGORY_FAILURE,
-        payload: error
+        payload: error,
     };
 }
 
 export function fetchMonitorCategoriesForNewMonitor(projectId) {
-
-    return function (dispatch) {
+    return function(dispatch) {
         const promise = getApi(`monitorCategory/${projectId}`);
         dispatch(fetchMonitorCategoriesForNewMonitorRequest());
 
-        promise.then(function (monitorCategories) {
-            dispatch(fetchMonitorCategoriesForNewMonitorSuccess(monitorCategories.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(monitorCategories) {
+                dispatch(
+                    fetchMonitorCategoriesForNewMonitorSuccess(
+                        monitorCategories.data
+                    )
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    fetchMonitorCategoriesForNewMonitorFailure(errors(error))
+                );
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(fetchMonitorCategoriesForNewMonitorFailure(errors(error)));
-        });
+        );
         return promise;
     };
 }
@@ -226,7 +251,7 @@ export function fetchMonitorCategoriesForNewMonitor(projectId) {
 export function fetchMonitorCategoriesForNewMonitorSuccess(monitorCategories) {
     return {
         type: types.FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_SUCCESS,
-        payload: monitorCategories
+        payload: monitorCategories,
     };
 }
 
@@ -239,7 +264,6 @@ export function fetchMonitorCategoriesForNewMonitorRequest() {
 export function fetchMonitorCategoriesForNewMonitorFailure(error) {
     return {
         type: types.FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_FAILURE,
-        payload: error
+        payload: error,
     };
 }
-

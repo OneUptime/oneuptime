@@ -1,3 +1,4 @@
-print("Initiate the replica set")
+/* eslint-disable no-undef */
+print('Initiate the replica set');
 
-rs.initiate()
+rs.initiate();

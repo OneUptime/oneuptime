@@ -2,16 +2,18 @@ const utils = require('./test-utils');
 
 module.exports = {
     /**
-     * 
-     * @param { ObjectConstructor } user 
-     * @param { string } page 
+     *
+     * @param { ObjectConstructor } user
+     * @param { string } page
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function (user, page) {
+    registerUser: async function(user, page) {
         const { email } = user;
         let frame, elementHandle;
-        await page.goto(utils.ACCOUNTS_URL + '/register', { waitUntil: 'networkidle2' });
+        await page.goto(utils.ACCOUNTS_URL + '/register', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
@@ -38,21 +40,21 @@ module.exports = {
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=cardnumber]');
         await frame.type('input[name=cardnumber]', '42424242424242424242', {
-            delay: 50
+            delay: 50,
         });
 
         elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=cvc]');
         await frame.type('input[name=cvc]', '123', {
-            delay: 50
+            delay: 50,
         });
 
         elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
         frame = await elementHandle.contentFrame();
         await frame.waitForSelector('input[name=exp-date]');
         await frame.type('input[name=exp-date]', '11/23', {
-            delay: 50
+            delay: 50,
         });
         await page.click('input[name=address1]');
         await page.type('input[name=address1]', utils.user.address.streetA);
@@ -68,9 +70,11 @@ module.exports = {
         await page.click('button[type=submit]');
         await page.waitFor(25000);
     },
-    loginUser: async function (user, page) {
+    loginUser: async function(user, page) {
         const { email, password } = user;
-        await page.goto(utils.ACCOUNTS_URL + '/login', { waitUntil: 'networkidle2' });
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
@@ -79,7 +83,7 @@ module.exports = {
         await page.click('button[type=submit]');
         await page.waitFor(15000);
     },
-    selectByText: async function (selector, text, page) {
+    selectByText: async function(selector, text, page) {
         await page.click(selector);
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');

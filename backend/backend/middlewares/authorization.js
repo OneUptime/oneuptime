@@ -13,12 +13,11 @@ module.exports = {
     // Params:
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
-    isAuthorized: function (req, res, next) {
-        if(hasProjectIdAndApiKey(req, res)){
-            isValidProjectIdAndApiKey(req,res,next);
-        }else{
-            doesUserBelongToProject(req,res,next);
+    isAuthorized: function(req, res, next) {
+        if (hasProjectIdAndApiKey(req, res)) {
+            isValidProjectIdAndApiKey(req, res, next);
+        } else {
+            doesUserBelongToProject(req, res, next);
         }
-    }
-
+    },
 };

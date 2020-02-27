@@ -37,15 +37,11 @@ const App = {
 
     authentication: authentication,
 
-    beforeRequest: [
-        includeApiKey
-    ],
+    beforeRequest: [includeApiKey],
 
-    afterResponse: [
-    ],
+    afterResponse: [],
 
-    resources: {
-    },
+    resources: {},
 
     // If you want your trigger to show up, you better include it here!
     triggers: {
@@ -53,12 +49,11 @@ const App = {
         [resolvedTrigger.key]: resolvedTrigger,
         [monitorTrigger.key]: monitorTrigger,
         [acknowledgeTrigger.key]: acknowledgeTrigger,
-        [incidentsTrigger.key]: incidentsTrigger
+        [incidentsTrigger.key]: incidentsTrigger,
     },
 
     // If you want your searches to show up, you better include it here!
-    searches: {
-    },
+    searches: {},
 
     // If you want your creates to show up, you better include it here!
     creates: {
@@ -69,7 +64,7 @@ const App = {
         [resolveAllIncidentsAction.key]: resolveAllIncidentsAction,
         [acknowledgeIncidentAction.key]: acknowledgeIncidentAction,
         [resolveIncidentAction.key]: resolveIncidentAction,
-    }
+    },
 };
 
 // Finally, export the app.

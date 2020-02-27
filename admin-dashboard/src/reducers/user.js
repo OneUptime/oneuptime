@@ -3,43 +3,35 @@ import {
     FETCH_USERS_SUCCESS,
     FETCH_USERS_FAILURE,
     FETCH_USERS_RESET,
-
     FETCH_USER_REQUEST,
     FETCH_USER_SUCCESS,
     FETCH_USER_FAILURE,
     FETCH_USER_RESET,
-
     UPDATE_USER_SETTING_REQUEST,
     UPDATE_USER_SETTING_SUCCESS,
     UPDATE_USER_SETTING_FAILURE,
     UPDATE_USER_SETTING_RESET,
-
     DELETE_USER_FAILED,
     DELETE_USER_REQUEST,
     DELETE_USER_RESET,
     DELETE_USER_SUCCESS,
-
     RESTORE_USER_FAILED,
     RESTORE_USER_REQUEST,
     RESTORE_USER_RESET,
     RESTORE_USER_SUCCESS,
-
     BLOCK_USER_FAILED,
     BLOCK_USER_REQUEST,
     BLOCK_USER_RESET,
     BLOCK_USER_SUCCESS,
-
     UNBLOCK_USER_FAILED,
     UNBLOCK_USER_REQUEST,
     UNBLOCK_USER_RESET,
     UNBLOCK_USER_SUCCESS,
-
-    ADD_USER_NOTE_REQUEST, 
+    ADD_USER_NOTE_REQUEST,
     ADD_USER_NOTE_RESET,
     ADD_USER_NOTE_SUCCESS,
     ADD_USER_NOTE_FAILURE,
-
-    SEARCH_USERS_REQUEST, 
+    SEARCH_USERS_REQUEST,
     SEARCH_USERS_RESET,
     SEARCH_USERS_SUCCESS,
     SEARCH_USERS_FAILURE,
@@ -53,39 +45,39 @@ const INITIAL_STATE = {
         users: [],
         count: null,
         limit: null,
-        skip: null
+        skip: null,
     },
     user: {
         error: null,
         requesting: false,
         success: false,
-        user: null
+        user: null,
     },
     userSetting: {
         error: null,
         requesting: false,
         success: false,
-        data: {}
+        data: {},
     },
     deleteUser: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     restoreUser: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     blockUser: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     unblockUser: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     newUserNote: {
         requesting: false,
@@ -95,24 +87,20 @@ const INITIAL_STATE = {
     searchUsers: {
         requesting: false,
         error: null,
-        success: false
-    }
+        success: false,
+    },
 };
 
 export default function user(state = INITIAL_STATE, action) {
-
     switch (action.type) {
-
         // fetch users list
         case FETCH_USERS_REQUEST:
-
             return Object.assign({}, state, {
                 users: {
                     requesting: true,
                     error: null,
                     success: false,
                 },
-
             });
 
         case FETCH_USERS_SUCCESS:
@@ -124,12 +112,11 @@ export default function user(state = INITIAL_STATE, action) {
                     users: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
+                    skip: action.payload.skip,
                 },
             });
 
         case FETCH_USERS_FAILURE:
-
             return Object.assign({}, state, {
                 users: {
                     requesting: false,
@@ -139,15 +126,12 @@ export default function user(state = INITIAL_STATE, action) {
             });
 
         case FETCH_USERS_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
-        
         // fetch a user
         case FETCH_USER_REQUEST:
-
             return Object.assign({}, state, {
                 user: {
                     requesting: true,
@@ -155,7 +139,6 @@ export default function user(state = INITIAL_STATE, action) {
                     success: false,
                     user: state.user.user,
                 },
-
             });
 
         case FETCH_USER_SUCCESS:
@@ -169,7 +152,6 @@ export default function user(state = INITIAL_STATE, action) {
             });
 
         case FETCH_USER_FAILURE:
-
             return Object.assign({}, state, {
                 user: {
                     requesting: false,
@@ -180,23 +162,18 @@ export default function user(state = INITIAL_STATE, action) {
             });
 
         case FETCH_USER_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
-                
-
 
         //update user setting
         case UPDATE_USER_SETTING_REQUEST:
-
             return Object.assign({}, state, {
                 userSetting: {
                     requesting: true,
                     error: null,
                     success: false,
                 },
-
             });
 
         case UPDATE_USER_SETTING_SUCCESS:
@@ -205,21 +182,22 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    data: action.payload
+                    data: action.payload,
                 },
                 users: {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: state.users.users.map(user => user._id === action.payload._id ? action.payload : user),
+                    users: state.users.users.map(user =>
+                        user._id === action.payload._id ? action.payload : user
+                    ),
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
-                }
+                    skip: action.payload.skip,
+                },
             });
 
         case UPDATE_USER_SETTING_FAILURE:
-
             return Object.assign({}, state, {
                 userSetting: {
                     requesting: false,
@@ -229,24 +207,23 @@ export default function user(state = INITIAL_STATE, action) {
             });
 
         case UPDATE_USER_SETTING_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
-        
+
         case DELETE_USER_SUCCESS:
             return Object.assign({}, state, {
                 deleteUser: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 user: {
                     requesting: false,
                     error: null,
                     success: true,
                     user: action.payload,
-                }
+                },
             });
 
         case DELETE_USER_REQUEST:
@@ -254,8 +231,8 @@ export default function user(state = INITIAL_STATE, action) {
                 deleteUser: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case DELETE_USER_FAILED:
@@ -264,7 +241,7 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case DELETE_USER_RESET:
@@ -273,7 +250,7 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case RESTORE_USER_SUCCESS:
@@ -281,14 +258,14 @@ export default function user(state = INITIAL_STATE, action) {
                 restoreUser: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    user: action.payload
-                }
+                    user: action.payload,
+                },
             });
 
         case RESTORE_USER_REQUEST:
@@ -296,8 +273,8 @@ export default function user(state = INITIAL_STATE, action) {
                 restoreUser: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case RESTORE_USER_FAILED:
@@ -306,7 +283,7 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case RESTORE_USER_RESET:
@@ -315,7 +292,7 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case BLOCK_USER_SUCCESS:
@@ -323,23 +300,23 @@ export default function user(state = INITIAL_STATE, action) {
                 blockUser: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    user: action.payload
-                }
+                    user: action.payload,
+                },
             });
-    
+
         case BLOCK_USER_REQUEST:
             return Object.assign({}, state, {
                 blockUser: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case BLOCK_USER_FAILED:
@@ -348,7 +325,7 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case BLOCK_USER_RESET:
@@ -357,7 +334,7 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case UNBLOCK_USER_SUCCESS:
@@ -365,14 +342,14 @@ export default function user(state = INITIAL_STATE, action) {
                 unblockUser: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 user: {
                     requesting: false,
                     error: null,
                     success: true,
-                    user: action.payload
-                }
+                    user: action.payload,
+                },
             });
 
         case UNBLOCK_USER_REQUEST:
@@ -380,8 +357,8 @@ export default function user(state = INITIAL_STATE, action) {
                 unblockUser: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case UNBLOCK_USER_FAILED:
@@ -390,7 +367,7 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case UNBLOCK_USER_RESET:
@@ -399,18 +376,16 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
-            // add user admin notes
+        // add user admin notes
         case ADD_USER_NOTE_REQUEST:
-
             return Object.assign({}, state, {
                 newUserNote: {
                     requesting: true,
                     error: null,
                     success: false,
                 },
-
             });
 
         case ADD_USER_NOTE_SUCCESS:
@@ -419,23 +394,25 @@ export default function user(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: state.users.users.map(user=> {
-                        user.adminNotes = user._id === action.payload.projectId ? action.payload.notes : user.adminNotes;
+                    users: state.users.users.map(user => {
+                        user.adminNotes =
+                            user._id === action.payload.projectId
+                                ? action.payload.notes
+                                : user.adminNotes;
                         return user;
                     }),
                     count: state.users.count,
                     limit: state.users.limit,
-                    skip: state.users.skip
+                    skip: state.users.skip,
                 },
-                newUserNote:{
+                newUserNote: {
                     requesting: false,
                     error: null,
-                    success: true
-                }
+                    success: true,
+                },
             });
 
         case ADD_USER_NOTE_FAILURE:
-
             return Object.assign({}, state, {
                 newUserNote: {
                     requesting: false,
@@ -445,21 +422,18 @@ export default function user(state = INITIAL_STATE, action) {
             });
 
         case ADD_USER_NOTE_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         // search users list
         case SEARCH_USERS_REQUEST:
-
             return Object.assign({}, state, {
                 searchUsers: {
                     requesting: true,
                     error: null,
                     success: false,
                 },
-
             });
 
         case SEARCH_USERS_SUCCESS:
@@ -471,17 +445,16 @@ export default function user(state = INITIAL_STATE, action) {
                     users: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
+                    skip: action.payload.skip,
                 },
                 searchUsers: {
                     requesting: false,
                     error: null,
                     success: true,
-                }
+                },
             });
 
         case SEARCH_USERS_FAILURE:
-
             return Object.assign({}, state, {
                 searchUsers: {
                     requesting: false,
@@ -491,12 +464,11 @@ export default function user(state = INITIAL_STATE, action) {
             });
 
         case SEARCH_USERS_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
-
-        default: return state;
+        default:
+            return state;
     }
 }

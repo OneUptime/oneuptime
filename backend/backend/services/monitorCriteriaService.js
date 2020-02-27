@@ -1,81 +1,333 @@
 /* eslint-disable linebreak-style */
 const MonitorCriteriaService = {
-    getCriteria: function () {
+    getCriteria: function() {
         return {
             url: {
                 up_1000: [
-                    { match: 'all', responseType: 'statusCode', filter: 'gtEqualTo', field1: '200', field2: '', field3: false },
-                    { responseType: 'statusCode', filter: 'lessThan', field1: '300', field2: '', field3: false },
-                    { responseType: 'doesRespond', filter: 'isUp', field1: '', field2: '', field3: false },
-                    { responseType: 'responseTime', filter: 'ltEqualTo', field1: '5000', field2: '', field3: false }
-                ], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
+                    {
+                        match: 'all',
+                        responseType: 'statusCode',
+                        filter: 'gtEqualTo',
+                        field1: '200',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'statusCode',
+                        filter: 'lessThan',
+                        field1: '300',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'doesRespond',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'responseTime',
+                        filter: 'ltEqualTo',
+                        field1: '5000',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                up_1000_createAlert: false,
+                up_1000_autoAcknowledge: false,
+                up_1000_autoResolve: false,
                 down_1000: [
-                    { match: 'any', responseType: 'doesRespond', filter: 'isDown', field1: '', field2: '', field3: false },
-                    { responseType: 'statusCode', filter: 'gtEqualTo', field1: '400', field2: '', field3: false }
-                ], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
+                    {
+                        match: 'any',
+                        responseType: 'doesRespond',
+                        filter: 'isDown',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'statusCode',
+                        filter: 'gtEqualTo',
+                        field1: '400',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                down_1000_createAlert: true,
+                down_1000_autoAcknowledge: true,
+                down_1000_autoResolve: true,
                 degraded_1000: [
-                    { match: 'all', responseType: 'responseTime', filter: 'greaterThan', field1: '5000', field2: '', field3: false }
-                ], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
-                type_1000: 'url'
+                    {
+                        match: 'all',
+                        responseType: 'responseTime',
+                        filter: 'greaterThan',
+                        field1: '5000',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                degraded_1000_createAlert: true,
+                degraded_1000_autoAcknowledge: true,
+                degraded_1000_autoResolve: true,
+                type_1000: 'url',
             },
             api: {
                 up_1000: [
-                    { match: 'all', responseType: 'statusCode', filter: 'gtEqualTo', field1: '200', field2: '', field3: false },
-                    { responseType: 'statusCode', filter: 'lessThan', field1: '300', field2: '', field3: false },
-                    { responseType: 'doesRespond', filter: 'isUp', field1: '', field2: '', field3: false },
-                    { responseType: 'responseTime', filter: 'ltEqualTo', field1: '5000', field2: '', field3: false }
-                ], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
+                    {
+                        match: 'all',
+                        responseType: 'statusCode',
+                        filter: 'gtEqualTo',
+                        field1: '200',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'statusCode',
+                        filter: 'lessThan',
+                        field1: '300',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'doesRespond',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'responseTime',
+                        filter: 'ltEqualTo',
+                        field1: '5000',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                up_1000_createAlert: false,
+                up_1000_autoAcknowledge: false,
+                up_1000_autoResolve: false,
                 down_1000: [
-                    { match: 'any', responseType: 'doesRespond', filter: 'isDown', field1: '', field2: '', field3: false },
-                    { responseType: 'statusCode', filter: 'gtEqualTo', field1: '400', field2: '', field3: false }
-                ], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
+                    {
+                        match: 'any',
+                        responseType: 'doesRespond',
+                        filter: 'isDown',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'statusCode',
+                        filter: 'gtEqualTo',
+                        field1: '400',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                down_1000_createAlert: true,
+                down_1000_autoAcknowledge: true,
+                down_1000_autoResolve: true,
                 degraded_1000: [
-                    { match: 'all', responseType: 'responseTime', filter: 'greaterThan', field1: '5000', field2: '', field3: false }
-                ], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
-                type_1000: 'api'
+                    {
+                        match: 'all',
+                        responseType: 'responseTime',
+                        filter: 'greaterThan',
+                        field1: '5000',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                degraded_1000_createAlert: true,
+                degraded_1000_autoAcknowledge: true,
+                degraded_1000_autoResolve: true,
+                type_1000: 'api',
             },
             script: {
                 up_1000: [
-                    { match: 'all', responseType: 'executes', filter: 'executesIn', field1: '5000', field2: '', field3: false },
-                    { responseType: 'error', filter: 'doesNotThrowError', field1: '', field2: '', field3: false }
-                ], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
+                    {
+                        match: 'all',
+                        responseType: 'executes',
+                        filter: 'executesIn',
+                        field1: '5000',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'error',
+                        filter: 'doesNotThrowError',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                up_1000_createAlert: false,
+                up_1000_autoAcknowledge: false,
+                up_1000_autoResolve: false,
                 down_1000: [
-                    { match: 'any', responseType: 'error', filter: 'throwsError', field1: '', field2: '', field3: false },
-                    { responseType: 'executes', filter: 'doesNotExecuteIn', field1: '15000', field2: '', field3: false }
-                ], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
+                    {
+                        match: 'any',
+                        responseType: 'error',
+                        filter: 'throwsError',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'executes',
+                        filter: 'doesNotExecuteIn',
+                        field1: '15000',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                down_1000_createAlert: true,
+                down_1000_autoAcknowledge: true,
+                down_1000_autoResolve: true,
                 degraded_1000: [
-                    { match: 'all', responseType: 'executes', filter: 'doesNotExecuteIn', field1: '5000', field2: '', field3: false },
-                    { responseType: 'error', filter: 'doesNotThrowError', field1: '', field2: '', field3: false },
-                    { responseType: 'executes', filter: 'executesIn', field1: '15000', field2: '', field3: false }
-                ], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
-                type_1000: 'script'
+                    {
+                        match: 'all',
+                        responseType: 'executes',
+                        filter: 'doesNotExecuteIn',
+                        field1: '5000',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'error',
+                        filter: 'doesNotThrowError',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'executes',
+                        filter: 'executesIn',
+                        field1: '15000',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                degraded_1000_createAlert: true,
+                degraded_1000_autoAcknowledge: true,
+                degraded_1000_autoResolve: true,
+                type_1000: 'script',
             },
             'server-monitor': {
                 up_1000: [
-                    { match: 'all', responseType: 'storageUsage', filter: 'greaterThan', field1: '10', field2: '', field3: false },
-                    { responseType: 'doesRespond', filter: 'isUp', field1: '', field2: '', field3: false }
-                ], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
+                    {
+                        match: 'all',
+                        responseType: 'storageUsage',
+                        filter: 'greaterThan',
+                        field1: '10',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'doesRespond',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                up_1000_createAlert: false,
+                up_1000_autoAcknowledge: false,
+                up_1000_autoResolve: false,
                 down_1000: [
-                    { match: 'any', responseType: 'doesRespond', filter: 'isDown', field1: '', field2: '', field3: false },
-                    { responseType: 'storageUsage', filter: 'lessThan', field1: '5', field2: '', field3: false }
-                ], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
+                    {
+                        match: 'any',
+                        responseType: 'doesRespond',
+                        filter: 'isDown',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'storageUsage',
+                        filter: 'lessThan',
+                        field1: '5',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                down_1000_createAlert: true,
+                down_1000_autoAcknowledge: true,
+                down_1000_autoResolve: true,
                 degraded_1000: [
-                    { match: 'all', responseType: 'storageUsage', filter: 'greaterThan', field1: '5', field2: '', field3: false },
-                    { responseType: 'doesRespond', filter: 'isUp', field1: '', field2: '', field3: false },
-                    { responseType: 'storageUsage', filter: 'lessThan', field1: '10', field2: '', field3: false },
-                ], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
-                type_1000: 'server-monitor'
+                    {
+                        match: 'all',
+                        responseType: 'storageUsage',
+                        filter: 'greaterThan',
+                        field1: '5',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'doesRespond',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'storageUsage',
+                        filter: 'lessThan',
+                        field1: '10',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                degraded_1000_createAlert: true,
+                degraded_1000_autoAcknowledge: true,
+                degraded_1000_autoResolve: true,
+                type_1000: 'server-monitor',
             },
             default: {
-                up_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], up_1000_createAlert: false, up_1000_autoAcknowledge: false, up_1000_autoResolve: false,
-                down_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], down_1000_createAlert: true, down_1000_autoAcknowledge: true, down_1000_autoResolve: true,
-                degraded_1000: [{ match: '', responseType: '', filter: '', field1: '', field2: '', field3: false }], degraded_1000_createAlert: true, degraded_1000_autoAcknowledge: true, degraded_1000_autoResolve: true,
-                type_1000: ''
-            }
+                up_1000: [
+                    {
+                        match: '',
+                        responseType: '',
+                        filter: '',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                up_1000_createAlert: false,
+                up_1000_autoAcknowledge: false,
+                up_1000_autoResolve: false,
+                down_1000: [
+                    {
+                        match: '',
+                        responseType: '',
+                        filter: '',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                down_1000_createAlert: true,
+                down_1000_autoAcknowledge: true,
+                down_1000_autoResolve: true,
+                degraded_1000: [
+                    {
+                        match: '',
+                        responseType: '',
+                        filter: '',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                degraded_1000_createAlert: true,
+                degraded_1000_autoAcknowledge: true,
+                degraded_1000_autoResolve: true,
+                type_1000: '',
+            },
         };
     },
 
-    create: function (monitorType) {
+    create: function(monitorType) {
         try {
             const criteria = this.getCriteria()[monitorType];
             const criteriaObj = {};
@@ -83,23 +335,43 @@ const MonitorCriteriaService = {
             if (criteria) {
                 if (criteria.up_1000 && criteria.up_1000.length) {
                     criteriaObj.up = this.makeCriteria(criteria.up_1000);
-                    criteriaObj.up.createAlert = criteria.up_1000_createAlert ? true : false;
-                    criteriaObj.up.autoAcknowledge = criteria.up_1000_autoAcknowledge ? true : false;
-                    criteriaObj.up.autoResolve = criteria.up_1000_autoResolve ? true : false;
+                    criteriaObj.up.createAlert = criteria.up_1000_createAlert
+                        ? true
+                        : false;
+                    criteriaObj.up.autoAcknowledge = criteria.up_1000_autoAcknowledge
+                        ? true
+                        : false;
+                    criteriaObj.up.autoResolve = criteria.up_1000_autoResolve
+                        ? true
+                        : false;
                 }
 
                 if (criteria.degraded_1000 && criteria.degraded_1000.length) {
-                    criteriaObj.degraded = this.makeCriteria(criteria.degraded_1000);
-                    criteriaObj.degraded.createAlert = criteria.degraded_1000_createAlert ? true : false;
-                    criteriaObj.degraded.autoAcknowledge = criteria.degraded_1000_autoAcknowledge ? true : false;
-                    criteriaObj.degraded.autoResolve = criteria.degraded_1000_autoResolve ? true : false;
+                    criteriaObj.degraded = this.makeCriteria(
+                        criteria.degraded_1000
+                    );
+                    criteriaObj.degraded.createAlert = criteria.degraded_1000_createAlert
+                        ? true
+                        : false;
+                    criteriaObj.degraded.autoAcknowledge = criteria.degraded_1000_autoAcknowledge
+                        ? true
+                        : false;
+                    criteriaObj.degraded.autoResolve = criteria.degraded_1000_autoResolve
+                        ? true
+                        : false;
                 }
 
                 if (criteria.down_1000 && criteria.down_1000.length) {
                     criteriaObj.down = this.makeCriteria(criteria.down_1000);
-                    criteriaObj.down.createAlert = criteria.down_1000_createAlert ? true : false;
-                    criteriaObj.down.autoAcknowledge = criteria.down_1000_autoAcknowledge ? true : false;
-                    criteriaObj.down.autoResolve = criteria.down_1000_autoResolve ? true : false;
+                    criteriaObj.down.createAlert = criteria.down_1000_createAlert
+                        ? true
+                        : false;
+                    criteriaObj.down.autoAcknowledge = criteria.down_1000_autoAcknowledge
+                        ? true
+                        : false;
+                    criteriaObj.down.autoResolve = criteria.down_1000_autoResolve
+                        ? true
+                        : false;
                 }
             }
 
@@ -110,7 +382,7 @@ const MonitorCriteriaService = {
         }
     },
 
-    makeCriteria: function (val) {
+    makeCriteria: function(val) {
         const val2 = {};
         const and = [];
         const or = [];
@@ -144,7 +416,7 @@ const MonitorCriteriaService = {
         return val2;
     },
 
-    mapCriteria: function (val) {
+    mapCriteria: function(val) {
         const val2 = [];
         if (val && val.and && val.and.length) {
             for (let i = 0; i < val.and.length; i++) {
@@ -161,11 +433,13 @@ const MonitorCriteriaService = {
                 if (val.and[i].field2 && val.and[i].field2.length) {
                     val3.field2 = val.and[i].field2;
                 }
-                if (val.and[i].collection && (val.and[i].collection.and || val.and[i].collection.or)) {
+                if (
+                    val.and[i].collection &&
+                    (val.and[i].collection.and || val.and[i].collection.or)
+                ) {
                     val3.field3 = true;
                     val3.collection = this.mapCriteria(val.and[i].collection);
-                }
-                else {
+                } else {
                     val3.field3 = false;
                 }
                 if (i === 0) {
@@ -174,8 +448,7 @@ const MonitorCriteriaService = {
                 val2.push(val3);
             }
             return val2;
-        }
-        else if (val && val.or && val.or.length) {
+        } else if (val && val.or && val.or.length) {
             for (let i = 0; i < val.or.length; i++) {
                 const val3 = {};
                 if (val.or[i].responseType && val.or[i].responseType.length) {
@@ -190,11 +463,13 @@ const MonitorCriteriaService = {
                 if (val.or[i].field2 && val.or[i].field2.length) {
                     val3.field2 = val.or[i].field2;
                 }
-                if (val.or[i].collection && (val.or[i].collection.and || val.or[i].collection.or)) {
+                if (
+                    val.or[i].collection &&
+                    (val.or[i].collection.and || val.or[i].collection.or)
+                ) {
                     val3.field3 = true;
                     val3.collection = this.mapCriteria(val.or[i].collection);
-                }
-                else {
+                } else {
                     val3.field3 = false;
                 }
                 if (i === 0) {
@@ -204,7 +479,7 @@ const MonitorCriteriaService = {
             }
             return val2;
         }
-    }
+    },
 };
 
 const ErrorService = require('../services/errorService');

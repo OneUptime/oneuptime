@@ -1,5 +1,5 @@
 module.exports = {
-    create: async function (data) {
+    create: async function(data) {
         const _this = this;
         const subscriberModel = new SubscriberModel();
         subscriberModel.projectId = data.projectId || null;
@@ -17,21 +17,24 @@ module.exports = {
             ErrorService.log('subscriberService.create', error);
             throw error;
         }
-        
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const updatedSubscriber = await SubscriberModel.findOneAndUpdate(query, {
-                $set: data
-            }, {
-                new: true
-            });
+            const updatedSubscriber = await SubscriberModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
             return updatedSubscriber;
         } catch (error) {
             ErrorService.log('subscriberService.updateOneBy', error);
@@ -39,7 +42,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -47,7 +50,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             let updatedData = await SubscriberModel.updateMany(query, {
-                $set: data
+                $set: data,
             });
             updatedData = await this.findBy(query);
             return updatedData;
@@ -57,17 +60,21 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query, userId) {
+    deleteBy: async function(query, userId) {
         try {
-            const subscriber = await SubscriberModel.findOneAndUpdate(query, {
-                $set: {
-                    deleted: true,
-                    deletedById: userId,
-                    deletedAt: Date.now()
+            const subscriber = await SubscriberModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
                 }
-            }, {
-                new: true
-            });
+            );
             return subscriber;
         } catch (error) {
             ErrorService.log('subscriberService.deleteBy', error);
@@ -75,15 +82,15 @@ module.exports = {
         }
     },
 
-    findBy: async function (query, skip, limit) {
+    findBy: async function(query, skip, limit) {
         try {
             if (!skip) skip = 0;
             if (!limit) limit = 10;
-            if (typeof (skip) === 'string') {
+            if (typeof skip === 'string') {
                 skip = parseInt(skip);
             }
 
-            if (typeof (limit) === 'string') {
+            if (typeof limit === 'string') {
                 limit = parseInt(limit);
             }
 
@@ -108,8 +115,12 @@ module.exports = {
                 temp.projectName = result.projectId.name;
                 temp.monitorId = result.monitorId._id;
                 temp.monitorName = result.monitorId.name;
-                temp.statusPageId = result.statusPageId ? result.statusPageId._id : null;
-                temp.statusPageName = result.statusPageId ? result.statusPageId.name : null;
+                temp.statusPageId = result.statusPageId
+                    ? result.statusPageId._id
+                    : null;
+                temp.statusPageName = result.statusPageId
+                    ? result.statusPageId.name
+                    : null;
                 temp.createdAt = result.createdAt;
                 temp.alertVia = result.alertVia;
                 temp.contactEmail = result.contactEmail;
@@ -125,14 +136,20 @@ module.exports = {
         }
     },
 
-    subscribe: async function (data, monitors) {
+    subscribe: async function(data, monitors) {
         try {
             const _this = this;
             const success = monitors.map(async monitor => {
-                const newSubscriber = Object.assign({}, data, { monitorId: monitor });
-                const hasSubscribed = await _this.subscriberCheck(newSubscriber);
+                const newSubscriber = Object.assign({}, data, {
+                    monitorId: monitor,
+                });
+                const hasSubscribed = await _this.subscriberCheck(
+                    newSubscriber
+                );
                 if (hasSubscribed) {
-                    const error = new Error('You are already subscribed to this monitor.');
+                    const error = new Error(
+                        'You are already subscribed to this monitor.'
+                    );
                     error.code = 400;
                     ErrorService.log('SubscriberService.subscribe', error);
                     throw error;
@@ -148,20 +165,31 @@ module.exports = {
         }
     },
 
-    subscriberCheck: async function (subscriber) {
+    subscriberCheck: async function(subscriber) {
         const _this = this;
         let existingSubscriber = null;
         if (subscriber.alertVia === 'sms') {
-            existingSubscriber = await _this.findByOne({ monitorId: subscriber.monitorId, contactPhone: subscriber.contactPhone, countryCode: subscriber.countryCode });
+            existingSubscriber = await _this.findByOne({
+                monitorId: subscriber.monitorId,
+                contactPhone: subscriber.contactPhone,
+                countryCode: subscriber.countryCode,
+            });
         } else if (subscriber.alertVia === 'email') {
-            existingSubscriber = await _this.findByOne({ monitorId: subscriber.monitorId, contactEmail: subscriber.contactEmail });
+            existingSubscriber = await _this.findByOne({
+                monitorId: subscriber.monitorId,
+                contactEmail: subscriber.contactEmail,
+            });
         } else if (subscriber.alertVia === 'webhook') {
-            existingSubscriber = await _this.findByOne({ monitorId: subscriber.monitorId, contactWebhook: subscriber.contactWebhook, contactEmail: subscriber.contactEmail });
+            existingSubscriber = await _this.findByOne({
+                monitorId: subscriber.monitorId,
+                contactWebhook: subscriber.contactWebhook,
+                contactEmail: subscriber.contactEmail,
+            });
         }
         return existingSubscriber !== null ? true : false;
     },
 
-    findByOne: async function (query) {
+    findByOne: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -179,7 +207,7 @@ module.exports = {
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -194,7 +222,7 @@ module.exports = {
         }
     },
 
-    removeBy: async function (query) {
+    removeBy: async function(query) {
         try {
             await SubscriberModel.deleteMany(query);
             return 'Subscriber(s) removed successfully';
@@ -204,7 +232,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await SubscriberModel.deleteMany(query);
             return 'Subscriber(s) removed successfully';
@@ -214,34 +242,42 @@ module.exports = {
         }
     },
 
-    restoreBy: async function (query) {
+    restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
         let subscriber = await _this.findBy(query);
         if (subscriber && subscriber.length > 1) {
-            const subscribers = await Promise.all(subscriber.map(async (subscriber) => {
-                const subscriberId = subscriber._id;
-                subscriber = await _this.updateOneBy({ _id: subscriberId, deleted: true }, {
-                    deleted: false,
-                    deletedAt: null,
-                    deleteBy: null
-                });
-                return subscriber;
-            }));
+            const subscribers = await Promise.all(
+                subscriber.map(async subscriber => {
+                    const subscriberId = subscriber._id;
+                    subscriber = await _this.updateOneBy(
+                        { _id: subscriberId, deleted: true },
+                        {
+                            deleted: false,
+                            deletedAt: null,
+                            deleteBy: null,
+                        }
+                    );
+                    return subscriber;
+                })
+            );
             return subscribers;
         } else {
             subscriber = subscriber[0];
             if (subscriber) {
                 const subscriberId = subscriber._id;
-                subscriber = await _this.updateOneBy({ _id: subscriberId, deleted: true }, {
-                    deleted: false,
-                    deletedAt: null,
-                    deleteBy: null
-                });
+                subscriber = await _this.updateOneBy(
+                    { _id: subscriberId, deleted: true },
+                    {
+                        deleted: false,
+                        deletedAt: null,
+                        deleteBy: null,
+                    }
+                );
             }
             return subscriber;
         }
-    }
+    },
 };
 
 const SubscriberModel = require('../models/subscriber');

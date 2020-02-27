@@ -1,13 +1,22 @@
 import React from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 
 const errorStyle = {
-    color:'#c23d4b',
-    width: '222px'
-}
+    color: '#c23d4b',
+    width: '222px',
+};
 
-const RenderField = ({ input, placeholder, type, meta, className, id, disabled, initialValue, style }) => (
-
+const RenderField = ({
+    input,
+    placeholder,
+    type,
+    meta,
+    className,
+    id,
+    disabled,
+    initialValue,
+    style,
+}) => (
     <span>
         <span>
             <input
@@ -21,21 +30,16 @@ const RenderField = ({ input, placeholder, type, meta, className, id, disabled, 
                 style={style || {}}
             />
         </span>
-        {meta.error &&
-            meta.touched &&
-            <span style={errorStyle}>
-                {meta.error}
-        </span>}
+        {meta.error && meta.touched && (
+            <span style={errorStyle}>{meta.error}</span>
+        )}
     </span>
-)   
+);
 
-RenderField.displayName = 'RenderField'
+RenderField.displayName = 'RenderField';
 
 RenderField.propTypes = {
-    initialValue: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.bool,
-    ]),
+    initialValue: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
     input: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
     type: PropTypes.string.isRequired,
@@ -44,10 +48,7 @@ RenderField.propTypes = {
     meta: PropTypes.object.isRequired,
     rows: PropTypes.string,
     disabled: PropTypes.bool,
-    style: PropTypes.object
-}
+    style: PropTypes.object,
+};
 
-export {RenderField}
-
-
-
+export { RenderField };

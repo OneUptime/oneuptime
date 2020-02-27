@@ -15,11 +15,13 @@ afterAll(async () => {
 describe('Check Backend', () => {
     test('should get status ok from backend', async () => {
         await page.goto(utils.BACKEND_URL, {
-            waitUntil: 'networkidle0'
+            waitUntil: 'networkidle0',
         });
-        const response = await page.$eval('body > pre', (e) => {
+        const response = await page.$eval('body > pre', e => {
             return e.innerHTML;
         });
-        expect(response).toBe('{"status":200,"message":"Service Status - OK","serviceType":"fyipe-api"}');
+        expect(response).toBe(
+            '{"status":200,"message":"Service Status - OK","serviceType":"fyipe-api"}'
+        );
     });
 });

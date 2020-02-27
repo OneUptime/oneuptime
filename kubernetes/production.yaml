@@ -5,134 +5,127 @@
 # IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO ci-server.yaml, server.yaml, and production.yaml
 ##############
 
-
-
 ############-----DASHBOARD----#############################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dashboard
-  labels:
-    app: dashboard
-spec:
-  selector:
-    matchLabels:
-      app: dashboard
-  replicas: 3
-  template:
-    metadata:
-      labels:
+    name: dashboard
+    labels:
         app: dashboard
-    spec:
-      containers:
-        - image: fyipeproject/dashboard:latest
-          name: dashboard
-          imagePullPolicy: Always
-          env:
-            - name: IS_SAAS_SERVICE
-              value: "true"
-            - name: HOST
-              value: "https://dashboard.fyipe.com"
-            - name: ACCOUNTS_HOST
-              value: "https://accounts.fyipe.com"
-            - name: BACKEND_HOST
-              value: "https://api.fyipe.com"
-            - name: DOMAIN
-              value: "fyipe.com"
-            - name: STRIPE_PUBLIC_KEY
-              value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
-            - name: AMPLITUDE_PUBLIC_KEY
-              value: "802d95003af23aad17ed068b6cfdeb2b"
-          ports:
-            - containerPort: 3000
-              hostPort: 3000
-              name: dashboard
-      restartPolicy: Always
+spec:
+    selector:
+        matchLabels:
+            app: dashboard
+    replicas: 3
+    template:
+        metadata:
+            labels:
+                app: dashboard
+        spec:
+            containers:
+                - image: fyipeproject/dashboard:latest
+                  name: dashboard
+                  imagePullPolicy: Always
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: HOST
+                        value: 'https://dashboard.fyipe.com'
+                      - name: ACCOUNTS_HOST
+                        value: 'https://accounts.fyipe.com'
+                      - name: BACKEND_HOST
+                        value: 'https://api.fyipe.com'
+                      - name: DOMAIN
+                        value: 'fyipe.com'
+                      - name: STRIPE_PUBLIC_KEY
+                        value: 'pk_live_j4tvMzviY2MUsRdWvDI8vN8B'
+                      - name: AMPLITUDE_PUBLIC_KEY
+                        value: '802d95003af23aad17ed068b6cfdeb2b'
+                  ports:
+                      - containerPort: 3000
+                        hostPort: 3000
+                        name: dashboard
+            restartPolicy: Always
 
 ---
-
 # Fyipe Dashoard Service
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: dashboard
-  name: dashboard
+    labels:
+        app: dashboard
+    name: dashboard
 spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 3000
-  selector:
-    app: dashboard
-  type: LoadBalancer
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 3000
+    selector:
+        app: dashboard
+    type: LoadBalancer
 ---
 #########################################
-
-
 
 ############-----ACCOUNTS----#############################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: accounts
-  labels:
-    app: accounts
-spec:
-  selector:
-    matchLabels:
-      app: accounts
-  replicas: 3
-  template:
-    metadata:
-      labels:
+    name: accounts
+    labels:
         app: accounts
-    spec:
-      containers:
-        - image: fyipeproject/accounts:latest
-          name: accounts
-          imagePullPolicy: Always
-          env:
-            - name: IS_SAAS_SERVICE
-              value: "true"
-            - name: HOST
-              value: "https://accounts.fyipe.com"
-            - name: DASHBOARD_HOST
-              value: "https://dashboard.fyipe.com"
-            - name: BACKEND_HOST
-              value: "https://api.fyipe.com"
-            - name: DOMAIN
-              value: "fyipe.com"
-            - name: STRIPE_PUBLIC_KEY
-              value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
-            - name: AMPLITUDE_PUBLIC_KEY
-              value: "802d95003af23aad17ed068b6cfdeb2b"
-          ports:
-            - containerPort: 3003
-              hostPort: 3003
-              name: accounts
-      restartPolicy: Always
+spec:
+    selector:
+        matchLabels:
+            app: accounts
+    replicas: 3
+    template:
+        metadata:
+            labels:
+                app: accounts
+        spec:
+            containers:
+                - image: fyipeproject/accounts:latest
+                  name: accounts
+                  imagePullPolicy: Always
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: HOST
+                        value: 'https://accounts.fyipe.com'
+                      - name: DASHBOARD_HOST
+                        value: 'https://dashboard.fyipe.com'
+                      - name: BACKEND_HOST
+                        value: 'https://api.fyipe.com'
+                      - name: DOMAIN
+                        value: 'fyipe.com'
+                      - name: STRIPE_PUBLIC_KEY
+                        value: 'pk_live_j4tvMzviY2MUsRdWvDI8vN8B'
+                      - name: AMPLITUDE_PUBLIC_KEY
+                        value: '802d95003af23aad17ed068b6cfdeb2b'
+                  ports:
+                      - containerPort: 3003
+                        hostPort: 3003
+                        name: accounts
+            restartPolicy: Always
 
 ---
-
 # Fyipe Accounts Service
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: accounts
-  name: accounts
+    labels:
+        app: accounts
+    name: accounts
 spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 3003
-  selector:
-    app: accounts
-  type: LoadBalancer
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 3003
+    selector:
+        app: accounts
+    type: LoadBalancer
 ---
 ###########################################
-
 
 ###########-----BACKEND------##############
 
@@ -140,208 +133,205 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
-  labels:
-    app: backend
-spec:
-  selector:
-    matchLabels:
-      app: backend
-  replicas: 3
-  template:
-    metadata:
-      labels:
+    name: backend
+    labels:
         app: backend
-    spec:
-      containers:
-        - image: fyipeproject/backend:latest
-          name: backend
-          imagePullPolicy: Always
-          env:
-            - name: IS_SAAS_SERVICE
-              value: "true"
-            - name: JWT_SECRET
-              value: "idfn3873458973457453"
-            - name: MONGO_URL
-              value: "mongodb://mongo-0.mongo.default.svc.cluster.local:27017,mongo-1.mongo.default.svc.cluster.local:27017,mongo-2.mongo.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0"
-            - name: REDIS_HOST
-              value: "redis.default.svc.cluster.local"
-            - name: REDIS_PORT
-              value: "6379"
-            - name: STRIPE_PUBLIC_KEY
-              value: "pk_live_j4tvMzviY2MUsRdWvDI8vN8B"
-            - name: STRIPE_PRIVATE_KEY
-              value: "sk_live_ADLzzMrOCz0kyYTsxWatAqxh"
-            - name: PORT
-              value: "3002"
-            - name: EMAIL_ENABLED
-              value: "true"  
-            - name: CALL_ENABLED
-              value: "true"
-            - name: SMS_ENABLED
-              value: "true"
-            - name: MAIL_USER
-              value: "noreply@fyipe.com"
-            - name: MAIL_PASSWORD
-              value: "qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD"
-            - name: MAIL_FROM
-              value: "Fyipe"
-            - name: MAIL_SERVER_SMTP
-              value: "smtp.gmail.com"
-            - name: MAIL_PORT_SMTP
-              value: "465"
-            - name: MAIL_SMTP_SECURE
-              value: "true"
-            - name: EMAIL_VERIFY_TIME
-              value: "3600"
-            - name: BACKEND_HOST
-              value: "https://api.fyipe.com"
-            - name: ACCOUNTS_HOST
-              value: "https://accounts.fyipe.com"
-            - name: HOME_HOST
-              value: "https://fyipe.com"
-            - name: DASHBOARD_HOST
-              value: "https://dashboard.fyipe.com"
-            - name: NODE_ENV
-              value: "production"
-            - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
-              value: "216000"
-            - name: RATE_LIMITTER_REQUEST_LIMIT
-              value: "5000"
-            - name: RATE_LIMITTER_ENABLED
-              value: "false"
-            - name: AIRTABLE_API_KEY
-              value: "keyenXfDDP4Dutazt"
-            - name: AIRTABLE_BASE_ID
-              value: "appff3DtEBUNxGN9W"
-          ports:
-            - containerPort: 3002
-              hostPort: 3002
-              name: backend
-      restartPolicy: Always
+spec:
+    selector:
+        matchLabels:
+            app: backend
+    replicas: 3
+    template:
+        metadata:
+            labels:
+                app: backend
+        spec:
+            containers:
+                - image: fyipeproject/backend:latest
+                  name: backend
+                  imagePullPolicy: Always
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: JWT_SECRET
+                        value: 'idfn3873458973457453'
+                      - name: MONGO_URL
+                        value: 'mongodb://mongo-0.mongo.default.svc.cluster.local:27017,mongo-1.mongo.default.svc.cluster.local:27017,mongo-2.mongo.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0'
+                      - name: REDIS_HOST
+                        value: 'redis.default.svc.cluster.local'
+                      - name: REDIS_PORT
+                        value: '6379'
+                      - name: STRIPE_PUBLIC_KEY
+                        value: 'pk_live_j4tvMzviY2MUsRdWvDI8vN8B'
+                      - name: STRIPE_PRIVATE_KEY
+                        value: 'sk_live_ADLzzMrOCz0kyYTsxWatAqxh'
+                      - name: PORT
+                        value: '3002'
+                      - name: EMAIL_ENABLED
+                        value: 'true'
+                      - name: CALL_ENABLED
+                        value: 'true'
+                      - name: SMS_ENABLED
+                        value: 'true'
+                      - name: MAIL_USER
+                        value: 'noreply@fyipe.com'
+                      - name: MAIL_PASSWORD
+                        value: 'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD'
+                      - name: MAIL_FROM
+                        value: 'Fyipe'
+                      - name: MAIL_SERVER_SMTP
+                        value: 'smtp.gmail.com'
+                      - name: MAIL_PORT_SMTP
+                        value: '465'
+                      - name: MAIL_SMTP_SECURE
+                        value: 'true'
+                      - name: EMAIL_VERIFY_TIME
+                        value: '3600'
+                      - name: BACKEND_HOST
+                        value: 'https://api.fyipe.com'
+                      - name: ACCOUNTS_HOST
+                        value: 'https://accounts.fyipe.com'
+                      - name: HOME_HOST
+                        value: 'https://fyipe.com'
+                      - name: DASHBOARD_HOST
+                        value: 'https://dashboard.fyipe.com'
+                      - name: NODE_ENV
+                        value: 'production'
+                      - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
+                        value: '216000'
+                      - name: RATE_LIMITTER_REQUEST_LIMIT
+                        value: '5000'
+                      - name: RATE_LIMITTER_ENABLED
+                        value: 'false'
+                      - name: AIRTABLE_API_KEY
+                        value: 'keyenXfDDP4Dutazt'
+                      - name: AIRTABLE_BASE_ID
+                        value: 'appff3DtEBUNxGN9W'
+                  ports:
+                      - containerPort: 3002
+                        hostPort: 3002
+                        name: backend
+            restartPolicy: Always
 
 ---
-
 # Fyipe Backend Deployment
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: backend
-  name: backend
+    labels:
+        app: backend
+    name: backend
 spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 3002
-  selector:
-    app: backend
-  type: LoadBalancer
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 3002
+    selector:
+        app: backend
+    type: LoadBalancer
 ---
 ###########################################
-
 
 ###########-----SLACK------##############
 # Slack
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: slack
-  labels:
-    app: slack
-spec:
-  selector:
-    matchLabels:
-      app: slack
-  replicas: 1
-  template:
-    metadata:
-      labels:
+    name: slack
+    labels:
         app: slack
-    spec:
-      containers:
-        - image: fyipeproject/slack:latest
-          name: slack
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 1267
-              hostPort: 1267
-              name: slack
-      restartPolicy: Always
+spec:
+    selector:
+        matchLabels:
+            app: slack
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: slack
+        spec:
+            containers:
+                - image: fyipeproject/slack:latest
+                  name: slack
+                  imagePullPolicy: Always
+                  ports:
+                      - containerPort: 1267
+                        hostPort: 1267
+                        name: slack
+            restartPolicy: Always
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: slack
-  name: slack
+    labels:
+        app: slack
+    name: slack
 spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 1267
-  selector:
-    app: slack
-  type: LoadBalancer
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 1267
+    selector:
+        app: slack
+    type: LoadBalancer
 ---
 ###########################################
-
 
 ###########-----HOME------#################
 # Fyipe Home
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: home
-  labels:
-    app: home
-spec:
-  selector:
-    matchLabels:
-      app: home
-  replicas: 3
-  template:
-    metadata:
-      labels:
+    name: home
+    labels:
         app: home
-    spec:
-      containers:
-        - image: fyipeproject/home:latest
-          name: home
-          imagePullPolicy: Always
-          env:
-            - name: IS_SAAS_SERVICE
-              value: "true"
-            - name: HOST
-              value: "https://fyipe.com"
-            - name: DASHBOARD_HOST
-              value: "https://dashboard.fyipe.com"
-            - name: BACKEND_HOST
-              value: "https://api.fyipe.com"
-            - name: ACCOUNTS_HOST
-              value: "https://accounts.fyipe.com"
-          ports:
-            - containerPort: 1444
-              hostPort: 1444
-              name: home
-      restartPolicy: Always
+spec:
+    selector:
+        matchLabels:
+            app: home
+    replicas: 3
+    template:
+        metadata:
+            labels:
+                app: home
+        spec:
+            containers:
+                - image: fyipeproject/home:latest
+                  name: home
+                  imagePullPolicy: Always
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: HOST
+                        value: 'https://fyipe.com'
+                      - name: DASHBOARD_HOST
+                        value: 'https://dashboard.fyipe.com'
+                      - name: BACKEND_HOST
+                        value: 'https://api.fyipe.com'
+                      - name: ACCOUNTS_HOST
+                        value: 'https://accounts.fyipe.com'
+                  ports:
+                      - containerPort: 1444
+                        hostPort: 1444
+                        name: home
+            restartPolicy: Always
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: home
-  name: home
+    labels:
+        app: home
+    name: home
 spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 1444
-  selector:
-    app: home
-  type: LoadBalancer
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 1444
+    selector:
+        app: home
+    type: LoadBalancer
 ---
 ###########################################
 
@@ -351,112 +341,109 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-docs
-  labels:
-    app: api-docs
-spec:
-  selector:
-    matchLabels:
-      app: api-docs
-  replicas: 1
-  template:
-    metadata:
-      labels:
+    name: api-docs
+    labels:
         app: api-docs
-    spec:
-      containers:
-        - image: fyipeproject/api-docs:latest
-          name: api-docs
-          imagePullPolicy: Always
-          env:
-            - name: IS_SAAS_SERVICE
-              value: "true"
-            - name: HOST
-              value: "https://docs.fyipe.com"
-            - name: BACKEND_HOST
-              value: "https://api.fyipe.com"
-            - name: DASHBOARD_HOST
-              value: "https://dashboard.fyipe.com"
-          ports:
-            - containerPort: 1445
-              hostPort: 1445
-              name: api-docs
-      restartPolicy: Always
+spec:
+    selector:
+        matchLabels:
+            app: api-docs
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: api-docs
+        spec:
+            containers:
+                - image: fyipeproject/api-docs:latest
+                  name: api-docs
+                  imagePullPolicy: Always
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: HOST
+                        value: 'https://docs.fyipe.com'
+                      - name: BACKEND_HOST
+                        value: 'https://api.fyipe.com'
+                      - name: DASHBOARD_HOST
+                        value: 'https://dashboard.fyipe.com'
+                  ports:
+                      - containerPort: 1445
+                        hostPort: 1445
+                        name: api-docs
+            restartPolicy: Always
 
 ---
-
 # Fyipe API docs Service
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: api-docs
-  name: api-docs
+    labels:
+        app: api-docs
+    name: api-docs
 spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 1445
-  selector:
-    app: api-docs
-  type: LoadBalancer
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 1445
+    selector:
+        app: api-docs
+    type: LoadBalancer
 ---
-
-
 ###########-----STATUS PAGE------#################
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: status-page
-  labels:
-    app: status-page
-spec:
-  selector:
-    matchLabels:
-      app: status-page
-  replicas: 3
-  template:
-    metadata:
-      labels:
+    name: status-page
+    labels:
         app: status-page
-    spec:
-      containers:
-        - image: fyipeproject/status-page:latest
-          name: status-page
-          imagePullPolicy: Always
-          env:
-            - name: IS_SAAS_SERVICE
-              value: "true"
-            - name: HOST
-              value: "https://statuspage.fyipe.com"
-            - name: DASHBOARD_HOST
-              value: "https://staging-dashboard.fyipe.com"
-            - name: BACKEND_HOST
-              value: "https://staging-api.fyipe.com"
-            - name: ACCOUNTS_HOST
-              value: "https://staging-accounts.fyipe.com"
-          ports:
-            - containerPort: 3006
-              hostPort: 3006
-              name: status-page
-      restartPolicy: Always
+spec:
+    selector:
+        matchLabels:
+            app: status-page
+    replicas: 3
+    template:
+        metadata:
+            labels:
+                app: status-page
+        spec:
+            containers:
+                - image: fyipeproject/status-page:latest
+                  name: status-page
+                  imagePullPolicy: Always
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: HOST
+                        value: 'https://statuspage.fyipe.com'
+                      - name: DASHBOARD_HOST
+                        value: 'https://staging-dashboard.fyipe.com'
+                      - name: BACKEND_HOST
+                        value: 'https://staging-api.fyipe.com'
+                      - name: ACCOUNTS_HOST
+                        value: 'https://staging-accounts.fyipe.com'
+                  ports:
+                      - containerPort: 3006
+                        hostPort: 3006
+                        name: status-page
+            restartPolicy: Always
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: status-page
-  name: status-page
+    labels:
+        app: status-page
+    name: status-page
 spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 3006
-  selector:
-    app: status-page
-  type: LoadBalancer
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 3006
+    selector:
+        app: status-page
+    type: LoadBalancer
 ---
 ########################################
 
@@ -464,47 +451,47 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: admin-dashboard
-  labels:
-    app: admin-dashboard
-spec:
-  selector:
-    matchLabels:
-      app: admin-dashboard
-  replicas: 1
-  template:
-    metadata:
-      labels:
+    name: admin-dashboard
+    labels:
         app: admin-dashboard
-    spec:
-      containers:
-        - image: fyipeproject/admin-dashboard:latest
-          name: admin-dashboard
-          imagePullPolicy: Always
-          env:
-            - name: IS_SAAS_SERVICE
-              value: "true"
-          ports:
-            - containerPort: 3100
-              hostPort: 3100
-              name: admin-dashboard
-      restartPolicy: Always
+spec:
+    selector:
+        matchLabels:
+            app: admin-dashboard
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: admin-dashboard
+        spec:
+            containers:
+                - image: fyipeproject/admin-dashboard:latest
+                  name: admin-dashboard
+                  imagePullPolicy: Always
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                  ports:
+                      - containerPort: 3100
+                        hostPort: 3100
+                        name: admin-dashboard
+            restartPolicy: Always
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: admin-dashboard
-  name: admin-dashboard
+    labels:
+        app: admin-dashboard
+    name: admin-dashboard
 spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 3100
-  selector:
-    app: admin-dashboard
-  type: LoadBalancer
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 3100
+    selector:
+        app: admin-dashboard
+    type: LoadBalancer
 ---
 ##################################
 
@@ -513,55 +500,55 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: probe-1
-  labels:
-    app: probe-1
-spec:
-  selector:
-    matchLabels:
-      app: probe-1
-  replicas: 1 # THIS SHOULD STRICTLY BE 1
-  template:
-    metadata:
-      labels:
+    name: probe-1
+    labels:
         app: probe-1
-    spec:
-      containers:
-        - image: fyipeproject/probe:latest
-          name: probe-1
-          imagePullPolicy: Always
-          env:
-            - name: IS_SAAS_SERVICE
-              value: "true"
-            - name: SERVER_URL
-              value: "https://api.fyipe.com"
-            - name: PORT
-              value: "3008"
-            - name: PROBE_NAME
-              value: "EU"
-            - name: PROBE_KEY
-              value: "lfg9859-30as-nm32-q2as-jsdfg89547hjg"
-          ports:
-            - containerPort: 3008
-              hostPort: 3008
-              name: probe-1
-      restartPolicy: Always
+spec:
+    selector:
+        matchLabels:
+            app: probe-1
+    replicas: 1 # THIS SHOULD STRICTLY BE 1
+    template:
+        metadata:
+            labels:
+                app: probe-1
+        spec:
+            containers:
+                - image: fyipeproject/probe:latest
+                  name: probe-1
+                  imagePullPolicy: Always
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: SERVER_URL
+                        value: 'https://api.fyipe.com'
+                      - name: PORT
+                        value: '3008'
+                      - name: PROBE_NAME
+                        value: 'EU'
+                      - name: PROBE_KEY
+                        value: 'lfg9859-30as-nm32-q2as-jsdfg89547hjg'
+                  ports:
+                      - containerPort: 3008
+                        hostPort: 3008
+                        name: probe-1
+            restartPolicy: Always
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: probe-1
-  name: probe-1
+    labels:
+        app: probe-1
+    name: probe-1
 spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 3008
-  selector:
-    app: probe-1
-  type: LoadBalancer
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 3008
+    selector:
+        app: probe-1
+    type: LoadBalancer
 ---
 ###########################
 
@@ -570,55 +557,55 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: probe-2
-  labels:
-    app: probe-2
-spec:
-  selector:
-    matchLabels:
-      app: probe-2
-  replicas: 1 # THIS SHOULD STRICTLY BE 1
-  template:
-    metadata:
-      labels:
+    name: probe-2
+    labels:
         app: probe-2
-    spec:
-      containers:
-        - image: fyipeproject/probe:latest
-          name: probe-2
-          imagePullPolicy: Always
-          env:
-            - name: IS_SAAS_SERVICE
-              value: "true"
-            - name: SERVER_URL
-              value: "https://api.fyipe.com"
-            - name: PORT
-              value: "3008"
-            - name: PROBE_NAME
-              value: "US"
-            - name: PROBE_KEY
-              value: "qerw234ewr-30as-nm32-q2as-poi90"
-          ports:
-            - containerPort: 3008
-              hostPort: 3008
-              name: probe-2
-      restartPolicy: Always
+spec:
+    selector:
+        matchLabels:
+            app: probe-2
+    replicas: 1 # THIS SHOULD STRICTLY BE 1
+    template:
+        metadata:
+            labels:
+                app: probe-2
+        spec:
+            containers:
+                - image: fyipeproject/probe:latest
+                  name: probe-2
+                  imagePullPolicy: Always
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: SERVER_URL
+                        value: 'https://api.fyipe.com'
+                      - name: PORT
+                        value: '3008'
+                      - name: PROBE_NAME
+                        value: 'US'
+                      - name: PROBE_KEY
+                        value: 'qerw234ewr-30as-nm32-q2as-poi90'
+                  ports:
+                      - containerPort: 3008
+                        hostPort: 3008
+                        name: probe-2
+            restartPolicy: Always
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: probe-2
-  name: probe-2
+    labels:
+        app: probe-2
+    name: probe-2
 spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 3008
-  selector:
-    app: probe-2
-  type: LoadBalancer
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 3008
+    selector:
+        app: probe-2
+    type: LoadBalancer
 ---
 ###########################
 
@@ -629,333 +616,327 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: init-script
+    name: init-script
 spec:
-  template:
-    spec:
-      containers:
-        - image: fyipeproject/init-script:latest
-          name: init-script
-          imagePullPolicy: Always
-          env:
-            - name: MONGO_URL
-              value: "mongodb://mongo-0.mongo.default.svc.cluster.local:27017,mongo-1.mongo.default.svc.cluster.local:27017,mongo-2.mongo.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0"
-      restartPolicy: Never
+    template:
+        spec:
+            containers:
+                - image: fyipeproject/init-script:latest
+                  name: init-script
+                  imagePullPolicy: Always
+                  env:
+                      - name: MONGO_URL
+                        value: 'mongodb://mongo-0.mongo.default.svc.cluster.local:27017,mongo-1.mongo.default.svc.cluster.local:27017,mongo-2.mongo.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0'
+            restartPolicy: Never
 
 ---
 ###########################
 
-
 ############-MONGO DB-##############
 
 # IMPORTANT: Inspiration from: https://github.com/Fyipe/k8s-mongo-sidecar
-# Replicasets are configured automatically. 
-# You DO NEED to get into a mongo container to configre them. 
+# Replicasets are configured automatically.
+# You DO NEED to get into a mongo container to configre them.
 
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: mongo
-  namespace: default
+    name: mongo
+    namespace: default
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: pod-service-endpoint-reader
+    name: pod-service-endpoint-reader
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-      - services
-      - endpoints
-    verbs:
-      - get
-      - list
-      - watch
+    - apiGroups:
+          - ''
+      resources:
+          - pods
+          - services
+          - endpoints
+      verbs:
+          - get
+          - list
+          - watch
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: system:serviceaccount:default:mongo
+    name: system:serviceaccount:default:mongo
 roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: pod-service-endpoint-reader
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: pod-service-endpoint-reader
 subjects:
-  - kind: ServiceAccount
-    name: mongo
-    namespace: default
+    - kind: ServiceAccount
+      name: mongo
+      namespace: default
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongo
-  labels:
     name: mongo
+    labels:
+        name: mongo
 spec:
-  ports:
-  - port: 27017
-    targetPort: 27017
-  clusterIP: None
-  selector:
-    role: mongo
+    ports:
+        - port: 27017
+          targetPort: 27017
+    clusterIP: None
+    selector:
+        role: mongo
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mongo
+    name: mongo
 spec:
-  serviceName: "mongo"
-  replicas: 3
-  selector:
-    matchLabels:
-      role: mongo
-  template:
-    metadata:
-      labels:
-        role: mongo
-        environment: test #Apparently setting this to any other var makes mongo-sidecar fail.
-    spec:
-      serviceAccountName: mongo
-      automountServiceAccountToken: true
-      terminationGracePeriodSeconds: 30
-      containers:
-        - name: mongo
-          image: mongo:4.2.3
-          command:
-            - mongod
-          args:
-            - "--replSet=rs0"
-            - "--bind_ip=0.0.0.0"
-          ports:
-            - containerPort: 27017
-          volumeMounts:
-            - name: mongo-persistent-storage
-              mountPath: /data/db
-        - name: mongo-sidecar
-          image: morphy/k8s-mongo-sidecar
-          env:
-            - name: KUBERNETES_POD_LABELS
-              value: "role=mongo,environment=test"
-            - name: KUBERNETES_SERVICE_NAME
-              value: "mongo"
-  volumeClaimTemplates:
-  - metadata:
-      name: mongo-persistent-storage
-    spec:
-      storageClassName: mongo
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 900Gi
+    serviceName: 'mongo'
+    replicas: 3
+    selector:
+        matchLabels:
+            role: mongo
+    template:
+        metadata:
+            labels:
+                role: mongo
+                environment: test #Apparently setting this to any other var makes mongo-sidecar fail.
+        spec:
+            serviceAccountName: mongo
+            automountServiceAccountToken: true
+            terminationGracePeriodSeconds: 30
+            containers:
+                - name: mongo
+                  image: mongo:4.2.3
+                  command:
+                      - mongod
+                  args:
+                      - '--replSet=rs0'
+                      - '--bind_ip=0.0.0.0'
+                  ports:
+                      - containerPort: 27017
+                  volumeMounts:
+                      - name: mongo-persistent-storage
+                        mountPath: /data/db
+                - name: mongo-sidecar
+                  image: morphy/k8s-mongo-sidecar
+                  env:
+                      - name: KUBERNETES_POD_LABELS
+                        value: 'role=mongo,environment=test'
+                      - name: KUBERNETES_SERVICE_NAME
+                        value: 'mongo'
+    volumeClaimTemplates:
+        - metadata:
+              name: mongo-persistent-storage
+          spec:
+              storageClassName: mongo
+              accessModes: ['ReadWriteOnce']
+              resources:
+                  requests:
+                      storage: 900Gi
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
-  name: mongo
+    name: mongo
 provisioner: kubernetes.io/gce-pd
 parameters:
-  type: pd-ssd
+    type: pd-ssd
 ---
 #
-#Important: Storage Class for Azure, AWS can be found here. 
+#Important: Storage Class for Azure, AWS can be found here.
 #https://github.com/Fyipe/k8s-mongo-sidecar/tree/master/example
 #
 ##################################
 
-
 ############-REDIS-###############
-apiVersion: apps/v1 
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: redis
-  labels:
-    app: redis
-spec:
-  serviceName: "redis"
-  selector:
-    matchLabels:
-      app: redis
-      role: master
-      tier: backend
-  replicas: 1 #Strictly 1. We're not forming a cluster. 
-  template:
-    metadata:
-      labels:
+    name: redis
+    labels:
         app: redis
-        role: master
-        tier: backend
-    spec:
-      containers:
-      - name: master
-        image: redis
-        resources:
-          requests:
-            cpu: 100m
-            memory: 100Mi
-        ports:
-        - containerPort: 6379
-        volumeMounts:
-            - name: data
-              mountPath: /data
-              readOnly: false
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      storageClassName: redis
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 5Gi
+spec:
+    serviceName: 'redis'
+    selector:
+        matchLabels:
+            app: redis
+            role: master
+            tier: backend
+    replicas: 1 #Strictly 1. We're not forming a cluster.
+    template:
+        metadata:
+            labels:
+                app: redis
+                role: master
+                tier: backend
+        spec:
+            containers:
+                - name: master
+                  image: redis
+                  resources:
+                      requests:
+                          cpu: 100m
+                          memory: 100Mi
+                  ports:
+                      - containerPort: 6379
+                  volumeMounts:
+                      - name: data
+                        mountPath: /data
+                        readOnly: false
+    volumeClaimTemplates:
+        - metadata:
+              name: data
+          spec:
+              storageClassName: redis
+              accessModes: ['ReadWriteOnce']
+              resources:
+                  requests:
+                      storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: redis
-  labels:
-    app: redis
-    role: master
-    tier: backend
+    name: redis
+    labels:
+        app: redis
+        role: master
+        tier: backend
 spec:
-  ports:
-  - port: 6379
-    targetPort: 6379
-  selector:
-    app: redis
-    role: master
-    tier: backend
+    ports:
+        - port: 6379
+          targetPort: 6379
+    selector:
+        app: redis
+        role: master
+        tier: backend
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
-  name: redis
+    name: redis
 provisioner: kubernetes.io/gce-pd
 parameters:
-  type: pd-ssd
+    type: pd-ssd
 ---
 #########################################
-
 
 ########-MONGO=BACKUP-PRIMARY-############
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mongo-backup-pvc
+    name: mongo-backup-pvc
 spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 900Gi
-  storageClassName: primarybackup
+    accessModes:
+        - ReadWriteOnce
+    resources:
+        requests:
+            storage: 900Gi
+    storageClassName: primarybackup
 ---
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  labels:
-    name: mongo-backup-primary
-  name: mongo-backup-primary
-spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
+    labels:
         name: mongo-backup-primary
-    spec:
-      containers:
-        - image: tutum/mongodb-backup
-          name: mongodb-backup
-          ports:
-            - name: mongo
-              containerPort: 27017
-              hostPort: 27017
-          env:
-            - name: MAX_BACKUPS
-              value: "15"
-            - name: MONGODB_HOST
-              value: "mongo-0.mongo.default.svc.cluster.local"
-            - name: MONGODB_PORT
-              value: "27017"
-          volumeMounts:
-            - name: mongo-backup
-              mountPath: /backup
-      volumes:
-        - name: mongo-backup
-          persistentVolumeClaim:
-            claimName: mongo-backup-pvc
+    name: mongo-backup-primary
+spec:
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                name: mongo-backup-primary
+        spec:
+            containers:
+                - image: tutum/mongodb-backup
+                  name: mongodb-backup
+                  ports:
+                      - name: mongo
+                        containerPort: 27017
+                        hostPort: 27017
+                  env:
+                      - name: MAX_BACKUPS
+                        value: '15'
+                      - name: MONGODB_HOST
+                        value: 'mongo-0.mongo.default.svc.cluster.local'
+                      - name: MONGODB_PORT
+                        value: '27017'
+                  volumeMounts:
+                      - name: mongo-backup
+                        mountPath: /backup
+            volumes:
+                - name: mongo-backup
+                  persistentVolumeClaim:
+                      claimName: mongo-backup-pvc
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
-  name: primarybackup
+    name: primarybackup
 provisioner: kubernetes.io/gce-pd
 parameters:
-  type: pd-standard
+    type: pd-standard
 reclaimPolicy: Retain
 ---
 ###########################################
-
 
 ########-MONGO=BACKUP-SECONDARY-############
 
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mongo-secondary-backup-pvc
+    name: mongo-secondary-backup-pvc
 spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 900Gi
-  storageClassName: secondbackup
+    accessModes:
+        - ReadWriteOnce
+    resources:
+        requests:
+            storage: 900Gi
+    storageClassName: secondbackup
 ---
-
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  labels:
-    name: mongo-backup-secondary
-  name: mongo-backup-secondary
-spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
+    labels:
         name: mongo-backup-secondary
-    spec:
-      containers:
-        - image: tutum/mongodb-backup
-          name: mongodb-backup
-          ports:
-            - name: mongo
-              containerPort: 27017
-              hostPort: 27017
-          env:
-            - name: MAX_BACKUPS
-              value: "15"
-            - name: MONGODB_HOST
-              value: "mongo-0.mongo.default.svc.cluster.local"
-            - name: MONGODB_PORT
-              value: "27017"
-          volumeMounts:
-            - name: mongo-backup
-              mountPath: /backup
-      volumes:
-        - name: mongo-backup
-          persistentVolumeClaim:
-            claimName: mongo-secondary-backup-pvc
+    name: mongo-backup-secondary
+spec:
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                name: mongo-backup-secondary
+        spec:
+            containers:
+                - image: tutum/mongodb-backup
+                  name: mongodb-backup
+                  ports:
+                      - name: mongo
+                        containerPort: 27017
+                        hostPort: 27017
+                  env:
+                      - name: MAX_BACKUPS
+                        value: '15'
+                      - name: MONGODB_HOST
+                        value: 'mongo-0.mongo.default.svc.cluster.local'
+                      - name: MONGODB_PORT
+                        value: '27017'
+                  volumeMounts:
+                      - name: mongo-backup
+                        mountPath: /backup
+            volumes:
+                - name: mongo-backup
+                  persistentVolumeClaim:
+                      claimName: mongo-secondary-backup-pvc
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
-  name: secondbackup
+    name: secondbackup
 provisioner: kubernetes.io/gce-pd
 parameters:
-  type: pd-standard
+    type: pd-standard
 reclaimPolicy: Retain
 ---
-
 #######################

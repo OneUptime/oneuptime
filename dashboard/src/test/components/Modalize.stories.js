@@ -1,14 +1,11 @@
 import React from 'react';
 import { storiesOf } from '@storybook/react';
-import {Modalize} from '../../components/Modalize'
+import { Modalize } from '../../components/Modalize';
 
 const props = {
     HEADER: 'HEADER',
     CONTENT: 'CONTENT',
-    FOOTER: 'FOOTER'
-}
+    FOOTER: 'FOOTER',
+};
 
-storiesOf('Modals', module)
-    .add('Modalize', () =>
-        <Modalize  {...props} />
-    )
+storiesOf('Modals', module).add('Modalize', () => <Modalize {...props} />);

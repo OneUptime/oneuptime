@@ -14,8 +14,8 @@ const auditLogsSchema = new Schema({
     response: { type: Object },
     createdAt: {
         type: Date,
-        default: Date.now
-    }
+        default: Date.now,
+    },
 });
 
 module.exports = mongoose.model('AuditLog', auditLogsSchema);

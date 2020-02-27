@@ -1,4 +1,4 @@
-const utils= require('./test-utils');
+const utils = require('./test-utils');
 const puppeteer = require('puppeteer');
 
 let page, browser;
@@ -15,9 +15,9 @@ afterAll(async () => {
 describe('Check api-docs up', () => {
     test('should get title of api docs page', async () => {
         await page.goto(utils.APIDOCS_URL, {
-            waitUntil: 'domcontentloaded'
+            waitUntil: 'domcontentloaded',
         });
-        const response = await page.$eval('head > title', (e) => {
+        const response = await page.$eval('head > title', e => {
             return e.innerHTML;
         });
         expect(response).toBe('Fyipe API Documentation');

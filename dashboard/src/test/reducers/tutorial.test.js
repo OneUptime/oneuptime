@@ -6,21 +6,20 @@ const initialState = {
     requesting: false,
     success: false,
     monitor: {
-        show: true
+        show: true,
     },
     incident: {
-        show: true
+        show: true,
     },
     statusPage: {
-        show: true
+        show: true,
     },
     callSchedule: {
-        show: true
-    }
+        show: true,
+    },
 };
 
 describe('Tutorial Reducers', () => {
-
     it('should return initial state', () => {
         expect(reducer(initialState, {})).toEqual(initialState);
     });
@@ -30,27 +29,34 @@ describe('Tutorial Reducers', () => {
             ...initialState,
             error: null,
             requesting: true,
-            success: false
+            success: false,
         };
-        expect(reducer(initialState, { type: types.FETCH_TUTORIAL_REQUEST })).toEqual(expected);
+        expect(
+            reducer(initialState, { type: types.FETCH_TUTORIAL_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle FETCH_TUTORIAL_SUCCESS', () => {
         const payload = {
             data: {
                 monitor: {
-                    show: false
-                }
-            }
+                    show: false,
+                },
+            },
         };
         const expected = {
             ...initialState,
             error: null,
             requesting: false,
             success: true,
-            ...payload.data
+            ...payload.data,
         };
-        expect(reducer(initialState, { type: types.FETCH_TUTORIAL_SUCCESS, payload: payload })).toEqual(expected);
+        expect(
+            reducer(initialState, {
+                type: types.FETCH_TUTORIAL_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle FETCH_TUTORIAL_FAILURE', () => {
@@ -59,9 +65,14 @@ describe('Tutorial Reducers', () => {
             ...initialState,
             error: payload,
             requesting: false,
-            success: false
+            success: false,
         };
-        expect(reducer(initialState, { type: types.FETCH_TUTORIAL_FAILURE, payload: payload })).toEqual(expected);
+        expect(
+            reducer(initialState, {
+                type: types.FETCH_TUTORIAL_FAILURE,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle FETCH_TUTORIAL_RESET', () => {
@@ -70,19 +81,21 @@ describe('Tutorial Reducers', () => {
             requesting: false,
             success: false,
             monitor: {
-                show: true
+                show: true,
             },
             incident: {
-                show: true
+                show: true,
             },
             statusPage: {
-                show: true
+                show: true,
             },
             callSchedule: {
-                show: true
-            }
+                show: true,
+            },
         };
-        expect(reducer(initialState, { type: types.FETCH_TUTORIAL_RESET })).toEqual(expected);
+        expect(
+            reducer(initialState, { type: types.FETCH_TUTORIAL_RESET })
+        ).toEqual(expected);
     });
 
     it('should handle CLOSE_TUTORIAL_REQUEST', () => {
@@ -90,27 +103,34 @@ describe('Tutorial Reducers', () => {
             ...initialState,
             error: null,
             requesting: true,
-            success: false
+            success: false,
         };
-        expect(reducer(initialState, { type: types.CLOSE_TUTORIAL_REQUEST })).toEqual(expected);
+        expect(
+            reducer(initialState, { type: types.CLOSE_TUTORIAL_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle CLOSE_TUTORIAL_SUCCESS', () => {
         const payload = {
             data: {
                 monitor: {
-                    show: false
-                }
-            }
+                    show: false,
+                },
+            },
         };
         const expected = {
             ...initialState,
             error: null,
             requesting: false,
             success: true,
-            ...payload.data
+            ...payload.data,
         };
-        expect(reducer(initialState, { type: types.CLOSE_TUTORIAL_SUCCESS, payload: payload })).toEqual(expected);
+        expect(
+            reducer(initialState, {
+                type: types.CLOSE_TUTORIAL_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle CLOSE_TUTORIAL_FAILURE', () => {
@@ -119,9 +139,14 @@ describe('Tutorial Reducers', () => {
             ...initialState,
             error: payload,
             requesting: false,
-            success: false
+            success: false,
         };
-        expect(reducer(initialState, { type: types.CLOSE_TUTORIAL_FAILURE, payload: payload })).toEqual(expected);
+        expect(
+            reducer(initialState, {
+                type: types.CLOSE_TUTORIAL_FAILURE,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle CLOSE_TUTORIAL_RESET', () => {
@@ -129,8 +154,10 @@ describe('Tutorial Reducers', () => {
             ...initialState,
             error: null,
             requesting: false,
-            success: false
+            success: false,
         };
-        expect(reducer(initialState, { type: types.CLOSE_TUTORIAL_RESET })).toEqual(expected);
+        expect(
+            reducer(initialState, { type: types.CLOSE_TUTORIAL_RESET })
+        ).toEqual(expected);
     });
 });

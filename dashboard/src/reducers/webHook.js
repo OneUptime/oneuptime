@@ -17,43 +17,42 @@ import {
     UPDATE_WEB_HOOK_RESET,
     PAGINATE_PREV,
     PAGINATE_NEXT,
-    PAGINATE_RESET
+    PAGINATE_RESET,
 } from '../constants/webHook';
 
 const initialState = {
-    webHook:{
-        error:null,
+    webHook: {
+        error: null,
         requesting: false,
-        success:false,
-        webHooks:[],
+        success: false,
+        webHooks: [],
         count: null,
         limit: null,
-        skip: null
+        skip: null,
     },
     deleteWebHook: {
-        error:null,
+        error: null,
         requesting: false,
-        success:false,
+        success: false,
     },
     createWebHook: {
-        error:null,
+        error: null,
         requesting: false,
-        success:false,
+        success: false,
     },
     updateWebHook: {
-        error:null,
+        error: null,
         requesting: false,
-        success:false,
+        success: false,
     },
     pages: {
-		counter: 0
-	}
+        counter: 0,
+    },
 };
 
 export default (state = initialState, action) => {
     let webHooks, index, count;
     switch (action.type) {
-
         case GET_WEB_HOOK_FAILED:
             return Object.assign({}, state, {
                 webHook: {
@@ -73,8 +72,8 @@ export default (state = initialState, action) => {
                     webHooks: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
-                }
+                    skip: action.payload.skip,
+                },
             });
 
         case GET_WEB_HOOK_REQUEST:
@@ -89,15 +88,15 @@ export default (state = initialState, action) => {
 
         case GET_WEB_HOOK_RESET:
             return Object.assign({}, state, {
-                webHook:{
-                    error:null,
+                webHook: {
+                    error: null,
                     requesting: false,
-                    success:false,
-                    webHooks:[],
+                    success: false,
+                    webHooks: [],
                     count: null,
                     limit: null,
-                    skip: null
-                }
+                    skip: null,
+                },
             });
 
         case DELETE_WEB_HOOK_FAILED:
@@ -105,12 +104,11 @@ export default (state = initialState, action) => {
                 deleteWebHook: {
                     requesting: false,
                     error: action.payload,
-                    success: false
+                    success: false,
                 },
             });
 
         case DELETE_WEB_HOOK_SUCCESS:
-
             webHooks = Object.assign([], state.webHook.webHooks);
             index = webHooks.findIndex(team => team._id === action.payload._id);
             webHooks.splice(index, 1);
@@ -119,7 +117,7 @@ export default (state = initialState, action) => {
                 deleteWebHook: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 webHook: {
                     requesting: false,
@@ -128,8 +126,8 @@ export default (state = initialState, action) => {
                     webHooks,
                     skip: state.webHook.skip,
                     limit: state.webHook.limit,
-                    count: count
-                }
+                    count: count,
+                },
             });
 
         case DELETE_WEB_HOOK_REQUEST:
@@ -143,11 +141,11 @@ export default (state = initialState, action) => {
 
         case DELETE_WEB_HOOK_RESET:
             return Object.assign({}, state, {
-                deleteWebHook:{
-                    error:null,
+                deleteWebHook: {
+                    error: null,
                     requesting: false,
-                    success:false
-                }
+                    success: false,
+                },
             });
 
         case CREATE_WEB_HOOK_FAILED:
@@ -155,7 +153,7 @@ export default (state = initialState, action) => {
                 createWebHook: {
                     requesting: false,
                     error: action.payload,
-                    success: false
+                    success: false,
                 },
             });
 
@@ -168,7 +166,7 @@ export default (state = initialState, action) => {
                 createWebHook: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 webHook: {
                     requesting: false,
@@ -177,8 +175,8 @@ export default (state = initialState, action) => {
                     webHooks,
                     skip: state.webHook.skip,
                     limit: state.webHook.limit,
-                    count: count
-                }
+                    count: count,
+                },
             });
 
         case CREATE_WEB_HOOK_REQUEST:
@@ -192,24 +190,23 @@ export default (state = initialState, action) => {
 
         case CREATE_WEB_HOOK_RESET:
             return Object.assign({}, state, {
-                createWebHook:{
-                    error:null,
+                createWebHook: {
+                    error: null,
                     requesting: false,
-                    success:false
-                }
+                    success: false,
+                },
             });
 
         case UPDATE_WEB_HOOK_FAILED:
             return Object.assign({}, state, {
-               updateWebHook: {
+                updateWebHook: {
                     requesting: false,
                     error: action.payload,
-                    success: false
+                    success: false,
                 },
             });
 
         case UPDATE_WEB_HOOK_SUCCESS:
-
             webHooks = Object.assign([], state.webHook.webHooks);
             index = webHooks.findIndex(hook => hook._id === action.payload._id);
             webHooks[index] = action.payload;
@@ -218,7 +215,7 @@ export default (state = initialState, action) => {
                 updateWebHook: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 webHook: {
                     requesting: false,
@@ -227,8 +224,8 @@ export default (state = initialState, action) => {
                     webHooks,
                     skip: state.webHook.skip,
                     limit: state.webHook.limit,
-                    count: state.webHook.count
-                }
+                    count: state.webHook.count,
+                },
             });
 
         case UPDATE_WEB_HOOK_REQUEST:
@@ -242,36 +239,37 @@ export default (state = initialState, action) => {
 
         case UPDATE_WEB_HOOK_RESET:
             return Object.assign({}, state, {
-                createWebHook:{
-                    error:null,
+                createWebHook: {
+                    error: null,
                     requesting: false,
-                    success:false
-                }
+                    success: false,
+                },
             });
 
         case PAGINATE_NEXT:
-			return {
-				...state,
-				pages: {
-					counter: state.pages.counter + 1
-				}
-			}
+            return {
+                ...state,
+                pages: {
+                    counter: state.pages.counter + 1,
+                },
+            };
 
-		case PAGINATE_PREV:
-			return {
-				...state,
-				pages: {
-					counter: state.pages.counter - 1
-				}
-			}
+        case PAGINATE_PREV:
+            return {
+                ...state,
+                pages: {
+                    counter: state.pages.counter - 1,
+                },
+            };
 
-		case PAGINATE_RESET:
-			return {
-				...state,
-				pages: {
-					counter: 0
-				}
-			}
-        default: return state;
+        case PAGINATE_RESET:
+            return {
+                ...state,
+                pages: {
+                    counter: 0,
+                },
+            };
+        default:
+            return state;
     }
-}
+};

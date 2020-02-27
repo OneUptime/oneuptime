@@ -9,7 +9,11 @@ const update = jest.spyOn(util, 'update');
 const end = require('../scripts/end');
 
 test('Should update GlobalConfig record with name "version" to package version', async () => {
-  mockDbCollection();
-  await end();
-  expect(update).toBeCalledWith('GlobalConfig', { name: 'version' }, { value: PKG_VERSION });
+    mockDbCollection();
+    await end();
+    expect(update).toBeCalledWith(
+        'GlobalConfig',
+        { name: 'version' },
+        { value: PKG_VERSION }
+    );
 });

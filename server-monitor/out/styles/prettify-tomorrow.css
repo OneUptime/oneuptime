@@ -4,96 +4,124 @@
 /* SPAN elements with the classes below are added by prettyprint. */
 /* plain text */
 .pln {
-  color: #4d4d4c; }
+    color: #4d4d4c;
+}
 
 @media screen {
-  /* string content */
-  .str {
-    color: #718c00; }
+    /* string content */
+    .str {
+        color: #718c00;
+    }
 
-  /* a keyword */
-  .kwd {
-    color: #8959a8; }
+    /* a keyword */
+    .kwd {
+        color: #8959a8;
+    }
 
-  /* a comment */
-  .com {
-    color: #8e908c; }
+    /* a comment */
+    .com {
+        color: #8e908c;
+    }
 
-  /* a type name */
-  .typ {
-    color: #4271ae; }
+    /* a type name */
+    .typ {
+        color: #4271ae;
+    }
 
-  /* a literal value */
-  .lit {
-    color: #f5871f; }
+    /* a literal value */
+    .lit {
+        color: #f5871f;
+    }
 
-  /* punctuation */
-  .pun {
-    color: #4d4d4c; }
+    /* punctuation */
+    .pun {
+        color: #4d4d4c;
+    }
 
-  /* lisp open bracket */
-  .opn {
-    color: #4d4d4c; }
+    /* lisp open bracket */
+    .opn {
+        color: #4d4d4c;
+    }
 
-  /* lisp close bracket */
-  .clo {
-    color: #4d4d4c; }
+    /* lisp close bracket */
+    .clo {
+        color: #4d4d4c;
+    }
 
-  /* a markup tag name */
-  .tag {
-    color: #c82829; }
+    /* a markup tag name */
+    .tag {
+        color: #c82829;
+    }
 
-  /* a markup attribute name */
-  .atn {
-    color: #f5871f; }
+    /* a markup attribute name */
+    .atn {
+        color: #f5871f;
+    }
 
-  /* a markup attribute value */
-  .atv {
-    color: #3e999f; }
+    /* a markup attribute value */
+    .atv {
+        color: #3e999f;
+    }
 
-  /* a declaration */
-  .dec {
-    color: #f5871f; }
+    /* a declaration */
+    .dec {
+        color: #f5871f;
+    }
 
-  /* a variable name */
-  .var {
-    color: #c82829; }
+    /* a variable name */
+    .var {
+        color: #c82829;
+    }
 
-  /* a function name */
-  .fun {
-    color: #4271ae; } }
+    /* a function name */
+    .fun {
+        color: #4271ae;
+    }
+}
 /* Use higher contrast and text-weight for printable form. */
 @media print, projection {
-  .str {
-    color: #060; }
+    .str {
+        color: #060;
+    }
 
-  .kwd {
-    color: #006;
-    font-weight: bold; }
+    .kwd {
+        color: #006;
+        font-weight: bold;
+    }
 
-  .com {
-    color: #600;
-    font-style: italic; }
+    .com {
+        color: #600;
+        font-style: italic;
+    }
 
-  .typ {
-    color: #404;
-    font-weight: bold; }
+    .typ {
+        color: #404;
+        font-weight: bold;
+    }
 
-  .lit {
-    color: #044; }
+    .lit {
+        color: #044;
+    }
 
-  .pun, .opn, .clo {
-    color: #440; }
+    .pun,
+    .opn,
+    .clo {
+        color: #440;
+    }
 
-  .tag {
-    color: #006;
-    font-weight: bold; }
+    .tag {
+        color: #006;
+        font-weight: bold;
+    }
 
-  .atn {
-    color: #404; }
+    .atn {
+        color: #404;
+    }
 
-  .atv {
-    color: #060; } }
+    .atv {
+        color: #060;
+    }
+}
 /* Style */
 /*
 pre.prettyprint {
@@ -107,8 +135,9 @@ pre.prettyprint {
 
 /* Specify class=linenums on a pre to get line numbering */
 ol.linenums {
-  margin-top: 0;
-  margin-bottom: 0; }
+    margin-top: 0;
+    margin-bottom: 0;
+}
 
 /* IE indents via margin-left */
 li.L0,
@@ -121,7 +150,8 @@ li.L6,
 li.L7,
 li.L8,
 li.L9 {
-  /* */ }
+    /* */
+}
 
 /* Alternate shading for lines */
 li.L1,
@@ -129,4 +159,5 @@ li.L3,
 li.L5,
 li.L7,
 li.L9 {
-  /* */ }
+    /* */
+}

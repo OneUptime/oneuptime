@@ -1,49 +1,46 @@
-import * as _actions from '../../actions/logout'
-import * as _types from '../../constants/logout'
+import * as _actions from '../../actions/logout';
+import * as _types from '../../constants/logout';
 
 /*
   Test for logout actions.
 */
 
-const actions = {..._actions,..._types}
+const actions = { ..._actions, ..._types };
 
 describe('actions', () => {
     it('should create an action of type LOGOUT_REQUEST', () => {
+        const action = actions.requestLogout();
 
-        let action = actions.requestLogout()
-
-        expect(action.type).toEqual(actions.LOGOUT_REQUEST)
-        expect(action.isFetching).toEqual(true)
-        expect(action.isAuthenticated).toEqual(true)
-    })
-})
+        expect(action.type).toEqual(actions.LOGOUT_REQUEST);
+        expect(action.isFetching).toEqual(true);
+        expect(action.isAuthenticated).toEqual(true);
+    });
+});
 
 describe('actions', () => {
     it('should create an action of type LOGOUT_SUCCESS', () => {
+        const action = actions.receiveLogout();
 
-        let action = actions.receiveLogout()
-
-        expect(action.type).toEqual(actions.LOGOUT_SUCCESS)
-        expect(action.isFetching).toEqual(false)
-        expect(action.isAuthenticated).toEqual(false)
-    })
-})
+        expect(action.type).toEqual(actions.LOGOUT_SUCCESS);
+        expect(action.isFetching).toEqual(false);
+        expect(action.isAuthenticated).toEqual(false);
+    });
+});
 
 describe('actions', () => {
     it('should despatch logout actions', () => {
-
-        let dispatch = (dispatched) => {
+        const dispatch = dispatched => {
             switch (dispatched.type) {
                 case actions.LOGOUT_REQUEST:
-                    expect(dispatched.isFetching).toEqual(true)
-                    expect(dispatched.isAuthenticated).toEqual(true)
+                    expect(dispatched.isFetching).toEqual(true);
+                    expect(dispatched.isAuthenticated).toEqual(true);
                     break;
                 case actions.LOGOUT_SUCCESS:
-                    expect(dispatched.isFetching).toEqual(false)
-                    expect(dispatched.isAuthenticated).toEqual(false)
+                    expect(dispatched.isFetching).toEqual(false);
+                    expect(dispatched.isAuthenticated).toEqual(false);
                     break;
             }
-        }
-        let action = actions.logoutUser()(dispatch)
-    })
-})
+        };
+        actions.logoutUser()(dispatch);
+    });
+});

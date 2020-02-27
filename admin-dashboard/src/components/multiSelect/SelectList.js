@@ -3,31 +3,37 @@ import PropTypes from 'prop-types';
 import SelectItem from './SelectItem';
 
 class SelectList extends React.Component {
-
     handleSelectionChanged = (option, checked) => {
         const { selected, onSelectedChanged, disabled } = this.props;
 
-        if(disabled) return true;
+        if (disabled) return true;
 
-        if(checked) {
-            onSelectedChanged({selected, onSelectedChanged, disabled})
+        if (checked) {
+            onSelectedChanged({ selected, onSelectedChanged, disabled });
         } else {
             const index = selected.indexOf(option.value);
             const removed = [
                 ...selected.slice(0, index),
-                ...selected.slice(index, 1)
+                ...selected.slice(index, 1),
             ];
 
             onSelectedChanged(removed);
         }
-    }
+    };
 
     renderItems() {
-        const { options, selected, focusIndex, onClick, ItemRenderer, disabled } = this.props;
-        return options.map((o, i) => 
+        const {
+            options,
+            selected,
+            focusIndex,
+            onClick,
+            ItemRenderer,
+            disabled,
+        } = this.props;
+        return options.map((o, i) => (
             <li
                 key={Object.prototype.hasOwnProperty.call(o, 'key') ? o.key : i}
-                style={{ listStyle: 'none'}}
+                style={{ listStyle: 'none' }}
             >
                 <SelectItem
                     focused={focusIndex === 1}
@@ -39,7 +45,7 @@ class SelectList extends React.Component {
                     disabled={disabled}
                 />
             </li>
-        )
+        ));
     }
     render() {
         return (
@@ -66,7 +72,7 @@ SelectList.propTypes = {
     onSelectedChanged: PropTypes.func,
     onClick: PropTypes.func.isRequired,
     disabled: PropTypes.bool,
-    ItemRenderer: PropTypes.element.isRequired
-}
+    ItemRenderer: PropTypes.element.isRequired,
+};
 
 export default SelectList;

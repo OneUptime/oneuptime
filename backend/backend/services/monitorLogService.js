@@ -1,5 +1,5 @@
 module.exports = {
-    create: async function (data) {
+    create: async function(data) {
         try {
             const Log = new MonitorLogModel();
 
@@ -31,62 +31,126 @@ module.exports = {
             const logByHour = await MonitorLogByHourService.findOneBy({
                 probeId: data.probeId,
                 monitorId: data.monitorId,
-                intervalDate: intervalHourDate
+                intervalDate: intervalHourDate,
             });
             const logByDay = await MonitorLogByDayService.findOneBy({
                 probeId: data.probeId,
                 monitorId: data.monitorId,
-                intervalDate: intervalDayDate
+                intervalDate: intervalDayDate,
             });
             const logByWeek = await MonitorLogByWeekService.findOneBy({
                 probeId: data.probeId,
                 monitorId: data.monitorId,
-                intervalDate: intervalWeekDate
+                intervalDate: intervalWeekDate,
             });
 
             if (logByHour) {
-                await MonitorLogByHourService.updateOneBy({ _id: logByHour._id }, {
-                    ...data,
-                    createdAt: Date.now(),
-                    maxResponseTime: data.responseTime > logByHour.maxResponseTime ? data.responseTime : logByHour.maxResponseTime,
-                    maxCpuLoad: data.cpuLoad > logByHour.maxCpuLoad ? data.cpuLoad : logByHour.maxCpuLoad,
-                    maxMemoryUsed: data.memoryUsed > logByHour.maxMemoryUsed ? data.memoryUsed : logByHour.maxMemoryUsed,
-                    maxStorageUsed: data.storageUsed > logByHour.maxStorageUsed ? data.storageUsed : logByHour.maxStorageUsed,
-                    maxMainTemp: data.mainTemp > logByHour.maxMainTemp ? data.mainTemp : logByHour.maxMainTemp
-                });
+                await MonitorLogByHourService.updateOneBy(
+                    { _id: logByHour._id },
+                    {
+                        ...data,
+                        createdAt: Date.now(),
+                        maxResponseTime:
+                            data.responseTime > logByHour.maxResponseTime
+                                ? data.responseTime
+                                : logByHour.maxResponseTime,
+                        maxCpuLoad:
+                            data.cpuLoad > logByHour.maxCpuLoad
+                                ? data.cpuLoad
+                                : logByHour.maxCpuLoad,
+                        maxMemoryUsed:
+                            data.memoryUsed > logByHour.maxMemoryUsed
+                                ? data.memoryUsed
+                                : logByHour.maxMemoryUsed,
+                        maxStorageUsed:
+                            data.storageUsed > logByHour.maxStorageUsed
+                                ? data.storageUsed
+                                : logByHour.maxStorageUsed,
+                        maxMainTemp:
+                            data.mainTemp > logByHour.maxMainTemp
+                                ? data.mainTemp
+                                : logByHour.maxMainTemp,
+                    }
+                );
             } else {
-                MonitorLogByHourService.create({ ...data, intervalDate: intervalHourDate });
+                MonitorLogByHourService.create({
+                    ...data,
+                    intervalDate: intervalHourDate,
+                });
             }
             if (logByDay) {
-                await MonitorLogByDayService.updateOneBy({ _id: logByDay._id }, {
-                    ...data,
-                    createdAt: Date.now(),
-                    maxResponseTime: data.responseTime > logByDay.maxResponseTime ? data.responseTime : logByDay.maxResponseTime,
-                    maxCpuLoad: data.cpuLoad > logByDay.maxCpuLoad ? data.cpuLoad : logByDay.maxCpuLoad,
-                    maxMemoryUsed: data.memoryUsed > logByDay.maxMemoryUsed ? data.memoryUsed : logByDay.maxMemoryUsed,
-                    maxStorageUsed: data.storageUsed > logByDay.maxStorageUsed ? data.storageUsed : logByDay.maxStorageUsed,
-                    maxMainTemp: data.mainTemp > logByDay.maxMainTemp ? data.mainTemp : logByDay.maxMainTemp
-                });
+                await MonitorLogByDayService.updateOneBy(
+                    { _id: logByDay._id },
+                    {
+                        ...data,
+                        createdAt: Date.now(),
+                        maxResponseTime:
+                            data.responseTime > logByDay.maxResponseTime
+                                ? data.responseTime
+                                : logByDay.maxResponseTime,
+                        maxCpuLoad:
+                            data.cpuLoad > logByDay.maxCpuLoad
+                                ? data.cpuLoad
+                                : logByDay.maxCpuLoad,
+                        maxMemoryUsed:
+                            data.memoryUsed > logByDay.maxMemoryUsed
+                                ? data.memoryUsed
+                                : logByDay.maxMemoryUsed,
+                        maxStorageUsed:
+                            data.storageUsed > logByDay.maxStorageUsed
+                                ? data.storageUsed
+                                : logByDay.maxStorageUsed,
+                        maxMainTemp:
+                            data.mainTemp > logByDay.maxMainTemp
+                                ? data.mainTemp
+                                : logByDay.maxMainTemp,
+                    }
+                );
             } else {
-                MonitorLogByDayService.create({ ...data, intervalDate: intervalDayDate });
+                MonitorLogByDayService.create({
+                    ...data,
+                    intervalDate: intervalDayDate,
+                });
             }
             if (logByWeek) {
-                await MonitorLogByWeekService.updateOneBy({ _id: logByWeek._id }, {
-                    ...data,
-                    createdAt: Date.now(),
-                    maxResponseTime: data.responseTime > logByWeek.maxResponseTime ? data.responseTime : logByWeek.maxResponseTime,
-                    maxCpuLoad: data.cpuLoad > logByWeek.maxCpuLoad ? data.cpuLoad : logByWeek.maxCpuLoad,
-                    maxMemoryUsed: data.memoryUsed > logByWeek.maxMemoryUsed ? data.memoryUsed : logByWeek.maxMemoryUsed,
-                    maxStorageUsed: data.storageUsed > logByWeek.maxStorageUsed ? data.storageUsed : logByWeek.maxStorageUsed,
-                    maxMainTemp: data.mainTemp > logByWeek.maxMainTemp ? data.mainTemp : logByWeek.maxMainTemp
-                });
+                await MonitorLogByWeekService.updateOneBy(
+                    { _id: logByWeek._id },
+                    {
+                        ...data,
+                        createdAt: Date.now(),
+                        maxResponseTime:
+                            data.responseTime > logByWeek.maxResponseTime
+                                ? data.responseTime
+                                : logByWeek.maxResponseTime,
+                        maxCpuLoad:
+                            data.cpuLoad > logByWeek.maxCpuLoad
+                                ? data.cpuLoad
+                                : logByWeek.maxCpuLoad,
+                        maxMemoryUsed:
+                            data.memoryUsed > logByWeek.maxMemoryUsed
+                                ? data.memoryUsed
+                                : logByWeek.maxMemoryUsed,
+                        maxStorageUsed:
+                            data.storageUsed > logByWeek.maxStorageUsed
+                                ? data.storageUsed
+                                : logByWeek.maxStorageUsed,
+                        maxMainTemp:
+                            data.mainTemp > logByWeek.maxMainTemp
+                                ? data.mainTemp
+                                : logByWeek.maxMainTemp,
+                    }
+                );
             } else {
-                MonitorLogByWeekService.create({ ...data, intervalDate: intervalWeekDate });
+                MonitorLogByWeekService.create({
+                    ...data,
+                    intervalDate: intervalWeekDate,
+                });
             }
 
             await this.sendMonitorLog(savedLog);
 
-            if (data.probeId && data.monitorId) await probeService.sendProbe(data.probeId, data.monitorId);
+            if (data.probeId && data.monitorId)
+                await probeService.sendProbe(data.probeId, data.monitorId);
 
             return savedLog;
         } catch (error) {
@@ -95,17 +159,19 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
             }
 
-            const monitorLog = await MonitorLogModel.findOneAndUpdate(query,
+            const monitorLog = await MonitorLogModel.findOneAndUpdate(
+                query,
                 { $set: data },
                 {
-                    new: true
-                });
+                    new: true,
+                }
+            );
 
             return monitorLog;
         } catch (error) {
@@ -120,11 +186,11 @@ module.exports = {
 
             if (!limit) limit = 0;
 
-            if (typeof (skip) === 'string') {
+            if (typeof skip === 'string') {
                 skip = parseInt(skip);
             }
 
-            if (typeof (limit) === 'string') {
+            if (typeof limit === 'string') {
                 limit = parseInt(limit);
             }
 
@@ -151,8 +217,9 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLog = await MonitorLogModel.findOne(query)
-                .populate('probeId');
+            const monitorLog = await MonitorLogModel.findOne(query).populate(
+                'probeId'
+            );
 
             return monitorLog;
         } catch (error) {
@@ -178,15 +245,20 @@ module.exports = {
 
     async sendMonitorLog(data) {
         try {
-            const monitor = await MonitorService.findOneBy({ _id: data.monitorId });
+            const monitor = await MonitorService.findOneBy({
+                _id: data.monitorId,
+            });
             if (monitor && monitor.projectId._id) {
-                await RealTimeService.updateMonitorLog(data, monitor.projectId._id);
+                await RealTimeService.updateMonitorLog(
+                    data,
+                    monitor.projectId._id
+                );
             }
         } catch (error) {
             ErrorService.log('monitorLogService.sendMonitorLog', error);
             throw error;
         }
-    }
+    },
 };
 
 const MonitorLogModel = require('../models/monitorLog');

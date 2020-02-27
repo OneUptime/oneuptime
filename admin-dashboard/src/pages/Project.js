@@ -14,9 +14,8 @@ import AdminNotes from '../components/adminNote/AdminNotes';
 import { addProjectNote, fetchProject } from '../actions/project';
 
 class Project extends Component {
-
     componentDidMount() {
-        if(window.location.href.indexOf('localhost') <= -1){
+        if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Project page Loaded');
         }
     }
@@ -25,7 +24,7 @@ class Project extends Component {
         const { fetchProject } = this.props;
 
         await fetchProject(this.props.match.params.projectId);
-    }
+    };
 
     render() {
         return (
@@ -41,29 +40,74 @@ class Project extends Component {
                                                 <ProjectDetails />
                                             </div>
                                             <div className="Box-root Margin-bottom--12">
-                                            <AdminNotes id={this.props.project ? this.props.project._id : ''} addNote={this.props.addProjectNote} initialValues={this.props.initialValues} />
+                                                <AdminNotes
+                                                    id={
+                                                        this.props.project
+                                                            ? this.props.project
+                                                                  ._id
+                                                            : ''
+                                                    }
+                                                    addNote={
+                                                        this.props
+                                                            .addProjectNote
+                                                    }
+                                                    initialValues={
+                                                        this.props.initialValues
+                                                    }
+                                                />
                                             </div>
-                                            <ShouldRender if={this.props.project && !this.props.project.deleted && !this.props.project.isBlocked}>
+                                            <ShouldRender
+                                                if={
+                                                    this.props.project &&
+                                                    !this.props.project
+                                                        .deleted &&
+                                                    !this.props.project
+                                                        .isBlocked
+                                                }
+                                            >
                                                 <div className="Box-root Margin-bottom--12">
                                                     <ProjectBlockBox />
                                                 </div>
                                             </ShouldRender>
-                                            <ShouldRender if={this.props.project && this.props.project.alertLimitReached}>
+                                            <ShouldRender
+                                                if={
+                                                    this.props.project &&
+                                                    this.props.project
+                                                        .alertLimitReached
+                                                }
+                                            >
                                                 <div className="Box-root Margin-bottom--12">
                                                     <ProjectAlertLimitBox />
                                                 </div>
                                             </ShouldRender>
-                                            <ShouldRender if={this.props.project && !this.props.project.deleted && this.props.project.isBlocked}>
+                                            <ShouldRender
+                                                if={
+                                                    this.props.project &&
+                                                    !this.props.project
+                                                        .deleted &&
+                                                    this.props.project.isBlocked
+                                                }
+                                            >
                                                 <div className="Box-root Margin-bottom--12">
                                                     <ProjectUnblockBox />
                                                 </div>
                                             </ShouldRender>
-                                            <ShouldRender if={this.props.project && !this.props.project.deleted}>
+                                            <ShouldRender
+                                                if={
+                                                    this.props.project &&
+                                                    !this.props.project.deleted
+                                                }
+                                            >
                                                 <div className="Box-root Margin-bottom--12">
                                                     <ProjectDeleteBox />
                                                 </div>
                                             </ShouldRender>
-                                            <ShouldRender if={this.props.project && this.props.project.deleted}>
+                                            <ShouldRender
+                                                if={
+                                                    this.props.project &&
+                                                    this.props.project.deleted
+                                                }
+                                            >
                                                 <div className="Box-root Margin-bottom--12">
                                                     <ProjectRestoreBox />
                                                 </div>
@@ -72,29 +116,29 @@ class Project extends Component {
                                     </span>
                                 </div>
                             </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </Dashboard>
+            </Dashboard>
         );
     }
 }
 
-const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ addProjectNote, fetchProject }, dispatch)
-}
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators({ addProjectNote, fetchProject }, dispatch);
+};
 
-const mapStateToProps = (state) => {
-    const project = state.project.project.project || {}
+const mapStateToProps = state => {
+    const project = state.project.project.project || {};
     return {
         project,
         adminNote: state.adminNote,
-        initialValues: { adminNotes: project.adminNotes || []}
-    }
-}
+        initialValues: { adminNotes: project.adminNotes || [] },
+    };
+};
 
 Project.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
+    mixpanel: PropTypes.object.isRequired,
 };
 
 Project.propTypes = {
@@ -102,9 +146,9 @@ Project.propTypes = {
     initialValues: PropTypes.object,
     match: PropTypes.object.isRequired,
     fetchProject: PropTypes.func.isRequired,
-    project: PropTypes.object.isRequired
-}
+    project: PropTypes.object.isRequired,
+};
 
-Project.displayName = 'Project'
+Project.displayName = 'Project';
 
 export default connect(mapStateToProps, mapDispatchToProps)(Project);

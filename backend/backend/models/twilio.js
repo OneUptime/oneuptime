@@ -6,16 +6,16 @@ const twilioSchema = new Schema({
     accountSid: String,
     authToken: String,
     phoneNumber: String,
-    enabled:{ type: Boolean, default: true},
+    enabled: { type: Boolean, default: true },
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
     },
 
-    deleted: { type: Boolean, default: false},
+    deleted: { type: Boolean, default: false },
 
     deletedAt: {
-        type: Date
+        type: Date,
     },
 
     deletedById: { type: String, ref: 'User' },

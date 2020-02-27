@@ -10,9 +10,8 @@ import {
     DELETE_SCHEDULED_EVENT_FAILURE,
     UPDATE_SCHEDULED_EVENT_SUCCESS,
     UPDATE_SCHEDULED_EVENT_REQUEST,
-    UPDATE_SCHEDULED_EVENT_FAILURE
+    UPDATE_SCHEDULED_EVENT_FAILURE,
 } from '../constants/scheduledEvent';
-
 
 const INITIAL_STATE = {
     scheduledEventList: {
@@ -22,27 +21,26 @@ const INITIAL_STATE = {
         success: false,
         skip: null,
         limit: null,
-        count: null
+        count: null,
     },
     newScheduledEvent: {
         scheduledEvent: null,
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     deletedScheduledEvent: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     updatedScheduledEvent: {
         scheduledEvent: null,
         error: null,
         requesting: false,
-        success: false
-    }
-}
-
+        success: false,
+    },
+};
 
 export default function scheduledEvent(state = INITIAL_STATE, action) {
     switch (action.type) {
@@ -52,13 +50,15 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    scheduledEvent: action.payload
+                    scheduledEvent: action.payload,
                 },
                 scheduledEventList: {
                     ...state.scheduledEventList,
-                    scheduledEvents: state.scheduledEventList.scheduledEvents.concat(action.payload),
-                    count:state.scheduledEventList.count+1
-                }
+                    scheduledEvents: state.scheduledEventList.scheduledEvents.concat(
+                        action.payload
+                    ),
+                    count: state.scheduledEventList.count + 1,
+                },
             });
         case CREATE_SCHEDULED_EVENT_FAILURE:
             return Object.assign({}, state, {
@@ -67,8 +67,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    scheduledEvent: state.newScheduledEvent.scheduledEvent
-                }
+                    scheduledEvent: state.newScheduledEvent.scheduledEvent,
+                },
             });
         case CREATE_SCHEDULED_EVENT_REQUEST:
             return Object.assign({}, state, {
@@ -77,8 +77,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                    scheduledEvent: state.newScheduledEvent.scheduledEvent
-                }
+                    scheduledEvent: state.newScheduledEvent.scheduledEvent,
+                },
             });
 
         case FETCH_SCHEDULED_EVENTS_SUCCESS:
@@ -91,8 +91,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     scheduledEvents: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
-                }
+                    skip: action.payload.skip,
+                },
             });
         case FETCH_SCHEDULED_EVENTS_FAILURE:
             return Object.assign({}, state, {
@@ -102,7 +102,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
 
         case FETCH_SCHEDULED_EVENTS_REQUEST:
@@ -111,7 +111,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 scheduledEventList: {
                     ...state.scheduledEventList,
                     requesting: true,
-                }
+                },
             });
 
         case DELETE_SCHEDULED_EVENT_SUCCESS:
@@ -119,38 +119,40 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 ...state,
                 scheduledEventList: {
                     ...state.scheduledEventList,
-                    scheduledEvents: state.scheduledEventList.scheduledEvents.filter(scheduledEvent => {
-                        if (scheduledEvent._id === action.payload) {
-                            return false;
-                        } else {
-                            return true;
+                    scheduledEvents: state.scheduledEventList.scheduledEvents.filter(
+                        scheduledEvent => {
+                            if (scheduledEvent._id === action.payload) {
+                                return false;
+                            } else {
+                                return true;
+                            }
                         }
-                    }),
-                    count:state.scheduledEventList.count-1
+                    ),
+                    count: state.scheduledEventList.count - 1,
                 },
-                deletedScheduledEvent:{
-                    requesting:false,
-                    success:true,
-                    error:false
-                }
+                deletedScheduledEvent: {
+                    requesting: false,
+                    success: true,
+                    error: false,
+                },
             });
         case DELETE_SCHEDULED_EVENT_FAILURE:
             return Object.assign({}, state, {
                 ...state,
-                deletedScheduledEvent:{
-                    requesting:false,
-                    success:false,
-                    error: action.payload
-                }
+                deletedScheduledEvent: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
             });
         case DELETE_SCHEDULED_EVENT_REQUEST:
             return Object.assign({}, state, {
                 ...state,
-                deletedScheduledEvent:{
-                    requesting:true,
-                    success:false,
-                    error:null
-                }
+                deletedScheduledEvent: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
             });
 
         case UPDATE_SCHEDULED_EVENT_SUCCESS:
@@ -159,17 +161,19 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    scheduledEvent: action.payload
+                    scheduledEvent: action.payload,
                 },
                 scheduledEventList: {
                     ...state.scheduledEventList,
-                    scheduledEvents: state.scheduledEventList.scheduledEvents.map(scheduledEvent => {
-                        if (action.payload._id === scheduledEvent._id){
-                            return action.payload
+                    scheduledEvents: state.scheduledEventList.scheduledEvents.map(
+                        scheduledEvent => {
+                            if (action.payload._id === scheduledEvent._id) {
+                                return action.payload;
+                            }
+                            return scheduledEvent;
                         }
-                        return scheduledEvent;
-                    }),
-                }
+                    ),
+                },
             });
         case UPDATE_SCHEDULED_EVENT_FAILURE:
             return Object.assign({}, state, {
@@ -179,7 +183,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
         case UPDATE_SCHEDULED_EVENT_REQUEST:
             return Object.assign({}, state, {
@@ -189,9 +193,10 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                }
+                },
             });
 
-        default: return state;
+        default:
+            return state;
     }
 }

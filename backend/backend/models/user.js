@@ -8,7 +8,7 @@ const userSchema = new Schema({
     password: String,
     isVerified: {
         type: Boolean,
-        default: false
+        default: false,
     },
     companyName: String,
     companyRole: String,
@@ -21,7 +21,7 @@ const userSchema = new Schema({
     onCallAlert: Array,
     profilePic: String,
 
-    twoFactorAuthEnabled: {type: Boolean, default: false},
+    twoFactorAuthEnabled: { type: Boolean, default: false },
     twoFactorSecretCode: String,
     otpauth_url: String,
     backupCodes: Array,
@@ -43,7 +43,7 @@ const userSchema = new Schema({
 
     disabled: {
         type: Boolean,
-        default: false
+        default: false,
     },
     paymentFailedDate: {
         type: Date,
@@ -51,30 +51,32 @@ const userSchema = new Schema({
     },
     role: {
         type: String,
-        enum: ['master-admin', 'user']
+        enum: ['master-admin', 'user'],
     },
     isBlocked: {
         type: Boolean,
-        default: false
+        default: false,
     },
-    adminNotes: [{
-        note: { type: String },
-        createdAt: { type: Date }
-    }],
+    adminNotes: [
+        {
+            note: { type: String },
+            createdAt: { type: Date },
+        },
+    ],
 
     deleted: { type: Boolean, default: false },
 
     deletedAt: {
-        type: Date
+        type: Date,
     },
 
     deletedById: { type: String, ref: 'User' },
     alertPhoneNumber: {
         type: String,
-        default: ''
+        default: '',
     },
     tempAlertPhoneNumber: String,
-    tutorial: Object
+    tutorial: Object,
 });
 
 module.exports = mongoose.model('User', userSchema);

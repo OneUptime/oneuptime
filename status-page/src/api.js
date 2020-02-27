@@ -1,15 +1,11 @@
 import axios from 'axios';
-import {
-    API_URL,
-    User
-} from './config';
+import { API_URL, User } from './config';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Accept': 'application/json',
-    'Content-Type': 'application/json;charset=UTF-8'
+    Accept: 'application/json',
+    'Content-Type': 'application/json;charset=UTF-8',
 };
-
 
 export function postApi(url, data) {
     if (User.isLoggedIn()) {
@@ -21,15 +17,15 @@ export function postApi(url, data) {
             method: 'POST',
             url: `${API_URL}/${url}`,
             headers,
-            data
+            data,
         })
-            .then(function (response) {
+            .then(function(response) {
                 resolve(response);
             })
-            .catch(function (error) {
+            .catch(function(error) {
                 reject(error);
             });
-    })
+    });
     return promise;
 }
 
@@ -42,14 +38,14 @@ export function getApi(url) {
         axios({
             method: 'GET',
             url: `${API_URL}/${url}`,
-            headers
+            headers,
         })
-            .then(function (response) {
+            .then(function(response) {
                 resolve(response);
             })
-            .catch(function (error) {
+            .catch(function(error) {
                 reject(error);
             });
-    })
+    });
     return promise;
 }
