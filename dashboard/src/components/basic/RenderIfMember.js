@@ -6,17 +6,23 @@ import { User } from '../../config';
 // params 1: props
 // returns JSX.Element or NULL
 function RenderIfMember(props) {
-    const {currentProject, children} = props;
+    const { currentProject, children } = props;
     const userId = User.getUserId();
     let renderItems = null;
     if (
-        userId && currentProject &&
+        userId &&
+        currentProject &&
         currentProject.users &&
         currentProject.users.length > 0 &&
-        currentProject.users.filter(user => user.userId === userId
-            && (user.role !== 'Administrator' && user.role !== 'Owner' && user.role !== 'Viewer')).length > 0
+        currentProject.users.filter(
+            user =>
+                user.userId === userId &&
+                user.role !== 'Administrator' &&
+                user.role !== 'Owner' &&
+                user.role !== 'Viewer'
+        ).length > 0
     ) {
-        renderItems = children
+        renderItems = children;
     }
 
     return renderItems;
@@ -24,7 +30,7 @@ function RenderIfMember(props) {
 
 function mapStateToProps(state) {
     return {
-        currentProject: state.project.currentProject
+        currentProject: state.project.currentProject,
     };
 }
 

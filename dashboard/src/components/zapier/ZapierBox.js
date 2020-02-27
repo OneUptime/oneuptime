@@ -3,11 +3,10 @@ import { withRouter } from 'react-router-dom';
 import { ListLoader } from '../basic/Loader';
 
 class ZapierBox extends React.Component {
-
     state = {
         isLoading: true,
-    }
-    
+    };
+
     componentDidMount() {
         const embededZapierTemplates = 7;
         const zapierEmbededWidget = `https://zapier.com/apps/embed/widget.js?services=fyipe&limit=${embededZapierTemplates}&html_id=zapierId`;
@@ -36,7 +35,10 @@ class ZapierBox extends React.Component {
                                                 <span>Zapier Integration</span>
                                             </span>
                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <span>Zapier templates you can use to connect your app.</span>
+                                                <span>
+                                                    Zapier templates you can use
+                                                    to connect your app.
+                                                </span>
                                             </span>
                                         </div>
                                     </div>
@@ -50,7 +52,7 @@ class ZapierBox extends React.Component {
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 }
 

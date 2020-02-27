@@ -6,7 +6,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from '../../components/basic/react-select-fyipe';
 
-
 /**
  * onChange from Redux Form Field has to be called explicity.
  */
@@ -36,15 +35,24 @@ function transformValue(value, options, isMulti) {
     if (isMulti && typeof value === 'string') return [];
 
     const filteredOptions = options.filter(option => {
-        return isMulti ?
-            (value && value.indexOf(option.value) !== -1) :
-            option.value === value;
+        return isMulti
+            ? value && value.indexOf(option.value) !== -1
+            : option.value === value;
     });
 
     return isMulti ? filteredOptions : filteredOptions[0];
 }
 
-const RFReactSelect = ({ input , options,valueKey ,labelKey ,isMulti, className, placeholder, disabled }) => {
+const RFReactSelect = ({
+    input,
+    options,
+    valueKey,
+    labelKey,
+    isMulti,
+    className,
+    placeholder,
+    disabled,
+}) => {
     const { name, value, onBlur, onChange, onFocus } = input;
     const transformedValue = transformValue(value, options, isMulti);
     return (
@@ -57,30 +65,31 @@ const RFReactSelect = ({ input , options,valueKey ,labelKey ,isMulti, className,
             isMulti={isMulti}
             isDisabled={disabled}
             options={options}
-            onChange={isMulti
-                ? multiChangeHandler(onChange)
-                : singleChangeHandler(onChange)
+            onChange={
+                isMulti
+                    ? multiChangeHandler(onChange)
+                    : singleChangeHandler(onChange)
             }
             onBlur={() => onBlur(value)}
             onFocus={onFocus}
             className={className}
         />
     );
-}
+};
 RFReactSelect.displayName = 'RFReactSelect';
 
 RFReactSelect.defaultProps = {
     multi: false,
-    className: ''
+    className: '',
 };
 
 RFReactSelect.propTypes = {
     input: PropTypes.shape({
-      name: PropTypes.string.isRequired,
-      value: PropTypes.string.isRequired,
-      onBlur: PropTypes.func.isRequired,
-      onChange: PropTypes.func.isRequired,
-      onFocus: PropTypes.func.isRequired,
+        name: PropTypes.string.isRequired,
+        value: PropTypes.string.isRequired,
+        onBlur: PropTypes.func.isRequired,
+        onChange: PropTypes.func.isRequired,
+        onFocus: PropTypes.func.isRequired,
     }).isRequired,
     options: PropTypes.array.isRequired,
     isMulti: PropTypes.bool,
@@ -88,7 +97,7 @@ RFReactSelect.propTypes = {
     className: PropTypes.string,
     placeholder: PropTypes.string,
     labelKey: PropTypes.string,
-    valueKey: PropTypes.string
+    valueKey: PropTypes.string,
 };
 
 export default RFReactSelect;

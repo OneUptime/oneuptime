@@ -5,22 +5,22 @@ const ReactSelectFyipe = props => (
     <Select
         {...props}
         styles={{
-            control: (provided) => ({
+            control: provided => ({
                 ...provided,
                 border: '1px solid hsl(0,0%,80%) !important',
                 boxShadow: 'unset !important',
                 minHeight: 'unset',
-                height: '30px'
+                height: '30px',
             }),
             option: (provided, state) => ({
                 ...provided,
                 backgroundColor: state.isSelected ? 'black' : 'unset',
                 ':hover': {
                     ...provided[':hover'],
-                    backgroundColor: state.isSelected ? 'black' : '#ededed'
-                }
+                    backgroundColor: state.isSelected ? 'black' : '#ededed',
+                },
             }),
-            menu: (provided) => ({
+            menu: provided => ({
                 ...provided,
                 zIndex: 5,
             }),

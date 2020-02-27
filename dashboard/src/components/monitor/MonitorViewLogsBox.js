@@ -15,7 +15,7 @@ export class MonitorViewLogsBox extends Component {
         this.props = props;
         this.state = {
             probeValue: { value: '', label: 'All Probes' },
-        }
+        };
     }
 
     prevClicked = (monitorId, skip, limit) => {
@@ -26,18 +26,19 @@ export class MonitorViewLogsBox extends Component {
         getMonitorLogs(
             currentProject._id,
             monitorId,
-            (skip ? (parseInt(skip, 10) - 10) : 10),
+            skip ? parseInt(skip, 10) - 10 : 10,
             limit,
             start,
             end,
             this.state.probeValue.value,
-            incidentId);
+            incidentId
+        );
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Previous Incident Requested', {
                 projectId: currentProject._id,
             });
         }
-    }
+    };
 
     nextClicked = (monitorId, skip, limit) => {
         const { currentProject, getMonitorLogs } = this.props;
@@ -47,18 +48,19 @@ export class MonitorViewLogsBox extends Component {
         getMonitorLogs(
             currentProject._id,
             monitorId,
-            (skip ? (parseInt(skip, 10) + 10) : 10),
+            skip ? parseInt(skip, 10) + 10 : 10,
             limit,
             start,
             end,
             this.state.probeValue.value,
-            incidentId);
+            incidentId
+        );
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Next Incident Requested', {
                 projectId: currentProject._id,
             });
         }
-    }
+    };
 
     handleDateChange = (startDate, endDate) => {
         const { currentProject, getMonitorLogs, monitorId } = this.props;
@@ -69,8 +71,9 @@ export class MonitorViewLogsBox extends Component {
             10,
             startDate.clone().utc(),
             endDate.clone().utc(),
-            this.state.probeValue.value);
-    }
+            this.state.probeValue.value
+        );
+    };
 
     handleTimeChange = (startDate, endDate) => {
         const { currentProject, getMonitorLogs, monitorId } = this.props;
@@ -81,10 +84,11 @@ export class MonitorViewLogsBox extends Component {
             10,
             startDate.clone().utc(),
             endDate.clone().utc(),
-            this.state.probeValue.value);
-    }
+            this.state.probeValue.value
+        );
+    };
 
-    handleProbeChange = (data) => {
+    handleProbeChange = data => {
         this.setState({ probeValue: data });
         const { currentProject, getMonitorLogs, monitorId } = this.props;
         getMonitorLogs(
@@ -94,30 +98,43 @@ export class MonitorViewLogsBox extends Component {
             10,
             this.props.startDate.clone().utc(),
             this.props.endDate.clone().utc(),
-            data.value);
-    }
+            data.value
+        );
+    };
 
     render() {
-        const probeOptions = this.props.probes && this.props.probes.length > 0 ?
-            this.props.probes.map(p => {
-                return { value: p._id, label: p.probeName }
-            }) : [];
+        const probeOptions =
+            this.props.probes && this.props.probes.length > 0
+                ? this.props.probes.map(p => {
+                      return { value: p._id, label: p.probeName };
+                  })
+                : [];
         probeOptions.unshift({ value: '', label: 'All Probes' });
         return (
-            <div className="Box-root Card-shadow--medium" tabIndex='0' onKeyDown={this.handleKeyBoard}>
+            <div
+                className="Box-root Card-shadow--medium"
+                tabIndex="0"
+                onKeyDown={this.handleKeyBoard}
+            >
                 <div className="db-Trends-header Box-background--white Box-divider--surface-bottom-1">
                     <div className="ContentHeader Box-root Box-background--white Flex-flex Flex-direction--column">
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                 <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                    <span>
-                                        Monitor Logs
-                                </span>
+                                    <span>Monitor Logs</span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {this.props.incidentId ?
-                                        <span>Here&#39;s all of the monitor logs that created this incident.</span> :
-                                        <span>Here&#39;s all of the logs for the monitor created by the probes.</span>}
+                                    {this.props.incidentId ? (
+                                        <span>
+                                            Here&#39;s all of the monitor logs
+                                            that created this incident.
+                                        </span>
+                                    ) : (
+                                        <span>
+                                            Here&#39;s all of the logs for the
+                                            monitor created by the probes.
+                                        </span>
+                                    )}
                                 </span>
                             </div>
                         </div>
@@ -134,20 +151,25 @@ export class MonitorViewLogsBox extends Component {
                             </div>
                             <div className="db-Trends-timeControls">
                                 <TimeRangeSelector
-                                    name1='asdfgh'
-                                    name2='asdfghuio'
+                                    name1="asdfgh"
+                                    name2="asdfghuio"
                                     onChange={this.handleTimeChange}
                                 />
                             </div>
                             <div style={{ height: '28px', width: '250px' }}>
                                 <Select
-                                    name='probe_selector'
+                                    name="probe_selector"
                                     value={this.state.probeValue}
                                     onChange={this.handleProbeChange}
-                                    placeholder='All Probes'
+                                    placeholder="All Probes"
                                     className="db-select-pr"
-                                    id='probe_selector'
-                                    isDisabled={!(this.props.monitorLogs && !this.props.monitorLogs.requesting)}
+                                    id="probe_selector"
+                                    isDisabled={
+                                        !(
+                                            this.props.monitorLogs &&
+                                            !this.props.monitorLogs.requesting
+                                        )
+                                    }
                                     style={{ height: '28px' }}
                                     options={probeOptions}
                                 />
@@ -156,14 +178,19 @@ export class MonitorViewLogsBox extends Component {
                     </ShouldRender>
                 </div>
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
-                    <MonitorLogsList monitorId={this.props.monitorId} monitorName={this.props.monitorName} prevClicked={this.prevClicked} nextClicked={this.nextClicked} />
+                    <MonitorLogsList
+                        monitorId={this.props.monitorId}
+                        monitorName={this.props.monitorName}
+                        prevClicked={this.prevClicked}
+                        nextClicked={this.nextClicked}
+                    />
                 </div>
             </div>
         );
     }
 }
 
-MonitorViewLogsBox.displayName = 'MonitorViewLogsBox'
+MonitorViewLogsBox.displayName = 'MonitorViewLogsBox';
 
 MonitorViewLogsBox.propTypes = {
     currentProject: PropTypes.object,
@@ -174,12 +201,11 @@ MonitorViewLogsBox.propTypes = {
     monitorLogs: PropTypes.object,
     monitorName: PropTypes.string,
     startDate: PropTypes.object,
-    probes: PropTypes.array
-}
+    probes: PropTypes.array,
+};
 
-const mapDispatchToProps = dispatch => bindActionCreators(
-    { getMonitorLogs }, dispatch
-)
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ getMonitorLogs }, dispatch);
 
 function mapStateToProps(state, props) {
     const monitorId = props.monitorId ? props.monitorId : null;
@@ -188,12 +214,12 @@ function mapStateToProps(state, props) {
         probes: state.probe.probes.data,
         currentProject: state.project.currentProject,
         startDate: state.dateTime.dates.startDate,
-        endDate: state.dateTime.dates.endDate
+        endDate: state.dateTime.dates.endDate,
     };
 }
 
 MonitorViewLogsBox.contextTypes = {
-    mixpanel: PropTypes.object
+    mixpanel: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorViewLogsBox);

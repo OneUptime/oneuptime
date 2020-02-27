@@ -5,14 +5,17 @@ import { User } from '../../config';
 // params 1: props
 // returns JSX.Element or NULL
 export default function(currentProject) {
-  
     const userId = User.getUserId();
     if (
-        userId && currentProject &&
+        userId &&
+        currentProject &&
         currentProject.users &&
         currentProject.users.length > 0 &&
-        currentProject.users.filter(user => user.userId === userId
-            && (user.role !== 'Administrator' ||  user.role !== 'Owner')).length > 0
+        currentProject.users.filter(
+            user =>
+                user.userId === userId &&
+                (user.role !== 'Administrator' || user.role !== 'Owner')
+        ).length > 0
     ) {
         return true;
     }

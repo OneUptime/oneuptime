@@ -3,27 +3,35 @@ import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import Dashboard from '../components/Dashboard';
-import { fetchProjectSchedule, fetchSubProjectSchedules, createSchedule, paginate } from '../actions/schedule';
+import {
+    fetchProjectSchedule,
+    fetchSubProjectSchedules,
+    createSchedule,
+    paginate,
+} from '../actions/schedule';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import Badge from '../components/common/Badge';
 import ScheduleProjectBox from '../components/schedule/ScheduleProjectBox';
-import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject'
+import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 
 export class OnCall extends Component {
-
     constructor(props) {
         super(props);
         this.state = { scheduleModalId: uuid.v4() };
     }
 
     ready() {
-        const { subProjectSchedules, fetchSubProjectSchedules, currentProjectId } = this.props;
+        const {
+            subProjectSchedules,
+            fetchSubProjectSchedules,
+            currentProjectId,
+        } = this.props;
         if (subProjectSchedules.length === 0 && currentProjectId) {
             fetchSubProjectSchedules(currentProjectId);
         }
@@ -34,9 +42,11 @@ export class OnCall extends Component {
 
     componentDidMount() {
         if (this.props.currentProjectId) {
-            this.props.fetchSubProjectSchedules(this.props.currentProjectId).then(() => {
-                this.ready();
-            });
+            this.props
+                .fetchSubProjectSchedules(this.props.currentProjectId)
+                .then(() => {
+                    this.ready();
+                });
         }
     }
 
@@ -47,12 +57,16 @@ export class OnCall extends Component {
     prevClicked = (subProjectId, skip, limit) => {
         const { fetchProjectSchedule, paginate } = this.props;
 
-        fetchProjectSchedule(subProjectId, ((skip || 0) > (limit || 10)) ? skip - limit : 0, 10);
+        fetchProjectSchedule(
+            subProjectId,
+            (skip || 0) > (limit || 10) ? skip - limit : 0,
+            10
+        );
         paginate('prev');
         if (!IS_DEV) {
             logEvent('Fetch Previous Webhook');
         }
-    }
+    };
 
     nextClicked = (subProjectId, skip, limit) => {
         const { fetchProjectSchedule, paginate } = this.props;
@@ -62,100 +76,136 @@ export class OnCall extends Component {
         if (!IS_DEV) {
             logEvent('Fetch Next Webhook');
         }
-    }
+    };
 
-    createSchedule = (subProjectId) => {
+    createSchedule = subProjectId => {
         const { createSchedule, currentProjectId, history } = this.props;
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
-            history.push(`/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`);
+            history.push(
+                `/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`
+            );
         });
         if (!IS_DEV) {
             logEvent('New Schedule Created', { subProjectId, name: 'Unnamed' });
         }
-    }
+    };
 
-    handleKeyBoard = (e) => {
+    handleKeyBoard = e => {
         const schedulesPerPage = 10;
         const { subProjectSchedules, pages } = this.props;
-        const canPaginateForward = subProjectSchedules.data ? subProjectSchedules.data.length >= (pages.counter + 1) * schedulesPerPage : null;
+        const canPaginateForward = subProjectSchedules.data
+            ? subProjectSchedules.data.length >=
+              (pages.counter + 1) * schedulesPerPage
+            : null;
         const canPaginateBackward = pages.counter > 1;
         switch (e.key) {
             case 'ArrowRight':
-                return canPaginateForward && this.props.paginate('next')
+                return canPaginateForward && this.props.paginate('next');
             case 'ArrowLeft':
-                return canPaginateBackward && this.props.paginate('prev')
+                return canPaginateBackward && this.props.paginate('prev');
             default:
                 return false;
         }
-    }
+    };
 
     render() {
-        const { isRequesting, subProjectSchedules, subProjects, currentProject } = this.props;
+        const {
+            isRequesting,
+            subProjectSchedules,
+            subProjects,
+            currentProject,
+        } = this.props;
 
         // SubProject Schedules List
-        const allSchedules = subProjects && subProjects.map((subProject, i) => {
-            const subProjectSchedule = subProjectSchedules.find(subProjectSchedule => subProjectSchedule._id === subProject._id)
-            let { skip, limit } = subProjectSchedule;
-            const { count } = subProjectSchedule;
-            skip = parseInt(skip);
-            limit = parseInt(limit);
-            const schedules = subProjectSchedule.schedules;
-            let canPaginateForward = (subProjectSchedule && count) && (count > (skip + limit)) ? true : false;
-            let canPaginateBackward = (subProjectSchedule && skip <= 0) ? false : true;
-            const numberOfSchedules = schedules.length;
+        const allSchedules =
+            subProjects &&
+            subProjects.map((subProject, i) => {
+                const subProjectSchedule = subProjectSchedules.find(
+                    subProjectSchedule =>
+                        subProjectSchedule._id === subProject._id
+                );
+                let { skip, limit } = subProjectSchedule;
+                const { count } = subProjectSchedule;
+                skip = parseInt(skip);
+                limit = parseInt(limit);
+                const schedules = subProjectSchedule.schedules;
+                let canPaginateForward =
+                    subProjectSchedule && count && count > skip + limit
+                        ? true
+                        : false;
+                let canPaginateBackward =
+                    subProjectSchedule && skip <= 0 ? false : true;
+                const numberOfSchedules = schedules.length;
 
-            if (subProjectSchedule && (isRequesting || !schedules)) {
-                canPaginateForward = false;
-                canPaginateBackward = false;
-            }
+                if (subProjectSchedule && (isRequesting || !schedules)) {
+                    canPaginateForward = false;
+                    canPaginateBackward = false;
+                }
 
-            return subProjectSchedule && subProjectSchedule.schedules ? (
-                <RenderIfUserInSubProject subProjectId={subProjectSchedule._id} key={i}>
-                    <div className="bs-BIM" key={i}>
-                        <div className="Box-root Margin-bottom--12">
-                            <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                <ShouldRender if={subProjects.length > 0}>
-                                    <div className="Box-root Padding-top--20 Padding-left--20">
-                                        <Badge color={'blue'}>{subProject.name}</Badge>
-                                    </div>
-                                </ShouldRender>
-                                <ScheduleProjectBox
-                                    projectId={subProject._id}
-                                    currentProject={currentProject}
-                                    schedules={schedules}
-                                    isRequesting={isRequesting}
-                                    count={count}
-                                    skip={skip}
-                                    limit={limit}
-                                    numberOfSchedules={numberOfSchedules}
-                                    subProjectSchedule={subProjectSchedule}
-                                    subProjectName={subProject.name}
-                                    scheduleModalId={this.state.scheduleModalId}
-                                    openModal={this.props.openModal}
-                                    subProject={subProject}
-                                    prevClicked={this.prevClicked}
-                                    nextClicked={this.nextClicked}
-                                    canPaginateBackward={canPaginateBackward}
-                                    canPaginateForward={canPaginateForward}
-                                />
+                return subProjectSchedule && subProjectSchedule.schedules ? (
+                    <RenderIfUserInSubProject
+                        subProjectId={subProjectSchedule._id}
+                        key={i}
+                    >
+                        <div className="bs-BIM" key={i}>
+                            <div className="Box-root Margin-bottom--12">
+                                <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                    <ShouldRender if={subProjects.length > 0}>
+                                        <div className="Box-root Padding-top--20 Padding-left--20">
+                                            <Badge color={'blue'}>
+                                                {subProject.name}
+                                            </Badge>
+                                        </div>
+                                    </ShouldRender>
+                                    <ScheduleProjectBox
+                                        projectId={subProject._id}
+                                        currentProject={currentProject}
+                                        schedules={schedules}
+                                        isRequesting={isRequesting}
+                                        count={count}
+                                        skip={skip}
+                                        limit={limit}
+                                        numberOfSchedules={numberOfSchedules}
+                                        subProjectSchedule={subProjectSchedule}
+                                        subProjectName={subProject.name}
+                                        scheduleModalId={
+                                            this.state.scheduleModalId
+                                        }
+                                        openModal={this.props.openModal}
+                                        subProject={subProject}
+                                        prevClicked={this.prevClicked}
+                                        nextClicked={this.nextClicked}
+                                        canPaginateBackward={
+                                            canPaginateBackward
+                                        }
+                                        canPaginateForward={canPaginateForward}
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </RenderIfUserInSubProject>
-            ) : false;
-        });
+                    </RenderIfUserInSubProject>
+                ) : (
+                    false
+                );
+            });
 
         // Add Project Schedules to All Schedules List
         const currentProjectId = currentProject ? currentProject._id : null;
-        let projectSchedule = subProjectSchedules && subProjectSchedules.find(subProjectSchedule => subProjectSchedule._id === currentProjectId)
+        let projectSchedule =
+            subProjectSchedules &&
+            subProjectSchedules.find(
+                subProjectSchedule =>
+                    subProjectSchedule._id === currentProjectId
+            );
         let { skip, limit } = projectSchedule || {};
         const { count } = projectSchedule || {};
         skip = parseInt(skip);
         limit = parseInt(limit);
         const schedules = projectSchedule ? projectSchedule.schedules : [];
-        let canPaginateForward = (projectSchedule && count) && (count > (skip + limit)) ? true : false;
-        let canPaginateBackward = (projectSchedule && skip <= 0) ? false : true;
+        let canPaginateForward =
+            projectSchedule && count && count > skip + limit ? true : false;
+        let canPaginateBackward = projectSchedule && skip <= 0 ? false : true;
         const numberOfSchedules = schedules.length;
 
         if (projectSchedule && (isRequesting || !schedules)) {
@@ -163,56 +213,62 @@ export class OnCall extends Component {
             canPaginateBackward = false;
         }
 
-        projectSchedule = projectSchedule && projectSchedule.schedules ? (
-            <RenderIfUserInSubProject subProjectId={currentProject._id} key={() => uuid.v4()}>
-                <div className="bs-BIM">
-                    <div className="Box-root Margin-bottom--12">
-                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                            <ShouldRender if={subProjects.length > 0}>
-                                <div className="Box-root Padding-top--20 Padding-left--20">
-                                    <Badge color={'red'}>Project</Badge>
-                                </div>
-                            </ShouldRender>
-                            <ScheduleProjectBox
-                                projectId={currentProject._id}
-                                currentProject={currentProject}
-                                schedules={schedules}
-                                isRequesting={isRequesting}
-                                count={count}
-                                skip={skip}
-                                limit={limit}
-                                numberOfSchedules={numberOfSchedules}
-                                subProjectSchedule={projectSchedule}
-                                subProjectName={currentProject.name}
-                                scheduleModalId={this.state.scheduleModalId}
-                                openModal={this.props.openModal}
-                                subProject={currentProject}
-                                prevClicked={this.prevClicked}
-                                nextClicked={this.nextClicked}
-                                canPaginateBackward={canPaginateBackward}
-                                canPaginateForward={canPaginateForward}
-                                subProjects={subProjects}
-                            />
+        projectSchedule =
+            projectSchedule && projectSchedule.schedules ? (
+                <RenderIfUserInSubProject
+                    subProjectId={currentProject._id}
+                    key={() => uuid.v4()}
+                >
+                    <div className="bs-BIM">
+                        <div className="Box-root Margin-bottom--12">
+                            <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                <ShouldRender if={subProjects.length > 0}>
+                                    <div className="Box-root Padding-top--20 Padding-left--20">
+                                        <Badge color={'red'}>Project</Badge>
+                                    </div>
+                                </ShouldRender>
+                                <ScheduleProjectBox
+                                    projectId={currentProject._id}
+                                    currentProject={currentProject}
+                                    schedules={schedules}
+                                    isRequesting={isRequesting}
+                                    count={count}
+                                    skip={skip}
+                                    limit={limit}
+                                    numberOfSchedules={numberOfSchedules}
+                                    subProjectSchedule={projectSchedule}
+                                    subProjectName={currentProject.name}
+                                    scheduleModalId={this.state.scheduleModalId}
+                                    openModal={this.props.openModal}
+                                    subProject={currentProject}
+                                    prevClicked={this.prevClicked}
+                                    nextClicked={this.nextClicked}
+                                    canPaginateBackward={canPaginateBackward}
+                                    canPaginateForward={canPaginateForward}
+                                    subProjects={subProjects}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-            </RenderIfUserInSubProject>
-        ) : false;
+                </RenderIfUserInSubProject>
+            ) : (
+                false
+            );
 
         allSchedules && allSchedules.unshift(projectSchedule);
 
         return (
             <Dashboard>
-                <div tabIndex='0' onKeyDown={this.handleKeyBoard}>
+                <div tabIndex="0" onKeyDown={this.handleKeyBoard}>
                     <div>
                         <div>
-                            <ShouldRender if={this.props.callScheduleTutorial.show}>
+                            <ShouldRender
+                                if={this.props.callScheduleTutorial.show}
+                            >
                                 <TutorialBox type="call-schedule" />
                             </ShouldRender>
 
-                            {
-                                allSchedules
-                            }
+                            {allSchedules}
                         </div>
                     </div>
                 </div>
@@ -221,31 +277,67 @@ export class OnCall extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch => (
-    bindActionCreators({ openModal, closeModal, fetchProjectSchedule, createSchedule, paginate, fetchSubProjectSchedules }, dispatch)
-);
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            openModal,
+            closeModal,
+            fetchProjectSchedule,
+            createSchedule,
+            paginate,
+            fetchSubProjectSchedules,
+        },
+        dispatch
+    );
 
 const mapStateToProps = (state, props) => {
     const { projectId } = props.match.params;
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
-    const subProjectNames = subProjects && subProjects.map(subProject => subProject.name);
+    const subProjectNames =
+        subProjects && subProjects.map(subProject => subProject.name);
     subProjectNames && subProjectNames.sort();
-    subProjects = subProjectNames && subProjectNames.map(name => subProjects.find(subProject => subProject.name === name))
+    subProjects =
+        subProjectNames &&
+        subProjectNames.map(name =>
+            subProjects.find(subProject => subProject.name === name)
+        );
 
     const currentProjectId = projectId;
     const schedules = state.schedule.subProjectSchedules;
 
     // find project schedules or assign default value
-    let projectSchedule = schedules.find(schedule => schedule._id === currentProjectId);
-    projectSchedule = projectSchedule ? projectSchedule : { _id: currentProjectId, schedules: [], count: 0, skip: 0, limit: 10 };
+    let projectSchedule = schedules.find(
+        schedule => schedule._id === currentProjectId
+    );
+    projectSchedule = projectSchedule
+        ? projectSchedule
+        : {
+              _id: currentProjectId,
+              schedules: [],
+              count: 0,
+              skip: 0,
+              limit: 10,
+          };
 
     // find subproject schedules or assign default value
-    const subProjectSchedules = subProjects && subProjects.map(subProject => {
-        const schedule = schedules.find(schedule => schedule._id === subProject._id);
-        return schedule ? schedule : { _id: subProject._id, schedules: [], count: 0, skip: 0, limit: 10 };
-    });
+    const subProjectSchedules =
+        subProjects &&
+        subProjects.map(subProject => {
+            const schedule = schedules.find(
+                schedule => schedule._id === subProject._id
+            );
+            return schedule
+                ? schedule
+                : {
+                      _id: subProject._id,
+                      schedules: [],
+                      count: 0,
+                      skip: 0,
+                      limit: 10,
+                  };
+        });
 
     subProjectSchedules && subProjectSchedules.unshift(projectSchedule);
 
@@ -257,7 +349,7 @@ const mapStateToProps = (state, props) => {
         projectId,
         subProjects,
         currentProject: state.project.currentProject,
-        callScheduleTutorial: state.tutorial.callSchedule
+        callScheduleTutorial: state.tutorial.callSchedule,
     };
 };
 
@@ -270,14 +362,14 @@ OnCall.propTypes = {
     currentProjectId: PropTypes.string.isRequired,
     isRequesting: PropTypes.oneOfType([
         PropTypes.bool,
-        PropTypes.oneOf([null, undefined])
+        PropTypes.oneOf([null, undefined]),
     ]),
     paginate: PropTypes.func.isRequired,
     createSchedule: PropTypes.func.isRequired,
     pages: PropTypes.object.isRequired,
     openModal: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
-    callScheduleTutorial: PropTypes.object
+    callScheduleTutorial: PropTypes.object,
 };
 
 OnCall.displayName = 'OnCall';

@@ -8,7 +8,7 @@ const greenBackground = {
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
-    backgroundColor: '#24b47e'
+    backgroundColor: '#24b47e',
 };
 const yellowBackground = {
     display: 'inline-block',
@@ -16,7 +16,7 @@ const yellowBackground = {
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
-    backgroundColor: '#e39f48'
+    backgroundColor: '#e39f48',
 };
 const redBackground = {
     display: 'inline-block',
@@ -24,7 +24,7 @@ const redBackground = {
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
-    backgroundColor: '#e25950'
+    backgroundColor: '#e25950',
 };
 const greyBackground = {
     display: 'inline-block',
@@ -32,10 +32,17 @@ const greyBackground = {
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
-    backgroundColor: 'rgba(107, 124, 147, 0.2)'
+    backgroundColor: 'rgba(107, 124, 147, 0.2)',
 };
 
-function ProbeBar({ index, name, status, selectbutton, activeProbe, lastAlive }) {
+function ProbeBar({
+    index,
+    name,
+    status,
+    selectbutton,
+    activeProbe,
+    lastAlive,
+}) {
     const [now, setNow] = useState(Date.now());
 
     useEffect(() => {
@@ -56,15 +63,29 @@ function ProbeBar({ index, name, status, selectbutton, activeProbe, lastAlive })
             id={`probes-btn${index}`}
             disabled={false}
             onClick={() => selectbutton(index)}
-            className={activeProbe === index ? 'icon-container selected' : 'icon-container'}>
-            <span style={(lastAlive && moment(now).diff(moment(lastAlive), 'seconds') >= 300) || !lastAlive ?
-                greyBackground
-                :
-                (status === 'offline' ? redBackground : (status === 'degraded' ? yellowBackground : greenBackground))
-            }></span>
+            className={
+                activeProbe === index
+                    ? 'icon-container selected'
+                    : 'icon-container'
+            }
+        >
+            <span
+                style={
+                    (lastAlive &&
+                        moment(now).diff(moment(lastAlive), 'seconds') >=
+                            300) ||
+                    !lastAlive
+                        ? greyBackground
+                        : status === 'offline'
+                        ? redBackground
+                        : status === 'degraded'
+                        ? yellowBackground
+                        : greenBackground
+                }
+            ></span>
             <span>{name}</span>
         </button>
-    )
+    );
 }
 
 ProbeBar.displayName = 'ProbeBar';
@@ -75,7 +96,10 @@ ProbeBar.propTypes = {
     status: PropTypes.string,
     selectbutton: PropTypes.func,
     activeProbe: PropTypes.number,
-    lastAlive: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string])
+    lastAlive: PropTypes.oneOfType([
+        PropTypes.instanceOf(Date),
+        PropTypes.string,
+    ]),
 };
 
 export default ProbeBar;

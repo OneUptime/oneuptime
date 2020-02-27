@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { TimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers'
+import { TimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
 import { createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles';
 import MomentUtils from '@date-io/moment';
 import { setStartDate, setEndDate } from '../../actions/dateTime';
@@ -10,13 +10,13 @@ import { setStartDate, setEndDate } from '../../actions/dateTime';
 const theme = createMuiTheme({
     palette: {
         primary: {
-            main: '#0080a8'
+            main: '#0080a8',
         },
         secondary: {
-            main: '#0066ff'
-        }
-    }
-})
+            main: '#0066ff',
+        },
+    },
+});
 class TimeRangeSelector extends Component {
     constructor(props) {
         super(props);
@@ -26,7 +26,7 @@ class TimeRangeSelector extends Component {
         };
     }
 
-    handleChangeStart = (option) => {
+    handleChangeStart = option => {
         this.props.setStartDate(option);
         if (this.props.endDate.diff(option, 'minutes') <= 0) {
             this.props.setEndDate(option);
@@ -36,35 +36,34 @@ class TimeRangeSelector extends Component {
         }
     };
 
-    handleChangeEnd = (option) => {
+    handleChangeEnd = option => {
         this.props.setEndDate(option);
         if (option.diff(this.props.startDate, 'minutes') <= 0) {
             this.props.setStartDate(option);
         }
         if (this.props.onChange) {
-            this.props.onChange(this.props.startDate,option);
+            this.props.onChange(this.props.startDate, option);
         }
     };
 
     onToggleStart = () => {
-        this.setState({ isOpenStart: !this.state.isOpenStart })
+        this.setState({ isOpenStart: !this.state.isOpenStart });
     };
 
     onToggleEnd = () => {
-        this.setState({ isOpenEnd: !this.state.isOpenEnd })
+        this.setState({ isOpenEnd: !this.state.isOpenEnd });
     };
 
     renderSelectionValue = () => {
-        const startTime = this.props.startDate ? this.props.startDate.format('LT') : '';
-        const endTime = this.props.endDate ? this.props.endDate.format('LT') : '';
+        const startTime = this.props.startDate
+            ? this.props.startDate.format('LT')
+            : '';
+        const endTime = this.props.endDate
+            ? this.props.endDate.format('LT')
+            : '';
         return (
             <div>
-                <div
-                    className="db-DateRangeInputWithComparison"
-                    style={{
-
-                    }}
-                >
+                <div className="db-DateRangeInputWithComparison" style={{}}>
                     <div
                         className="db-DateRangeInput bs-Control"
                         style={{
@@ -117,15 +116,25 @@ class TimeRangeSelector extends Component {
                         style={{ display: 'none' }}
                         open={isOpen}
                         okLabel={okLabel}
-                        onClose={() => this.setState({ isOpenStart: false, isOpenEnd: false })}
-                        onAccept={() => this.setState({ isOpenStart: false, isOpenEnd: false })}
+                        onClose={() =>
+                            this.setState({
+                                isOpenStart: false,
+                                isOpenEnd: false,
+                            })
+                        }
+                        onAccept={() =>
+                            this.setState({
+                                isOpenStart: false,
+                                isOpenEnd: false,
+                            })
+                        }
                         onChange={handleChange}
                         emptyLabel="Select Time"
                         initialFocusedDate={null}
                     />
                 </MuiPickersUtilsProvider>
             </MuiThemeProvider>
-        )
+        );
     };
 
     render() {
@@ -134,9 +143,23 @@ class TimeRangeSelector extends Component {
             <div>
                 <div>{this.renderSelectionValue()}</div>
                 <span>
-                    <div style={{ ...style, height: '28px', marginTop: '-15px' }}>
-                        {this.timepickercomponent(name1, this.props.startDate, this.state.isOpenStart, this.handleChangeStart, 'set Start Time')}
-                        {this.timepickercomponent(name2, this.props.endDate, this.state.isOpenEnd, this.handleChangeEnd, 'set End Time')}
+                    <div
+                        style={{ ...style, height: '28px', marginTop: '-15px' }}
+                    >
+                        {this.timepickercomponent(
+                            name1,
+                            this.props.startDate,
+                            this.state.isOpenStart,
+                            this.handleChangeStart,
+                            'set Start Time'
+                        )}
+                        {this.timepickercomponent(
+                            name2,
+                            this.props.endDate,
+                            this.state.isOpenEnd,
+                            this.handleChangeEnd,
+                            'set End Time'
+                        )}
                     </div>
                 </span>
             </div>
@@ -154,17 +177,16 @@ TimeRangeSelector.propTypes = {
     setEndDate: PropTypes.func,
     setStartDate: PropTypes.func,
     startDate: PropTypes.object,
-    style: PropTypes.object
+    style: PropTypes.object,
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators(
-    { setStartDate, setEndDate }, dispatch
-)
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ setStartDate, setEndDate }, dispatch);
 
 function mapStateToProps(state) {
     return {
         startDate: state.dateTime.dates.startDate,
-        endDate: state.dateTime.dates.endDate
+        endDate: state.dateTime.dates.endDate,
     };
 }
 

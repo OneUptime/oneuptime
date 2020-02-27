@@ -5,50 +5,45 @@ import SelectItem from './SelectItem';
 import SelectList from './SelectList';
 
 class SelectPanel extends React.Component {
-
     state = {
         searchHasFocus: false,
         searchText: '',
-        focusIndex: 0
-    }
+        focusIndex: 0,
+    };
 
-    selectAll = () => {
+    selectAll = () => {};
 
-    }
-
-    selectNone = () => {
-
-    }
+    selectNone = () => {};
 
     selectAllChanged = checked => {
-        if(checked) this.selectAll();
+        if (checked) this.selectAll();
         else this.selectNone();
-    }
+    };
 
     handleSearchChange = e => {
         this.setState({
             searchText: e.target.value,
-            focusIndex: -1
+            focusIndex: -1,
         });
-    }
+    };
 
     handleItemClicked = index => {
         this.setState({
-            focusIndex: index
+            focusIndex: index,
         });
-    }
+    };
 
     clearSearch = () => this.setState({ searchText: '' });
 
     handleKeyDown = e => {
         switch (e) {
             case 38:
-                if(e.altKey) return;
+                if (e.altKey) return;
 
                 this.updateFocus(-1);
                 break;
             case 40:
-                if(e.altKey) return;
+                if (e.altKey) return;
 
                 this.updateFocus(1);
                 break;
@@ -58,14 +53,14 @@ class SelectPanel extends React.Component {
 
         e.stopPropagation();
         e.preventDefault();
-    }
+    };
 
     handleSearchFocus = searchHasFocus => {
         this.setState({
             searchHasFocus,
-            focusIndex: -1
-        })
-    }
+            focusIndex: -1,
+        });
+    };
 
     allAreSelected() {
         const { options, selected } = this.props;
@@ -76,29 +71,35 @@ class SelectPanel extends React.Component {
         const { searchText } = this.state;
         const { options, filterOptions } = this.props;
 
-        return customFilterOptions ?
-            customFilterOptions(options, searchText) : filterOptions(options, searchText);
-        
+        return customFilterOptions
+            ? customFilterOptions(options, searchText)
+            : filterOptions(options, searchText);
     }
 
     updateFocus(offset) {
         const { focusIndex } = this.state;
         const { options } = this.props;
-        
+
         let tempFocus = focusIndex + offset;
         tempFocus = Math.max(0, tempFocus);
-        tempFocus = (Math.min(tempFocus, options.length));
+        tempFocus = Math.min(tempFocus, options.length);
 
         this.setState({ focusIndex: tempFocus });
     }
 
     render() {
-        const { ItemRenderer, selectAllLabel, disabled, disableSearch, hasSelectAll } = this.props;
+        const {
+            ItemRenderer,
+            selectAllLabel,
+            disabled,
+            disableSearch,
+            hasSelectAll,
+        } = this.props;
         const { focusIndex, searchHasFocus } = this.state;
 
         const selectAllOption = {
             label: selectAllLabel || 'Select All',
-            value: ''
+            value: '',
         };
 
         return (
@@ -107,19 +108,20 @@ class SelectPanel extends React.Component {
                 role="listbox"
                 onKeyDown={this.handleKeyDown}
             >
-                {disableSearch &&
+                {disableSearch && (
                     <div className="db-MultiSelect-search-container">
                         <input
                             placeholder="Search"
                             type="text"
-                            className={`db-MultiSelect-search ${searchHasFocus && 'db-MultiSelect-search--focused'}`}
+                            className={`db-MultiSelect-search ${searchHasFocus &&
+                                'db-MultiSelect-search--focused'}`}
                             onChange={this.handleSearchChange}
                             onBlur={this.onBlur}
                             onFocus={this.onFocus}
                         />
                     </div>
-                }
-                {hasSelectAll && 
+                )}
+                {hasSelectAll && (
                     <SelectItem
                         focused={focusIndex === 0}
                         checked={this.allAreSelected}
@@ -129,7 +131,7 @@ class SelectPanel extends React.Component {
                         ItemRenderer={ItemRenderer}
                         disabled={disabled}
                     />
-                }
+                )}
 
                 <SelectList
                     {...this.props}
@@ -159,7 +161,7 @@ SelectPanel.propTypes = {
     disableSearch: PropTypes.bool,
     disabled: PropTypes.bool,
     hasSelectAll: PropTypes.bool,
-    filterOptions: PropTypes.any
-}
+    filterOptions: PropTypes.any,
+};
 
 export default SelectPanel;
