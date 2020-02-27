@@ -27,67 +27,83 @@ export class SmsSmtpBox extends Component {
     }
 
     //Client side validation
-    validate = (values) => {
+    validate = values => {
         const errors = {};
         if (this.props.showSmsSmtpConfiguration) {
             if (values.accountSid) {
                 if (!Validate.text(values.accountSid)) {
-                    errors.accountSid = 'Please input accountSid in text format .'
+                    errors.accountSid =
+                        'Please input accountSid in text format .';
                 }
-            }
-            else {
-                errors.accountSid = 'Please input accountSid this cannot be left blank.'
+            } else {
+                errors.accountSid =
+                    'Please input accountSid this cannot be left blank.';
             }
 
             if (values.phoneNumber) {
                 if (!Validate.number(values.phoneNumber)) {
-                    errors.phoneNumber = 'Please input phoneNumber in number format .'
+                    errors.phoneNumber =
+                        'Please input phoneNumber in number format .';
                 }
-            }
-            else {
-                errors.phoneNumber = 'Please input phoneNumber this cannot be left blank.'
+            } else {
+                errors.phoneNumber =
+                    'Please input phoneNumber this cannot be left blank.';
             }
 
             if (values.authToken) {
                 if (!Validate.text(values.authToken)) {
-                    errors.authToken = 'Please input authToken in proper format .'
+                    errors.authToken =
+                        'Please input authToken in proper format .';
                 }
-            }
-            else {
-                errors.authToken = 'Please input authToken this cannot be left blank.'
+            } else {
+                errors.authToken =
+                    'Please input authToken this cannot be left blank.';
             }
         }
         return errors;
-    }
+    };
 
-
-    submitForm = (values) => {
-        const { smtpConfigurations, updateSmtpConfig, postSmtpConfig, currentProject } = this.props;
+    submitForm = values => {
+        const {
+            smtpConfigurations,
+            updateSmtpConfig,
+            postSmtpConfig,
+            currentProject,
+        } = this.props;
 
         if (values.smssmtpswitch) {
             if (smtpConfigurations.config && smtpConfigurations.config._id) {
-                updateSmtpConfig(currentProject._id, smtpConfigurations.config._id, values);
-            }
-            else {
+                updateSmtpConfig(
+                    currentProject._id,
+                    smtpConfigurations.config._id,
+                    values
+                );
+            } else {
                 postSmtpConfig(currentProject._id, values);
             }
-        }
-        else if (smtpConfigurations.config._id) {
-            this.props.deleteSmtpConfig(this.props.currentProject._id, smtpConfigurations.config._id, values);
+        } else if (smtpConfigurations.config._id) {
+            this.props.deleteSmtpConfig(
+                this.props.currentProject._id,
+                smtpConfigurations.config._id,
+                values
+            );
         }
         if (!IS_DEV) {
             logEvent('Changed sms smtp configuration', {});
         }
-    }
+    };
 
-    changeValue = (e) => {
+    changeValue = e => {
         this.props.setSmtpConfig(e.target.checked);
-    }
+    };
 
     render() {
         const { handleSubmit } = this.props;
         return (
-            <div className="db-World-contentPane Box-root" style={{ paddingTop: 0 }}>
+            <div
+                className="db-World-contentPane Box-root"
+                style={{ paddingTop: 0 }}
+            >
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -97,11 +113,21 @@ export class SmsSmtpBox extends Component {
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             <span>Custom Twilio Settings</span>
                                         </span>
-                                        <p><span>Send sms and calls via your Twilio server instead of Fyipe&#39;s default Twilio server.</span></p>
+                                        <p>
+                                            <span>
+                                                Send sms and calls via your
+                                                Twilio server instead of
+                                                Fyipe&#39;s default Twilio
+                                                server.
+                                            </span>
+                                        </p>
                                     </div>
                                 </div>
-                                {IsAdmin(this.props.currentProject) || IsOwner(this.props.currentProject) ?
-                                    <form onSubmit={handleSubmit(this.submitForm)}>
+                                {IsAdmin(this.props.currentProject) ||
+                                IsOwner(this.props.currentProject) ? (
+                                    <form
+                                        onSubmit={handleSubmit(this.submitForm)}
+                                    >
                                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                                             <div>
                                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
@@ -109,17 +135,41 @@ export class SmsSmtpBox extends Component {
                                                         <div className="bs-Fieldset-rows">
                                                             <div className="bs-Fieldset-row">
                                                                 <div className="Box-root Margin-bottom--12">
-                                                                    <div data-test="RetrySettings-failedPaymentsRow" className="Box-root">
-                                                                        <label className="Checkbox" htmlFor='smssmtpswitch' style={{ marginLeft: '150px' }}>
+                                                                    <div
+                                                                        data-test="RetrySettings-failedPaymentsRow"
+                                                                        className="Box-root"
+                                                                    >
+                                                                        <label
+                                                                            className="Checkbox"
+                                                                            htmlFor="smssmtpswitch"
+                                                                            style={{
+                                                                                marginLeft:
+                                                                                    '150px',
+                                                                            }}
+                                                                        >
                                                                             <Field
                                                                                 component="input"
                                                                                 type="checkbox"
-                                                                                name='smssmtpswitch'
+                                                                                name="smssmtpswitch"
                                                                                 data-test="RetrySettings-failedPaymentsCheckbox"
                                                                                 className="Checkbox-source"
-                                                                                id='smssmtpswitch'
-                                                                                onChange={this.changeValue}
-                                                                                disabled={!IsAdmin(this.props.currentProject) && !IsOwner(this.props.currentProject)}
+                                                                                id="smssmtpswitch"
+                                                                                onChange={
+                                                                                    this
+                                                                                        .changeValue
+                                                                                }
+                                                                                disabled={
+                                                                                    !IsAdmin(
+                                                                                        this
+                                                                                            .props
+                                                                                            .currentProject
+                                                                                    ) &&
+                                                                                    !IsOwner(
+                                                                                        this
+                                                                                            .props
+                                                                                            .currentProject
+                                                                                    )
+                                                                                }
                                                                             />
                                                                             <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                                                                 <div className="Checkbox-target Box-root">
@@ -128,69 +178,158 @@ export class SmsSmtpBox extends Component {
                                                                             </div>
                                                                             <div className="Checkbox-label Box-root Margin-left--8">
                                                                                 <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                                    <span>Send SMS with my Twilio Account</span>
+                                                                                    <span>
+                                                                                        Send
+                                                                                        SMS
+                                                                                        with
+                                                                                        my
+                                                                                        Twilio
+                                                                                        Account
+                                                                                    </span>
                                                                                 </span>
                                                                             </div>
                                                                         </label>
                                                                         <div className="Box-root Padding-left--24">
                                                                             <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
                                                                                 <div className="Box-root">
-                                                                                    <div className="Box-root">
-
-                                                                                    </div>
+                                                                                    <div className="Box-root"></div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <ShouldRender if={this.props.showSmsSmtpConfiguration}>
+                                                            <ShouldRender
+                                                                if={
+                                                                    this.props
+                                                                        .showSmsSmtpConfiguration
+                                                                }
+                                                            >
                                                                 <div className="bs-Fieldset-row">
-                                                                    <label className="bs-Fieldset-label">Account SID</label>
+                                                                    <label className="bs-Fieldset-label">
+                                                                        Account
+                                                                        SID
+                                                                    </label>
                                                                     <div className="bs-Fieldset-fields">
-                                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                            component={RenderField}
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderField
+                                                                            }
                                                                             type="text"
                                                                             name="accountSid"
                                                                             id="accountSid"
                                                                             placeholder="Account SID"
                                                                             required="required"
-                                                                            disabled={this.props.smtpConfigurations.requesting}
+                                                                            disabled={
+                                                                                this
+                                                                                    .props
+                                                                                    .smtpConfigurations
+                                                                                    .requesting
+                                                                            }
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span><a target="_blank" rel="noopener noreferrer" href="https://support.twilio.com/hc/en-us/articles/223136607-What-is-an-Application-SID-">Account SID for your Twilio Account.</a>
-                                                                                    </span></p>
+                                                                        <p className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                <a
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    href="https://support.twilio.com/hc/en-us/articles/223136607-What-is-an-Application-SID-"
+                                                                                >
+                                                                                    Account
+                                                                                    SID
+                                                                                    for
+                                                                                    your
+                                                                                    Twilio
+                                                                                    Account.
+                                                                                </a>
+                                                                            </span>
+                                                                        </p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bs-Fieldset-row">
-                                                                    <label className="bs-Fieldset-label">Auth Token</label>
+                                                                    <label className="bs-Fieldset-label">
+                                                                        Auth
+                                                                        Token
+                                                                    </label>
                                                                     <div className="bs-Fieldset-fields">
-                                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                            component={RenderField}
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderField
+                                                                            }
                                                                             type="text"
                                                                             name="authToken"
                                                                             id="authToken"
                                                                             placeholder="Auth Token"
                                                                             required="required"
-                                                                            disabled={this.props.smtpConfigurations.requesting}
+                                                                            disabled={
+                                                                                this
+                                                                                    .props
+                                                                                    .smtpConfigurations
+                                                                                    .requesting
+                                                                            }
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span><a href="https://support.twilio.com/hc/en-us/articles/223136027-Auth-Tokens-and-How-to-Change-Them" target="_blank" rel="noopener noreferrer">Auth Token for your Twilio Account.</a>
-                                                                        </span></p>
+                                                                        <p className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                <a
+                                                                                    href="https://support.twilio.com/hc/en-us/articles/223136027-Auth-Tokens-and-How-to-Change-Them"
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                >
+                                                                                    Auth
+                                                                                    Token
+                                                                                    for
+                                                                                    your
+                                                                                    Twilio
+                                                                                    Account.
+                                                                                </a>
+                                                                            </span>
+                                                                        </p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bs-Fieldset-row">
-                                                                    <label className="bs-Fieldset-label">Phone Number</label>
+                                                                    <label className="bs-Fieldset-label">
+                                                                        Phone
+                                                                        Number
+                                                                    </label>
                                                                     <div className="bs-Fieldset-fields">
-                                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                            component={RenderField}
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderField
+                                                                            }
                                                                             type="text"
                                                                             name="phoneNumber"
                                                                             id="phoneNumber"
                                                                             placeholder="Phone Number"
                                                                             required="required"
-                                                                            disabled={this.props.smtpConfigurations.requesting}
+                                                                            disabled={
+                                                                                this
+                                                                                    .props
+                                                                                    .smtpConfigurations
+                                                                                    .requesting
+                                                                            }
                                                                         />
-                                                                        <p className="bs-Fieldset-explanation"><span><a href="https://support.twilio.com/hc/en-us/articles/223181428-Assigning-Twilio-number-to-an-SMS-application" target="_blank" rel="noopener noreferrer"> Phone Number associated with your twilio account</a>.
-                                                                                    </span></p>
+                                                                        <p className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                <a
+                                                                                    href="https://support.twilio.com/hc/en-us/articles/223181428-Assigning-Twilio-number-to-an-SMS-application"
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                >
+                                                                                    {' '}
+                                                                                    Phone
+                                                                                    Number
+                                                                                    associated
+                                                                                    with
+                                                                                    your
+                                                                                    twilio
+                                                                                    account
+                                                                                </a>
+
+                                                                                .
+                                                                            </span>
+                                                                        </p>
                                                                     </div>
                                                                 </div>
                                                             </ShouldRender>
@@ -199,47 +338,110 @@ export class SmsSmtpBox extends Component {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12"><span className="db-SettingsForm-footerMessage">
-                                            <ShouldRender if={this.props.smtpConfigurations.error || this.props.smsSmtpDelete.error}>
-                                                <div className="bs-Tail-copy">
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
-                                                        <div className="Box-root Margin-right--8">
-                                                            <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex">
+                                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                            <span className="db-SettingsForm-footerMessage">
+                                                <ShouldRender
+                                                    if={
+                                                        this.props
+                                                            .smtpConfigurations
+                                                            .error ||
+                                                        this.props.smsSmtpDelete
+                                                            .error
+                                                    }
+                                                >
+                                                    <div className="bs-Tail-copy">
+                                                        <div
+                                                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                            style={{
+                                                                marginTop:
+                                                                    '10px',
+                                                            }}
+                                                        >
+                                                            <div className="Box-root Margin-right--8">
+                                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                            </div>
+                                                            <div className="Box-root">
+                                                                <span
+                                                                    style={{
+                                                                        color:
+                                                                            'red',
+                                                                    }}
+                                                                >
+                                                                    {this.props
+                                                                        .smtpConfigurations
+                                                                        .error ||
+                                                                        this
+                                                                            .props
+                                                                            .smsSmtpDelete
+                                                                            .error}
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                        <div className="Box-root">
-                                                            <span style={{ color: 'red' }}>{this.props.smtpConfigurations.error || this.props.smsSmtpDelete.error}</span>
-                                                        </div>
                                                     </div>
-                                                </div>
-                                            </ShouldRender>
-
-                                        </span>
+                                                </ShouldRender>
+                                            </span>
 
                                             <div>
                                                 <button
                                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                                    disabled={this.props.smtpConfigurations.requesting || this.props.smsSmtpDelete.requesting}
+                                                    disabled={
+                                                        this.props
+                                                            .smtpConfigurations
+                                                            .requesting ||
+                                                        this.props.smsSmtpDelete
+                                                            .requesting
+                                                    }
                                                     type="submit"
                                                 >
-                                                    <ShouldRender if={!this.props.smtpConfigurations.requesting && !this.props.smsSmtpDelete.requesting}>
+                                                    <ShouldRender
+                                                        if={
+                                                            !this.props
+                                                                .smtpConfigurations
+                                                                .requesting &&
+                                                            !this.props
+                                                                .smsSmtpDelete
+                                                                .requesting
+                                                        }
+                                                    >
                                                         <span>Save</span>
                                                     </ShouldRender>
 
-                                                    <ShouldRender if={this.props.smtpConfigurations.requesting || this.props.smsSmtpDelete.requesting}>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props
+                                                                .smtpConfigurations
+                                                                .requesting ||
+                                                            this.props
+                                                                .smsSmtpDelete
+                                                                .requesting
+                                                        }
+                                                    >
                                                         <FormLoader />
                                                     </ShouldRender>
                                                 </button>
                                             </div>
-
                                         </div>
-                                    </form> :
-                                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2" style={{ boxShadow: 'none' }}>
-                                        <div className="bs-Fieldset-row" style={{ textAlign: 'center' }}>
-                                            <label className="bs-Fieldset-label" style={{ flex: 'none' }}>Custom Twilio settings are available to only admins and owners.</label>
+                                    </form>
+                                ) : (
+                                    <div
+                                        className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
+                                        style={{ boxShadow: 'none' }}
+                                    >
+                                        <div
+                                            className="bs-Fieldset-row"
+                                            style={{ textAlign: 'center' }}
+                                        >
+                                            <label
+                                                className="bs-Fieldset-label"
+                                                style={{ flex: 'none' }}
+                                            >
+                                                Custom Twilio settings are
+                                                available to only admins and
+                                                owners.
+                                            </label>
                                         </div>
                                     </div>
-                                }
+                                )}
                             </div>
                         </div>
                     </div>
@@ -249,7 +451,7 @@ export class SmsSmtpBox extends Component {
     }
 }
 
-SmsSmtpBox.displayName = 'SmsSmtpBox'
+SmsSmtpBox.displayName = 'SmsSmtpBox';
 
 SmsSmtpBox.propTypes = {
     smtpConfigurations: PropTypes.object,
@@ -261,27 +463,37 @@ SmsSmtpBox.propTypes = {
     handleSubmit: PropTypes.func,
     showSmsSmtpConfiguration: PropTypes.bool,
     smsSmtpDelete: PropTypes.object,
-}
+};
 
 const SmsSmtpBoxForm = reduxForm({
     form: 'SmsSmtpBox', // a unique identifier for this form
     enableReinitialize: true,
-    validate: SmsSmtpBox.validate // <--- validation function given to redux-for
+    validate: SmsSmtpBox.validate, // <--- validation function given to redux-for
 })(SmsSmtpBox);
 
-const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({
-        setSmtpConfig,
-        postSmtpConfig,
-        deleteSmtpConfig,
-        updateSmtpConfig,
-    }, dispatch)
-}
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            setSmtpConfig,
+            postSmtpConfig,
+            deleteSmtpConfig,
+            updateSmtpConfig,
+        },
+        dispatch
+    );
+};
 
 function mapStateToProps(state) {
-    const smtpConfigurations = state.smsTemplates && state.smsTemplates.smsSmtpConfiguration;
-    const showSmsSmtpConfiguration = state.smsTemplates && state.smsTemplates.showSmsSmtpConfiguration;
-    let values = { smssmtpswitch: false, accountSid: '', authToken: '', phoneNumber: '' };
+    const smtpConfigurations =
+        state.smsTemplates && state.smsTemplates.smsSmtpConfiguration;
+    const showSmsSmtpConfiguration =
+        state.smsTemplates && state.smsTemplates.showSmsSmtpConfiguration;
+    let values = {
+        smssmtpswitch: false,
+        accountSid: '',
+        authToken: '',
+        phoneNumber: '',
+    };
     if (showSmsSmtpConfiguration) {
         values = {
             smssmtpswitch: true,

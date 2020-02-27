@@ -6,7 +6,7 @@ import {
     CLOSE_TUTORIAL_REQUEST,
     CLOSE_TUTORIAL_SUCCESS,
     CLOSE_TUTORIAL_FAILURE,
-    CLOSE_TUTORIAL_RESET
+    CLOSE_TUTORIAL_RESET,
 } from '../constants/tutorial';
 
 const initialState = {
@@ -14,17 +14,17 @@ const initialState = {
     requesting: false,
     success: false,
     monitor: {
-        show: true
+        show: true,
     },
     incident: {
-        show: true
+        show: true,
     },
     statusPage: {
-        show: true
+        show: true,
     },
     callSchedule: {
-        show: true
-    }
+        show: true,
+    },
 };
 
 export default (state = initialState, action) => {
@@ -34,7 +34,7 @@ export default (state = initialState, action) => {
                 ...state,
                 error: null,
                 requesting: true,
-                success: false
+                success: false,
             });
 
         case FETCH_TUTORIAL_SUCCESS:
@@ -43,7 +43,7 @@ export default (state = initialState, action) => {
                 error: null,
                 requesting: false,
                 success: true,
-                ...action.payload.data
+                ...action.payload.data,
             });
 
         case FETCH_TUTORIAL_FAILURE:
@@ -51,7 +51,7 @@ export default (state = initialState, action) => {
                 ...state,
                 error: action.payload,
                 requesting: false,
-                success: false
+                success: false,
             });
 
         case FETCH_TUTORIAL_RESET:
@@ -60,17 +60,17 @@ export default (state = initialState, action) => {
                 requesting: false,
                 success: false,
                 monitor: {
-                    show: true
+                    show: true,
                 },
                 incident: {
-                    show: true
+                    show: true,
                 },
                 statusPage: {
-                    show: true
+                    show: true,
                 },
                 callSchedule: {
-                    show: true
-                }
+                    show: true,
+                },
             });
 
         case CLOSE_TUTORIAL_REQUEST:
@@ -78,7 +78,7 @@ export default (state = initialState, action) => {
                 ...state,
                 error: null,
                 requesting: true,
-                success: false
+                success: false,
             });
 
         case CLOSE_TUTORIAL_SUCCESS:
@@ -87,7 +87,7 @@ export default (state = initialState, action) => {
                 error: null,
                 requesting: false,
                 success: true,
-                ...action.payload.data
+                ...action.payload.data,
             });
 
         case CLOSE_TUTORIAL_FAILURE:
@@ -95,7 +95,7 @@ export default (state = initialState, action) => {
                 ...state,
                 error: action.payload,
                 requesting: false,
-                success: false
+                success: false,
             });
 
         case CLOSE_TUTORIAL_RESET:
@@ -103,9 +103,10 @@ export default (state = initialState, action) => {
                 ...state,
                 error: null,
                 requesting: false,
-                success: false
+                success: false,
             });
 
-        default: return state;
+        default:
+            return state;
     }
 };

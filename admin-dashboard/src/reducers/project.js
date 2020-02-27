@@ -3,47 +3,38 @@ import {
     FETCH_PROJECTS_SUCCESS,
     FETCH_PROJECTS_FAILURE,
     FETCH_PROJECTS_RESET,
-
     FETCH_PROJECT_REQUEST,
     FETCH_PROJECT_SUCCESS,
     FETCH_PROJECT_FAILURE,
     FETCH_PROJECT_RESET,
-
     FETCH_USER_PROJECTS_REQUEST,
     FETCH_USER_PROJECTS_SUCCESS,
     FETCH_USER_PROJECTS_FAILURE,
     FETCH_USER_PROJECTS_RESET,
-
     DELETE_PROJECT_FAILED,
     DELETE_PROJECT_REQUEST,
     DELETE_PROJECT_RESET,
     DELETE_PROJECT_SUCCESS,
-
     ALERT_LIMIT_FAILED,
     ALERT_LIMIT_REQUEST,
     ALERT_LIMIT_RESET,
     ALERT_LIMIT_SUCCESS,
-
     BLOCK_PROJECT_FAILED,
     BLOCK_PROJECT_REQUEST,
     BLOCK_PROJECT_RESET,
     BLOCK_PROJECT_SUCCESS,
-
     RESTORE_PROJECT_FAILED,
     RESTORE_PROJECT_REQUEST,
     RESTORE_PROJECT_RESET,
     RESTORE_PROJECT_SUCCESS,
-
     UNBLOCK_PROJECT_FAILED,
     UNBLOCK_PROJECT_REQUEST,
     UNBLOCK_PROJECT_RESET,
     UNBLOCK_PROJECT_SUCCESS,
-
     ADD_PROJECT_NOTE_FAILURE,
     ADD_PROJECT_NOTE_REQUEST,
     ADD_PROJECT_NOTE_RESET,
     ADD_PROJECT_NOTE_SUCCESS,
-
     SEARCH_PROJECTS_REQUEST,
     SEARCH_PROJECTS_RESET,
     SEARCH_PROJECTS_SUCCESS,
@@ -58,13 +49,13 @@ const INITIAL_STATE = {
         projects: [],
         count: null,
         limit: null,
-        skip: null
+        skip: null,
     },
-    project:{
+    project: {
         error: null,
         requesting: false,
         success: false,
-        project: null
+        project: null,
     },
     userProjects: {
         error: null,
@@ -73,59 +64,55 @@ const INITIAL_STATE = {
         projects: [],
         count: null,
         limit: null,
-        skip: null
+        skip: null,
     },
     deleteProject: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     blockProject: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     alertLimit: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     restoreProject: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     unblockProject: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     newProjectNote: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     searchUsers: {
         requesting: false,
         error: null,
-        success: false
-    }
+        success: false,
+    },
 };
 
 export default function project(state = INITIAL_STATE, action) {
-
     switch (action.type) {
-
         // fetch projects list
         case FETCH_PROJECTS_REQUEST:
-
             return Object.assign({}, state, {
                 projects: {
                     requesting: true,
                     error: null,
                     success: false,
                 },
-
             });
 
         case FETCH_PROJECTS_SUCCESS:
@@ -137,12 +124,11 @@ export default function project(state = INITIAL_STATE, action) {
                     projects: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
+                    skip: action.payload.skip,
                 },
             });
 
         case FETCH_PROJECTS_FAILURE:
-
             return Object.assign({}, state, {
                 projects: {
                     requesting: false,
@@ -152,14 +138,12 @@ export default function project(state = INITIAL_STATE, action) {
             });
 
         case FETCH_PROJECTS_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
-                        // fetch a project
+        // fetch a project
         case FETCH_PROJECT_REQUEST:
-
             return Object.assign({}, state, {
                 project: {
                     requesting: true,
@@ -167,7 +151,6 @@ export default function project(state = INITIAL_STATE, action) {
                     success: false,
                     project: state.project.project,
                 },
-
             });
 
         case FETCH_PROJECT_SUCCESS:
@@ -181,7 +164,6 @@ export default function project(state = INITIAL_STATE, action) {
             });
 
         case FETCH_PROJECT_FAILURE:
-
             return Object.assign({}, state, {
                 project: {
                     requesting: false,
@@ -192,22 +174,18 @@ export default function project(state = INITIAL_STATE, action) {
             });
 
         case FETCH_PROJECT_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
-
 
         // fetch userProjects
         case FETCH_USER_PROJECTS_REQUEST:
-
             return Object.assign({}, state, {
                 userProjects: {
                     requesting: true,
                     error: null,
                     success: false,
                 },
-
             });
 
         case FETCH_USER_PROJECTS_SUCCESS:
@@ -219,12 +197,11 @@ export default function project(state = INITIAL_STATE, action) {
                     projects: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
+                    skip: action.payload.skip,
                 },
             });
 
         case FETCH_USER_PROJECTS_FAILURE:
-
             return Object.assign({}, state, {
                 userProjects: {
                     requesting: false,
@@ -234,9 +211,8 @@ export default function project(state = INITIAL_STATE, action) {
             });
 
         case FETCH_USER_PROJECTS_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         case DELETE_PROJECT_SUCCESS:
@@ -244,14 +220,14 @@ export default function project(state = INITIAL_STATE, action) {
                 deleteProject: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 project: {
                     requesting: false,
                     error: null,
                     success: true,
                     project: action.payload,
-                }
+                },
             });
 
         case DELETE_PROJECT_REQUEST:
@@ -259,8 +235,8 @@ export default function project(state = INITIAL_STATE, action) {
                 deleteProject: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case DELETE_PROJECT_FAILED:
@@ -269,7 +245,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case DELETE_PROJECT_RESET:
@@ -278,7 +254,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case BLOCK_PROJECT_SUCCESS:
@@ -286,14 +262,14 @@ export default function project(state = INITIAL_STATE, action) {
                 blockProject: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 project: {
                     requesting: false,
                     error: null,
                     success: true,
                     project: action.payload,
-                }
+                },
             });
 
         case BLOCK_PROJECT_REQUEST:
@@ -301,8 +277,8 @@ export default function project(state = INITIAL_STATE, action) {
                 blockProject: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case BLOCK_PROJECT_FAILED:
@@ -311,7 +287,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case BLOCK_PROJECT_RESET:
@@ -320,7 +296,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case ALERT_LIMIT_SUCCESS:
@@ -328,14 +304,14 @@ export default function project(state = INITIAL_STATE, action) {
                 alertLimit: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 project: {
                     requesting: false,
                     error: null,
                     success: true,
                     project: action.payload,
-                }
+                },
             });
 
         case ALERT_LIMIT_REQUEST:
@@ -343,8 +319,8 @@ export default function project(state = INITIAL_STATE, action) {
                 alertLimit: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case ALERT_LIMIT_FAILED:
@@ -353,7 +329,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case ALERT_LIMIT_RESET:
@@ -362,7 +338,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case RESTORE_PROJECT_SUCCESS:
@@ -370,14 +346,14 @@ export default function project(state = INITIAL_STATE, action) {
                 restoreProject: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 project: {
                     requesting: false,
                     error: null,
                     success: true,
                     project: action.payload,
-                }
+                },
             });
 
         case RESTORE_PROJECT_REQUEST:
@@ -385,8 +361,8 @@ export default function project(state = INITIAL_STATE, action) {
                 restoreProject: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case RESTORE_PROJECT_FAILED:
@@ -395,7 +371,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case RESTORE_PROJECT_RESET:
@@ -404,7 +380,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case UNBLOCK_PROJECT_SUCCESS:
@@ -412,14 +388,14 @@ export default function project(state = INITIAL_STATE, action) {
                 unblockProject: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 project: {
                     requesting: false,
                     error: null,
                     success: true,
                     project: action.payload,
-                }
+                },
             });
 
         case UNBLOCK_PROJECT_REQUEST:
@@ -427,8 +403,8 @@ export default function project(state = INITIAL_STATE, action) {
                 unblockProject: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case UNBLOCK_PROJECT_FAILED:
@@ -437,7 +413,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case UNBLOCK_PROJECT_RESET:
@@ -446,19 +422,17 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         // add project admin notes
         case ADD_PROJECT_NOTE_REQUEST:
-
             return Object.assign({}, state, {
                 newProjectNote: {
                     requesting: true,
                     error: null,
                     success: false,
                 },
-
             });
 
         case ADD_PROJECT_NOTE_SUCCESS:
@@ -469,15 +443,14 @@ export default function project(state = INITIAL_STATE, action) {
                     success: true,
                     project: action.payload,
                 },
-                newProjectNote:{
+                newProjectNote: {
                     requesting: false,
                     error: null,
-                    success: true
-                }
+                    success: true,
+                },
             });
 
         case ADD_PROJECT_NOTE_FAILURE:
-
             return Object.assign({}, state, {
                 newProjectNote: {
                     requesting: false,
@@ -487,21 +460,18 @@ export default function project(state = INITIAL_STATE, action) {
             });
 
         case ADD_PROJECT_NOTE_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
+                ...INITIAL_STATE,
             });
 
         // search projects list
         case SEARCH_PROJECTS_REQUEST:
-
             return Object.assign({}, state, {
                 searchProjects: {
                     requesting: true,
                     error: null,
                     success: false,
                 },
-
             });
 
         case SEARCH_PROJECTS_SUCCESS:
@@ -513,17 +483,16 @@ export default function project(state = INITIAL_STATE, action) {
                     projects: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
+                    skip: action.payload.skip,
                 },
                 searchProjects: {
                     requesting: false,
                     error: null,
                     success: true,
-                }
+                },
             });
 
         case SEARCH_PROJECTS_FAILURE:
-
             return Object.assign({}, state, {
                 searchProjects: {
                     requesting: false,
@@ -533,11 +502,11 @@ export default function project(state = INITIAL_STATE, action) {
             });
 
         case SEARCH_PROJECTS_RESET:
-
             return Object.assign({}, state, {
-                ...INITIAL_STATE
-                    });
+                ...INITIAL_STATE,
+            });
 
-        default: return state;
+        default:
+            return state;
     }
 }

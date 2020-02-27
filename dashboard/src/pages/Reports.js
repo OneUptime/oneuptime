@@ -16,21 +16,21 @@ const styles = {
     cardGrid: {
         display: 'grid',
         gridTemplateColumns: '520px 520px',
-        gridGap: '30px'
+        gridGap: '30px',
     },
     number: {
         textAlign: 'center',
         borderRadius: '20px',
         background: '#f7f7f7',
-        width: '100px'
+        width: '100px',
     },
     incidentGrid: {
         display: 'grid',
         gridTemplateColumns: '520px 520px',
-        gridGap: '30px'
+        gridGap: '30px',
     },
     innerCard: {
-        paddingBottom: '78px'
+        paddingBottom: '78px',
     },
     arrowUp: {
         width: 0,
@@ -38,7 +38,7 @@ const styles = {
         borderLeft: '10px solid transparent',
         borderRight: '10px solid transparent',
         borderBottom: '10px solid red',
-        display: 'inline-block'
+        display: 'inline-block',
     },
     arrowDown: {
         width: 0,
@@ -46,13 +46,13 @@ const styles = {
         borderLeft: '10px solid transparent',
         borderRight: '10px solid transparent',
         display: 'inline-block',
-        borderTop: '10px solid green'
+        borderTop: '10px solid green',
     },
     innerCardGrid: {
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
-        gap: '5px'
-    }
+        gap: '5px',
+    },
 };
 
 const endDate = moment();
@@ -71,12 +71,16 @@ export class Reports extends Component {
             resolveTimeStart: startDate,
             resolveTimeEnd: endDate,
             incidentStart: startDate,
-            incidentEnd: endDate
+            incidentEnd: endDate,
         };
         this.handleMembersChange = this.handleMembersChange.bind(this);
         this.handleMonitorChange = this.handleMonitorChange.bind(this);
-        this.handleResolveTimeFilterChange = this.handleResolveTimeFilterChange.bind(this);
-        this.handleIncidentFilterChange = this.handleIncidentFilterChange.bind(this);
+        this.handleResolveTimeFilterChange = this.handleResolveTimeFilterChange.bind(
+            this
+        );
+        this.handleIncidentFilterChange = this.handleIncidentFilterChange.bind(
+            this
+        );
         this.handleResolveTimeChange = this.handleResolveTimeChange.bind(this);
         this.handleIncidentChange = this.handleIncidentChange.bind(this);
     }
@@ -84,40 +88,40 @@ export class Reports extends Component {
     handleMembersChange(startDate, endDate) {
         this.setState({
             membersStart: startDate,
-            membersEnd: endDate
+            membersEnd: endDate,
         });
     }
 
     handleMonitorChange(startDate, endDate) {
         this.setState({
             monitorStart: startDate,
-            monitorEnd: endDate
+            monitorEnd: endDate,
         });
     }
 
     handleResolveTimeFilterChange(filter) {
         this.setState({
-            resolveTimeFilter: filter
+            resolveTimeFilter: filter,
         });
     }
 
     handleIncidentFilterChange(filter) {
         this.setState({
-            incidentFilter: filter
+            incidentFilter: filter,
         });
     }
 
     handleResolveTimeChange(startDate, endDate) {
         this.setState({
             resolveTimeStart: startDate,
-            resolveTimeEnd: endDate
+            resolveTimeEnd: endDate,
         });
     }
 
     handleIncidentChange(startDate, endDate) {
         this.setState({
             incidentStart: startDate,
-            incidentEnd: endDate
+            incidentEnd: endDate,
         });
     }
 
@@ -142,36 +146,87 @@ export class Reports extends Component {
                                                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                <span>Average Resolve Time </span>
+                                                                <span>
+                                                                    Average
+                                                                    Resolve Time{' '}
+                                                                </span>
                                                             </span>
                                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <span> Average incident resolve time for the past 12 monhts</span>
+                                                                <span>
+                                                                    {' '}
+                                                                    Average
+                                                                    incident
+                                                                    resolve time
+                                                                    for the past
+                                                                    12 monhts
+                                                                </span>
                                                             </span>
                                                         </div>
 
-                                                        <div className="db-Trends-timeControls Margin-horizontal--12" style={{ justifyContent: 'flex-end' }}>
+                                                        <div
+                                                            className="db-Trends-timeControls Margin-horizontal--12"
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
+                                                        >
                                                             <div className="db-DateRangeInputWithComparison">
                                                                 <div
                                                                     className="db-DateRangeInput bs-Control"
-                                                                    style={{ cursor: 'pointer', padding: '0' }}
+                                                                    style={{
+                                                                        cursor:
+                                                                            'pointer',
+                                                                        padding:
+                                                                            '0',
+                                                                    }}
                                                                 >
                                                                     <div
                                                                         className="db-DateRangeInput-input"
                                                                         role="button"
                                                                         tabIndex="0"
-                                                                        style={{ cursor: 'pointer' }}
+                                                                        style={{
+                                                                            cursor:
+                                                                                'pointer',
+                                                                        }}
                                                                     >
                                                                         <span className="db-DateRangeInput-start">
                                                                             <Select
                                                                                 name="filter"
-                                                                                value={this.state.resolveTimeFilter}
+                                                                                value={
+                                                                                    this
+                                                                                        .state
+                                                                                        .resolveTimeFilter
+                                                                                }
                                                                                 className="db-select-ne"
-                                                                                onChange={this.handleResolveTimeFilterChange}
+                                                                                onChange={
+                                                                                    this
+                                                                                        .handleResolveTimeFilterChange
+                                                                                }
                                                                                 options={[
-                                                                                    { value: 'day', label: 'Daily' },
-                                                                                    { value: 'week', label: 'Weekly' },
-                                                                                    { value: 'month', label: 'Monthly' },
-                                                                                    { value: 'year', label: 'Yearly' }
+                                                                                    {
+                                                                                        value:
+                                                                                            'day',
+                                                                                        label:
+                                                                                            'Daily',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'week',
+                                                                                        label:
+                                                                                            'Weekly',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'month',
+                                                                                        label:
+                                                                                            'Monthly',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'year',
+                                                                                        label:
+                                                                                            'Yearly',
+                                                                                    },
                                                                                 ]}
                                                                             />
                                                                         </span>
@@ -180,20 +235,49 @@ export class Reports extends Component {
                                                             </div>
                                                         </div>
 
-                                                        <div className="db-Trends-timeControls" style={{ justifyContent: 'flex-end' }}>
+                                                        <div
+                                                            className="db-Trends-timeControls"
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
+                                                        >
                                                             <DateRangeWrapper
-                                                                selected={this.state.resolveTimeStart}
-                                                                style={{ justifyContent: 'flex-end' }}
-                                                                onChange={this.handleResolveTimeChange}
+                                                                selected={
+                                                                    this.state
+                                                                        .resolveTimeStart
+                                                                }
+                                                                style={{
+                                                                    justifyContent:
+                                                                        'flex-end',
+                                                                }}
+                                                                onChange={
+                                                                    this
+                                                                        .handleResolveTimeChange
+                                                                }
                                                                 dateRange={30}
                                                             />
                                                         </div>
                                                     </div>
                                                     <ResolveTime
-                                                        filter={this.state.resolveTimeFilter.value}
-                                                        startDate={this.state.resolveTimeStart}
-                                                        endDate={this.state.resolveTimeEnd}
-                                                        currentProject={this.props.match.params.projectId}
+                                                        filter={
+                                                            this.state
+                                                                .resolveTimeFilter
+                                                                .value
+                                                        }
+                                                        startDate={
+                                                            this.state
+                                                                .resolveTimeStart
+                                                        }
+                                                        endDate={
+                                                            this.state
+                                                                .resolveTimeEnd
+                                                        }
+                                                        currentProject={
+                                                            this.props.match
+                                                                .params
+                                                                .projectId
+                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -208,36 +292,85 @@ export class Reports extends Component {
                                                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                <span>Incidents</span>
+                                                                <span>
+                                                                    Incidents
+                                                                </span>
                                                             </span>
                                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <span> Graph comparing number of incidents</span>
+                                                                <span>
+                                                                    {' '}
+                                                                    Graph
+                                                                    comparing
+                                                                    number of
+                                                                    incidents
+                                                                </span>
                                                             </span>
                                                         </div>
 
-                                                        <div className="db-Trends-timeControls Margin-horizontal--12" style={{ justifyContent: 'flex-end' }}>
+                                                        <div
+                                                            className="db-Trends-timeControls Margin-horizontal--12"
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
+                                                        >
                                                             <div className="db-DateRangeInputWithComparison">
                                                                 <div
                                                                     className="db-DateRangeInput bs-Control"
-                                                                    style={{ cursor: 'pointer', padding: '0' }}
+                                                                    style={{
+                                                                        cursor:
+                                                                            'pointer',
+                                                                        padding:
+                                                                            '0',
+                                                                    }}
                                                                 >
                                                                     <div
                                                                         className="db-DateRangeInput-input"
                                                                         role="button"
                                                                         tabIndex="0"
-                                                                        style={{ cursor: 'pointer' }}
+                                                                        style={{
+                                                                            cursor:
+                                                                                'pointer',
+                                                                        }}
                                                                     >
                                                                         <span className="db-DateRangeInput-start">
                                                                             <Select
                                                                                 name="filter"
-                                                                                value={this.state.incidentFilter}
+                                                                                value={
+                                                                                    this
+                                                                                        .state
+                                                                                        .incidentFilter
+                                                                                }
                                                                                 className="db-select-ne"
-                                                                                onChange={this.handleIncidentFilterChange}
+                                                                                onChange={
+                                                                                    this
+                                                                                        .handleIncidentFilterChange
+                                                                                }
                                                                                 options={[
-                                                                                    { value: 'day', label: 'Daily' },
-                                                                                    { value: 'week', label: 'Weekly' },
-                                                                                    { value: 'month', label: 'Monthly' },
-                                                                                    { value: 'year', label: 'Yearly' }
+                                                                                    {
+                                                                                        value:
+                                                                                            'day',
+                                                                                        label:
+                                                                                            'Daily',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'week',
+                                                                                        label:
+                                                                                            'Weekly',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'month',
+                                                                                        label:
+                                                                                            'Monthly',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'year',
+                                                                                        label:
+                                                                                            'Yearly',
+                                                                                    },
                                                                                 ]}
                                                                             />
                                                                         </span>
@@ -246,21 +379,50 @@ export class Reports extends Component {
                                                             </div>
                                                         </div>
 
-                                                        <div className="db-Trends-timeControls" style={{ justifyContent: 'flex-end' }}>
+                                                        <div
+                                                            className="db-Trends-timeControls"
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
+                                                        >
                                                             <DateRangeWrapper
-                                                                selected={this.state.incidentStart}
-                                                                style={{ justifyContent: 'flex-end' }}
-                                                                onChange={this.handleIncidentChange}
+                                                                selected={
+                                                                    this.state
+                                                                        .incidentStart
+                                                                }
+                                                                style={{
+                                                                    justifyContent:
+                                                                        'flex-end',
+                                                                }}
+                                                                onChange={
+                                                                    this
+                                                                        .handleIncidentChange
+                                                                }
                                                                 dateRange={30}
                                                             />
                                                         </div>
                                                     </div>
 
                                                     <Incidents
-                                                        filter={this.state.incidentFilter.value}
-                                                        startDate={this.state.incidentStart}
-                                                        endDate={this.state.incidentEnd}
-                                                        currentProject={this.props.match.params.projectId}
+                                                        filter={
+                                                            this.state
+                                                                .incidentFilter
+                                                                .value
+                                                        }
+                                                        startDate={
+                                                            this.state
+                                                                .incidentStart
+                                                        }
+                                                        endDate={
+                                                            this.state
+                                                                .incidentEnd
+                                                        }
+                                                        currentProject={
+                                                            this.props.match
+                                                                .params
+                                                                .projectId
+                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -275,30 +437,58 @@ export class Reports extends Component {
                                                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                <span>Members</span>
+                                                                <span>
+                                                                    Members
+                                                                </span>
                                                             </span>
                                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <span> Members who have resolved most incidents</span>
+                                                                <span>
+                                                                    {' '}
+                                                                    Members who
+                                                                    have
+                                                                    resolved
+                                                                    most
+                                                                    incidents
+                                                                </span>
                                                             </span>
                                                         </div>
 
                                                         <div
                                                             className="db-Trends-timeControls"
-                                                            style={{ justifyContent: 'flex-end' }}
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
                                                         >
                                                             <DateRangeWrapper
-                                                                selected={this.state.membersStart}
-                                                                style={{ justifyContent: 'flex-end' }}
-                                                                onChange={this.handleMembersChange}
+                                                                selected={
+                                                                    this.state
+                                                                        .membersStart
+                                                                }
+                                                                style={{
+                                                                    justifyContent:
+                                                                        'flex-end',
+                                                                }}
+                                                                onChange={
+                                                                    this
+                                                                        .handleMembersChange
+                                                                }
                                                                 dateRange={30}
                                                             />
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <Members
-                                                    startDate={this.state.membersStart}
-                                                    endDate={this.state.membersEnd}
-                                                    currentProject={this.props.match.params.projectId}
+                                                    startDate={
+                                                        this.state.membersStart
+                                                    }
+                                                    endDate={
+                                                        this.state.membersEnd
+                                                    }
+                                                    currentProject={
+                                                        this.props.match.params
+                                                            .projectId
+                                                    }
                                                     styles={styles.number}
                                                 />
                                             </div>
@@ -313,29 +503,54 @@ export class Reports extends Component {
                                                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                <span>Monitors</span>
+                                                                <span>
+                                                                    Monitors
+                                                                </span>
                                                             </span>
                                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <span>Monitors with most incidents.</span>
+                                                                <span>
+                                                                    Monitors
+                                                                    with most
+                                                                    incidents.
+                                                                </span>
                                                             </span>
                                                         </div>
                                                         <div
                                                             className="db-Trends-timeControls"
-                                                            style={{ justifyContent: 'flex-end' }}
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
                                                         >
                                                             <DateRangeWrapper
-                                                                selected={this.state.monitorStart}
-                                                                style={{ justifyContent: 'flex-end' }}
-                                                                onChange={this.handleMonitorChange}
+                                                                selected={
+                                                                    this.state
+                                                                        .monitorStart
+                                                                }
+                                                                style={{
+                                                                    justifyContent:
+                                                                        'flex-end',
+                                                                }}
+                                                                onChange={
+                                                                    this
+                                                                        .handleMonitorChange
+                                                                }
                                                                 dateRange={30}
                                                             />
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <Monitors
-                                                    startDate={this.state.monitorStart}
-                                                    endDate={this.state.monitorEnd}
-                                                    currentProject={this.props.match.params.projectId}
+                                                    startDate={
+                                                        this.state.monitorStart
+                                                    }
+                                                    endDate={
+                                                        this.state.monitorEnd
+                                                    }
+                                                    currentProject={
+                                                        this.props.match.params
+                                                            .projectId
+                                                    }
                                                     styles={styles.number}
                                                 />
                                             </div>
@@ -353,17 +568,14 @@ export class Reports extends Component {
 
 const mapStateToProps = state => {
     return {
-        currentProject: state.project.currentProject
+        currentProject: state.project.currentProject,
     };
 };
 
 Reports.propTypes = {
-    match: PropTypes.object
+    match: PropTypes.object,
 };
 
 Reports.displayName = 'Reports';
 
-export default connect(
-    mapStateToProps,
-    {}
-)(Reports);
+export default connect(mapStateToProps, {})(Reports);

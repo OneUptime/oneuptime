@@ -9,22 +9,27 @@ import DeleteSlackTeam from '../modals/deleteSlackTeam';
 import DataPathHoC from '../DataPathHoC';
 
 class SlackTeamItem extends React.Component {
-
     constructor(props) {
         super(props);
 
         this.state = {
-            deleteModalId: uuid.v4()
+            deleteModalId: uuid.v4(),
         };
     }
 
     unLink = () => {
-        return this.props.deleteSlackLink(this.props.projectId, this.props.team._id);
-    }
+        return this.props.deleteSlackLink(
+            this.props.projectId,
+            this.props.team._id
+        );
+    };
 
     render() {
         const { deleteModalId } = this.state;
-        const { team, deleteTeam: { requesting } } = this.props;
+        const {
+            team,
+            deleteTeam: { requesting },
+        } = this.props;
 
         if (!team) return null;
 
@@ -46,14 +51,27 @@ class SlackTeamItem extends React.Component {
                                 </h3>
                                 <p>
                                     This project is linked to the
-                                    <b> {team.data.teamName && team.data.teamName.toLowerCase()}.slack.com</b> Slack workspace
+                                    <b>
+                                        {' '}
+                                        {team.data.teamName &&
+                                            team.data.teamName.toLowerCase()}
+                                        .slack.com
+                                    </b>{' '}
+                                    Slack workspace
                                 </p>
                             </div>
                         </div>
                     </div>
                 </td>
                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--16" style={{ position: 'absolute', right: 29, paddingTop: 23 }}>
+                    <div
+                        className="db-ListViewItem-cellContent Box-root Padding-all--16"
+                        style={{
+                            position: 'absolute',
+                            right: 29,
+                            paddingTop: 23,
+                        }}
+                    >
                         <div className="Box-root">
                             <button
                                 className="bs-Button bs-Button--block"
@@ -63,17 +81,21 @@ class SlackTeamItem extends React.Component {
                                         id: deleteModalId,
                                         onClose: () => '',
                                         onConfirm: () => this.unLink(),
-                                        content: DataPathHoC(DeleteSlackTeam, { deleting: requesting }),
+                                        content: DataPathHoC(DeleteSlackTeam, {
+                                            deleting: requesting,
+                                        }),
                                     })
                                 }
                             >
-                                {requesting ? 'Processing...' : 'Unlink workspace'}
+                                {requesting
+                                    ? 'Processing...'
+                                    : 'Unlink workspace'}
                             </button>
                         </div>
                     </div>
                 </td>
             </tr>
-        )
+        );
     }
 }
 
@@ -84,15 +106,15 @@ const mapStateToProps = state => ({
     deleteTeam: state.slack.deleteTeam,
 });
 
-const mapDispatchToProps = dispatch => (
-    bindActionCreators({
-        openModal,
-        closeModal,
-        deleteSlackLink
-    },
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            openModal,
+            closeModal,
+            deleteSlackLink,
+        },
         dispatch
-    )
-);
+    );
 
 SlackTeamItem.propTypes = {
     deleteSlackLink: PropTypes.func,

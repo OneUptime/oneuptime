@@ -4,5 +4,5 @@ module.exports = {
         title: 'Status title',
         description: 'status description',
         copyright: 'status copyright',
-    }
+    },
 };

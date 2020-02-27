@@ -1,40 +1,37 @@
 {
-  "name": "probe",
-  "version": "3.0.1891",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "lint": "eslint .",
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "echo 'no tests'",
-    "audit": "npm-audit-ci-wrapper --threshold=high",
-    "fix-lint": "eslint . --fix",
-    "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*'"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://gitlab.com/fyipe-project/probe.git"
-  },
-  "author": "Nilanshu",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://gitlab.com/fyipe-project/probe/issues"
-  },
-  "homepage": "https://gitlab.com/fyipe-project/probe#readme",
-  "dependencies": {
-    "axios": "^0.19.0",
-    "cors": "^2.8.5",
-    "eslint": "^6.0.1",
-    "express": "^4.17.1",
-    "moment": "^2.24.0",
-    "node-cron": "^2.0.3",
-    "node-fetch": "^2.6.0",
-    "winston": "^2.4.0",
-    "winston-slack-transport": "^2.0.0"
-  },
-  "devDependencies": {
-    "depcheck": "^0.9.2",
-    "npm-audit-ci-wrapper": "^2.3.0"
-  }
+    "name": "probe",
+    "version": "3.0.1891",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js",
+        "test": "echo 'no tests'",
+        "audit": "npm-audit-ci-wrapper --threshold=high",
+        "dep-check": "depcheck ./ --skip-missing=true"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://gitlab.com/fyipe-project/probe.git"
+    },
+    "author": "Nilanshu",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://gitlab.com/fyipe-project/probe/issues"
+    },
+    "homepage": "https://gitlab.com/fyipe-project/probe#readme",
+    "dependencies": {
+        "axios": "^0.19.0",
+        "cors": "^2.8.5",
+        "express": "^4.17.1",
+        "moment": "^2.24.0",
+        "node-cron": "^2.0.3",
+        "node-fetch": "^2.6.0",
+        "winston": "^2.4.0",
+        "winston-slack-transport": "^2.0.0"
+    },
+    "devDependencies": {
+        "depcheck": "^0.9.2",
+        "npm-audit-ci-wrapper": "^2.3.0"
+    }
 }

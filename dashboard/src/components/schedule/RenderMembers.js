@@ -1,33 +1,38 @@
 import React from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { formValueSelector } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderMember } from './RenderMember';
 
-let RenderMembers = ({ fields, meta: { error, submitFailed }, subProjectId, policyIndex, teamIndex, form }) => {
+let RenderMembers = ({
+    fields,
+    meta: { error, submitFailed },
+    subProjectId,
+    policyIndex,
+    teamIndex,
+    form,
+}) => {
     const policyRotation = form[policyIndex].teams[teamIndex];
 
     return (
         <ul>
-            {
-                fields.map((inputarray, i) => {
-                    const memberValue = policyRotation.teamMembers[i];
-                    
-                    return (
-                        <RenderMember
-                            memberValue={memberValue}
-                            subProjectId={subProjectId}
-                            policyIndex={policyIndex}
-                            teamIndex={teamIndex}
-                            inputarray={inputarray}
-                            key={i}
-                            nameIndex={i}
-                            fields={fields}
-                        />
-                    )
-                })
-            }
+            {fields.map((inputarray, i) => {
+                const memberValue = policyRotation.teamMembers[i];
+
+                return (
+                    <RenderMember
+                        memberValue={memberValue}
+                        subProjectId={subProjectId}
+                        policyIndex={policyIndex}
+                        teamIndex={teamIndex}
+                        inputarray={inputarray}
+                        key={i}
+                        nameIndex={i}
+                        fields={fields}
+                    />
+                );
+            })}
 
             <li>
                 <div className="bs-Fieldset-row">
@@ -45,7 +50,14 @@ let RenderMembers = ({ fields, meta: { error, submitFailed }, subProjectId, poli
                                     <button
                                         type="button"
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                        onClick={() => fields.push({ member: '', timezone: '', startTime: '', endTime: '' })}
+                                        onClick={() =>
+                                            fields.push({
+                                                member: '',
+                                                timezone: '',
+                                                startTime: '',
+                                                endTime: '',
+                                            })
+                                        }
                                     >
                                         Add Team Member
                                     </button>
@@ -64,35 +76,29 @@ let RenderMembers = ({ fields, meta: { error, submitFailed }, subProjectId, poli
                 </div>
             </li>
         </ul>
-    )
-}
+    );
+};
 
-RenderMembers.displayName = 'RenderMembers'
+RenderMembers.displayName = 'RenderMembers';
 
 RenderMembers.propTypes = {
     subProjectId: PropTypes.string.isRequired,
     meta: PropTypes.object.isRequired,
-    fields: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.object
-    ]).isRequired,
+    fields: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
     policyIndex: PropTypes.number.isRequired,
     teamIndex: PropTypes.number.isRequired,
-    form: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.object
-    ]).isRequired
-}
+    form: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
+};
 
 function mapStateToProps(state) {
     const selector = formValueSelector('OnCallAlertBox');
     const form = selector(state, 'OnCallAlertBox');
 
     return {
-      form
-    }
+        form,
+    };
 }
 
 RenderMembers = connect(mapStateToProps)(RenderMembers);
 
-export { RenderMembers }
+export { RenderMembers };

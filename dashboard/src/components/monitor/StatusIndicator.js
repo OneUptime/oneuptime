@@ -15,17 +15,15 @@ function StatusIndicator({ status }) {
             statusColor = 'red';
             break;
         default:
-            statusColor = 'blue'
+            statusColor = 'blue';
     }
 
-    return (
-        <div className={`db-Badge Box-background--${statusColor}`}></div>
-    );
+    return <div className={`db-Badge Box-background--${statusColor}`}></div>;
 }
 
 StatusIndicator.displayName = 'StatusIndicator';
 StatusIndicator.propTypes = {
-    status: PropTypes.string
+    status: PropTypes.string,
 };
 
 export default StatusIndicator;

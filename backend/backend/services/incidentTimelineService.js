@@ -1,6 +1,5 @@
 module.exports = {
-
-    create: async function (data) {
+    create: async function(data) {
         try {
             let incidentTimeline = new IncidentTimelineModel();
 
@@ -15,7 +14,9 @@ module.exports = {
             incidentTimeline.status = data.status;
 
             incidentTimeline = await incidentTimeline.save();
-            incidentTimeline = await this.findOneBy({ _id: incidentTimeline._id });
+            incidentTimeline = await this.findOneBy({
+                _id: incidentTimeline._id,
+            });
 
             return incidentTimeline;
         } catch (error) {
@@ -24,17 +25,19 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
             }
 
-            let incidentTimeline = await IncidentTimelineModel.findOneAndUpdate(query,
+            let incidentTimeline = await IncidentTimelineModel.findOneAndUpdate(
+                query,
                 { $set: data },
                 {
-                    new: true
-                });
+                    new: true,
+                }
+            );
             incidentTimeline = await this.findOneBy(query);
 
             return incidentTimeline;
@@ -44,15 +47,18 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
             }
 
-            let incidentTimelines = await IncidentTimelineModel.updateMany(query, {
-                $set: data
-            });
+            let incidentTimelines = await IncidentTimelineModel.updateMany(
+                query,
+                {
+                    $set: data,
+                }
+            );
             incidentTimelines = await this.findBy(query);
 
             return incidentTimelines;
@@ -62,13 +68,13 @@ module.exports = {
         }
     },
 
-    findBy: async function (query, skip, limit) {
+    findBy: async function(query, skip, limit) {
         try {
             if (!skip) skip = 0;
             if (!limit) limit = 0;
 
-            if (typeof (skip) === 'string') skip = parseInt(skip);
-            if (typeof (limit) === 'string') limit = parseInt(limit);
+            if (typeof skip === 'string') skip = parseInt(skip);
+            if (typeof limit === 'string') limit = parseInt(limit);
 
             if (!query) {
                 query = {};
@@ -88,7 +94,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -105,7 +111,7 @@ module.exports = {
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -119,7 +125,6 @@ module.exports = {
             throw error;
         }
     },
-
 };
 
 const IncidentTimelineModel = require('../models/incidentTimeline');

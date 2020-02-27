@@ -13,13 +13,13 @@ const schema = new Schema({
     subject: String,
     body: String,
     createdAt: { type: Date, default: Date.now },
-    template: String, 
+    template: String,
     status: String,
 
-    deleted: { type: Boolean, default: false},
+    deleted: { type: Boolean, default: false },
 
     deletedAt: {
-        type: Date
+        type: Date,
     },
 
     deletedById: { type: String, ref: 'User' },

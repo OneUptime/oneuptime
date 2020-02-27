@@ -6,10 +6,8 @@ const IncidentService = require('../services/incidentService');
 const ScheduleService = require('../services/scheduleService');
 
 module.exports = {
-
     checkActiveEscalationPolicyAndSendAlerts: async () => {
         try {
-
             /* 
 
             #1 - Get all the OnCallScheduleStatus where incidentAcknowledged is false. 
@@ -24,57 +22,80 @@ module.exports = {
 
             //#1
 
-            const notAcknowledgedCallScheduleStatuses = await OnCallScheduleStatusService.findBy({ query: { incidentAcknowledged: false, alertedEveryone: false }, limit: 9999999, skip: 0 });
+            const notAcknowledgedCallScheduleStatuses = await OnCallScheduleStatusService.findBy(
+                {
+                    query: {
+                        incidentAcknowledged: false,
+                        alertedEveryone: false,
+                    },
+                    limit: 9999999,
+                    skip: 0,
+                }
+            );
 
-            for(const notAcknowledgedCallScheduleStatus of notAcknowledgedCallScheduleStatuses){
-
-                if(!notAcknowledgedCallScheduleStatus){
-                    continue; 
+            for (const notAcknowledgedCallScheduleStatus of notAcknowledgedCallScheduleStatuses) {
+                if (!notAcknowledgedCallScheduleStatus) {
+                    continue;
                 }
 
                 // #2
-                if(!notAcknowledgedCallScheduleStatus.incident){
-                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true; 
+                if (!notAcknowledgedCallScheduleStatus.incident) {
+                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
                     notAcknowledgedCallScheduleStatus.save();
-                    continue; 
+                    continue;
                 }
 
-                const incident = await IncidentService.findOneBy({_id:notAcknowledgedCallScheduleStatus.incident});
+                const incident = await IncidentService.findOneBy({
+                    _id: notAcknowledgedCallScheduleStatus.incident,
+                });
 
-                if(!incident){
-                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true; 
+                if (!incident) {
+                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
                     notAcknowledgedCallScheduleStatus.save();
-                    continue; 
+                    continue;
                 }
 
-                if(incident && incident.acknowledged){
-                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true; 
+                if (incident && incident.acknowledged) {
+                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
                     notAcknowledgedCallScheduleStatus.save();
-                    continue; 
+                    continue;
                 }
 
                 // #3 and #4
-                // get active escalation policy. 
-                
-                const alerts = await AlertService.findBy({query: {onCallScheduleStatus:notAcknowledgedCallScheduleStatus._id}, limit: 9999, skip: 0, sort: {createdAt:-1}}); //sort by createdAtdescending. 
-                if(alerts && alerts.length > 0 && alerts[0]){
-                    //check when the last alert was sent.  
-                    const lastAlertSentAt = alerts[0].createdAt; //we take '0' index because list is reverse sorted. 
-                    if(!DateTime.isOlderThanLastMinute(lastAlertSentAt)){
-                        continue; 
+                // get active escalation policy.
+
+                const alerts = await AlertService.findBy({
+                    query: {
+                        onCallScheduleStatus:
+                            notAcknowledgedCallScheduleStatus._id,
+                    },
+                    limit: 9999,
+                    skip: 0,
+                    sort: { createdAt: -1 },
+                }); //sort by createdAtdescending.
+                if (alerts && alerts.length > 0 && alerts[0]) {
+                    //check when the last alert was sent.
+                    const lastAlertSentAt = alerts[0].createdAt; //we take '0' index because list is reverse sorted.
+                    if (!DateTime.isOlderThanLastMinute(lastAlertSentAt)) {
+                        continue;
                     }
                 }
-                const schedule = await ScheduleService.findOneBy({_id: notAcknowledgedCallScheduleStatus.schedule });
-                //and the rest happens here. 
-            
-                AlertService.sendAlertsToTeamMembersInSchedule({schedule, incident });                
-            }
+                const schedule = await ScheduleService.findOneBy({
+                    _id: notAcknowledgedCallScheduleStatus.schedule,
+                });
+                //and the rest happens here.
 
+                AlertService.sendAlertsToTeamMembersInSchedule({
+                    schedule,
+                    incident,
+                });
+            }
         } catch (error) {
-            ErrorService.log('escalationPolicyCron.checkActiveEscalationPolicyAndSendAlerts', error);
+            ErrorService.log(
+                'escalationPolicyCron.checkActiveEscalationPolicyAndSendAlerts',
+                error
+            );
             throw error;
         }
-    }
+    },
 };
-
-

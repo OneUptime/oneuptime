@@ -9,78 +9,111 @@ import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
 import { addProbe, resetAddProbe } from '../../actions/probe';
 
-
 class ProbeAddModal extends Component {
-    submitForm = (values) => {
+    submitForm = values => {
         const { addProbe, closeThisDialog, resetAddProbe } = this.props;
-        addProbe(values.probe_key, values.probe_name)
-            .then(function (val) {
+        addProbe(values.probe_key, values.probe_name).then(
+            function(val) {
                 if (val === 'ok') {
                     resetAddProbe();
                     closeThisDialog();
                 }
-            }, function () {
+            },
+            function() {
                 //do nothing.
-            });
-    }
+            }
+        );
+    };
 
-    handleKeyBoard = (e) => {
+    handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
                 this.props.resetAddProbe();
-                return this.props.closeThisDialog()
+                return this.props.closeThisDialog();
             default:
                 return false;
         }
-    }
+    };
 
     render() {
-        const { handleSubmit, closeThisDialog, addProbeState, probes, resetAddProbe } = this.props;
+        const {
+            handleSubmit,
+            closeThisDialog,
+            addProbeState,
+            probes,
+            resetAddProbe,
+        } = this.props;
         const disabled = addProbeState.requesting || probes.requesting;
         return (
-            <div onKeyDown={this.handleKeyBoard} className="ModalLayer-contents" tabIndex="-1" style={{ marginTop: '40px' }}>
+            <div
+                onKeyDown={this.handleKeyBoard}
+                className="ModalLayer-contents"
+                tabIndex="-1"
+                style={{ marginTop: '40px' }}
+            >
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--large">
                         <div className="bs-Modal-header">
-                            <div className="bs-Modal-header-copy"
-                                style={{ marginBottom: '10px', marginTop: '10px' }}>
+                            <div
+                                className="bs-Modal-header-copy"
+                                style={{
+                                    marginBottom: '10px',
+                                    marginTop: '10px',
+                                }}
+                            >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>Add New Probe</span>
                                 </span>
                             </div>
                         </div>
-                        <form id="frmIncident" onSubmit={handleSubmit(this.submitForm)}>
+                        <form
+                            id="frmIncident"
+                            onSubmit={handleSubmit(this.submitForm)}
+                        >
                             <div className="bs-Modal-content bs-u-paddingless">
                                 <div className="bs-Modal-block bs-u-paddingless">
-
                                     <div className="bs-Modal-content">
                                         <span className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label"><span>Probe Name</span></label>
+                                                    <label className="bs-Fieldset-label">
+                                                        <span>Probe Name</span>
+                                                    </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={RenderField}
+                                                        <Field
+                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            component={
+                                                                RenderField
+                                                            }
                                                             type="text"
-                                                            name='probe_name'
+                                                            name="probe_name"
                                                             id="probe_name"
                                                             placeholder="US WEST"
                                                             disabled={disabled}
-                                                            validate={ValidateField.text}
+                                                            validate={
+                                                                ValidateField.text
+                                                            }
                                                         />
                                                     </div>
                                                 </div>
                                                 <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label"><span>Probe Key</span></label>
+                                                    <label className="bs-Fieldset-label">
+                                                        <span>Probe Key</span>
+                                                    </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <Field className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={RenderField}
+                                                        <Field
+                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            component={
+                                                                RenderField
+                                                            }
                                                             type="text"
-                                                            name='probe_key'
+                                                            name="probe_key"
                                                             id="probe_key"
                                                             placeholder="abcde-qw345-awqert-456yu"
                                                             disabled={disabled}
-                                                            validate={ValidateField.text}
+                                                            validate={
+                                                                ValidateField.text
+                                                            }
                                                         />
                                                     </div>
                                                 </div>
@@ -91,15 +124,25 @@ class ProbeAddModal extends Component {
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
-                                    <ShouldRender if={addProbeState && addProbeState.error}>
+                                    <ShouldRender
+                                        if={
+                                            addProbeState && addProbeState.error
+                                        }
+                                    >
                                         <div className="bs-Tail-copy">
-                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
+                                            <div
+                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                style={{ marginTop: '10px' }}
+                                            >
                                                 <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex">
-                                                    </div>
+                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
                                                 </div>
                                                 <div className="Box-root">
-                                                    <span style={{ color: 'red' }}>{addProbeState.error}</span>
+                                                    <span
+                                                        style={{ color: 'red' }}
+                                                    >
+                                                        {addProbeState.error}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -111,39 +154,46 @@ class ProbeAddModal extends Component {
                                             resetAddProbe();
                                             closeThisDialog();
                                         }}
-                                        disabled={disabled}>
+                                        disabled={disabled}
+                                    >
                                         <span>Cancel</span>
                                     </button>
                                     <button
                                         id="add_probe"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={disabled}
-                                        type="submit">
-                                        {addProbeState && !addProbeState.requesting && <span>Create</span>}
-                                        {addProbeState && addProbeState.requesting && <FormLoader />}
+                                        type="submit"
+                                    >
+                                        {addProbeState &&
+                                            !addProbeState.requesting && (
+                                                <span>Create</span>
+                                            )}
+                                        {addProbeState &&
+                                            addProbeState.requesting && (
+                                                <FormLoader />
+                                            )}
                                     </button>
                                 </div>
                             </div>
                         </form>
                     </div>
                 </div>
-            </div >
+            </div>
         );
     }
 }
 
-ProbeAddModal.displayName = 'ProbeAddFormModal'
+ProbeAddModal.displayName = 'ProbeAddFormModal';
 
 const ProbeAddModalForm = reduxForm({
     form: 'AddProbe', // a unique identifier for this form
 })(ProbeAddModal);
 
-const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ addProbe, resetAddProbe }, dispatch)
-}
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators({ addProbe, resetAddProbe }, dispatch);
+};
 
 function mapStateToProps(state) {
-
     return {
         addProbeState: state.probe.addProbe,
         probes: state.probe.probes,
@@ -158,7 +208,7 @@ ProbeAddModal.propTypes = {
     handleSubmit: PropTypes.func,
     probes: PropTypes.object,
     requesting: PropTypes.bool,
-    resetAddProbe: PropTypes.func
-}
+    resetAddProbe: PropTypes.func,
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProbeAddModalForm);

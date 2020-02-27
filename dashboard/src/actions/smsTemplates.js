@@ -1,27 +1,27 @@
-import { getApi, putApi,postApi,deleteApi } from '../api';
-import * as types from '../constants/smstemplates'
-import errors from '../errors'
+import { getApi, putApi, postApi, deleteApi } from '../api';
+import * as types from '../constants/smstemplates';
+import errors from '../errors';
 
 //Array of sms templates
 
 export function smsTemplatesRequest(promise) {
     return {
         type: types.SMS_TEMPLATES_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function smsTemplatesError(error) {
     return {
         type: types.SMS_TEMPLATES_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function smsTemplatesSuccess(incidents) {
     return {
         type: types.SMS_TEMPLATES_SUCCESS,
-        payload: incidents
+        payload: incidents,
     };
 }
 
@@ -33,79 +33,83 @@ export const smsTemplatesReset = () => {
 
 // Calls the API to get sms templates
 export function getSmsTemplates(projectId) {
-    return function (dispatch) {
+    return function(dispatch) {
         const promise = getApi(`smsTemplate/${projectId}`);
         dispatch(smsTemplatesRequest(promise));
 
-        promise.then(function (sms) {
-            dispatch(smsTemplatesSuccess(sms.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(sms) {
+                dispatch(smsTemplatesSuccess(sms.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(smsTemplatesError(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(smsTemplatesError(errors(error)));
-        });
+        );
     };
 }
 
 // Edit sms templates
-export function editSmsTemplateReset(){
+export function editSmsTemplateReset() {
     return {
-        type: types.EDIT_SMS_TEMPLATES_RESET
-    }
-}
-
-export function editSmsTemplateRequest(){
-    return {
-        type: types.EDIT_SMS_TEMPLATES_REQUEST,
-        payload: true
-    }
-}
-
-export function editSmsTemplateSuccess(smsTemplates){
-    return {
-        type: types.EDIT_SMS_TEMPLATES_SUCCESS,
-        payload: smsTemplates
+        type: types.EDIT_SMS_TEMPLATES_RESET,
     };
 }
 
-export function editSmsTemplateError(error){
+export function editSmsTemplateRequest() {
     return {
-        type: types.EDIT_SMS_TEMPLATES_FAILED,
-        payload: error
-    }
+        type: types.EDIT_SMS_TEMPLATES_REQUEST,
+        payload: true,
+    };
 }
 
-export function editSmsTemplates(projectId, data){
-    return function(dispatch){
+export function editSmsTemplateSuccess(smsTemplates) {
+    return {
+        type: types.EDIT_SMS_TEMPLATES_SUCCESS,
+        payload: smsTemplates,
+    };
+}
+
+export function editSmsTemplateError(error) {
+    return {
+        type: types.EDIT_SMS_TEMPLATES_FAILED,
+        payload: error,
+    };
+}
+
+export function editSmsTemplates(projectId, data) {
+    return function(dispatch) {
         const promise = putApi(`smsTemplate/${projectId}`, data);
         dispatch(editSmsTemplateRequest());
 
-        promise.then(function(smsTemplate){
-            dispatch(editSmsTemplateSuccess(smsTemplate.data));
-        }, error=>{
-            if(error && error.response && error.response.data)
-				error = error.response.data;
-			if(error && error.data){
-				error = error.data;
-			}
-			if(error && error.message){
-				error = error.message;
-			}
-			else{
-				error = 'Network Error';
+        promise.then(
+            function(smsTemplate) {
+                dispatch(editSmsTemplateSuccess(smsTemplate.data));
+            },
+            error => {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(editSmsTemplateError(errors(error)));
             }
-            dispatch(editSmsTemplateError(errors(error)));
-        });
-    }
+        );
+    };
 }
 
 //Array of sms templates
@@ -113,262 +117,265 @@ export function editSmsTemplates(projectId, data){
 export function resetSmsTemplatesRequest(promise) {
     return {
         type: types.RESET_SMS_TEMPLATES_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function resetSmsTemplatesError(error) {
     return {
         type: types.RESET_SMS_TEMPLATES_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function resetSmsTemplatesSuccess(smsTemplates) {
     return {
         type: types.RESET_SMS_TEMPLATES_SUCCESS,
-        payload: smsTemplates
+        payload: smsTemplates,
     };
 }
 
-
 // Calls the API to reset sms templates
 export function resetSmsTemplates(projectId, templateId) {
-    return function (dispatch) {
+    return function(dispatch) {
         const promise = getApi(`smsTemplate/${projectId}/${templateId}/reset`);
         dispatch(resetSmsTemplatesRequest(promise));
 
-        promise.then(function (sms) {
-            dispatch(resetSmsTemplatesSuccess(sms.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(sms) {
+                dispatch(resetSmsTemplatesSuccess(sms.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(resetSmsTemplatesError(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(resetSmsTemplatesError(errors(error)));
-        });
+        );
     };
 }
 
 export function smtpConfigRequest(promise) {
     return {
         type: types.SMTP_CONFIG_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function smtpConfigError(error) {
     return {
         type: types.SMTP_CONFIG_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function smtpConfigSuccess(config) {
     return {
         type: types.SMTP_CONFIG_SUCCESS,
-        payload: config
+        payload: config,
     };
 }
-
 
 // Calls the API to reset email templates
 export function getSmtpConfig(projectId) {
-    return function (dispatch) {
+    return function(dispatch) {
         const promise = getApi(`smsSmtp/${projectId}`);
         dispatch(smtpConfigRequest(promise));
 
-        promise.then(function (data) {
-
-            if(data.data && data.data.enabled){
-                dispatch({
-                    type: types.SET_SMTP_CONFIG,
-                    payload: true
-                });
+        promise.then(
+            function(data) {
+                if (data.data && data.data.enabled) {
+                    dispatch({
+                        type: types.SET_SMTP_CONFIG,
+                        payload: true,
+                    });
+                } else {
+                    dispatch({
+                        type: types.SET_SMTP_CONFIG,
+                        payload: false,
+                    });
+                }
+                dispatch(smtpConfigSuccess(data.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(smtpConfigError(errors(error)));
             }
-            else{
-                dispatch({
-                    type: types.SET_SMTP_CONFIG,
-                    payload: false
-                });
-            }
-            dispatch(smtpConfigSuccess(data.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(smtpConfigError(errors(error)));
-        });
+        );
     };
 }
 
-export function postSmtpConfig(projectId,data) {
-    return function (dispatch) {
-        const promise = postApi(`smsSmtp/${projectId}`,data);
+export function postSmtpConfig(projectId, data) {
+    return function(dispatch) {
+        const promise = postApi(`smsSmtp/${projectId}`, data);
         dispatch(smtpConfigRequest(promise));
 
-        promise.then(function (data) {
-            dispatch(smtpConfigSuccess(data.data));
-            if(data.data && data.data.enabled){
-                dispatch({
-                    type: types.SET_SMTP_CONFIG,
-                    payload: true
-                });
+        promise.then(
+            function(data) {
+                dispatch(smtpConfigSuccess(data.data));
+                if (data.data && data.data.enabled) {
+                    dispatch({
+                        type: types.SET_SMTP_CONFIG,
+                        payload: true,
+                    });
+                } else {
+                    dispatch({
+                        type: types.SET_SMTP_CONFIG,
+                        payload: false,
+                    });
+                }
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(smtpConfigError(errors(error)));
             }
-            else{
-                dispatch({
-                    type: types.SET_SMTP_CONFIG,
-                    payload: false
-                });
-            }
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(smtpConfigError(errors(error)));
-        });
+        );
     };
 }
 
 export function deleteSmtpConfigRequest(promise) {
     return {
         type: types.DELETE_SMTP_CONFIG_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function deleteSmtpConfigError(error) {
     return {
         type: types.DELETE_SMTP_CONFIG_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function deleteSmtpConfigSuccess(config) {
     return {
         type: types.DELETE_SMTP_CONFIG_SUCCESS,
-        payload: config
+        payload: config,
     };
 }
 
-export function deleteSmtpConfig(projectId,smtpId,data) {
-    return function (dispatch) {
-        const promise = deleteApi(`smsSmtp/${projectId}/${smtpId}`,data);
+export function deleteSmtpConfig(projectId, smtpId, data) {
+    return function(dispatch) {
+        const promise = deleteApi(`smsSmtp/${projectId}/${smtpId}`, data);
         dispatch(deleteSmtpConfigRequest(promise));
 
-        promise.then(function (data) {
-            dispatch(deleteSmtpConfigSuccess(data.data));
-            if(data.data && data.data.enabled){
-                dispatch({
-                    type: types.SET_SMTP_CONFIG,
-                    payload: true
-                });
+        promise.then(
+            function(data) {
+                dispatch(deleteSmtpConfigSuccess(data.data));
+                if (data.data && data.data.enabled) {
+                    dispatch({
+                        type: types.SET_SMTP_CONFIG,
+                        payload: true,
+                    });
+                } else {
+                    dispatch({
+                        type: types.SET_SMTP_CONFIG,
+                        payload: false,
+                    });
+                }
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(deleteSmtpConfigError(errors(error)));
             }
-            else{
-                dispatch({
-                    type: types.SET_SMTP_CONFIG,
-                    payload: false
-                });
-            }
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(deleteSmtpConfigError(errors(error)));
-        });
+        );
     };
 }
 
-export function updateSmtpConfig(projectId,smtpId,data) {
-    return function (dispatch) {
-        const promise = putApi(`smsSmtp/${projectId}/${smtpId}`,data);
+export function updateSmtpConfig(projectId, smtpId, data) {
+    return function(dispatch) {
+        const promise = putApi(`smsSmtp/${projectId}/${smtpId}`, data);
         dispatch(smtpConfigRequest(promise));
 
-        promise.then(function (data) {
-            dispatch(smtpConfigSuccess(data.data));
-            if(data.data && data.data.enabled){
-                dispatch({
-                    type: types.SET_SMTP_CONFIG,
-                    payload: true
-                });
+        promise.then(
+            function(data) {
+                dispatch(smtpConfigSuccess(data.data));
+                if (data.data && data.data.enabled) {
+                    dispatch({
+                        type: types.SET_SMTP_CONFIG,
+                        payload: true,
+                    });
+                } else {
+                    dispatch({
+                        type: types.SET_SMTP_CONFIG,
+                        payload: false,
+                    });
+                }
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(smtpConfigError(errors(error)));
             }
-            else{
-                dispatch({
-                    type: types.SET_SMTP_CONFIG,
-                    payload: false
-                });
-            }
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(smtpConfigError(errors(error)));
-        });
+        );
     };
 }
 
 export function changeShowingTemplate(smsTemplate) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: types.CHANGE_SHOWING_TEMPLATE,
-            payload: smsTemplate
+            payload: smsTemplate,
         });
     };
 }
 
 export function setRevealVariable(smstype) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: types.SET_REVEAL_VARIABLE,
-            payload: smstype
+            payload: smstype,
         });
     };
 }
 
 export function setSmtpConfig(val) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: types.SET_SMTP_CONFIG,
-            payload: val
+            payload: val,
         });
     };
 }

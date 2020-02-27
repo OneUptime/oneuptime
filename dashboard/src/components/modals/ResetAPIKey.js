@@ -5,20 +5,21 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
 class ResetAPIKey extends Component {
-
-    handleKeyBoard = (e) => {
+    handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
             default:
                 return false;
         }
-    }
+    };
 
     render() {
-
         return (
-            <div onKeyDown={this.handleKeyBoard} className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
+            <div
+                onKeyDown={this.handleKeyBoard}
+                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
+            >
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -36,26 +37,40 @@ class ResetAPIKey extends Component {
                             <div className="bs-Modal-content">
                                 <p>
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        Resetting the API Key will break all your existing integrations with the Fyipe API.
-									</span>
+                                        Resetting the API Key will break all
+                                        your existing integrations with the
+                                        Fyipe API.
+                                    </span>
                                 </p>
                                 <p>
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         Are you sure you want to continue?
-									</span>
+                                    </span>
                                 </p>
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
-                                    <button className="bs-Button bs-DeprecatedButton bs-Button--red" type="button" onClick={this.props.confirmThisDialog}>
-                                        <ShouldRender if={!this.props.isRequesting}>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                        type="button"
+                                        onClick={this.props.confirmThisDialog}
+                                    >
+                                        <ShouldRender
+                                            if={!this.props.isRequesting}
+                                        >
                                             <span>RESET</span>
                                         </ShouldRender>
-                                        <ShouldRender if={this.props.isRequesting}>
+                                        <ShouldRender
+                                            if={this.props.isRequesting}
+                                        >
                                             <FormLoader />
                                         </ShouldRender>
                                     </button>
-                                    <button className="bs-Button bs-DeprecatedButton bs-Button--grey" type="button" onClick={this.props.closeThisDialog}>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        type="button"
+                                        onClick={this.props.closeThisDialog}
+                                    >
                                         <span>Close</span>
                                     </button>
                                 </div>
@@ -72,9 +87,9 @@ ResetAPIKey.displayName = 'ResetAPIKeyModal';
 
 const mapDispatchToProps = null;
 
-const mapStateToProps = state => (
-    { isRequesting: state.project.resetToken.requesting }
-);
+const mapStateToProps = state => ({
+    isRequesting: state.project.resetToken.requesting,
+});
 
 ResetAPIKey.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,

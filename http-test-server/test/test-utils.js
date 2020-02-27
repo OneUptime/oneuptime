@@ -14,19 +14,21 @@ const puppeteerLaunchConfig = {
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
-        '--disable-web-security'
+        '--disable-web-security',
     ],
 };
 
 const user = faker.helpers.createCard();
 
-function generateRandomString(){
-    return Math.random().toString(36).substring(10); 
+function generateRandomString() {
+    return Math.random()
+        .toString(36)
+        .substring(10);
 }
 
 module.exports = {
     user,
     puppeteerLaunchConfig,
     generateRandomString,
-    HTTP_TEST_SERVER_URL
+    HTTP_TEST_SERVER_URL,
 };

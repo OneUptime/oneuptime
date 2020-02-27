@@ -6,33 +6,32 @@ import {
     DELETE_SLACK_LINK_FAILED,
     DELETE_SLACK_LINK_REQUEST,
     DELETE_SLACK_LINK_RESET,
-    DELETE_SLACK_LINK_SUCCESS
+    DELETE_SLACK_LINK_SUCCESS,
 } from '../constants/slack';
 
 const initialState = {
-    teams:{
-        error:null,
+    teams: {
+        error: null,
         requesting: false,
-        success:false,
-        teams:[],
+        success: false,
+        teams: [],
         count: null,
         limit: null,
-        skip: null
+        skip: null,
     },
     deleteTeam: {
-        error:null,
+        error: null,
         requesting: false,
-        success:false,
+        success: false,
     },
     pages: {
-		counter: 0
-	}
+        counter: 0,
+    },
 };
 
 export default (state = initialState, action) => {
     let teams, index, count;
     switch (action.type) {
-
         case GET_SLACK_TEAM_FAILED:
             return Object.assign({}, state, {
                 teams: {
@@ -52,8 +51,8 @@ export default (state = initialState, action) => {
                     teams: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
-                }
+                    skip: action.payload.skip,
+                },
             });
 
         case GET_SLACK_TEAM_REQUEST:
@@ -68,15 +67,15 @@ export default (state = initialState, action) => {
 
         case GET_SLACK_TEAM_RESET:
             return Object.assign({}, state, {
-                teams:{
-                    error:null,
+                teams: {
+                    error: null,
                     requesting: false,
-                    success:false,
-                    teams:[],
+                    success: false,
+                    teams: [],
                     count: null,
                     limit: null,
-                    skip: null
-                }
+                    skip: null,
+                },
             });
 
         case DELETE_SLACK_LINK_FAILED:
@@ -84,22 +83,23 @@ export default (state = initialState, action) => {
                 deleteTeam: {
                     requesting: false,
                     error: action.payload,
-                    success: false
+                    success: false,
                 },
             });
 
         case DELETE_SLACK_LINK_SUCCESS:
-
             teams = Object.assign([], state.teams.teams);
             index = teams.findIndex(team => team._id === action.payload._id);
-            action.payload.n === 1 && action.payload.ok === 1 && teams.splice(index, 1);
+            action.payload.n === 1 &&
+                action.payload.ok === 1 &&
+                teams.splice(index, 1);
             count = state.teams.count - 1;
 
             return Object.assign({}, state, {
                 deleteTeam: {
                     requesting: false,
                     success: true,
-                    error: null
+                    error: null,
                 },
                 teams: {
                     requesting: false,
@@ -108,8 +108,8 @@ export default (state = initialState, action) => {
                     teams,
                     skip: state.teams.skip,
                     limit: state.teams.limit,
-                    count: count
-                }
+                    count: count,
+                },
             });
 
         case DELETE_SLACK_LINK_REQUEST:
@@ -123,12 +123,13 @@ export default (state = initialState, action) => {
 
         case DELETE_SLACK_LINK_RESET:
             return Object.assign({}, state, {
-                deleteTeam:{
-                    error:null,
+                deleteTeam: {
+                    error: null,
                     requesting: false,
-                    success:false
-                }
+                    success: false,
+                },
             });
-        default: return state;
+        default:
+            return state;
     }
-}
+};

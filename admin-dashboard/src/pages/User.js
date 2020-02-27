@@ -15,9 +15,8 @@ import { fetchUserProjects } from '../actions/project';
 import { addUserNote, fetchUser } from '../actions/user';
 
 class User extends Component {
-
     componentDidMount() {
-        if(window.location.href.indexOf('localhost') <= -1){
+        if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('User page Loaded');
         }
     }
@@ -25,7 +24,7 @@ class User extends Component {
     ready = async () => {
         await this.props.fetchUserProjects(this.props.match.params.userId);
         await this.props.fetchUser(this.props.match.params.userId);
-    }
+    };
 
     render() {
         return (
@@ -45,24 +44,63 @@ class User extends Component {
                                                     <UserProject />
                                                 </div>
                                                 <div className="Box-root Margin-bottom--12">
-                                                    <AdminNotes id={this.props.match.params.userId} addNote={this.props.addUserNote} initialValues={this.props.initialValues} />
+                                                    <AdminNotes
+                                                        id={
+                                                            this.props.match
+                                                                .params.userId
+                                                        }
+                                                        addNote={
+                                                            this.props
+                                                                .addUserNote
+                                                        }
+                                                        initialValues={
+                                                            this.props
+                                                                .initialValues
+                                                        }
+                                                    />
                                                 </div>
-                                                <ShouldRender if={this.props.user && !this.props.user.deleted && !this.props.user.isBlocked} >
+                                                <ShouldRender
+                                                    if={
+                                                        this.props.user &&
+                                                        !this.props.user
+                                                            .deleted &&
+                                                        !this.props.user
+                                                            .isBlocked
+                                                    }
+                                                >
                                                     <div className="Box-root Margin-bottom--12">
                                                         <UserBlockBox />
                                                     </div>
                                                 </ShouldRender>
-                                                <ShouldRender if={this.props.user && !this.props.user.deleted && this.props.user.isBlocked} >
+                                                <ShouldRender
+                                                    if={
+                                                        this.props.user &&
+                                                        !this.props.user
+                                                            .deleted &&
+                                                        this.props.user
+                                                            .isBlocked
+                                                    }
+                                                >
                                                     <div className="Box-root Margin-bottom--12">
                                                         <UserUnblockBox />
                                                     </div>
                                                 </ShouldRender>
-                                                <ShouldRender if={this.props.user && !this.props.user.deleted} >
+                                                <ShouldRender
+                                                    if={
+                                                        this.props.user &&
+                                                        !this.props.user.deleted
+                                                    }
+                                                >
                                                     <div className="Box-root Margin-bottom--12">
                                                         <UserDeleteBox />
                                                     </div>
                                                 </ShouldRender>
-                                                <ShouldRender if={this.props.user && this.props.user.deleted} >
+                                                <ShouldRender
+                                                    if={
+                                                        this.props.user &&
+                                                        this.props.user.deleted
+                                                    }
+                                                >
                                                     <div className="Box-root Margin-bottom--12">
                                                         <UserRestoreBox />
                                                     </div>
@@ -72,29 +110,32 @@ class User extends Component {
                                     </span>
                                 </div>
                             </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </Dashboard>
+            </Dashboard>
         );
     }
 }
 
-const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ fetchUserProjects, addUserNote, fetchUser }, dispatch)
-}
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        { fetchUserProjects, addUserNote, fetchUser },
+        dispatch
+    );
+};
 
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
     const user = state.user.user.user || {};
 
     return {
         user,
-        initialValues: { adminNotes: user.adminNotes || []}
-    }
-}
+        initialValues: { adminNotes: user.adminNotes || [] },
+    };
+};
 
 User.contextTypes = {
-    mixpanel: PropTypes.object.isRequired
+    mixpanel: PropTypes.object.isRequired,
 };
 
 User.propTypes = {
@@ -103,9 +144,9 @@ User.propTypes = {
     fetchUser: PropTypes.func.isRequired,
     user: PropTypes.object.isRequired,
     addUserNote: PropTypes.func.isRequired,
-    initialValues: PropTypes.object
-}
+    initialValues: PropTypes.object,
+};
 
-User.displayName = 'User'
+User.displayName = 'User';
 
 export default connect(mapStateToProps, mapDispatchToProps)(User);

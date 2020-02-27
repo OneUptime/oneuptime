@@ -1,52 +1,59 @@
-import reducer from '../../reducers/notifications'
-import * as types from '../../constants/notification'
+import reducer from '../../reducers/notifications';
+import * as types from '../../constants/notification';
 
 const initialState = {
     notifications: {
         error: null,
         requesting: false,
         success: false,
-        notifications: []
+        notifications: [],
     },
-    notificationsVisible: false
+    notificationsVisible: false,
 };
 
-
 describe('Notification Reducers', () => {
-
     it('should return initial state', () => {
-        expect(reducer(initialState, {})).toEqual(initialState)
+        expect(reducer(initialState, {})).toEqual(initialState);
     });
 
     it('should handle OPEN_NOTIFICATION_MENU', () => {
         const expected = {
             notifications: {
-                ...initialState.notifications
+                ...initialState.notifications,
             },
-            notificationsVisible: true
+            notificationsVisible: true,
         };
-        expect(reducer(initialState, { type: types.OPEN_NOTIFICATION_MENU })).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.OPEN_NOTIFICATION_MENU })
+        ).toEqual(expected);
     });
 
     it('should handle CLOSE_NOTIFICATION_MENU', () => {
         const expected = {
             notifications: {
-                ...initialState.notifications
+                ...initialState.notifications,
             },
-            notificationsVisible: false
+            notificationsVisible: false,
         };
-        expect(reducer(initialState, { type: types.CLOSE_NOTIFICATION_MENU })).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.CLOSE_NOTIFICATION_MENU })
+        ).toEqual(expected);
     });
 
     it('should handle FETCH_NOTIFICATIONS_FAILED', () => {
         const expected = {
             notifications: {
                 ...initialState.notifications,
-                error: 'error FETCH_NOTIFICATIONS_FAILED'
+                error: 'error FETCH_NOTIFICATIONS_FAILED',
             },
-            notificationsVisible: false
+            notificationsVisible: false,
         };
-        expect(reducer(initialState, { type: types.FETCH_NOTIFICATIONS_FAILED, payload: 'error FETCH_NOTIFICATIONS_FAILED' })).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.FETCH_NOTIFICATIONS_FAILED,
+                payload: 'error FETCH_NOTIFICATIONS_FAILED',
+            })
+        ).toEqual(expected);
     });
 
     it('should handle FETCH_NOTIFICATIONS_SUCCESS', () => {
@@ -54,25 +61,31 @@ describe('Notification Reducers', () => {
             notifications: {
                 ...initialState.notifications,
                 notifications: [{ _id: 'test FETCH_NOTIFICATIONS_SUCCESS' }],
-                success: true
+                success: true,
             },
-            notificationsVisible: false
+            notificationsVisible: false,
         };
-        expect(reducer(initialState, {
-            type: types.FETCH_NOTIFICATIONS_SUCCESS,
-            payload: { data: [{ _id: 'test FETCH_NOTIFICATIONS_SUCCESS' }] }
-        })).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.FETCH_NOTIFICATIONS_SUCCESS,
+                payload: {
+                    data: [{ _id: 'test FETCH_NOTIFICATIONS_SUCCESS' }],
+                },
+            })
+        ).toEqual(expected);
     });
 
     it('should handle FETCH_NOTIFICATIONS_REQUEST', () => {
         const expected = {
             notifications: {
                 ...initialState.notifications,
-                requesting: true
+                requesting: true,
             },
-            notificationsVisible: false
+            notificationsVisible: false,
         };
-        expect(reducer(initialState, { type: types.FETCH_NOTIFICATIONS_REQUEST })).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.FETCH_NOTIFICATIONS_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle FETCH_NOTIFICATIONS_RESET', () => {
@@ -80,9 +93,11 @@ describe('Notification Reducers', () => {
             notifications: {
                 ...initialState.notifications,
             },
-            notificationsVisible: false
+            notificationsVisible: false,
         };
-        expect(reducer(initialState, { type: types.FETCH_NOTIFICATIONS_RESET })).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.FETCH_NOTIFICATIONS_RESET })
+        ).toEqual(expected);
     });
 
     it('should handle ADD_NOTIFICATION_BY_SOCKET', () => {
@@ -90,53 +105,90 @@ describe('Notification Reducers', () => {
             notifications: {
                 ...initialState.notifications,
                 success: true,
-                notifications: [{ _id: 'test ADD_NOTIFICATION_BY_SOCKET' }]
+                notifications: [{ _id: 'test ADD_NOTIFICATION_BY_SOCKET' }],
             },
-            notificationsVisible: false
+            notificationsVisible: false,
         };
-        expect(reducer(initialState, { type: 'ADD_NOTIFICATION_BY_SOCKET', payload: { _id: 'test ADD_NOTIFICATION_BY_SOCKET' } })).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: 'ADD_NOTIFICATION_BY_SOCKET',
+                payload: { _id: 'test ADD_NOTIFICATION_BY_SOCKET' },
+            })
+        ).toEqual(expected);
     });
 
     it('should handle NOTIFICATION_READ_SUCCESS', () => {
-        initialState.notifications.notifications = [{ _id: 'test ADD_NOTIFICATION_BY_SOCKET', read: [] }]
+        initialState.notifications.notifications = [
+            { _id: 'test ADD_NOTIFICATION_BY_SOCKET', read: [] },
+        ];
         const expected = {
             notifications: {
                 ...initialState.notifications,
-                notifications: [{ _id: 'test ADD_NOTIFICATION_BY_SOCKET', read: ['test NOTIFICATION_READ_SUCCESS'] }]
+                notifications: [
+                    {
+                        _id: 'test ADD_NOTIFICATION_BY_SOCKET',
+                        read: ['test NOTIFICATION_READ_SUCCESS'],
+                    },
+                ],
             },
-            notificationsVisible: false
+            notificationsVisible: false,
         };
-        expect(reducer(initialState, {
-            type: types.NOTIFICATION_READ_SUCCESS,
-            payload: { notificationId: { _id: 'test ADD_NOTIFICATION_BY_SOCKET' }, userId: 'test NOTIFICATION_READ_SUCCESS' }
-        })).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.NOTIFICATION_READ_SUCCESS,
+                payload: {
+                    notificationId: { _id: 'test ADD_NOTIFICATION_BY_SOCKET' },
+                    userId: 'test NOTIFICATION_READ_SUCCESS',
+                },
+            })
+        ).toEqual(expected);
     });
 
     it('should handle ALL_NOTIFICATION_READ_SUCCESS', () => {
-        initialState.notifications.notifications = [{ _id: 'test ADD_NOTIFICATION_BY_SOCKET', read: [] }]
+        initialState.notifications.notifications = [
+            { _id: 'test ADD_NOTIFICATION_BY_SOCKET', read: [] },
+        ];
         const expected = {
             notifications: {
                 ...initialState.notifications,
-                notifications: [{ _id: 'test ADD_NOTIFICATION_BY_SOCKET', read: ['test ALL_NOTIFICATION_READ_SUCCESS'] }]
+                notifications: [
+                    {
+                        _id: 'test ADD_NOTIFICATION_BY_SOCKET',
+                        read: ['test ALL_NOTIFICATION_READ_SUCCESS'],
+                    },
+                ],
             },
-            notificationsVisible: false
+            notificationsVisible: false,
         };
-        expect(reducer(initialState, {
-            type: types.ALL_NOTIFICATION_READ_SUCCESS,
-            payload: 'test ALL_NOTIFICATION_READ_SUCCESS'
-        })).toEqual(expected);
+        expect(
+            reducer(initialState, {
+                type: types.ALL_NOTIFICATION_READ_SUCCESS,
+                payload: 'test ALL_NOTIFICATION_READ_SUCCESS',
+            })
+        ).toEqual(expected);
     });
 
     it('should handle NOTIFICATION_READ_SUCCESS, different notificationId ', () => {
-        initialState.notifications.notifications = [{ _id: 'test ADD_NOTIFICATION_BY_SOCKET', read: [] }]
+        initialState.notifications.notifications = [
+            { _id: 'test ADD_NOTIFICATION_BY_SOCKET', read: [] },
+        ];
         const expected = {
             notifications: {
                 ...initialState.notifications,
-                notifications: [{ _id: 'test ADD_NOTIFICATION_BY_SOCKET', read: [] }]
+                notifications: [
+                    { _id: 'test ADD_NOTIFICATION_BY_SOCKET', read: [] },
+                ],
             },
-            notificationsVisible: false
+            notificationsVisible: false,
         };
-        expect(reducer(initialState, { type: types.NOTIFICATION_READ_SUCCESS, payload: { notificationId: '_test ADD_NOTIFICATION_BY_SOCKET', userId: 'test NOTIFICATION_READ_SUCCESS' } })).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.NOTIFICATION_READ_SUCCESS,
+                payload: {
+                    notificationId: '_test ADD_NOTIFICATION_BY_SOCKET',
+                    userId: 'test NOTIFICATION_READ_SUCCESS',
+                },
+            })
+        ).toEqual(expected);
     });
-
 });

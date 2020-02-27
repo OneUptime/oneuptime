@@ -1,19 +1,20 @@
-
 const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const projectSchema = new Schema({
     name: String,
     slug: {
-        type: String
+        type: String,
     },
-    users: [{
-        userId: { type: String, ref: 'User' },
-        role: {
-            type: String,
-            enum: ['Owner', 'Administrator', 'Member', 'Viewer']
-        }
-    }],
+    users: [
+        {
+            userId: { type: String, ref: 'User' },
+            role: {
+                type: String,
+                enum: ['Owner', 'Administrator', 'Member', 'Viewer'],
+            },
+        },
+    ],
 
     stripePlanId: String,
     stripeSubscriptionId: String, // this is for plans.
@@ -26,7 +27,7 @@ const projectSchema = new Schema({
     deleted: { type: Boolean, default: false },
 
     deletedAt: {
-        type: Date
+        type: Date,
     },
 
     deletedById: { type: String, ref: 'User' },
@@ -34,47 +35,49 @@ const projectSchema = new Schema({
     apiKey: String,
     alertEnable: {
         type: Boolean,
-        default: false
+        default: false,
     },
     alertLimit: String,
     alertLimitReached: {
         type: Boolean,
-        default: false
+        default: false,
     },
-    balance:{
+    balance: {
         type: Number,
-        default: 0
+        default: 0,
     },
     alertOptions: {
         minimumBalance: {
             type: Number,
-            enum: [20, 50, 100]
+            enum: [20, 50, 100],
         },
         rechargeToBalance: {
             type: Number,
-            enum: [40, 100, 200]
+            enum: [40, 100, 200],
         },
         billingUS: {
             type: Boolean,
-            default: true
+            default: true,
         },
         billingNonUSCountries: {
             type: Boolean,
-            default: false
+            default: false,
         },
         billingRiskCountries: {
             type: Boolean,
-            default: false
-        }
+            default: false,
+        },
     },
     isBlocked: {
         type: Boolean,
-        default: false
+        default: false,
     },
-    adminNotes: [{
-        note: { type: String },
-        createdAt: { type: Date }
-    }],
+    adminNotes: [
+        {
+            note: { type: String },
+            createdAt: { type: Date },
+        },
+    ],
 });
 
 module.exports = mongoose.model('Project', projectSchema);

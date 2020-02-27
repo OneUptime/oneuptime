@@ -18,25 +18,27 @@ module.exports = {
     // Params:
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
-    getUser: function (req, res, next) {
+    getUser: function(req, res, next) {
         try {
-            if( apiMiddleware.hasProjectIdAndApiKey(req)){
+            if (apiMiddleware.hasProjectIdAndApiKey(req)) {
                 return apiMiddleware.isValidProjectIdAndApiKey(req, res, next);
             }
 
-            const accessToken = req.headers['authorization'] || url.parse(req.url, true).query.accessToken;
+            const accessToken =
+                req.headers['authorization'] ||
+                url.parse(req.url, true).query.accessToken;
 
             if (!accessToken) {
                 return sendErrorResponse(req, res, {
                     code: 401,
-                    message: 'Session Token must be present.'
+                    message: 'Session Token must be present.',
                 });
             }
 
             if (typeof accessToken !== 'string') {
                 return sendErrorResponse(req, res, {
                     code: 401,
-                    message: 'Token is not of type string.'
+                    message: 'Token is not of type string.',
                 });
             }
 
@@ -47,17 +49,20 @@ module.exports = {
                 if (err) {
                     return sendErrorResponse(req, res, {
                         code: 401,
-                        message:'You are unauthorized to access the page'
+                        message: 'You are unauthorized to access the page',
                     });
                 } else {
                     req.user = decoded;
-                    UserService.findOneBy({_id: req.user.id }).then((user)=>{
-                        if(user.role === 'master-admin'){
+                    UserService.findOneBy({ _id: req.user.id }).then(user => {
+                        if (user.role === 'master-admin') {
                             req.authorizationType = 'MASTER-ADMIN';
-                        }else{
+                        } else {
                             req.authorizationType = 'USER';
                         }
-                        UserService.updateOneBy({ _id: req.user.id},{ lastActive: Date.now() });
+                        UserService.updateOneBy(
+                            { _id: req.user.id },
+                            { lastActive: Date.now() }
+                        );
                         next();
                     });
                 }
@@ -68,19 +73,20 @@ module.exports = {
         }
     },
 
-    checkUser: function (req, res, next) {
+    checkUser: function(req, res, next) {
         try {
-            const accessToken = req.headers['authorization'] || url.parse(req.url, true).query.accessToken;
+            const accessToken =
+                req.headers['authorization'] ||
+                url.parse(req.url, true).query.accessToken;
 
             if (!accessToken) {
                 req.user = null;
                 next();
-            }
-            else {
+            } else {
                 if (accessToken && typeof accessToken !== 'string') {
                     return sendErrorResponse(req, res, {
                         code: 401,
-                        message:'Token is not of type string'
+                        message: 'Token is not of type string',
                     });
                 }
 
@@ -91,12 +97,15 @@ module.exports = {
                     if (err) {
                         return sendErrorResponse(req, res, {
                             code: 401,
-                            message:'You are unauthorized to access the page.'
+                            message: 'You are unauthorized to access the page.',
                         });
                     } else {
                         req.authorizationType = 'USER';
                         req.user = decoded;
-                        UserService.updateOneBy({ _id: req.user.id},{ lastActive: Date.now() });
+                        UserService.updateOneBy(
+                            { _id: req.user.id },
+                            { lastActive: Date.now() }
+                        );
                         next();
                     }
                 });
@@ -106,18 +115,19 @@ module.exports = {
             throw error;
         }
     },
-    checkUserBelongToProject: function (req, res, next) {
+    checkUserBelongToProject: function(req, res, next) {
         try {
-            const accessToken = req.headers['authorization'] || url.parse(req.url, true).query.accessToken;
+            const accessToken =
+                req.headers['authorization'] ||
+                url.parse(req.url, true).query.accessToken;
             if (!accessToken) {
                 req.user = null;
                 next();
-            }
-            else {
+            } else {
                 if (accessToken && typeof accessToken !== 'string') {
                     return sendErrorResponse(req, res, {
                         code: 401,
-                        message:'Token is not of type string'
+                        message: 'Token is not of type string',
                     });
                 }
                 const token = accessToken.split(' ')[1] || accessToken;
@@ -125,18 +135,31 @@ module.exports = {
                     if (err) {
                         return sendErrorResponse(req, res, {
                             code: 401,
-                            message:'You are unauthorized to access the page.'
+                            message: 'You are unauthorized to access the page.',
                         });
                     } else {
                         req.authorizationType = 'USER';
                         req.user = decoded;
-                        UserService.updateOneBy({ _id: req.user.id},{ lastActive: Date.now() });
-                        const userId = req.user ? req.user.id : null || url.parse(req.url, true).query.userId;
-                        const projectId = req.params.projectId || req.body.projectId || url.parse(req.url, true).query.projectId;
+                        UserService.updateOneBy(
+                            { _id: req.user.id },
+                            { lastActive: Date.now() }
+                        );
+                        const userId = req.user
+                            ? req.user.id
+                            : null || url.parse(req.url, true).query.userId;
+                        const projectId =
+                            req.params.projectId ||
+                            req.body.projectId ||
+                            url.parse(req.url, true).query.projectId;
                         if (!projectId) {
-                            return res.status(400).send({code: 400, message:'Project id is not present.'});
+                            return res.status(400).send({
+                                code: 400,
+                                message: 'Project id is not present.',
+                            });
                         }
-                        const project = await ProjectService.findOneBy({_id: projectId});
+                        const project = await ProjectService.findOneBy({
+                            _id: projectId,
+                        });
                         let isUserPresentInProject = false;
                         if (project) {
                             for (let i = 0; i < project.users.length; i++) {
@@ -147,16 +170,16 @@ module.exports = {
                             }
                         } else {
                             return sendErrorResponse(req, res, {
-                                code:400,
-                                message:'Project does not exist.'
+                                code: 400,
+                                message: 'Project does not exist.',
                             });
                         }
                         if (isUserPresentInProject) {
                             next();
                         } else {
                             return sendErrorResponse(req, res, {
-                                code:400,
-                                message:'You are not present in this project.'
+                                code: 400,
+                                message: 'You are not present in this project.',
                             });
                         }
                     }
@@ -167,14 +190,14 @@ module.exports = {
             throw error;
         }
     },
-    isUserMasterAdmin: async function (req, res, next){
-        if(req.authorizationType === 'MASTER-ADMIN'){
+    isUserMasterAdmin: async function(req, res, next) {
+        if (req.authorizationType === 'MASTER-ADMIN') {
             next();
-        }else{
+        } else {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'You are not authorized.'
+                message: 'You are not authorized.',
             });
         }
-    }
+    },
 };

@@ -27,6 +27,6 @@ const monitorLogByWeekSchema = new Schema({
     maxCpuLoad: Number,
     maxMemoryUsed: Number,
     maxStorageUsed: Number,
-    maxMainTemp: Number
+    maxMainTemp: Number,
 });
 module.exports = mongoose.model('MonitorLogByWeek', monitorLogByWeekSchema);

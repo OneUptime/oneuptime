@@ -10,7 +10,7 @@ import schedule from './schedule';
 import changePassword from './changePassword';
 import statusPage from './statusPage';
 import incident from './incident';
-import report from './report'
+import report from './report';
 import invoice from './invoice';
 import profileSettings from './profile';
 import feedback from './feedback';
@@ -60,7 +60,7 @@ const appReducer = combineReducers({
     probe,
     version,
     tutorial,
-    dateTime
+    dateTime,
 });
 
 export default (state, action) => {
@@ -68,4 +68,4 @@ export default (state, action) => {
         state = undefined;
     }
     return appReducer(state, action);
-}
+};

@@ -2,16 +2,16 @@ module.exports = {
     user: {
         name: 'Status Page',
         email: 'status@fyipe.com',
-        password:'1234567890',
+        password: '1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',
         jobRole: 'Engineer',
         companySize: 10,
         card: {
-            stripeToken: 'tok_visa'
+            stripeToken: 'tok_visa',
         },
         subscription: {
-            stripePlanId: 0
+            stripePlanId: 0,
         },
         cardName: 'Mastercard',
         cardNumber: '5555555555554444',
@@ -24,20 +24,20 @@ module.exports = {
         planId: 'plan_EgTJMZULfh6THW',
         companyRole: 'Snr. Developer',
         companyPhoneNumber: '+1255609726',
-        reference: 'Github'
+        reference: 'Github',
     },
     monitor: {
         name: 'New Monitor',
         type: 'url',
-        data: { url: 'http://www.tests.org' }
+        data: { url: 'http://www.tests.org' },
     },
     monitorCategory: {
-        monitorCategoryName:'New Monitor category'
+        monitorCategoryName: 'New Monitor category',
     },
-    statusPage:{
+    statusPage: {
         links: [],
         title: 'Status title',
         description: 'status description',
         copyright: 'status copyright',
-    }
-}
+    },
+};

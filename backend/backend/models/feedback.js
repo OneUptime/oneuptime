@@ -1,7 +1,7 @@
 /**
- * 
- * Copyright HackerBay, Inc. 
- * 
+ *
+ * Copyright HackerBay, Inc.
+ *
  */
 
 const mongoose = require('../config/db');
@@ -16,7 +16,7 @@ const feedbackSchema = new Schema({
     deleted: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     deletedAt: {
-        type: Date
+        type: Date,
     },
     deletedById: { type: String, ref: 'User' },
 });

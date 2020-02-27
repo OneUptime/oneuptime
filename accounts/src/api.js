@@ -1,10 +1,6 @@
 import axios from 'axios';
-import {
-    API_URL
-} from './config';
-import {
-    User
-} from './config';
+import { API_URL } from './config';
+import { User } from './config';
 import { history } from './store';
 const baseURL = API_URL;
 
@@ -12,27 +8,25 @@ const Q = require('q');
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Accept': 'application/json',
-    'Content-Type': 'application/json;charset=UTF-8'
+    Accept: 'application/json',
+    'Content-Type': 'application/json;charset=UTF-8',
 };
-
-
 
 export function postApi(url, data) {
     if (User.isLoggedIn())
-        headers['Authorization'] = 'Basic ' + User.getAccessToken()
+        headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
 
     axios({
         method: 'POST',
         url: `${baseURL}/${url}`,
         headers,
-        data
+        data,
     })
-        .then(function (response) {
+        .then(function(response) {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .catch(function(error) {
             if (error && error.response && error.response.status === 401) {
                 User.clear();
                 history.push('/login');
@@ -49,17 +43,17 @@ export function postApi(url, data) {
 
 export function getApi(url) {
     if (User.isLoggedIn())
-        headers['Authorization'] = 'Basic ' + User.getAccessToken()
+        headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
         method: 'GET',
         url: `${baseURL}/${url}`,
-        headers
+        headers,
     })
-        .then(function (response) {
+        .then(function(response) {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .catch(function(error) {
             if (error && error.response && error.response.status === 401) {
                 User.clear();
                 history.push('/login');
@@ -75,21 +69,20 @@ export function getApi(url) {
     return deffered.promise;
 }
 
-
 export function putApi(url, data) {
     if (User.isLoggedIn())
-        headers['Authorization'] = 'Basic ' + User.getAccessToken()
+        headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
         method: 'PUT',
         url: `${baseURL}/${url}`,
         headers,
-        data
+        data,
     })
-        .then(function (response) {
+        .then(function(response) {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .catch(function(error) {
             if (error && error.response && error.response.status === 401) {
                 User.clear();
                 history.push('/login');
@@ -107,18 +100,18 @@ export function putApi(url, data) {
 
 export function deleteApi(url, data) {
     if (User.isLoggedIn())
-        headers['Authorization'] = 'Basic ' + User.getAccessToken()
+        headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
         method: 'DELETE',
         url: `${baseURL}/${url}`,
         headers,
-        data
+        data,
     })
-        .then(function (response) {
+        .then(function(response) {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .catch(function(error) {
             if (error && error.response && error.response.status === 401) {
                 User.clear();
                 history.push('/login');

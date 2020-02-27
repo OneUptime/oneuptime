@@ -1,4 +1,4 @@
-const utils= require('./test-utils');
+const utils = require('./test-utils');
 const puppeteer = require('puppeteer');
 
 let page, browser;
@@ -15,12 +15,12 @@ afterAll(async () => {
 describe('Check status-page up', () => {
     test('should load status page and show status page is not present', async () => {
         await page.goto(utils.STATUSPAGE_URL, {
-            waitUntil: 'domcontentloaded'
+            waitUntil: 'domcontentloaded',
         });
         await page.waitFor(2000);
-        const response = await page.$eval('#app-loading > div', (e) => {
+        const response = await page.$eval('#app-loading > div', e => {
             return e.innerHTML;
         });
-        expect(response).toBe( 'Status Page Not present');
+        expect(response).toBe('Status Page Not present');
     });
 });

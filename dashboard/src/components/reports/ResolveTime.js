@@ -3,19 +3,28 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { LargeSpinner as Loader } from '../basic/Loader';
-import { ResponsiveContainer, AreaChart as Chart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import {
+    ResponsiveContainer,
+    AreaChart as Chart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+} from 'recharts';
 import {
     getResolveTime,
     getResolveTimeError,
     getResolveTimeRequest,
-    getResolveTimeSuccess
+    getResolveTimeSuccess,
 } from '../../actions/reports';
 
 const noDataStyle = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '150px'
+    height: '150px',
 };
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -23,7 +32,9 @@ const CustomTooltip = ({ active, payload, label }) => {
         return (
             <div className="custom-tooltip">
                 <h3>{label}</h3>
-                <p className="label">{`${payload[0].name} : ${payload && payload[0] ? payload[0].value : 0} secs`}</p>
+                <p className="label">{`${payload[0].name} : ${
+                    payload && payload[0] ? payload[0].value : 0
+                } secs`}</p>
             </div>
         );
     }
@@ -36,19 +47,25 @@ CustomTooltip.displayName = 'CustomTooltip';
 CustomTooltip.propTypes = {
     active: PropTypes.bool,
     payload: PropTypes.array,
-    label: PropTypes.string
+    label: PropTypes.string,
 };
 
 class ResolveTime extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            resolveTime: []
-        }
+            resolveTime: [],
+        };
     }
 
     componentDidMount() {
-        const { getResolveTime, currentProject, filter, startDate, endDate } = this.props;
+        const {
+            getResolveTime,
+            currentProject,
+            filter,
+            startDate,
+            endDate,
+        } = this.props;
 
         getResolveTime(currentProject, filter, startDate, endDate);
     }
@@ -60,16 +77,20 @@ class ResolveTime extends Component {
             filter,
             startDate,
             endDate,
-            resolveTimeReports
+            resolveTimeReports,
         } = nextProps;
 
-        if (filter !== this.props.filter || startDate !== this.props.startDate || endDate !== this.props.endDate) {
+        if (
+            filter !== this.props.filter ||
+            startDate !== this.props.startDate ||
+            endDate !== this.props.endDate
+        ) {
             getResolveTime(currentProject, filter, startDate, endDate);
         }
 
         if (prevState.resolveTime !== resolveTimeReports.reports) {
             this.setState({
-                resolveTime: nextProps.resolveTimeReports.reports
+                resolveTime: nextProps.resolveTimeReports.reports,
             });
         }
     }
@@ -87,14 +108,26 @@ class ResolveTime extends Component {
                         <YAxis />
                         <Tooltip content={<CustomTooltip />} />
                         <CartesianGrid strokeDasharray="3 3" />
-                        <Area type="linear" isAnimationActive={false} name="Average Resolve Time" dataKey="averageResolved" stroke="#000000" strokeWidth={1.5} fill="#e2e1f2" />
+                        <Area
+                            type="linear"
+                            isAnimationActive={false}
+                            name="Average Resolve Time"
+                            dataKey="averageResolved"
+                            stroke="#000000"
+                            strokeWidth={1.5}
+                            fill="#e2e1f2"
+                        />
                     </Chart>
                 </ResponsiveContainer>
             );
         } else {
             return (
                 <div style={noDataStyle}>
-                    {resolveTimeReports.requesting ? <Loader /> : <h3>NO AVG RESOLVE TIME</h3>}
+                    {resolveTimeReports.requesting ? (
+                        <Loader />
+                    ) : (
+                        <h3>NO AVG RESOLVE TIME</h3>
+                    )}
                 </div>
             );
         }
@@ -107,16 +140,16 @@ const actionCreators = {
     getResolveTime,
     getResolveTimeError,
     getResolveTimeRequest,
-    getResolveTimeSuccess
-}
+    getResolveTimeSuccess,
+};
 
 const mapStateToProps = state => ({
-    resolveTimeReports: state.report.averageTime
-})
+    resolveTimeReports: state.report.averageTime,
+});
 
 const mapDispatchToProps = dispatch => ({
     ...bindActionCreators(actionCreators, dispatch),
-})
+});
 
 ResolveTime.propTypes = {
     getResolveTime: PropTypes.func,
@@ -124,7 +157,7 @@ ResolveTime.propTypes = {
     startDate: PropTypes.object,
     endDate: PropTypes.object,
     currentProject: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
-    resolveTimeReports: PropTypes.object
+    resolveTimeReports: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ResolveTime);

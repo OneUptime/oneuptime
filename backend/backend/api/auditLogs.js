@@ -14,10 +14,7 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 
-router.get('/', getUser, isUserMasterAdmin, async function(
-    req,
-    res
-) {
+router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const query = {};
         const skip = req.query.skip;
@@ -38,7 +35,10 @@ router.post('/search', getUser, isUserMasterAdmin, async function(req, res) {
         const skip = req.query.skip;
         const limit = req.query.limit;
 
-        const { searchedAuditLogs, totalSearchCount } = await AuditLogsService.search({ filter, skip, limit });
+        const {
+            searchedAuditLogs,
+            totalSearchCount,
+        } = await AuditLogsService.search({ filter, skip, limit });
 
         return sendListResponse(req, res, searchedAuditLogs, totalSearchCount);
     } catch (error) {

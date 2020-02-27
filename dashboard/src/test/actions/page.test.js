@@ -8,27 +8,27 @@ const actions = { ..._actions, ..._types };
 
 describe('actions', () => {
     it('should create an action of type PAGE_LOAD_REQUEST', () => {
-        let title = 'test page';
+        const title = 'test page';
         const expectedAction = {
             type: actions.PAGE_LOAD_REQUEST,
         };
-        let action = actions.pageLoadRequest(title);
+        const action = actions.pageLoadRequest(title);
         expect(action.type).toEqual(expectedAction.type);
         expect(action.payload).toEqual(title);
-    })
-})
+    });
+});
 
 describe('actions', () => {
     it('should create an action of type PAGE_LOAD_SUCCESS', () => {
-        let title = 'test page';
+        const title = 'test page';
         const expectedAction = {
             type: actions.PAGE_LOAD_SUCCESS,
         };
         const action = actions.pageLoadSuccess(title);
         expect(action.type).toEqual(expectedAction.type);
         expect(action.payload).toEqual(title);
-    })
-})
+    });
+});
 
 describe('actions', () => {
     it('should create an action of type GET_VERSION_RESET', () => {
@@ -36,13 +36,12 @@ describe('actions', () => {
             type: actions.PAGE_LOAD_RESET,
         };
         expect(actions.resetPageLoad().type).toEqual(expectedAction.type);
-    })
-})
+    });
+});
 
 describe('actions', () => {
     it('should despatch PAGE_LOAD_REQUEST and PAGE_LOAD_SUCCESS actions', () => {
-
-        let dispatch = (dispatched) => {
+        const dispatch = dispatched => {
             switch (dispatched.type) {
                 case actions.PAGE_LOAD_REQUEST:
                     expect(dispatched.type).toEqual(actions.PAGE_LOAD_REQUEST);
@@ -52,7 +51,7 @@ describe('actions', () => {
                     expect(dispatched.payload).toEqual('test page');
                     break;
             }
-        }
-        let action = actions.loadPage('test page')(dispatch);
-    })
-})
+        };
+        actions.loadPage('test page')(dispatch);
+    });
+});

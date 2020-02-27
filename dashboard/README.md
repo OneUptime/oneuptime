@@ -2,10 +2,9 @@
 
 ## Stack
 
-- Reactjs - UI Library
-- Redux - State managment
-- Redux Forms - Forms
-
+-   Reactjs - UI Library
+-   Redux - State managment
+-   Redux Forms - Forms
 
 ## Start
 
@@ -24,12 +23,11 @@ In production:
  npm start
 ```
 
-
 ## Puppeteer Tests
 
 To run puppeteer tests for this repo, follow these steps:
 
-- Start the backend server
-- Start the accounts application
-- Start the dashboard application
-- Then run ```npm run test``` from your terminal
+-   Start the backend server
+-   Start the accounts application
+-   Start the dashboard application
+-   Then run `npm run test` from your terminal

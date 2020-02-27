@@ -9,16 +9,17 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const user = {
     email,
-    password
+    password,
 };
 
 describe('Login API', () => {
-
     beforeAll(async () => {
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36');
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
     });
 
     afterAll(async () => {

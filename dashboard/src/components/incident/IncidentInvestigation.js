@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject'
+import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
 
 export class IncidentInvestigation extends Component {
     constructor(props) {
@@ -21,7 +21,11 @@ export class IncidentInvestigation extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>Investigation</span>
                                 </span>
-                                <p><span>Tell us more about what went wrong.</span></p>
+                                <p>
+                                    <span>
+                                        Tell us more about what went wrong.
+                                    </span>
+                                </p>
                             </div>
                         </div>
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -30,13 +34,27 @@ export class IncidentInvestigation extends Component {
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
                                             <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">Investigation Notes</label>
+                                                <label className="bs-Fieldset-label">
+                                                    Investigation Notes
+                                                </label>
                                                 <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <textarea id="txtInvestigationNote" name="product_description" rows="5" className="bs-TextArea" type="text" ref={this.investigationNotesRef} defaultValue={this.props.incident.investigationNote}>
-                                                    </textarea>
+                                                    <textarea
+                                                        id="txtInvestigationNote"
+                                                        name="product_description"
+                                                        rows="5"
+                                                        className="bs-TextArea"
+                                                        type="text"
+                                                        ref={
+                                                            this
+                                                                .investigationNotesRef
+                                                        }
+                                                        defaultValue={
+                                                            this.props.incident
+                                                                .investigationNote
+                                                        }
+                                                    ></textarea>
                                                 </div>
                                             </div>
-
                                         </div>
                                     </fieldset>
                                 </div>
@@ -45,46 +63,62 @@ export class IncidentInvestigation extends Component {
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                             <span className="db-SettingsForm-footerMessage"></span>
                             <div>
-                            <RenderIfUserInSubProject subProjectId={this.props.incident.projectId}>
-                                <button
-                                    id="btnUpdateInvestigationNote"
-                                    onClick={() => this.props.setdata(this.investigationNotesRef.current && this.investigationNotesRef.current.value ? this.investigationNotesRef.current.value : this.props.incident.investigationNote)}
-                                    className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                    disabled={this.props.request}
-                                    type="button">
-                                    <ShouldRender if={this.props.request}>
-                                        <FormLoader />
-                                    </ShouldRender>
-                                    <ShouldRender if={!this.props.request}>
-                                        <span>Save</span>
-                                    </ShouldRender>
-                                </button>
-                            </RenderIfUserInSubProject>
+                                <RenderIfUserInSubProject
+                                    subProjectId={this.props.incident.projectId}
+                                >
+                                    <button
+                                        id="btnUpdateInvestigationNote"
+                                        onClick={() =>
+                                            this.props.setdata(
+                                                this.investigationNotesRef
+                                                    .current &&
+                                                    this.investigationNotesRef
+                                                        .current.value
+                                                    ? this.investigationNotesRef
+                                                          .current.value
+                                                    : this.props.incident
+                                                          .investigationNote
+                                            )
+                                        }
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        disabled={this.props.request}
+                                        type="button"
+                                    >
+                                        <ShouldRender if={this.props.request}>
+                                            <FormLoader />
+                                        </ShouldRender>
+                                        <ShouldRender if={!this.props.request}>
+                                            <span>Save</span>
+                                        </ShouldRender>
+                                    </button>
+                                </RenderIfUserInSubProject>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 }
 
-IncidentInvestigation.displayName = 'IncidentInvestigation'
+IncidentInvestigation.displayName = 'IncidentInvestigation';
 
-const mapDispatchToProps = dispatch => bindActionCreators(
-    {}
-    , dispatch);
+const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
-const mapStateToProps = state => (
-    {
-        request: state.incident && state.incident.investigationNotes ? state.incident.investigationNotes.requesting : false,
-    }
-)
+const mapStateToProps = state => ({
+    request:
+        state.incident && state.incident.investigationNotes
+            ? state.incident.investigationNotes.requesting
+            : false,
+});
 
 IncidentInvestigation.propTypes = {
     setdata: PropTypes.func.isRequired,
     request: PropTypes.bool,
-    incident: PropTypes.object.isRequired
-}
+    incident: PropTypes.object.isRequired,
+};
 
-export default connect(mapStateToProps, mapDispatchToProps)(IncidentInvestigation);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(IncidentInvestigation);

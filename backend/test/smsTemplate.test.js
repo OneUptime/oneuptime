@@ -1,4 +1,5 @@
-/* eslint-disable no-useless-escape */
+/* eslint-disable no-useless-escape, no-undef */
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const userData = require('./data/user');
@@ -18,10 +19,10 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 
 let token, projectId, userId, airtableId, smsTemplateId;
 
-describe('SMS Template API', function () {
+describe('SMS Template API', function() {
     this.timeout(20000);
 
-    before(function (done) {
+    before(function(done) {
         this.timeout(40000);
         createUser(request, userData.user, function(err, res) {
             const project = res.body.project;
@@ -29,22 +30,39 @@ describe('SMS Template API', function () {
             userId = res.body.id;
             airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function (err, verificationToken) {
-                request.get(`/user/confirmation/${verificationToken.token}`).redirects(0).end(function () {
-                    request.post('/user/login').send({
-                        email: userData.user.email,
-                        password: userData.user.password
-                    }).end(function (err, res) {
-                        token = res.body.tokens.jwtAccessToken;
-                        done();
+            VerificationTokenModel.findOne({ userId }, function(
+                err,
+                verificationToken
+            ) {
+                request
+                    .get(`/user/confirmation/${verificationToken.token}`)
+                    .redirects(0)
+                    .end(function() {
+                        request
+                            .post('/user/login')
+                            .send({
+                                email: userData.user.email,
+                                password: userData.user.password,
+                            })
+                            .end(function(err, res) {
+                                token = res.body.tokens.jwtAccessToken;
+                                done();
+                            });
                     });
-                });
             });
         });
     });
 
-    after(async function () {
-        await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
+    after(async function() {
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [
+                    userData.user.email,
+                    userData.newUser.email,
+                    userData.anotherUser.email,
+                ],
+            },
+        });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await SmsTemplateService.hardDeleteBy({ projectId: projectId });
@@ -52,68 +70,89 @@ describe('SMS Template API', function () {
     });
 
     // 'post /:projectId'
-    it('should create an sms template with valid data', function (done) {
+    it('should create an sms template with valid data', function(done) {
         const authorization = `Basic ${token}`;
-        request.post(`/smsTemplate/${projectId}`).set('Authorization', authorization).send({
-            body: 'SMS Body',
-            smsType: 'Subscriber Incident Created'
-        }).end(function (err, res) {
-            smsTemplateId = res.body._id;
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('object');
-            expect(res.body.body).to.be.equal('SMS Body');
-            done();
-        });
+        request
+            .post(`/smsTemplate/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                body: 'SMS Body',
+                smsType: 'Subscriber Incident Created',
+            })
+            .end(function(err, res) {
+                smsTemplateId = res.body._id;
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body.body).to.be.equal('SMS Body');
+                done();
+            });
     });
 
-    it('should sanitize dirty template data sent to endpoint', function (done) {
+    it('should sanitize dirty template data sent to endpoint', function(done) {
         const authorization = `Basic ${token}`;
-        request.post(`/smsTemplate/${projectId}`).set('Authorization', authorization).send({
-            body: '<img src=x onerror=alert(1)//>',
-            smsType: 'Subscriber Incident Created'
-        }).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body.body).to.be.equal('<img src="x">');
-            done();
-        });
+        request
+            .post(`/smsTemplate/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                body: '<img src=x onerror=alert(1)//>',
+                smsType: 'Subscriber Incident Created',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.body).to.be.equal('<img src="x">');
+                done();
+            });
     });
 
-    it('should get an array of sms templates by valid projectId', function (done) {
+    it('should get an array of sms templates by valid projectId', function(done) {
         const authorization = `Basic ${token}`;
-        request.get(`/smsTemplate/${projectId}`).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('array');
-            done();
-        });
+        request
+            .get(`/smsTemplate/${projectId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                done();
+            });
     });
 
-    it('should get an sms template by valid smsTemplateId', function (done) {
+    it('should get an sms template by valid smsTemplateId', function(done) {
         const authorization = `Basic ${token}`;
-        request.get(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('object');
-            done();
-        });
+        request
+            .get(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                done();
+            });
     });
 
-    it('should update an sms template by valid smsTemplateId', function (done) {
+    it('should update an sms template by valid smsTemplateId', function(done) {
         const authorization = `Basic ${token}`;
-        request.put(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`).send({
-            body: 'New SMS Body'
-        }).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('object');
-            expect(res.body.body).to.be.equal('New SMS Body');
+        request
+            .put(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
+            .send({
+                body: 'New SMS Body',
+            })
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body.body).to.be.equal('New SMS Body');
 
-            done();
-        });
+                done();
+            });
     });
 
-    it('should deleted an sms template', function (done) {
+    it('should deleted an sms template', function(done) {
         const authorization = `Basic ${token}`;
-        request.delete(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`).set('Authorization', authorization).end(function (err, res) {
-            expect(res).to.have.status(200);
-            done();
-        });
+        request
+            .delete(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                done();
+            });
     });
 });

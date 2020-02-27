@@ -39,7 +39,7 @@ module.exports = {
                 userId: data.userId,
                 projectId: data.projectId,
                 request: data.request,
-                response: data.response
+                response: data.response,
             });
 
             const auditLog = await auditLogsModel.save();
@@ -53,7 +53,7 @@ module.exports = {
     search: async function({ filter, skip, limit }) {
         const _this = this;
         const query = {
-            'request.apiSection': { $regex: new RegExp(filter), $options: 'i' }
+            'request.apiSection': { $regex: new RegExp(filter), $options: 'i' },
         };
 
         const searchedAuditLogs = await _this.findBy({ query, skip, limit });
@@ -70,7 +70,7 @@ module.exports = {
             ErrorService.log('auditLogs.hardDeleteBy', error);
             throw error;
         }
-    }
+    },
 };
 
 const AuditLogsModel = require('../models/auditLogs');

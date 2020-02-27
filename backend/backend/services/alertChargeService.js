@@ -1,5 +1,13 @@
 module.exports = {
-    create: async function (projectId, chargeAmount, balanceAfterAlertSent, alertId, monitorId, incidentId, sentTo) {
+    create: async function(
+        projectId,
+        chargeAmount,
+        balanceAfterAlertSent,
+        alertId,
+        monitorId,
+        incidentId,
+        sentTo
+    ) {
         try {
             const alertCharge = new AlertChargeModel();
             alertCharge.projectId = projectId;
@@ -16,47 +24,46 @@ module.exports = {
             throw error;
         }
     },
-    findBy: async function (query, skip, limit, sort) {
+    findBy: async function(query, skip, limit, sort) {
         try {
             if (!sort) sort = -1;
-    
-            if (typeof (skip) === 'string') {
+
+            if (typeof skip === 'string') {
                 skip = parseInt(skip);
             }
-    
-            if (typeof (limit) === 'string') {
+
+            if (typeof limit === 'string') {
                 limit = parseInt(limit);
             }
-    
-            if (typeof (sort) === 'string') {
+
+            if (typeof sort === 'string') {
                 sort = parseInt(sort);
             }
-    
+
             if (!query) {
                 query = {};
             }
             let alertCharges;
-            if ( skip >= 0 && limit > 0 ) { 
+            if (skip >= 0 && limit > 0) {
                 alertCharges = await AlertChargeModel.find(query)
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
-                    .populate('monitorId', 'name' )
+                    .populate('monitorId', 'name')
                     .limit(limit)
                     .skip(skip);
             } else {
                 alertCharges = await AlertChargeModel.find(query)
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
-                    .populate('monitorId', 'name' );
+                    .populate('monitorId', 'name');
             }
             return alertCharges;
-
         } catch (error) {
             ErrorService.log('alertChargeService.findBy', error);
             throw error;
         }
     },
-    countBy: async (query) => {
+    countBy: async query => {
         try {
             if (!query) {
                 query = {};

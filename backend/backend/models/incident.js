@@ -2,7 +2,11 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const monitorSchema = new Schema({
-    projectId: { type: Schema.Types.ObjectId, ref: 'Project', alias: 'project' }, //which project this incident belongs to.
+    projectId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Project',
+        alias: 'project',
+    }, //which project this incident belongs to.
     monitorId: { type: String, ref: 'Monitor' }, // which monitor does this incident belongs to.
 
     acknowledged: {
@@ -11,7 +15,7 @@ const monitorSchema = new Schema({
     },
     acknowledgedBy: { type: String, ref: 'User' }, // userId
     acknowledgedAt: {
-        type: Date
+        type: Date,
     },
     acknowledgedByZapier: {
         type: Boolean,
@@ -25,19 +29,19 @@ const monitorSchema = new Schema({
     incidentType: {
         type: String,
         enum: ['online', 'offline', 'degraded'],
-        required: false
+        required: false,
     },
     probes: [
         {
             probeId: { type: String, ref: 'Probe' },
             updatedAt: { type: Date },
             status: { type: Boolean, default: true },
-            reportedStatus:{
+            reportedStatus: {
                 type: String,
                 enum: ['online', 'offline', 'degraded'],
-                required: false
-            }
-        }
+                required: false,
+            },
+        },
     ],
     resolvedBy: { type: String, ref: 'User' }, // userId
     resolvedAt: { type: Date },
@@ -67,10 +71,9 @@ const monitorSchema = new Schema({
     deleted: { type: Boolean, default: false },
 
     deletedAt: {
-        type: Date
+        type: Date,
     },
 
     deletedById: { type: String, ref: 'User' },
-
 });
 module.exports = mongoose.model('Incident', monitorSchema);

@@ -17,11 +17,21 @@ class DateTimeRangeWrapper extends Component {
         const { startDate, endDate } = props;
         this.state = {
             isOpen: false,
-            value: moment.range(startDate ? startDate : today.clone().subtract(this.props.dateRange ? this.props.dateRange : 1, 'days'), endDate ? endDate : today.clone())
+            value: moment.range(
+                startDate
+                    ? startDate
+                    : today
+                          .clone()
+                          .subtract(
+                              this.props.dateRange ? this.props.dateRange : 1,
+                              'days'
+                          ),
+                endDate ? endDate : today.clone()
+            ),
         };
     }
 
-    onSelect = (value) => {
+    onSelect = value => {
         this.setState({ value });
         this.props.setStartDate(value.start);
         this.props.setEndDate(value.end);
@@ -35,12 +45,7 @@ class DateTimeRangeWrapper extends Component {
     renderSelectionValue = () => {
         return (
             <div>
-                <div
-                    className="db-DateRangeInputWithComparison"
-                    style={{
-
-                    }}
-                >
+                <div className="db-DateRangeInputWithComparison" style={{}}>
                     <div
                         className="db-DateRangeInput bs-Control"
                         style={{
@@ -79,7 +84,9 @@ class DateTimeRangeWrapper extends Component {
 
     render() {
         return (
-            <ClickOutside onClickOutside={() => this.setState({ isOpen: false })}>
+            <ClickOutside
+                onClickOutside={() => this.setState({ isOpen: false })}
+            >
                 <div>{this.renderSelectionValue()}</div>
 
                 {this.state.isOpen && (
@@ -97,26 +104,28 @@ class DateTimeRangeWrapper extends Component {
     }
 }
 
-DateTimeRangeWrapper.displayName = 'DateTimeRangeWrapper'
+DateTimeRangeWrapper.displayName = 'DateTimeRangeWrapper';
 
 DateTimeRangeWrapper.propTypes = {
-  dateRange: PropTypes.oneOfType([PropTypes.object, PropTypes.number]),
-  endDate: PropTypes.object,
-  onChange: PropTypes.func,
-  setEndDate: PropTypes.func,
-  setStartDate: PropTypes.func,
-  startDate: PropTypes.object
-}
+    dateRange: PropTypes.oneOfType([PropTypes.object, PropTypes.number]),
+    endDate: PropTypes.object,
+    onChange: PropTypes.func,
+    setEndDate: PropTypes.func,
+    setStartDate: PropTypes.func,
+    startDate: PropTypes.object,
+};
 
-const mapDispatchToProps = dispatch => bindActionCreators(
-    { setStartDate, setEndDate }, dispatch
-)
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ setStartDate, setEndDate }, dispatch);
 
 function mapStateToProps(state) {
     return {
         startDate: state.dateTime.dates.startDate,
-        endDate: state.dateTime.dates.endDate
+        endDate: state.dateTime.dates.endDate,
     };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(DateTimeRangeWrapper);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(DateTimeRangeWrapper);

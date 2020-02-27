@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const incidentSMSActionSchema = new Schema({
     incidentId: { type: String, ref: 'Incident' }, //which project this incident belongs to.
     userId: { type: String, ref: 'User' }, // which User will perfom this action.
-    number:  { type: String },
+    number: { type: String },
     name: { type: String },
 
     resolved: {
@@ -18,18 +18,16 @@ const incidentSMSActionSchema = new Schema({
     createdAt: {
         type: Date,
         default: Date.now,
-        expires: 86400
+        expires: 86400,
     },
-    
-    deleted: { type: Boolean, default: false},
-    
+
+    deleted: { type: Boolean, default: false },
+
     deletedAt: {
-        type: Date
+        type: Date,
     },
 
     deletedById: { type: String, ref: 'User' },
-
 });
 
 module.exports = mongoose.model('IncidentSMSAction', incidentSMSActionSchema);
-

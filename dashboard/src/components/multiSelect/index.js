@@ -4,52 +4,53 @@ import Dropdown from './DropDown';
 import SelectPanel from './SelectPanel';
 
 class MultiSelect extends Component {
-    
-    state = {  }
+    state = {};
 
     getSelectedText() {
         const { options, selected } = this.props;
-        const selectedOptions = selected.map(s => options.find(o => o.value === s));
-        const selectedLabels = selectedOptions.map(s => s ? s.label: '');
+        const selectedOptions = selected.map(s =>
+            options.find(o => o.value === s)
+        );
+        const selectedLabels = selectedOptions.map(s => (s ? s.label : ''));
         return selectedLabels.join(', ');
     }
 
     renderHeader() {
-        const {
-            options,
-            selected,
-            valueRenderer,
-        } = this.props;
+        const { options, selected, valueRenderer } = this.props;
 
         const noneSelected = selected.length === 0;
         const allSelected = selected.length === options.length;
 
         const customText = valueRenderer && valueRenderer(selected, options);
 
-        if(noneSelected) {
-            return <span className="db-MultiSelect-none--selected">
-                {customText || 'Select at least one monitor'}
-            </span>
+        if (noneSelected) {
+            return (
+                <span className="db-MultiSelect-none--selected">
+                    {customText || 'Select at least one monitor'}
+                </span>
+            );
         }
 
-        if(customText) return <span>{customText}</span>;
+        if (customText) return <span>{customText}</span>;
 
-        return <span>
-            {allSelected ? 'All items selected' : this.getSelectedText()}
-        </span>
+        return (
+            <span>
+                {allSelected ? 'All items selected' : this.getSelectedText()}
+            </span>
+        );
     }
 
     handleSelectedChange = selected => {
         const { onSelectedChanged, disabled } = this.props;
 
-        if(disabled) {
+        if (disabled) {
             return;
         }
 
-        if(onSelectedChanged) {
+        if (onSelectedChanged) {
             onSelectedChanged(selected);
         }
-    }
+    };
     render() {
         const {
             ItemRenderer,
@@ -79,7 +80,7 @@ class MultiSelect extends Component {
                         onSelectedChanged: this.handleSelectedChange,
                         disabled,
                         disableSearch,
-                        filterOptions
+                        filterOptions,
                     }}
                     disabled={disabled}
                 >
@@ -95,7 +96,7 @@ MultiSelect.displayName = 'MultiSelect';
 MultiSelect.defaultProps = {
     hasSelectAll: true,
     shouldToggleHover: false,
-    selected: []
+    selected: [],
 };
 
 MultiSelect.propTypes = {
@@ -105,7 +106,7 @@ MultiSelect.propTypes = {
             label: PropTypes.string.isRequired,
             value: PropTypes.string.isRequired,
             key: PropTypes.string,
-        })
+        }),
     }),
     valueRenderer: {
         selected: PropTypes.any,
@@ -123,7 +124,7 @@ MultiSelect.propTypes = {
     hasSelectAll: PropTypes.bool,
     isLoading: PropTypes.bool,
     shouldToggleHover: PropTypes.bool,
-    filterOptions: PropTypes.any
+    filterOptions: PropTypes.any,
 };
 
 export default MultiSelect;

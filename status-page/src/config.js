@@ -33,7 +33,6 @@ export const ACCOUNTS_URL = accountsUrl;
 export const DOMAIN = domain;
 
 export const User = {
-
     getAccessToken() {
         return localStorage.getItem('access_token');
     },
@@ -64,13 +63,11 @@ export const User = {
 
     isLoggedIn() {
         return Boolean(localStorage.getItem('access_token'));
-    }
-
+    },
 };
 
 // Data validation Util goes in here.
 export const Validate = {
-
     isDomain(domain) {
         return domain.search(/\./) >= 0;
     },
@@ -80,7 +77,6 @@ export const Validate = {
     },
 
     text(text) {
-
         if (!text || text.trim() === '') {
             return false;
         }
@@ -136,8 +132,8 @@ export const Validate = {
         }
 
         return true;
-    }
-}
+    },
+};
 
 export function getQueryVar(variable, url) {
     if (!url) url = window.location.href;
@@ -149,7 +145,7 @@ export function getQueryVar(variable, url) {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-export const bindRaf = (fn) => {
+export const bindRaf = fn => {
     let isRunning = null;
     let args = null;
 
@@ -158,7 +154,7 @@ export const bindRaf = (fn) => {
         fn(...args);
     };
 
-    return function (...invokingArguments) {
+    return function(...invokingArguments) {
         args = invokingArguments;
 
         if (isRunning) {
@@ -171,20 +167,33 @@ export const bindRaf = (fn) => {
 };
 
 export const filterProbeData = (monitor, probe) => {
-    const monitorStatuses = monitor && monitor.statuses ? monitor.statuses : null;
+    const monitorStatuses =
+        monitor && monitor.statuses ? monitor.statuses : null;
 
-    const probesStatus = monitorStatuses && monitorStatuses.length > 0 ?
-        probe ? monitorStatuses.filter(probeStatuses => {
-            return probeStatuses._id === null || probeStatuses._id === probe._id
-        }) : monitorStatuses
-        : [];
-    const statuses = probesStatus && probesStatus[0] && probesStatus[0].statuses && probesStatus[0].statuses.length > 0 ?
-        probesStatus[0].statuses : [];
+    const probesStatus =
+        monitorStatuses && monitorStatuses.length > 0
+            ? probe
+                ? monitorStatuses.filter(probeStatuses => {
+                      return (
+                          probeStatuses._id === null ||
+                          probeStatuses._id === probe._id
+                      );
+                  })
+                : monitorStatuses
+            : [];
+    const statuses =
+        probesStatus &&
+        probesStatus[0] &&
+        probesStatus[0].statuses &&
+        probesStatus[0].statuses.length > 0
+            ? probesStatus[0].statuses
+            : [];
 
     return statuses;
-}
+};
 
-export const getMonitorStatus = statuses => statuses && statuses.length > 0 ? (statuses[0].status || 'online') : 'online';
+export const getMonitorStatus = statuses =>
+    statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
 
 export function getServiceStatus(monitorsData, probes) {
     const monitorsLength = monitorsData.length;
@@ -200,7 +209,7 @@ export function getServiceStatus(monitorsData, probes) {
             if (monitorStatus === 'degraded' || monitorStatus === 'offline') {
                 onlineServices--;
             }
-        })
+        });
     });
 
     if (onlineServices === totalServices) {

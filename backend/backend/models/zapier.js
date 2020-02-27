@@ -9,7 +9,7 @@ const Schema = mongoose.Schema;
  * @property {string} url - The zapier hook that the fyipe server pings with new incidents.
  * @property {string} type - The name of trigger that receives the incident object.
  * @property {number} counter - The number of incidents send to the zapier `url`.
- * 
+ *
  */
 const zapierSchema = new Schema({
     projectId: String,
@@ -18,9 +18,8 @@ const zapierSchema = new Schema({
     monitors: [String],
     deleted: {
         type: Boolean,
-        default: false
-    }
-    
+        default: false,
+    },
 });
 
 module.exports = mongoose.model('Zapier', zapierSchema);

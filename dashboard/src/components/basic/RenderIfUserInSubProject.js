@@ -6,19 +6,26 @@ import { User } from '../../config';
 // params 1: props
 // returns JSX.Element or NULL
 export function RenderIfUserInSubProject(props) {
-    const {children, currentProject, subProjectId, subProjects} = props;
+    const { children, currentProject, subProjectId, subProjects } = props;
     const userId = User.getUserId();
     let renderItems = null;
     if (
-        currentProject && 
-        currentProject.users.filter(user => user.userId === userId && user.role !== 'Viewer').length > 0)
-    {
-        renderItems = children
-    }else{
-        if(subProjects){
-            subProjects.forEach((subProject)=>{
-                if (subProject._id === subProjectId && subProject.users.filter(user => user.userId === userId && user.role !== 'Viewer').length > 0){
-                    renderItems = children
+        currentProject &&
+        currentProject.users.filter(
+            user => user.userId === userId && user.role !== 'Viewer'
+        ).length > 0
+    ) {
+        renderItems = children;
+    } else {
+        if (subProjects) {
+            subProjects.forEach(subProject => {
+                if (
+                    subProject._id === subProjectId &&
+                    subProject.users.filter(
+                        user => user.userId === userId && user.role !== 'Viewer'
+                    ).length > 0
+                ) {
+                    renderItems = children;
                 }
             });
         }

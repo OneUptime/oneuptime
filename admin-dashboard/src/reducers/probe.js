@@ -1,5 +1,4 @@
-import * as types from '../constants/probe'
-
+import * as types from '../constants/probe';
 
 const initialState = {
     probes: {
@@ -9,20 +8,19 @@ const initialState = {
         data: [],
         count: null,
         limit: null,
-        skip: null
+        skip: null,
     },
     deleteProbe: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     addProbe: {
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
 };
-
 
 export default function probes(state = initialState, action) {
     switch (action.type) {
@@ -35,7 +33,7 @@ export default function probes(state = initialState, action) {
                     data: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
+                    skip: action.payload.skip,
                 },
             });
 
@@ -46,19 +44,17 @@ export default function probes(state = initialState, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                }
+                },
             });
-
 
         case types.PROBE_FAILED:
             return Object.assign({}, state, {
                 probes: {
-
                     ...state.probes,
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
 
         case types.PROBE_RESET:
@@ -70,21 +66,23 @@ export default function probes(state = initialState, action) {
                     data: [],
                     count: null,
                     limit: null,
-                    skip: null
-                }
+                    skip: null,
+                },
             });
 
         case types.DELETE_PROBE_SUCCESS:
             return Object.assign({}, state, {
                 probes: {
                     ...state.probes,
-                    data: state.probes.data.filter(d => d._id !== action.payload),
+                    data: state.probes.data.filter(
+                        d => d._id !== action.payload
+                    ),
                     count: state.probes.count - 1,
                 },
                 deleteProbe: {
                     error: null,
                     requesting: false,
-                    success: true
+                    success: true,
                 },
             });
 
@@ -93,8 +91,8 @@ export default function probes(state = initialState, action) {
                 deleteProbe: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.DELETE_PROBE_FAILED:
@@ -103,7 +101,7 @@ export default function probes(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case types.DELETE_PROBE_RESET:
@@ -112,10 +110,10 @@ export default function probes(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
-            case types.ADD_PROBE_SUCCESS:
+        case types.ADD_PROBE_SUCCESS:
             return Object.assign({}, state, {
                 probes: {
                     ...state.probes,
@@ -125,7 +123,7 @@ export default function probes(state = initialState, action) {
                 addProbe: {
                     error: null,
                     requesting: false,
-                    success: true
+                    success: true,
                 },
             });
 
@@ -134,8 +132,8 @@ export default function probes(state = initialState, action) {
                 addProbe: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.ADD_PROBE_FAILED:
@@ -144,7 +142,7 @@ export default function probes(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case types.ADD_PROBE_RESET:
@@ -153,9 +151,10 @@ export default function probes(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
-        default: return state;
+        default:
+            return state;
     }
 }

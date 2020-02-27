@@ -4,7 +4,6 @@
  *
  */
 
-
 const GridFsStorage = require('multer-gridfs-storage');
 const crypto = require('crypto');
 const mongoUri = process.env['MONGO_URL'];
@@ -24,10 +23,10 @@ module.exports = new GridFsStorage({
                 const id = random.toString('hex');
                 const fileInfo = {
                     _id: id,
-                    bucketName: 'uploads'
+                    bucketName: 'uploads',
                 };
                 resolve(fileInfo);
             });
         });
-    }
+    },
 });

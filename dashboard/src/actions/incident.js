@@ -1,27 +1,27 @@
 import { postApi, getApi, putApi, deleteApi } from '../api';
-import * as types from '../constants/incident'
-import errors from '../errors'
+import * as types from '../constants/incident';
+import errors from '../errors';
 
 //Array of Incidents
 
 export function projectIncidentsRequest(promise) {
     return {
         type: types.PROJECT_INCIDENTS_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function projectIncidentsError(error) {
     return {
         type: types.PROJECT_INCIDENTS_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function projectIncidentsSuccess(incidents) {
     return {
         type: types.PROJECT_INCIDENTS_SUCCESS,
-        payload: incidents
+        payload: incidents,
     };
 }
 
@@ -36,33 +36,37 @@ export function getProjectIncidents(projectId, skip, limit) {
     skip = parseInt(skip);
     limit = parseInt(limit);
 
-    return function (dispatch) {
+    return function(dispatch) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
-            promise = getApi(`incident/${projectId}/incident?skip=${skip}&limit=${limit}`);
+            promise = getApi(
+                `incident/${projectId}/incident?skip=${skip}&limit=${limit}`
+            );
         } else {
             promise = getApi(`incident/${projectId}/incident`);
         }
         dispatch(projectIncidentsRequest(promise));
 
-        promise.then(function (incidents) {
-            const data = incidents.data;
-            data.projectId = projectId;
-            dispatch(projectIncidentsSuccess(data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(incidents) {
+                const data = incidents.data;
+                data.projectId = projectId;
+                dispatch(projectIncidentsSuccess(data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(projectIncidentsError(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(projectIncidentsError(errors(error)));
-        });
+        );
     };
 }
 
@@ -71,21 +75,21 @@ export function getProjectIncidents(projectId, skip, limit) {
 export function incidentsRequest(promise) {
     return {
         type: types.INCIDENTS_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function incidentsError(error) {
     return {
         type: types.INCIDENTS_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function incidentsSuccess(incidents) {
     return {
         type: types.INCIDENTS_SUCCESS,
-        payload: incidents
+        payload: incidents,
     };
 }
 
@@ -97,51 +101,51 @@ export const resetIncidents = () => {
 
 // Gets project Incidents
 export function getIncidents(projectId) {
-
-    return function (dispatch) {
+    return function(dispatch) {
         const promise = getApi(`incident/${projectId}`);
         dispatch(incidentsRequest(promise));
 
-        promise.then(function (incidents) {
-            dispatch(incidentsSuccess(incidents.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(incidents) {
+                dispatch(incidentsSuccess(incidents.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(incidentsError(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(incidentsError(errors(error)));
-        });
+        );
     };
 }
-
 
 // Create a new incident
 
 export function createIncidentRequest(monitorId) {
     return {
         type: types.CREATE_INCIDENT_REQUEST,
-        payload: monitorId
+        payload: monitorId,
     };
 }
 
 export function createIncidentError(error) {
     return {
         type: types.CREATE_INCIDENT_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function createIncidentSuccess(incident) {
     return {
         type: types.CREATE_INCIDENT_SUCCESS,
-        payload: incident
+        payload: incident,
     };
 }
 
@@ -152,44 +156,50 @@ export const resetCreateIncident = () => {
 };
 
 export const createIncidentReset = () => {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch(resetCreateIncident());
     };
 };
 
 // Calls the API to create new incident.
 export function createNewIncident(projectId, monitorId, incidentType) {
-    return function (dispatch) {
-        const promise = postApi(`incident/${projectId}/${monitorId}`, { monitorId, projectId, incidentType });
+    return function(dispatch) {
+        const promise = postApi(`incident/${projectId}/${monitorId}`, {
+            monitorId,
+            projectId,
+            incidentType,
+        });
 
         dispatch(createIncidentRequest(monitorId));
 
-        promise.then(function (createIncident) {
-            dispatch(createIncidentSuccess(createIncident.data));
-            dispatch({
-                type: 'ADD_NEW_INCIDENT_TO_UNRESOLVED',
-                payload: createIncident.data
-            });
-            dispatch({
-                type: 'ADD_NEW_INCIDENT_TO_MONITORS',
-                payload: createIncident.data
-            });
-            return { createIncident };
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(createIncident) {
+                dispatch(createIncidentSuccess(createIncident.data));
+                dispatch({
+                    type: 'ADD_NEW_INCIDENT_TO_UNRESOLVED',
+                    payload: createIncident.data,
+                });
+                dispatch({
+                    type: 'ADD_NEW_INCIDENT_TO_MONITORS',
+                    payload: createIncident.data,
+                });
+                return { createIncident };
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(createIncidentError(errors(error)));
+                return { error };
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(createIncidentError(errors(error)));
-            return { error };
-        });
+        );
 
         return promise;
     };
@@ -200,21 +210,21 @@ export function createNewIncident(projectId, monitorId, incidentType) {
 export function incidentRequest(promise) {
     return {
         type: types.INCIDENT_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function incidentError(error) {
     return {
         type: types.INCIDENT_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function incidentSuccess(incident) {
     return {
         type: types.INCIDENT_SUCCESS,
-        payload: incident
+        payload: incident,
     };
 }
 
@@ -227,55 +237,57 @@ export const resetIncident = () => {
 export function acknowledgeIncidentRequest(promise) {
     return {
         type: types.ACKNOWLEDGE_INCIDENT_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function resolveIncidentRequest(promise) {
     return {
         type: types.RESOLVE_INCIDENT_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function acknowledgeIncidentSuccess(incident) {
     return {
         type: types.ACKNOWLEDGE_INCIDENT_SUCCESS,
-        payload: incident
+        payload: incident,
     };
 }
 
 export function resolveIncidentSuccess(incident) {
     return {
         type: types.RESOLVE_INCIDENT_SUCCESS,
-        payload: incident
+        payload: incident,
     };
 }
 
 // Calls the API to get the incident to show
 export function getIncident(projectId, incidentId) {
     //This fucntion will switch to incidentId of the params beig passed.
-    return function (dispatch) {
+    return function(dispatch) {
         let promise = null;
         promise = getApi(`incident/${projectId}/incident/${incidentId}`);
         dispatch(incidentRequest(promise));
 
-        promise.then(function (incident) {
-            dispatch(incidentSuccess(incident.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(incident) {
+                dispatch(incidentSuccess(incident.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(incidentError(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(incidentError(errors(error)));
-        });
+        );
 
         return promise;
     };
@@ -283,227 +295,266 @@ export function getIncident(projectId, incidentId) {
 
 // Calls the API to get the incident timeline
 export function getIncidentTimeline(projectId, incidentId, skip, limit) {
-
-    return function (dispatch) {
+    return function(dispatch) {
         let promise = null;
-        promise = getApi(`incident/${projectId}/timeline/${incidentId}?skip=${skip}&limit=${limit}`);
+        promise = getApi(
+            `incident/${projectId}/timeline/${incidentId}?skip=${skip}&limit=${limit}`
+        );
         dispatch(incidentTimelineRequest(promise));
 
-        promise.then(function (timeline) {
-            dispatch(incidentTimelineSuccess(timeline.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(timeline) {
+                dispatch(incidentTimelineSuccess(timeline.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(incidentTimelineError(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(incidentTimelineError(errors(error)));
-        });
+        );
     };
 }
 
 export function incidentTimelineRequest(promise) {
     return {
         type: types.INCIDENT_TIMELINE_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function incidentTimelineSuccess(timeline) {
     return {
         type: types.INCIDENT_TIMELINE_SUCCESS,
-        payload: timeline
+        payload: timeline,
     };
 }
 
 export function incidentTimelineError(error) {
     return {
         type: types.INCIDENT_TIMELINE_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 // calls the api to post acknowledgement data to the database
 export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
     //This fucntion will switch to incidentId of the params beig passed.
-    return function (dispatch) {
+    return function(dispatch) {
         let promise = null;
         const data = {
             decoded: userId,
             projectId,
-            incidentId
-        }
-        promise = postApi(`incident/${projectId}/acknowledge/${incidentId}`, data);
+            incidentId,
+        };
+        promise = postApi(
+            `incident/${projectId}/acknowledge/${incidentId}`,
+            data
+        );
         if (multiple) {
-            dispatch(acknowledgeIncidentRequest({
-                multiple: true,
-                promise: promise
-            }));
+            dispatch(
+                acknowledgeIncidentRequest({
+                    multiple: true,
+                    promise: promise,
+                })
+            );
         } else {
-            dispatch(acknowledgeIncidentRequest({
-                multiple: false,
-                promise: promise
-            }));
+            dispatch(
+                acknowledgeIncidentRequest({
+                    multiple: false,
+                    promise: promise,
+                })
+            );
         }
 
-        promise.then(function (incident) {
-            if (multiple) {
-                dispatch(acknowledgeIncidentSuccess({
-                    multiple: true,
-                    data: incident.data
-                }));
-            } else {
-                dispatch(acknowledgeIncidentSuccess({
-                    multiple: false,
-                    data: incident.data
-                }));
+        promise.then(
+            function(incident) {
+                if (multiple) {
+                    dispatch(
+                        acknowledgeIncidentSuccess({
+                            multiple: true,
+                            data: incident.data,
+                        })
+                    );
+                } else {
+                    dispatch(
+                        acknowledgeIncidentSuccess({
+                            multiple: false,
+                            data: incident.data,
+                        })
+                    );
+                }
+                dispatch({
+                    type: 'ACKNOWLEDGE_INCIDENT_SUCCESS',
+                    payload: incident.data,
+                });
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                if (multiple) {
+                    dispatch(
+                        incidentError({
+                            multiple: true,
+                            error: errors(error),
+                        })
+                    );
+                } else {
+                    dispatch(
+                        incidentError({
+                            multiple: false,
+                            error: errors(error),
+                        })
+                    );
+                }
             }
-            dispatch({
-                type: 'ACKNOWLEDGE_INCIDENT_SUCCESS',
-                payload: incident.data
-            });
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            if (multiple) {
-                dispatch(incidentError({
-                    multiple: true,
-                    error: errors(error)
-                }));
-            } else {
-                dispatch(incidentError({
-                    multiple: false,
-                    error: errors(error)
-                }));
-            }
-        });
+        );
     };
 }
 
 // calls the api to store the resolve status to the database
 export function resolveIncident(projectId, incidentId, userId, multiple) {
     //This fucntion will switch to incidentId of the params beig passed.
-    return function (dispatch) {
+    return function(dispatch) {
         let promise = null;
         const data = {
             decoded: userId,
             projectId,
-            incidentId
-        }
+            incidentId,
+        };
         promise = postApi(`incident/${projectId}/resolve/${incidentId}`, data);
         if (multiple) {
-            dispatch(resolveIncidentRequest({
-                multiple: true,
-                promise: promise
-            }));
+            dispatch(
+                resolveIncidentRequest({
+                    multiple: true,
+                    promise: promise,
+                })
+            );
         } else {
-            dispatch(resolveIncidentRequest({
-                multiple: false,
-                promise: promise
-            }));
+            dispatch(
+                resolveIncidentRequest({
+                    multiple: false,
+                    promise: promise,
+                })
+            );
         }
 
-        promise.then(function (incident) {
-            if (multiple) {
-                dispatch(resolveIncidentSuccess({
-                    multiple: true,
-                    data: incident.data
-                }));
-            } else {
-                dispatch(resolveIncidentSuccess({
-                    multiple: false,
-                    data: incident.data
-                }));
+        promise.then(
+            function(incident) {
+                if (multiple) {
+                    dispatch(
+                        resolveIncidentSuccess({
+                            multiple: true,
+                            data: incident.data,
+                        })
+                    );
+                } else {
+                    dispatch(
+                        resolveIncidentSuccess({
+                            multiple: false,
+                            data: incident.data,
+                        })
+                    );
+                }
+                dispatch({
+                    type: 'RESOLVE_INCIDENT_SUCCESS',
+                    payload: incident.data,
+                });
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                if (multiple) {
+                    dispatch(
+                        incidentError({
+                            multiple: true,
+                            error: errors(error),
+                        })
+                    );
+                } else {
+                    dispatch(
+                        incidentError({
+                            multiple: false,
+                            error: errors(error),
+                        })
+                    );
+                }
             }
-            dispatch({
-                type: 'RESOLVE_INCIDENT_SUCCESS',
-                payload: incident.data
-            });
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            if (multiple) {
-                dispatch(incidentError({
-                    multiple: true,
-                    error: errors(error)
-                }));
-            } else {
-                dispatch(incidentError({
-                    multiple: false,
-                    error: errors(error)
-                }));
-            }
-        });
+        );
     };
 }
 
 export function closeIncidentRequest(promise) {
     return {
         type: types.CLOSE_INCIDENT_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function closeIncidentError(error) {
     return {
         type: types.CLOSE_INCIDENT_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function closeIncidentSuccess(incident) {
     return {
         type: types.CLOSE_INCIDENT_SUCCESS,
-        payload: incident
+        payload: incident,
     };
 }
 
 export function closeIncident(projectId, incidentId) {
     //This fucntion will switch to incidentId of the params beig passed.
-    return function (dispatch) {
-        const promise = postApi(`incident/${projectId}/close/${incidentId}`, {});
-        dispatch(closeIncidentRequest(promise))
+    return function(dispatch) {
+        const promise = postApi(
+            `incident/${projectId}/close/${incidentId}`,
+            {}
+        );
+        dispatch(closeIncidentRequest(promise));
 
-        promise.then(function (incident) {
-            dispatch(closeIncidentSuccess(incident.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(incident) {
+                dispatch(closeIncidentSuccess(incident.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(closeIncidentError(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(closeIncidentError(errors(error)))
-        });
+        );
     };
 }
 
@@ -512,21 +563,21 @@ export function closeIncident(projectId, incidentId) {
 export function UnresolvedIncidentsRequest(promise) {
     return {
         type: types.UNRESOLVED_INCIDENTS_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function UnresolvedIncidentsError(error) {
     return {
         type: types.UNRESOLVED_INCIDENTS_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function UnresolvedIncidentsSuccess(incidents) {
     return {
         type: types.UNRESOLVED_INCIDENTS_SUCCESS,
-        payload: incidents
+        payload: incidents,
     };
 }
 
@@ -539,29 +590,31 @@ export function resetUnresolvedIncidents() {
 // Calls the API to register a user.
 export function fetchUnresolvedIncidents(projectId) {
     //This fucntion will switch to incidentId of the params beig passed.
-    return function (dispatch) {
+    return function(dispatch) {
         let promise = null;
 
         promise = getApi(`incident/${projectId}/unresolvedincidents`);
 
         dispatch(UnresolvedIncidentsRequest(promise));
 
-        promise.then(function (incidents) {
-            dispatch(UnresolvedIncidentsSuccess(incidents.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(incidents) {
+                dispatch(UnresolvedIncidentsSuccess(incidents.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(UnresolvedIncidentsError(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(UnresolvedIncidentsError(errors(error)));
-        });
+        );
     };
 }
 
@@ -569,40 +622,35 @@ export function fetchUnresolvedIncidents(projectId) {
 export function deleteProjectIncidents(projectId) {
     return {
         type: types.DELETE_PROJECT_INCIDENTS,
-        payload: projectId
+        payload: projectId,
     };
 }
 
-
 // Internal notes and investigation notes Section
-
 
 export function investigationNoteRequest(promise) {
     return {
         type: types.INVESTIGATION_NOTE_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function investigationNoteError(error) {
     return {
         type: types.INVESTIGATION_NOTE_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function investigationNoteSuccess(incident) {
     return {
         type: types.INVESTIGATION_NOTE_SUCCESS,
-        payload: incident
+        payload: incident,
     };
 }
 
-
-
 export function setInvestigationNote(projectId, incidentId, investigationNote) {
-
-    return function (dispatch) {
+    return function(dispatch) {
         let promise = null;
         const body = {};
         body.investigationNote = investigationNote;
@@ -610,51 +658,50 @@ export function setInvestigationNote(projectId, incidentId, investigationNote) {
 
         dispatch(investigationNoteRequest(promise));
 
-        promise.then(function (incidents) {
-            dispatch(investigationNoteSuccess(incidents.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(incidents) {
+                dispatch(investigationNoteSuccess(incidents.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(investigationNoteError(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(investigationNoteError(errors(error)));
-        });
+        );
     };
 }
-
-
 
 export function internalNoteRequest(promise) {
     return {
         type: types.INTERNAL_NOTE_REQUEST,
-        payload: promise
+        payload: promise,
     };
 }
 
 export function internalNoteError(error) {
     return {
         type: types.INTERNAL_NOTE_FAILED,
-        payload: error
+        payload: error,
     };
 }
 
 export function internalNoteSuccess(incident) {
     return {
         type: types.INTERNAL_NOTE_SUCCESS,
-        payload: incident
+        payload: incident,
     };
 }
 
 export function setinternalNote(projectId, incidentId, internalNote) {
-
-    return function (dispatch) {
+    return function(dispatch) {
         let promise = null;
         const body = {};
         body.internalNote = internalNote;
@@ -662,29 +709,31 @@ export function setinternalNote(projectId, incidentId, internalNote) {
 
         dispatch(internalNoteRequest(promise));
 
-        promise.then(function (incidents) {
-            dispatch(internalNoteSuccess(incidents.data));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(incidents) {
+                dispatch(internalNoteSuccess(incidents.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(internalNoteError(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            }
-            else {
-                error = 'Network Error';
-            }
-            dispatch(internalNoteError(errors(error)));
-        });
+        );
     };
 }
 
 export function deleteIncidentSuccess(incidentId) {
     return {
         type: types.DELETE_INCIDENT_SUCCESS,
-        payload: incidentId
+        payload: incidentId,
     };
 }
 
@@ -698,43 +747,44 @@ export function deleteIncidentRequest(incidentId) {
 export function deleteIncidentFailure(error) {
     return {
         type: types.DELETE_INCIDENT_FAILURE,
-        payload: error
+        payload: error,
     };
 }
 
 export function deleteIncidentReset(error) {
     return {
         type: types.DELETE_INCIDENT_RESET,
-        payload: error
+        payload: error,
     };
 }
 
 //Delete an incident
 export function deleteIncident(projectId, incidentId) {
-    return function (dispatch) {
-
+    return function(dispatch) {
         const promise = deleteApi(`incident/${projectId}/${incidentId}`);
         dispatch(deleteIncidentRequest(incidentId));
 
-        promise.then(function (incident) {
-
-            dispatch(deleteIncidentSuccess(incident.data._id));
-        }, function (error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function(incident) {
+                dispatch(deleteIncidentSuccess(incident.data._id));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    deleteIncidentFailure({ error: errors(error), incidentId })
+                );
             }
-            if (error && error.message) {
-                error = error.message;
-            } else {
-                error = 'Network Error';
-            }
-            dispatch(deleteIncidentFailure({ error: errors(error), incidentId }));
-        });
+        );
 
         return promise;
-
     };
-
 }

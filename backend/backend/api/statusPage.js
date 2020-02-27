@@ -4,7 +4,6 @@
  *
  */
 
-
 const express = require('express');
 const StatusPageService = require('../services/statusPageService');
 const MonitorService = require('../services/monitorService');
@@ -23,9 +22,7 @@ const { getUser, checkUser } = require('../middlewares/user');
 const { getSubProjects } = require('../middlewares/subProject');
 const { isUserAdmin } = require('../middlewares/project');
 const storage = require('../middlewares/upload');
-const {
-    isAuthorized
-} = require('../middlewares/authorization');
+const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -34,7 +31,10 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 // req.params->{projectId}; req.body -> {[monitorIds]}
 // Returns: response status page, error message
 
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
+router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
+    req,
+    res
+) {
     try {
         const data = req.body;
         data.projectId = req.params.projectId;
@@ -43,14 +43,14 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
         if (!data.monitorIds) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Monitor ids are required.'
+                message: 'Monitor ids are required.',
             });
         }
 
         if (!Array.isArray(data.monitorIds)) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Monitor IDs are not stored in an array.'
+                message: 'Monitor IDs are not stored in an array.',
             });
         }
 
@@ -66,36 +66,40 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (r
 // Params:
 // Param1:
 // Returns: response status, error message
-router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-
+router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
+    req,
+    res
+) {
     const data = req.body;
     const upload = multer({
-        storage
+        storage,
     }).fields([
         {
             name: 'favicon',
-            maxCount: 1
-        }, {
+            maxCount: 1,
+        },
+        {
             name: 'logo',
-            maxCount: 1
-        }, {
+            maxCount: 1,
+        },
+        {
             name: 'banner',
-            maxCount: 1
-        }
+            maxCount: 1,
+        },
     ]);
 
     if (data.domain) {
         if (typeof data.domain !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Domain is not of type string.'
+                message: 'Domain is not of type string.',
             });
         }
 
-        if (!(UtilService.isDomainValid(data.domain))) {
+        if (!UtilService.isDomainValid(data.domain)) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Domain is not valid.'
+                message: 'Domain is not valid.',
             });
         }
     }
@@ -104,14 +108,14 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
         if (typeof data.links !== 'object') {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'links are not of type object.'
+                message: 'links are not of type object.',
             });
         }
 
         if (data.links.length > 5) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'You can have up to five links.'
+                message: 'You can have up to five links.',
             });
         }
 
@@ -119,33 +123,33 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
             if (!data.links[i].name) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Link name is required'
+                    message: 'Link name is required',
                 });
             }
 
             if (typeof data.links[i].name !== 'string') {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Link name is not of type text.'
+                    message: 'Link name is not of type text.',
                 });
             }
             if (!data.links[i].url) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'URL is required.'
+                    message: 'URL is required.',
                 });
             }
 
             if (typeof data.links[i].url !== 'string') {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'URL is not of type text.'
+                    message: 'URL is not of type text.',
                 });
             }
-            if (!(validUrl.isUri(data.links[i].url))) {
+            if (!validUrl.isUri(data.links[i].url)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Please enter a valid URL.'
+                    message: 'Please enter a valid URL.',
                 });
             }
             let counter = 0;
@@ -161,14 +165,14 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
                 {
                     return sendErrorResponse(req, res, {
                         code: 400,
-                        message: 'Duplicate name or url present. Please check.'
+                        message: 'Duplicate name or url present. Please check.',
                     });
                 }
             }
         }
     }
 
-    upload(req, res, async function (error) {
+    upload(req, res, async function(error) {
         const files = req.files || {};
         const data = req.body;
         data.projectId = req.params.projectId;
@@ -179,23 +183,32 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
         }
 
         if (data._id) {
-            const statusPage = await StatusPageService.findOneBy({ _id: data._id });
+            const statusPage = await StatusPageService.findOneBy({
+                _id: data._id,
+            });
             const imagesPath = {
                 faviconPath: statusPage.faviconPath,
                 logoPath: statusPage.logoPath,
                 bannerPath: statusPage.bannerPath,
             };
-            if (Object.keys(files).length === 0 && Object.keys(imagesPath).length !== 0) {
+            if (
+                Object.keys(files).length === 0 &&
+                Object.keys(imagesPath).length !== 0
+            ) {
                 data.faviconPath = imagesPath.faviconPath;
                 data.logoPath = imagesPath.logoPath;
                 data.bannerPath = imagesPath.bannerPath;
-                if (data.favicon === '') { data.faviconPath = null; }
-                if (data.logo === '') { data.logoPath = null; }
-                if (data.banner === '') { data.bannerPath = null; }
-            }
-            else {
+                if (data.favicon === '') {
+                    data.faviconPath = null;
+                }
+                if (data.logo === '') {
+                    data.logoPath = null;
+                }
+                if (data.banner === '') {
+                    data.bannerPath = null;
+                }
+            } else {
                 if (files && files.favicon && files.favicon[0].filename) {
-
                     data.faviconPath = files.favicon[0].filename;
                 }
 
@@ -217,7 +230,10 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
                 data
             );
 
-            const updatedStatusPage = await StatusPageService.getStatus({ _id: statusPage._id }, req.user.id);
+            const updatedStatusPage = await StatusPageService.getStatus(
+                { _id: statusPage._id },
+                req.user.id
+            );
             await RealTimeService.statusPageEdit(updatedStatusPage);
 
             return sendItemResponse(req, res, statusPage);
@@ -232,11 +248,18 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (re
 // Param1: req.params-> {projectId};
 // Returns: response status, error message
 
-router.get('/:projectId/dashboard', getUser, isAuthorized, async function (req, res) {
+router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
+    req,
+    res
+) {
     const projectId = req.params.projectId;
     try {
         // Call the StatusPageService.
-        const statusPages = await StatusPageService.findBy({ projectId: projectId }, req.query.skip || 0, req.query.limit || 10);
+        const statusPages = await StatusPageService.findBy(
+            { projectId: projectId },
+            req.query.skip || 0,
+            req.query.limit || 10
+        );
         const count = await StatusPageService.countBy({ projectId: projectId });
         return sendListResponse(req, res, statusPages, count);
     } catch (error) {
@@ -244,20 +267,37 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function (req, 
     }
 });
 
-router.get('/:projectId/statuspages', getUser, isAuthorized, getSubProjects, async function (req, res) {
-    const subProjectIds = req.user.subProjects ? req.user.subProjects.map(project => project._id) : null;
-    try {
-        const statusPages = await StatusPageService.getSubProjectStatusPages(subProjectIds);
-        return sendItemResponse(req, res, statusPages); // frontend expects sendItemResponse
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId/statuspages',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function(req, res) {
+        const subProjectIds = req.user.subProjects
+            ? req.user.subProjects.map(project => project._id)
+            : null;
+        try {
+            const statusPages = await StatusPageService.getSubProjectStatusPages(
+                subProjectIds
+            );
+            return sendItemResponse(req, res, statusPages); // frontend expects sendItemResponse
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.get('/:projectId/statuspage', getUser, isAuthorized, async function (req, res) {
+router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
+    req,
+    res
+) {
     const projectId = req.params.projectId;
     try {
-        const statusPage = await StatusPageService.findBy({ projectId }, req.query.skip || 0, req.query.limit || 10);
+        const statusPage = await StatusPageService.findBy(
+            { projectId },
+            req.query.skip || 0,
+            req.query.limit || 10
+        );
         const count = await StatusPageService.countBy({ projectId });
         return sendListResponse(req, res, statusPage, count); // frontend expects sendListResponse
     } catch (error) {
@@ -266,7 +306,7 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function (req,
 });
 
 // External status page api - get the data to show on status page
-router.get('/:statusPageId', checkUser, async function (req, res) {
+router.get('/:statusPageId', checkUser, async function(req, res) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
     const user = req.user;
@@ -274,14 +314,19 @@ router.get('/:statusPageId', checkUser, async function (req, res) {
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatus({ domain: url }, user);
+            statusPage = await StatusPageService.getStatus(
+                { domain: url },
+                user
+            );
         } else if ((!url || url === 'null') && statusPageId) {
-            statusPage = await StatusPageService.getStatus({ _id: statusPageId }, user);
-        }
-        else {
+            statusPage = await StatusPageService.getStatus(
+                { _id: statusPageId },
+                user
+            );
+        } else {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'StatusPage Id or Url required'
+                message: 'StatusPage Id or Url required',
             });
         }
         return sendItemResponse(req, res, statusPage);
@@ -290,7 +335,7 @@ router.get('/:statusPageId', checkUser, async function (req, res) {
     }
 });
 
-router.get('/:statusPageId/rss', checkUser, async function (req, res) {
+router.get('/:statusPageId/rss', checkUser, async function(req, res) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
     const user = req.user;
@@ -298,17 +343,24 @@ router.get('/:statusPageId/rss', checkUser, async function (req, res) {
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatus({ domain: url }, user);
+            statusPage = await StatusPageService.getStatus(
+                { domain: url },
+                user
+            );
         } else if ((!url || url === 'null') && statusPageId) {
-            statusPage = await StatusPageService.getStatus({ _id: statusPageId }, user);
-        }
-        else {
+            statusPage = await StatusPageService.getStatus(
+                { _id: statusPageId },
+                user
+            );
+        } else {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'StatusPage Id or Url required'
+                message: 'StatusPage Id or Url required',
             });
         }
-        const { incidents } = await StatusPageService.getIncidents({ _id: statusPageId });
+        const { incidents } = await StatusPageService.getIncidents({
+            _id: statusPageId,
+        });
         const refinedIncidents = [];
         for (const incident of incidents) {
             refinedIncidents.push({
@@ -319,39 +371,40 @@ router.get('/:statusPageId/rss', checkUser, async function (req, res) {
                     MonitorId: incident.monitorId._id.toString(),
                     ManuallyCreated: incident.manuallyCreated,
                     InvestigationNote: incident.investigationNote,
-                }
+                },
             });
         }
         const xmlOptions = {
             indent: '  ',
-            header: true
+            header: true,
         };
 
         const feedObj = {
             _name: 'rss',
             _attrs: {
-                version: '2.0'
+                version: '2.0',
             },
             _content: [
                 {
-                    Title: `Incidents for status page ${statusPage.title}`
+                    Title: `Incidents for status page ${statusPage.title}`,
                 },
                 {
-                    Description: 'RSS feed for all incidents related to monitors attached to status page'
+                    Description:
+                        'RSS feed for all incidents related to monitors attached to status page',
                 },
                 {
-                    Link: `${BACKEND_HOST}/statusPage/rss`
+                    Link: `${BACKEND_HOST}/statusPage/rss`,
                 },
                 {
-                    LastBuildDate: () => new Date()
+                    LastBuildDate: () => new Date(),
                 },
                 {
-                    Language: 'en'
+                    Language: 'en',
                 },
                 {
-                    Incidents: refinedIncidents
-                }
-            ]
+                    Incidents: refinedIncidents,
+                },
+            ],
         };
         const finalFeed = toXML(feedObj, xmlOptions);
         res.contentType('application/rss');
@@ -360,13 +413,20 @@ router.get('/:statusPageId/rss', checkUser, async function (req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
-router.get('/:projectId/:statusPageId/notes', checkUser, async function (req, res) {
+router.get('/:projectId/:statusPageId/notes', checkUser, async function(
+    req,
+    res
+) {
     const statusPageId = req.params.statusPageId;
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
     try {
         // Call the StatusPageService.
-        const response = await StatusPageService.getNotes({ _id: statusPageId }, skip, limit);
+        const response = await StatusPageService.getNotes(
+            { _id: statusPageId },
+            skip,
+            limit
+        );
         const notes = response.notes;
         const count = response.count;
         return sendListResponse(req, res, notes, count);
@@ -375,23 +435,44 @@ router.get('/:projectId/:statusPageId/notes', checkUser, async function (req, re
     }
 });
 
-router.get('/:projectId/:monitorId/individualnotes', checkUser, async function (req, res) {
+router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
+    req,
+    res
+) {
     let date = req.query.date;
     date = new Date(date);
-    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-    const end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+    const start = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        0,
+        0,
+        0
+    );
+    const end = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        23,
+        59,
+        59
+    );
 
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
     const query = {
         monitorId: req.params.monitorId,
         deleted: false,
-        createdAt: { $gte: start, $lt: end }
+        createdAt: { $gte: start, $lt: end },
     };
 
     try {
         // Call the StatusPageService.
-        const response = await StatusPageService.getNotesByDate(query, skip, limit);
+        const response = await StatusPageService.getNotesByDate(
+            query,
+            skip,
+            limit
+        );
         const notes = response.investigationNotes;
         const count = response.count;
         return sendListResponse(req, res, notes, count);
@@ -402,18 +483,25 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function (
 
 // Route
 // Description: Get all Monitor Statuses by monitorId
-router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function (req, res) {
+router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
+    req,
+    res
+) {
     try {
         const { startDate, endDate } = req.body;
         const monitorId = req.params.monitorId;
-        const monitorStatuses = await MonitorService.getMonitorStatuses(monitorId, startDate, endDate);
+        const monitorStatuses = await MonitorService.getMonitorStatuses(
+            monitorId,
+            startDate,
+            endDate
+        );
         return sendListResponse(req, res, monitorStatuses);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.get('/:projectId/probes', checkUser, async function (req, res) {
+router.get('/:projectId/probes', checkUser, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
@@ -425,16 +513,25 @@ router.get('/:projectId/probes', checkUser, async function (req, res) {
     }
 });
 
-router.delete('/:projectId/:statusPageId', getUser, isAuthorized, isUserAdmin, async function (req, res) {
-    const statusPageId = req.params.statusPageId;
-    const userId = req.user ? req.user.id : null;
-    try {
-        // Call the StatusPageService.
-        const statusPage = await StatusPageService.deleteBy({ _id: statusPageId }, userId);
-        return sendItemResponse(req, res, statusPage);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.delete(
+    '/:projectId/:statusPageId',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function(req, res) {
+        const statusPageId = req.params.statusPageId;
+        const userId = req.user ? req.user.id : null;
+        try {
+            // Call the StatusPageService.
+            const statusPage = await StatusPageService.deleteBy(
+                { _id: statusPageId },
+                userId
+            );
+            return sendItemResponse(req, res, statusPage);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 module.exports = router;

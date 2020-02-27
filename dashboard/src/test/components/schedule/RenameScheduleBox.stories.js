@@ -1,16 +1,15 @@
 import React from 'react';
 import { storiesOf, action } from '@storybook/react';
-import {reduxForm} from 'redux-form'
+import { reduxForm } from 'redux-form';
 import { Validate } from '../../../config';
-import { RenameScheduleBox } from '../../../components/schedule/RenameScheduleBox'
-import {MockCurrentProject} from '../../ReduxStore_Mock'
+import { RenameScheduleBox } from '../../../components/schedule/RenameScheduleBox';
+import { MockCurrentProject } from '../../ReduxStore_Mock';
 
 function validate(value) {
-
     const errors = {};
 
     if (!Validate.text(value.schedule_name)) {
-        errors.name = 'Schedule name is required.'
+        errors.name = 'Schedule name is required.';
     }
 
     return errors;
@@ -18,29 +17,26 @@ function validate(value) {
 
 const props = {
     handleSubmit: action('handleSubmit'),
-    renameSchedule:action('renameSchedule'),
-    isRequesting:false,
-    history:{},
-    initialValues:{schedule_name: 'Test'}
-}
+    renameSchedule: action('renameSchedule'),
+    isRequesting: false,
+    history: {},
+    initialValues: { schedule_name: 'Test' },
+};
 
-const onSubmitSuccess = action('onSubmitSuccess')
+const onSubmitSuccess = action('onSubmitSuccess');
 
 const RenameScheduleForm = new reduxForm({
-    form: 'RenameSchedule' + Math.floor((Math.random() * 10) + 1),
+    form: 'RenameSchedule' + Math.floor(Math.random() * 10 + 1),
     validate,
     onSubmitSuccess,
-    enableReinitialize: true
+    enableReinitialize: true,
 })(RenameScheduleBox);
-
 
 storiesOf('Schedule', module)
     .addDecorator(story => (
-        <div style={{ margin: '5%' }} >
-        <MockCurrentProject/>
-            {story()}</div>
+        <div style={{ margin: '5%' }}>
+            <MockCurrentProject />
+            {story()}
+        </div>
     ))
-    .add('Rename Schedule Box', () =>
-        <RenameScheduleForm  {...props} />
-    )
-
+    .add('Rename Schedule Box', () => <RenameScheduleForm {...props} />);

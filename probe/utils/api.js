@@ -3,10 +3,10 @@ const config = require('./config');
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Accept': 'application/json',
+    Accept: 'application/json',
     'Content-Type': 'application/json;charset=UTF-8',
-    'probeName': config.probeName,
-    'probeKey': config.probeKey
+    probeName: config.probeName,
+    probeKey: config.probeKey,
 };
 
 module.exports = {
@@ -16,12 +16,12 @@ module.exports = {
                 method: 'POST',
                 url: `${config.serverUrl}/${url}`,
                 headers,
-                data
+                data,
             })
-                .then(function (response) {
+                .then(function(response) {
                     resolve(response.data);
                 })
-                .catch(function (error) {
+                .catch(function(error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -32,17 +32,17 @@ module.exports = {
         });
     },
 
-    getApi: (url) => {
+    getApi: url => {
         return new Promise((resolve, reject) => {
             axios({
                 method: 'GET',
                 url: `${config.serverUrl}/${url}`,
-                headers
+                headers,
             })
-                .then(function (response) {
+                .then(function(response) {
                     resolve(response.data);
                 })
-                .catch(function (error) {
+                .catch(function(error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -59,12 +59,12 @@ module.exports = {
                 method: 'PUT',
                 url: `${config.serverUrl}/${url}`,
                 headers,
-                data
+                data,
             })
-                .then(function (response) {
+                .then(function(response) {
                     resolve(response.data);
                 })
-                .catch(function (error) {
+                .catch(function(error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -81,12 +81,12 @@ module.exports = {
                 method: 'DELETE',
                 url: `${config.serverUrl}/${url}`,
                 headers,
-                data
+                data,
             })
-                .then(function (response) {
+                .then(function(response) {
                     resolve(response.data);
                 })
-                .catch(function (error) {
+                .catch(function(error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -95,5 +95,5 @@ module.exports = {
                     reject(error);
                 });
         });
-    }
+    },
 };

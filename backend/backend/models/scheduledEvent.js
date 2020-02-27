@@ -5,17 +5,17 @@ const scheduledEventsSchema = new Schema({
     projectId: {
         type: String,
         ref: 'Project',
-        alias: 'project'
+        alias: 'project',
     },
     monitorId: {
         type: String,
         ref: 'Monitor',
-        alias: 'monitor'
+        alias: 'monitor',
     },
     name: String,
     createdById: {
         type: String,
-        ref: 'User'
+        ref: 'User',
     },
     createdAt: {
         type: Date,
@@ -23,40 +23,40 @@ const scheduledEventsSchema = new Schema({
     },
     deleted: {
         type: Boolean,
-        default: false
+        default: false,
     },
     deletedAt: {
-        type: Date
+        type: Date,
     },
     deletedById: {
         type: String,
-        ref: 'User'
+        ref: 'User',
     },
     startDate: {
-        type: Date
+        type: Date,
     },
     endDate: {
-        type: Date
+        type: Date,
     },
     description: {
-        type: String
+        type: String,
     },
     showEventOnStatusPage: {
         type: Boolean,
-        default: false
+        default: false,
     },
     callScheduleOnEvent: {
         type: Boolean,
-        default: false
+        default: false,
     },
     monitorDuringEvent: {
         type: Boolean,
-        default: false
+        default: false,
     },
     alertSubscriber: {
         type: Boolean,
-        default: false
-    }
+        default: false,
+    },
 });
 
 module.exports = mongoose.model('ScheduledEvent', scheduledEventsSchema);

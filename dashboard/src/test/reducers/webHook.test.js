@@ -1,46 +1,49 @@
-import reducer from '../../reducers/webHook'
-import * as types from '../../constants/webHook'
-
+import reducer from '../../reducers/webHook';
+import * as types from '../../constants/webHook';
 
 const initialState = {
-    webHook:{
-        error:null,
+    webHook: {
+        error: null,
         requesting: false,
-        success:false,
-        webHooks:[],
+        success: false,
+        webHooks: [],
         count: null,
         limit: null,
-        skip: null
+        skip: null,
     },
     deleteWebHook: {
-        error:null,
+        error: null,
         requesting: false,
-        success:false,
+        success: false,
     },
     createWebHook: {
-        error:null,
+        error: null,
         requesting: false,
-        success:false,
+        success: false,
     },
     updateWebHook: {
-        error:null,
+        error: null,
         requesting: false,
-        success:false,
+        success: false,
     },
     pages: {
-		counter: 0
-	}
+        counter: 0,
+    },
 };
 
-describe('WebHook Integration Reducers',()=>{
-
+describe('WebHook Integration Reducers', () => {
     it('should return initial state', () => {
-        expect(reducer(initialState,{})).toEqual(initialState)
+        expect(reducer(initialState, {})).toEqual(initialState);
     });
 
     it('should handle GET_WEB_HOOK_SUCCESS', () => {
-        const payload = { data: [{_id:'_id'}], count: 1, skip: 0, limit: 10};
-        const expected  = {
+        const payload = {
+            data: [{ _id: '_id' }],
+            count: 1,
+            skip: 0,
+            limit: 10,
+        };
+        const expected = {
             ...initialState,
             webHook: {
                 requesting: false,
@@ -49,32 +52,39 @@ describe('WebHook Integration Reducers',()=>{
                 webHooks: payload.data,
                 count: payload.count,
                 limit: payload.limit,
-                skip: payload.skip
+                skip: payload.skip,
             },
         };
-        expect(reducer(initialState,{type:types.GET_WEB_HOOK_SUCCESS, payload:payload})).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.GET_WEB_HOOK_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle GET_WEB_HOOK_REQUEST', () => {
-        initialState.webHook.webHooks = [{_id:'_id'}]
-        const expected  = {
+        initialState.webHook.webHooks = [{ _id: '_id' }];
+        const expected = {
             ...initialState,
             webHook: {
                 requesting: true,
                 success: false,
                 error: null,
-                webHooks:[],
+                webHooks: [],
                 count: null,
                 limit: null,
-                skip: null
-            }
+                skip: null,
+            },
         };
-        expect(reducer(initialState,{type:types.GET_WEB_HOOK_REQUEST})).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.GET_WEB_HOOK_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle GET_WEB_HOOK_FAILED', () => {
-        const payload = 'some error'
-        const expected  = {
+        const payload = 'some error';
+        const expected = {
             ...initialState,
             webHook: {
                 requesting: false,
@@ -83,14 +93,19 @@ describe('WebHook Integration Reducers',()=>{
                 webHooks: [],
                 count: null,
                 limit: null,
-                skip: null
+                skip: null,
             },
         };
-        expect(reducer(initialState,{type:types.GET_WEB_HOOK_FAILED,payload:payload})).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.GET_WEB_HOOK_FAILED,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle GET_WEB_HOOK_RESET', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             webHook: {
                 requesting: false,
@@ -99,17 +114,21 @@ describe('WebHook Integration Reducers',()=>{
                 webHooks: [],
                 count: null,
                 limit: null,
-                skip: null
+                skip: null,
             },
         };
-        expect(reducer(initialState,{type:types.GET_WEB_HOOK_RESET})).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.GET_WEB_HOOK_RESET })
+        ).toEqual(expected);
     });
 
     it('should handle DELETE_WEB_HOOK_SUCCESS', () => {
-        initialState.webHook.webHooks = [{_id:'_id', integrationType:'webhook'}]
-        const payload = [{_id:'_id', integrationType:'webhook'}];
+        initialState.webHook.webHooks = [
+            { _id: '_id', integrationType: 'webhook' },
+        ];
+        const payload = [{ _id: '_id', integrationType: 'webhook' }];
         const count = initialState.webHook.count - 1;
-        const expected  = {
+        const expected = {
             ...initialState,
             webHook: {
                 requesting: false,
@@ -118,32 +137,39 @@ describe('WebHook Integration Reducers',()=>{
                 webHooks: [],
                 skip: initialState.webHook.skip,
                 limit: initialState.webHook.limit,
-                count: count
+                count: count,
             },
             deleteWebHook: {
                 requesting: false,
                 error: null,
                 success: true,
-            }
+            },
         };
-        expect(reducer(initialState,{type:types.DELETE_WEB_HOOK_SUCCESS, payload:payload})).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.DELETE_WEB_HOOK_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle DELETE_WEB_HOOK_REQUEST', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             deleteWebHook: {
                 requesting: true,
                 success: false,
-                error: null
-            }
+                error: null,
+            },
         };
-        expect(reducer(initialState,{type:types.DELETE_WEB_HOOK_REQUEST})).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.DELETE_WEB_HOOK_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle DELETE_WEB_HOOK_FAILED', () => {
-        const payload = 'some error'
-        const expected  = {
+        const payload = 'some error';
+        const expected = {
             ...initialState,
             deleteWebHook: {
                 requesting: false,
@@ -151,26 +177,35 @@ describe('WebHook Integration Reducers',()=>{
                 success: false,
             },
         };
-        expect(reducer(initialState,{type:types.DELETE_WEB_HOOK_FAILED, payload:payload})).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.DELETE_WEB_HOOK_FAILED,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle DELETE_WEB_HOOK_RESET', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             deleteWebHook: {
                 requesting: false,
                 success: false,
-                error: null
+                error: null,
             },
         };
-        expect(reducer(initialState,{type:types.DELETE_WEB_HOOK_RESET})).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.DELETE_WEB_HOOK_RESET })
+        ).toEqual(expected);
     });
 
     it('should handle CREATE_WEB_HOOK_SUCCESS', () => {
-        initialState.webHook.webHooks = [{_id:'_id', integrationType:'webhook'}];
-        const payload = [{_id:'_id', integrationType:'webhook'}];
+        initialState.webHook.webHooks = [
+            { _id: '_id', integrationType: 'webhook' },
+        ];
+        const payload = [{ _id: '_id', integrationType: 'webhook' }];
         const count = initialState.webHook.count + 1;
-        const expected  = {
+        const expected = {
             ...initialState,
             webHook: {
                 requesting: false,
@@ -179,32 +214,39 @@ describe('WebHook Integration Reducers',()=>{
                 webHooks: payload,
                 skip: initialState.webHook.skip,
                 limit: initialState.webHook.limit,
-                count: count
+                count: count,
             },
             createWebHook: {
                 requesting: false,
                 error: null,
                 success: true,
-            }
+            },
         };
-        expect(reducer(initialState,{type:types.CREATE_WEB_HOOK_SUCCESS, payload:payload})).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.CREATE_WEB_HOOK_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle CREATE_WEB_HOOK_REQUEST', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             createWebHook: {
                 requesting: true,
                 success: false,
-                error: null
-            }
+                error: null,
+            },
         };
-        expect(reducer(initialState,{type:types.CREATE_WEB_HOOK_REQUEST})).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.CREATE_WEB_HOOK_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle CREATE_WEB_HOOK_FAILED', () => {
         const payload = 'some error';
-        const expected  = {
+        const expected = {
             ...initialState,
             createWebHook: {
                 requesting: false,
@@ -212,30 +254,49 @@ describe('WebHook Integration Reducers',()=>{
                 success: false,
             },
         };
-        expect(reducer(initialState, {type: types.CREATE_WEB_HOOK_FAILED, payload: payload})).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.CREATE_WEB_HOOK_FAILED,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle CREATE_WEB_HOOK_RESET', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             createWebHook: {
                 requesting: false,
                 success: false,
-                error: null
+                error: null,
             },
         };
-        expect(reducer(initialState,{type:types.CREATE_WEB_HOOK_RESET})).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.CREATE_WEB_HOOK_RESET })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_WEB_HOOK_SUCCESS', () => {
-        let newData = initialState.webHook.webHooks = [{_id:'_id', integrationType:'webhook', data:{ endpoint: 'http://test.com'}}]
-        const payload = [{_id:'_id', integrationType:'webhook',  data:{ endpoint: 'http://tests.com'}}]
+        const newData = (initialState.webHook.webHooks = [
+            {
+                _id: '_id',
+                integrationType: 'webhook',
+                data: { endpoint: 'http://test.com' },
+            },
+        ]);
+        const payload = [
+            {
+                _id: '_id',
+                integrationType: 'webhook',
+                data: { endpoint: 'http://tests.com' },
+            },
+        ];
 
         const index = newData.findIndex(hook => hook._id === payload._id);
         newData[index] = payload;
         const count = initialState.webHook.count;
 
-        const expected  = {
+        const expected = {
             ...initialState,
             webHook: {
                 requesting: false,
@@ -244,32 +305,39 @@ describe('WebHook Integration Reducers',()=>{
                 webHooks: newData,
                 skip: initialState.webHook.skip,
                 limit: initialState.webHook.limit,
-                count: count
+                count: count,
             },
             updateWebHook: {
                 requesting: false,
                 error: null,
                 success: true,
-            }
+            },
         };
-        expect(reducer(initialState,{type: types.UPDATE_WEB_HOOK_SUCCESS, payload:payload})).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_WEB_HOOK_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_WEB_HOOK_REQUEST', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             updateWebHook: {
                 requesting: true,
                 success: false,
-                error: null
-            }
+                error: null,
+            },
         };
-        expect(reducer(initialState,{type:types.UPDATE_WEB_HOOK_REQUEST})).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.UPDATE_WEB_HOOK_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_WEB_HOOK_FAILED', () => {
-        const payload = 'some error'
-        const expected  = {
+        const payload = 'some error';
+        const expected = {
             ...initialState,
             updateWebHook: {
                 requesting: false,
@@ -277,48 +345,61 @@ describe('WebHook Integration Reducers',()=>{
                 success: false,
             },
         };
-        expect(reducer(initialState,{type:types.UPDATE_WEB_HOOK_FAILED, payload:payload})).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.UPDATE_WEB_HOOK_FAILED,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle UPDATE_WEB_HOOK_RESET', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             updateWebHook: {
                 requesting: false,
                 success: false,
-                error: null
+                error: null,
             },
         };
-        expect(reducer(initialState,{type:types.UPDATE_WEB_HOOK_RESET})).toEqual(expected)
+        expect(
+            reducer(initialState, { type: types.UPDATE_WEB_HOOK_RESET })
+        ).toEqual(expected);
     });
 
     it('should handle PAGINATE_NEXT', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             pages: {
-                counter: 1
-            }
+                counter: 1,
+            },
         };
-        expect(reducer(initialState,{type:types.PAGINATE_NEXT})).toEqual(expected)
+        expect(reducer(initialState, { type: types.PAGINATE_NEXT })).toEqual(
+            expected
+        );
     });
 
     it('should handle PAGINATE_PREV', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             pages: {
-                counter: -1
-            }
+                counter: -1,
+            },
         };
-        expect(reducer(initialState,{type:types.PAGINATE_PREV})).toEqual(expected)
+        expect(reducer(initialState, { type: types.PAGINATE_PREV })).toEqual(
+            expected
+        );
     });
 
     it('should handle PAGINATE_RESET', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             pages: {
-                counter: 0
-            }
+                counter: 0,
+            },
         };
-        expect(reducer(initialState,{type:types.PAGINATE_RESET})).toEqual(expected)
+        expect(reducer(initialState, { type: types.PAGINATE_RESET })).toEqual(
+            expected
+        );
     });
 });

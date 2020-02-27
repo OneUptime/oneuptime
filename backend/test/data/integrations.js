@@ -6,9 +6,9 @@ module.exports = {
         data: {
             userId: '',
             endpoint: 'http://www.google.com',
-            monitorIds: []
+            monitorIds: [],
         },
-        monitors: []
+        monitors: [],
     },
     newSlackData: {
         createdById: '',
@@ -16,8 +16,8 @@ module.exports = {
         data: {
             userId: '',
             endpoint: 'http://www.google.com',
-            monitorIds: []
+            monitorIds: [],
         },
-        monitors: []
-    }
+        monitors: [],
+    },
 };

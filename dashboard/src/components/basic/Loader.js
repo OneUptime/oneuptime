@@ -1,23 +1,61 @@
-
 import React from 'react';
 
 const loaderStyle = {
-    backgroundColor: '#96d8ff'
+    backgroundColor: '#96d8ff',
 };
 
-export const FlatLoader = () => (<div className="ball-pulse"><div style={loaderStyle}></div><div style={loaderStyle}></div><div style={loaderStyle}></div></div>);
+export const FlatLoader = () => (
+    <div className="ball-pulse">
+        <div style={loaderStyle}></div>
+        <div style={loaderStyle}></div>
+        <div style={loaderStyle}></div>
+    </div>
+);
 
 FlatLoader.displayName = 'FlatLoader';
 
-export const FormLoader = () => (<div className="ball-beat"><div style={{ height: '8px', width: '8px' }}></div><div style={{ height: '8px', width: '8px' }}></div><div style={{ height: '8px', width: '8px' }}></div></div>);
+export const FormLoader = () => (
+    <div className="ball-beat">
+        <div style={{ height: '8px', width: '8px' }}></div>
+        <div style={{ height: '8px', width: '8px' }}></div>
+        <div style={{ height: '8px', width: '8px' }}></div>
+    </div>
+);
 
 FormLoader.displayName = 'FormLoader';
 
-export const ListLoader = () => (<div className="ball-beat" style={{ textAlign: 'center', marginTop: '20px' }}><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div></div>);
+export const ListLoader = () => (
+    <div
+        className="ball-beat"
+        style={{ textAlign: 'center', marginTop: '20px' }}
+    >
+        <div
+            style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}
+        ></div>
+        <div
+            style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}
+        ></div>
+        <div
+            style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}
+        ></div>
+    </div>
+);
 
 ListLoader.displayName = 'ListLoader';
 
-export const TeamListLoader = () => (<div className="ball-beat" style={{ textAlign: 'center', width: '95px' }}><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div><div style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}></div></div>);
+export const TeamListLoader = () => (
+    <div className="ball-beat" style={{ textAlign: 'center', width: '95px' }}>
+        <div
+            style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}
+        ></div>
+        <div
+            style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}
+        ></div>
+        <div
+            style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}
+        ></div>
+    </div>
+);
 
 TeamListLoader.displayName = 'TeamListLoader';
 

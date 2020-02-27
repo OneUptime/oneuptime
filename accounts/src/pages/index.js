@@ -6,7 +6,6 @@ import ResendToken from './ResendToken';
 import VerifyAuthToken from './VerifyAuthToken';
 import VerifyBackupCode from './VerifyBackupCode';
 
-
 export default {
     ResetPassword,
     Register,
@@ -15,4 +14,4 @@ export default {
     ResendToken,
     VerifyAuthToken,
     VerifyBackupCode,
-}
+};

@@ -8,7 +8,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ErrorService = require('../services/errorService');
 
 module.exports = {
-    isAuthorizedProbe: async function (req, res, next) {
+    isAuthorizedProbe: async function(req, res, next) {
         try {
             let probeKey, probeName;
 
@@ -25,7 +25,7 @@ module.exports = {
             } else {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Probe Key not found.'
+                    message: 'Probe Key not found.',
                 });
             }
 
@@ -42,7 +42,7 @@ module.exports = {
             } else {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Probe Name not found.'
+                    message: 'Probe Name not found.',
                 });
             }
             const probe = await ProbeService.findOneBy({ probeKey, probeName });
@@ -54,12 +54,12 @@ module.exports = {
             } else {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Probe key and probe name do not match.'
+                    message: 'Probe key and probe name do not match.',
                 });
             }
         } catch (error) {
             ErrorService.log('probeAuthorization.isAuthorizedProbe', error);
             throw error;
         }
-    }
+    },
 };

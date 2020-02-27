@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function ({ query, skip, limit, sort }) {
+    findBy: async function({ query, skip, limit, sort }) {
         try {
             if (!skip) skip = 0;
 
@@ -7,15 +7,15 @@ module.exports = {
 
             if (!sort) sort = -1;
 
-            if (typeof (skip) === 'string') {
+            if (typeof skip === 'string') {
                 skip = parseInt(skip);
             }
 
-            if (typeof (limit) === 'string') {
+            if (typeof limit === 'string') {
                 limit = parseInt(limit);
             }
 
-            if (typeof (sort) === 'string') {
+            if (typeof sort === 'string') {
                 sort = parseInt(sort);
             }
 
@@ -39,8 +39,14 @@ module.exports = {
         }
     },
 
-
-    create: async function ({ project, incident, activeEscalation, schedule, escalations, incidentAcknowledged }) {
+    create: async function({
+        project,
+        incident,
+        activeEscalation,
+        schedule,
+        escalations,
+        incidentAcknowledged,
+    }) {
         try {
             let item = new OnCallScheduleStatusModel();
 
@@ -59,7 +65,7 @@ module.exports = {
         }
     },
 
-    countBy: async function ({ query }) {
+    countBy: async function({ query }) {
         try {
             if (!query) {
                 query = {};
@@ -72,32 +78,32 @@ module.exports = {
             ErrorService.log('OnCallScheduleStatusService.countBy', error);
             throw error;
         }
-
     },
 
-    updateOneBy: async function ({ query, data }) {
+    updateOneBy: async function({ query, data }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const item = await OnCallScheduleStatusModel.findOneAndUpdate(query,
+            const item = await OnCallScheduleStatusModel.findOneAndUpdate(
+                query,
                 {
-                    $set: data
+                    $set: data,
                 },
                 {
-                    new: true
-                });
+                    new: true,
+                }
+            );
             return item;
         } catch (error) {
             ErrorService.log('OnCallScheduleStatusService.updateOneBy', error);
             throw error;
         }
-
     },
 
-    updateBy: async function ({ query, data }) {
+    updateBy: async function({ query, data }) {
         try {
             if (!query) {
                 query = {};
@@ -105,7 +111,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             await OnCallScheduleStatusModel.updateMany(query, {
-                $set: data
+                $set: data,
             });
             const items = await this.findBy(query);
             return items;
@@ -115,22 +121,26 @@ module.exports = {
         }
     },
 
-    deleteBy: async function ({ query, userId }) {
+    deleteBy: async function({ query, userId }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const items = await OnCallScheduleStatusModel.findOneAndUpdate(query, {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
-                    deletedById: userId
+            const items = await OnCallScheduleStatusModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
+                },
+                {
+                    new: true,
                 }
-            }, {
-                new: true
-            });
+            );
             return items;
         } catch (error) {
             ErrorService.log('OnCallScheduleStatusService.deleteBy', error);
@@ -138,7 +148,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function ({query}) {
+    hardDeleteBy: async function({ query }) {
         try {
             await OnCallScheduleStatusModel.deleteMany(query);
         } catch (error) {

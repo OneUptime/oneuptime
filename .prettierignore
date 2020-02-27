@@ -31,3 +31,25 @@ cleanup.sh
 *.local.yaml
 
 nohup.out*
+
+*/public/*
+*/views/*
+
+*fonts*
+*logos*
+
+.*
+*.png
+*.sh
+*.txt
+*.snap
+*.enc
+Dockerfile
+CHANGELOG
+LICENSE
+
+marketing/*/*
+licenses/*
+certifications/*
+api-docs/public/assets/*
+server-monitor/out/scripts/prettify/*

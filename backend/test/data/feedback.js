@@ -1,5 +1,5 @@
 module.exports = {
     firstFeedback: {
         //:TODO
-    }
+    },
 };

@@ -12,71 +12,74 @@ import ExitProject from '../components/settings/ExitProject';
 import { hideDeleteModal } from '../actions/project';
 import PropTypes from 'prop-types';
 import { IS_DEV } from '../config';
-import { logEvent } from '../analytics'; 
+import { logEvent } from '../analytics';
 
 class Settings extends Component {
-  componentDidMount() {
-    if (!IS_DEV) {
-      logEvent('Project Settings Page Loaded');
+    componentDidMount() {
+        if (!IS_DEV) {
+            logEvent('Project Settings Page Loaded');
+        }
     }
-  }
 
-  handleKeyBoard = e => {
-    switch (e.key) {
-      case 'Escape':
-        this.props.hideDeleteModal();
-        return true;
-      default:
-        return false;
-    }
-  };
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                this.props.hideDeleteModal();
+                return true;
+            default:
+                return false;
+        }
+    };
 
-  render() {
-    return (
-      <Dashboard>
-        <div onKeyDown={this.handleKeyBoard} className="Margin-vertical--12">
-          <div>
-            <div>
-              <div className="db-BackboneViewContainer">
-                <div className="react-settings-view react-view">
-                  <span>
+    render() {
+        return (
+            <Dashboard>
+                <div
+                    onKeyDown={this.handleKeyBoard}
+                    className="Margin-vertical--12"
+                >
                     <div>
-                      <div>
-                        <RenderIfOwner>
-                          <ProjectSettings />
-                        </RenderIfOwner>
+                        <div>
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span>
+                                        <div>
+                                            <div>
+                                                <RenderIfOwner>
+                                                    <ProjectSettings />
+                                                </RenderIfOwner>
 
-                        <APISettings />
+                                                <APISettings />
 
-                        <RenderIfOwner>
-                          <SubProjects />
-                        </RenderIfOwner>
+                                                <RenderIfOwner>
+                                                    <SubProjects />
+                                                </RenderIfOwner>
 
-                        <RenderIfOwner>
-                          <DeleteProject />
-                        </RenderIfOwner>
+                                                <RenderIfOwner>
+                                                    <DeleteProject />
+                                                </RenderIfOwner>
 
-                        <RenderIfMember>
-                          <ExitProject />
-                        </RenderIfMember>
-                      </div>
+                                                <RenderIfMember>
+                                                    <ExitProject />
+                                                </RenderIfMember>
+                                            </div>
+                                        </div>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                  </span>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Dashboard>
-    );
-  }
+            </Dashboard>
+        );
+    }
 }
 
 const mapDispatchToProps = dispatch =>
-  bindActionCreators({ hideDeleteModal }, dispatch);
+    bindActionCreators({ hideDeleteModal }, dispatch);
 
 Settings.propTypes = {
-  hideDeleteModal: PropTypes.func.isRequired
+    hideDeleteModal: PropTypes.func.isRequired,
 };
 
 Settings.displayName = 'Settings';

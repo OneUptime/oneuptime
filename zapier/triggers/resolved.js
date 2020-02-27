@@ -2,13 +2,13 @@ const resolveIncident = (z, bundle) => {
     return bundle.cleanedRequest;
 };
 
-const fallbackHook = (z) => {
+const fallbackHook = z => {
     // For the test poll, you should get some real data, to aid the setup process.
     const options = {
-        url: 'https://api.fyipe.com/zapier/incident/resolved'
+        url: 'https://api.fyipe.com/zapier/incident/resolved',
     };
 
-    return z.request(options).then((response) => JSON.parse(response.content));
+    return z.request(options).then(response => JSON.parse(response.content));
 };
 
 const subscribeHook = (z, bundle) => {
@@ -18,17 +18,17 @@ const subscribeHook = (z, bundle) => {
     const data = {
         url: bundle.targetUrl,
         type: 'incident_resolve',
-        input: bundle.inputData
+        input: bundle.inputData,
     };
 
     const options = {
         url: 'https://api.fyipe.com/zapier/subscribe',
         method: 'POST',
-        body: data
+        body: data,
     };
 
     // You may return a promise or a normal data structure from any perform method.
-    return z.request(options).then((response) => JSON.parse(response.content));
+    return z.request(options).then(response => JSON.parse(response.content));
 };
 
 const unSubscribeHook = (z, bundle) => {
@@ -44,7 +44,7 @@ const unSubscribeHook = (z, bundle) => {
     };
 
     // You may return a promise or a normal data structure from any perform method.
-    return z.request(options).then((response) => JSON.parse(response.content));
+    return z.request(options).then(response => JSON.parse(response.content));
 };
 
 module.exports = {
@@ -54,43 +54,43 @@ module.exports = {
     display: {
         label: 'Resolved Incident',
         description: 'Triggers when an incident is resolved.',
-        important: true
+        important: true,
     },
 
     operation: {
         inputFields: [
             {
-              key: 'monitors',
-              type: 'string',
-              placeholder:'list of monitors',
-              dynamic: 'monitors.id.name',
-              altersDynamicFields: true,
-              list:true,
-              required: false
-            }
-          ],
+                key: 'monitors',
+                type: 'string',
+                placeholder: 'list of monitors',
+                dynamic: 'monitors.id.name',
+                altersDynamicFields: true,
+                list: true,
+                required: false,
+            },
+        ],
         type: 'hook',
         perform: resolveIncident,
         performList: fallbackHook,
         performSubscribe: subscribeHook,
         performUnsubscribe: unSubscribeHook,
         sample: {
-                projectName: 'New Project',
-                projectId: '1', 
-                incidentId: '1',
-                acknowledged: true,
-                resolved: true,
-                internalNote: 'New Note',
-                investigationNote: 'New Investigation',
-                createdAt: new Date().toISOString(),
-                createdBy: 'fyipe',
-                acknowledgedAt: new Date().toISOString(),
-                acknowledgedBy: 'fyipe',
-                resolvedAt: new Date().toISOString(),
-                resolvedBy: 'fyipe',
-                monitorName: 'New Sample',
-                monitorType: 'url',
-                monitorData: 'https://fyipe.com'
-        }
-    }
+            projectName: 'New Project',
+            projectId: '1',
+            incidentId: '1',
+            acknowledged: true,
+            resolved: true,
+            internalNote: 'New Note',
+            investigationNote: 'New Investigation',
+            createdAt: new Date().toISOString(),
+            createdBy: 'fyipe',
+            acknowledgedAt: new Date().toISOString(),
+            acknowledgedBy: 'fyipe',
+            resolvedAt: new Date().toISOString(),
+            resolvedBy: 'fyipe',
+            monitorName: 'New Sample',
+            monitorType: 'url',
+            monitorData: 'https://fyipe.com',
+        },
+    },
 };

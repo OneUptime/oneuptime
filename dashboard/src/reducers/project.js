@@ -1,80 +1,79 @@
-import * as types from '../constants/project'
+import * as types from '../constants/project';
 
 const initialState = {
     projects: {
         requesting: false,
         error: null,
         success: false,
-        projects: []
+        projects: [],
     },
     currentProject: null,
     newProject: {
         requesting: false,
         error: null,
         success: false,
-        project: {}
+        project: {},
     },
     projectSwitcherVisible: false,
     resetToken: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     renameProject: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     addBalance: {
         success: false,
         requesting: false,
         error: null,
-        pi: {}
+        pi: {},
     },
     checkCard: {
         success: false,
         requesting: false,
         error: null,
-        pi: {}
+        pi: {},
     },
     alertOptionsUpdate: {
         success: false,
         requesting: false,
         error: null,
-        project: {}
+        project: {},
     },
     changePlan: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     deleteProject: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     exitProject: {
         success: false,
         requesting: false,
-        error: null
+        error: null,
     },
     showForm: false,
     showUpgradeForm: false,
     canUpgrade: true, // Used to check if the user has plans they can upgrade to.
-    showDeleteModal: false
+    showDeleteModal: false,
 };
 
 export default function project(state = initialState, action) {
     let projects, newProjects;
     switch (action.type) {
-
         case types.PROJECTS_SUCCESS:
             return Object.assign({}, state, {
                 projects: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects: action.payload
+                    projects: action.payload,
                 },
             });
 
@@ -84,8 +83,8 @@ export default function project(state = initialState, action) {
                     ...state.projects,
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.PROJECTS_FAILED:
@@ -104,23 +103,23 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: false,
-                    projects: []
+                    projects: [],
                 },
             });
 
         case types.SWITCH_PROJECT:
             return Object.assign({}, state, {
-                currentProject: action.payload
+                currentProject: action.payload,
             });
 
         case types.SWITCH_PROJECT_RESET:
             return Object.assign({}, state, {
-                currentProject: null
+                currentProject: null,
             });
 
         case types.CREATE_PROJECT_RESET:
             return Object.assign({}, state, {
-                currentProject: null
+                currentProject: null,
             });
 
         case types.CREATE_PROJECT_SUCCESS:
@@ -131,15 +130,15 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    project: action.payload
+                    project: action.payload,
                 },
                 currentProject: action.payload,
                 projects: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects: newProjects
-                }
+                    projects: newProjects,
+                },
             });
 
         case types.CREATE_PROJECT_REQUEST:
@@ -147,8 +146,8 @@ export default function project(state = initialState, action) {
                 newProject: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.CREATE_PROJECT_FAILED:
@@ -162,21 +161,23 @@ export default function project(state = initialState, action) {
 
         case types.RESET_PROJECT_TOKEN_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(project => project._id !== action.payload._id);
+            projects = projects.filter(
+                project => project._id !== action.payload._id
+            );
             projects.push(action.payload);
             return Object.assign({}, state, {
                 projects: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects
+                    projects,
                 },
                 currentProject: action.payload,
                 resetToken: {
                     requesting: false,
                     success: true,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.RESET_PROJECT_TOKEN_REQUEST:
@@ -184,8 +185,8 @@ export default function project(state = initialState, action) {
                 resetToken: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.RESET_PROJECT_TOKEN_FAILED:
@@ -194,7 +195,7 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case types.RESET_PROJECT_TOKEN_RESET:
@@ -203,26 +204,28 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case types.RENAME_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(project => project._id !== action.payload._id);
+            projects = projects.filter(
+                project => project._id !== action.payload._id
+            );
             projects.push(action.payload);
             return Object.assign({}, state, {
                 projects: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects
+                    projects,
                 },
                 currentProject: action.payload,
                 renameProject: {
                     requesting: false,
                     success: true,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.RENAME_PROJECT_RESET:
@@ -230,8 +233,8 @@ export default function project(state = initialState, action) {
                 renameProject: {
                     requesting: false,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.RENAME_PROJECT_REQUEST:
@@ -239,8 +242,8 @@ export default function project(state = initialState, action) {
                 renameProject: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.RENAME_PROJECT_FAILED:
@@ -249,24 +252,26 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case types.DELETE_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(project => project._id !== action.payload);
+            projects = projects.filter(
+                project => project._id !== action.payload
+            );
             return Object.assign({}, state, {
                 deleteProject: {
                     requesting: false,
                     success: action.payload.ok === 1,
-                    error: null
+                    error: null,
                 },
                 projects: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects
-                }
+                    projects,
+                },
             });
 
         case types.DELETE_PROJECT_REQUEST:
@@ -274,8 +279,8 @@ export default function project(state = initialState, action) {
                 deleteProject: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.DELETE_PROJECT_FAILED:
@@ -284,7 +289,7 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case types.DELETE_PROJECT_RESET:
@@ -293,24 +298,26 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case types.MARK_PROJECT_DELETE_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(project => project._id !== action.payload);
+            projects = projects.filter(
+                project => project._id !== action.payload
+            );
             return Object.assign({}, state, {
                 deleteProject: {
                     requesting: false,
                     success: action.payload.ok === 1,
-                    error: null
+                    error: null,
                 },
                 projects: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects
-                }
+                    projects,
+                },
             });
 
         case types.MARK_PROJECT_DELETE_REQUEST:
@@ -318,8 +325,8 @@ export default function project(state = initialState, action) {
                 deleteProject: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.MARK_PROJECT_DELETE_FAILED:
@@ -328,7 +335,7 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case types.MARK_PROJECT_DELETE_RESET:
@@ -337,66 +344,68 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case types.SHOW_PROJECT_SWITCHER:
             return Object.assign({}, state, {
-                projectSwitcherVisible: true
+                projectSwitcherVisible: true,
             });
 
         case types.HIDE_PROJECT_SWITCHER:
             return Object.assign({}, state, {
-                projectSwitcherVisible: false
+                projectSwitcherVisible: false,
             });
 
         case types.SHOW_PROJECT_FORM:
             return Object.assign({}, state, {
-                showForm: true
+                showForm: true,
             });
 
         case types.HIDE_PROJECT_FORM:
             return Object.assign({}, state, {
-                showForm: false
+                showForm: false,
             });
 
         case types.SHOW_UPGRADE_FORM:
             return Object.assign({}, state, {
-                showUpgradeForm: true
+                showUpgradeForm: true,
             });
 
         case types.HIDE_UPGRADE_FORM:
             return Object.assign({}, state, {
-                showUpgradeForm: false
+                showUpgradeForm: false,
             });
 
         case types.SHOW_DELETE_MODAL:
             return Object.assign({}, state, {
-                showDeleteModal: true
+                showDeleteModal: true,
             });
 
         case types.HIDE_DELETE_MODAL:
             return Object.assign({}, state, {
-                showDeleteModal: false
+                showDeleteModal: false,
             });
 
         case types.CHANGE_PLAN_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(project => project._id !== action.payload._id);
+            projects = projects.filter(
+                project => project._id !== action.payload._id
+            );
             projects.push(action.payload);
             return Object.assign({}, state, {
                 projects: {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects
+                    projects,
                 },
                 currentProject: action.payload,
                 changePlan: {
                     requesting: false,
                     success: true,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.CHANGE_PLAN_RESET:
@@ -404,8 +413,8 @@ export default function project(state = initialState, action) {
                 changePlan: {
                     requesting: false,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.CHANGE_PLAN_REQUEST:
@@ -413,8 +422,8 @@ export default function project(state = initialState, action) {
                 changePlan: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.CHANGE_PLAN_FAILED:
@@ -423,12 +432,12 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case types.UPGRADE_PLAN_EMPTY:
             return Object.assign({}, state, {
-                canUpgrade: false
+                canUpgrade: false,
             });
 
         case types.EXIT_PROJECT_SUCCESS:
@@ -438,7 +447,7 @@ export default function project(state = initialState, action) {
                     error: null,
                     success: true,
                 },
-                currentProject: null
+                currentProject: null,
             });
 
         case types.EXIT_PROJECT_REQUEST:
@@ -446,8 +455,8 @@ export default function project(state = initialState, action) {
                 exitProject: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.EXIT_PROJECT_FAILED:
@@ -456,16 +465,17 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
 
         case types.CHANGE_PROJECT_ROLES:
             return Object.assign({}, state, {
                 currentProject: {
                     ...state.currentProject,
-                    users: action.payload.find(team => team.projectId === state.currentProject._id).team
-                }
-
+                    users: action.payload.find(
+                        team => team.projectId === state.currentProject._id
+                    ).team,
+                },
             });
         case types.ALERT_OPTIONS_UPDATE_SUCCESS:
             return Object.assign({}, state, {
@@ -473,13 +483,13 @@ export default function project(state = initialState, action) {
                     success: true,
                     requesting: false,
                     error: null,
-                    project: action.payload
+                    project: action.payload,
                 },
                 currentProject: {
                     ...state.currentProject,
                     alertEnable: action.payload.alertEnable,
-                    alertOptions: action.payload.alertOptions
-                }
+                    alertOptions: action.payload.alertOptions,
+                },
             });
 
         case types.ALERT_OPTIONS_UPDATE_REQUEST:
@@ -488,8 +498,8 @@ export default function project(state = initialState, action) {
                     ...state.alertOptionsUpdate,
                     success: false,
                     requesting: true,
-                    error: null
-                }
+                    error: null,
+                },
             });
         case types.ALERT_OPTIONS_UPDATE_FAILED:
             return Object.assign({}, state, {
@@ -497,8 +507,8 @@ export default function project(state = initialState, action) {
                     ...state.alertOptionsUpdate,
                     success: false,
                     requesting: false,
-                    error: action.payload
-                }
+                    error: action.payload,
+                },
             });
 
         case types.ADD_BALANCE_SUCCESS:
@@ -507,8 +517,8 @@ export default function project(state = initialState, action) {
                     success: true,
                     requesting: false,
                     error: null,
-                    pi: action.payload
-                }
+                    pi: action.payload,
+                },
             });
 
         case types.ADD_BALANCE_REQUEST:
@@ -516,7 +526,7 @@ export default function project(state = initialState, action) {
                 addBalance: {
                     ...state.addBalance,
                     requesting: true,
-                }
+                },
             });
         case types.ADD_BALANCE_FAILED:
             return Object.assign({}, state, {
@@ -524,16 +534,16 @@ export default function project(state = initialState, action) {
                     pi: {},
                     success: false,
                     requesting: false,
-                    error: action.payload
-                }
+                    error: action.payload,
+                },
             });
         case types.CHECK_CARD_REQUEST:
             return Object.assign({}, state, {
                 ...state,
                 checkCard: {
                     ...state.checkCard,
-                    requesting: true
-                }
+                    requesting: true,
+                },
             });
 
         case types.CHECK_CARD_SUCCESS:
@@ -543,8 +553,8 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    pi: action.payload
-                }
+                    pi: action.payload,
+                },
             });
 
         case types.CHECK_CARD_FAILED:
@@ -553,9 +563,10 @@ export default function project(state = initialState, action) {
                 checkCard: {
                     requesting: false,
                     success: false,
-                    error: action.payload
-                }
+                    error: action.payload,
+                },
             });
-        default: return state;
+        default:
+            return state;
     }
 }
