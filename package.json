@@ -17,7 +17,7 @@
     },
     "scripts": {
         "delete-all-local-branches": "git branch | grep -v 'master' | xargs git branch -D",
-        "lint": "prettier '**/*' --write --config .prettierrc.json && eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore --fix"
+        "lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore --fix"
     },
     "repository": {
         "type": "git",
