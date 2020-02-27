@@ -13,7 +13,6 @@
         "date-fns": "^2.9.0",
         "dompurify": "^2.0.7",
         "ejs": "^2.6.2",
-        "eslint": "^4.19.1",
         "express": "^4.17.1",
         "express-rate-limit": "^5.0.0",
         "gridfs-stream": "^1.1.1",
@@ -51,12 +50,9 @@
         "dev": "cross-env NODE_ENV=development nodemon server.js",
         "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",
-        "lint": "eslint .",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,ejs'",
-        "fix-lint": "eslint . --fix"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
     },
     "devDependencies": {
-        "babel-eslint": "^10.0.2",
         "chai": "^4.1.2",
         "chai-http": "^3.0.0",
         "chai-subset": "^1.6.0",

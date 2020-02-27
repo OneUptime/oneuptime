@@ -68,14 +68,12 @@
         "valid-url": "^1.0.9"
     },
     "scripts": {
-        "lint": "eslint .",
         "dev": "PORT=3000 react-scripts start",
         "build": "react-scripts build",
         "test": "jest --runInBand",
         "start": "node index.js",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
-        "audit": "npm-audit-ci-wrapper --threshold=low",
-        "fix-lint": "eslint . --fix"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,loadable-components,@beam-australia/react-env'",
+        "audit": "npm-audit-ci-wrapper --threshold=low"
     },
     "devDependencies": {
         "axios-mock-adapter": "^1.15.0",
