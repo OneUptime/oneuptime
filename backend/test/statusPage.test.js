@@ -1,4 +1,4 @@
-/* eslint-disable quotes */
+/* eslint-disable quotes, no-undef */
 
 process.env.PORT = 3020;
 const expect = require('chai').expect;

@@ -3,6 +3,8 @@ const utils = require('./test-utils');
 const init = require('./test-init');
 const { Cluster } = require('puppeteer-cluster');
 
+require('should');
+
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';

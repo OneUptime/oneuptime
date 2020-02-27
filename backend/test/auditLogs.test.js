@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+
 process.env.PORT = 3020;
 const chai = require('chai');
 const expect = require('chai').expect;

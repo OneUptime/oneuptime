@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+
 const expect = require('chai').expect;
 const chai = require('chai');
 chai.use(require('chai-http'));

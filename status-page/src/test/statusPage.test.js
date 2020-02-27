@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+
 // Load env vars from the backend.
 require('custom-env').env(null, '../backend');
 
