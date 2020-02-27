@@ -21,10 +21,10 @@ $ npm install fyipe-server-monitor
 
 You can use on the CLI:
 
-- Run `fyipe-server-monitor`.
-- Enter your Project ID and API key - Get these from your Fyipe Dashboard.
-- Select Server Monitor from the list of Server Monitors.
-- Server will be pinged every minute and the data stored in your project.
+-   Run `fyipe-server-monitor`.
+-   Enter your Project ID and API key - Get these from your Fyipe Dashboard.
+-   Select Server Monitor from the list of Server Monitors.
+-   Server will be pinged every minute and the data stored in your project.
 
 You can also use like so:
 
@@ -37,14 +37,14 @@ $ fyipe-server-monitor -p 5d64d59cae46131619708309 -a b02798c0-c898-11e9-9f14-49
 ## Basic Usage
 
 ```javascript
-const serverMonitor = require("fyipe-server-monitor");
+const serverMonitor = require('fyipe-server-monitor');
 
 const monitor = serverMonitor({
-  projectId: "5d64d59cae46131619708309",
-  apiKey: "b02798c0-c898-11e9-9f14-4963dc67e2ab",
-  monitorId: "5d7775e9f14a531364ba6917",
-  interval: "*/5 * * * * *", // cron job interval
-  timeout: 10000 // milliseconds
+    projectId: '5d64d59cae46131619708309',
+    apiKey: 'b02798c0-c898-11e9-9f14-4963dc67e2ab',
+    monitorId: '5d7775e9f14a531364ba6917',
+    interval: '*/5 * * * * *', // cron job interval
+    timeout: 10000, // milliseconds
 });
 
 monitor.start();
@@ -56,16 +56,16 @@ Main API to authenticate user, start and stop server monitoring.
 
 **See**
 
-- module:helpers
-- module:logger
+-   module:helpers
+-   module:logger
 
 **Author**: HackerBay, Inc.
 
-- [api](#module_api)
-  - [module.exports(config, apiKey, monitorId)](#exp_module_api--module.exports) ⇒ <code>Object</code> ⏏
-    - [~ping(projectId, monitorId, apiKey, interval)](#module_api--module.exports..ping) ⇒ <code>Object</code>
-    - [~start(id)](#module_api--module.exports..start) ⇒ <code>Object</code> \| <code>number</code>
-    - [~stop()](#module_api--module.exports..stop) ⇒ <code>Object</code>
+-   [api](#module_api)
+    -   [module.exports(config, apiKey, monitorId)](#exp_module_api--module.exports) ⇒ <code>Object</code> ⏏
+        -   [~ping(projectId, monitorId, apiKey, interval)](#module_api--module.exports..ping) ⇒ <code>Object</code>
+        -   [~start(id)](#module_api--module.exports..start) ⇒ <code>Object</code> \| <code>number</code>
+        -   [~stop()](#module_api--module.exports..stop) ⇒ <code>Object</code>
 
 <a name="exp_module_api--module.exports"></a>
 

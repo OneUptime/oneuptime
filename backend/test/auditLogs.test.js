@@ -41,7 +41,7 @@ describe('Audit Logs API', function() {
                             .post('/user/login')
                             .send({
                                 email: userData.user.email,
-                                password: userData.user.password
+                                password: userData.user.password,
                             })
                             .end(function(err, res) {
                                 token = res.body.tokens.jwtAccessToken;
@@ -59,9 +59,9 @@ describe('Audit Logs API', function() {
                 $in: [
                     userData.user.email,
                     userData.newUser.email,
-                    userData.anotherUser.email
-                ]
-            }
+                    userData.anotherUser.email,
+                ],
+            },
         });
         await AirtableService.deleteUser(airtableId);
 
@@ -73,10 +73,10 @@ describe('Audit Logs API', function() {
                 {
                     createdAt: {
                         $gte: testSuiteStartTime,
-                        $lte: new Date()
-                    }
-                }
-            ]
+                        $lte: new Date(),
+                    },
+                },
+            ],
         };
         await AuditLogsService.hardDeleteBy({ query: deleteQuery });
     });
@@ -94,13 +94,13 @@ describe('Audit Logs API', function() {
                 {
                     createdAt: {
                         $gte: testCaseStartTime,
-                        $lte: new Date()
-                    }
-                }
-            ]
+                        $lte: new Date(),
+                    },
+                },
+            ],
         };
         await AuditLogsService.hardDeleteBy({
-            query: deleteQuery
+            query: deleteQuery,
         });
     });
 
@@ -251,7 +251,7 @@ describe('Audit Logs API', function() {
             .post('/audit-logs/search')
             .set('Authorization', authorization)
             .send({
-                filter: searchString
+                filter: searchString,
             });
 
         expect(res).to.have.status(200);

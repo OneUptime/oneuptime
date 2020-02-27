@@ -4,22 +4,23 @@ import { connect } from 'react-redux';
 import Clipboard from '../Clipboard';
 
 export class MonitorUrl extends React.Component {
-    
-
-	handleKeyBoard = (e)=>{
-		switch(e.key){
-			case 'Escape':
-			return this.props.closeThisDialog()
-			default:
-			return false;
-		}
-    }
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
+    };
 
     render() {
         const { closeThisDialog, data, currentProject } = this.props;
 
         return (
-            <div onKeyDown={this.handleKeyBoard} className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
+            <div
+                onKeyDown={this.handleKeyBoard}
+                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
+            >
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -36,7 +37,13 @@ export class MonitorUrl extends React.Component {
                         <div className="bs-Modal-content">
                             <p>Click to copy inbound URL?</p>
                             <br />
-                            <Clipboard value={`https://api.fyipe.com/monitors/${currentProject._id}/inbound/${data.data && data.data.deviceId && data.data.deviceId}`}>
+                            <Clipboard
+                                value={`https://api.fyipe.com/monitors/${
+                                    currentProject._id
+                                }/inbound/${data.data &&
+                                    data.data.deviceId &&
+                                    data.data.deviceId}`}
+                            >
                                 copy to clipboard
                             </Clipboard>
                         </div>
@@ -54,22 +61,20 @@ export class MonitorUrl extends React.Component {
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 }
 
-MonitorUrl.displayName = 'MonitorUrl'
+MonitorUrl.displayName = 'MonitorUrl';
 
 MonitorUrl.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     data: PropTypes.object,
-}
+};
 
-const mapStateToProps = state => (
-    {
-        currentProject: state.project.currentProject
-    }
-);
+const mapStateToProps = state => ({
+    currentProject: state.project.currentProject,
+});
 
 export default connect(mapStateToProps, null)(MonitorUrl);

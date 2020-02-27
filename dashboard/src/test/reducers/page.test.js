@@ -3,11 +3,10 @@ import * as types from '../../constants/page';
 
 const initialState = {
     requesting: false,
-    title: ''
+    title: '',
 };
 
 describe('Page Reducers', () => {
-
     it('should return initial state', () => {
         expect(reducer(initialState, {})).toEqual(initialState);
     });
@@ -17,9 +16,14 @@ describe('Page Reducers', () => {
         const expected = {
             ...initialState,
             requesting: true,
-            title: payload
+            title: payload,
         };
-        expect(reducer(initialState, { type: types.PAGE_LOAD_REQUEST, payload: payload })).toEqual(expected);
+        expect(
+            reducer(initialState, {
+                type: types.PAGE_LOAD_REQUEST,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle PAGE_LOAD_SUCCESS', () => {
@@ -27,16 +31,23 @@ describe('Page Reducers', () => {
         const expected = {
             ...initialState,
             requesting: false,
-            title: payload
+            title: payload,
         };
-        expect(reducer(initialState, { type: types.PAGE_LOAD_SUCCESS, payload: payload })).toEqual(expected);
+        expect(
+            reducer(initialState, {
+                type: types.PAGE_LOAD_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle PAGE_LOAD_RESET', () => {
         const expected = {
             ...initialState,
-            requesting: false
+            requesting: false,
         };
-        expect(reducer(initialState, { type: types.PAGE_LOAD_RESET })).toEqual(expected);
+        expect(reducer(initialState, { type: types.PAGE_LOAD_RESET })).toEqual(
+            expected
+        );
     });
 });

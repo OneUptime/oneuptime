@@ -1,14 +1,13 @@
 module.exports = {
-
-    findBy: async function (query, skip, limit) {
+    findBy: async function(query, skip, limit) {
         try {
             if (!skip) skip = 0;
 
             if (!limit) limit = 0;
 
-            if (typeof (skip) === 'string') skip = parseInt(skip);
+            if (typeof skip === 'string') skip = parseInt(skip);
 
-            if (typeof (limit) === 'string') limit = parseInt(limit);
+            if (typeof limit === 'string') limit = parseInt(limit);
 
             if (!query) query = {};
 
@@ -24,7 +23,7 @@ module.exports = {
         }
     },
 
-    create: async function (data) {
+    create: async function(data) {
         try {
             const userModel = new UserModel();
             userModel.name = data.name || null;
@@ -49,8 +48,11 @@ module.exports = {
             userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
             userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
             userModel.otpauth_url = data.otpauth_url || null;
-            if(data.password){
-                const hash = await bcrypt.hash(data.password, constants.saltRounds);
+            if (data.password) {
+                const hash = await bcrypt.hash(
+                    data.password,
+                    constants.saltRounds
+                );
                 userModel.password = hash;
             }
             userModel.jwtRefreshToken = randToken.uid(256);
@@ -63,7 +65,7 @@ module.exports = {
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -78,22 +80,26 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query, userId) {
+    deleteBy: async function(query, userId) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const user = await UserModel.findOneAndUpdate(query, {
-                $set: {
-                    deleted: true,
-                    deletedById: userId,
-                    deletedAt: Date.now()
+            const user = await UserModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
                 }
-            }, {
-                new: true
-            });
+            );
             return user;
         } catch (error) {
             ErrorService.log('userService.deleteBy', error);
@@ -101,14 +107,15 @@ module.exports = {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             if (!query) {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const user = await UserModel.findOne(query)
-                .sort([['createdAt', -1]]);
+            const user = await UserModel.findOne(query).sort([
+                ['createdAt', -1],
+            ]);
             return user;
         } catch (error) {
             ErrorService.log('userService.findOneBy', error);
@@ -116,7 +123,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         if (!query) {
             query = {};
         }
@@ -133,11 +140,15 @@ module.exports = {
         }
 
         try {
-            const updatedUser = await UserModel.findOneAndUpdate(query, {
-                $set: data
-            }, {
-                new: true
-            });
+            const updatedUser = await UserModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
             return updatedUser;
         } catch (error) {
             ErrorService.log('userService.updateOneBy', error);
@@ -145,7 +156,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -153,7 +164,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             let updatedData = await UserModel.updateMany(query, {
-                $set: data
+                $set: data,
             });
             updatedData = await this.findBy(query);
             return updatedData;
@@ -163,15 +174,21 @@ module.exports = {
         }
     },
 
-    closeTutorialBy: async function (query, type, data) {
+    closeTutorialBy: async function(query, type, data) {
         try {
             if (!query) query = {};
             if (!data) data = {};
 
-            type = type.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
+            type = type.replace(/-([a-z])/g, function(g) {
+                return g[1].toUpperCase();
+            });
             data[type] = { show: false };
 
-            const tutorial = await UserModel.findOneAndUpdate(query, { $set: { tutorial: data } }, { new: true });
+            const tutorial = await UserModel.findOneAndUpdate(
+                query,
+                { $set: { tutorial: data } },
+                { new: true }
+            );
             return tutorial || null;
         } catch (error) {
             ErrorService.log('userService.closeTutorialBy', error);
@@ -179,17 +196,21 @@ module.exports = {
         }
     },
 
-    sendToken: async function (user, email) {
+    sendToken: async function(user, email) {
         try {
             const _this = this;
             const verificationTokenModel = new VerificationTokenModel({
                 userId: user._id,
-                token: crypto.randomBytes(16).toString('hex')
+                token: crypto.randomBytes(16).toString('hex'),
             });
             const verificationToken = await verificationTokenModel.save();
             if (verificationToken) {
                 const verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
-                MailService.sendVerifyEmail(verificationTokenURL, user.name, email);
+                MailService.sendVerifyEmail(
+                    verificationTokenURL,
+                    user.name,
+                    email
+                );
                 if (email !== user.email) {
                     _this.updateOneBy({ _id: user._id }, { tempEmail: email });
                 }
@@ -204,7 +225,7 @@ module.exports = {
     //Params:
     //Param 1: data: User details.
     //Returns: promise.
-    signup: async function (data) {
+    signup: async function(data) {
         try {
             const _this = this;
             const email = data.email;
@@ -221,11 +242,18 @@ module.exports = {
                     throw error;
                 } else {
                     // Check here is the payment intent is successfully paid. If yes then create the customer else not.
-                    const processedPaymentIntent = await PaymentService.checkPaymentIntent(paymentIntent);
+                    const processedPaymentIntent = await PaymentService.checkPaymentIntent(
+                        paymentIntent
+                    );
                     if (processedPaymentIntent.status !== 'succeeded') {
-                        const error = new Error('Unsuccessful attempt to charge card');
+                        const error = new Error(
+                            'Unsuccessful attempt to charge card'
+                        );
                         error.code = 400;
-                        ErrorService.log('PaymentService.checkPaymentIntent', error);
+                        ErrorService.log(
+                            'PaymentService.checkPaymentIntent',
+                            error
+                        );
                         throw error;
                     }
                     const customerId = processedPaymentIntent.customer;
@@ -233,28 +261,37 @@ module.exports = {
                     //save a user only when payment method is charged and then next steps
                     user = await _this.create(data);
 
-                    const createdAt = new Date(user.createdAt).toISOString().split('T', 1);
+                    const createdAt = new Date(user.createdAt)
+                        .toISOString()
+                        .split('T', 1);
                     const record = await AirtableService.logUser({
                         name: data.name,
                         email: data.email,
                         phone: data.companyPhoneNumber,
                         company: data.companyName,
                         jobRole: data.companyRole,
-                        createdAt
+                        createdAt,
                     });
 
                     await _this.sendToken(user, user.email);
 
                     //update customer Id
-                    user = await _this.updateOneBy({ _id: user._id }, { stripeCustomerId: customerId });
-                    const subscription = await PaymentService.subscribePlan(stripePlanId, customerId, data.coupon);
+                    user = await _this.updateOneBy(
+                        { _id: user._id },
+                        { stripeCustomerId: customerId }
+                    );
+                    const subscription = await PaymentService.subscribePlan(
+                        stripePlanId,
+                        customerId,
+                        data.coupon
+                    );
 
                     const projectName = 'Unnamed Project';
                     const projectData = {
                         name: projectName,
                         userId: user._id,
                         stripePlanId: stripePlanId,
-                        stripeSubscriptionId: subscription.stripeSubscriptionId
+                        stripeSubscriptionId: subscription.stripeSubscriptionId,
                     };
                     await ProjectService.create(projectData);
 
@@ -273,7 +310,7 @@ module.exports = {
             throw error;
         }
     },
-    getUserIpLocation: async function (clientIP) {
+    getUserIpLocation: async function(clientIP) {
         try {
             const ipLocation = await iplocation(clientIP);
             return ipLocation;
@@ -283,12 +320,12 @@ module.exports = {
     },
 
     generateUserBackupCodes: async function(secretKey, numberOfCodes) {
-        hotp.options = {digits: 8};
+        hotp.options = { digits: 8 };
         const backupCodes = [];
 
         for (let i = 0; i < numberOfCodes; i++) {
             const token = hotp.generate(secretKey, i);
-            backupCodes.push({code: token, counter: i});
+            backupCodes.push({ code: token, counter: i });
         }
         return backupCodes;
     },
@@ -296,10 +333,12 @@ module.exports = {
     verifyUserBackupCode: async function(code, secretKey, counter) {
         try {
             const _this = this;
-            hotp.options = {digits: 8};
+            hotp.options = { digits: 8 };
             const isValid = hotp.check(code, secretKey, counter);
             if (isValid) {
-                const user = await _this.findOneBy({twoFactorSecretCode:secretKey});
+                const user = await _this.findOneBy({
+                    twoFactorSecretCode: secretKey,
+                });
                 return user;
             }
             return isValid;
@@ -312,16 +351,22 @@ module.exports = {
     generateTwoFactorSecret: async function(userId) {
         try {
             const _this = this;
-            const user = await _this.findOneBy({_id:userId});
-            const secretCode = speakeasy.generateSecret({ length: 20, name: `Fyipe (${user.email})` });
-            const backupCodes = await _this.generateUserBackupCodes(secretCode.base32, 8);
+            const user = await _this.findOneBy({ _id: userId });
+            const secretCode = speakeasy.generateSecret({
+                length: 20,
+                name: `Fyipe (${user.email})`,
+            });
+            const backupCodes = await _this.generateUserBackupCodes(
+                secretCode.base32,
+                8
+            );
             const data = {
                 twoFactorSecretCode: secretCode.base32,
                 otpauth_url: secretCode.otpauth_url,
                 backupCodes,
             };
-            await _this.updateOneBy({_id : userId}, data);
-            return {otpauth_url: secretCode.otpauth_url};
+            await _this.updateOneBy({ _id: userId }, data);
+            return { otpauth_url: secretCode.otpauth_url };
         } catch (error) {
             ErrorService.log('userService.generateTwoFactorSecret', error);
             throw error;
@@ -331,14 +376,17 @@ module.exports = {
     verifyAuthToken: async function(token, userId) {
         try {
             const _this = this;
-            const user = await _this.findOneBy({_id:userId});
+            const user = await _this.findOneBy({ _id: userId });
             const isValidCode = speakeasy.totp.verify({
                 secret: user.twoFactorSecretCode,
                 encoding: 'base32',
                 token: token,
             });
             if (isValidCode) {
-                const updatedUser = await _this.updateOneBy({_id: user._id}, {twoFactorAuthEnabled:true});
+                const updatedUser = await _this.updateOneBy(
+                    { _id: user._id },
+                    { twoFactorAuthEnabled: true }
+                );
                 return updatedUser;
             }
             return isValidCode;
@@ -353,7 +401,7 @@ module.exports = {
     //Param 1: email: User email.
     //Param 2: password: User password.
     //Returns: promise.
-    login: async function (email, password, clientIP) {
+    login: async function(email, password, clientIP) {
         try {
             const _this = this;
             if (util.isEmailValid(email)) {
@@ -372,12 +420,20 @@ module.exports = {
                     if (user.paymentFailedDate) {
                         // calculate number of days the subscription renewal has failed.
                         const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
-                        const daysAfterPaymentFailed = Math.round((new Date - user.paymentFailedDate) / oneDayInMilliSeconds);
+                        const daysAfterPaymentFailed = Math.round(
+                            (new Date() - user.paymentFailedDate) /
+                                oneDayInMilliSeconds
+                        );
 
                         if (daysAfterPaymentFailed >= 15) {
-                            user = await _this.updateOneBy({ _id: user._id }, { disabled: true });
+                            user = await _this.updateOneBy(
+                                { _id: user._id },
+                                { disabled: true }
+                            );
 
-                            const error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
+                            const error = new Error(
+                                'Your account has been disabled. Kindly contact support@fyipe.com'
+                            );
                             error.code = 400;
                             ErrorService.log('userService.login', error);
                             throw error;
@@ -386,7 +442,9 @@ module.exports = {
                     const encryptedPassword = user.password;
 
                     if (user.disabled) {
-                        const error = new Error('Your account has been disabled. Kindly contact support@fyipe.com');
+                        const error = new Error(
+                            'Your account has been disabled. Kindly contact support@fyipe.com'
+                        );
                         error.code = 400;
                         ErrorService.log('userService.login', error);
                         throw error;
@@ -398,14 +456,19 @@ module.exports = {
                         throw error;
                     }
                     if (!encryptedPassword) {
-                        const error = new Error('Your account does not exist. Please sign up.');
+                        const error = new Error(
+                            'Your account does not exist. Please sign up.'
+                        );
                         error.code = 400;
                         ErrorService.log('userService.login', error);
                         throw error;
                     } else {
-                        const res = await bcrypt.compare(password, encryptedPassword);
+                        const res = await bcrypt.compare(
+                            password,
+                            encryptedPassword
+                        );
                         if (user.twoFactorAuthEnabled) {
-                            return {message: 'Login with 2FA token', email};
+                            return { message: 'Login with 2FA token', email };
                         }
 
                         if (res) {
@@ -434,7 +497,7 @@ module.exports = {
     //Params:
     //Param 1: email: User email.
     //Returns: promise.
-    forgotPassword: async function (email) {
+    forgotPassword: async function(email) {
         try {
             const _this = this;
             if (util.isEmailValid(email)) {
@@ -450,12 +513,15 @@ module.exports = {
                     const token = buf.toString('hex');
 
                     //update a user.
-                    user = await _this.updateOneBy({
-                        _id: user._id
-                    }, {
-                        resetPasswordToken: token,
-                        resetPasswordExpires: Date.now() + 3600000 // 1 hour
-                    });
+                    user = await _this.updateOneBy(
+                        {
+                            _id: user._id,
+                        },
+                        {
+                            resetPasswordToken: token,
+                            resetPasswordExpires: Date.now() + 3600000, // 1 hour
+                        }
+                    );
 
                     return user;
                 }
@@ -476,14 +542,14 @@ module.exports = {
     //Param 1:  password: User password.
     //Param 2:  token: token generated in forgot password function.
     //Returns: promise.
-    resetPassword: async function (password, token) {
+    resetPassword: async function(password, token) {
         try {
             const _this = this;
             let user = await _this.findOneBy({
                 resetPasswordToken: token,
                 resetPasswordExpires: {
-                    $gt: Date.now()
-                }
+                    $gt: Date.now(),
+                },
             });
 
             if (!user) {
@@ -492,13 +558,16 @@ module.exports = {
                 const hash = await bcrypt.hash(password, constants.saltRounds);
 
                 //update a user.
-                user = await _this.updateOneBy({
-                    _id: user._id
-                }, {
-                    password: hash,
-                    resetPasswordToken: '',
-                    resetPasswordExpires: ''
-                });
+                user = await _this.updateOneBy(
+                    {
+                        _id: user._id,
+                    },
+                    {
+                        password: hash,
+                        resetPasswordToken: '',
+                        resetPasswordExpires: '',
+                    }
+                );
 
                 return user;
             }
@@ -512,7 +581,7 @@ module.exports = {
     //Params:
     //Param 1:  refreshToken: Refresh token.
     //Returns: promise.
-    getNewToken: async function (refreshToken) {
+    getNewToken: async function(refreshToken) {
         try {
             const _this = this;
             let user = await _this.findOneBy({ jwtRefreshToken: refreshToken });
@@ -525,14 +594,19 @@ module.exports = {
             } else {
                 const userObj = { id: user._id };
 
-                const accessToken = `${jwt.sign(userObj, jwtSecretKey, { expiresIn: 86400 })}`;
+                const accessToken = `${jwt.sign(userObj, jwtSecretKey, {
+                    expiresIn: 86400,
+                })}`;
                 const jwtRefreshToken = randToken.uid(256);
 
-                user = await _this.updateOneBy({ _id: user._id }, { jwtRefreshToken: jwtRefreshToken });
+                user = await _this.updateOneBy(
+                    { _id: user._id },
+                    { jwtRefreshToken: jwtRefreshToken }
+                );
 
                 const token = {
                     accessToken: accessToken,
-                    refreshToken: refreshToken
+                    refreshToken: refreshToken,
                 };
                 return token;
             }
@@ -540,20 +614,25 @@ module.exports = {
             ErrorService.log('userService.getNewToken', error);
             throw error;
         }
-
     },
 
-    changePassword: async function (data) {
+    changePassword: async function(data) {
         try {
             const _this = this;
             const currentPassword = data.currentPassword;
             let user = await _this.findOneBy({ _id: data._id });
             const encryptedPassword = user.password;
 
-            const check = await bcrypt.compare(currentPassword, encryptedPassword);
+            const check = await bcrypt.compare(
+                currentPassword,
+                encryptedPassword
+            );
             if (check) {
                 const newPassword = data.newPassword;
-                const hash = await bcrypt.hash(newPassword, constants.saltRounds);
+                const hash = await bcrypt.hash(
+                    newPassword,
+                    constants.saltRounds
+                );
 
                 data.password = hash;
                 user = await _this.updateOneBy({ _id: data._id }, data);
@@ -569,94 +648,152 @@ module.exports = {
             ErrorService.log('userService.changePassword', error);
             throw error;
         }
-
     },
 
-    getAllUsers: async function (skip, limit) {
+    getAllUsers: async function(skip, limit) {
         const _this = this;
-        let users = await _this.findBy({ _id: { $ne: null }, deleted: { $ne: null } }, skip, limit);
-        users = await Promise.all(users.map(async (user) => {
-            // find user subprojects and parent projects
-            let userProjects = await ProjectService.findBy({ 'users.userId': user._id });
-            let parentProjectIds = [];
-            let projectIds = [];
-            if (userProjects.length > 0) {
-                const subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
-                parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
-                const projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
-                projectIds = projects.map(project => project._id);
-            }
-            userProjects = await ProjectService.findBy({ $or: [{ _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } }] });
-            return await Object.assign({}, user._doc, { projects: userProjects });
-        }));
+        let users = await _this.findBy(
+            { _id: { $ne: null }, deleted: { $ne: null } },
+            skip,
+            limit
+        );
+        users = await Promise.all(
+            users.map(async user => {
+                // find user subprojects and parent projects
+                let userProjects = await ProjectService.findBy({
+                    'users.userId': user._id,
+                });
+                let parentProjectIds = [];
+                let projectIds = [];
+                if (userProjects.length > 0) {
+                    const subProjects = userProjects
+                        .map(project =>
+                            project.parentProjectId ? project : null
+                        )
+                        .filter(subProject => subProject !== null);
+                    parentProjectIds = subProjects.map(
+                        subProject => subProject.parentProjectId._id
+                    );
+                    const projects = userProjects
+                        .map(project =>
+                            project.parentProjectId ? null : project
+                        )
+                        .filter(project => project !== null);
+                    projectIds = projects.map(project => project._id);
+                }
+                userProjects = await ProjectService.findBy({
+                    $or: [
+                        { _id: { $in: parentProjectIds } },
+                        { _id: { $in: projectIds } },
+                    ],
+                });
+                return await Object.assign({}, user._doc, {
+                    projects: userProjects,
+                });
+            })
+        );
         return users;
     },
 
-    restoreBy: async function (query) {
+    restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
 
         let user = await _this.findBy(query);
         if (user && user.length > 1) {
-            const users = await Promise.all(user.map(async (user) => {
-                const userId = user._id;
-                user = await _this.updateOneBy({
-                    _id: userId
-                }, {
-                    deleted: false,
-                    deletedBy: null,
-                    deletedAt: null,
-                });
-                return user;
-            }));
+            const users = await Promise.all(
+                user.map(async user => {
+                    const userId = user._id;
+                    user = await _this.updateOneBy(
+                        {
+                            _id: userId,
+                        },
+                        {
+                            deleted: false,
+                            deletedBy: null,
+                            deletedAt: null,
+                        }
+                    );
+                    return user;
+                })
+            );
             return users;
         } else {
             user = user[0];
             if (user) {
                 const userId = user._id;
-                user = await _this.updateOneBy({
-                    _id: userId
-                }, {
-                    deleted: false,
-                    deletedBy: null,
-                    deletedAt: null,
-                });
+                user = await _this.updateOneBy(
+                    {
+                        _id: userId,
+                    },
+                    {
+                        deleted: false,
+                        deletedBy: null,
+                        deletedAt: null,
+                    }
+                );
             }
             return user;
         }
     },
 
-    addNotes: async function (userId, notes) {
+    addNotes: async function(userId, notes) {
         const _this = this;
-        const adminNotes = (await _this.updateOneBy({
-            _id: userId
-        }, {
-            adminNotes: notes
-        })).adminNotes;
+        const adminNotes = (
+            await _this.updateOneBy(
+                {
+                    _id: userId,
+                },
+                {
+                    adminNotes: notes,
+                }
+            )
+        ).adminNotes;
         return adminNotes;
     },
 
-    searchUsers: async function (query, skip, limit) {
+    searchUsers: async function(query, skip, limit) {
         const _this = this;
         let users = await _this.findBy(query, skip, limit);
-        users = await Promise.all(users.map(async (user) => {
-            // find user subprojects and parent projects
-            let userProjects = await ProjectService.findBy({ 'users.userId': user._id });
-            let parentProjectIds = [];
-            let projectIds = [];
-            if (userProjects.length > 0) {
-                const subProjects = userProjects.map(project => project.parentProjectId ? project : null).filter(subProject => subProject !== null);
-                parentProjectIds = subProjects.map(subProject => subProject.parentProjectId._id);
-                const projects = userProjects.map(project => project.parentProjectId ? null : project).filter(project => project !== null);
-                projectIds = projects.map(project => project._id);
-            }
-            userProjects = await ProjectService.findBy({ $or: [{ _id: { $in: parentProjectIds } }, { _id: { $in: projectIds } }] });
-            return await Object.assign({}, user._doc, { projects: userProjects });
-        }));
+        users = await Promise.all(
+            users.map(async user => {
+                // find user subprojects and parent projects
+                let userProjects = await ProjectService.findBy({
+                    'users.userId': user._id,
+                });
+                let parentProjectIds = [];
+                let projectIds = [];
+                if (userProjects.length > 0) {
+                    const subProjects = userProjects
+                        .map(project =>
+                            project.parentProjectId ? project : null
+                        )
+                        .filter(subProject => subProject !== null);
+                    parentProjectIds = subProjects.map(
+                        subProject => subProject.parentProjectId._id
+                    );
+                    const projects = userProjects
+                        .map(project =>
+                            project.parentProjectId ? null : project
+                        )
+                        .filter(project => project !== null);
+                    projectIds = projects.map(project => project._id);
+                }
+                userProjects = await ProjectService.findBy({
+                    $or: [
+                        { _id: { $in: parentProjectIds } },
+                        { _id: { $in: projectIds } },
+                    ],
+                });
+                return await Object.assign({}, user._doc, {
+                    projects: userProjects,
+                });
+            })
+        );
         return users;
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await UserModel.deleteMany(query);
             return 'User(s) Removed Successfully!';
@@ -666,12 +803,15 @@ module.exports = {
         }
     },
 
-    getAccessToken: function({userId, expiresIn}){
-        return jwt.sign({
-            id: userId
-        }, jwtSecretKey, { expiresIn: expiresIn});
-    }
-
+    getAccessToken: function({ userId, expiresIn }) {
+        return jwt.sign(
+            {
+                id: userId,
+            },
+            jwtSecretKey,
+            { expiresIn: expiresIn }
+        );
+    },
 };
 
 const bcrypt = require('bcrypt');

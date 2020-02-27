@@ -7,26 +7,29 @@ const fetch = require('node-fetch');
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
 module.exports = {
-    ping: async (monitor) => {
+    ping: async monitor => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
-
                     const { res, resp } = await pingfetch(monitor.data.url);
 
-
-                    await ApiService.ping(monitor._id, { monitor, res, resp, type: monitor.type });
+                    await ApiService.ping(monitor._id, {
+                        monitor,
+                        res,
+                        resp,
+                        type: monitor.type,
+                    });
                 }
             }
         } catch (error) {
             ErrorService.log('UrlMonitors.ping', error);
             throw error;
         }
-    }
+    },
 };
 
-const pingfetch = async (url) => {
-    const now = (new Date()).getTime();
+const pingfetch = async url => {
+    const now = new Date().getTime();
     let resp = null;
     let res = null;
     try {
@@ -36,6 +39,6 @@ const pingfetch = async (url) => {
     } catch (error) {
         resp = { status: 408, body: error };
     }
-    res = (new Date()).getTime() - now;
+    res = new Date().getTime() - now;
     return { res, resp };
 };

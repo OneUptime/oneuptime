@@ -25,60 +25,82 @@ const INITIAL_STATE = {
         error: null,
         notes: [],
         requesting: false,
-        skip: 0
+        skip: 0,
     },
     requestingmore: false,
     requestingstatuses: false,
     individualnote: null,
     notesmessage: null,
-    activeProbe: 0
+    activeProbe: 0,
 };
 
 export default (state = INITIAL_STATE, action) => {
     switch (action.type) {
-
         case STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 error: null,
                 statusPage: action.payload,
-                requesting: false
+                requesting: false,
             });
 
         case STATUSPAGE_FAILURE:
             return Object.assign({}, state, {
                 error: action.payload,
-                requesting: false
+                requesting: false,
             });
 
         case STATUSPAGE_REQUEST:
             return Object.assign({}, state, {
                 error: null,
-                requesting: true
+                requesting: true,
             });
 
         case 'UPDATE_STATUS_PAGE': {
-            const isValidMonitorNote = state.individualnote && action.payload.monitorIds && action.payload.monitorIds.length > 0 && action.payload.monitorIds.find(monitor => monitor._id === state.individualnote._id);
+            const isValidMonitorNote =
+                state.individualnote &&
+                action.payload.monitorIds &&
+                action.payload.monitorIds.length > 0 &&
+                action.payload.monitorIds.find(
+                    monitor => monitor._id === state.individualnote._id
+                );
             return Object.assign({}, state, {
                 error: null,
                 statusPage: {
                     ...action.payload,
 
-                    monitorsData: action.payload.monitorsData && action.payload.monitorsData.length > 0 ?
-                        action.payload.monitorsData.map(newMonitorData => {
-                            if (state.statusPage.monitorsData && state.statusPage.monitorsData.length > 0) {
-                                state.statusPage.monitorsData.forEach(oldMonitorData => {
-                                    if (newMonitorData._id === oldMonitorData._id) {
-                                        newMonitorData.statuses = oldMonitorData.statuses;
-                                    }
-                                })
-                            }
+                    monitorsData:
+                        action.payload.monitorsData &&
+                        action.payload.monitorsData.length > 0
+                            ? action.payload.monitorsData.map(
+                                  newMonitorData => {
+                                      if (
+                                          state.statusPage.monitorsData &&
+                                          state.statusPage.monitorsData.length >
+                                              0
+                                      ) {
+                                          state.statusPage.monitorsData.forEach(
+                                              oldMonitorData => {
+                                                  if (
+                                                      newMonitorData._id ===
+                                                      oldMonitorData._id
+                                                  ) {
+                                                      newMonitorData.statuses =
+                                                          oldMonitorData.statuses;
+                                                  }
+                                              }
+                                          );
+                                      }
 
-                            return newMonitorData;
-                        }) : []
+                                      return newMonitorData;
+                                  }
+                              )
+                            : [],
                 },
-                individualnote: isValidMonitorNote ? state.individualnote : null,
+                individualnote: isValidMonitorNote
+                    ? state.individualnote
+                    : null,
                 notesmessage: isValidMonitorNote ? state.notesmessage : null,
-                requesting: false
+                requesting: false,
             });
         }
 
@@ -88,43 +110,62 @@ export default (state = INITIAL_STATE, action) => {
                 statusPage: {
                     ...state.statusPage,
 
-                    monitorIds: state.statusPage.monitorIds && state.statusPage.monitorIds.length > 0 ?
-                        state.statusPage.monitorIds.map(monitor => {
-                            if (monitor._id === action.payload._id) {
-                                monitor.name = action.payload.name;
-                            }
-                            return monitor;
-                        }) : [],
-                    monitorsData: state.statusPage.monitorsData && state.statusPage.monitorsData.length > 0 ?
-                        state.statusPage.monitorsData.map(monitor => {
-                            if (monitor._id === action.payload._id) {
-                                return {
-                                    ...monitor,
-                                    ...action.payload,
-                                    monitorCategoryId: action.payload.monitorCategoryId
-                                };
-                            }
-                            return monitor;
-                        }) : []
+                    monitorIds:
+                        state.statusPage.monitorIds &&
+                        state.statusPage.monitorIds.length > 0
+                            ? state.statusPage.monitorIds.map(monitor => {
+                                  if (monitor._id === action.payload._id) {
+                                      monitor.name = action.payload.name;
+                                  }
+                                  return monitor;
+                              })
+                            : [],
+                    monitorsData:
+                        state.statusPage.monitorsData &&
+                        state.statusPage.monitorsData.length > 0
+                            ? state.statusPage.monitorsData.map(monitor => {
+                                  if (monitor._id === action.payload._id) {
+                                      return {
+                                          ...monitor,
+                                          ...action.payload,
+                                          monitorCategoryId:
+                                              action.payload.monitorCategoryId,
+                                      };
+                                  }
+                                  return monitor;
+                              })
+                            : [],
                 },
-                requesting: false
+                requesting: false,
             });
 
         case 'DELETE_MONITOR': {
-            const isIndividualNote = state.individualnote && state.individualnote._id === action.payload;
+            const isIndividualNote =
+                state.individualnote &&
+                state.individualnote._id === action.payload;
             return Object.assign({}, state, {
                 error: null,
                 statusPage: {
                     ...state.statusPage,
 
-                    monitorIds: state.statusPage.monitorIds && state.statusPage.monitorIds.length > 0 ?
-                        state.statusPage.monitorIds.filter(monitor => monitor._id !== action.payload) : [],
-                    monitorsData: state.statusPage.monitorsData && state.statusPage.monitorsData.length > 0 ?
-                        state.statusPage.monitorsData.filter(monitor => monitor._id !== action.payload) : []
+                    monitorIds:
+                        state.statusPage.monitorIds &&
+                        state.statusPage.monitorIds.length > 0
+                            ? state.statusPage.monitorIds.filter(
+                                  monitor => monitor._id !== action.payload
+                              )
+                            : [],
+                    monitorsData:
+                        state.statusPage.monitorsData &&
+                        state.statusPage.monitorsData.length > 0
+                            ? state.statusPage.monitorsData.filter(
+                                  monitor => monitor._id !== action.payload
+                              )
+                            : [],
                 },
                 individualnote: isIndividualNote ? null : state.individualnote,
                 notesmessage: isIndividualNote ? null : state.notesmessage,
-                requesting: false
+                requesting: false,
             });
         }
 
@@ -132,11 +173,20 @@ export default (state = INITIAL_STATE, action) => {
             return Object.assign({}, state, {
                 notes: {
                     error: null,
-                    notes: action.payload && action.payload.data ? action.payload.data : [],
+                    notes:
+                        action.payload && action.payload.data
+                            ? action.payload.data
+                            : [],
                     requesting: false,
-                    skip: action.payload && action.payload.skip ? action.payload.skip : 0,
-                    count: action.payload && action.payload.count ? action.payload.count : 0,
-                }
+                    skip:
+                        action.payload && action.payload.skip
+                            ? action.payload.skip
+                            : 0,
+                    count:
+                        action.payload && action.payload.count
+                            ? action.payload.count
+                            : 0,
+                },
             });
 
         case STATUSPAGE_NOTES_FAILURE:
@@ -146,8 +196,8 @@ export default (state = INITIAL_STATE, action) => {
                     notes: state.notes.notes,
                     requesting: false,
                     skip: state.notes.skip,
-                    count: state.notes.count
-                }
+                    count: state.notes.count,
+                },
             });
 
         case STATUSPAGE_NOTES_REQUEST:
@@ -157,8 +207,8 @@ export default (state = INITIAL_STATE, action) => {
                     notes: [],
                     requesting: true,
                     skip: 0,
-                    count: 0
-                }
+                    count: 0,
+                },
             });
 
         case STATUSPAGE_NOTES_RESET:
@@ -168,8 +218,8 @@ export default (state = INITIAL_STATE, action) => {
                     notes: [],
                     requesting: false,
                     skip: 0,
-                    count: 0
-                }
+                    count: 0,
+                },
             });
 
         case 'UPDATE_INCIDENT_NOTE':
@@ -177,16 +227,17 @@ export default (state = INITIAL_STATE, action) => {
                 notes: {
                     ...state.notes,
 
-                    notes: state.notes.notes && state.notes.notes.length > 0 ?
-                        state.notes.notes.map(note => {
-                            if (note._id === action.payload._id) {
-                                return action.payload;
-                            } else {
-                                return note;
-                            }
-                        })
-                        : []
-                }
+                    notes:
+                        state.notes.notes && state.notes.notes.length > 0
+                            ? state.notes.notes.map(note => {
+                                  if (note._id === action.payload._id) {
+                                      return action.payload;
+                                  } else {
+                                      return note;
+                                  }
+                              })
+                            : [],
+                },
             });
 
         case MORE_NOTES_SUCCESS:
@@ -196,9 +247,11 @@ export default (state = INITIAL_STATE, action) => {
                     notes: state.notes.notes.concat(action.payload.data),
                     requesting: false,
                     skip: action.payload.skip,
-                    count: action.payload.count ? action.payload.count : state.notes.count,
+                    count: action.payload.count
+                        ? action.payload.count
+                        : state.notes.count,
                 },
-                requestingmore: false
+                requestingmore: false,
             });
 
         case MORE_NOTES_FAILURE:
@@ -208,9 +261,9 @@ export default (state = INITIAL_STATE, action) => {
                     notes: state.notes.notes,
                     requesting: false,
                     skip: state.notes.skip,
-                    count: state.notes.count
+                    count: state.notes.count,
                 },
-                requestingmore: false
+                requestingmore: false,
             });
 
         case MORE_NOTES_REQUEST:
@@ -219,23 +272,23 @@ export default (state = INITIAL_STATE, action) => {
         case INDIVIDUAL_NOTES_ENABLE:
             return Object.assign({}, state, {
                 individualnote: action.payload.name,
-                notesmessage: action.payload.message
+                notesmessage: action.payload.message,
             });
 
         case INDIVIDUAL_NOTES_DISABLE:
             return Object.assign({}, state, {
                 individualnote: null,
-                notesmessage: null
+                notesmessage: null,
             });
 
         case SELECT_PROBE:
             return Object.assign({}, state, {
-                activeProbe: action.payload
+                activeProbe: action.payload,
             });
 
         case FETCH_MONITOR_STATUSES_REQUEST:
             return Object.assign({}, state, {
-                requestingstatuses: true
+                requestingstatuses: true,
             });
 
         case FETCH_MONITOR_STATUSES_SUCCESS:
@@ -248,9 +301,9 @@ export default (state = INITIAL_STATE, action) => {
                             monitor.statuses = action.payload.statuses.data;
                         }
                         return monitor;
-                    })
+                    }),
                 },
-                requestingstatuses: false
+                requestingstatuses: false,
             });
 
         case FETCH_MONITOR_STATUSES_FAILURE:
@@ -262,7 +315,7 @@ export default (state = INITIAL_STATE, action) => {
                     error: action.payload,
                     success: false,
                 },
-                requestingstatuses: false
+                requestingstatuses: false,
             });
 
         case 'UPDATE_MONITOR_STATUS':
@@ -272,57 +325,117 @@ export default (state = INITIAL_STATE, action) => {
 
                     monitorsData: state.statusPage.monitorsData.map(monitor => {
                         if (monitor._id === action.payload.status.monitorId) {
-                            const data = Object.assign({}, action.payload.status.data);
+                            const data = Object.assign(
+                                {},
+                                action.payload.status.data
+                            );
                             const probes = action.payload.probes;
-                            const isValidProbe = (monitor.type === 'url' || monitor.type === 'api' || monitor.type === 'device')
-                                && probes && probes.length > 0;
+                            const isValidProbe =
+                                (monitor.type === 'url' ||
+                                    monitor.type === 'api' ||
+                                    monitor.type === 'device') &&
+                                probes &&
+                                probes.length > 0;
 
-                            if (monitor.statuses && monitor.statuses.length > 0) {
-                                const monitorProbes = monitor.statuses.map(a => a._id);
+                            if (
+                                monitor.statuses &&
+                                monitor.statuses.length > 0
+                            ) {
+                                const monitorProbes = monitor.statuses.map(
+                                    a => a._id
+                                );
 
-                                if (monitorProbes.includes(data.probeId) || !data.probeId) {
-                                    monitor.statuses = monitor.statuses.map(probeStatuses => {
-                                        const probeId = probeStatuses._id;
+                                if (
+                                    monitorProbes.includes(data.probeId) ||
+                                    !data.probeId
+                                ) {
+                                    monitor.statuses = monitor.statuses.map(
+                                        probeStatuses => {
+                                            const probeId = probeStatuses._id;
 
-                                        if (probeId === data.probeId || !data.probeId) {
-                                            const previousStatus = probeStatuses.statuses[0];
-                                            previousStatus.endTime = new Date().toISOString();
+                                            if (
+                                                probeId === data.probeId ||
+                                                !data.probeId
+                                            ) {
+                                                const previousStatus =
+                                                    probeStatuses.statuses[0];
+                                                previousStatus.endTime = new Date().toISOString();
 
-                                            return { _id: probeId, statuses: [data, previousStatus, ...(probeStatuses.statuses.slice(1))] };
-                                        } else {
-                                            return probeStatuses;
+                                                return {
+                                                    _id: probeId,
+                                                    statuses: [
+                                                        data,
+                                                        previousStatus,
+                                                        ...probeStatuses.statuses.slice(
+                                                            1
+                                                        ),
+                                                    ],
+                                                };
+                                            } else {
+                                                return probeStatuses;
+                                            }
                                         }
-                                    });
+                                    );
 
-                                    if (isValidProbe && !probes.every(probe => monitorProbes.includes(probe._id))) {
+                                    if (
+                                        isValidProbe &&
+                                        !probes.every(probe =>
+                                            monitorProbes.includes(probe._id)
+                                        )
+                                    ) {
                                         // add manual status to all new probes
                                         const newProbeStatuses = [];
 
                                         probes.forEach(probe => {
-                                            if (!monitorProbes.includes(probe._id)) {
-                                                newProbeStatuses.push({ _id: probe._id, statuses: [data] });
+                                            if (
+                                                !monitorProbes.includes(
+                                                    probe._id
+                                                )
+                                            ) {
+                                                newProbeStatuses.push({
+                                                    _id: probe._id,
+                                                    statuses: [data],
+                                                });
                                             }
                                         });
 
-                                        monitor.statuses = [...monitor.statuses, ...newProbeStatuses];
+                                        monitor.statuses = [
+                                            ...monitor.statuses,
+                                            ...newProbeStatuses,
+                                        ];
                                     }
                                 } else {
-                                    monitor.statuses = [...monitor.statuses, { _id: data.probeId || null, statuses: [data] }];
+                                    monitor.statuses = [
+                                        ...monitor.statuses,
+                                        {
+                                            _id: data.probeId || null,
+                                            statuses: [data],
+                                        },
+                                    ];
                                 }
                             } else {
                                 if (isValidProbe) {
-                                    monitor.statuses = probes.map(probe => ({ _id: probe._id, statuses: [data] }));
+                                    monitor.statuses = probes.map(probe => ({
+                                        _id: probe._id,
+                                        statuses: [data],
+                                    }));
                                 } else {
-                                    monitor.statuses = [{ _id: data.probeId || null, statuses: [data] }];
+                                    monitor.statuses = [
+                                        {
+                                            _id: data.probeId || null,
+                                            statuses: [data],
+                                        },
+                                    ];
                                 }
                             }
                         }
                         return monitor;
-                    })
+                    }),
                 },
-                requestingstatuses: false
+                requestingstatuses: false,
             });
 
-        default: return state;
+        default:
+            return state;
     }
-}
+};

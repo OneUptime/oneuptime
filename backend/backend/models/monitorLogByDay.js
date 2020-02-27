@@ -27,6 +27,6 @@ const monitorLogByDaySchema = new Schema({
     maxCpuLoad: Number,
     maxMemoryUsed: Number,
     maxStorageUsed: Number,
-    maxMainTemp: Number
+    maxMainTemp: Number,
 });
 module.exports = mongoose.model('MonitorLogByDay', monitorLogByDaySchema);

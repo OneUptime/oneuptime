@@ -1,4 +1,3 @@
-
 export const timezones = [
     { name: 'ACDT/ACST - Adelaide', code: '0' },
     { name: 'ACDT/ACST - Broken Hill', code: '1' },
@@ -190,7 +189,7 @@ export const timezones = [
     { name: 'CST/CDT - General', code: '188' },
     { name: 'CST/CDT - Havana', code: '189' },
     { name: 'CST/CDT - Indiana-Starke', code: '190' },
-    { name: 'CST/CDT - Knox I\'N', code: '191' },
+    { name: "CST/CDT - Knox I'N", code: '191' },
     { name: 'CST/CDT - Knox, Indiana', code: '192' },
     { name: 'CST/CDT - Matamoros', code: '193' },
     { name: 'CST/CDT - Menominee', code: '194' },

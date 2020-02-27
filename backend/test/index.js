@@ -1,4 +1,3 @@
-
 try {
     require('./alert.test');
     require('./auditLogs.test');
@@ -33,5 +32,5 @@ try {
 } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error);
-    throw error; 
+    throw error;
 }

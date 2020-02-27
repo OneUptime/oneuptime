@@ -1,35 +1,39 @@
-import reducer from '../../reducers/slack'
-import * as types from '../../constants/slack'
+import reducer from '../../reducers/slack';
+import * as types from '../../constants/slack';
 
 const initialState = {
-    teams:{
-        error:null, 
-        requesting: false, 
-        success:false,
-        teams:[],
+    teams: {
+        error: null,
+        requesting: false,
+        success: false,
+        teams: [],
         count: null,
         limit: null,
-        skip: null
+        skip: null,
     },
     deleteTeam: {
-        error:null, 
-        requesting: false, 
-        success:false,
+        error: null,
+        requesting: false,
+        success: false,
     },
     pages: {
-		counter: 0
-	}
+        counter: 0,
+    },
 };
 
-describe('Slack Integration Reducers',()=>{
-
+describe('Slack Integration Reducers', () => {
     it('should return initial state', () => {
-        expect(reducer(initialState,{})).toEqual(initialState)
+        expect(reducer(initialState, {})).toEqual(initialState);
     });
 
     it('should handle GET_SLACK_TEAM_SUCCESS', () => {
-        const payload = { data: [{_id:'_id'}], count: 1, skip: 0, limit: 10};
-        const expected  = {
+        const payload = {
+            data: [{ _id: '_id' }],
+            count: 1,
+            skip: 0,
+            limit: 10,
+        };
+        const expected = {
             ...initialState,
             teams: {
                 requesting: false,
@@ -38,32 +42,39 @@ describe('Slack Integration Reducers',()=>{
                 teams: payload.data,
                 count: payload.count,
                 limit: payload.limit,
-                skip: payload.skip
+                skip: payload.skip,
             },
-        };        
-        expect(reducer(initialState,{type:types.GET_SLACK_TEAM_SUCCESS, payload:payload})).toEqual(expected)
+        };
+        expect(
+            reducer(initialState, {
+                type: types.GET_SLACK_TEAM_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle GET_SLACK_TEAM_REQUEST', () => {
-        initialState.teams.teams = [{_id:'_id'}]
-        const expected  = {
+        initialState.teams.teams = [{ _id: '_id' }];
+        const expected = {
             ...initialState,
             teams: {
                 requesting: true,
                 success: false,
                 error: null,
-                teams:[],
+                teams: [],
                 count: null,
                 limit: null,
-                skip: null
-            }
-        };        
-        expect(reducer(initialState,{type:types.GET_SLACK_TEAM_REQUEST})).toEqual(expected)
+                skip: null,
+            },
+        };
+        expect(
+            reducer(initialState, { type: types.GET_SLACK_TEAM_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle GET_SLACK_TEAM_FAILED', () => {
-        const payload = 'some error'
-        const expected  = {
+        const payload = 'some error';
+        const expected = {
             ...initialState,
             teams: {
                 requesting: false,
@@ -72,15 +83,19 @@ describe('Slack Integration Reducers',()=>{
                 teams: [],
                 count: null,
                 limit: null,
-                skip: null
+                skip: null,
             },
-        };        
-        expect(reducer(initialState,{type:types.GET_SLACK_TEAM_FAILED,payload:payload})).toEqual(expected)
+        };
+        expect(
+            reducer(initialState, {
+                type: types.GET_SLACK_TEAM_FAILED,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle GET_SLACK_TEAM_RESET', () => {
-        const payload = 'some error'
-        const expected  = {
+        const expected = {
             ...initialState,
             teams: {
                 requesting: false,
@@ -89,17 +104,19 @@ describe('Slack Integration Reducers',()=>{
                 teams: [],
                 count: null,
                 limit: null,
-                skip: null
+                skip: null,
             },
-        };        
-        expect(reducer(initialState,{type:types.GET_SLACK_TEAM_RESET})).toEqual(expected)
+        };
+        expect(
+            reducer(initialState, { type: types.GET_SLACK_TEAM_RESET })
+        ).toEqual(expected);
     });
 
     it('should handle DELETE_SLACK_LINK_SUCCESS', () => {
-        initialState.teams.teams = [{_id:'_id', name:'Slack team name'}]
-        const payload = [{_id:'_id', name:'Slack team name'}];
+        initialState.teams.teams = [{ _id: '_id', name: 'Slack team name' }];
+        const payload = [{ _id: '_id', name: 'Slack team name' }];
         const count = initialState.teams.count - 1;
-        const expected  = {
+        const expected = {
             ...initialState,
             teams: {
                 requesting: false,
@@ -108,81 +125,101 @@ describe('Slack Integration Reducers',()=>{
                 teams: payload,
                 skip: initialState.teams.skip,
                 limit: initialState.teams.limit,
-                count: count
+                count: count,
             },
             deleteTeam: {
                 requesting: false,
                 error: null,
-                success: true
-            }
-        };        
-        expect(reducer(initialState,{type:types.DELETE_SLACK_LINK_SUCCESS,payload:payload})).toEqual(expected)
+                success: true,
+            },
+        };
+        expect(
+            reducer(initialState, {
+                type: types.DELETE_SLACK_LINK_SUCCESS,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle DELETE_SLACK_LINK_REQUEST', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             deleteTeam: {
                 requesting: true,
                 success: false,
-                error: null
-            }
-        };        
-        expect(reducer(initialState,{type:types.DELETE_SLACK_LINK_REQUEST})).toEqual(expected)
+                error: null,
+            },
+        };
+        expect(
+            reducer(initialState, { type: types.DELETE_SLACK_LINK_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle DELETE_SLACK_LINK_FAILED', () => {
-        const payload = 'some error'
-        const expected  = {
+        const payload = 'some error';
+        const expected = {
             ...initialState,
             deleteTeam: {
                 requesting: false,
                 error: payload,
                 success: false,
             },
-        };        
-        expect(reducer(initialState,{type:types.DELETE_SLACK_LINK_FAILED,payload:payload})).toEqual(expected)
+        };
+        expect(
+            reducer(initialState, {
+                type: types.DELETE_SLACK_LINK_FAILED,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle DELETE_SLACK_LINK_RESET', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             deleteTeam: {
                 requesting: false,
                 success: false,
-                error: null
+                error: null,
             },
-        };        
-        expect(reducer(initialState,{type:types.DELETE_SLACK_LINK_RESET})).toEqual(expected)
+        };
+        expect(
+            reducer(initialState, { type: types.DELETE_SLACK_LINK_RESET })
+        ).toEqual(expected);
     });
 
     it('should handle PAGINATE_NEXT', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             pages: {
-                counter: 0
-            }
-        };        
-        expect(reducer(initialState,{type:types.PAGINATE_NEXT})).toEqual(expected)
+                counter: 0,
+            },
+        };
+        expect(reducer(initialState, { type: types.PAGINATE_NEXT })).toEqual(
+            expected
+        );
     });
 
     it('should handle PAGINATE_PREV', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             pages: {
-                counter: 0
-            }
-        };        
-        expect(reducer(initialState,{type:types.PAGINATE_PREV})).toEqual(expected)
+                counter: 0,
+            },
+        };
+        expect(reducer(initialState, { type: types.PAGINATE_PREV })).toEqual(
+            expected
+        );
     });
 
     it('should handle PAGINATE_RESET', () => {
-        const expected  = {
+        const expected = {
             ...initialState,
             pages: {
-                counter: 0
-            }
-        };        
-        expect(reducer(initialState,{type:types.PAGINATE_RESET})).toEqual(expected)
+                counter: 0,
+            },
+        };
+        expect(reducer(initialState, { type: types.PAGINATE_RESET })).toEqual(
+            expected
+        );
     });
 });

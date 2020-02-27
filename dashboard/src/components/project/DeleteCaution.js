@@ -6,18 +6,16 @@ import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 
 function validate(values) {
-
     const errors = {};
 
     if (!Validate.text(values.projectName)) {
-        errors.name = 'Project Name is required!'
+        errors.name = 'Project Name is required!';
     }
 
     return errors;
 }
 
 export function DeleteCaution(props) {
-
     const { hide, requesting, deleteProject, handleSubmit } = props;
     return (
         <form onSubmit={handleSubmit(deleteProject.bind(this))}>
@@ -32,7 +30,7 @@ export function DeleteCaution(props) {
                 <div className="bs-Modal-content">
                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                         Are you sure you want to delete this project?
-				</span>
+                    </span>
                     <br />
                     <br />
                     <div>
@@ -49,7 +47,8 @@ export function DeleteCaution(props) {
                 <div className="bs-Modal-footer">
                     <div className="bs-Modal-footer-actions">
                         <button
-                            className={`bs-Button ${requesting && 'bs-is-disabled'}`}
+                            className={`bs-Button ${requesting &&
+                                'bs-is-disabled'}`}
                             type="button"
                             onClick={hide}
                             disabled={requesting}
@@ -57,7 +56,8 @@ export function DeleteCaution(props) {
                             <span>Cancel</span>
                         </button>
                         <button
-                            className={`bs-Button bs-Button--red Box-background--red ${requesting && 'bs-is-disabled'}`}
+                            className={`bs-Button bs-Button--red Box-background--red ${requesting &&
+                                'bs-is-disabled'}`}
                             disabled={requesting}
                             type="submit"
                         >
@@ -73,16 +73,16 @@ export function DeleteCaution(props) {
     );
 }
 
-DeleteCaution.displayName = 'DeleteCaution'
+DeleteCaution.displayName = 'DeleteCaution';
 
 DeleteCaution.propTypes = {
     hide: PropTypes.func.isRequired,
     deleteProject: PropTypes.func.isRequired,
     requesting: PropTypes.bool,
     handleSubmit: PropTypes.func,
-}
+};
 
 export default reduxForm({
     form: 'DeleteCautionForm',
-    validate
+    validate,
 })(DeleteCaution);

@@ -1,7 +1,7 @@
 /**
- * 
- * Copyright HackerBay, Inc. 
- * 
+ *
+ * Copyright HackerBay, Inc.
+ *
  */
 
 const express = require('express');
@@ -19,14 +19,14 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 //                                                   jwtAccessToken: token.accessToken,
 //                                                   jwtRefreshToken: token.refreshToken,
 //                                               }
-router.post('/new', async function (req, res) {
+router.post('/new', async function(req, res) {
     try {
         const jwtRefreshToken = req.body.refreshToken;
-    
-        if(!jwtRefreshToken){
-            return sendErrorResponse( req, res, {
-                code: 400, 
-                message: 'Refresh Token not found.'
+
+        if (!jwtRefreshToken) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Refresh Token not found.',
             });
         }
         const token = await UserService.getNewToken(jwtRefreshToken);
@@ -34,12 +34,11 @@ router.post('/new', async function (req, res) {
             jwtAccessToken: token.accessToken,
             jwtRefreshToken: token.refreshToken,
         };
-        
+
         return sendItemResponse(req, res, tokenData);
-    } catch(error) {
+    } catch (error) {
         return sendErrorResponse(req, res, error);
     }
-
 });
 
-module.exports = router;  
+module.exports = router;

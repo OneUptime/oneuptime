@@ -1,6 +1,6 @@
-var express = require('express');
-var app = express();
-var path = require('path');
+const express = require('express');
+const app = express();
+const path = require('path');
 
 // set the server port
 app.set('port', process.env.PORT || 1445);
@@ -13,10 +13,11 @@ app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 2592000 }));
 
 // index page
-app.get('/', function (req, res) {
+app.get('/', function(req, res) {
     res.render('pages/index');
 });
 
-app.listen(app.get('port'), function () {
-    console.log("API Reference started on PORT:" + app.get('port'));
+app.listen(app.get('port'), function() {
+    // eslint-disable-next-line no-console
+    console.log('API Reference started on PORT:' + app.get('port'));
 });

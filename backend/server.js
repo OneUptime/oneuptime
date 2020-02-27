@@ -4,7 +4,7 @@ const app = express();
 const { NODE_ENV } = process.env;
 
 if (!NODE_ENV || NODE_ENV === 'development') {
-    // Load env vars from /backend/.env 
+    // Load env vars from /backend/.env
     require('custom-env').env();
 }
 
@@ -13,7 +13,7 @@ process.on('exit', () => {
     console.log('Server Shutting Shutdown');
 });
 
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', err => {
     /* eslint-disable no-console */
     console.error('Uncaught exception in server process occurred');
     /* eslint-disable no-console */
@@ -27,23 +27,28 @@ const redisAdapter = require('socket.io-redis');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
-io.adapter(redisAdapter({
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT
-}));
+io.adapter(
+    redisAdapter({
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT,
+    })
+);
 
 global.io = io;
 
 app.use(cors());
 
-app.use(function (req, res, next) {
-    if (typeof (req.body) === 'string') {
+app.use(function(req, res, next) {
+    if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
     res.header('Access-Control-Allow-Credentials', true);
     res.header('Access-Control-Allow-Origin', req.headers.origin);
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization');
+    res.header(
+        'Access-Control-Allow-Headers',
+        'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
+    );
     next();
 });
 
@@ -64,7 +69,6 @@ app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'views')));
 
 app.use(require('./backend/middlewares/auditLogs').log);
-
 
 // Routes(API)
 app.use('/server', require('./backend/api/server'));
@@ -103,30 +107,30 @@ app.use('/tutorial', require('./backend/api/tutorial'));
 app.use('/audit-logs', require('./backend/api/auditLogs'));
 app.set('port', process.env.PORT || 3002);
 
-const server = http.listen(app.get('port'), function () {
+const server = http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('Server Started on port ' + app.get('port'));
 });
 
-app.get('/', function (req, res) {
+app.get('/', function(req, res) {
     res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify({
-        status: 200,
-        message: 'Service Status - OK',
-        serviceType: 'fyipe-api'
-    }));
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'fyipe-api',
+        })
+    );
 });
 
-app.use('/*', function (req, res) {
+app.use('/*', function(req, res) {
     res.status(404).render('notFound.ejs', {});
 });
-
 
 //attach cron jobs
 require('./backend/workers/main');
 
 module.exports = app;
-module.exports.close = function () {
+module.exports.close = function() {
     server.close();
 };
-

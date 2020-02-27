@@ -1,46 +1,46 @@
 {
-  "name": "http-test-server",
-  "version": "1.0.0",
-  "private": true,
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "cross-env NODE_ENV=development nodemon server.js",
-    "audit": "npm-audit-ci-wrapper --threshold=high",
-    "lint": "eslint .",
-    "fix-lint": "eslint . --fix",
-    "test": "jest --runInBand test",
-    "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,ejs'"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "body-parser": "^1.19.0",
-    "cross-env": "^6.0.3",
-    "custom-env": "^1.0.2",
-    "ejs": "^2.6.2",
-    "eslint": "^6.8.0",
-    "express": "^4.16.4",
-    "faker": "^4.1.0",
-    "jest": "^24.9.0",
-    "puppeteer": "^2.0.0",
-    "should": "^13.2.3"
-  },
-  "devDependencies": {
-    "babel-eslint": "^10.0.3",
-    "depcheck": "^0.9.2",
-    "nodemon": "^2.0.2",
-    "npm-audit-ci-wrapper": "^2.4.3"
-  },
-  "jest": {
-    "collectCoverageFrom": [
-      "./**/*.js",
-      "!src/**/*.stories.js",
-      "!src/store.js",
-      "!src/config.js",
-      "!src/routes.js",
-      "!src/setupTests.js"
-    ]
-  }
+    "name": "http-test-server",
+    "version": "1.0.0",
+    "private": true,
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "cross-env NODE_ENV=development nodemon server.js",
+        "audit": "npm-audit-ci-wrapper --threshold=high",
+        "lint": "eslint .",
+        "fix-lint": "eslint . --fix",
+        "test": "jest --runInBand test",
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,ejs'"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "body-parser": "^1.19.0",
+        "cross-env": "^6.0.3",
+        "custom-env": "^1.0.2",
+        "ejs": "^2.6.2",
+        "eslint": "^6.8.0",
+        "express": "^4.16.4",
+        "faker": "^4.1.0",
+        "jest": "^24.9.0",
+        "puppeteer": "^2.0.0",
+        "should": "^13.2.3"
+    },
+    "devDependencies": {
+        "babel-eslint": "^10.0.3",
+        "depcheck": "^0.9.2",
+        "nodemon": "^2.0.2",
+        "npm-audit-ci-wrapper": "^2.4.3"
+    },
+    "jest": {
+        "collectCoverageFrom": [
+            "./**/*.js",
+            "!src/**/*.stories.js",
+            "!src/store.js",
+            "!src/config.js",
+            "!src/routes.js",
+            "!src/setupTests.js"
+        ]
+    }
 }

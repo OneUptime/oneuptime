@@ -6,34 +6,55 @@ import { renderIfSubProjectAdmin } from '../../config';
 
 const errorStyle = {
     color: 'red',
-    topMargin: '5px'
+    topMargin: '5px',
 };
 
-const SubProjectSelector = ({ input, className, disabled, meta: { touched, error }, currentProject, subProjects, style, id }) => {
-    const options = [{ value: '', label: 'Select Sub-Project' }].concat(subProjects.map(subProject => {
-        return {
-            value: subProject._id,
-            label: subProject.name,
-            show: renderIfSubProjectAdmin(currentProject, subProjects, subProject._id)
-        }
-    }));
+const SubProjectSelector = ({
+    input,
+    className,
+    disabled,
+    meta: { touched, error },
+    currentProject,
+    subProjects,
+    style,
+    id,
+}) => {
+    const options = [{ value: '', label: 'Select Sub-Project' }].concat(
+        subProjects.map(subProject => {
+            return {
+                value: subProject._id,
+                label: subProject.name,
+                show: renderIfSubProjectAdmin(
+                    currentProject,
+                    subProjects,
+                    subProject._id
+                ),
+            };
+        })
+    );
 
     const filteredOpt = useRef();
     filteredOpt.current = options.filter(opt => opt.value === input.value);
 
     const [value, setValue] = useState({
-        value: input.value, label: filteredOpt.current.length > 0 ?
-            filteredOpt.current[0].label : 'Select Sub-Project'
+        value: input.value,
+        label:
+            filteredOpt.current.length > 0
+                ? filteredOpt.current[0].label
+                : 'Select Sub-Project',
     });
 
     useEffect(() => {
         setValue({
-            value: input.value, label: filteredOpt.current.length > 0 ?
-                filteredOpt.current[0].label : 'Select Sub-Project'
+            value: input.value,
+            label:
+                filteredOpt.current.length > 0
+                    ? filteredOpt.current[0].label
+                    : 'Select Sub-Project',
         });
     }, [input]);
 
-    const handleChange = (option) => {
+    const handleChange = option => {
         setValue(option);
         if (input.onChange) {
             input.onChange(option.value);
@@ -50,7 +71,9 @@ const SubProjectSelector = ({ input, className, disabled, meta: { touched, error
                     className={className}
                     id={id}
                     isDisabled={disabled || false}
-                    options={options.filter(opt => opt.show !== undefined ? opt.show : true)}
+                    options={options.filter(opt =>
+                        opt.show !== undefined ? opt.show : true
+                    )}
                 />
             </div>
             {touched && error && <span style={errorStyle}>{error}</span>}
@@ -74,7 +97,7 @@ SubProjectSelector.propTypes = {
     style: PropTypes.object,
     id: PropTypes.string,
     subProjects: PropTypes.array.isRequired,
-    currentProject: PropTypes.object
+    currentProject: PropTypes.object,
 };
 
 export default connect(mapStateToProps)(SubProjectSelector);

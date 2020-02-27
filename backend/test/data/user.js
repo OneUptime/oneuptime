@@ -3,14 +3,14 @@ const StringUtil = require('../utils/string');
 module.exports = {
     user: {
         name: 'John Smith',
-        email: StringUtil.generateRandomString(10)+'@tmpmail.com',
-        password:'1234567890',
+        email: StringUtil.generateRandomString(10) + '@tmpmail.com',
+        password: '1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',
         jobRole: 'Engineer',
         companySize: 10,
         subscription: {
-            stripePlanId: 0
+            stripePlanId: 0,
         },
         city: 'New York',
         state: 'New York',
@@ -19,19 +19,19 @@ module.exports = {
         planId: 'plan_EgTJMZULfh6THW',
         companyRole: 'Snr. Developer',
         companyPhoneNumber: '+919910568840',
-        reference: 'Github'
+        reference: 'Github',
     },
 
     anotherUser: {
         name: 'Kayode Adebayo',
-        email: StringUtil.generateRandomString(10)+'@fyipe.com',
-        password:'123456789',
+        email: StringUtil.generateRandomString(10) + '@fyipe.com',
+        password: '123456789',
         confirmPassword: '123456789',
         companyName: 'Hackerbay',
         jobRole: 'Engineer',
         companySize: 10,
         subscription: {
-            stripePlanId: 0
+            stripePlanId: 0,
         },
         city: 'New York',
         state: 'New York',
@@ -40,19 +40,19 @@ module.exports = {
         planId: 'plan_EgTJMZULfh6THW',
         companyRole: 'Snr. Developer',
         companyPhoneNumber: '+919910568840',
-        reference: 'Github'
+        reference: 'Github',
     },
 
     newUser: {
         name: 'John Smith',
-        email: StringUtil.generateRandomString(10)+'@fyipe.com',
-        password:'1234567890',
+        email: StringUtil.generateRandomString(10) + '@fyipe.com',
+        password: '1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',
         jobRole: 'Engineer',
         companySize: 10,
         subscription: {
-            stripePlanId: 0
+            stripePlanId: 0,
         },
         city: 'New York',
         state: 'New York',
@@ -61,7 +61,7 @@ module.exports = {
         planId: 'plan_EgTJMZULfh6THW',
         companyRole: 'Snr. Developer',
         companyPhoneNumber: '+919910568840',
-        reference: 'Github'
+        reference: 'Github',
     },
 
     nullUser: {
@@ -73,7 +73,7 @@ module.exports = {
         jobRole: null,
         companySize: null,
         subscription: {
-            stripePlanId: null
+            stripePlanId: null,
         },
         city: null,
         state: null,
@@ -82,15 +82,15 @@ module.exports = {
         planId: null,
         companyRole: null,
         companyPhoneNumber: null,
-        reference: null
+        reference: null,
     },
 
     profile: {
         name: 'John Smith',
-        email: StringUtil.generateRandomString(10)+'@fyipe.com',
+        email: StringUtil.generateRandomString(10) + '@fyipe.com',
         timezone: 'Europe/London',
         profilePic: 'Image.jpg',
         companyPhoneNumber: '+919910568840',
-        alertPhoneNumber: '+919910568840'
-    }
+        alertPhoneNumber: '+919910568840',
+    },
 };

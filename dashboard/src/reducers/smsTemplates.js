@@ -1,6 +1,5 @@
 import * as types from '../constants/smstemplates';
 
-
 const initialState = {
     smsTemplates: {
         requesting: false,
@@ -8,36 +7,34 @@ const initialState = {
         success: false,
         templates: [],
     },
-    editSmsTemplates:{
-        requesting: false,
-        error: null,
-        success: false
-    },
-    resetSmsTemplates:{
-        requesting: false,
-        error: null,
-        success: false
-    },
-    showingTemplate:{},
-    revealVariable:'',
-    smsSmtpConfiguration:{
+    editSmsTemplates: {
         requesting: false,
         error: null,
         success: false,
-        config:{}
     },
-    smsSmtpDelete:{
+    resetSmsTemplates: {
         requesting: false,
         error: null,
-        success: false
+        success: false,
     },
-    showSmsSmtpConfiguration : false,
+    showingTemplate: {},
+    revealVariable: '',
+    smsSmtpConfiguration: {
+        requesting: false,
+        error: null,
+        success: false,
+        config: {},
+    },
+    smsSmtpDelete: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
+    showSmsSmtpConfiguration: false,
 };
-
 
 export default function incident(state = initialState, action) {
     switch (action.type) {
-
         case types.SMS_TEMPLATES_SUCCESS:
             return Object.assign({}, state, {
                 smsTemplates: {
@@ -89,9 +86,11 @@ export default function incident(state = initialState, action) {
                 editSmsTemplates: {
                     requesting: false,
                     error: null,
-                    success: true
+                    success: true,
                 },
-                showingTemplate: action.payload.find(temp => temp.smsType === state.showingTemplate.smsType)
+                showingTemplate: action.payload.find(
+                    temp => temp.smsType === state.showingTemplate.smsType
+                ),
             });
 
         case types.EDIT_SMS_TEMPLATES_REQUEST:
@@ -99,8 +98,8 @@ export default function incident(state = initialState, action) {
                 editSmsTemplates: {
                     requesting: action.payload,
                     error: null,
-                    success: false
-                }
+                    success: false,
+                },
             });
 
         case types.EDIT_SMS_TEMPLATES_FAILED:
@@ -108,8 +107,8 @@ export default function incident(state = initialState, action) {
                 editSmsTemplates: {
                     requesting: false,
                     error: action.payload,
-                    success: false
-                }
+                    success: false,
+                },
             });
 
         case types.EDIT_SMS_TEMPLATES_RESET:
@@ -117,8 +116,8 @@ export default function incident(state = initialState, action) {
                 editSmsTemplates: {
                     requesting: false,
                     error: null,
-                    success: false
-                }
+                    success: false,
+                },
             });
 
         case types.RESET_SMS_TEMPLATES_SUCCESS:
@@ -129,118 +128,123 @@ export default function incident(state = initialState, action) {
                     success: true,
                     templates: action.payload,
                 },
-                resetSmsTemplates:{
+                resetSmsTemplates: {
                     requesting: false,
                     error: null,
-                    success: false
+                    success: false,
                 },
-                showingTemplate: action.payload.find(temp => temp.smsType === state.showingTemplate.smsType)
+                showingTemplate: action.payload.find(
+                    temp => temp.smsType === state.showingTemplate.smsType
+                ),
             });
 
         case types.RESET_SMS_TEMPLATES_REQUEST:
             return Object.assign({}, state, {
-                resetSmsTemplates:{
+                resetSmsTemplates: {
                     requesting: true,
                     error: null,
-                    success: false
-                }
+                    success: false,
+                },
             });
 
         case types.RESET_SMS_TEMPLATES_FAILED:
             return Object.assign({}, state, {
-                resetSmsTemplates:{
+                resetSmsTemplates: {
                     requesting: false,
                     error: action.payload,
-                    success: false
-                }
+                    success: false,
+                },
             });
 
         case types.CHANGE_SHOWING_TEMPLATE:
             return Object.assign({}, state, {
-                showingTemplate: state.smsTemplates.templates.find(temp => temp.smsType === action.payload)
+                showingTemplate: state.smsTemplates.templates.find(
+                    temp => temp.smsType === action.payload
+                ),
             });
 
         case types.SET_REVEAL_VARIABLE:
             return Object.assign({}, state, {
-                revealVariable: action.payload
+                revealVariable: action.payload,
             });
 
         case types.SET_SMTP_CONFIG:
             return Object.assign({}, state, {
-                showSmsSmtpConfiguration: action.payload
+                showSmsSmtpConfiguration: action.payload,
             });
 
         case types.SMTP_CONFIG_SUCCESS:
             return Object.assign({}, state, {
-                smsSmtpConfiguration:{
+                smsSmtpConfiguration: {
                     requesting: false,
                     error: null,
                     success: true,
-                    config: action.payload
+                    config: action.payload,
                 },
             });
 
         case types.SMTP_CONFIG_FAILED:
             return Object.assign({}, state, {
-                smsSmtpConfiguration:{
+                smsSmtpConfiguration: {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    config:state.smsSmtpConfiguration.config
+                    config: state.smsSmtpConfiguration.config,
                 },
             });
 
         case types.SMTP_CONFIG_REQUEST:
             return Object.assign({}, state, {
-                smsSmtpConfiguration:{
+                smsSmtpConfiguration: {
                     requesting: true,
                     error: null,
                     success: false,
-                    config: state.smsSmtpConfiguration.config
+                    config: state.smsSmtpConfiguration.config,
                 },
-                smsSmtpDelete:{
+                smsSmtpDelete: {
                     ...state.smsSmtpDelete,
                     error: null,
-                }
+                },
             });
 
         case types.DELETE_SMTP_CONFIG_SUCCESS:
             return Object.assign({}, state, {
-                smsSmtpDelete:{
+                smsSmtpDelete: {
                     requesting: false,
                     error: null,
-                    success: true
+                    success: true,
                 },
-                smsSmtpConfiguration:{
+                smsSmtpConfiguration: {
                     requesting: false,
                     error: null,
                     success: false,
-                    config: action.payload
+                    config: action.payload,
                 },
             });
 
         case types.DELETE_SMTP_CONFIG_FAILED:
             return Object.assign({}, state, {
-                smsSmtpDelete:{
+                smsSmtpDelete: {
                     requesting: false,
                     error: action.payload,
-                    success: false
+                    success: false,
                 },
             });
 
         case types.DELETE_SMTP_CONFIG_REQUEST:
             return Object.assign({}, state, {
-                smsSmtpDelete:{
+                smsSmtpDelete: {
                     requesting: true,
                     error: null,
-                    success: false
+                    success: false,
                 },
-                smsSmtpConfiguration:{
+                smsSmtpConfiguration: {
                     ...state.smsSmtpConfiguration,
                     error: null,
                 },
             });
 
-            default: return state;
-        }
+        default:
+            return state;
     }
+}

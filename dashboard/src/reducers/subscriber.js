@@ -1,5 +1,4 @@
-import * as types from '../constants/subscriber'
-
+import * as types from '../constants/subscriber';
 
 const initialState = {
     subscribers: {
@@ -9,32 +8,31 @@ const initialState = {
         subscribers: [],
         count: null,
         limit: null,
-        skip: null
+        skip: null,
     },
     newSubscriber: {
         requesting: false,
         error: null,
-        success: false
-    },
-    csvExport:{
-        requesting: false,
-        error:  null,
         success: false,
-        content: null
     },
-    deleteSubscriber:{
+    csvExport: {
         requesting: false,
         error: null,
-        success: false
-    }
+        success: false,
+        content: null,
+    },
+    deleteSubscriber: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
-
 
 export default function subscriber(state = initialState, action) {
     switch (action.type) {
         case types.CREATE_SUBSCRIBER_RESET:
             return Object.assign({}, state, {
-                newSubscriber: initialState.newSubscriber
+                newSubscriber: initialState.newSubscriber,
             });
 
         case types.CREATE_SUBSCRIBER_SUCCESS:
@@ -46,8 +44,10 @@ export default function subscriber(state = initialState, action) {
                 },
                 subscribers: {
                     ...state.subscribers,
-                    subscribers: [action.payload].concat(state.subscribers.subscribers)
-                }
+                    subscribers: [action.payload].concat(
+                        state.subscribers.subscribers
+                    ),
+                },
             });
 
         case types.CREATE_SUBSCRIBER_REQUEST:
@@ -55,8 +55,8 @@ export default function subscriber(state = initialState, action) {
                 newSubscriber: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.CREATE_SUBSCRIBER_FAILED:
@@ -70,7 +70,7 @@ export default function subscriber(state = initialState, action) {
 
         case types.EXPORT_CSV_RESET:
             return Object.assign({}, state, {
-                csvExport: initialState.csvExport
+                csvExport: initialState.csvExport,
             });
 
         case types.EXPORT_CSV_SUCCESS:
@@ -79,8 +79,8 @@ export default function subscriber(state = initialState, action) {
                     requesting: false,
                     success: true,
                     error: null,
-                    content: action.payload
-                }
+                    content: action.payload,
+                },
             });
 
         case types.EXPORT_CSV_REQUEST:
@@ -89,7 +89,7 @@ export default function subscriber(state = initialState, action) {
                     requesting: true,
                     success: false,
                     error: null,
-                }
+                },
             });
 
         case types.EXPORT_CSV_FAILED:
@@ -98,11 +98,11 @@ export default function subscriber(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                }
+                },
             });
         case types.DELETE_SUBSCRIBER_RESET:
             return Object.assign({}, state, {
-                deleteSubscriber: initialState.deleteSubscriber
+                deleteSubscriber: initialState.deleteSubscriber,
             });
 
         case types.DELETE_SUBSCRIBER_SUCCESS:
@@ -114,8 +114,10 @@ export default function subscriber(state = initialState, action) {
                 },
                 subscribers: {
                     ...state.subscribers,
-                    subscribers: state.subscribers.subscribers.filter(subscriber=>subscriber !== action.payload._id)
-                }
+                    subscribers: state.subscribers.subscribers.filter(
+                        subscriber => subscriber !== action.payload._id
+                    ),
+                },
             });
 
         case types.DELETE_SUBSCRIBER_REQUEST:
@@ -123,8 +125,8 @@ export default function subscriber(state = initialState, action) {
                 deleteSubscriber: {
                     requesting: true,
                     success: false,
-                    error: null
-                }
+                    error: null,
+                },
             });
 
         case types.DELETE_SUBSCRIBER_FAILED:
@@ -135,6 +137,7 @@ export default function subscriber(state = initialState, action) {
                     success: false,
                 },
             });
-        default: return state;  
+        default:
+            return state;
     }
 }

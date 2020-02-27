@@ -8,7 +8,6 @@ import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 
 class Monitors extends Component {
-
     constructor(props) {
         super(props);
         this.props = props;

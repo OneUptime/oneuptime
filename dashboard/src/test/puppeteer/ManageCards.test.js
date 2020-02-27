@@ -1,12 +1,11 @@
 const puppeteer = require('puppeteer');
-const should = require('should');
 const utils = require('./test-utils');
 const init = require('./test-init');
 const { Cluster } = require('puppeteer-cluster');
 
 // parent user credentials
-let email = utils.generateRandomBusinessEmail();
-let password = '1234567890';
+const email = utils.generateRandomBusinessEmail();
+const password = '1234567890';
 
 describe('Stripe cards API', () => {
     const operationTimeOut = 60000;
@@ -96,7 +95,7 @@ describe('Stripe cards API', () => {
                 await page.click('#addCardButtonSubmit');
                 await page.waitFor(20000);
 
-                var cardsCount = await page.$eval(
+                const cardsCount = await page.$eval(
                     '#cardsCount',
                     el => el.textContent
                 );
@@ -143,7 +142,7 @@ describe('Stripe cards API', () => {
                 await page.click('#deleteCardButton');
                 await page.waitFor(4000);
 
-                var cardsCount = await page.$eval(
+                const cardsCount = await page.$eval(
                     '#cardsCount',
                     el => el.textContent
                 );
@@ -191,7 +190,7 @@ describe('Stripe cards API', () => {
                 await page.waitFor(4000);
                 await page.click('#deleteCardCancel');
 
-                var cardsCount = await page.$eval(
+                const cardsCount = await page.$eval(
                     '#cardsCount',
                     el => el.textContent
                 );

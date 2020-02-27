@@ -11,20 +11,21 @@ import App from './App';
 import './index.css';
 
 if (!isServer) {
-	ReactGA.initialize('UA-115085157-1');
-	mixpanel.init('de27af9b37fa926bf648bb704836fd5f');
+    ReactGA.initialize('UA-115085157-1');
+    mixpanel.init('de27af9b37fa926bf648bb704836fd5f');
 }
 
 const target = document.getElementById('root');
 
-render (
-	<Provider store={store} history={history}>
-		<Frontload noServerRender={true}>
-				<MixpanelProvider mixpanel={mixpanel}>
-					<ErrorBoundary>
-						<App />
-					</ErrorBoundary>
-				</MixpanelProvider>
-		</Frontload>
-  </Provider>,target
+render(
+    <Provider store={store} history={history}>
+        <Frontload noServerRender={true}>
+            <MixpanelProvider mixpanel={mixpanel}>
+                <ErrorBoundary>
+                    <App />
+                </ErrorBoundary>
+            </MixpanelProvider>
+        </Frontload>
+    </Provider>,
+    target
 );

@@ -5,11 +5,11 @@ module.exports = {
 
             if (!limit) limit = 20;
 
-            if (typeof (skip) === 'string') {
+            if (typeof skip === 'string') {
                 skip = parseInt(skip);
             }
 
-            if (typeof (limit) === 'string') {
+            if (typeof limit === 'string') {
                 limit = parseInt(limit);
             }
 
@@ -44,7 +44,7 @@ module.exports = {
         }
     },
 
-    create: async function (projectId, message, userId, icon, meta) {
+    create: async function(projectId, message, userId, icon, meta) {
         try {
             if (!meta) {
                 meta = {};
@@ -64,10 +64,10 @@ module.exports = {
         }
     },
 
-    updateManyBy: async function (query, data) {
+    updateManyBy: async function(query, data) {
         try {
             const notifications = await NotificationModel.updateMany(query, {
-                $addToSet: data
+                $addToSet: data,
             });
             return notifications;
         } catch (error) {
@@ -76,7 +76,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         try {
             const _this = this;
             if (!query) {
@@ -92,11 +92,15 @@ module.exports = {
                 }
             }
             data.read = read;
-            notification = await NotificationModel.findOneAndUpdate(query, {
-                $set: data
-            }, {
-                new: true
-            });
+            notification = await NotificationModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
             return notification;
         } catch (error) {
             ErrorService.log('notificationService.updateOneBy', error);
@@ -104,7 +108,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -112,10 +116,11 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             let updatedData = await NotificationModel.updateMany(query, {
-                $set: data
+                $set: data,
             });
-            updatedData = await NotificationModel.find(query)
-                .sort({ createdAt: -1 });
+            updatedData = await NotificationModel.find(query).sort({
+                createdAt: -1,
+            });
             return updatedData;
         } catch (error) {
             ErrorService.log('notificationService.updateMany', error);
@@ -123,18 +128,19 @@ module.exports = {
         }
     },
 
-    delete: async function (notificationId) {
+    delete: async function(notificationId) {
         try {
-            const result = await NotificationModel.findById(notificationId).remove();
+            const result = await NotificationModel.findById(
+                notificationId
+            ).remove();
             return result;
         } catch (error) {
             ErrorService.log('notificationService.delete', error);
             throw error;
         }
-
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await NotificationModel.deleteMany(query);
             return 'Notification(s) removed successfully!';
@@ -144,22 +150,22 @@ module.exports = {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const notification = await NotificationModel.findOne(query)
-                .populate('projectId', 'name');
+            const notification = await NotificationModel.findOne(
+                query
+            ).populate('projectId', 'name');
             return notification;
         } catch (error) {
             ErrorService.log('notificationService.findOneBy', error);
             throw error;
         }
     },
-
 };
 
 const NotificationModel = require('../models/notification');

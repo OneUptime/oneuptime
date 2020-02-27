@@ -7,13 +7,18 @@ const teamSchema = new Schema({
             startTime: Date,
             endTime: Date,
             timezone: String,
-            userId:{type: String, ref: 'User'}
-        }
+            userId: { type: String, ref: 'User' },
+        },
     ],
 });
 
 const escalationSchema = new Schema({
-    projectId: { type: String, ref: 'Project', alias: 'project', default: null },
+    projectId: {
+        type: String,
+        ref: 'Project',
+        alias: 'project',
+        default: null,
+    },
     callReminders: { type: Number, default: null },
     emailReminders: { type: Number, default: null },
     smsReminders: { type: Number, default: null },
@@ -21,17 +26,17 @@ const escalationSchema = new Schema({
     rotationInterval: { type: Number, default: null },
     firstRotationOn: Date,
     rotationTimezone: String,
-    call: {type: Boolean, default: false},
-    email: {type: Boolean, default: false},
-    sms: {type: Boolean, default: false},
+    call: { type: Boolean, default: false },
+    email: { type: Boolean, default: false },
+    sms: { type: Boolean, default: false },
     createdById: { type: String, ref: 'User', default: null },
     scheduleId: { type: String, default: null },
     teams: { type: [teamSchema], default: null },
     createdAt: { type: Date, default: Date.now },
-    deleted: { type: Boolean, default: false},
+    deleted: { type: Boolean, default: false },
 
     deletedAt: {
-        type: Date
+        type: Date,
     },
 
     deletedById: { type: String, ref: 'User' },

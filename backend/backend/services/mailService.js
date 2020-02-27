@@ -8,18 +8,17 @@ const defaultEmailTemplates = require('../config/emailTemplate');
 const EmailSmtpService = require('./emailSmtpService');
 const EmailStatusService = require('./emailStatusService');
 const { ACCOUNTS_HOST, DASHBOARD_HOST, HOME_HOST } = process.env;
-const EMAIL_ENABLED = process.env['EMAIL_ENABLED']==='true';
+const EMAIL_ENABLED = process.env['EMAIL_ENABLED'] === 'true';
 const options = {
     viewEngine: {
         extname: '.hbs',
         layoutsDir: 'views/email/',
         defaultLayout: 'template',
-        partialsDir: 'views/partials/'
+        partialsDir: 'views/partials/',
     },
     viewPath: 'views/email/',
-    extName: '.hbs'
+    extName: '.hbs',
 };
-
 
 const mailer = nodemailer.createTransport({
     host: accountMail.host,
@@ -34,14 +33,24 @@ const mailer = nodemailer.createTransport({
 mailer.use('compile', hbs(options));
 
 const getTemplates = async (emailTemplate, emailType) => {
-    const defaultTemplate = defaultEmailTemplates.filter(template => template.emailType === emailType);
+    const defaultTemplate = defaultEmailTemplates.filter(
+        template => template.emailType === emailType
+    );
     let emailContent = defaultTemplate[0].body;
     let emailSubject = defaultTemplate[0].subject;
 
-    if (emailTemplate != null && emailTemplate != undefined && emailTemplate.body) {
+    if (
+        emailTemplate != null &&
+        emailTemplate != undefined &&
+        emailTemplate.body
+    ) {
         emailContent = emailTemplate.body;
     }
-    if (emailTemplate != null && emailTemplate != undefined && emailTemplate.subject) {
+    if (
+        emailTemplate != null &&
+        emailTemplate != undefined &&
+        emailTemplate.subject
+    ) {
         emailSubject = emailTemplate.subject;
     }
     const template = await Handlebars.compile(emailContent);
@@ -49,10 +58,18 @@ const getTemplates = async (emailTemplate, emailType) => {
     return { template, subject };
 };
 
-const getSmtpSettings = async (projectId) => {
+const getSmtpSettings = async projectId => {
     let { user, pass, host, port, from, secure } = accountMail;
-    const smtpDb = await EmailSmtpService.findOneBy({ projectId, enabled: true });
-    if (smtpDb && smtpDb.user && smtpDb.user !== null && smtpDb.user !== undefined) {
+    const smtpDb = await EmailSmtpService.findOneBy({
+        projectId,
+        enabled: true,
+    });
+    if (
+        smtpDb &&
+        smtpDb.user &&
+        smtpDb.user !== null &&
+        smtpDb.user !== undefined
+    ) {
         user = smtpDb.user;
         pass = smtpDb.pass;
         host = smtpDb.host;
@@ -80,12 +97,11 @@ const createMailer = async (host, port, user, pass, secure) => {
 };
 
 module.exports = {
-
     // Description: Mails to user if they have successfully signed up.
     // Params:
     // Param 1: userEmail: Email of user
     // Returns: promise
-    sendSignupMail: async function (userEmail, name) {
+    sendSignupMail: async function(userEmail, name) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -96,17 +112,17 @@ module.exports = {
                 context: {
                     homeURL: HOME_HOST,
                     name: name.split(' ')[0].toString(),
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
 
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -118,7 +134,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
 
             return info;
@@ -129,12 +145,12 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
-    sendVerifyEmail: async function (tokenVerifyURL, name, email) {
+    sendVerifyEmail: async function(tokenVerifyURL, name, email) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -145,27 +161,27 @@ module.exports = {
                 context: {
                     homeURL: HOME_HOST,
                     tokenVerifyURL,
-                    name: name.split(' ')[0].toString()
-                }
+                    name: name.split(' ')[0].toString(),
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
-            
+
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -175,12 +191,12 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
-    sendLeadEmailToFyipeTeam: async function (lead) {
+    sendLeadEmailToFyipeTeam: async function(lead) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -190,16 +206,16 @@ module.exports = {
                 template: 'lead_to_fyipe_team',
                 context: {
                     homeURL: HOME_HOST,
-                    text: JSON.stringify(lead, null, 2)
-                }
+                    text: JSON.stringify(lead, null, 2),
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -209,7 +225,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -219,13 +235,13 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendUserFeedbackResponse: async function (userEmail, name) {
+    sendUserFeedbackResponse: async function(userEmail, name) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -235,16 +251,16 @@ module.exports = {
                 template: 'feedback_response',
                 context: {
                     homeURL: HOME_HOST,
-                    name: name.split(' ')[0].toString()
-                }
+                    name: name.split(' ')[0].toString(),
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -254,7 +270,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -264,22 +280,20 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendRequestDemoEmail: async function (to) {
+    sendRequestDemoEmail: async function(to) {
         let mailOptions = {};
         try {
             if (!to) {
                 const error = new Error('Email not found');
                 error.code = 400;
                 throw error;
-            }
-            else {
-
+            } else {
                 mailOptions = {
                     from: '"Fyipe " <' + accountMail.from + '>',
                     cc: 'noreply@fyipe.com',
@@ -287,13 +301,13 @@ module.exports = {
                     subject: 'Thank you for your demo request.',
                     template: 'request_demo_body',
                 };
-                if(!EMAIL_ENABLED){
+                if (!EMAIL_ENABLED) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
                         to: mailOptions.to,
                         subject: mailOptions.subject,
                         template: mailOptions.template,
-                        status: 'Email not enabled.'
+                        status: 'Email not enabled.',
                     });
                     return;
                 }
@@ -303,7 +317,7 @@ module.exports = {
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Success'
+                    status: 'Success',
                 });
                 return info;
             }
@@ -314,13 +328,13 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendWhitepaperEmail: async function (to, whitepaperName) {
+    sendWhitepaperEmail: async function(to, whitepaperName) {
         let mailOptions = {};
         try {
             if (!to || whitepaperName) {
@@ -328,8 +342,7 @@ module.exports = {
                 error.code = 400;
                 ErrorService.log('mailService.sendWhitepaperEmail', error);
                 throw error;
-            }
-            else {
+            } else {
                 let link = null;
 
                 for (let i = 0; i < Whitepapers.length; i++) {
@@ -338,32 +351,30 @@ module.exports = {
                     }
                 }
 
-
                 if (!link) {
                     const error = new Error('Whitepaper not found');
                     error.code = 400;
                     ErrorService.log('mailService.sendWhitepaperEmail', error);
                     throw error;
-                }
-                else {
+                } else {
                     mailOptions = {
                         from: '"Fyipe " <' + accountMail.from + '>',
                         cc: 'noreply@fyipe.com',
                         to: to,
-                        subject: 'Here\'s your Whitepaper',
+                        subject: "Here's your Whitepaper",
                         template: 'whitepaper_body',
                         context: {
                             homeURL: HOME_HOST,
-                            link: link
-                        }
+                            link: link,
+                        },
                     };
-                    if(!EMAIL_ENABLED){
+                    if (!EMAIL_ENABLED) {
                         await EmailStatusService.create({
                             from: mailOptions.from,
                             to: mailOptions.to,
                             subject: mailOptions.subject,
                             template: mailOptions.template,
-                            status: 'Email not enabled.'
+                            status: 'Email not enabled.',
                         });
                         return;
                     }
@@ -373,7 +384,7 @@ module.exports = {
                         to: mailOptions.to,
                         subject: mailOptions.subject,
                         template: mailOptions.template,
-                        status: 'Success'
+                        status: 'Success',
                     });
                     return info;
                 }
@@ -386,7 +397,7 @@ module.exports = {
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Error'
+                    status: 'Error',
                 });
             }
             throw error;
@@ -399,7 +410,7 @@ module.exports = {
     // Param 2: email: Email of user
     // Param 3: token: Password reset token
     // Returns: promise
-    sendForgotPasswordMail: async function (forgotPasswordURL, email) {
+    sendForgotPasswordMail: async function(forgotPasswordURL, email) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -409,16 +420,16 @@ module.exports = {
                 template: 'forgot_password_body',
                 context: {
                     homeURL: HOME_HOST,
-                    forgotPasswordURL
-                }
+                    forgotPasswordURL,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -428,7 +439,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -438,7 +449,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
@@ -448,7 +459,7 @@ module.exports = {
     // Params:
     // Param 1: email: Email of user
     // Returns: promise
-    sendResetPasswordConfirmMail: async function (email) {
+    sendResetPasswordConfirmMail: async function(email) {
         let mailOptions = {};
 
         try {
@@ -459,16 +470,16 @@ module.exports = {
                 template: 'reset_password_body',
                 context: {
                     homeURL: HOME_HOST,
-                    accountsURL: ACCOUNTS_HOST
-                }
+                    accountsURL: ACCOUNTS_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -478,7 +489,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -488,7 +499,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
@@ -498,28 +509,33 @@ module.exports = {
     // Params:
     // Param 1: userEmail: Email of users
     // Returns: promise
-    sendNewUserAddedToProjectMail: async function (project, addedByUser, email, registerUrl) {
+    sendNewUserAddedToProjectMail: async function(
+        project,
+        addedByUser,
+        email,
+        registerUrl
+    ) {
         let mailOptions = {};
         try {
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
-                subject: 'You\'ve been added to a project on Fyipe',
+                subject: "You've been added to a project on Fyipe",
                 template: 'new_user_added_to_project_body',
                 context: {
                     homeURL: HOME_HOST,
                     projectName: project.name,
                     userName: addedByUser.name,
-                    registerUrl
-                }
+                    registerUrl,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -529,44 +545,51 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendNewUserAddedToProjectMail', error);
+            ErrorService.log(
+                'mailService.sendNewUserAddedToProjectMail',
+                error
+            );
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendExistingUserAddedToProjectMail: async function (project, addedByUser, email) {
+    sendExistingUserAddedToProjectMail: async function(
+        project,
+        addedByUser,
+        email
+    ) {
         let mailOptions = {};
         try {
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
-                subject: 'You\'ve been added to a project on Fyipe',
+                subject: "You've been added to a project on Fyipe",
                 template: 'existing_user_added_to_project_body',
                 context: {
                     homeURL: HOME_HOST,
                     projectName: project.name,
                     userName: addedByUser.name,
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -576,43 +599,50 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendExistingUserAddedToProjectMail', error);
+            ErrorService.log(
+                'mailService.sendExistingUserAddedToProjectMail',
+                error
+            );
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendExistingStatusPageViewerMail: async function (subProject, addedByUser, email) {
+    sendExistingStatusPageViewerMail: async function(
+        subProject,
+        addedByUser,
+        email
+    ) {
         let mailOptions = {};
         try {
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
-                subject: 'You\'ve been added to a sub-project on Fyipe',
+                subject: "You've been added to a sub-project on Fyipe",
                 template: 'existing_viewer_added_to_project_body',
                 context: {
                     homeURL: HOME_HOST,
                     subProjectName: subProject.name,
-                    userName: addedByUser.name
-                }
+                    userName: addedByUser.name,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -622,44 +652,51 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendExistingStatusPageViewerMail', error);
+            ErrorService.log(
+                'mailService.sendExistingStatusPageViewerMail',
+                error
+            );
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendExistingUserAddedToSubProjectMail: async function (project, addedByUser, email) {
+    sendExistingUserAddedToSubProjectMail: async function(
+        project,
+        addedByUser,
+        email
+    ) {
         let mailOptions = {};
         try {
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
-                subject: 'You\'ve been added to a subproject on Fyipe',
+                subject: "You've been added to a subproject on Fyipe",
                 template: 'existing_user_added_to_subproject_body',
                 context: {
                     homeURL: HOME_HOST,
                     projectName: project.name,
                     userName: addedByUser.name,
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -669,44 +706,47 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendExistingUserAddedToSubProjectMail', error);
+            ErrorService.log(
+                'mailService.sendExistingUserAddedToSubProjectMail',
+                error
+            );
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendNewStatusPageViewerMail: async function (project, addedByUser, email) {
+    sendNewStatusPageViewerMail: async function(project, addedByUser, email) {
         let mailOptions = {};
         try {
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
-                subject: 'You\'ve been added to a project on Fyipe',
+                subject: "You've been added to a project on Fyipe",
                 template: 'new_viewer_added_to_project',
                 context: {
                     homeURL: HOME_HOST,
                     projectName: project.name,
                     userName: addedByUser.name,
-                    accountsURL: ACCOUNTS_HOST
-                }
+                    accountsURL: ACCOUNTS_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -716,7 +756,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -726,35 +766,40 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendChangeRoleEmailToUser: async function (project, addedByUser, email, role) {
+    sendChangeRoleEmailToUser: async function(
+        project,
+        addedByUser,
+        email,
+        role
+    ) {
         let mailOptions = {};
         try {
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
-                subject: 'You\'ve been assigned a new role',
+                subject: "You've been assigned a new role",
                 template: 'change_role',
                 context: {
                     homeURL: HOME_HOST,
                     projectName: project.name,
                     userName: addedByUser.name,
                     role: role,
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -764,7 +809,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -774,34 +819,38 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendRemoveFromProjectEmailToUser: async function (project, removedByUser, email) {
+    sendRemoveFromProjectEmailToUser: async function(
+        project,
+        removedByUser,
+        email
+    ) {
         let mailOptions = {};
         try {
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
-                subject: 'You\'ve been removed from a project on Fyipe',
+                subject: "You've been removed from a project on Fyipe",
                 template: 'removed_from_project',
                 context: {
                     homeURL: HOME_HOST,
                     projectName: project.name,
                     userName: removedByUser.name,
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -811,44 +860,51 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendRemoveFromProjectEmailToUser', error);
+            ErrorService.log(
+                'mailService.sendRemoveFromProjectEmailToUser',
+                error
+            );
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendRemoveFromSubProjectEmailToUser: async function (subProject, removedByUser, email) {
+    sendRemoveFromSubProjectEmailToUser: async function(
+        subProject,
+        removedByUser,
+        email
+    ) {
         let mailOptions = {};
         try {
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
-                subject: 'You\'ve been removed from a subproject on Fyipe',
+                subject: "You've been removed from a subproject on Fyipe",
                 template: 'removed_from_subproject',
                 context: {
                     homeURL: HOME_HOST,
                     subProjectName: subProject.name,
                     userName: removedByUser.name,
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -858,17 +914,20 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendRemoveFromSubProjectEmailToUser', error);
+            ErrorService.log(
+                'mailService.sendRemoveFromSubProjectEmailToUser',
+                error
+            );
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
@@ -884,7 +943,19 @@ module.exports = {
      * @param {string} resolveUrl API link that has requirements for resolving incident.
      * @param {string} accessToken An access token to be used used to access API from email.
      */
-    sendIncidentCreatedMail: async function ({ incidentTime, monitorName, email, userId, firstName, projectId, acknowledgeUrl, resolveUrl, accessToken, incidentType, projectName }) {
+    sendIncidentCreatedMail: async function({
+        incidentTime,
+        monitorName,
+        email,
+        userId,
+        firstName,
+        projectId,
+        acknowledgeUrl,
+        resolveUrl,
+        accessToken,
+        incidentType,
+        projectName,
+    }) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -904,16 +975,16 @@ module.exports = {
                     resolveUrl,
                     incidentType,
                     projectName,
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -923,7 +994,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -933,12 +1004,11 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
-
 
     /**
      * @param {js date object} incidentTime JS date of the incident used as timestamp.
@@ -947,10 +1017,23 @@ module.exports = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      */
-    sendIncidentCreatedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, trackEmailAsViewedUrl) {
+    sendIncidentCreatedMailToSubscriber: async function(
+        incidentTime,
+        monitorName,
+        email,
+        userId,
+        userName,
+        incident,
+        projectName,
+        emailTemplate,
+        trackEmailAsViewedUrl
+    ) {
         let mailOptions = {};
         try {
-            let { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Created');
+            let { template, subject } = await getTemplates(
+                emailTemplate,
+                'Subscriber Incident Created'
+            );
             const data = {
                 incidentTime,
                 monitorName,
@@ -964,23 +1047,29 @@ module.exports = {
             template = template(data);
             subject = subject(data);
             const smtpSettings = await getSmtpSettings(incident.projectId);
-            const privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
+            const privateMailer = await createMailer(
+                smtpSettings.host,
+                smtpSettings.port,
+                smtpSettings.user,
+                smtpSettings.pass,
+                smtpSettings.secure
+            );
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
                 subject: subject,
                 template: 'template',
                 context: {
-                    body: template
-                }
+                    body: template,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -990,17 +1079,20 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendIncidentCreatedMailToSubscriber', error);
+            ErrorService.log(
+                'mailService.sendIncidentCreatedMailToSubscriber',
+                error
+            );
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
@@ -1013,10 +1105,23 @@ module.exports = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      */
-    sendIncidentAcknowledgedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, trackEmailAsViewedUrl) {
+    sendIncidentAcknowledgedMailToSubscriber: async function(
+        incidentTime,
+        monitorName,
+        email,
+        userId,
+        userName,
+        incident,
+        projectName,
+        emailTemplate,
+        trackEmailAsViewedUrl
+    ) {
         let mailOptions = {};
         try {
-            let { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Acknowldeged');
+            let { template, subject } = await getTemplates(
+                emailTemplate,
+                'Subscriber Incident Acknowldeged'
+            );
             const data = {
                 incidentTime,
                 monitorName,
@@ -1030,23 +1135,29 @@ module.exports = {
             template = template(data);
             subject = subject(data);
             const smtpSettings = await getSmtpSettings(incident.projectId);
-            const privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
+            const privateMailer = await createMailer(
+                smtpSettings.host,
+                smtpSettings.port,
+                smtpSettings.user,
+                smtpSettings.pass,
+                smtpSettings.secure
+            );
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
                 subject: subject,
                 template: 'template',
                 context: {
-                    body: template
-                }
+                    body: template,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -1056,17 +1167,20 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendIncidentCreatedMailToSubscriber', error);
+            ErrorService.log(
+                'mailService.sendIncidentCreatedMailToSubscriber',
+                error
+            );
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
@@ -1079,10 +1193,23 @@ module.exports = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      */
-    sendIncidentResolvedMailToSubscriber: async function (incidentTime, monitorName, email, userId, userName, incident, projectName, emailTemplate, trackEmailAsViewedUrl) {
+    sendIncidentResolvedMailToSubscriber: async function(
+        incidentTime,
+        monitorName,
+        email,
+        userId,
+        userName,
+        incident,
+        projectName,
+        emailTemplate,
+        trackEmailAsViewedUrl
+    ) {
         let mailOptions = {};
         try {
-            let { template, subject } = await getTemplates(emailTemplate, 'Subscriber Incident Resolved');
+            let { template, subject } = await getTemplates(
+                emailTemplate,
+                'Subscriber Incident Resolved'
+            );
             const data = {
                 incidentTime,
                 monitorName,
@@ -1096,7 +1223,13 @@ module.exports = {
             template = template(data);
             subject = subject(data);
             const smtpSettings = await getSmtpSettings(incident.projectId);
-            const privateMailer = await createMailer(smtpSettings.host, smtpSettings.port, smtpSettings.user, smtpSettings.pass, smtpSettings.secure);
+            const privateMailer = await createMailer(
+                smtpSettings.host,
+                smtpSettings.port,
+                smtpSettings.user,
+                smtpSettings.pass,
+                smtpSettings.secure
+            );
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
@@ -1104,16 +1237,16 @@ module.exports = {
                 template: 'template',
                 context: {
                     homeURL: HOME_HOST,
-                    body: template
-                }
+                    body: template,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -1123,26 +1256,35 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendIncidentCreatedMailToSubscriber', error);
+            ErrorService.log(
+                'mailService.sendIncidentCreatedMailToSubscriber',
+                error
+            );
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    testSmtpConfig: async function (data) {
+    testSmtpConfig: async function(data) {
         let mailOptions = {};
         try {
-            const privateMailer = await createMailer(data.host, data.port, data.user, data.pass, data.secure);
+            const privateMailer = await createMailer(
+                data.host,
+                data.port,
+                data.user,
+                data.pass,
+                data.secure
+            );
             mailOptions = {
                 from: '"Fyipe " <' + data.from + '>',
                 to: data.email,
@@ -1150,15 +1292,15 @@ module.exports = {
                 template: 'smtp_test',
                 context: {
                     homeURL: HOME_HOST,
-                }
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -1168,7 +1310,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -1176,12 +1318,12 @@ module.exports = {
             if (error.code === 'EAUTH') {
                 err = new Error('Username and Password not accepted.');
                 err.code = 400;
-            }
-            else if (error.code === 'ECONNECTION') {
-                err = new Error('Please check your host and port settings again.');
+            } else if (error.code === 'ECONNECTION') {
+                err = new Error(
+                    'Please check your host and port settings again.'
+                );
                 err.code = 400;
-            }
-            else {
+            } else {
                 err = new Error('Please check your settings again.');
                 err.code = 400;
             }
@@ -1191,13 +1333,13 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw err;
         }
     },
 
-    sendChangePlanMail: async function (projectName, oldPlan, newPlan, email) {
+    sendChangePlanMail: async function(projectName, oldPlan, newPlan, email) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -1210,16 +1352,16 @@ module.exports = {
                     projectName: projectName,
                     oldPlan: oldPlan,
                     newPlan: newPlan,
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -1229,7 +1371,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -1239,14 +1381,13 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
-
     },
 
-    sendCreateProjectMail: async function (projectName, email) {
+    sendCreateProjectMail: async function(projectName, email) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -1257,16 +1398,16 @@ module.exports = {
                 context: {
                     homeURL: HOME_HOST,
                     projectName: projectName,
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -1276,7 +1417,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -1286,13 +1427,13 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendCreateSubProjectMail: async function (subProjectName, email) {
+    sendCreateSubProjectMail: async function(subProjectName, email) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -1303,16 +1444,16 @@ module.exports = {
                 context: {
                     homeURL: HOME_HOST,
                     subProjectName: subProjectName,
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -1322,7 +1463,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -1332,13 +1473,18 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendUpgradeToEnterpriseMail: async function (projectName, projectId, oldPlan, email) {
+    sendUpgradeToEnterpriseMail: async function(
+        projectName,
+        projectId,
+        oldPlan,
+        email
+    ) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -1351,16 +1497,16 @@ module.exports = {
                     projectName: projectName,
                     projectId: projectId,
                     oldPlan: oldPlan,
-                    email: email
-                }
+                    email: email,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -1370,7 +1516,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -1380,13 +1526,18 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
     },
 
-    sendPaymentFailedEmail: async function (projectName, email, name, chargeAttemptStage) {
+    sendPaymentFailedEmail: async function(
+        projectName,
+        email,
+        name,
+        chargeAttemptStage
+    ) {
         let mailOptions = {};
         try {
             mailOptions = {
@@ -1399,16 +1550,16 @@ module.exports = {
                     projectName,
                     name,
                     chargeAttemptStage,
-                    dashboardURL: DASHBOARD_HOST
-                }
+                    dashboardURL: DASHBOARD_HOST,
+                },
             };
-            if(!EMAIL_ENABLED){
+            if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
                     subject: mailOptions.subject,
                     template: mailOptions.template,
-                    status: 'Email not enabled.'
+                    status: 'Email not enabled.',
                 });
                 return;
             }
@@ -1418,7 +1569,7 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Success'
+                status: 'Success',
             });
             return info;
         } catch (error) {
@@ -1428,9 +1579,9 @@ module.exports = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: 'Error'
+                status: 'Error',
             });
             throw error;
         }
-    }
+    },
 };

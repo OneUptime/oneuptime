@@ -6,29 +6,28 @@ import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 
 class Integrations extends Component {
-
-  constructor(props) {
-    super(props);
-    this.props = props;
-  }
-
-  componentDidMount() {
-    if(!IS_DEV){
-        logEvent('Integration page Loaded');
+    constructor(props) {
+        super(props);
+        this.props = props;
     }
-  }
+
+    componentDidMount() {
+        if (!IS_DEV) {
+            logEvent('Integration page Loaded');
+        }
+    }
 
     render() {
-      return (
-        <Dashboard>
-        {/* <Slack />*/}
-          <WebHookBox />
-          <ZapierBox />
-        </Dashboard>
-      );
+        return (
+            <Dashboard>
+                {/* <Slack />*/}
+                <WebHookBox />
+                <ZapierBox />
+            </Dashboard>
+        );
     }
 }
 
-Integrations.displayName = 'Integrations'
+Integrations.displayName = 'Integrations';
 
 export default Integrations;

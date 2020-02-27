@@ -1,7 +1,6 @@
 const puppeteer = require('puppeteer');
 const util = require('./test-utils');
 
-
 let page, browser;
 
 beforeAll(async () => {
@@ -31,7 +30,9 @@ describe('Request demo', () => {
         await page.click('#request-demo-btn');
         await page.waitForSelector('#success');
         // Check if user's email is submitted successfully
-        const emailSubmitted = await page.evaluate(() => document.querySelector('.submitted-email').innerText);
+        const emailSubmitted = await page.evaluate(
+            () => document.querySelector('.submitted-email').innerText
+        );
         expect(emailSubmitted).toBe(util.user.email);
     }, 30000);
     test('user can request for website monitoring resource', async () => {
@@ -54,7 +55,9 @@ describe('Request demo', () => {
         await page.keyboard.down('Enter');
         await page.click('#request-resource-btn');
         // Check if user's email is submitted successfully
-        const emailSubmitted = await page.evaluate(() => document.querySelector('.submitted-email').innerText);
+        const emailSubmitted = await page.evaluate(
+            () => document.querySelector('.submitted-email').innerText
+        );
         expect(emailSubmitted).toBe(util.user.email);
     }, 30000);
     test('user can request for speed equals revenue resource', async () => {
@@ -77,7 +80,9 @@ describe('Request demo', () => {
         await page.keyboard.down('Enter');
         await page.click('#request-resource-btn');
         // Check if user's email is submitted successfully
-        const emailSubmitted = await page.evaluate(() => document.querySelector('.submitted-email').innerText);
+        const emailSubmitted = await page.evaluate(
+            () => document.querySelector('.submitted-email').innerText
+        );
         expect(emailSubmitted).toBe(util.user.email);
     }, 30000);
     test('user can request for best practices resource', async () => {
@@ -100,7 +105,9 @@ describe('Request demo', () => {
         await page.keyboard.down('Enter');
         await page.click('#request-resource-btn');
         // Check if user's email is submitted successfully
-        const emailSubmitted = await page.evaluate(() => document.querySelector('.submitted-email').innerText);
+        const emailSubmitted = await page.evaluate(
+            () => document.querySelector('.submitted-email').innerText
+        );
         expect(emailSubmitted).toBe(util.user.email);
     }, 30000);
     test('user can request for peak performance resource', async () => {
@@ -123,7 +130,9 @@ describe('Request demo', () => {
         await page.keyboard.down('Enter');
         await page.click('#request-resource-btn');
         // Check if user's email is submitted successfully
-        const emailSubmitted = await page.evaluate(() => document.querySelector('.submitted-email').innerText);
+        const emailSubmitted = await page.evaluate(
+            () => document.querySelector('.submitted-email').innerText
+        );
         expect(emailSubmitted).toBe(util.user.email);
     }, 30000);
 });

@@ -2,10 +2,8 @@ const ScheduledEventModel = require('../models/scheduledEvent');
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 
-
 module.exports = {
-
-    create: async function ({ projectId, monitorId }, data) {
+    create: async function({ projectId, monitorId }, data) {
         try {
             const _this = this;
             let scheduledEvent = new ScheduledEventModel();
@@ -19,7 +17,8 @@ module.exports = {
             scheduledEvent.description = data.description;
 
             if (data.showEventOnStatusPage) {
-                scheduledEvent.showEventOnStatusPage = data.showEventOnStatusPage;
+                scheduledEvent.showEventOnStatusPage =
+                    data.showEventOnStatusPage;
             }
             if (data.callScheduleOnEvent) {
                 scheduledEvent.callScheduleOnEvent = data.callScheduleOnEvent;
@@ -39,22 +38,30 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query,data) {
+    updateOneBy: async function(query, data) {
         if (!query) {
             query = {};
         }
 
         if (!query.deleted) query.deleted = false;
         try {
-            const updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
-                $set: data
-            }, { new: true })
-                .lean();
+            const updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                { new: true }
+            ).lean();
             if (updatedScheduledEvent.createdById === 'API') {
-                updatedScheduledEvent.createdById = {name: 'API', _id: null};
+                updatedScheduledEvent.createdById = { name: 'API', _id: null };
             } else {
-                const user = await UserModel.findOne({_id: updatedScheduledEvent.createdById}).lean();
-                updatedScheduledEvent.createdById = {_id: user._id, name: user.name};
+                const user = await UserModel.findOne({
+                    _id: updatedScheduledEvent.createdById,
+                }).lean();
+                updatedScheduledEvent.createdById = {
+                    _id: user._id,
+                    name: user.name,
+                };
             }
             return updatedScheduledEvent;
         } catch (error) {
@@ -63,7 +70,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -71,7 +78,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             let updatedData = await ScheduledEventModel.updateMany(query, {
-                $set: data
+                $set: data,
             });
             updatedData = await this.findBy(query);
             return updatedData;
@@ -81,15 +88,19 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query, userId) {
+    deleteBy: async function(query, userId) {
         try {
-            const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(query, {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
-                    deletedById: userId
-                }
-            }, { new: true });
+            const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
+                },
+                { new: true }
+            );
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.deleteBy', error);
@@ -97,17 +108,17 @@ module.exports = {
         }
     },
 
-    findBy: async function (query, limit, skip) {
+    findBy: async function(query, limit, skip) {
         try {
             if (!skip) skip = 0;
 
             if (!limit) limit = 0;
 
-            if (typeof (skip) === 'string') {
+            if (typeof skip === 'string') {
                 skip = parseInt(skip);
             }
 
-            if (typeof (limit) === 'string') {
+            if (typeof limit === 'string') {
                 limit = parseInt(limit);
             }
 
@@ -122,26 +133,26 @@ module.exports = {
                 .sort({ createdAt: -1 })
                 .lean();
 
-            await Promise.all(scheduledEvents.map(async event => {
-                if (event.createdById === 'API') {
-                    event.createdById = {
-                        name: 'API',
-                        _id: null
-                    };
-                    return event;
-                }
-                else {
-                    const user = await UserModel.findOne({
-                        _id: event.createdById
-                    })
-                        .lean();
-                    event.createdById = {
-                        _id: user._id,
-                        name: user.name
-                    };
-                    return event;
-                }
-            }));
+            await Promise.all(
+                scheduledEvents.map(async event => {
+                    if (event.createdById === 'API') {
+                        event.createdById = {
+                            name: 'API',
+                            _id: null,
+                        };
+                        return event;
+                    } else {
+                        const user = await UserModel.findOne({
+                            _id: event.createdById,
+                        }).lean();
+                        event.createdById = {
+                            _id: user._id,
+                            name: user.name,
+                        };
+                        return event;
+                    }
+                })
+            );
 
             return scheduledEvents;
         } catch (error) {
@@ -150,41 +161,42 @@ module.exports = {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const scheduledEvent = await ScheduledEventModel.findOne(query).lean();
+            const scheduledEvent = await ScheduledEventModel.findOne(
+                query
+            ).lean();
 
             if (scheduledEvent) {
                 if (scheduledEvent.createdById === 'API') {
                     scheduledEvent.createdById = {
                         name: 'API',
-                        _id: null
+                        _id: null,
                     };
                 } else {
                     const user = await UserModel.findOne({
-                        _id: scheduledEvent.createdById
+                        _id: scheduledEvent.createdById,
                     }).lean();
                     scheduledEvent.createdById = {
                         _id: user._id,
-                        name: user.name
+                        name: user.name,
                     };
                 }
             }
 
             return scheduledEvent;
-        }
-        catch (error) {
+        } catch (error) {
             ErrorService.log('scheduledEventService.findOneBy', error);
             throw error;
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -198,7 +210,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await ScheduledEventModel.deleteMany(query);
             return 'Event(s) removed successfully!';

@@ -1,5 +1,4 @@
-import * as types from '../constants/probe'
-
+import * as types from '../constants/probe';
 
 const initialState = {
     probes: {
@@ -9,10 +8,9 @@ const initialState = {
         data: [],
         count: null,
         limit: null,
-        skip: null
-    }
+        skip: null,
+    },
 };
-
 
 export default function probes(state = initialState, action) {
     switch (action.type) {
@@ -25,7 +23,7 @@ export default function probes(state = initialState, action) {
                     data: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
+                    skip: action.payload.skip,
                 },
             });
 
@@ -38,10 +36,9 @@ export default function probes(state = initialState, action) {
                     data: state.probes.data,
                     count: state.probes.count,
                     limit: state.probes.limit,
-                    skip: state.probes.skip
-                }
+                    skip: state.probes.skip,
+                },
             });
-
 
         case types.PROBE_FAILED:
             return Object.assign({}, state, {
@@ -52,8 +49,8 @@ export default function probes(state = initialState, action) {
                     data: state.probes.data,
                     count: state.probes.count,
                     limit: state.probes.limit,
-                    skip: state.probes.skip
-                }
+                    skip: state.probes.skip,
+                },
             });
 
         case types.PROBE_RESET:
@@ -65,8 +62,8 @@ export default function probes(state = initialState, action) {
                     data: [],
                     count: null,
                     limit: null,
-                    skip: null
-                }
+                    skip: null,
+                },
             });
 
         case 'UPDATE_PROBE':
@@ -74,12 +71,18 @@ export default function probes(state = initialState, action) {
                 probes: {
                     ...state.probes,
 
-                    data: state.probes.data.length > 0 ? state.probes.data.map(probe => {
-                        return probe._id === action.payload._id ? action.payload : probe;
-                    }) : [action.payload]
-                }
+                    data:
+                        state.probes.data.length > 0
+                            ? state.probes.data.map(probe => {
+                                  return probe._id === action.payload._id
+                                      ? action.payload
+                                      : probe;
+                              })
+                            : [action.payload],
+                },
             });
 
-        default: return state;
+        default:
+            return state;
     }
 }

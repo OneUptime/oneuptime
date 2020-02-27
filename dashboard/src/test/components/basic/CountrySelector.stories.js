@@ -1,23 +1,19 @@
 import React from 'react';
 import { storiesOf } from '@storybook/react';
-import CountrySelector from '../../../components/basic/CountrySelector'
+import CountrySelector from '../../../components/basic/CountrySelector';
 
 const props_requesting = {
     meta: {
         touched: false,
-        error: null
+        error: null,
     },
-    input: {}
+    input: {},
 };
 
 storiesOf('Basic', module)
     .addDecorator(story => (
-        <div id='login' className='register-page' style={{ overflow: 'auto' }} >
-            <div style={{ margin: '20%' }} >
-                {story()}</div>
+        <div id="login" className="register-page" style={{ overflow: 'auto' }}>
+            <div style={{ margin: '20%' }}>{story()}</div>
         </div>
     ))
-    .add('CountrySelector', () =>
-        <CountrySelector {...props_requesting} />
-    )
-
+    .add('CountrySelector', () => <CountrySelector {...props_requesting} />);

@@ -10,18 +10,19 @@ import './index.css';
 import * as serviceWorker from './serviceWorker';
 
 if (!isServer) {
-	ReactGA.initialize('UA-115085157-1');
+    ReactGA.initialize('UA-115085157-1');
 }
 const target = document.getElementById('root');
 
-render (
-	<Provider store={store} history={history}>
-		<Frontload noServerRender={true}>
-					<ErrorBoundary>
-						<App />
-					</ErrorBoundary>
-		</Frontload>
-  </Provider>,target
+render(
+    <Provider store={store} history={history}>
+        <Frontload noServerRender={true}>
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        </Frontload>
+    </Provider>,
+    target
 );
 
 // this will enable the app to work offline and load faster

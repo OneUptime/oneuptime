@@ -1,127 +1,131 @@
 import { createMonitorSuccess, editMonitorSuccess } from './monitor';
-import { teamUpdateRoleSuccess, teamCreateSuccess, teamDeleteSuccess } from './team';
+import {
+    teamUpdateRoleSuccess,
+    teamCreateSuccess,
+    teamDeleteSuccess,
+} from './team';
 import { changeProjectRoles } from './project';
 
 // Resolve Incident
 export function incidentresolvedbysocket(incident) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: 'INCIDENT_RESOLVED_BY_SOCKET',
-            payload: { data: incident }
+            payload: { data: incident },
         });
         dispatch({
             type: 'RESOLVE_INCIDENT_SUCCESS',
-            payload: incident
+            payload: incident,
         });
     };
 }
 
 // Acknowledge Incident
 export function incidentacknowledgedbysocket(incident) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: 'INCIDENT_ACKNOWLEDGED_BY_SOCKET',
-            payload: { data: incident }
+            payload: { data: incident },
         });
         dispatch({
             type: 'ACKNOWLEDGE_INCIDENT_SUCCESS',
-            payload: incident
+            payload: incident,
         });
     };
 }
 
 // Create new monitor
 export function createmonitorbysocket(monitor) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch(createMonitorSuccess(monitor));
     };
 }
 
 // Edit monitor
 export function updatemonitorbysocket(monitor) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch(editMonitorSuccess(monitor));
         dispatch({
             type: 'UPDATE_INCIDENTS_MONITOR_NAME',
-            payload: monitor
+            payload: monitor,
         });
     };
 }
 
 export function updatemonitorlogbysocket(log) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: 'UPDATE_MONITOR_LOG',
-            payload: log
+            payload: log,
         });
     };
 }
 
 export function updatemonitorstatusbysocket(status, probes) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: 'UPDATE_MONITOR_STATUS',
-            payload: { status, probes }
+            payload: { status, probes },
         });
     };
 }
 
 export function updateprobebysocket(probe) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: 'UPDATE_PROBE',
-            payload: probe
+            payload: probe,
         });
-    }
+    };
 }
 
 //Delete Monitor
 export function deletemonitorbysocket(monitor) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: 'DELETE_MONITOR_BY_SOCKET',
-            payload: monitor._id
+            payload: monitor._id,
         });
     };
 }
 
 export function incidentcreatedbysocket(incident) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: 'ADD_NEW_INCIDENT_TO_UNRESOLVED',
-            payload: incident
+            payload: incident,
         });
         dispatch({
             type: 'ADD_NEW_INCIDENT_TO_MONITORS',
-            payload: incident
+            payload: incident,
         });
     };
 }
 
 export function addnotifications(notification) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch({
             type: 'ADD_NOTIFICATION_BY_SOCKET',
-            payload: notification
+            payload: notification,
         });
     };
 }
 
 export function teamMemberRoleUpdate(data) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch(teamUpdateRoleSuccess(data));
         dispatch(changeProjectRoles(data));
     };
 }
 
 export function teamMemberCreate(data) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch(teamCreateSuccess(data));
     };
 }
 
 export function teamMemberDelete(data) {
-    return function (dispatch) {
+    return function(dispatch) {
         dispatch(teamDeleteSuccess(data));
     };
 }

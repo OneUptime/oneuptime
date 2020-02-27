@@ -1,6 +1,8 @@
-/*global document */
+/* eslint-disable indent */
 (() => {
-    const source = document.getElementsByClassName('prettyprint source linenums');
+    const source = document.getElementsByClassName(
+        'prettyprint source linenums'
+    );
     let i = 0;
     let lineNumber = 0;
     let lineId;

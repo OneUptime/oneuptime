@@ -16,6 +16,6 @@ const incidentTimelineSchema = new Schema({
         default: Date.now,
     },
 
-    status: { type: String }
+    status: { type: String },
 });
 module.exports = mongoose.model('IncidentTimeline', incidentTimelineSchema);

@@ -1,6 +1,6 @@
 # To# Fyipe Home
 
-Fyipe is the simplest status page and on-call product in the world. 
+Fyipe is the simplest status page and on-call product in the world.
 
 # Project
 
@@ -8,5 +8,5 @@ This is the home page of Fyipe hosted at https://www.fyipe.com
 
 # Todo
 
-Create Emails. 
+Create Emails.
 Build Systems.

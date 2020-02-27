@@ -2,7 +2,11 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const statusSchema = new Schema({
-    projectId: { type: Schema.Types.ObjectId, ref: 'Project', alias: 'project' }, //which project this statuspage belongs to.
+    projectId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Project',
+        alias: 'project',
+    }, //which project this statuspage belongs to.
     domain: String,
     monitorIds: [{ type: String, ref: 'Monitor' }],
     links: Array,
@@ -10,19 +14,19 @@ const statusSchema = new Schema({
     name: String,
     isPrivate: {
         type: Boolean,
-        default: false
+        default: false,
     },
     isSubscriberEnabled: {
         type: Boolean,
-        default: false
+        default: false,
     },
     isGroupedByMonitorCategory: {
         type: Boolean,
-        default: false
+        default: false,
     },
     showScheduledEvents: {
         type: Boolean,
-        default: true
+        default: true,
     },
     description: String,
     copyright: String,
@@ -32,28 +36,28 @@ const statusSchema = new Schema({
     colors: Object,
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
     },
     enableRSSFeed: {
         type: Boolean,
-        default: true
+        default: true,
     },
     emailNotification: {
         type: Boolean,
-        default: true
+        default: true,
     },
     smsNotification: {
         type: Boolean,
-        default: true
+        default: true,
     },
     webhookNotification: {
         type: Boolean,
-        default: true
+        default: true,
     },
-    deleted: { type: Boolean, default: false},
-    
+    deleted: { type: Boolean, default: false },
+
     deletedAt: {
-        type: Date
+        type: Date,
     },
 
     deletedById: { type: String, ref: 'User' },

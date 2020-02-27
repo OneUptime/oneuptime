@@ -5,8 +5,8 @@ import LoadingIndicator from './LoadingIndicator';
 class Dropdown extends React.Component {
     state = {
         hasFocus: false,
-        expanded: false
-    }
+        expanded: false,
+    };
 
     componentDidUpdate() {
         document.addEventListener('touchstart', this.handleDocumentClick);
@@ -19,11 +19,10 @@ class Dropdown extends React.Component {
     }
 
     handleDocumentClick = e => {
-
         if (this.wrapper && this.wrapper.contains(e.target)) {
             this.setState({ expanded: false });
         }
-    }
+    };
 
     handleKeyDown = e => {
         switch (e) {
@@ -39,7 +38,7 @@ class Dropdown extends React.Component {
             default:
                 return;
         }
-    }
+    };
 
     toggleExpanded = value => {
         const { isLoading } = this.props;
@@ -56,7 +55,7 @@ class Dropdown extends React.Component {
         if (!tempExpanded && this.wrapper) {
             this.wrapper.focus();
         }
-    }
+    };
 
     handleBlur = () => {
         const { hasFocus } = this.state;
@@ -64,7 +63,7 @@ class Dropdown extends React.Component {
         if (hasFocus) {
             this.setState({ hasFocus: false });
         }
-    }
+    };
 
     handleFocus = e => {
         const { hasFocus } = this.state;
@@ -72,34 +71,35 @@ class Dropdown extends React.Component {
         if (e.target === this.wrapper && !hasFocus) {
             this.setState({ hasFocus: true });
         }
-    }
+    };
 
     handleMouseEnter = () => {
         this.handleHover(true);
-    }
+    };
 
     handleMouseLeave = () => {
-        this.handleHover(false)
-    }
+        this.handleHover(false);
+    };
 
     handleHover = toggleExpanded => {
         const { shouldToggleOnHover } = this.props;
 
         if (shouldToggleOnHover) {
-            this.toggleExpanded(toggleExpanded)
+            this.toggleExpanded(toggleExpanded);
         }
-    }
+    };
 
     renderPanel = () => {
         const { ContentComponent, contentProps } = this.props;
 
-        return <div className="db-MultiSelect-dropdown-content db-MultiSelect-panel-container">
-            <ContentComponent {...contentProps} />
-        </div>
-    }
+        return (
+            <div className="db-MultiSelect-dropdown-content db-MultiSelect-panel-container">
+                <ContentComponent {...contentProps} />
+            </div>
+        );
+    };
 
     render() {
-
         const { expanded, hasFocus } = this.state;
         const { children, isLoading, disabled } = this.props;
 
@@ -111,7 +111,7 @@ class Dropdown extends React.Component {
                 aria-expanded={expanded}
                 aria-readonly="true"
                 aria-disabled={disabled}
-                ref={ref => this.wrapper = ref}
+                ref={ref => (this.wrapper = ref)}
                 onKeyDown={this.handleKeyDown}
                 onFocus={this.handleFocus}
                 onBlur={this.handleBlur}
@@ -123,7 +123,8 @@ class Dropdown extends React.Component {
                         db-MultiSelect-dropdown-header
                         ${disabled && 'db-MultiSelect-dropdown--disabled'}
                         ${hasFocus && 'db-MultiSelect-dropdown-header--focused'}
-                        ${expanded && 'db-MultiSelect-dropdown-header--expanded'}
+                        ${expanded &&
+                            'db-MultiSelect-dropdown-header--expanded'}
                     `}
                     onClick={() => this.toggleExpanded()}
                 >
@@ -131,29 +132,34 @@ class Dropdown extends React.Component {
                         className={`
                             db-MultiSelect-dropdown-heading--value
                             db-MultiSelect-dropdown-children
-                            ${hasFocus && 'db-MultiSelect-dropdown-header--focused'}
+                            ${hasFocus &&
+                                'db-MultiSelect-dropdown-header--focused'}
                         `}
                     >
                         {children}
                     </span>
 
-                    <span
-                        className={'db-MultiSelect-dropdown-heading-lc'}
-                    >
+                    <span className={'db-MultiSelect-dropdown-heading-lc'}>
                         {isLoading && <LoadingIndicator />}
                     </span>
 
                     <span
-                        className={'db-MultiSelect-dropdown-heading-arrow db-MultiSelect-dropdown-arrow'}
+                        className={
+                            'db-MultiSelect-dropdown-heading-arrow db-MultiSelect-dropdown-arrow'
+                        }
                     >
                         <span
                             className={`
-                                ${expanded ? 'db-MultiSelect-dropdown-arrow--up' : 'db-MultiSelect-dropdown-arrow--down'}
-                                ${hasFocus && 'db-MultiSelect-dropdown-arrow-down--focused'}
+                                ${
+                                    expanded
+                                        ? 'db-MultiSelect-dropdown-arrow--up'
+                                        : 'db-MultiSelect-dropdown-arrow--down'
+                                }
+                                ${hasFocus &&
+                                    'db-MultiSelect-dropdown-arrow-down--focused'}
                             `}
                         />
                     </span>
-
                 </div>
                 {expanded && this.renderPanel()}
             </div>
@@ -169,7 +175,7 @@ Dropdown.propTypes = {
     isLoading: PropTypes.bool,
     shouldToggleOnHover: PropTypes.bool,
     ContentComponent: PropTypes.element.isRequired,
-    contentProps: PropTypes.object.isRequired
-}
+    contentProps: PropTypes.object.isRequired,
+};
 
 export default Dropdown;

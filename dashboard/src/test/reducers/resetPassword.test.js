@@ -1,27 +1,26 @@
-
 import reducer from '../../reducers/resetPassword';
 import * as types from '../../constants/resetPassword';
 
 const initialState = {
     requesting: false,
-	error: null,
-	success: false
+    error: null,
+    success: false,
 };
 
-
-describe('Reset Password Reducers',()=>{
-
+describe('Reset Password Reducers', () => {
     it('should return initial state', () => {
-        expect(reducer(initialState,{})).toEqual(initialState)
+        expect(reducer(initialState, {})).toEqual(initialState);
     });
 
     it('should handle PASSWORDRESET_REQUEST', () => {
         const expected = {
             ...initialState,
             requesting: true,
-            error: null
-        }
-        expect(reducer(initialState,{type:types.PASSWORDRESET_REQUEST})).toEqual(expected)
+            error: null,
+        };
+        expect(
+            reducer(initialState, { type: types.PASSWORDRESET_REQUEST })
+        ).toEqual(expected);
     });
 
     it('should handle PASSWORDRESET_SUCCESS', () => {
@@ -29,9 +28,11 @@ describe('Reset Password Reducers',()=>{
             ...initialState,
             requesting: false,
             success: true,
-            error: null
-        }
-        expect(reducer(initialState,{type:types.PASSWORDRESET_SUCCESS})).toEqual(expected)
+            error: null,
+        };
+        expect(
+            reducer(initialState, { type: types.PASSWORDRESET_SUCCESS })
+        ).toEqual(expected);
     });
 
     it('should handle PASSWORDRESET_SUCCESS', () => {
@@ -39,9 +40,11 @@ describe('Reset Password Reducers',()=>{
             ...initialState,
             requesting: false,
             success: true,
-            error: null
-        }
-        expect(reducer(initialState,{type:types.PASSWORDRESET_SUCCESS})).toEqual(expected)
+            error: null,
+        };
+        expect(
+            reducer(initialState, { type: types.PASSWORDRESET_SUCCESS })
+        ).toEqual(expected);
     });
 
     it('should handle PASSWORDRESET_FAILED', () => {
@@ -50,9 +53,14 @@ describe('Reset Password Reducers',()=>{
             ...initialState,
             requesting: false,
             success: false,
-            error: payload
-        }
-        expect(reducer(initialState,{type:types.PASSWORDRESET_FAILED,payload:payload})).toEqual(expected)
+            error: payload,
+        };
+        expect(
+            reducer(initialState, {
+                type: types.PASSWORDRESET_FAILED,
+                payload: payload,
+            })
+        ).toEqual(expected);
     });
 
     it('should handle RESET_PASSWORDRESET', () => {
@@ -60,9 +68,10 @@ describe('Reset Password Reducers',()=>{
             ...initialState,
             requesting: false,
             success: false,
-            error: null
-        }
-        expect(reducer(initialState,{type:types.RESET_PASSWORDRESET})).toEqual(expected)
+            error: null,
+        };
+        expect(
+            reducer(initialState, { type: types.RESET_PASSWORDRESET })
+        ).toEqual(expected);
     });
-
 });

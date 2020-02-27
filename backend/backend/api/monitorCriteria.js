@@ -15,7 +15,7 @@ const MonitorCriteriaService = require('../services/monitorCriteriaService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-router.get('/', getUser, function (req, res) {
+router.get('/', getUser, function(req, res) {
     try {
         const criteria = MonitorCriteriaService.getCriteria();
         return sendItemResponse(req, res, criteria);

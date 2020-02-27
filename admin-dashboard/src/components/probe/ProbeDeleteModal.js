@@ -1,16 +1,22 @@
 import React from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
 export function ProbeDeleteModal(props) {
-
     const { isRequesting, error, confirmThisDialog, closeThisDialog } = props;
 
     return (
-        <div onKeyDown={(e) => e.key === 'Escape' && closeThisDialog()} className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
-            <div className="ModalLayer-contents" tabIndex={-1} style={{ marginTop: 40 }}>
+        <div
+            onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
+            className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
+        >
+            <div
+                className="ModalLayer-contents"
+                tabIndex={-1}
+                style={{ marginTop: 40 }}
+            >
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--medium">
                         <div className="bs-Modal-header">
@@ -29,19 +35,27 @@ export function ProbeDeleteModal(props) {
                             <div className="bs-Modal-footer-actions">
                                 <ShouldRender if={error}>
                                     <div className="bs-Tail-copy">
-                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{ marginTop: '10px' }}>
+                                        <div
+                                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                            style={{ marginTop: '10px' }}
+                                        >
                                             <div className="Box-root Margin-right--8">
-                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex" style={{marginTop:'2px'}}>
-                                                </div>
+                                                <div
+                                                    className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
+                                                    style={{ marginTop: '2px' }}
+                                                ></div>
                                             </div>
                                             <div className="Box-root">
-                                                <span style={{ color: 'red' }}>{error}</span>
+                                                <span style={{ color: 'red' }}>
+                                                    {error}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
                                 </ShouldRender>
                                 <button
-                                    className={`bs-Button ${isRequesting && 'bs-is-disabled'}`}
+                                    className={`bs-Button ${isRequesting &&
+                                        'bs-is-disabled'}`}
                                     type="button"
                                     onClick={closeThisDialog}
                                     disabled={isRequesting}
@@ -50,7 +64,8 @@ export function ProbeDeleteModal(props) {
                                 </button>
                                 <button
                                     id="confirmDelete"
-                                    className={`bs-Button bs-Button--red Box-background--red ${isRequesting && 'bs-is-disabled'}`}
+                                    className={`bs-Button bs-Button--red Box-background--red ${isRequesting &&
+                                        'bs-is-disabled'}`}
                                     onClick={confirmThisDialog}
                                     disabled={isRequesting}
                                 >
@@ -68,26 +83,32 @@ export function ProbeDeleteModal(props) {
     );
 }
 
-ProbeDeleteModal.displayName = 'ProbeDeleteModal'
+ProbeDeleteModal.displayName = 'ProbeDeleteModal';
 
 const mapStateToProps = state => {
     return {
-        isRequesting: state.probes && state.probes.deleteProbe && state.probes.deleteProbe.requesting,
-        error: state.probes && state.probes.deleteProbe && state.probes.deleteProbe.error,
-    }
-}
+        isRequesting:
+            state.probes &&
+            state.probes.deleteProbe &&
+            state.probes.deleteProbe.requesting,
+        error:
+            state.probes &&
+            state.probes.deleteProbe &&
+            state.probes.deleteProbe.error,
+    };
+};
 
 ProbeDeleteModal.propTypes = {
     isRequesting: PropTypes.oneOfType([
         PropTypes.bool,
-        PropTypes.oneOf([null, undefined])
+        PropTypes.oneOf([null, undefined]),
     ]),
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func,
     error: PropTypes.oneOfType([
         PropTypes.string,
-        PropTypes.oneOf([null, undefined])
+        PropTypes.oneOf([null, undefined]),
     ]),
-}
+};
 
 export default connect(mapStateToProps)(ProbeDeleteModal);

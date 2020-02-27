@@ -18,12 +18,10 @@ const monitorLogSchema = new Schema({
     storageUsage: Number, // disk usage.
     mainTemp: Number, // cpu temperature.
     maxTemp: Number, // maximum cpu temperature from server.
-    incidentIds: [
-        { type: String, ref: 'Incident' }
-    ],
+    incidentIds: [{ type: String, ref: 'Incident' }],
     createdAt: {
         type: Date,
         default: Date.now,
-    }
+    },
 });
 module.exports = mongoose.model('MonitorLog', monitorLogSchema);

@@ -3,7 +3,10 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { getStatusPageIndividualNote, notmonitoredDays } from '../actions/status';
+import {
+    getStatusPageIndividualNote,
+    notmonitoredDays,
+} from '../actions/status';
 
 class BlockChart extends Component {
     constructor(props) {
@@ -14,15 +17,31 @@ class BlockChart extends Component {
 
     requestnotes = (need, date) => {
         if (need) {
-            this.props.getStatusPageIndividualNote(this.props.statusData.projectId._id, this.props.monitorId, date, this.props.monitorName, need);
+            this.props.getStatusPageIndividualNote(
+                this.props.statusData.projectId._id,
+                this.props.monitorId,
+                date,
+                this.props.monitorName,
+                need
+            );
         } else {
             if (this.props.time && this.props.time.emptytime) {
-                this.props.notmonitoredDays(this.props.monitorId, this.props.time.emptytime, this.props.monitorName, 'No data available for this date');
+                this.props.notmonitoredDays(
+                    this.props.monitorId,
+                    this.props.time.emptytime,
+                    this.props.monitorName,
+                    'No data available for this date'
+                );
             } else {
-                this.props.notmonitoredDays(this.props.monitorId, date, this.props.monitorName, 'No incidents yet');
+                this.props.notmonitoredDays(
+                    this.props.monitorId,
+                    date,
+                    this.props.monitorName,
+                    'No incidents yet'
+                );
             }
         }
-    }
+    };
 
     render() {
         let bar = null;
@@ -31,70 +50,89 @@ class BlockChart extends Component {
         let need = false;
         let backgroundColor;
 
-        const { colors } = this.props.statusData
-        if (this.props.time && (this.props.time.downTime || this.props.time.degradedTime || this.props.time.upTime)) {
+        const { colors } = this.props.statusData;
+        if (
+            this.props.time &&
+            (this.props.time.downTime ||
+                this.props.time.degradedTime ||
+                this.props.time.upTime)
+        ) {
             if (this.props.time.downTime > 1) {
                 let downtime = `${this.props.time.downTime} minutes`;
 
                 if (this.props.time.downTime > 60) {
-                    downtime = `${Math.floor(this.props.time.downTime / 60)} hrs ${this.props.time.downTime % 60} minutes`;
+                    downtime = `${Math.floor(
+                        this.props.time.downTime / 60
+                    )} hrs ${this.props.time.downTime % 60} minutes`;
                 }
 
                 bar = 'bar down';
-                title = moment((this.props.time.date)).format('LL');
+                title = moment(this.props.time.date).format('LL');
                 title1 = `<br>Down for ${downtime}`;
                 need = true;
-                if (colors) backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`;
+                if (colors)
+                    backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`;
             } else if (this.props.time.degradedTime > 1) {
                 let degradedtime = `${this.props.time.degradedTime} minutes`;
 
                 if (this.props.time.degradedTime > 60) {
-                    degradedtime = `${Math.floor(this.props.time.degradedTime / 60)} hrs ${this.props.time.degradedTime % 60} minutes`;
+                    degradedtime = `${Math.floor(
+                        this.props.time.degradedTime / 60
+                    )} hrs ${this.props.time.degradedTime % 60} minutes`;
                 }
 
                 bar = 'bar mid';
-                title = moment((this.props.time.date)).format('LL');
+                title = moment(this.props.time.date).format('LL');
                 title1 = `<br>Degraded for ${degradedtime}`;
                 need = true;
-                if (colors) backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`;
+                if (colors)
+                    backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`;
             } else {
                 bar = 'bar';
-                title = moment((this.props.time.date)).format('LL');
+                title = moment(this.props.time.date).format('LL');
                 title1 = '<br>No downtime';
-                if (colors) backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
+                if (colors)
+                    backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
             }
         } else {
             bar = 'bar empty';
             title = moment(this.props.time.date).format('LL');
             title1 = '<br>No data available';
-            if (colors) backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
+            if (colors)
+                backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
         }
 
         return (
-            <div className={bar} style={{ outline: 'none', backgroundColor: backgroundColor }} title={title + title1} onClick={() => this.requestnotes(need, this.props.time.date)}></div>
+            <div
+                className={bar}
+                style={{ outline: 'none', backgroundColor: backgroundColor }}
+                title={title + title1}
+                onClick={() => this.requestnotes(need, this.props.time.date)}
+            ></div>
         );
     }
 }
 
 BlockChart.displayName = 'BlockChart';
 
-const mapStateToProps = (state) => ({ statusData: state.status.statusPage });
+const mapStateToProps = state => ({ statusData: state.status.statusPage });
 
-const mapDispatchToProps = (dispatch) => bindActionCreators({
-    getStatusPageIndividualNote,
-    notmonitoredDays
-}, dispatch);
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            getStatusPageIndividualNote,
+            notmonitoredDays,
+        },
+        dispatch
+    );
 
 BlockChart.propTypes = {
-    time: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.bool,
-    ]),
+    time: PropTypes.oneOfType([PropTypes.object, PropTypes.bool]),
     statusData: PropTypes.object,
     getStatusPageIndividualNote: PropTypes.func,
     notmonitoredDays: PropTypes.func,
     monitorName: PropTypes.any,
-    monitorId: PropTypes.any
+    monitorId: PropTypes.any,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(BlockChart);

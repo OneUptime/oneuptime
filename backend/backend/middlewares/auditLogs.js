@@ -26,18 +26,19 @@ module.exports = {
             //    - Also for some resason when run inside docker container only req.end and res.finish get emmited.
             res.on('finish', async () => {
                 let userId = req.user && req.user.id ? req.user.id : null;
-                userId =  isValidMongoObjectId(userId) ? userId : null;
+                userId = isValidMongoObjectId(userId) ? userId : null;
 
                 let projectId = getProjectId(req, res);
                 projectId = isValidMongoObjectId(projectId) ? projectId : null;
-                
+
                 const parsedUrl = url.parse(req.originalUrl);
 
                 // Avoiding logging any audit data, if its a blacklisted url/route.
                 const isBlackListedRoute = blackListedRoutes.some(
                     blackListedRouteName => {
                         const fullApiUrl = req.originalUrl || '';
-                        const paramsRouteUrl = (req.route && req.route.path) || ''; // Ex. "/:projectId/statuspages"
+                        const paramsRouteUrl =
+                            (req.route && req.route.path) || ''; // Ex. "/:projectId/statuspages"
 
                         return (
                             fullApiUrl.includes(blackListedRouteName) ||
@@ -64,21 +65,21 @@ module.exports = {
                     params: modifiedReq.params,
                     queries: modifiedReq.query,
                     body: modifiedReq.body || {},
-                    headers: modifiedReq.headers
+                    headers: modifiedReq.headers,
                 };
 
                 const apiResponseDetails = {
                     statusCode: modifiedRes.statusCode,
                     statusMessage: modifiedRes.statusMessage,
                     resBody: modifiedRes.resBody || {},
-                    headers: modifiedRes.getHeaders()
+                    headers: modifiedRes.getHeaders(),
                 };
 
                 await AuditLogsService.create({
                     userId: userId,
                     projectId: projectId,
                     request: apiRequestDetails,
-                    response: apiResponseDetails
+                    response: apiResponseDetails,
                 });
             });
 
@@ -87,8 +88,8 @@ module.exports = {
             ErrorService.log('auditLogs.log', error);
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Error while logging the request.'
+                message: 'Error while logging the request.',
             });
         }
-    }
+    },
 };

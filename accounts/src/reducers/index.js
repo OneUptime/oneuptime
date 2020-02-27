@@ -16,12 +16,12 @@ const appReducer = combineReducers({
     modal,
     resetPassword,
     changePassword,
-    resendToken
+    resendToken,
 });
 
 export default (state, action) => {
-    if(action.type === 'CLEAR_STORE'){
+    if (action.type === 'CLEAR_STORE') {
         state = undefined;
     }
     return appReducer(state, action);
-}
+};

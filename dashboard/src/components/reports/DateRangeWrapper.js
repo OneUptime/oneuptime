@@ -14,13 +14,24 @@ class DateRangeWrapper extends Component {
 
         this.state = {
             isOpen: false,
-            value: moment.range(today.clone().subtract(this.props.dateRange ? this.props.dateRange : 30, 'days'), today.clone())
+            value: moment.range(
+                today
+                    .clone()
+                    .subtract(
+                        this.props.dateRange ? this.props.dateRange : 30,
+                        'days'
+                    ),
+                today.clone()
+            ),
         };
     }
 
-    onSelect = (value) => {
+    onSelect = value => {
         this.setState({ value });
-        this.props.onChange(this.state.value.start.toDate(), this.state.value.end.toDate());
+        this.props.onChange(
+            this.state.value.start.toDate(),
+            this.state.value.end.toDate()
+        );
     };
 
     onToggle = () => {
@@ -30,12 +41,7 @@ class DateRangeWrapper extends Component {
     renderSelectionValue = () => {
         return (
             <div>
-                <div
-                    className="db-DateRangeInputWithComparison"
-                    style={{
-
-                    }}
-                >
+                <div className="db-DateRangeInputWithComparison" style={{}}>
                     <div
                         className="db-DateRangeInput bs-Control"
                         style={{
@@ -74,7 +80,9 @@ class DateRangeWrapper extends Component {
 
     render() {
         return (
-            <ClickOutside onClickOutside={() => this.setState({ isOpen: false })}>
+            <ClickOutside
+                onClickOutside={() => this.setState({ isOpen: false })}
+            >
                 <div>{this.renderSelectionValue()}</div>
 
                 {this.state.isOpen && (
@@ -91,11 +99,11 @@ class DateRangeWrapper extends Component {
     }
 }
 
-DateRangeWrapper.displayName = 'DateRangeWrapper'
+DateRangeWrapper.displayName = 'DateRangeWrapper';
 
 DateRangeWrapper.propTypes = {
     onChange: PropTypes.func,
     dateRange: PropTypes.oneOfType([PropTypes.object, PropTypes.number]),
-}
+};
 
 export default DateRangeWrapper;

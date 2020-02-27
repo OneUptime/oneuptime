@@ -8,7 +8,6 @@
 //     enableReinitialize: true
 // })(OnCallAlertSetting);
 
-
 // let props = {
 //     'array': {},
 //     'anyTouched': false,
@@ -84,4 +83,3 @@
 //     .add('OnCallAlertSetting', () =>
 //         <OnCallAlertSetting_Decorated  {...props} />
 //     )
-

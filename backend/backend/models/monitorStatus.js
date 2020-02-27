@@ -7,7 +7,7 @@ const monitorStatusSchema = new Schema({
     status: String,
     manuallyCreated: {
         type: Boolean,
-        default: false
+        default: false,
     },
     startTime: {
         type: Date,
@@ -20,6 +20,6 @@ const monitorStatusSchema = new Schema({
     createdAt: {
         type: Date,
         default: Date.now,
-    }
+    },
 });
 module.exports = mongoose.model('MonitorStatus', monitorStatusSchema);

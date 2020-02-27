@@ -1,6 +1,5 @@
 import * as types from '../constants/emailTemplates';
 
-
 const initialState = {
     emailTemplates: {
         requesting: false,
@@ -8,36 +7,34 @@ const initialState = {
         success: false,
         templates: [],
     },
-    editEmailTemplates:{
-        requesting: false,
-        error: null,
-        success: false
-    },
-    resetEmailTemplates:{
-        requesting: false,
-        error: null,
-        success: false
-    },
-    showingTemplate:{},
-    revealVariable:'',
-    emailSmtpConfiguration:{
+    editEmailTemplates: {
         requesting: false,
         error: null,
         success: false,
-        config:{}
     },
-    emailSmtpDelete:{
+    resetEmailTemplates: {
         requesting: false,
         error: null,
-        success: false
+        success: false,
     },
-    showEmailSmtpConfiguration : false,
+    showingTemplate: {},
+    revealVariable: '',
+    emailSmtpConfiguration: {
+        requesting: false,
+        error: null,
+        success: false,
+        config: {},
+    },
+    emailSmtpDelete: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
+    showEmailSmtpConfiguration: false,
 };
-
 
 export default function incident(state = initialState, action) {
     switch (action.type) {
-
         case types.EMAIL_TEMPLATES_SUCCESS:
             return Object.assign({}, state, {
                 emailTemplates: {
@@ -89,9 +86,11 @@ export default function incident(state = initialState, action) {
                 editEmailTemplates: {
                     requesting: false,
                     error: null,
-                    success: true
+                    success: true,
                 },
-                showingTemplate: action.payload.find(temp => temp.emailType === state.showingTemplate.emailType)
+                showingTemplate: action.payload.find(
+                    temp => temp.emailType === state.showingTemplate.emailType
+                ),
             });
 
         case types.EDIT_EMAIL_TEMPLATES_REQUEST:
@@ -100,8 +99,8 @@ export default function incident(state = initialState, action) {
                     ...state.editEmailTemplates,
                     requesting: action.payload,
                     error: null,
-                    success: false
-                }
+                    success: false,
+                },
             });
 
         case types.EDIT_EMAIL_TEMPLATES_FAILED:
@@ -110,8 +109,8 @@ export default function incident(state = initialState, action) {
                     ...state.editEmailTemplates,
                     requesting: false,
                     error: action.payload,
-                    success: false
-                }
+                    success: false,
+                },
             });
 
         case types.EDIT_EMAIL_TEMPLATES_RESET:
@@ -119,8 +118,8 @@ export default function incident(state = initialState, action) {
                 editEmailTemplates: {
                     requesting: false,
                     error: null,
-                    success: false
-                }
+                    success: false,
+                },
             });
 
         case types.RESET_EMAIL_TEMPLATES_SUCCESS:
@@ -131,118 +130,123 @@ export default function incident(state = initialState, action) {
                     success: true,
                     templates: action.payload,
                 },
-                resetEmailTemplates:{
+                resetEmailTemplates: {
                     requesting: false,
                     error: null,
-                    success: false
+                    success: false,
                 },
-                showingTemplate: action.payload.find(temp => temp.emailType === state.showingTemplate.emailType)
+                showingTemplate: action.payload.find(
+                    temp => temp.emailType === state.showingTemplate.emailType
+                ),
             });
 
         case types.RESET_EMAIL_TEMPLATES_REQUEST:
             return Object.assign({}, state, {
-                resetEmailTemplates:{
+                resetEmailTemplates: {
                     requesting: true,
                     error: null,
-                    success: false
-                }
+                    success: false,
+                },
             });
 
         case types.RESET_EMAIL_TEMPLATES_FAILED:
             return Object.assign({}, state, {
-                resetEmailTemplates:{
+                resetEmailTemplates: {
                     requesting: false,
                     error: action.payload,
-                    success: false
-                }
+                    success: false,
+                },
             });
 
         case types.CHANGE_SHOWING_TEMPLATE:
             return Object.assign({}, state, {
-                showingTemplate: state.emailTemplates.templates.find(temp => temp.emailType === action.payload)
+                showingTemplate: state.emailTemplates.templates.find(
+                    temp => temp.emailType === action.payload
+                ),
             });
 
         case types.SET_REVEAL_VARIABLE:
             return Object.assign({}, state, {
-                revealVariable: action.payload
+                revealVariable: action.payload,
             });
 
         case types.SET_SMTP_CONFIG:
             return Object.assign({}, state, {
-                showEmailSmtpConfiguration: action.payload
+                showEmailSmtpConfiguration: action.payload,
             });
 
         case types.SMTP_CONFIG_SUCCESS:
             return Object.assign({}, state, {
-                emailSmtpConfiguration:{
+                emailSmtpConfiguration: {
                     requesting: false,
                     error: null,
                     success: true,
-                    config: action.payload
+                    config: action.payload,
                 },
             });
 
         case types.SMTP_CONFIG_FAILED:
             return Object.assign({}, state, {
-                emailSmtpConfiguration:{
+                emailSmtpConfiguration: {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    config:state.emailSmtpConfiguration.config
+                    config: state.emailSmtpConfiguration.config,
                 },
             });
 
         case types.SMTP_CONFIG_REQUEST:
             return Object.assign({}, state, {
-                emailSmtpConfiguration:{
+                emailSmtpConfiguration: {
                     requesting: true,
                     error: null,
                     success: false,
-                    config: state.emailSmtpConfiguration.config
+                    config: state.emailSmtpConfiguration.config,
                 },
-                emailSmtpDelete:{
+                emailSmtpDelete: {
                     ...state.emailSmtpDelete,
                     error: null,
-                }
+                },
             });
 
         case types.DELETE_SMTP_CONFIG_SUCCESS:
             return Object.assign({}, state, {
-                emailSmtpDelete:{
+                emailSmtpDelete: {
                     requesting: false,
                     error: null,
-                    success: true
+                    success: true,
                 },
-                emailSmtpConfiguration:{
+                emailSmtpConfiguration: {
                     requesting: false,
                     error: null,
                     success: false,
-                    config: action.payload
+                    config: action.payload,
                 },
             });
 
         case types.DELETE_SMTP_CONFIG_FAILED:
             return Object.assign({}, state, {
-                emailSmtpDelete:{
+                emailSmtpDelete: {
                     requesting: false,
                     error: action.payload,
-                    success: false
+                    success: false,
                 },
             });
 
         case types.DELETE_SMTP_CONFIG_REQUEST:
             return Object.assign({}, state, {
-                emailSmtpDelete:{
+                emailSmtpDelete: {
                     requesting: true,
                     error: null,
-                    success: false
+                    success: false,
                 },
-                emailSmtpConfiguration:{
+                emailSmtpConfiguration: {
                     ...state.emailSmtpConfiguration,
                     error: null,
                 },
             });
 
-            default: return state;
-        }
+        default:
+            return state;
     }
+}

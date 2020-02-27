@@ -17,39 +17,57 @@ const leadData = {
     country: 'IN',
     volume: '{"index":0,"total":6,"text":"$75,000 or less","lower_bound":0}',
     message: 'Testing',
-    type: 'demo'
+    type: 'demo',
 };
 
-describe('Lead API', function () {
+describe('Lead API', function() {
     this.timeout(20000);
 
-    it('should add lead when requested for type demo or whitepaper', function (done) {
-        request.post('/lead').send(leadData).end(function (err, res) {
-            expect(res).to.have.status(200);
-            leadService.hardDeleteBy({ _id: res.body._id });
-            done();
-        });
+    it('should add lead when requested for type demo or whitepaper', function(done) {
+        request
+            .post('/lead')
+            .send(leadData)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                leadService.hardDeleteBy({ _id: res.body._id });
+                done();
+            });
     });
 
-    it('should add lead when requested for type demo and check the sent message', function (done) {
+    it('should add lead when requested for type demo and check the sent message', function(done) {
         this.timeout(60000);
-        request.post('/lead').send(leadData).end(async function (err, res) {
-            expect(res).to.have.status(200);
-            leadService.hardDeleteBy({ _id: res.body._id });
-            const emailStatuses = await EmailStatusService.findBy({});
-            if(emailStatuses[0].subject.includes('New Lead')){
-                expect(emailStatuses[0].subject).to.equal('New Lead Added' );
-                expect(emailStatuses[0].status).to.equal('Email not enabled.');
-                expect(emailStatuses[1].subject).to.equal('Thank you for your demo request.');
-                expect(emailStatuses[1].status).to.equal('Email not enabled.');
-            }else{
-                expect(emailStatuses[0].subject).to.equal('Thank you for your demo request.');
-                expect(emailStatuses[0].status).to.equal('Email not enabled.');
-                expect(emailStatuses[1].subject).to.equal('New Lead Added' );
-                expect(emailStatuses[1].status).to.equal('Email not enabled.');
-            }
+        request
+            .post('/lead')
+            .send(leadData)
+            .end(async function(err, res) {
+                expect(res).to.have.status(200);
+                leadService.hardDeleteBy({ _id: res.body._id });
+                const emailStatuses = await EmailStatusService.findBy({});
+                if (emailStatuses[0].subject.includes('New Lead')) {
+                    expect(emailStatuses[0].subject).to.equal('New Lead Added');
+                    expect(emailStatuses[0].status).to.equal(
+                        'Email not enabled.'
+                    );
+                    expect(emailStatuses[1].subject).to.equal(
+                        'Thank you for your demo request.'
+                    );
+                    expect(emailStatuses[1].status).to.equal(
+                        'Email not enabled.'
+                    );
+                } else {
+                    expect(emailStatuses[0].subject).to.equal(
+                        'Thank you for your demo request.'
+                    );
+                    expect(emailStatuses[0].status).to.equal(
+                        'Email not enabled.'
+                    );
+                    expect(emailStatuses[1].subject).to.equal('New Lead Added');
+                    expect(emailStatuses[1].status).to.equal(
+                        'Email not enabled.'
+                    );
+                }
 
-            done();
-        });
+                done();
+            });
     });
 });

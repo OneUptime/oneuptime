@@ -1,43 +1,49 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 
-const composableComponent = (ComposedComponent) => {
+const composableComponent = ComposedComponent => {
     class Modal extends Component {
-        constructor(props){
+        constructor(props) {
             super(props);
             this.props = props;
             this.onClose = this.onClose.bind(this);
             this.onConfirm = this.onConfirm.bind(this);
         }
-        onClose =(value)=> {
+        onClose = value => {
             if (this.props.item.onClose) {
                 this.props.item.onClose(value);
                 this.props.onClose(this.props.item);
             } else {
                 this.props.onClose(this.props.item);
             }
-        }
-        onConfirm = (value)=> {
+        };
+        onConfirm = value => {
             const _this = this;
             if (this.props.item.onConfirm) {
-                this.props.item.onConfirm(value)
-                .then(() => _this.props.onClose(_this.props.item),
-                ()=> {})
+                this.props.item.onConfirm(value).then(
+                    () => _this.props.onClose(_this.props.item),
+                    () => {}
+                );
             } else {
-                this.props.onClose(this.props.item)
+                this.props.onClose(this.props.item);
             }
-        }
+        };
         render() {
             const { zIndex } = this.props;
             const { extraClasses } = this.props.item;
 
             const mainClass = `${extraClasses || ''} modal-dialog-view`;
-            const modalContainerStyle = {overflowX: 'auto', overflowY: 'scroll', display: 'block', top: '0px'};
+            const modalContainerStyle = {
+                overflowX: 'auto',
+                overflowY: 'scroll',
+                display: 'block',
+                top: '0px',
+            };
             return (
                 <div
                     className={mainClass}
                     style={{
-                        zIndex: (zIndex + 1) * 10000
+                        zIndex: (zIndex + 1) * 10000,
                     }}
                 >
                     <div
@@ -51,9 +57,16 @@ const composableComponent = (ComposedComponent) => {
                             zIndex: 20,
                         }}
                     >
-
-                        <div className="modal_container" style={modalContainerStyle}>
-                            <ComposedComponent closeThisDialog={this.onClose} confirmThisDialog={this.onConfirm} title={this.props.title} body={this.props.body} />
+                        <div
+                            className="modal_container"
+                            style={modalContainerStyle}
+                        >
+                            <ComposedComponent
+                                closeThisDialog={this.onClose}
+                                confirmThisDialog={this.onConfirm}
+                                title={this.props.title}
+                                body={this.props.body}
+                            />
                         </div>
                     </div>
                 </div>
@@ -63,17 +76,16 @@ const composableComponent = (ComposedComponent) => {
     Modal.propTypes = {
         onConfirm: PropTypes.func,
         item: PropTypes.object.isRequired,
-        onClose:PropTypes.func.isRequired,
+        onClose: PropTypes.func.isRequired,
         extraClasses: PropTypes.string,
         zIndex: PropTypes.number.isRequired,
         title: PropTypes.string,
         body: PropTypes.object,
-    }
+    };
 
-    Modal.displayName = 'Modal'
+    Modal.displayName = 'Modal';
 
     return Modal;
-}
-
+};
 
 export default composableComponent;

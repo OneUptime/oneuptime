@@ -8,17 +8,17 @@ const smtpSchema = new Schema({
     host: String,
     port: String,
     from: String,
-    secure:{ type: Boolean, default: true},
-    enabled:{ type: Boolean, default: true},
+    secure: { type: Boolean, default: true },
+    enabled: { type: Boolean, default: true },
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
     },
 
-    deleted: { type: Boolean, default: false},
+    deleted: { type: Boolean, default: false },
 
     deletedAt: {
-        type: Date
+        type: Date,
     },
 
     deletedById: { type: String, ref: 'User' },

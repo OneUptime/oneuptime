@@ -1,19 +1,16 @@
-
-import reducer from '../../reducers/login'
-import * as types from '../../constants/login'
+import reducer from '../../reducers/login';
+import * as types from '../../constants/login';
 
 const initialState = {
-	requesting: false,
-	user: {},
-	error: null,
-	success: false
+    requesting: false,
+    user: {},
+    error: null,
+    success: false,
 };
 
-
-describe('Login Reducers',()=>{
-
+describe('Login Reducers', () => {
     it('should return initial state', () => {
-        expect(reducer(initialState,{})).toEqual(initialState)
+        expect(reducer(initialState, {})).toEqual(initialState);
     });
 
     it('should handle LOGIN_REQUEST', () => {
@@ -21,9 +18,11 @@ describe('Login Reducers',()=>{
             requesting: true,
             user: {},
             error: null,
-            success: false
+            success: false,
         };
-        expect(reducer(initialState,{type:types.LOGIN_REQUEST})).toEqual(expected)
+        expect(reducer(initialState, { type: types.LOGIN_REQUEST })).toEqual(
+            expected
+        );
     });
 
     it('should handle LOGIN_SUCCESS', () => {
@@ -31,9 +30,11 @@ describe('Login Reducers',()=>{
             requesting: false,
             user: {},
             error: null,
-            success: true
+            success: true,
         };
-        expect(reducer(initialState,{type:types.LOGIN_SUCCESS})).toEqual(expected)
+        expect(reducer(initialState, { type: types.LOGIN_SUCCESS })).toEqual(
+            expected
+        );
     });
 
     it('should handle LOGIN_FAILED', () => {
@@ -41,13 +42,19 @@ describe('Login Reducers',()=>{
             requesting: false,
             user: {},
             error: 'error LOGIN_FAILED',
-            success: false
+            success: false,
         };
-        expect(reducer(initialState,{type:types.LOGIN_FAILED,payload:'error LOGIN_FAILED'})).toEqual(expected)
+        expect(
+            reducer(initialState, {
+                type: types.LOGIN_FAILED,
+                payload: 'error LOGIN_FAILED',
+            })
+        ).toEqual(expected);
     });
 
     it('should handle LOGIN_REQUEST', () => {
-        expect(reducer(initialState,{type:types.RESET_LOGIN})).toEqual(initialState)
+        expect(reducer(initialState, { type: types.RESET_LOGIN })).toEqual(
+            initialState
+        );
     });
-
 });

@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
 export class StatusHeader extends Component {
-
     render() {
         const { statusPage } = this.props;
 
@@ -15,32 +14,39 @@ export class StatusHeader extends Component {
                         <div className="Box-root">
                             <p>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Status Page: {statusPage.status.name || 'Status Page'}</span>
+                                    <span>
+                                        Status Page:{' '}
+                                        {statusPage.status.name ||
+                                            'Status Page'}
+                                    </span>
                                 </span>
                             </p>
-                            <p><span>Status page lets your customers and your team see the current status of your monitors.</span></p>
+                            <p>
+                                <span>
+                                    Status page lets your customers and your
+                                    team see the current status of your
+                                    monitors.
+                                </span>
+                            </p>
                         </div>
                     </div>
-
                 </div>
             </div>
         );
     }
 }
 
-StatusHeader.displayName = 'StatusHeader'
+StatusHeader.displayName = 'StatusHeader';
 
 StatusHeader.propTypes = {
-    statusPage: PropTypes.object.isRequired
-}
+    statusPage: PropTypes.object.isRequired,
+};
 
-const mapDispatchToProps = dispatch => bindActionCreators(
-    {}, dispatch
-)
+const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
 const mapStateToProps = state => {
-    const { statusPage} = state;
+    const { statusPage } = state;
     return { statusPage };
-}
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(StatusHeader);

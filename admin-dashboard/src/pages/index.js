@@ -11,5 +11,5 @@ export default {
     Projects,
     Project,
     Probes,
-    AuditLogs
-}
+    AuditLogs,
+};

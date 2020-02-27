@@ -1,5 +1,5 @@
 module.exports = {
-    create: async function (data) {
+    create: async function(data) {
         try {
             const LogDay = new MonitorLogByDayModel();
 
@@ -35,17 +35,19 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
             }
 
-            const monitorLogByDay = await MonitorLogByDayModel.findOneAndUpdate(query,
+            const monitorLogByDay = await MonitorLogByDayModel.findOneAndUpdate(
+                query,
                 { $set: data },
                 {
-                    new: true
-                });
+                    new: true,
+                }
+            );
 
             return monitorLogByDay;
         } catch (error) {
@@ -60,11 +62,11 @@ module.exports = {
 
             if (!limit) limit = 0;
 
-            if (typeof (skip) === 'string') {
+            if (typeof skip === 'string') {
                 skip = parseInt(skip);
             }
 
-            if (typeof (limit) === 'string') {
+            if (typeof limit === 'string') {
                 limit = parseInt(limit);
             }
 
@@ -112,7 +114,7 @@ module.exports = {
             ErrorService.log('monitorLogByDayService.countBy', error);
             throw error;
         }
-    }
+    },
 };
 
 const MonitorLogByDayModel = require('../models/monitorLogByDay');

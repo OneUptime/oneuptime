@@ -1,17 +1,16 @@
 const puppeteer = require('puppeteer');
-var should = require('should');
-var utils = require('./test-utils');
-var init = require('./test-init');
+const utils = require('./test-utils');
+const init = require('./test-init');
 const { Cluster } = require('puppeteer-cluster');
 
 // user credentials
-let email = utils.generateRandomBusinessEmail();
-let password = '1234567890';
-let monitorName = utils.generateRandomString();
-let newMonitorName = utils.generateRandomString();
-let projectName = utils.generateRandomString();
-let subscriberEmail = utils.generateRandomBusinessEmail();
-let webhookEndpoint = utils.generateRandomWebsite();
+const email = utils.generateRandomBusinessEmail();
+const password = '1234567890';
+const monitorName = utils.generateRandomString();
+const newMonitorName = utils.generateRandomString();
+const projectName = utils.generateRandomString();
+const subscriberEmail = utils.generateRandomBusinessEmail();
+const webhookEndpoint = utils.generateRandomWebsite();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut = 50000;
@@ -85,9 +84,7 @@ describe('Monitor Detail API', () => {
 
                 let spanElement;
 
-                spanElement = await page.$(
-                    'span#monitor-content-header'
-                );
+                spanElement = await page.$('span#monitor-content-header');
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
@@ -140,8 +137,8 @@ describe('Monitor Detail API', () => {
                 await page.click('#createIncident');
                 await page.waitFor(2000);
 
-                let incidentRows = await page.$$('tr.incidentListItem');
-                let countIncidents = incidentRows.length;
+                const incidentRows = await page.$$('tr.incidentListItem');
+                const countIncidents = incidentRows.length;
 
                 expect(countIncidents).toEqual(1);
             });
@@ -267,11 +264,11 @@ describe('Monitor Detail API', () => {
 
                 await page.click('#createScheduledEventButton');
 
-                createdScheduledEventSelector =
+                const createdScheduledEventSelector =
                     '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
                 await page.waitFor(1000);
 
-                var createdScheduledEventName = await page.$eval(
+                const createdScheduledEventName = await page.$eval(
                     createdScheduledEventSelector,
                     el => el.textContent
                 );
@@ -329,13 +326,13 @@ describe('Monitor Detail API', () => {
             await nextSelector.click();
             await page.waitFor(5000);
 
-            var createdScheduledEventSelector =
+            const createdScheduledEventSelector =
                 '#scheduledEventsList > div > div.bs-ObjectList-cell.bs-u-v-middle.bs-ActionsParent.db-ListViewItem--hasLink > div.Text-color--cyan.Text-display--inline.Text-fontSize--14.Text-fontWeight--medium.Text-lineHeight--20.Text-typeface--base.Text-wrap--wrap';
 
-            var scheduledEventRows = await page.$$(
+            let scheduledEventRows = await page.$$(
                 createdScheduledEventSelector
             );
-            var countScheduledEvent = scheduledEventRows.length;
+            let countScheduledEvent = scheduledEventRows.length;
 
             expect(countScheduledEvent).toEqual(5);
 
@@ -397,9 +394,9 @@ describe('Monitor Detail API', () => {
                 await page.click('#createSubscriber');
                 await page.waitFor(2000);
 
-                let createdSubscriberSelector =
+                const createdSubscriberSelector =
                     '#subscribersList > tbody > tr > td:nth-child(4) > div > div > span > div > div > div';
-                let createdSubscriberEmail = await page.$eval(
+                const createdSubscriberEmail = await page.$eval(
                     createdSubscriberSelector,
                     el => el.textContent
                 );
@@ -460,7 +457,7 @@ describe('Monitor Detail API', () => {
             await nextSelector.click();
             await page.waitFor(5000);
 
-            let createdSubscriberSelector =
+            const createdSubscriberSelector =
                 '#subscribersList > tbody > tr > td:nth-child(4) > div > div > span > div > div > div';
 
             let subscriberRows = await page.$$(createdSubscriberSelector);
@@ -533,9 +530,9 @@ describe('Monitor Detail API', () => {
                 await page.click('#createWebhook');
                 await page.waitFor(2000);
 
-                let createdWebhookSelector =
+                const createdWebhookSelector =
                     '#webhookList > tbody > tr > td:nth-child(1) > div > span > div > span';
-                let createdWebhookEndpoint = await page.$eval(
+                const createdWebhookEndpoint = await page.$eval(
                     createdWebhookSelector,
                     el => el.textContent
                 );
@@ -601,7 +598,7 @@ describe('Monitor Detail API', () => {
             await nextSelector.click();
             await page.waitFor(5000);
 
-            let createdWebhookSelector =
+            const createdWebhookSelector =
                 '#webhookList > tbody > tr > td:nth-child(1) > div > span > div > span';
 
             let webhookRows = await page.$$(createdWebhookSelector);
@@ -723,7 +720,7 @@ describe('Monitor Detail API', () => {
                 await page.click(confirmDeleteButtonSelector);
                 await page.waitFor(10000);
 
-                let spanElement = await page.$(
+                const spanElement = await page.$(
                     'span.ContentHeader-title.Text-color--dark.Text-display--inline.Text-fontSize--20.Text-fontWeight--regular.Text-lineHeight--28.Text-typeface--base.Text-wrap--wrap'
                 );
 

@@ -13,12 +13,11 @@ import {
     DELETE_MONITOR_CATEGORY_FAILURE,
     FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_REQUEST,
     FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_SUCCESS,
-    FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_FAILURE
+    FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_FAILURE,
 } from '../constants/monitorCategories';
 
-
 const INITIAL_STATE = {
-    monitorCategoryListForNewMonitor:{
+    monitorCategoryListForNewMonitor: {
         monitorCategories: [],
         error: null,
         requesting: false,
@@ -31,27 +30,26 @@ const INITIAL_STATE = {
         success: false,
         skip: null,
         limit: null,
-        count: null
+        count: null,
     },
     newMonitorCategory: {
         monitorCategory: null,
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     updatedMonitorCategory: {
         monitorCategory: null,
         error: null,
         requesting: false,
-        success: false
+        success: false,
     },
     deletedMonitorCategory: {
         error: null,
         requesting: false,
-        success: false
-    }
-}
-
+        success: false,
+    },
+};
 
 export default function monitorCategory(state = INITIAL_STATE, action) {
     switch (action.type) {
@@ -61,17 +59,21 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitor: null
+                    monitor: null,
                 },
                 monitorCategoryList: {
                     ...state.monitorCategoryList,
-                    monitorCategories: state.monitorCategoryList.monitorCategories.concat(action.payload),
-                    count:state.monitorCategoryList.count+1
+                    monitorCategories: state.monitorCategoryList.monitorCategories.concat(
+                        action.payload
+                    ),
+                    count: state.monitorCategoryList.count + 1,
                 },
-                monitorCategoryListForNewMonitor:{
+                monitorCategoryListForNewMonitor: {
                     ...state.monitorCategoryListForNewMonitor,
-                    monitorCategories: state.monitorCategoryListForNewMonitor.monitorCategories.concat(action.payload)
-                }
+                    monitorCategories: state.monitorCategoryListForNewMonitor.monitorCategories.concat(
+                        action.payload
+                    ),
+                },
             });
         case CREATE_MONITOR_CATEGORY_FAILURE:
             return Object.assign({}, state, {
@@ -80,8 +82,8 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitorCategory: state.newMonitorCategory.monitorCategory
-                }
+                    monitorCategory: state.newMonitorCategory.monitorCategory,
+                },
             });
         case CREATE_MONITOR_CATEGORY_REQUEST:
             return Object.assign({}, state, {
@@ -90,8 +92,8 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                    monitor: state.newMonitorCategory.monitorCategory
-                }
+                    monitor: state.newMonitorCategory.monitorCategory,
+                },
             });
 
         case UPDATE_MONITOR_CATEGORY_SUCCESS:
@@ -100,16 +102,18 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitor: null
+                    monitor: null,
                 },
                 monitorCategoryList: {
                     ...state.monitorCategoryList,
-                    monitorCategories: state.monitorCategoryList.monitorCategories.map(item => {
-                        if (item._id === action.payload._id) {
-                            return { ...item, name: action.payload.name };
+                    monitorCategories: state.monitorCategoryList.monitorCategories.map(
+                        item => {
+                            if (item._id === action.payload._id) {
+                                return { ...item, name: action.payload.name };
+                            }
+                            return item;
                         }
-                        return item;
-                    }),
+                    ),
                 },
             });
         case UPDATE_MONITOR_CATEGORY_REQUEST:
@@ -119,8 +123,8 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                    monitor: state.updatedMonitorCategory.monitorCategory
-                }
+                    monitor: state.updatedMonitorCategory.monitorCategory,
+                },
             });
         case UPDATE_MONITOR_CATEGORY_FAILURE:
             return Object.assign({}, state, {
@@ -129,8 +133,9 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitorCategory: state.updatedMonitorCategory.monitorCategory
-                }
+                    monitorCategory:
+                        state.updatedMonitorCategory.monitorCategory,
+                },
             });
 
         case FETCH_MONITOR_CATEGORIES_SUCCESS:
@@ -143,8 +148,8 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     monitorCategories: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
-                    skip: action.payload.skip
-                }
+                    skip: action.payload.skip,
+                },
             });
         case FETCH_MONITOR_CATEGORIES_FAILURE:
             return Object.assign({}, state, {
@@ -154,7 +159,7 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
 
         case FETCH_MONITOR_CATEGORIES_REQUEST:
@@ -165,7 +170,7 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                }
+                },
             });
 
         case DELETE_MONITOR_CATEGORY_SUCCESS:
@@ -173,51 +178,55 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                 ...state,
                 monitorCategoryListForNewMonitor: {
                     ...state.monitorCategoryListForNewMonitor,
-                    monitorCategories: state.monitorCategoryListForNewMonitor.monitorCategories.filter(monitorCategory => {
-                        if (monitorCategory._id === action.payload) {
-                            return false;
-                        } else {
-                            return true;
+                    monitorCategories: state.monitorCategoryListForNewMonitor.monitorCategories.filter(
+                        monitorCategory => {
+                            if (monitorCategory._id === action.payload) {
+                                return false;
+                            } else {
+                                return true;
+                            }
                         }
-                    })
+                    ),
                 },
                 monitorCategoryList: {
                     ...state.monitorCategoryList,
-                    monitorCategories: state.monitorCategoryList.monitorCategories.filter(monitorCategory => {
-                        if (monitorCategory._id === action.payload) {
-                            return false;
-                        } else {
-                            return true;
+                    monitorCategories: state.monitorCategoryList.monitorCategories.filter(
+                        monitorCategory => {
+                            if (monitorCategory._id === action.payload) {
+                                return false;
+                            } else {
+                                return true;
+                            }
                         }
-                    }),
-                    count:state.monitorCategoryList.count-1
+                    ),
+                    count: state.monitorCategoryList.count - 1,
                 },
-                deletedMonitorCategory:{
-                    requesting:false,
-                    success:true,
-                    error:false
+                deletedMonitorCategory: {
+                    requesting: false,
+                    success: true,
+                    error: false,
                 },
                 newMonitorCategory: {
-                    ...INITIAL_STATE.newMonitorCategory
-                }
+                    ...INITIAL_STATE.newMonitorCategory,
+                },
             });
         case DELETE_MONITOR_CATEGORY_FAILURE:
             return Object.assign({}, state, {
                 ...state,
-                deletedMonitorCategory:{
-                    requesting:false,
-                    success:false,
-                    error: action.payload
-                }
+                deletedMonitorCategory: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
             });
         case DELETE_MONITOR_CATEGORY_REQUEST:
             return Object.assign({}, state, {
                 ...state,
-                deletedMonitorCategory:{
-                    requesting:true,
-                    success:false,
-                    error:null
-                }
+                deletedMonitorCategory: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
             });
 
         case FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_SUCCESS:
@@ -229,7 +238,7 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     success: true,
                     monitorCategories: action.payload.data,
                     count: action.payload.count,
-                }
+                },
             });
         case FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_FAILURE:
             return Object.assign({}, state, {
@@ -239,7 +248,7 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
         case FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_REQUEST:
             return Object.assign({}, state, {
@@ -249,9 +258,10 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                }
+                },
             });
 
-        default: return state;
+        default:
+            return state;
     }
 }

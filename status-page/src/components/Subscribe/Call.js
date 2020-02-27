@@ -14,45 +14,50 @@ class Call extends Component {
         this.handleSubmit = this.handleSubmit.bind(this);
     }
 
-    handleChange = (event) => {
+    handleChange = event => {
         const value = event.target.value;
         const name = event.target.name;
         this.setState({ [name]: value });
-    }
-    handleSubmit = (event) => {
+    };
+    handleSubmit = event => {
         if (this.state.phone_number && this.state.phone_number.length) {
             const validnumber = this.validation(this.state.phone_number);
             if (validnumber) {
                 const values = this.state;
                 values.method = 'sms';
                 this.props.userData(values);
+            } else {
+                this.props.validationError(
+                    'Please enter a valid phone number.'
+                );
             }
-            else {
-                this.props.validationError('Please enter a valid phone number.');
-            }
-        }
-        else {
+        } else {
             this.props.validationError('Please enter your phone number.');
         }
         event.preventDefault();
-    }
-    validation = (phone) => {
+    };
+    validation = phone => {
         const numbers = /^[0-9]+$/;
         if (phone.match(numbers)) {
             return true;
-        }
-        else {
+        } else {
             return false;
         }
-    }
+    };
     render() {
         return (
             <div>
                 <div className="directions">
-                    Get sms notifications when an incident is <strong>created</strong>.
-          </div>
+                    Get sms notifications when an incident is{' '}
+                    <strong>created</strong>.
+                </div>
                 <form id="subscribe-form-sms" onSubmit={this.handleSubmit}>
-                    <select value={this.state.country} onChange={this.handleChange} name="country" className="select-full">
+                    <select
+                        value={this.state.country}
+                        onChange={this.handleChange}
+                        name="country"
+                        className="select-full"
+                    >
                         <option value="af">Afghanistan (+93)</option>
                         <option value="al">Albania (+355)</option>
                         <option value="dz">Algeria (+213)</option>
@@ -64,7 +69,9 @@ class Call extends Component {
                         <option value="ar">Argentina (+54)</option>
                         <option value="am">Armenia (+374)</option>
                         <option value="aw">Aruba (+297)</option>
-                        <option value="au">Australia/Cocos/Christmas Island (+61)</option>
+                        <option value="au">
+                            Australia/Cocos/Christmas Island (+61)
+                        </option>
                         <option value="at">Austria (+43)</option>
                         <option value="az">Azerbaijan (+994)</option>
                         <option value="bs">Bahamas (+1)</option>
@@ -77,7 +84,9 @@ class Call extends Component {
                         <option value="bj">Benin (+229)</option>
                         <option value="bm">Bermuda (+1)</option>
                         <option value="bo">Bolivia (+591)</option>
-                        <option value="ba">Bosnia and Herzegovina (+387)</option>
+                        <option value="ba">
+                            Bosnia and Herzegovina (+387)
+                        </option>
                         <option value="bw">Botswana (+267)</option>
                         <option value="br">Brazil (+55)</option>
                         <option value="bn">Brunei (+673)</option>
@@ -174,7 +183,9 @@ class Call extends Component {
                         <option value="mn">Mongolia (+976)</option>
                         <option value="me">Montenegro (+382)</option>
                         <option value="ms">Montserrat (+1)</option>
-                        <option value="ma">Morocco/Western Sahara (+212)</option>
+                        <option value="ma">
+                            Morocco/Western Sahara (+212)
+                        </option>
                         <option value="mz">Mozambique (+258)</option>
                         <option value="na">Namibia (+264)</option>
                         <option value="np">Nepal (+977)</option>
@@ -230,7 +241,9 @@ class Call extends Component {
                         <option value="tt">Trinidad and Tobago (+1)</option>
                         <option value="tn">Tunisia (+216)</option>
                         <option value="tr">Turkey (+90)</option>
-                        <option value="tc">Turks and Caicos Islands (+1)</option>
+                        <option value="tc">
+                            Turks and Caicos Islands (+1)
+                        </option>
                         <option value="ug">Uganda (+256)</option>
                         <option value="ua">Ukraine (+380)</option>
                         <option value="ae">United Arab Emirates (+971)</option>
@@ -244,18 +257,46 @@ class Call extends Component {
                         <option value="vi">Virgin Islands, U.S. (+1)</option>
                         <option value="ye">Yemen (+967)</option>
                         <option value="zm">Zambia (+260)</option>
-                        <option value="zw">Zimbabwe (+263)</option></select>
-                    <input name="phone_number" onChange={this.handleChange} type="text" placeholder="ex. 6505551234" className="input-full" />
+                        <option value="zw">Zimbabwe (+263)</option>
+                    </select>
+                    <input
+                        name="phone_number"
+                        onChange={this.handleChange}
+                        type="text"
+                        placeholder="ex. 6505551234"
+                        className="input-full"
+                    />
 
-
-                    <input type="submit" value="Subscribe" className="subscribe-btn-full" id="subscribe-btn-sms" />
-                    <div className="terms_and_privacy_information small" style={{ marginTop: '10px' }}>Message and data rates may apply. By subscribing you agree to the Fyipe <a target="_blank" href="https://www.atlassian.com/legal/cloud-terms-of-service" rel="noopener noreferrer">Cloud Terms of Service</a>.</div>
+                    <input
+                        type="submit"
+                        value="Subscribe"
+                        className="subscribe-btn-full"
+                        id="subscribe-btn-sms"
+                    />
+                    <div
+                        className="terms_and_privacy_information small"
+                        style={{ marginTop: '10px' }}
+                    >
+                        Message and data rates may apply. By subscribing you
+                        agree to the Fyipe{' '}
+                        <a
+                            target="_blank"
+                            href="https://www.atlassian.com/legal/cloud-terms-of-service"
+                            rel="noopener noreferrer"
+                        >
+                            Cloud Terms of Service
+                        </a>
+                        .
+                    </div>
                 </form>
-                <ShouldRender if={this.props.subscribed && this.props.subscribed.error}>
+                <ShouldRender
+                    if={this.props.subscribed && this.props.subscribed.error}
+                >
                     <div className="validation-error">
                         <span className="validation-error-icon"></span>
-                        <span className='error-text'>
-                            {this.props.subscribed && this.props.subscribed.error}
+                        <span className="error-text">
+                            {this.props.subscribed &&
+                                this.props.subscribed.error}
                         </span>
                     </div>
                 </ShouldRender>
@@ -266,18 +307,19 @@ class Call extends Component {
 
 Call.displayName = 'Call';
 
-const mapStateToProps = (state) => ({
+const mapStateToProps = state => ({
     userDetails: state.subscribe.userDetails,
     subscribed: state.subscribe.subscribed,
 });
 
-const mapDispatchToProps = (dispatch) => bindActionCreators({ userData, validationError }, dispatch)
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ userData, validationError }, dispatch);
 
 Call.propTypes = {
     userData: PropTypes.func,
     validationError: PropTypes.func,
     subscribed: PropTypes.object,
-    error: PropTypes.string
-}
+    error: PropTypes.string,
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Call);

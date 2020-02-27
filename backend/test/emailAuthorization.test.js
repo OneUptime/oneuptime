@@ -14,12 +14,12 @@ const AirtableService = require('../backend/services/airtableService');
 
 let userId, airtableId, projectId;
 
-describe('Email verification API', function () {
+describe('Email verification API', function() {
     this.timeout(20000);
 
-    before(function (done) {
+    before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function (err, res) {
+        createUser(request, userData.user, function(err, res) {
             userId = res.body.id;
             projectId = res.body.project._id;
             airtableId = res.body.airtableId;
@@ -28,30 +28,38 @@ describe('Email verification API', function () {
         });
     });
 
-    after(async function () {
-        await UserService.hardDeleteBy({ email: { $in: [userData.user.email, userData.newUser.email, userData.anotherUser.email] } });
+    after(async function() {
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [
+                    userData.user.email,
+                    userData.newUser.email,
+                    userData.anotherUser.email,
+                ],
+            },
+        });
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should send email verification', async function () {
+    it('should send email verification', async function() {
         const emailStatuses = await EmailStatusService.findBy({});
         expect(emailStatuses[0].subject).to.equal('Welcome to Fyipe.');
         expect(emailStatuses[0].status).to.equal('Email not enabled.');
     });
 
-    it('should not login non-verified user', async function () {
+    it('should not login non-verified user', async function() {
         try {
             await request.post('/user/login').send({
                 email: userData.user.email,
-                password: userData.user.password
+                password: userData.user.password,
             });
         } catch (error) {
             expect(error).to.have.status(401);
         }
     });
 
-    it('should verify the user', async function () {
+    it('should verify the user', async function() {
         const token = await VerificationTokenModel.findOne({ userId });
         try {
             await request.get(`/user/confirmation/${token.token}`).redirects(0);
@@ -62,10 +70,10 @@ describe('Email verification API', function () {
         }
     });
 
-    it('should login the verified user', async function () {
+    it('should login the verified user', async function() {
         const res = await request.post('/user/login').send({
             email: userData.user.email,
-            password: userData.user.password
+            password: userData.user.password,
         });
         expect(res).to.have.status(200);
     });

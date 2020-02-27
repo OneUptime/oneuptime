@@ -12,14 +12,19 @@ const smsTemplateSchema = new Schema({
     body: { type: String },
     smsType: {
         type: String,
-        enum: ['Subscriber Incident Created', 'Subscriber Incident Acknowldeged', 'Subscriber Incident Resolved', 'Team Member Incident'],
-        required: true
+        enum: [
+            'Subscriber Incident Created',
+            'Subscriber Incident Acknowldeged',
+            'Subscriber Incident Resolved',
+            'Team Member Incident',
+        ],
+        required: true,
     },
     allowedVariables: [{ type: String, required: true }],
     deleted: { type: Boolean, default: false },
 
     deletedAt: {
-        type: Date
+        type: Date,
     },
 
     deletedById: { type: String, ref: 'User' },

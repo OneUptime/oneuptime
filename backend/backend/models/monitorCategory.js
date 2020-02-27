@@ -5,12 +5,12 @@ const monitorCategorySchema = new Schema({
     projectId: {
         type: String,
         ref: 'Project',
-        alias: 'project'
+        alias: 'project',
     },
     name: String,
     createdById: {
         type: String,
-        ref: 'User'
+        ref: 'User',
     },
     createdAt: {
         type: Date,
@@ -18,15 +18,15 @@ const monitorCategorySchema = new Schema({
     },
     deleted: {
         type: Boolean,
-        default: false
+        default: false,
     },
     deletedAt: {
-        type: Date
+        type: Date,
     },
     deletedById: {
         type: String,
-        ref: 'User'
-    }
+        ref: 'User',
+    },
 });
 
 module.exports = mongoose.model('MonitorCategory', monitorCategorySchema);

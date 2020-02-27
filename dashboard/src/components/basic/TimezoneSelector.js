@@ -1,34 +1,47 @@
 import React, { useState, useRef, useEffect } from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 import Select from './react-select-fyipe';
 import { Zones } from './TimezoneArray';
 
 const errorStyle = {
     color: 'red',
-    topMargin: '5px'
+    topMargin: '5px',
 };
 
-const TimezoneSelector = ({ input, placeholder, style, meta: { touched, error }, id,disabled }) => {
-    const options = [{ value: '', label: 'Select Timezone...' }].concat(Zones.map(zone => (
-        { value: zone.value, label: zone.name }
-    )));
+const TimezoneSelector = ({
+    input,
+    placeholder,
+    style,
+    meta: { touched, error },
+    id,
+    disabled,
+}) => {
+    const options = [{ value: '', label: 'Select Timezone...' }].concat(
+        Zones.map(zone => ({ value: zone.value, label: zone.name }))
+    );
 
     const filteredOpt = useRef();
     filteredOpt.current = options.filter(opt => opt.value === input.value);
 
     const [value, setValue] = useState({
-        value: input.value, label: filteredOpt.current.length > 0 ?
-            filteredOpt.current[0].label : placeholder
+        value: input.value,
+        label:
+            filteredOpt.current.length > 0
+                ? filteredOpt.current[0].label
+                : placeholder,
     });
 
     useEffect(() => {
         setValue({
-            value: input.value, label: filteredOpt.current.length > 0 ?
-                filteredOpt.current[0].label : placeholder
+            value: input.value,
+            label:
+                filteredOpt.current.length > 0
+                    ? filteredOpt.current[0].label
+                    : placeholder,
         });
     }, [input, placeholder]);
 
-    const handleChange = (option) => {
+    const handleChange = option => {
         setValue(option);
         if (input.onChange) {
             input.onChange(option.value);
@@ -46,10 +59,12 @@ const TimezoneSelector = ({ input, placeholder, style, meta: { touched, error },
                     id={id}
                     placeholder={placeholder}
                     isDisabled={disabled}
-                    options={options.filter(opt => opt.show !== undefined ? opt.show : true)}
+                    options={options.filter(opt =>
+                        opt.show !== undefined ? opt.show : true
+                    )}
                 />
             </div>
-            {touched && error && (<span style={errorStyle}>{error}</span>)}
+            {touched && error && <span style={errorStyle}>{error}</span>}
         </span>
     );
 };
@@ -62,7 +77,7 @@ TimezoneSelector.propTypes = {
     meta: PropTypes.object.isRequired,
     style: PropTypes.object,
     id: PropTypes.string,
-    disabled:PropTypes.bool
+    disabled: PropTypes.bool,
 };
 
 export default TimezoneSelector;

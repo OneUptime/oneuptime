@@ -1,7 +1,7 @@
-# FYIPE SMOKE TESTS #
+# FYIPE SMOKE TESTS
 
 Smoke tests for fyipe
 
-### Tools used ###
+### Tools used
 
-* `puppeteer`
+-   `puppeteer`

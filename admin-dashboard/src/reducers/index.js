@@ -18,7 +18,7 @@ const appReducer = combineReducers({
     user,
     project,
     probe,
-    auditLogs
+    auditLogs,
 });
 
 export default (state, action) => {
@@ -26,4 +26,4 @@ export default (state, action) => {
         state = undefined;
     }
     return appReducer(state, action);
-}
+};
