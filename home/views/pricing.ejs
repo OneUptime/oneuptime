@@ -15,13 +15,17 @@
   </script>
   <noscript id="deferred-styles">
     <link rel="preload" href="/css/flexbox-grid.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/css/flexbox-grid.css"></noscript>
+    <noscript>
+      <link rel="stylesheet" href="/css/flexbox-grid.css"></noscript>
     <link rel="preload" href="/css/pricing.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/css/pricing.css"></noscript>
+    <noscript>
+      <link rel="stylesheet" href="/css/pricing.css"></noscript>
     <link rel="preload" href="/css/switch.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/css/switch.css"></noscript>
+    <noscript>
+      <link rel="stylesheet" href="/css/switch.css"></noscript>
     <link rel="preload" href="/css/comparision.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/css/comparision.css"></noscript>
+    <noscript>
+      <link rel="stylesheet" href="/css/comparision.css"></noscript>
   </noscript>
 </head>
 
@@ -117,7 +121,7 @@
                 </div>
               </div>
 
-              <a id="pro-plus-link" href="#" onclick="registerUrl()"
+              <a id="startup-plan-link" href="#" onclick="registerUrl()"
                 class="Plan-button common-Uppercase common-Link--arrow">
                 Try Free for 14 days
               </a>
@@ -180,7 +184,7 @@
                 </div>
               </div>
 
-              <a id="pro-plus-link" href="#" onclick="registerUrl()"
+              <a id="growth-plan-link" href="#" onclick="registerUrl()"
                 class="Plan-button common-Uppercase common-Link--arrow">
                 Try Free for 14 days
               </a>
@@ -303,7 +307,8 @@
               How do discounts work?
             </h5>
             <p class="common-BodyText PricingFAQ-body font16">
-              Annual plans have a 17% discount. You can upgrade your current plan to an annual plan to avail of the discount.
+              Annual plans have a 17% discount. You can upgrade your current plan to an annual plan to avail of the
+              discount.
               If you're an enterprise,
               contact us for a custom quote.
             </p>
@@ -434,23 +439,19 @@
 
       if (window.location.href.indexOf("localhost") > -1) {
         if (annualSelected) {
-          $("#basic-link").attr("onclick", "registerUrl('?plan=plan_CpIYuh9Ui2965K')")
-          $("#pro-link").attr("onclick", "registerUrl('?plan=plan_CpIZTQWQiIr6rY')")
-          $("#pro-plus-link").attr("onclick", "registerUrl('?plan=plan_CpIbtqozj1UVGs')")
+          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWIqpBpStiqQp')")
+          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWKiTdQ6NiQFw')")
         } else {
-          $("#basic-link").attr("onclick", "registerUrl('?plan=plan_CpIUcLDhD1HKKA')")
-          $("#pro-link").attr("onclick", "registerUrl('?plan=plan_CpIZEEfT4YFSvF')")
-          $("#pro-plus-link").attr("onclick", "registerUrl('?plan=plan_CpIatF9qAmeZLP')")
+          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWIYiX2L8hwzx')")
+          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWKgxRnPPBJWy')")
         }
       } else {
         if (annualSelected) {
-          $("#basic-link").attr("onclick", "registerUrl('?plan=plan_CogeLcH7wZEMP1')")
-          $("#pro-link").attr("onclick", "registerUrl('?plan=plan_CogfwRVpqoOLO6')")
-          $("#pro-plus-link").attr("onclick", "registerUrl('?plan=plan_CoggNmls8dUpDy')")
+          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVgJu5PKMLRJU')")
+          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoViZshjqzZ0vv')")
         } else {
-          $("#basic-link").attr("onclick", "registerUrl('?plan=plan_CogdfpBptaPGi9')")
-          $("#pro-link").attr("onclick", "registerUrl('?plan=plan_CogeidQkPwkycV')")
-          $("#pro-plus-link").attr("onclick", "registerUrl('?plan=prod_Cogffh2xpitVg6')")
+          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVgVbvNdbWwlm')")
+          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVi9EIa6MU0fG')")
         }
       }
     }
