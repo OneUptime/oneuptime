@@ -308,9 +308,9 @@ describe('StatusPage API With SubProjects', () => {
                 );
                 await page.waitForSelector('#btnAddLink');
                 await page.click('#btnAddLink');
-                await page.waitForSelector('#name');
-                await page.click('#name');
-                await page.type('#name', 'Home');
+                await page.waitForSelector('#footerName');
+                await page.click('#footerName');
+                await page.type('#footerName', 'Home');
                 await page.click('#url');
                 await page.type('#url', 'https://fyipe.com');
                 await page.click('#createFooter');
