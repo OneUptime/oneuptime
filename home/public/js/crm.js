@@ -70,6 +70,9 @@ const animateHTML = function () {
         window.addEventListener('resize', init)
     }
     const _checkPosition = function () {
+        if(!elem){
+            return;
+        }
         const posFromTop = elem.getBoundingClientRect().top;
 
         if (posFromTop - windowHeight <= -400) {
