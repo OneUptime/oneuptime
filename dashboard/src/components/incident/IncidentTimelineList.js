@@ -345,7 +345,13 @@ const IncidentTimelineList = props => {
 
             {requesting ? <ListLoader /> : null}
 
-            <div style={{ textAlign: 'center', marginTop: '10px' }}>
+            <div
+                style={{
+                    textAlign: 'center',
+                    marginTop: '10px',
+                    padding: '0 10px',
+                }}
+            >
                 {!timeline || !timeline.length
                     ? "We don't have any activity yet"
                     : null}

@@ -71,23 +71,31 @@ export class SubscriberAlert extends Component {
                                         </div>
                                     </div>
                                 </div>
-                                <table className="Table">
-                                    <thead className="Table-body">
-                                        <SubscriberAlertTableHeader />
-                                    </thead>
-                                    <tbody className="Table-body">
-                                        <SubscriberAlertTableRows
-                                            alerts={this.props.alerts}
-                                            monitor={
-                                                this.props.incident &&
-                                                this.props.incident.monitorId
-                                            }
-                                            isRequesting={
-                                                this.props.isRequesting
-                                            }
-                                        />
-                                    </tbody>
-                                </table>
+                                <div
+                                    style={{
+                                        overflow: 'hidden',
+                                        overflowX: 'auto',
+                                    }}
+                                >
+                                    <table className="Table">
+                                        <thead className="Table-body">
+                                            <SubscriberAlertTableHeader />
+                                        </thead>
+                                        <tbody className="Table-body">
+                                            <SubscriberAlertTableRows
+                                                alerts={this.props.alerts}
+                                                monitor={
+                                                    this.props.incident &&
+                                                    this.props.incident
+                                                        .monitorId
+                                                }
+                                                isRequesting={
+                                                    this.props.isRequesting
+                                                }
+                                            />
+                                        </tbody>
+                                    </table>
+                                </div>
 
                                 <ShouldRender
                                     if={
@@ -97,7 +105,11 @@ export class SubscriberAlert extends Component {
                                 >
                                     <div
                                         className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
-                                        style={{ marginTop: '20px' }}
+                                        style={{
+                                            textAlign: 'center',
+                                            marginTop: '20px',
+                                            padding: '0 10px',
+                                        }}
                                     >
                                         There are no subscriber alerts at this
                                         time!

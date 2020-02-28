@@ -594,16 +594,16 @@ export function MonitorChart({
                         )}
                     </div>
                 </div>
-                <div className="block-chart-main line-chart">
-                    <ShouldRender if={!isCurrentlyNotMonitoring}>
+                <ShouldRender if={!isCurrentlyNotMonitoring}>
+                    <div className="block-chart-main line-chart">
                         <AreaChart
                             type={type}
                             data={data}
                             name={'response time'}
                             symbol="ms"
                         />
-                    </ShouldRender>
-                </div>
+                    </div>
+                </ShouldRender>
             </div>
         );
     } else if (type === 'manual') {
@@ -727,10 +727,10 @@ export function MonitorChart({
                             </div>
                         </div>
                     </div>
+                    <div className="block-chart-main">
+                        <div className="block-chart">{block}</div>
+                    </div>
                 </ShouldRender>
-                <div className="block-chart-main">
-                    <div className="block-chart">{block}</div>
-                </div>
             </div>
         );
     }

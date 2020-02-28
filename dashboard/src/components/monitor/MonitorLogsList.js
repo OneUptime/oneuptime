@@ -464,7 +464,13 @@ export class MonitorLogsList extends Component {
 
                 {monitorLogs && monitorLogs.requesting ? <ListLoader /> : null}
 
-                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                <div
+                    style={{
+                        textAlign: 'center',
+                        marginTop: '10px',
+                        padding: '0 10px',
+                    }}
+                >
                     {!monitorLogs ||
                     (monitorLogs &&
                         (!monitorLogs.logs || !monitorLogs.logs.length) &&

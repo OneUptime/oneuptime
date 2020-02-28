@@ -166,7 +166,7 @@ export class IncidentStatus extends Component {
                                                             .incidentType ===
                                                             'offline' ? (
                                                             <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                     <span>
                                                                         offline
                                                                     </span>
@@ -180,7 +180,7 @@ export class IncidentStatus extends Component {
                                                               .incidentType ===
                                                               'online' ? (
                                                             <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                     <span>
                                                                         online
                                                                     </span>
@@ -194,7 +194,7 @@ export class IncidentStatus extends Component {
                                                               .incidentType ===
                                                               'degraded' ? (
                                                             <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                     <span>
                                                                         degraded
                                                                     </span>
@@ -202,7 +202,7 @@ export class IncidentStatus extends Component {
                                                             </div>
                                                         ) : (
                                                             <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                     <span>
                                                                         Unknown
                                                                         Status
@@ -229,7 +229,7 @@ export class IncidentStatus extends Component {
                                                             }}
                                                         >
                                                             <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                     <span
                                                                         id={`AcknowledgeText_${this.props.count}`}
                                                                     >
@@ -279,7 +279,7 @@ export class IncidentStatus extends Component {
                                                                     '6px',
                                                             }}
                                                         >
-                                                            <span className="Badge-text Text-display--inline Text-fontSize--10 Text-lineHeight--16 Text-wrap--noWrap">
+                                                            <span className="Badge-text Text-display--inline Text-fontSize--10 Text-lineHeight--16">
                                                                 {
                                                                     moment(
                                                                         this
@@ -359,7 +359,7 @@ export class IncidentStatus extends Component {
                                                         }}
                                                     >
                                                         <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                 <span>
                                                                     Not
                                                                     Acknowledged
@@ -384,7 +384,7 @@ export class IncidentStatus extends Component {
                                                             }}
                                                         >
                                                             <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                     <span
                                                                         id={`ResolveText_${this.props.count}`}
                                                                     >
@@ -434,7 +434,7 @@ export class IncidentStatus extends Component {
                                                                     '6px',
                                                             }}
                                                         >
-                                                            <span className="Badge-text Text-display--inline Text-fontSize--10 Text-lineHeight--16 Text-wrap--noWrap">
+                                                            <span className="Badge-text Text-display--inline Text-fontSize--10 Text-lineHeight--16">
                                                                 {
                                                                     moment(
                                                                         this
@@ -514,7 +514,7 @@ export class IncidentStatus extends Component {
                                                         }}
                                                     >
                                                         <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                 <span>
                                                                     Not Resolved
                                                                 </span>

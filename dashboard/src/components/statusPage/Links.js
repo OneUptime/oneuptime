@@ -165,7 +165,10 @@ export class Links extends Component {
                     </div>
 
                     <form onSubmit={handleSubmit(this.submitForm)}>
-                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1">
+                        <div
+                            className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1"
+                            style={{ overflow: 'hidden', overflowX: 'auto' }}
+                        >
                             <div>
                                 <div className="bs-Fieldset-wrapper Box-root">
                                     <fieldset className="Box-background--white">
@@ -196,7 +199,11 @@ export class Links extends Component {
                                         >
                                             <div
                                                 className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
-                                                style={{ marginTop: '20px' }}
+                                                style={{
+                                                    textAlign: 'center',
+                                                    marginTop: '20px',
+                                                    padding: '0 10px',
+                                                }}
                                             >
                                                 You don&#39;t have any custom
                                                 footer link added yet!

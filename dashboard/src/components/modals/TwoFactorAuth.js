@@ -190,8 +190,10 @@ class TwoFactorAuthModal extends Component {
                                                                     size={230}
                                                                     value={`${qrCode.data.otpauth_url}`}
                                                                     style={{
+                                                                        display:
+                                                                            'block',
                                                                         margin:
-                                                                            '0 0 0 21%',
+                                                                            '0 auto',
                                                                     }}
                                                                 />
                                                             ) : (

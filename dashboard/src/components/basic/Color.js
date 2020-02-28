@@ -14,7 +14,7 @@ function Color({
     return (
         <div
             className="Box-root Box-root Box-root Flex-flex"
-            style={props.style}
+            style={{ ...props.style, marginBottom: '10px' }}
         >
             <div
                 onClick={handleClick}

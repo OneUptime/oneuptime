@@ -12,20 +12,18 @@ const RenderTextArea = ({
     disabled,
     style,
 }) => (
-    <span>
-        <span>
-            <textarea
-                id="feedback-textarea"
-                {...input}
-                type={type}
-                rows={rows}
-                placeholder={placeholder}
-                maxLength={maxlength}
-                className={className}
-                disabled={disabled || false}
-                style={style || {}}
-            />
-        </span>
+    <span style={{ display: 'block', width: '100%' }}>
+        <textarea
+            id="feedback-textarea"
+            {...input}
+            type={type}
+            rows={rows}
+            placeholder={placeholder}
+            maxLength={maxlength}
+            className={className}
+            disabled={disabled || false}
+            style={style || {}}
+        />
         <br />
         {meta.error && meta.touched && (
             <div

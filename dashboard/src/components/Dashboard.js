@@ -225,6 +225,8 @@ export class DashboardApp extends Component {
                                     display: 'flex',
                                     justifyContent: 'center',
                                     alignItems: 'center',
+                                    textAlign: 'center',
+                                    padding: '0 10px',
                                 }}
                             >
                                 <div>Cannot connect to server.</div>
@@ -253,6 +255,8 @@ export class DashboardApp extends Component {
                                         alignItems: 'center',
                                         fontSize: '20px',
                                         flexDirection: 'column',
+                                        textAlign: 'center',
+                                        padding: '0 10px',
                                     }}
                                 >
                                     <div>

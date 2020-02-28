@@ -66,20 +66,26 @@ export class IncidentAlert extends Component {
                                         </div>
                                     </div>
                                 </div>
-                                <table className="Table">
-                                    <thead className="Table-body">
-                                        <AlertTableHeader />
-                                    </thead>
-                                    <tbody className="Table-body">
-                                        <AlertTableRows
-                                            alerts={this.props.alerts}
-                                            isRequesting={
-                                                this.props.isRequesting
-                                            }
-                                        />
-                                    </tbody>
-                                </table>
-
+                                <div
+                                    style={{
+                                        overflow: 'hidden',
+                                        overflowX: 'auto',
+                                    }}
+                                >
+                                    <table className="Table">
+                                        <thead className="Table-body">
+                                            <AlertTableHeader />
+                                        </thead>
+                                        <tbody className="Table-body">
+                                            <AlertTableRows
+                                                alerts={this.props.alerts}
+                                                isRequesting={
+                                                    this.props.isRequesting
+                                                }
+                                            />
+                                        </tbody>
+                                    </table>
+                                </div>
                                 <ShouldRender
                                     if={
                                         !this.props.isRequesting &&
@@ -88,7 +94,11 @@ export class IncidentAlert extends Component {
                                 >
                                     <div
                                         className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
-                                        style={{ marginTop: '20px' }}
+                                        style={{
+                                            textAlign: 'center',
+                                            marginTop: '20px',
+                                            padding: '0 10px',
+                                        }}
                                     >
                                         There are no alerts at this time!
                                     </div>
@@ -121,7 +131,11 @@ export class IncidentAlert extends Component {
                                         >
                                             <div
                                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
+                                                style={{
+                                                    textAlign: 'center',
+                                                    marginTop: '10px',
+                                                    padding: '0 10px',
+                                                }}
                                             >
                                                 <div className="Box-root Margin-right--8">
                                                     <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>

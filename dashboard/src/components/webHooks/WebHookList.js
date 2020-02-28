@@ -108,33 +108,35 @@ class WebHookList extends React.Component {
 
         return (
             <React.Fragment>
-                <table
-                    className="Table"
-                    id="webhookList"
-                    onKeyDown={this.handleKeyBoard}
-                >
-                    <thead className="Table-body">
-                        <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                            <WebHookTableHeader text="Endpoint" />
-                            {!monitorId && (
-                                <WebHookTableHeader text="Monitors" />
-                            )}
-                            <WebHookTableHeader text="Type" />
-                            <WebHookTableHeader text="Action" />
-                        </tr>
-                    </thead>
-                    <tbody className="Table-body">
-                        <ShouldRender if={numberOfWebHooks > 0}>
-                            {(webHooks ? webHooks : []).map(hook => (
-                                <WebHookItem
-                                    key={`${hook._id}`}
-                                    data={hook}
-                                    monitorId={monitorId}
-                                />
-                            ))}
-                        </ShouldRender>
-                    </tbody>
-                </table>
+                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                    <table
+                        className="Table"
+                        id="webhookList"
+                        onKeyDown={this.handleKeyBoard}
+                    >
+                        <thead className="Table-body">
+                            <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                                <WebHookTableHeader text="Endpoint" />
+                                {!monitorId && (
+                                    <WebHookTableHeader text="Monitors" />
+                                )}
+                                <WebHookTableHeader text="Type" />
+                                <WebHookTableHeader text="Action" />
+                            </tr>
+                        </thead>
+                        <tbody className="Table-body">
+                            <ShouldRender if={numberOfWebHooks > 0}>
+                                {(webHooks ? webHooks : []).map(hook => (
+                                    <WebHookItem
+                                        key={`${hook._id}`}
+                                        data={hook}
+                                        monitorId={monitorId}
+                                    />
+                                ))}
+                            </ShouldRender>
+                        </tbody>
+                    </table>
+                </div>
                 <ShouldRender if={numberOfWebHooks === 0 && !isRequesting}>
                     <div className="Box-root">
                         <br />
@@ -146,6 +148,8 @@ class WebHookList extends React.Component {
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 flexDirection: 'column',
+                                textAlign: 'center',
+                                padding: '0 10px',
                             }}
                         >
                             <span>

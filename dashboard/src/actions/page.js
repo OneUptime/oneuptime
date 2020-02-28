@@ -22,5 +22,18 @@ export const loadPage = function(title) {
     return function(dispatch) {
         dispatch(pageLoadRequest(title));
         dispatch(pageLoadSuccess(title));
+        dispatch(closeSideNav());
     };
 };
+
+export function openSideNav() {
+    return {
+        type: 'OPEN_SIDENAV',
+    };
+}
+
+export function closeSideNav() {
+    return {
+        type: 'CLOSE_SIDENAV',
+    };
+}

@@ -7,6 +7,7 @@ import {
 const initialState = {
     requesting: false,
     title: '',
+    sidenavopen: false,
 };
 
 export default (state = initialState, action) => {
@@ -22,11 +23,23 @@ export default (state = initialState, action) => {
                 requesting: false,
                 title: action.payload,
             });
+
         case PAGE_LOAD_RESET:
             return Object.assign({}, state, {
                 requesting: false,
                 title: '',
             });
+
+        case 'OPEN_SIDENAV':
+            return Object.assign({}, state, {
+                sidenavopen: true,
+            });
+
+        case 'CLOSE_SIDENAV':
+            return Object.assign({}, state, {
+                sidenavopen: false,
+            });
+
         default:
             return state;
     }

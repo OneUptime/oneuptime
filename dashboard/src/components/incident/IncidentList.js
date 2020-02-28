@@ -523,7 +523,13 @@ export class IncidentList extends Component {
                     <ListLoader />
                 ) : null}
 
-                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                <div
+                    style={{
+                        textAlign: 'center',
+                        marginTop: '10px',
+                        padding: '0 10px',
+                    }}
+                >
                     {this.props.incidents &&
                     (!this.props.incidents.incidents ||
                         !this.props.incidents.incidents.length) &&

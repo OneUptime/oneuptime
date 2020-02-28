@@ -140,7 +140,7 @@ export class SmsSmtpBox extends Component {
                                                                         className="Box-root"
                                                                     >
                                                                         <label
-                                                                            className="Checkbox"
+                                                                            className="Checkbox responsive"
                                                                             htmlFor="smssmtpswitch"
                                                                             style={{
                                                                                 marginLeft:

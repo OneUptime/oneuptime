@@ -84,25 +84,27 @@ class SlackTeamList extends React.Component {
 
         return (
             <React.Fragment>
-                <table className="Table" onKeyDown={this.handleKeyBoard}>
-                    <thead className="Table-body">
-                        <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                            <OnCallTableHeader text="Connected workspace" />
-                            <OnCallTableHeader text="" />
-                        </tr>
-                    </thead>
-                    <tbody className="Table-body">
-                        <ShouldRender if={teams.teams.length > 0}>
-                            {teams.teams.map(res => (
-                                <SlackTeamItem
-                                    key={`${res._id}`}
-                                    team={res}
-                                    projectId={projectId}
-                                />
-                            ))}
-                        </ShouldRender>
-                    </tbody>
-                </table>
+                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                    <table className="Table" onKeyDown={this.handleKeyBoard}>
+                        <thead className="Table-body">
+                            <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                                <OnCallTableHeader text="Connected workspace" />
+                                <OnCallTableHeader text="" />
+                            </tr>
+                        </thead>
+                        <tbody className="Table-body">
+                            <ShouldRender if={teams.teams.length > 0}>
+                                {teams.teams.map(res => (
+                                    <SlackTeamItem
+                                        key={`${res._id}`}
+                                        team={res}
+                                        projectId={projectId}
+                                    />
+                                ))}
+                            </ShouldRender>
+                        </tbody>
+                    </table>
+                </div>
 
                 <ShouldRender if={requesting}>
                     <ListLoader />
@@ -120,6 +122,8 @@ class SlackTeamList extends React.Component {
                             display: 'flex',
                             justifyContent: 'center',
                             alignItems: 'center',
+                            textAlign: 'center',
+                            padding: '0 10px',
                         }}
                     >
                         <div>Cannot connect to server.</div>
@@ -138,6 +142,8 @@ class SlackTeamList extends React.Component {
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 flexDirection: 'column',
+                                textAlign: 'center',
+                                padding: '0 10px',
                             }}
                         >
                             <span>

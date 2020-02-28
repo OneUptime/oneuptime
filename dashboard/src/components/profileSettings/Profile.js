@@ -444,7 +444,10 @@ export class ProfileSetting extends Component {
                                                 <label className="bs-Fieldset-label">
                                                     Email
                                                 </label>
-                                                <div className="bs-Fieldset-fields">
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{ flex: 'unset' }}
+                                                >
                                                     <Field
                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         type="text"
@@ -461,10 +464,7 @@ export class ProfileSetting extends Component {
                                                 <ShouldRender if={emailValue}>
                                                     <div
                                                         className="bs-Fieldset-fields"
-                                                        style={{
-                                                            marginLeft: -80,
-                                                            marginTop: 5,
-                                                        }}
+                                                        style={{ marginTop: 5 }}
                                                     >
                                                         {!verifiedEmail ? (
                                                             <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
@@ -601,7 +601,10 @@ export class ProfileSetting extends Component {
                                                 <label className="bs-Fieldset-label">
                                                     Phone
                                                 </label>
-                                                <div className="bs-Fieldset-fields">
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{ flex: 'unset' }}
+                                                >
                                                     <ReactPhoneInput
                                                         defaultCountry={'us'}
                                                         value={
@@ -631,10 +634,7 @@ export class ProfileSetting extends Component {
                                                 >
                                                     <div
                                                         className="bs-Fieldset-fields"
-                                                        style={{
-                                                            marginLeft: -80,
-                                                            marginTop: 5,
-                                                        }}
+                                                        style={{ marginTop: 5 }}
                                                     >
                                                         {!verifiedPhone ? (
                                                             <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
@@ -1031,7 +1031,12 @@ export class ProfileSetting extends Component {
                                                     Profile Picture
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
-                                                    <div className="Box-root Flex-flex Flex-alignItems--center">
+                                                    <div
+                                                        className="Box-root Flex-flex Flex-alignItems--center"
+                                                        style={{
+                                                            flexWrap: 'wrap',
+                                                        }}
+                                                    >
                                                         <div>
                                                             <label
                                                                 className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
@@ -1088,7 +1093,13 @@ export class ProfileSetting extends Component {
                                                         <ShouldRender
                                                             if={profilePic}
                                                         >
-                                                            <div className="bs-Fieldset-fields">
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    padding:
+                                                                        '0',
+                                                                }}
+                                                            >
                                                                 <button
                                                                     className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
                                                                     type="button"
@@ -1100,6 +1111,10 @@ export class ProfileSetting extends Component {
                                                                         profileSettings &&
                                                                         profileSettings.requesting
                                                                     }
+                                                                    style={{
+                                                                        margin:
+                                                                            '10px 10px 0 0',
+                                                                    }}
                                                                 >
                                                                     <span className="bs-Button--icon bs-Button--delete"></span>
                                                                     <span>

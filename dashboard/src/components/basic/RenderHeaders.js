@@ -18,12 +18,7 @@ const RenderHeaders = ({ fields }) => {
             {fields.map((val, i) => {
                 return (
                     <li key={i}>
-                        <div
-                            className="bs-Fieldset-row"
-                            style={Object.assign({}, flexStyle, {
-                                marginLeft: '10px',
-                            })}
-                        >
+                        <div className="bs-Fieldset-row" style={flexStyle}>
                             <label
                                 className="bs-Fieldset-label"
                                 style={{ padding: '6px' }}
@@ -32,7 +27,7 @@ const RenderHeaders = ({ fields }) => {
                             </label>
                             <div
                                 className="bs-Fieldset-fields"
-                                style={{ width: '340px' }}
+                                style={{ width: '250px' }}
                             >
                                 <Field
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -40,7 +35,7 @@ const RenderHeaders = ({ fields }) => {
                                     name={`${val}.key`}
                                     component={RenderField}
                                     placeholder="KEY"
-                                    style={{ width: '340px' }}
+                                    style={{ width: '250px' }}
                                     validate={ValidateField.required}
                                 />
                             </div>
@@ -54,7 +49,7 @@ const RenderHeaders = ({ fields }) => {
                             </label>
                             <div
                                 className="bs-Fieldset-fields"
-                                style={{ width: '350px' }}
+                                style={{ width: '250px' }}
                             >
                                 <Field
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -62,17 +57,12 @@ const RenderHeaders = ({ fields }) => {
                                     name={`${val}.value`}
                                     component={RenderField}
                                     placeholder="VALUE"
-                                    style={{ width: '340px' }}
+                                    style={{ width: '250px' }}
                                     validate={ValidateField.required}
                                 />
                             </div>
                         </div>
-                        <div
-                            className="bs-Fieldset-row"
-                            style={Object.assign({}, flexStyle, {
-                                marginLeft: '35px',
-                            })}
-                        >
+                        <div className="bs-Fieldset-row" style={flexStyle}>
                             <label className="bs-Fieldset-label"></label>
                             <div className="bs-Fieldset-fields">
                                 <div className="Box-root Flex-flex Flex-alignItems--center">

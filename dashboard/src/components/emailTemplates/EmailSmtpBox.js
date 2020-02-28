@@ -148,7 +148,7 @@ export class EmailSmtpBox extends Component {
                                                                     className="Box-root"
                                                                 >
                                                                     <label
-                                                                        className="Checkbox"
+                                                                        className="Checkbox responsive"
                                                                         htmlFor="smtpswitch"
                                                                         style={{
                                                                             marginLeft:
@@ -381,7 +381,7 @@ export class EmailSmtpBox extends Component {
                                                                         className="Box-root"
                                                                     >
                                                                         <label
-                                                                            className="Checkbox"
+                                                                            className="Checkbox responsive"
                                                                             htmlFor="secure"
                                                                             style={{
                                                                                 marginLeft:

@@ -86,7 +86,7 @@ class NotificationMenu extends Component {
         const userId = User.getUserId();
         return this.props.notificationsVisible ? (
             <div
-                className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
+                className="notifications ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
                 style={{
                     top: '49px',
                     width: '450px',

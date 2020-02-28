@@ -56,7 +56,7 @@ class SubscriberAdvanceOption extends React.Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal" style={{ width: 500 }}>
+                    <div className="bs-Modal">
                         <div className="bs-Modal-header">
                             <div
                                 className="bs-Modal-header-copy"
@@ -120,7 +120,7 @@ class SubscriberAdvanceOption extends React.Component {
                                                             <div
                                                                 className="Box-root"
                                                                 style={{
-                                                                    'padding-left':
+                                                                    paddingLeft:
                                                                         '5px',
                                                                 }}
                                                             >
@@ -191,7 +191,7 @@ class SubscriberAdvanceOption extends React.Component {
                                                             <div
                                                                 className="Box-root"
                                                                 style={{
-                                                                    'padding-left':
+                                                                    paddingLeft:
                                                                         '5px',
                                                                 }}
                                                             >
@@ -261,7 +261,7 @@ class SubscriberAdvanceOption extends React.Component {
                                                             <div
                                                                 className="Box-root"
                                                                 style={{
-                                                                    'padding-left':
+                                                                    paddingLeft:
                                                                         '5px',
                                                                 }}
                                                             >
@@ -331,7 +331,7 @@ class SubscriberAdvanceOption extends React.Component {
                                                             <div
                                                                 className="Box-root"
                                                                 style={{
-                                                                    'padding-left':
+                                                                    paddingLeft:
                                                                         '5px',
                                                                 }}
                                                             >

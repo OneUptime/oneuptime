@@ -9,6 +9,7 @@ import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
 import ClickOutside from 'react-click-outside';
 import { userSettings } from '../../actions/profile';
 import { getVersion } from '../../actions/version';
+import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
 import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
@@ -90,12 +91,22 @@ class TopContent extends Component {
                 className="db-World-topContent Box-root Box-background--surface Padding-vertical--20"
             >
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                    <div className="Box-root" onClick={this.props.openSideNav}>
+                        <div className="db-MenuContainer">
+                            <div
+                                className={
+                                    'db-MenuIcon Box-root Box-background--white'
+                                }
+                            >
+                                <div className="db-MenuIcon--content db-MenuIcon--menu" />
+                            </div>
+                        </div>
+                    </div>
+
                     <ClickOutside onClickOutside={this.hideFeedbackModal}>
                         <FeedBackModal />
                     </ClickOutside>
-                    <div className="db-SearchField db-SearchField--tokenizable">
-                        <span />
-                    </div>
+
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                         <div className="Box-root Margin-right--16">
                             <div
@@ -217,12 +228,14 @@ const mapDispatchToProps = dispatch =>
             userSettings,
             openNotificationMenu,
             getVersion,
+            openSideNav,
         },
         dispatch
     );
 
 TopContent.propTypes = {
     getVersion: PropTypes.func,
+    openSideNav: PropTypes.func,
     userSettings: PropTypes.func.isRequired,
     openFeedbackModal: PropTypes.func.isRequired,
     closeFeedbackModal: PropTypes.func.isRequired,

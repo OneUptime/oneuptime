@@ -43,7 +43,7 @@ export class FeedbackModal extends Component {
                 className="db-FeedbackModal"
                 style={{
                     position: 'absolute',
-                    right: '40px',
+                    right: '20px',
                     top: '20px',
                     zIndex: '999',
                 }}

@@ -19,7 +19,7 @@ import RenderIfAdmin from '../basic/RenderIfAdmin';
 const style = {
     backgroundColor: '#fff',
     borderRadius: '4px',
-    width: '800px',
+    width: '600px',
     boxShadow:
         '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
 };
@@ -99,7 +99,7 @@ export class TemplatesFormBox extends Component {
                                                         id="name"
                                                         required="required"
                                                         style={{
-                                                            width: '800px',
+                                                            width: '600px',
                                                         }}
                                                     />
                                                 </div>
@@ -142,6 +142,7 @@ export class TemplatesFormBox extends Component {
                                                 }
                                             >
                                                 <span
+                                                    className="template-variable-1"
                                                     style={{
                                                         display: 'block',
                                                         marginLeft: '120px',
@@ -170,6 +171,7 @@ export class TemplatesFormBox extends Component {
                                                 }
                                             >
                                                 <span
+                                                    className="template-variable-2"
                                                     style={{
                                                         display: 'block',
                                                         marginLeft: '110px',
@@ -180,6 +182,7 @@ export class TemplatesFormBox extends Component {
                                                     variables.
                                                 </span>
                                                 <span
+                                                    className="template-variable-1"
                                                     style={{
                                                         display: 'block',
                                                         marginLeft: '120px',

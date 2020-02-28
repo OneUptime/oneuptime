@@ -92,7 +92,7 @@ export class FormModal extends Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM db-InviteSetting">
-                    <div className="bs-Modal bs-Modal--large">
+                    <div className="bs-Modal bs-Modal--medium">
                         <form
                             id={`frm_${data.subProjectName}`}
                             lpformnum="2"

@@ -75,40 +75,46 @@ const TeamMemberProjectBox = props => (
         </div>
         <div className="bs-ContentSection-content Box-root">
             <div className="bs-ObjectList db-UserList">
-                <div className="bs-ObjectList-rows">
-                    <header className="bs-ObjectList-row bs-ObjectList-row--header">
-                        <div className="bs-ObjectList-cell">Team Member</div>
-                        <div className="bs-ObjectList-cell">Role</div>
-                        <div className="bs-ObjectList-cell">Status</div>
-                        <div className="bs-ObjectList-cell"></div>
-                        <div className="bs-ObjectList-cell"></div>
-                    </header>
+                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                    <div className="bs-ObjectList-rows">
+                        <header className="bs-ObjectList-row bs-ObjectList-row--header">
+                            <div className="bs-ObjectList-cell">
+                                Team Member
+                            </div>
+                            <div className="bs-ObjectList-cell">Role</div>
+                            <div className="bs-ObjectList-cell">Status</div>
+                            <div className="bs-ObjectList-cell"></div>
+                            <div className="bs-ObjectList-cell"></div>
+                        </header>
 
-                    {props.teamMembers.teamMembers.map((i, o) => {
-                        if (
-                            o >=
-                                (props.pages[props.teamMembers._id] || 1) *
-                                    props.membersPerPage -
-                                    props.membersPerPage &&
-                            o <
-                                (props.pages[props.teamMembers._id] || 1) *
-                                    props.membersPerPage
-                        ) {
-                            return (
-                                <TeamMember
-                                    inviteModalId
-                                    userId={i.userId}
-                                    key={i.userId}
-                                    index={i.userId}
-                                    name={i.name}
-                                    email={i.email}
-                                    role={i.role}
-                                    lastActive={moment(i.lastActive).fromNow()}
-                                    subProjectId={props.teamMembers._id}
-                                />
-                            );
-                        } else return null;
-                    })}
+                        {props.teamMembers.teamMembers.map((i, o) => {
+                            if (
+                                o >=
+                                    (props.pages[props.teamMembers._id] || 1) *
+                                        props.membersPerPage -
+                                        props.membersPerPage &&
+                                o <
+                                    (props.pages[props.teamMembers._id] || 1) *
+                                        props.membersPerPage
+                            ) {
+                                return (
+                                    <TeamMember
+                                        inviteModalId
+                                        userId={i.userId}
+                                        key={i.userId}
+                                        index={i.userId}
+                                        name={i.name}
+                                        email={i.email}
+                                        role={i.role}
+                                        lastActive={moment(
+                                            i.lastActive
+                                        ).fromNow()}
+                                        subProjectId={props.teamMembers._id}
+                                    />
+                                );
+                            } else return null;
+                        })}
+                    </div>
                 </div>
             </div>
         </div>
@@ -118,7 +124,11 @@ const TeamMemberProjectBox = props => (
                 <div className="bs-Tail-copy">
                     <div
                         className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                        style={{ marginTop: '10px' }}
+                        style={{
+                            textAlign: 'center',
+                            marginTop: '10px',
+                            padding: '0 10px',
+                        }}
                     >
                         <div className="Box-root Margin-right--8">
                             <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
@@ -135,7 +145,11 @@ const TeamMemberProjectBox = props => (
                 <div className="bs-Tail-copy">
                     <div
                         className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                        style={{ marginTop: '10px' }}
+                        style={{
+                            textAlign: 'center',
+                            marginTop: '10px',
+                            padding: '0 10px',
+                        }}
                     >
                         <div className="Box-root Margin-right--8">
                             <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>

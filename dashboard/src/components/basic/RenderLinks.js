@@ -15,7 +15,7 @@ const RenderLinks = ({
     deleting,
 }) => {
     return (
-        <ul>
+        <div>
             <table className="Table">
                 <thead className="Table-body Box-background--offset bs-Fieldset">
                     <tr className="Table-row db-ListViewItem db-ListViewItem-header">
@@ -181,7 +181,7 @@ const RenderLinks = ({
                     })}
                 </tbody>
             </table>
-        </ul>
+        </div>
     );
 };
 

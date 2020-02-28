@@ -83,7 +83,7 @@ class CreateFooterLink extends Component {
                                             <div className="bs-Fieldset-fields">
                                                 <Field
                                                     name="name"
-                                                    id="name"
+                                                    id="footerName"
                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                                     type="text"
                                                     component={RenderField}

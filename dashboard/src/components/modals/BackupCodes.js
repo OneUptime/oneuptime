@@ -49,7 +49,7 @@ class BackupCodesModal extends React.Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal" style={{ width: 450 }}>
+                    <div className="bs-Modal">
                         <div className="bs-Modal-header">
                             <div
                                 className="bs-Modal-header-copy"
@@ -75,46 +75,54 @@ class BackupCodesModal extends React.Component {
                                                     className="bs-Fieldset-row"
                                                     style={{ padding: 0 }}
                                                 >
-                                                    <table className="Table">
-                                                        <tbody className="Table-body">
-                                                            {data.backupCodes &&
-                                                            data.backupCodes
-                                                                .length > 0 ? (
-                                                                data.backupCodes.map(
-                                                                    code => (
-                                                                        <tr
-                                                                            className="Table-row db-ListViewItem bs-ActionsParent scheduleListItem"
-                                                                            key={
-                                                                                code.code
-                                                                            }
-                                                                        >
-                                                                            <td
-                                                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                                                style={{
-                                                                                    height:
-                                                                                        '1px',
-                                                                                }}
+                                                    <div
+                                                        style={{
+                                                            overflow: 'hidden',
+                                                            overflowX: 'auto',
+                                                        }}
+                                                    >
+                                                        <table className="Table">
+                                                            <tbody className="Table-body">
+                                                                {data.backupCodes &&
+                                                                data.backupCodes
+                                                                    .length >
+                                                                    0 ? (
+                                                                    data.backupCodes.map(
+                                                                        code => (
+                                                                            <tr
+                                                                                className="Table-row db-ListViewItem bs-ActionsParent scheduleListItem"
+                                                                                key={
+                                                                                    code.code
+                                                                                }
                                                                             >
-                                                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                                                    <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                                        <div className="Margin-right--7">
-                                                                                            <span>
-                                                                                                {
-                                                                                                    code.code
-                                                                                                }
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </span>
-                                                                                </div>
-                                                                            </td>
-                                                                        </tr>
+                                                                                <td
+                                                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                                                    style={{
+                                                                                        height:
+                                                                                            '1px',
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                                                        <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                            <div className="Margin-right--7">
+                                                                                                <span>
+                                                                                                    {
+                                                                                                        code.code
+                                                                                                    }
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        )
                                                                     )
-                                                                )
-                                                            ) : (
-                                                                <ListLoader />
-                                                            )}
-                                                        </tbody>
-                                                    </table>
+                                                                ) : (
+                                                                    <ListLoader />
+                                                                )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </fieldset>
