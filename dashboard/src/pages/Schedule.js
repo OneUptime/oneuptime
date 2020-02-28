@@ -21,7 +21,6 @@ class Schedule extends Component {
     }
 
     async componentDidMount() {
-
         this.setState({ isLoading: true });
 
         const { subProjectId, scheduleId } = this.props;
@@ -29,10 +28,10 @@ class Schedule extends Component {
             await Promise.all([
                 this.props.getEscalation(subProjectId, scheduleId),
                 this.props.subProjectTeamLoading(subProjectId),
-                this.props.teamLoading(subProjectId)
+                this.props.teamLoading(subProjectId),
             ]);
 
-            this.setState({ isLoading: false, error: null })
+            this.setState({ isLoading: false, error: null });
         } catch (e) {
             this.setState({ error: e, isLoading: false });
         }
@@ -41,18 +40,14 @@ class Schedule extends Component {
     render() {
         const { editSchedule, isLoading, error } = this.state;
 
-        const {
-            escalations,
-            teamMembers,
-            subProjectId,
-        } = this.props;
+        const { escalations, teamMembers, subProjectId } = this.props;
 
-        if(isLoading){
-            return <div></div>
+        if (isLoading) {
+            return <div></div>;
         }
 
-        if(error){
-            return <div></div>
+        if (error) {
+            return <div></div>;
         }
 
         return (
@@ -65,28 +60,44 @@ class Schedule extends Component {
                                     <span>
                                         <div>
                                             <div>
-
                                                 <RenameScheduleBox />
 
                                                 <MonitorBox />
 
-                                                {!editSchedule && escalations.length > 0 && <EscalationSummary
-                                                    onEditClicked={() => {
-                                                        this.setState({ editSchedule: true })
-                                                    }}
-                                                    escalations={escalations}
-                                                    teamMembers={teamMembers} />}
+                                                {!editSchedule &&
+                                                    escalations.length > 0 && (
+                                                        <EscalationSummary
+                                                            onEditClicked={() => {
+                                                                this.setState({
+                                                                    editSchedule: true,
+                                                                });
+                                                            }}
+                                                            escalations={
+                                                                escalations
+                                                            }
+                                                            teamMembers={
+                                                                teamMembers
+                                                            }
+                                                        />
+                                                    )}
 
+                                                {(editSchedule ||
+                                                    escalations.length ===
+                                                        0) && (
+                                                    <OnCallAlertBox
+                                                        afterSave={() => {
+                                                            this.setState({
+                                                                editSchedule: false,
+                                                            });
+                                                        }}
+                                                    />
+                                                )}
 
-                                                {(editSchedule || escalations.length === 0) && <OnCallAlertBox afterSave={() => {
-                                                    this.setState({ editSchedule: false })
-                                                }} />}
-
-
-                                                <RenderIfSubProjectAdmin subProjectId={subProjectId}>
+                                                <RenderIfSubProjectAdmin
+                                                    subProjectId={subProjectId}
+                                                >
                                                     <DeleteBox />
                                                 </RenderIfSubProjectAdmin>
-
                                             </div>
                                         </div>
                                     </span>
@@ -96,22 +107,30 @@ class Schedule extends Component {
                     </div>
                 </div>
             </Dashboard>
-        )
+        );
     }
 }
 
-const mapDispatchToProps = dispatch => (
-    bindActionCreators({ getEscalation, subProjectTeamLoading, teamLoading }, dispatch)
-)
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        { getEscalation, subProjectTeamLoading, teamLoading },
+        dispatch
+    );
 
 const mapStateToProps = (state, props) => {
     const { scheduleId } = props.match.params;
 
-    let schedule = state.schedule.subProjectSchedules.map((subProjectSchedule) => {
-        return subProjectSchedule.schedules.find(schedule => schedule._id === scheduleId)
-    });
+    let schedule = state.schedule.subProjectSchedules.map(
+        subProjectSchedule => {
+            return subProjectSchedule.schedules.find(
+                schedule => schedule._id === scheduleId
+            );
+        }
+    );
 
-    schedule = schedule.find(schedule => schedule && schedule._id === scheduleId)
+    schedule = schedule.find(
+        schedule => schedule && schedule._id === scheduleId
+    );
     const escalations = state.schedule.escalations;
     const { projectId } = props.match.params;
 
@@ -122,13 +141,11 @@ const mapStateToProps = (state, props) => {
         projectId,
         subProjectId,
         scheduleId,
-        teamMembers: state.team.teamMembers
-    }
-}
+        teamMembers: state.team.teamMembers,
+    };
+};
 
-
-
-Schedule.displayName = 'Schedule'
+Schedule.displayName = 'Schedule';
 
 Schedule.propTypes = {
     getEscalation: PropTypes.func.isRequired,
@@ -137,7 +154,9 @@ Schedule.propTypes = {
     scheduleId: PropTypes.string.isRequired,
     teamLoading: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,
-    teamMembers: PropTypes.array.isRequired
-}
+    teamMembers: PropTypes.array.isRequired,
+};
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(Schedule));
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(Schedule)
+);

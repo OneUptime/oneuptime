@@ -120,16 +120,13 @@ class CreateSchedule extends React.Component {
                                                     className="bs-Fieldset-label Text-align--left"
                                                     htmlFor="endpoint"
                                                 >
-                                                    <span>
-                                                        Event name
-                                                            </span>
+                                                    <span>Event name</span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div
                                                         className="bs-Fieldset-field"
                                                         style={{
-                                                            width:
-                                                                '70%',
+                                                            width: '70%',
                                                         }}
                                                     >
                                                         <Field
@@ -163,9 +160,8 @@ class CreateSchedule extends React.Component {
                                                     htmlFor="monitorIds"
                                                 >
                                                     <span>
-                                                        Start date and
-                                                        time
-                                                            </span>
+                                                        Start date and time
+                                                    </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div className="bs-Fieldset-field">
@@ -178,8 +174,7 @@ class CreateSchedule extends React.Component {
                                                             }
                                                             placeholder="10pm"
                                                             style={{
-                                                                width:
-                                                                    '250px',
+                                                                width: '250px',
                                                             }}
                                                             minDate={
                                                                 currentDate
@@ -201,9 +196,8 @@ class CreateSchedule extends React.Component {
                                                     htmlFor="monitorIds"
                                                 >
                                                     <span>
-                                                        End date and
-                                                        time
-                                                            </span>
+                                                        End date and time
+                                                    </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
@@ -215,8 +209,7 @@ class CreateSchedule extends React.Component {
                                                         }
                                                         placeholder="10pm"
                                                         style={{
-                                                            width:
-                                                                '250px',
+                                                            width: '250px',
                                                         }}
                                                         minDate={moment(
                                                             minStartDate
@@ -237,16 +230,14 @@ class CreateSchedule extends React.Component {
                                                     htmlFor="monitorIds"
                                                 >
                                                     <span>
-                                                        Event
-                                                        Description
-                                                            </span>
+                                                        Event Description
+                                                    </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div
                                                         className="bs-Fieldset-field"
                                                         style={{
-                                                            width:
-                                                                '70%',
+                                                            width: '70%',
                                                         }}
                                                     >
                                                         <Field
@@ -261,8 +252,7 @@ class CreateSchedule extends React.Component {
                                                             placeholder="Event Description"
                                                             style={{
                                                                 width: 250,
-                                                                resize:
-                                                                    'none',
+                                                                resize: 'none',
                                                             }}
                                                         />
                                                     </div>
@@ -304,12 +294,9 @@ class CreateSchedule extends React.Component {
                                                     <div className="Checkbox-label Box-root Margin-left--8">
                                                         <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
-                                                                Show
-                                                                this
-                                                                event on
-                                                                Status
-                                                                Page
-                                                                    </span>
+                                                                Show this event
+                                                                on Status Page
+                                                            </span>
                                                         </span>
                                                     </div>
                                                 </label>
@@ -350,17 +337,12 @@ class CreateSchedule extends React.Component {
                                                     <div className="Checkbox-label Box-root Margin-left--8">
                                                         <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
-                                                                Alert
-                                                                your
-                                                                team
-                                                                members
-                                                                who are
-                                                                on call
-                                                                when
-                                                                this
-                                                                event
+                                                                Alert your team
+                                                                members who are
+                                                                on call when
+                                                                this event
                                                                 starts
-                                                                    </span>
+                                                            </span>
                                                         </span>
                                                     </div>
                                                 </label>
@@ -403,11 +385,9 @@ class CreateSchedule extends React.Component {
                                                             <span>
                                                                 Alert
                                                                 subscribers
-                                                                about
-                                                                this
-                                                                scheduled
-                                                                event
-                                                                    </span>
+                                                                about this
+                                                                scheduled event
+                                                            </span>
                                                         </span>
                                                     </div>
                                                 </label>
@@ -448,14 +428,11 @@ class CreateSchedule extends React.Component {
                                                     <div className="Checkbox-label Box-root Margin-left--8">
                                                         <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
-                                                                Do not
-                                                                monitor
-                                                                this
-                                                                monitor
-                                                                during
-                                                                this
+                                                                Do not monitor
+                                                                this monitor
+                                                                during this
                                                                 event
-                                                                    </span>
+                                                            </span>
                                                         </span>
                                                     </div>
                                                 </label>

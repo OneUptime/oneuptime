@@ -15,7 +15,7 @@ function Colors({
             <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label">Background Colors</label>
                 <div className="bs-Fieldset-fields">
-                    <div lassName="Box-root">
+                    <div className="Box-root">
                         <Color
                             id="pageBackground"
                             title="Page Background"

@@ -5,54 +5,52 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import SmsTemplatesBox from '../components/smsTemplates/SmsTemplatesBox';
 import SmsSmtpBox from '../components/smsTemplates/SmsSmtpBox';
-import { getSmsTemplates,getSmtpConfig } from '../actions/smsTemplates';
+import { getSmsTemplates, getSmtpConfig } from '../actions/smsTemplates';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 
 class SmsTemplates extends Component {
-
-  constructor(props) {
-    super(props);
-    this.props = props;
-  }
-
-  ready = () =>{
-    this.props.getSmsTemplates(this.props.currentProject._id);
-    this.props.getSmtpConfig(this.props.currentProject._id);
-  }
-
-  componentDidMount() {
-      if(!IS_DEV){
-      logEvent('SmsTemplates page Loaded');
+    constructor(props) {
+        super(props);
+        this.props = props;
     }
-  }
+
+    ready = () => {
+        this.props.getSmsTemplates(this.props.currentProject._id);
+        this.props.getSmtpConfig(this.props.currentProject._id);
+    };
+
+    componentDidMount() {
+        if (!IS_DEV) {
+            logEvent('SmsTemplates page Loaded');
+        }
+    }
 
     render() {
-      return (
-        <Dashboard ready={this.ready}>
-          <SmsTemplatesBox />
-          <SmsSmtpBox />
-        </Dashboard>
-      );
+        return (
+            <Dashboard ready={this.ready}>
+                <SmsTemplatesBox />
+                <SmsSmtpBox />
+            </Dashboard>
+        );
     }
 }
 
 SmsTemplates.propTypes = {
-  getSmsTemplates: PropTypes.func.isRequired,
-  currentProject: PropTypes.object.isRequired,
-  getSmtpConfig:PropTypes.func.isRequired,
-}
+    getSmsTemplates: PropTypes.func.isRequired,
+    currentProject: PropTypes.object.isRequired,
+    getSmtpConfig: PropTypes.func.isRequired,
+};
 
-const mapDispatchToProps = dispatch => (
-  bindActionCreators({ getSmsTemplates,getSmtpConfig }, dispatch)
-)
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ getSmsTemplates, getSmtpConfig }, dispatch);
 
-const mapStateToProps = (state) => {
-  return {
-      currentProject: state.project.currentProject
-  }
-}
+const mapStateToProps = state => {
+    return {
+        currentProject: state.project.currentProject,
+    };
+};
 
-SmsTemplates.displayName = 'SmsTemplates'
+SmsTemplates.displayName = 'SmsTemplates';
 
 export default connect(mapStateToProps, mapDispatchToProps)(SmsTemplates);

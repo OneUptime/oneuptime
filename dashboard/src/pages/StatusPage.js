@@ -17,23 +17,34 @@ import PropTypes from 'prop-types';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 import { history } from '../store';
-import { fetchSubProjectStatusPages, switchStatusPage, fetchProjectStatusPage } from '../actions/statusPage';
-
+import {
+    fetchSubProjectStatusPages,
+    switchStatusPage,
+    fetchProjectStatusPage,
+} from '../actions/statusPage';
 
 class StatusPage extends Component {
-
     async componentDidMount() {
         if (!this.props.statusPage.status._id) {
-            const projectId = history.location.pathname.split('project/')[1].split('/')[0];
-            const statusPageId = history.location.pathname.split('status-page/')[1].split('/')[0];
-            await this.props.fetchProjectStatusPage(projectId)
-            await this.props.fetchSubProjectStatusPages(projectId)
+            const projectId = history.location.pathname
+                .split('project/')[1]
+                .split('/')[0];
+            const statusPageId = history.location.pathname
+                .split('status-page/')[1]
+                .split('/')[0];
+            await this.props.fetchProjectStatusPage(projectId);
+            await this.props.fetchSubProjectStatusPages(projectId);
 
-            if (this.props.statusPage.subProjectStatusPages && this.props.statusPage.subProjectStatusPages.length > 0) {
+            if (
+                this.props.statusPage.subProjectStatusPages &&
+                this.props.statusPage.subProjectStatusPages.length > 0
+            ) {
                 const { subProjectStatusPages } = this.props.statusPage;
                 subProjectStatusPages.forEach(subProject => {
                     const statusPages = subProject.statusPages;
-                    const statusPage = statusPages.find(page => page._id === statusPageId);
+                    const statusPage = statusPages.find(
+                        page => page._id === statusPageId
+                    );
                     if (statusPage) {
                         this.props.switchStatusPage(statusPage);
                     }
@@ -46,7 +57,6 @@ class StatusPage extends Component {
     }
 
     render() {
-
         return (
             <Dashboard>
                 <div className="Box-root">
@@ -57,14 +67,25 @@ class StatusPage extends Component {
                                     <span data-reactroot="">
                                         <div>
                                             <div>
-                                                <ShouldRender if={!this.props.statusPage.requesting}>
+                                                <ShouldRender
+                                                    if={
+                                                        !this.props.statusPage
+                                                            .requesting
+                                                    }
+                                                >
                                                     <div className="Box-root Margin-bottom--12">
                                                         <Header />
                                                     </div>
                                                     <div className="Box-root Margin-bottom--12">
                                                         <Basic />
                                                     </div>
-                                                    <RenderIfSubProjectAdmin subProjectId={this.props.match.params.subProjectId}>
+                                                    <RenderIfSubProjectAdmin
+                                                        subProjectId={
+                                                            this.props.match
+                                                                .params
+                                                                .subProjectId
+                                                        }
+                                                    >
                                                         <div className="Box-root Margin-bottom--12">
                                                             <Monitors />
                                                         </div>
@@ -72,7 +93,13 @@ class StatusPage extends Component {
                                                     <div className="Box-root Margin-bottom--12">
                                                         <Setting />
                                                     </div>
-                                                    <RenderIfSubProjectAdmin subProjectId={this.props.match.params.subProjectId}>
+                                                    <RenderIfSubProjectAdmin
+                                                        subProjectId={
+                                                            this.props.match
+                                                                .params
+                                                                .subProjectId
+                                                        }
+                                                    >
                                                         <div className="Box-root Margin-bottom--12">
                                                             <Branding />
                                                         </div>
@@ -80,16 +107,37 @@ class StatusPage extends Component {
                                                             <Links />
                                                         </div>
                                                     </RenderIfSubProjectAdmin>
-                                                    <RenderIfSubProjectAdmin subProjectId={this.props.match.params.subProjectId}>
+                                                    <RenderIfSubProjectAdmin
+                                                        subProjectId={
+                                                            this.props.match
+                                                                .params
+                                                                .subProjectId
+                                                        }
+                                                    >
                                                         <div className="Box-root Margin-bottom--12">
                                                             <PrivateStatusPage />
                                                         </div>
                                                     </RenderIfSubProjectAdmin>
-                                                    <RenderIfSubProjectAdmin subProjectId={this.props.match.params.subProjectId}>
-                                                        <DeleteBox match={this.props.match} />
+                                                    <RenderIfSubProjectAdmin
+                                                        subProjectId={
+                                                            this.props.match
+                                                                .params
+                                                                .subProjectId
+                                                        }
+                                                    >
+                                                        <DeleteBox
+                                                            match={
+                                                                this.props.match
+                                                            }
+                                                        />
                                                     </RenderIfSubProjectAdmin>
                                                 </ShouldRender>
-                                                <ShouldRender if={this.props.statusPage.requesting}>
+                                                <ShouldRender
+                                                    if={
+                                                        this.props.statusPage
+                                                            .requesting
+                                                    }
+                                                >
                                                     <LoadingState />
                                                 </ShouldRender>
                                             </div>
@@ -97,7 +145,6 @@ class StatusPage extends Component {
                                     </span>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -106,11 +153,16 @@ class StatusPage extends Component {
     }
 }
 
-
-const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ fetchSubProjectStatusPages, switchStatusPage, fetchProjectStatusPage }, dispatch)
-}
-
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            fetchSubProjectStatusPages,
+            switchStatusPage,
+            fetchProjectStatusPage,
+        },
+        dispatch
+    );
+};
 
 function mapStateToProps(state) {
     return {
@@ -123,9 +175,9 @@ StatusPage.propTypes = {
     switchStatusPage: PropTypes.func,
     fetchProjectStatusPage: PropTypes.func,
     fetchSubProjectStatusPages: PropTypes.func,
-    match: PropTypes.object
-}
+    match: PropTypes.object,
+};
 
-StatusPage.displayName = 'StatusPage'
+StatusPage.displayName = 'StatusPage';
 
 export default connect(mapStateToProps, mapDispatchToProps)(StatusPage);

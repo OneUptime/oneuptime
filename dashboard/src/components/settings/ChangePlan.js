@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 import { reduxForm } from 'redux-form';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -12,34 +12,43 @@ import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
 
 function Validate(values) {
-
     const errors = {};
 
     if (!Validate.text(values.planId)) {
-        errors.name = 'Stripe PlanID is required!'
+        errors.name = 'Stripe PlanID is required!';
     }
 
     return errors;
 }
 
 export class Plans extends Component {
-
-    submit = (values) => {
+    submit = values => {
         const { _id: id, name } = this.props.currentProject;
-        const { category: oldCategory, type: oldType, details: oldDetails } = PricingPlan.getPlanById(this.props.initialValues.planId);
+        const {
+            category: oldCategory,
+            type: oldType,
+            details: oldDetails,
+        } = PricingPlan.getPlanById(this.props.initialValues.planId);
         const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
-        const { category: newCategory, type: newType, details: newDetails } = PricingPlan.getPlanById(values.planId);
+        const {
+            category: newCategory,
+            type: newType,
+            details: newDetails,
+        } = PricingPlan.getPlanById(values.planId);
         const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
         this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
         if (!IS_DEV) {
             logEvent('Plan Changed', { oldPlan, newPlan });
         }
-    }
+    };
 
     render() {
         return (
             <form onSubmit={this.props.handleSubmit(this.submit)}>
-                <div className="db-World-contentPane Box-root" style={{ paddingTop: 0 }}>
+                <div
+                    className="db-World-contentPane Box-root"
+                    style={{ paddingTop: 0 }}
+                >
                     <div className="db-RadarRulesLists-page">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -47,14 +56,15 @@ export class Plans extends Component {
                                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                         <div className="Box-root">
                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                <span>
-                                                    Change Fyipe Plan
-                                        </span>
+                                                <span>Change Fyipe Plan</span>
                                             </span>
                                             <p>
                                                 <span>
-                                                    Upgrade or change your subscription. To cancel your subscription, please delete this project.
-                                        </span>
+                                                    Upgrade or change your
+                                                    subscription. To cancel your
+                                                    subscription, please delete
+                                                    this project.
+                                                </span>
                                             </p>
                                         </div>
                                     </div>
@@ -69,8 +79,13 @@ export class Plans extends Component {
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label"></label>
                                                             <div className="bs-Fieldset-fields">
-                                                                <span className="value" style={{ marginTop: '6px' }}>
-                                                                </span>
+                                                                <span
+                                                                    className="value"
+                                                                    style={{
+                                                                        marginTop:
+                                                                            '6px',
+                                                                    }}
+                                                                ></span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -85,10 +100,16 @@ export class Plans extends Component {
                                                 className="bs-Button bs-Button--blue"
                                                 type="submit"
                                             >
-                                                <ShouldRender if={!this.props.isRequesting}>
+                                                <ShouldRender
+                                                    if={
+                                                        !this.props.isRequesting
+                                                    }
+                                                >
                                                     <span>Change Plan</span>
                                                 </ShouldRender>
-                                                <ShouldRender if={this.props.isRequesting}>
+                                                <ShouldRender
+                                                    if={this.props.isRequesting}
+                                                >
                                                     <FormLoader />
                                                 </ShouldRender>
                                             </button>
@@ -100,11 +121,11 @@ export class Plans extends Component {
                     </div>
                 </div>
             </form>
-        )
+        );
     }
 }
 
-Plans.displayName = 'Plans'
+Plans.displayName = 'Plans';
 
 Plans.propTypes = {
     changePlan: PropTypes.func.isRequired,
@@ -112,24 +133,25 @@ Plans.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     initialValues: PropTypes.object.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-}
+};
 
 const ChangePlan = new reduxForm({
     form: 'ChangePlan',
-    Validate
+    Validate,
 })(Plans);
 
 const mapStateToProps = state => {
-    const planId = state.project.currentProject ? state.project.currentProject.stripePlanId : '';
+    const planId = state.project.currentProject
+        ? state.project.currentProject.stripePlanId
+        : '';
     return {
         initialValues: { planId },
         currentProject: state.project.currentProject,
-        isRequesting: state.project.changePlan.requesting
-    }
+        isRequesting: state.project.changePlan.requesting,
+    };
 };
 
-const mapDispatchToProps = dispatch => (
-    bindActionCreators({ changePlan }, dispatch)
-);
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ changePlan }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ChangePlan);

@@ -1,11 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-    connect
-} from 'react-redux';
-import {
-    bindActionCreators
-} from 'redux';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import WebHookItem from './WebHookItem';
 import { WebHookTableHeader } from './WebHookRow';
@@ -14,7 +10,7 @@ import {
     getWebHookError,
     getWebHookRequest,
     getWebHookSuccess,
-    paginate
+    paginate,
 } from '../../actions/webHook';
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
@@ -22,12 +18,13 @@ import { IS_DEV } from '../../config';
 import { history } from '../../store';
 
 class WebHookList extends React.Component {
-
     ready() {
         const { getWebHook } = this.props;
         let { projectId } = this.props;
         if (!projectId) {
-            projectId = history.location.pathname.split('project/')[1].split('/')[0];
+            projectId = history.location.pathname
+                .split('project/')[1]
+                .split('/')[0];
             getWebHook(projectId);
         } else {
             getWebHook(projectId);
@@ -45,46 +42,62 @@ class WebHookList extends React.Component {
         this.props.paginate('reset');
     }
 
-    handleKeyBoard = (e) => {
+    handleKeyBoard = e => {
         switch (e.key) {
             case 'ArrowRight':
-                return this.nextClicked()
+                return this.nextClicked();
             case 'ArrowLeft':
                 return this.prevClicked();
             default:
                 return false;
         }
-    }
+    };
 
     prevClicked = () => {
-        const { webHook: { skip, limit }, getWebHook, projectId, paginate } = this.props;
+        const {
+            webHook: { skip, limit },
+            getWebHook,
+            projectId,
+            paginate,
+        } = this.props;
 
-        getWebHook(projectId, ((skip || 0) > (limit || 10)) ? skip - limit : 0, 10);
+        getWebHook(
+            projectId,
+            (skip || 0) > (limit || 10) ? skip - limit : 0,
+            10
+        );
         paginate('prev');
         if (!IS_DEV) {
             logEvent('Fetch Previous Webhook');
         }
-    }
+    };
 
     nextClicked = () => {
-        const { webHook: { skip, limit }, getWebHook, projectId, paginate } = this.props;
+        const {
+            webHook: { skip, limit },
+            getWebHook,
+            projectId,
+            paginate,
+        } = this.props;
 
         getWebHook(projectId, skip + limit, 10);
         paginate('next');
         if (!IS_DEV) {
             logEvent('Fetch Next Webhook');
         }
-    }
+    };
 
     render() {
-
         const { webHook, isRequesting, monitorId } = this.props;
         const { count, skip, limit } = webHook;
         let { webHooks } = webHook;
-        let canPaginateForward = (webHook && count) && (count > (skip + limit)) ? true : false;
-        let canPaginateBackward = (webHook && skip && skip > 0) ? true : false;
+        let canPaginateForward =
+            webHook && count && count > skip + limit ? true : false;
+        let canPaginateBackward = webHook && skip && skip > 0 ? true : false;
         if (monitorId && webHooks) {
-            webHooks = webHooks.filter(hook => hook.monitorId._id === monitorId);
+            webHooks = webHooks.filter(
+                hook => hook.monitorId._id === monitorId
+            );
         }
         const numberOfWebHooks = webHooks ? webHooks.length : 0;
 
@@ -96,20 +109,30 @@ class WebHookList extends React.Component {
         return (
             <React.Fragment>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
-                    <table className="Table" id="webhookList" onKeyDown={this.handleKeyBoard}>
+                    <table
+                        className="Table"
+                        id="webhookList"
+                        onKeyDown={this.handleKeyBoard}
+                    >
                         <thead className="Table-body">
                             <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                                 <WebHookTableHeader text="Endpoint" />
-                                {!monitorId && <WebHookTableHeader text="Monitors" />}
+                                {!monitorId && (
+                                    <WebHookTableHeader text="Monitors" />
+                                )}
                                 <WebHookTableHeader text="Type" />
                                 <WebHookTableHeader text="Action" />
                             </tr>
                         </thead>
                         <tbody className="Table-body">
                             <ShouldRender if={numberOfWebHooks > 0}>
-                                {(webHooks ? webHooks : []).map(hook =>
-                                    <WebHookItem key={`${hook._id}`} data={hook} monitorId={monitorId} />
-                                )}
+                                {(webHooks ? webHooks : []).map(hook => (
+                                    <WebHookItem
+                                        key={`${hook._id}`}
+                                        data={hook}
+                                        monitorId={monitorId}
+                                    />
+                                ))}
                             </ShouldRender>
                         </tbody>
                     </table>
@@ -117,24 +140,32 @@ class WebHookList extends React.Component {
                 <ShouldRender if={numberOfWebHooks === 0 && !isRequesting}>
                     <div className="Box-root">
                         <br />
-                        <div id="app-loading" style={{
-                            'zIndex': '1',
-                            'display': 'flex',
-                            'justifyContent': 'center',
-                            'alignItems': 'center',
-                            'flexDirection': 'column',
-                            'textAlign': 'center',
-                            'padding': '0 10px'
-                        }}>
-                            <span>You don&#39;t have any webhook added. Do you want to add one?</span>
+                        <div
+                            id="app-loading"
+                            style={{
+                                zIndex: '1',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                flexDirection: 'column',
+                                textAlign: 'center',
+                                padding: '0 10px',
+                            }}
+                        >
+                            <span>
+                                You don&#39;t have any webhook added. Do you
+                                want to add one?
+                            </span>
                             <br />
-
                         </div>
                         <br />
                     </div>
                 </ShouldRender>
                 <ShouldRender if={isRequesting}>
-                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center" style={{ marginTop: '10px' }}>
+                    <div
+                        className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
+                        style={{ marginTop: '10px' }}
+                    >
                         <ListLoader />
                     </div>
                 </ShouldRender>
@@ -143,7 +174,8 @@ class WebHookList extends React.Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {webHooks.length} Webhook{numberOfWebHooks === 1 ? '' : 's'}
+                                    {webHooks.length} Webhook
+                                    {numberOfWebHooks === 1 ? '' : 's'}
                                 </span>
                             </span>
                         </span>
@@ -155,7 +187,11 @@ class WebHookList extends React.Component {
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
                                 <button
-                                    className={`Button bs-ButtonLegacy ${!canPaginateBackward ? 'Is--disabled' : ''}`}
+                                    className={`Button bs-ButtonLegacy ${
+                                        !canPaginateBackward
+                                            ? 'Is--disabled'
+                                            : ''
+                                    }`}
                                     data-db-analytics-name="list_view.pagination.previous"
                                     disabled={!canPaginateBackward}
                                     type="button"
@@ -171,7 +207,11 @@ class WebHookList extends React.Component {
                             </div>
                             <div className="Box-root">
                                 <button
-                                    className={`Button bs-ButtonLegacy ${!canPaginateForward ? 'Is--disabled' : ''}`}
+                                    className={`Button bs-ButtonLegacy ${
+                                        !canPaginateForward
+                                            ? 'Is--disabled'
+                                            : ''
+                                    }`}
                                     data-db-analytics-name="list_view.pagination.next"
                                     disabled={!canPaginateForward}
                                     type="button"
@@ -189,7 +229,7 @@ class WebHookList extends React.Component {
                     </div>
                 </div>
             </React.Fragment>
-        )
+        );
     }
 }
 
@@ -200,20 +240,20 @@ const mapStateToProps = state => ({
     isRequesting: state.webHooks.webHook.requesting,
     currentProject: state.project.currentProject,
     projectId: state.project.currentProject && state.project.currentProject._id,
-    monitor: state.monitor
+    monitor: state.monitor,
 });
 
-const mapDispatchToProps = dispatch => (
-    bindActionCreators({
-        getWebHook,
-        getWebHookError,
-        getWebHookRequest,
-        getWebHookSuccess,
-        paginate
-    },
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            getWebHook,
+            getWebHookError,
+            getWebHookRequest,
+            getWebHookSuccess,
+            paginate,
+        },
         dispatch
-    )
-);
+    );
 
 WebHookList.propTypes = {
     getWebHook: PropTypes.func,

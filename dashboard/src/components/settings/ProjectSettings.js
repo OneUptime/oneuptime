@@ -12,33 +12,32 @@ import { logEvent } from '../../analytics';
 import { IS_DEV } from '../../config';
 
 function validate(value) {
-
     const errors = {};
 
     if (!Validate.text(value.project_name)) {
-        errors.name = 'Project name is required.'
+        errors.name = 'Project name is required.';
     }
 
     return errors;
 }
 
 export class ProjectSettings extends Component {
-
-    submitForm = (values)=> {
-
+    submitForm = values => {
         const projectName = values.project_name;
 
-        if(projectName){
-            this.props.renameProject(this.props.projectId, projectName).then(val => {
-                if(val && val.data && val.data.name){
-                    document.title = val.data.name + ' Dashboard';
-                }
-            });
-            if(!IS_DEV){
-            logEvent('Rename Project',values);
+        if (projectName) {
+            this.props
+                .renameProject(this.props.projectId, projectName)
+                .then(val => {
+                    if (val && val.data && val.data.name) {
+                        document.title = val.data.name + ' Dashboard';
+                    }
+                });
+            if (!IS_DEV) {
+                logEvent('Rename Project', values);
             }
         }
-    }
+    };
 
     render() {
         return (
@@ -52,29 +51,39 @@ export class ProjectSettings extends Component {
                                 </span>
                                 <p>
                                     <span>
-                                        Change project settings like project name, icon, and more.
+                                        Change project settings like project
+                                        name, icon, and more.
                                     </span>
                                 </p>
                             </div>
                         </div>
-                        <form onSubmit={this.props.handleSubmit(this.submitForm)}>
+                        <form
+                            onSubmit={this.props.handleSubmit(this.submitForm)}
+                        >
                             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                                 <div>
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">Project Name</label>
+                                                    <label className="bs-Fieldset-label">
+                                                        Project Name
+                                                    </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={RenderField}
+                                                            component={
+                                                                RenderField
+                                                            }
                                                             type="text"
                                                             name="project_name"
                                                             id="name"
                                                             placeholder="New Project Name"
                                                             required="required"
-                                                            disabled={this.props.isRequesting}
+                                                            disabled={
+                                                                this.props
+                                                                    .isRequesting
+                                                            }
                                                         />
                                                     </div>
                                                 </div>
@@ -92,10 +101,14 @@ export class ProjectSettings extends Component {
                                         disabled={this.props.isRequesting}
                                         type="submit"
                                     >
-                                        <ShouldRender if={!this.props.isRequesting}>
+                                        <ShouldRender
+                                            if={!this.props.isRequesting}
+                                        >
                                             <span>Save</span>
                                         </ShouldRender>
-                                        <ShouldRender if={this.props.isRequesting}>
+                                        <ShouldRender
+                                            if={this.props.isRequesting}
+                                        >
                                             <FormLoader />
                                         </ShouldRender>
                                     </button>
@@ -105,40 +118,47 @@ export class ProjectSettings extends Component {
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 }
 
-ProjectSettings.displayName = 'ProjectSettings'
+ProjectSettings.displayName = 'ProjectSettings';
 
 ProjectSettings.propTypes = {
-    renameProject:PropTypes.func.isRequired,
-    handleSubmit:PropTypes.func.isRequired,
-    isRequesting: PropTypes.oneOf([null,undefined,true,false]),
-    projectId: PropTypes.string
-}
+    renameProject: PropTypes.func.isRequired,
+    handleSubmit: PropTypes.func.isRequired,
+    isRequesting: PropTypes.oneOf([null, undefined, true, false]),
+    projectId: PropTypes.string,
+};
 
-const formName = 'ProjectSettings'+Math.floor((Math.random() * 10) + 1);
+const formName = 'ProjectSettings' + Math.floor(Math.random() * 10 + 1);
 
-const onSubmitSuccess = (result, dispatch) => dispatch(reset(formName))
+const onSubmitSuccess = (result, dispatch) => dispatch(reset(formName));
 
 const ProjectSettingsForm = new reduxForm({
     form: formName,
-    enableReinitialize:true,
+    enableReinitialize: true,
     validate,
-    onSubmitSuccess
+    onSubmitSuccess,
 })(ProjectSettings);
 
-const mapDispatchToProps = dispatch => (
-    bindActionCreators({ renameProject }, dispatch)
-)
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ renameProject }, dispatch);
 
-const mapStateToProps = state => (
-    {
-        isRequesting: state.project.renameProject.isRequesting,
-        projectId: state.project.currentProject !== null && state.project.currentProject._id,
-        initialValues: { project_name: state.project.currentProject !== null ? state.project.currentProject.name : '' }
-    }
-)
+const mapStateToProps = state => ({
+    isRequesting: state.project.renameProject.isRequesting,
+    projectId:
+        state.project.currentProject !== null &&
+        state.project.currentProject._id,
+    initialValues: {
+        project_name:
+            state.project.currentProject !== null
+                ? state.project.currentProject.name
+                : '',
+    },
+});
 
-export default connect(mapStateToProps, mapDispatchToProps)(ProjectSettingsForm);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(ProjectSettingsForm);

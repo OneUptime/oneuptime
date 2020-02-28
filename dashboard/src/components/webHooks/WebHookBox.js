@@ -6,7 +6,6 @@ import WebHookButton from './WebHookButton';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 
 class WebHookBox extends React.Component {
-
     render() {
         return (
             <div className="Box-root Margin-vertical--12">
@@ -18,37 +17,44 @@ class WebHookBox extends React.Component {
                                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                             <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                <span>Webhooks Integration</span>
+                                                <span>
+                                                    Webhooks Integration
+                                                </span>
                                             </span>
                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                 <span>
-                                                    Integrate Fyipe with your Webhooks.
-                                                        </span>
+                                                    Integrate Fyipe with your
+                                                    Webhooks.
+                                                </span>
                                             </span>
                                         </div>
                                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                             <div className="Box-root">
                                                 <RenderIfAdmin>
-                                                    <WebHookButton monitorId={this.props.monitorId}/>
+                                                    <WebHookButton
+                                                        monitorId={
+                                                            this.props.monitorId
+                                                        }
+                                                    />
                                                 </RenderIfAdmin>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <WebHookList monitorId={this.props.monitorId}/>
+                                <WebHookList monitorId={this.props.monitorId} />
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 }
 
 WebHookBox.displayName = 'WebHookBox';
 
 WebHookBox.propTypes = {
-	monitorId: PropTypes.string,
+    monitorId: PropTypes.string,
 };
 
 export default withRouter(WebHookBox);

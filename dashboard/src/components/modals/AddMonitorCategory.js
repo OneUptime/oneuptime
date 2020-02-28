@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 import { reduxForm, Field } from 'redux-form';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
@@ -10,11 +10,10 @@ import { closeModal } from '../../actions/modal';
 import { createMonitorCategory } from '../../actions/monitorCategories';
 
 function validate(values) {
-
     const errors = {};
 
     if (!Validate.text(values.name)) {
-        errors.name = 'Monitor Category name is required!'
+        errors.name = 'Monitor Category name is required!';
     }
     return errors;
 }
@@ -25,44 +24,62 @@ export class AddMonitorCategoryForm extends React.Component {
         super(props);
     }
 
-    submitForm = (values) => {
-        this.props.createMonitorCategory(this.props.projectId, values).then(() => {
-            return this.props.closeModal({
-                id: this.props.CreateMonitorCategoryModalId
-            })
-        });
-    }
+    submitForm = values => {
+        this.props
+            .createMonitorCategory(this.props.projectId, values)
+            .then(() => {
+                return this.props.closeModal({
+                    id: this.props.CreateMonitorCategoryModalId,
+                });
+            });
+    };
 
-    handleKeyBoard = (e) => {
+    handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeModal({
-                    id: this.props.CreateMonitorCategoryModalId
-                })
+                    id: this.props.CreateMonitorCategoryModalId,
+                });
             default:
                 return false;
         }
-    }
+    };
 
     render() {
-        const {
-            handleSubmit,
-        } = this.props;
+        const { handleSubmit } = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
-                <div onKeyDown={this.handleKeyBoard} className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
-                    <div className="ModalLayer-contents" tabIndex={-1} style={{ marginTop: 40 }}>
+                <div
+                    onKeyDown={this.handleKeyBoard}
+                    className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
+                >
+                    <div
+                        className="ModalLayer-contents"
+                        tabIndex={-1}
+                        style={{ marginTop: 40 }}
+                    >
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--medium">
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>Create New Monitor Category</span>
+                                            <span>
+                                                Create New Monitor Category
+                                            </span>
                                         </span>
                                     </div>
                                     <div className="bs-Modal-messages">
-                                        <ShouldRender if={this.props.monitorCategory.error}>
-                                            <p className="bs-Modal-message">{this.props.monitorCategory.error}</p>
+                                        <ShouldRender
+                                            if={
+                                                this.props.monitorCategory.error
+                                            }
+                                        >
+                                            <p className="bs-Modal-message">
+                                                {
+                                                    this.props.monitorCategory
+                                                        .error
+                                                }
+                                            </p>
                                         </ShouldRender>
                                     </div>
                                 </div>
@@ -74,36 +91,59 @@ export class AddMonitorCategoryForm extends React.Component {
                                         placeholder="Monitor Category Name"
                                         id="monitorCategoryName"
                                         className="bs-TextInput"
-                                        style={{ width: '90%', 'margin': '10px 0 10px 5%' }}
-                                        disabled={this.props.monitorCategory.requesting}
+                                        style={{
+                                            width: '90%',
+                                            margin: '10px 0 10px 5%',
+                                        }}
+                                        disabled={
+                                            this.props.monitorCategory
+                                                .requesting
+                                        }
                                     />
                                 </div>
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className={`bs-Button bs-DeprecatedButton ${this.props.monitorCategory.requesting && 'bs-is-disabled'}`}
+                                            className={`bs-Button bs-DeprecatedButton ${this
+                                                .props.monitorCategory
+                                                .requesting &&
+                                                'bs-is-disabled'}`}
                                             type="button"
                                             onClick={() => {
                                                 this.props.closeModal({
-                                                    id: this.props.CreateMonitorCategoryModalId
-                                                })
+                                                    id: this.props
+                                                        .CreateMonitorCategoryModalId,
+                                                });
                                             }}
-                                            disabled={this.props.monitorCategory.requesting}
+                                            disabled={
+                                                this.props.monitorCategory
+                                                    .requesting
+                                            }
                                         >
                                             <span>Cancel</span>
                                         </button>
                                         <button
                                             id="addMonitorCategoryButton"
-                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue ${this.props.monitorCategory.requesting && 'bs-is-disabled'}`}
+                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue ${this
+                                                .props.monitorCategory
+                                                .requesting &&
+                                                'bs-is-disabled'}`}
                                             type="save"
-                                            disabled={this.props.monitorCategory.requesting}
+                                            disabled={
+                                                this.props.monitorCategory
+                                                    .requesting
+                                            }
                                         >
-                                            <ShouldRender if={this.props.monitorCategory.requesting}>
+                                            <ShouldRender
+                                                if={
+                                                    this.props.monitorCategory
+                                                        .requesting
+                                                }
+                                            >
                                                 <Spinner />
                                             </ShouldRender>
 
                                             <span>Add</span>
-
                                         </button>
                                     </div>
                                 </div>
@@ -112,28 +152,30 @@ export class AddMonitorCategoryForm extends React.Component {
                     </div>
                 </div>
             </form>
-        )
+        );
     }
 }
 
-AddMonitorCategoryForm.displayName = 'AddMonitorCategoryForm'
+AddMonitorCategoryForm.displayName = 'AddMonitorCategoryForm';
 
 const CreateAddMonitorCategoryForm = reduxForm({
     form: 'AddMonitorCategoryForm',
-    validate
+    validate,
 })(AddMonitorCategoryForm);
 
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
     return {
-        projectId: state.project.currentProject !== null && state.project.currentProject._id,
+        projectId:
+            state.project.currentProject !== null &&
+            state.project.currentProject._id,
         CreateMonitorCategoryModalId: state.modal.modals[0].id,
-        monitorCategory: state.monitorCategories.newMonitorCategory
-    }
-}
+        monitorCategory: state.monitorCategories.newMonitorCategory,
+    };
+};
 
-const mapDispatchToProps = (dispatch) => {
-    return bindActionCreators({ closeModal, createMonitorCategory }, dispatch)
-}
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators({ closeModal, createMonitorCategory }, dispatch);
+};
 
 AddMonitorCategoryForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
@@ -141,8 +183,10 @@ AddMonitorCategoryForm.propTypes = {
     projectId: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
     createMonitorCategory: PropTypes.func.isRequired,
     CreateMonitorCategoryModalId: PropTypes.string,
-    monitorCategory: PropTypes.object
+    monitorCategory: PropTypes.object,
+};
 
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(CreateAddMonitorCategoryForm);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(CreateAddMonitorCategoryForm);

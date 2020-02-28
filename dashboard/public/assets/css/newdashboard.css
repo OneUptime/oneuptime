@@ -10751,7 +10751,7 @@ table {
     .db-FeedbackForm-textarea {
         width: 100% !important;
     }
-    .db-FeedbackForm-textarea.fixed {
+    .db-FeedbackForm-textarea.fixed, .db-BusinessSettings-input {
         width: 250px !important;
     }
     .template-variable-1 {
