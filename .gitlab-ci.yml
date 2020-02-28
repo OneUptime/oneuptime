@@ -61,6 +61,10 @@ build_n_test_backend:
     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+    - sudo docker build -t fyipeproject/probe:3.0.$CI_PIPELINE_IID ./probe
+    - sudo docker run --env-file ./probe/.env --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
+    - sudo docker run --env-file ./http-test-server/.env --net=host -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
     - sudo docker ps
     - sudo docker run --env-file ./backend/.env --name fyipe --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm test
   except:
@@ -99,6 +103,10 @@ build_n_test_dashboard:
     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
     - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipeproject/probe:3.0.$CI_PIPELINE_IID ./probe
+    - sudo docker run --env-file ./probe/.env --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
+    - sudo docker run --env-file ./http-test-server/.env --net=host -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
     - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard

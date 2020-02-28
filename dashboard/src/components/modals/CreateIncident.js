@@ -85,7 +85,7 @@ class CreateIncident extends Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal bs-Modal--large">
+                    <div className="bs-Modal bs-Modal--medium">
                         <div className="bs-Modal-header">
                             <div
                                 className="bs-Modal-header-copy"
