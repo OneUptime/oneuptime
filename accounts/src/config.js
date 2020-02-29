@@ -256,8 +256,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 588,
                     details: '$588 / Year / User',
-                }
-                
+                },
             ];
         } else {
             return [
@@ -288,7 +287,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 588,
                     details: '$588 / Year / User',
-                }
+                },
             ];
         }
     },
