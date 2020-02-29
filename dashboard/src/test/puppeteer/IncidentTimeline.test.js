@@ -73,7 +73,7 @@ describe('Incident Timeline API', () => {
     });
 
     test(
-        'should create an incident in project with multi-probes',
+        'should create incident in project with multi-probes and add to incident timeline',
         async done => {
             expect.assertions(2);
 
@@ -163,7 +163,7 @@ describe('Incident Timeline API', () => {
     );
 
     test(
-        'should resolve an incident in project with multi-probes',
+        'should auto-resolve incident in project with multi-probes and add to incident timeline',
         async done => {
             expect.assertions(2);
 
