@@ -177,7 +177,10 @@ class _ProjectForm extends React.Component {
                                     </div>
                                     <div
                                         className="bs-Fieldset-row .Flex-justifyContent--center"
-                                        style={{ padding: 0 }}
+                                        style={{
+                                            padding: 0,
+                                            flexDirection: 'column',
+                                        }}
                                     >
                                         <PlanFields />
                                     </div>
