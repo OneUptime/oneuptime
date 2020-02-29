@@ -130,9 +130,7 @@ class _CardForm extends React.Component {
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--20i">
                                     <label>
                                         <CardElement
-                                            {...createOptions(
-                                                elementFontSize
-                                            )}
+                                            {...createOptions(elementFontSize)}
                                         />
                                     </label>
                                 </div>

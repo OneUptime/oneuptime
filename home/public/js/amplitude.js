@@ -1,12 +1,11 @@
-/*eslint-disable*/
 (function (e, t) {
     var n = e.amplitude || { _q: [], _iq: {} }; var r = t.createElement("script")
-        ; r.type = "text/javascript"; r.async = true
-        ; r.src = "https://cdn.amplitude.com/libs/amplitude-4.5.2-min.gz.js"
+        ; r.type = "text/javascript"
+        ; r.integrity = "sha384-vYYnQ3LPdp/RkQjoKBTGSq0X5F73gXU3G2QopHaIfna0Ct1JRWzwrmEz115NzOta"
+        ; r.crossOrigin = "anonymous"; r.async = true
+        ; r.src = "https://cdn.amplitude.com/libs/amplitude-5.8.0-min.gz.js"
         ; r.onload = function () {
-            if (e.amplitude.runQueuedFunctions) {
-                e.amplitude.runQueuedFunctions()
-            } else {
+            if (!e.amplitude.runQueuedFunctions) {
                 console.log("[Amplitude] Error: could not load SDK")
             }
         }
@@ -24,10 +23,7 @@
         }
         ; var l = ["setProductId", "setQuantity", "setPrice", "setRevenueType", "setEventProperties"]
         ; for (var p = 0; p < l.length; p++) { s(c, l[p]) } n.Revenue = c
-        ; var d = ["init", "logEvent", "logRevenue", "setUserId", "setUserProperties", "setOptOut",
-            "setVersionName", "setDomain", "setDeviceId", "setGlobalUserProperties", "identify",
-            "clearUserProperties", "setGroup", "logRevenueV2", "regenerateDeviceId", "logEventWithTimestamp",
-            "logEventWithGroups", "setSessionId", "resetSessionId"]
+        ; var d = ["init", "logEvent", "logRevenue", "setUserId", "setUserProperties", "setOptOut", "setVersionName", "setDomain", "setDeviceId", "enableTracking", "setGlobalUserProperties", "identify", "clearUserProperties", "setGroup", "logRevenueV2", "regenerateDeviceId", "groupIdentify", "onInit", "logEventWithTimestamp", "logEventWithGroups", "setSessionId", "resetSessionId"]
         ; function v(e) {
             function t(t) {
             e[t] = function () {
@@ -42,4 +38,4 @@
         ; e.amplitude = n
 })(window, document);
 
-amplitude.getInstance().init("fa9d9a9f92aaa63249e7f1d19e6560e5");   
+amplitude.getInstance().init("802d95003af23aad17ed068b6cfdeb2b");
