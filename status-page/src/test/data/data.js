@@ -21,7 +21,7 @@ module.exports = {
         state: 'New York',
         zipCode: '111000111',
         country: 'Iceland',
-        planId: 'plan_EgTJMZULfh6THW',
+        planId: 'plan_GoWIYiX2L8hwzx',
         companyRole: 'Snr. Developer',
         companyPhoneNumber: '+1255609726',
         reference: 'Github',

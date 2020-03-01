@@ -230,92 +230,64 @@ export const PricingPlan = {
         ) {
             return [
                 {
-                    category: 'Basic',
-                    planId: 'plan_EgTJMZULfh6THW',
+                    category: 'Startup',
+                    planId: 'plan_GoWIYiX2L8hwzx',
                     type: 'month',
-                    amount: 8,
-                    details: '$8 / Month / User',
+                    amount: 25,
+                    details: '$25 / Month / User',
                 },
                 {
-                    category: 'Basic',
-                    planId: 'plan_EgTQAx3Z909Dne',
+                    category: 'Startup',
+                    planId: 'plan_GoWIqpBpStiqQp',
                     type: 'annual',
-                    amount: 80.4,
-                    details: '$80.4 / Year / User',
+                    amount: 264,
+                    details: '$264 / Year / User',
                 },
-                /* {
-                    category: 'Pro',
-                    planId: 'plan_CpIZEEfT4YFSvF',
+                {
+                    category: 'Growth',
+                    planId: 'plan_GoWKgxRnPPBJWy',
                     type: 'month',
-                    amount: 49,
-                    details: '$49 / Month'
+                    amount: 59,
+                    details: '$59 / Month / User',
                 },
                 {
-                    category: 'Pro',
-                    planId: 'plan_CpIZTQWQiIr6rY',
+                    category: 'Growth',
+                    planId: 'plan_GoWKiTdQ6NiQFw',
                     type: 'annual',
-                    amount: 708,
-                    details: '$708 / Year'
+                    amount: 588,
+                    details: '$588 / Year / User',
                 },
-                {
-                    category: 'Pro Plus',
-                    planId: 'plan_CpIatF9qAmeZLP',
-                    type: 'month',
-                    amount: 99,
-                    details: '$99 / Month'
-                },
-                {
-                    category: 'Pro Plus',
-                    planId: 'plan_CpIbtqozj1UVGs',
-                    type: 'annual',
-                    amount: 1180,
-                    details: '$1180 / Year'
-                } */
             ];
         } else {
             return [
                 {
-                    category: 'Basic',
-                    planId: 'plan_EgT8cUrwsxaqCs',
+                    category: 'Startup',
+                    planId: 'plan_GoVgVbvNdbWwlm',
                     type: 'month',
-                    amount: 8,
-                    details: '$8 / Month / User',
+                    amount: 25,
+                    details: '$25 / Month / User',
                 },
                 {
-                    category: 'Basic',
-                    planId: 'plan_EgT9hrq9GdIGQ6',
+                    category: 'Startup',
+                    planId: 'plan_GoVgJu5PKMLRJU',
                     type: 'annual',
-                    amount: 80.4,
-                    details: '$80.4 / Year / User',
+                    amount: 264,
+                    details: '$264 / Year / User',
                 },
-                /* {
-                    category: 'Pro',
-                    planId: 'plan_CogeidQkPwkycV',
+                {
+                    category: 'Growth',
+                    planId: 'plan_GoVi9EIa6MU0fG',
                     type: 'month',
-                    amount: 49,
-                    details: '$49 / Month'
+                    amount: 59,
+                    details: '$59 / Month / User',
                 },
                 {
-                    category: 'Pro',
-                    planId: 'plan_CogfwRVpqoOLO6',
+                    category: 'Growth',
+                    planId: 'plan_GoViZshjqzZ0vv',
                     type: 'annual',
-                    amount: 708,
-                    details: '$708 / Year'
+                    amount: 588,
+                    details: '$588 / Year / User',
                 },
-                {
-                    category: 'Pro Plus',
-                    planId: 'prod_Cogffh2xpitVg6',
-                    type: 'month',
-                    amount: 99,
-                    details: '$99 / Month'
-                },
-                {
-                    category: 'Pro Plus',
-                    planId: 'plan_CoggNmls8dUpDy',
-                    type: 'annual',
-                    amount: 1180,
-                    details: '$1180 / Year'
-                }*/
             ];
         }
     },

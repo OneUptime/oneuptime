@@ -76,7 +76,7 @@ describe('Project API', () => {
                 await page.waitForSelector('#name');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', utils.generateRandomString());
-                await page.click('input[id=Basic_Month]');
+                await page.click('input[id=Startup_month]');
                 await page.click('button[type=submit]');
                 await page.waitFor(2000);
                 // eslint-disable-next-line no-undef
