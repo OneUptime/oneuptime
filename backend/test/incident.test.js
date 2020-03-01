@@ -121,7 +121,7 @@ describe('Incident API', function() {
                 body: '<h1>Test Server</h1>',
             })
             .end((err, res) => {
-                console(err, res.body);
+                console.log(err, res.body);
                 request
                     .post(`/monitor/${projectId}`)
                     .set('Authorization', authorization)
