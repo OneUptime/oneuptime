@@ -13,7 +13,7 @@ const projectMonitorName = utils.generateRandomString();
 const bodyText = utils.generateRandomString();
 
 describe('Incident Timeline API', () => {
-    const operationTimeOut = 300000;
+    const operationTimeOut = 1000000;
 
     beforeAll(async done => {
         jest.setTimeout(300000);
@@ -81,7 +81,7 @@ describe('Incident Timeline API', () => {
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
                 puppeteer,
-                timeout: 240000,
+                timeout: 600000,
             });
 
             cluster.on('taskerror', err => {
@@ -125,7 +125,7 @@ describe('Incident Timeline API', () => {
                 };
                 await init.loginUser(user, page);
 
-                await page.waitFor(180000);
+                await page.waitFor(300000);
 
                 await page.waitForSelector('#incident_span_0');
                 const incidentTitleSelector = await page.$('#incident_span_0');
@@ -171,7 +171,7 @@ describe('Incident Timeline API', () => {
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
                 puppeteer,
-                timeout: 240000,
+                timeout: 600000,
             });
 
             cluster.on('taskerror', err => {
@@ -215,7 +215,7 @@ describe('Incident Timeline API', () => {
                 };
                 await init.loginUser(user, page);
 
-                await page.waitFor(180000);
+                await page.waitFor(300000);
 
                 await page.waitForSelector('#ResolveText_0');
 

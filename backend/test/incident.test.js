@@ -48,7 +48,7 @@ const testServerMonitor = {
 };
 
 describe('Incident API', function() {
-    this.timeout(500000);
+    this.timeout(1000000);
     before(function(done) {
         this.timeout(60000);
         createUser(request, userData.user, function(err, res) {
@@ -127,7 +127,8 @@ describe('Incident API', function() {
                     .send(testServerMonitor)
                     .end(async function(err, res) {
                         testServerMonitorId = res.body._id;
-                        await sleep(480000);
+                        console.log(testServerMonitorId);
+                        await sleep(600000);
                         request
                             .post(
                                 `/incident/${projectId}/monitor/${testServerMonitorId}`
@@ -168,7 +169,7 @@ describe('Incident API', function() {
                 body: '<h1>Test Server</h1>',
             })
             .end(async () => {
-                await sleep(480000);
+                await sleep(600000);
                 request
                     .get(
                         `/incident/${projectId}/timeline/${testServerIncidentId}`
