@@ -127,7 +127,7 @@ describe('Incident API', function() {
                     .send(testServerMonitor)
                     .end(async function(err, res) {
                         testServerMonitorId = res.body._id;
-                        await sleep(360000);
+                        await sleep(480000);
                         request
                             .post(
                                 `/incident/${projectId}/monitor/${testServerMonitorId}`
