@@ -13,10 +13,10 @@ const projectMonitorName = utils.generateRandomString();
 const bodyText = utils.generateRandomString();
 
 describe('Incident Timeline API', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(300000);
+        jest.setTimeout(360000);
 
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -81,7 +81,7 @@ describe('Incident Timeline API', () => {
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
                 puppeteer,
-                timeout: 600000,
+                timeout: 360000,
             });
 
             cluster.on('taskerror', err => {
@@ -171,7 +171,7 @@ describe('Incident Timeline API', () => {
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
                 puppeteer,
-                timeout: 600000,
+                timeout: 360000,
             });
 
             cluster.on('taskerror', err => {
