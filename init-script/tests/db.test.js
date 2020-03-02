@@ -27,7 +27,7 @@ test('Should query db', async () => {
 });
 
 test('Should insert record to db', async () => {
-    await save(collection, { a: 1 });
+    await save(collection, [{ a: 1 }]);
     expect(collectionObject.insertMany).toBeCalledWith([{ a: 1 }]);
 });
 

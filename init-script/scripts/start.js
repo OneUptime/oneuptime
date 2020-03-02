@@ -2,6 +2,14 @@ const PKG_VERSION = require('../package.json').version;
 const { find, save } = require('../util/db');
 
 async function run() {
+    await updateVersion();
+
+    if (process.env['TEST_PROBES'] === 'true') {
+        await setupTestProbes();
+    }
+}
+
+async function updateVersion() {
     const collection = 'GlobalConfig';
     const name = 'version';
     const docs = await find(collection, { name });
@@ -11,7 +19,33 @@ async function run() {
             name,
             value: PKG_VERSION,
         };
-        await save(collection, doc);
+        await save(collection, [doc]);
+    }
+}
+
+async function setupTestProbes() {
+    const collection = 'probes';
+    const docs = await find(collection, {
+        probeName: { $in: ['Probe 1', 'Probe 2'] },
+    });
+
+    if (docs.length === 0) {
+        const now = new Date().toISOString();
+        const docs = [
+            {
+                deleted: false,
+                createdAt: now,
+                probeKey: 'test-key',
+                probeName: 'Probe 1',
+            },
+            {
+                deleted: false,
+                createdAt: now,
+                probeKey: 'test-key',
+                probeName: 'Probe 2',
+            },
+        ];
+        await save(collection, docs);
     }
 }
 

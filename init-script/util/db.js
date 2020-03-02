@@ -14,8 +14,8 @@ async function find(collection, query = {}) {
         .toArray();
 }
 
-async function save(collection, doc) {
-    return global.db.collection(collection).insertMany([doc]);
+async function save(collection, docs) {
+    return global.db.collection(collection).insertMany(docs);
 }
 
 async function update(collection, query, value) {

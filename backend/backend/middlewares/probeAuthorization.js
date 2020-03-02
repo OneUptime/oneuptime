@@ -45,25 +45,17 @@ module.exports = {
                     message: 'Probe Name not found.',
                 });
             }
-            let probe = await ProbeService.findOneBy({ probeKey, probeName });
+            const probe = await ProbeService.findOneBy({ probeKey, probeName });
             if (probe) {
                 req.probe = {};
                 req.probe.id = probe._id;
                 await ProbeService.updateProbeStatus(probe._id);
                 next();
             } else {
-                if (probeKey === 'test-key') {
-                    probe = await ProbeService.create({ probeKey, probeName });
-                    req.probe = {};
-                    req.probe.id = probe._id;
-                    await ProbeService.updateProbeStatus(probe._id);
-                    next();
-                } else {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Probe key and probe name do not match.',
-                    });
-                }
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Probe key and probe name do not match.',
+                });
             }
         } catch (error) {
             ErrorService.log('probeAuthorization.isAuthorizedProbe', error);

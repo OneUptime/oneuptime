@@ -18,8 +18,10 @@ test('Should query GlobalConfig for record with name "version"', async () => {
 test('Should save record to GlobalConfig if no records are found', async () => {
     mockDbCollection();
     await start();
-    expect(save).toBeCalledWith('GlobalConfig', {
-        name: 'version',
-        value: PKG_VERSION,
-    });
+    expect(save).toBeCalledWith('GlobalConfig', [
+        {
+            name: 'version',
+            value: PKG_VERSION,
+        },
+    ]);
 });
