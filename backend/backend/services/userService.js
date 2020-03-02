@@ -72,7 +72,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await UserModel.count(query);
+            const count = await UserModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('userService.countBy', error);

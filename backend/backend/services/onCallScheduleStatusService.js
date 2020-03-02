@@ -72,7 +72,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await OnCallScheduleStatusModel.count(query);
+            const count = await OnCallScheduleStatusModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('OnCallScheduleStatusService.countBy', error);

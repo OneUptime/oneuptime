@@ -36,7 +36,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const count = await NotificationModel.count(query);
+            const count = await NotificationModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('notificationService.countBy', error);

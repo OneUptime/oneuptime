@@ -70,7 +70,7 @@ module.exports = {
         }
         if (!query.deleted) query.deleted = false;
 
-        const count = await ProjectModel.count(query);
+        const count = await ProjectModel.countDocuments(query);
         return count;
     },
 

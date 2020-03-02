@@ -231,7 +231,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await MonitorModel.count(query).populate(
+            const count = await MonitorModel.countDocuments(query).populate(
                 'project',
                 'name'
             );

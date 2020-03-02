@@ -8,7 +8,7 @@
 const mongoose = require('../config/db');
 const Grid = require('gridfs-stream');
 const JsonToCsv = require('./jsonToCsv');
-const ObjectID = require('mongoose').Types.ObjectId;
+const ObjectID = mongoose.Types.ObjectId;
 
 function filterKeys(field) {
     field = field._doc ? field._doc : field;

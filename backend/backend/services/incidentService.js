@@ -97,7 +97,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await IncidentModel.count(query);
+            const count = await IncidentModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('incidentService.countBy', error);

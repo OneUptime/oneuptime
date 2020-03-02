@@ -29,7 +29,7 @@ module.exports = {
             query = {};
         }
 
-        const count = await AuditLogsModel.count(query);
+        const count = await AuditLogsModel.countDocuments(query);
         return count;
     },
 

@@ -120,7 +120,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const count = await ProbeModel.count(query);
+            const count = await ProbeModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('ProbeService.countBy', error);
