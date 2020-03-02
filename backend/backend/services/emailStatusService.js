@@ -56,7 +56,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await EmailStatusModel.count(query);
+            const count = await EmailStatusModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('emailStatusService.countBy', error);

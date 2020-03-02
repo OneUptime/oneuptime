@@ -129,7 +129,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await AlertModel.count(query);
+            const count = await AlertModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('alertService.countBy', error);

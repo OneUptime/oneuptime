@@ -145,7 +145,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const count = await SubscriberAlertModel.count(query);
+            const count = await SubscriberAlertModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('SubscriberAlertService.countBy', error);

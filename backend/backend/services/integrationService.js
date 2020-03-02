@@ -62,7 +62,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const count = await IntegrationModel.count(query);
+            const count = await IntegrationModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('IntegrationService.countBy', error);

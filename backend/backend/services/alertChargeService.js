@@ -68,7 +68,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            const count = await AlertChargeModel.count(query);
+            const count = await AlertChargeModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('alertChargeService.countBy', error);

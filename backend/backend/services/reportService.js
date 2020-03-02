@@ -16,8 +16,9 @@ module.exports = {
      */
     async getMostActiveMembers(subProjectIds, startDate, endDate, skip, limit) {
         try {
-            const start = moment(startDate).toDate();
-            const end = moment(endDate).toDate();
+            const format = 'ddd MMM DD YYYY H:m:s GMT';
+            const start = moment(startDate, format).toDate();
+            const end = moment(endDate, format).toDate();
 
             if (typeof skip === 'string') {
                 skip = parseInt(skip);
@@ -113,8 +114,9 @@ module.exports = {
         limit
     ) {
         try {
-            const start = moment(startDate).toDate();
-            const end = moment(endDate).toDate();
+            const format = 'ddd MMM DD YYYY H:m:s GMT';
+            const start = moment(startDate, format).toDate();
+            const end = moment(endDate, format).toDate();
 
             if (typeof skip === 'string') {
                 skip = parseInt(skip);
@@ -204,8 +206,9 @@ module.exports = {
      */
     async getAverageTimeBy(subProjectIds, startDate, endDate, filter) {
         try {
-            const start = moment(startDate).toDate();
-            const end = moment(endDate).toDate();
+            const format = 'ddd MMM DD YYYY H:m:s GMT';
+            const start = moment(startDate, format).toDate();
+            const end = moment(endDate, format).toDate();
             let group, sort, inputFormat, outputFormat;
 
             if (filter === 'day') {
@@ -330,8 +333,9 @@ module.exports = {
      */
     async getIncidentCountBy(subProjectIds, startDate, endDate, filter) {
         try {
-            const start = moment(startDate).toDate();
-            const end = moment(endDate).toDate();
+            const format = 'ddd MMM DD YYYY H:m:s GMT';
+            const start = moment(startDate, format).toDate();
+            const end = moment(endDate, format).toDate();
             let group, sort, inputFormat, outputFormat;
 
             if (filter === 'day') {

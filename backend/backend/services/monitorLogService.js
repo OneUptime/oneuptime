@@ -234,7 +234,7 @@ module.exports = {
                 query = {};
             }
 
-            const count = await MonitorLogModel.count(query);
+            const count = await MonitorLogModel.countDocuments(query);
 
             return count;
         } catch (error) {
