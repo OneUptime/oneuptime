@@ -202,7 +202,7 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            const count = await ScheduledEventModel.count(query);
+            const count = await ScheduledEventModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('scheduledEventService.countBy', error);

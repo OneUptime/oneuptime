@@ -89,7 +89,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const count = await EscalationModel.count(query);
+            const count = await EscalationModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('escalationService.countBy', error);

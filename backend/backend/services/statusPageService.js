@@ -91,7 +91,7 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            const count = await StatusPageModel.count(query);
+            const count = await StatusPageModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('statusPageService.countBy', error);

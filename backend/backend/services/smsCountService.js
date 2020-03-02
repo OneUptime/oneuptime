@@ -63,7 +63,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await SmsCountModel.count(query);
+            const count = await SmsCountModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('smsCountService.countBy', error);

@@ -6,12 +6,14 @@
 
 const mongoose = require('mongoose');
 const mongoUrl = process.env['MONGO_URL'];
+
+mongoose.set('useNewUrlParser', true);
+mongoose.set('useUnifiedTopology', true);
+mongoose.set('useFindAndModify', false);
+mongoose.set('useCreateIndex', true);
+
 mongoose
-    .connect(mongoUrl, {
-        useUnifiedTopology: true,
-        useCreateIndex: true,
-        useNewUrlParser: true,
-    })
+    .connect(mongoUrl)
     .then(() => {
         // eslint-disable-next-line
         return console.log('Mongo connected');
@@ -22,4 +24,5 @@ mongoose
         console.error('App starting error:', err.stack);
         process.exit(1);
     });
+
 module.exports = mongoose;

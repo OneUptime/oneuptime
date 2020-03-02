@@ -94,7 +94,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await ScheduleModel.count(query);
+            const count = await ScheduleModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('scheduleService.countBy', error);

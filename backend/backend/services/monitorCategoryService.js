@@ -150,7 +150,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const count = await MonitorCategoryModel.count(query);
+            const count = await MonitorCategoryModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('monitorCategoryService.countBy', error);

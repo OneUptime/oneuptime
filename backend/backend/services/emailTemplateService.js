@@ -139,7 +139,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const count = await EmailTemplateModel.count(query);
+            const count = await EmailTemplateModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('emailTemplateService.countBy', error);

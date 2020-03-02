@@ -6,7 +6,7 @@
 
 const url = require('url');
 const _ = require('lodash');
-const isValidMongoObjectId = require('mongoose').Types.ObjectId.isValid;
+const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 
 const AuditLogsService = require('../services/auditLogsService');
 const ErrorService = require('../services/errorService');
@@ -52,7 +52,10 @@ module.exports = {
                 }
 
                 // Removing specified blacklisted object paths for security and other reasons.
-                const modifiedReq = _.omit(req, blackListedReqObjectPaths);
+                const modifiedReq = _.omit(
+                    { ...req },
+                    blackListedReqObjectPaths
+                );
                 const modifiedRes = _.omit(res, blackListedResObjectPaths);
 
                 const apiRequestDetails = {

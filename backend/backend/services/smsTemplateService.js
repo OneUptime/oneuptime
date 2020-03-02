@@ -134,7 +134,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const count = await SmsTemplateModel.count(query);
+            const count = await SmsTemplateModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('smsTemplateService.countBy', error);

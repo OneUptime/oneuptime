@@ -117,7 +117,7 @@ module.exports = {
                 query = {};
             }
 
-            const count = await IncidentTimelineModel.count(query);
+            const count = await IncidentTimelineModel.countDocuments(query);
 
             return count;
         } catch (error) {

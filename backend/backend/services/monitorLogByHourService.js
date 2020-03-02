@@ -107,7 +107,7 @@ module.exports = {
                 query = {};
             }
 
-            const count = await MonitorLogByHourModel.count(query);
+            const count = await MonitorLogByHourModel.countDocuments(query);
 
             return count;
         } catch (error) {
