@@ -4,7 +4,7 @@ const { find, save } = require('../util/db');
 async function run() {
     await updateVersion();
 
-    if (process.env['TEST_PROBES'] === 'true') {
+    if (process.env['NODE_ENV'] === 'development') {
         await setupTestProbes();
     }
 }

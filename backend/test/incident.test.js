@@ -150,6 +150,12 @@ describe('Incident API', function() {
                                         expect(
                                             res.body.data.length
                                         ).to.be.equal(2);
+                                        expect(
+                                            res.body.data[0].status
+                                        ).to.be.equal('offline');
+                                        expect(
+                                            res.body.data[1].status
+                                        ).to.be.equal('offline');
                                         done();
                                     });
                             });
@@ -171,16 +177,46 @@ describe('Incident API', function() {
                 await sleep(300000);
                 request
                     .get(
-                        `/incident/${projectId}/timeline/${testServerIncidentId}`
+                        `/incident/${projectId}/incident/${testServerIncidentId}`
                     )
                     .set('Authorization', authorization)
                     .end(function(err, res) {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
-                        expect(res.body).to.have.property('data');
-                        expect(res.body.data).to.be.an('array');
-                        expect(res.body.data.length).to.be.equal(6);
-                        done();
+                        expect(res.body._id).to.be.equal(testServerIncidentId);
+                        expect(res.body.acknowledged).to.be.equal(true);
+                        expect(res.body.resolved).to.be.equal(true);
+                        request
+                            .get(
+                                `/incident/${projectId}/timeline/${testServerIncidentId}`
+                            )
+                            .set('Authorization', authorization)
+                            .end(function(err, res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body).to.be.an('object');
+                                expect(res.body).to.have.property('data');
+                                expect(res.body.data).to.be.an('array');
+                                expect(res.body.data.length).to.be.equal(6);
+                                expect(res.body.data[0].status).to.be.equal(
+                                    'offline'
+                                );
+                                expect(res.body.data[1].status).to.be.equal(
+                                    'offline'
+                                );
+                                expect(res.body.data[2].status).to.be.equal(
+                                    'online'
+                                );
+                                expect(res.body.data[3].status).to.be.equal(
+                                    'online'
+                                );
+                                expect(res.body.data[4].status).to.be.equal(
+                                    'acknowledged'
+                                );
+                                expect(res.body.data[5].status).to.be.equal(
+                                    'resolved'
+                                );
+                                done();
+                            });
                     });
             });
     });
