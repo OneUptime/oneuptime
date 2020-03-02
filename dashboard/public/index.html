@@ -7,7 +7,7 @@
         <meta name="theme-color" content="#000000">
         <meta name="slack-app-id" content="ACVBMTPJQ">
 
-        <link rel="manifest" href="/manifest.json">
+        <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
         <link rel="shortcut icon" href="/assets/img/favicons/favicon.ico">
         <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicons/apple-touch-icon.png">
         <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicons/favicon-32x32.png">
@@ -80,7 +80,7 @@
     </head>
     <body>
         <div id="root" class="db-DashboardRoot"></div>
-        <script>
+        <script defer>
             !function () {
             if ('PerformanceLongTaskTiming' in window) {
                 var g = window.__tti = { e: [] };
@@ -88,6 +88,15 @@
                 g.o.observe({ entryTypes: ['longtask'] })
             }
             }();
+            if('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('service-workr.js', {scope: '.'})
+                    .then(function(registration) {
+                        console.log('Service-worker Registered');
+                    })
+                    .catch(function(err) {
+                        console.log('Error: Service-worker not registered: ', err);
+                    })
+            }
         </script>
         <!-- Google Tag Manager (noscript) -->
         <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH" height="0" width="0"
