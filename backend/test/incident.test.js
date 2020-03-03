@@ -1,6 +1,7 @@
 /* eslint-disable no-undef */
 
 process.env.PORT = 3020;
+const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 const expect = require('chai').expect;
 const userData = require('./data/user');
 const chai = require('chai');
@@ -8,6 +9,7 @@ chai.use(require('chai-http'));
 const app = require('../server');
 
 const request = chai.request.agent(app);
+const testServer = chai.request(HTTP_TEST_SERVER_URL);
 const { createUser } = require('./utils/userSignUp');
 
 const incidentData = require('./data/incident');
@@ -26,15 +28,27 @@ const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 const TwilioConfig = require('../backend/config/twilio');
 
-let token, userId, airtableId, projectId, monitorId, incidentId;
+let token,
+    userId,
+    airtableId,
+    projectId,
+    monitorId,
+    incidentId,
+    testServerMonitorId,
+    testServerIncidentId;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
+const testServerMonitor = {
+    name: 'Test Server',
+    type: 'url',
+    data: { url: HTTP_TEST_SERVER_URL },
+};
 
 describe('Incident API', function() {
-    this.timeout(120000);
+    this.timeout(500000);
     before(function(done) {
         this.timeout(60000);
         createUser(request, userData.user, function(err, res) {
@@ -93,6 +107,117 @@ describe('Incident API', function() {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();
+            });
+    });
+
+    it('should create an incident with multi-probes and add to incident timeline', function(done) {
+        const authorization = `Basic ${token}`;
+        testServer
+            .post('/api/settings')
+            .send({
+                responseTime: 0,
+                statusCode: 400,
+                responseType: 'html',
+                body: '<h1>Test Server</h1>',
+            })
+            .end(() => {
+                request
+                    .post(`/monitor/${projectId}`)
+                    .set('Authorization', authorization)
+                    .send(testServerMonitor)
+                    .end(async function(err, res) {
+                        testServerMonitorId = res.body._id;
+                        await sleep(300000);
+                        request
+                            .post(
+                                `/incident/${projectId}/monitor/${testServerMonitorId}`
+                            )
+                            .set('Authorization', authorization)
+                            .end(function(err, res) {
+                                testServerIncidentId = res.body.data[0]._id;
+                                request
+                                    .get(
+                                        `/incident/${projectId}/timeline/${testServerIncidentId}`
+                                    )
+                                    .set('Authorization', authorization)
+                                    .end(function(err, res) {
+                                        expect(res).to.have.status(200);
+                                        expect(res.body).to.be.an('object');
+                                        expect(res.body).to.have.property(
+                                            'data'
+                                        );
+                                        expect(res.body.data).to.be.an('array');
+                                        expect(
+                                            res.body.data.length
+                                        ).to.be.equal(2);
+                                        expect(
+                                            res.body.data[0].status
+                                        ).to.be.equal('offline');
+                                        expect(
+                                            res.body.data[1].status
+                                        ).to.be.equal('offline');
+                                        done();
+                                    });
+                            });
+                    });
+            });
+    });
+
+    it('should auto-resolve an incident with multi-probes and add to incident timeline', function(done) {
+        const authorization = `Basic ${token}`;
+        testServer
+            .post('/api/settings')
+            .send({
+                responseTime: 0,
+                statusCode: 200,
+                responseType: 'html',
+                body: '<h1>Test Server</h1>',
+            })
+            .end(async () => {
+                await sleep(300000);
+                request
+                    .get(
+                        `/incident/${projectId}/incident/${testServerIncidentId}`
+                    )
+                    .set('Authorization', authorization)
+                    .end(function(err, res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.be.an('object');
+                        expect(res.body._id).to.be.equal(testServerIncidentId);
+                        expect(res.body.acknowledged).to.be.equal(true);
+                        expect(res.body.resolved).to.be.equal(true);
+                        request
+                            .get(
+                                `/incident/${projectId}/timeline/${testServerIncidentId}`
+                            )
+                            .set('Authorization', authorization)
+                            .end(function(err, res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body).to.be.an('object');
+                                expect(res.body).to.have.property('data');
+                                expect(res.body.data).to.be.an('array');
+                                expect(res.body.data.length).to.be.equal(6);
+                                expect(res.body.data[0].status).to.be.equal(
+                                    'offline'
+                                );
+                                expect(res.body.data[1].status).to.be.equal(
+                                    'offline'
+                                );
+                                expect(res.body.data[2].status).to.be.equal(
+                                    'online'
+                                );
+                                expect(res.body.data[3].status).to.be.equal(
+                                    'online'
+                                );
+                                expect(res.body.data[4].status).to.be.equal(
+                                    'acknowledged'
+                                );
+                                expect(res.body.data[5].status).to.be.equal(
+                                    'resolved'
+                                );
+                                done();
+                            });
+                    });
             });
     });
 

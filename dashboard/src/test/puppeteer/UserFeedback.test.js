@@ -48,7 +48,7 @@ describe('User Feedback', () => {
     });
 
     test(
-        'Should create new project from dropdown after login',
+        'should send feedback in project',
         async done => {
             expect.assertions(1);
 
