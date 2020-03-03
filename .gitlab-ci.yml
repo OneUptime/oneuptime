@@ -1216,6 +1216,7 @@ smoke_test_production:
   only:
     refs:
       - release
+      - hotfix-release
   environment:
     name: production
 
@@ -1237,6 +1238,7 @@ smoke_test_staging:
   only:
     refs:
       - master
+      - hotfix-master
 
 ## STAGING ROLLBACK
 staging_rollback_dashboard:
