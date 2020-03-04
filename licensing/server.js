@@ -1,17 +1,75 @@
-var express = require('express');
-var app = express();
-require('dotenv').config();
-var compression = require('compression');
-var licenseRoute  = require('./src/routes/licenseRoute.js');
-var cors = require('cors');
+const express = require('express');
+const app = express();
 
-app.use(compression());app.use(express.static("public"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true}));
+const { NODE_ENV } = process.env;
+
+if (!NODE_ENV || NODE_ENV === 'development') {
+    // Load env vars from /licensing/.env
+    require('dotenv').config();
+}
+
+process.on('exit', () => {
+    /* eslint-disable no-console */
+    console.log('Server Shutting Shutdown');
+});
+
+process.on('uncaughtException', err => {
+    /* eslint-disable no-console */
+    console.error('Uncaught exception in server process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
+const http = require('http').createServer(app);
+const bodyParser = require('body-parser');
+const cors = require('cors');
+
 app.use(cors());
 
-app.use("/license",licenseRoute);
+app.use(function(req, res, next) {
+    if (typeof req.body === 'string') {
+        req.body = JSON.parse(req.body);
+    }
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header(
+        'Access-Control-Allow-Headers',
+        'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
+    );
+    next();
+});
 
-app.all('*', (req, res) => res.status(404).send({message : 'Not Found'}));
+// Add limit of 10 MB to avoid "Request Entity too large error"
+// https://stackoverflow.com/questions/19917401/error-request-entity-too-large
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+
+// Routes(API)
+app.use('/license', require('./src/api/license'));
+app.set('port', process.env.PORT || 3005);
+
+const server = http.listen(app.get('port'), function() {
+    // eslint-disable-next-line
+    console.log('Server Started on port ' + app.get('port'));
+});
+
+app.get('/', function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'fyipe-api',
+        })
+    );
+});
+
+app.use('/*', function(req, res) {
+    res.status(404).render('Not Found ', {});
+});
 
 module.exports = app;
+module.exports.close = function() {
+    server.close();
+};

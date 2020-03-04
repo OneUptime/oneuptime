@@ -7,7 +7,7 @@ module.exports = {
                 .send({ message: error.message });
         }
     },
-    sendConfirmationResponse(req, res, token) {
-        return res.status(200).send(token);
+    sendItemResponse(req, res, item) {
+        return res.status(200).send(item);
     }
 };
