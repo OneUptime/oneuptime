@@ -1,4 +1,3 @@
-/* eslint-disable linebreak-style */
 /**
  *
  * Copyright HackerBay, Inc.
@@ -6,14 +5,14 @@
  */
 module.exports = {
     findLicense: function(license) {
-            if (!base) return;
+        if (!base) return;
 
         return base('License').find(license)
         
     },
 
     updateEmail: function(userDetails) {
-            if (!base) return;
+        if (!base) return;
 
         return base('License').update(userDetails.license, {
                 "Contact Email": userDetails.email
