@@ -47,7 +47,7 @@
         "test": "jest src/test/puppeteer/index.test.js",
         "start": "node index.js",
         "audit": "npm-audit-ci-wrapper --threshold=low",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,loadable-components,js-uuid,acorn'"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
     },
     "devDependencies": {
         "babel-core": "^6.26.3",
