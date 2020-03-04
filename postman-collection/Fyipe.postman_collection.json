@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "029b2a3c-7aac-4411-89b0-3f280fcc7f53",
+        "_postman_id": "98a7ca8c-47fc-486e-860b-f289d6880ffc",
         "name": "Fyipe",
         "description": "Fyipe backend",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -13062,31 +13062,31 @@
             "name": "Server",
             "item": [
                 {
-                    "name": "Check If Customer Service",
+                    "name": "Check If SaaS Service",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "http://localhost:3002/server/is-consumer-service",
+                            "raw": "http://localhost:3002/server/is-saas-service",
                             "protocol": "http",
                             "host": ["localhost"],
                             "port": "3002",
-                            "path": ["server", "is-consumer-service"]
+                            "path": ["server", "is-saas-service"]
                         },
-                        "description": "Check If Customer Service"
+                        "description": "Check If SaaS Service"
                     },
                     "response": [
                         {
-                            "name": "Check If Customer Service",
+                            "name": "Check If SaaS Service",
                             "originalRequest": {
                                 "method": "GET",
                                 "header": [],
                                 "url": {
-                                    "raw": "http://localhost:3002/server/is-consumer-service",
+                                    "raw": "http://localhost:3002/server/is-saas-service",
                                     "protocol": "http",
                                     "host": ["localhost"],
                                     "port": "3002",
-                                    "path": ["server", "is-consumer-service"]
+                                    "path": ["server", "is-saas-service"]
                                 }
                             },
                             "status": "OK",

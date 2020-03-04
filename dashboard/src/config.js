@@ -12,6 +12,7 @@ let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
 let developmentEnv = false;
+let fyipeHosted = false;
 
 export function env(value) {
     const { _env } = window;
@@ -39,6 +40,11 @@ if (!isServer) {
         ) {
             developmentEnv = true;
         }
+        if (env['FYIPE_HOSTED'] === 'true') {
+            fyipeHosted = true;
+        } else {
+            fyipeHosted = false;
+        }
     }
 }
 
@@ -51,6 +57,8 @@ export const ACCOUNTS_URL = accountsUrl;
 export const DOMAIN_URL = domain;
 
 export const IS_DEV = developmentEnv;
+
+export const IS_FYIPE_HOSTED = fyipeHosted;
 
 export const User = {
     getAccessToken() {
