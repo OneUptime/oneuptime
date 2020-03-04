@@ -8,7 +8,7 @@ const MailService = require('../services/mailService');
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
-const { IS_FYIPE_HOSTED } = require('../config/server');
+const { IS_SAAS_SERVICE } = require('../config/server');
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
@@ -41,7 +41,7 @@ router.post('/create', getUser, async function(req, res) {
 
         let stripePlanId;
 
-        if (IS_FYIPE_HOSTED) {
+        if (IS_SAAS_SERVICE) {
             if (!data.planId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -75,7 +75,7 @@ router.post('/create', getUser, async function(req, res) {
 
         if (countProject < 1) {
             let user = await UserService.findOneBy({ _id: userId });
-            if (!user.stripeCustomerId && IS_FYIPE_HOSTED) {
+            if (!user.stripeCustomerId && IS_SAAS_SERVICE) {
                 if (!data.paymentIntent) {
                     return sendErrorResponse(req, res, {
                         code: 400,
@@ -121,7 +121,7 @@ router.post('/create', getUser, async function(req, res) {
                 );
                 return sendItemResponse(req, res, project);
             } else {
-                if (IS_FYIPE_HOSTED) {
+                if (IS_SAAS_SERVICE) {
                     const subscription = await PaymentService.subscribePlan(
                         stripePlanId,
                         user.stripeCustomerId

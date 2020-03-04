@@ -6,7 +6,7 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import PlanFields from './PlanFields';
 import { Spinner } from '../basic/Loader';
-import { User, Validate, env, IS_FYIPE_HOSTED } from '../../config';
+import { User, Validate, env, IS_SAAS_SERVICE } from '../../config';
 import {
     checkCard,
     createProjectRequest,
@@ -66,7 +66,7 @@ class _ProjectForm extends React.Component {
             companyName,
             submitForm,
         } = this.props;
-        if (cardRegistered || !IS_FYIPE_HOSTED) {
+        if (cardRegistered || !IS_SAAS_SERVICE) {
             submitForm(values);
         } else if (stripe && !cardRegistered) {
             createProjectRequest();
@@ -168,7 +168,7 @@ class _ProjectForm extends React.Component {
                                     </div>
                                 </div>
                             </fieldset>
-                            <ShouldRender if={IS_FYIPE_HOSTED}>
+                            <ShouldRender if={IS_SAAS_SERVICE}>
                                 <fieldset className="bs-Fieldset">
                                     <div className="bs-Fieldset-rows">
                                         <div className="Margin-bottom--12 Text-fontWeight--medium">

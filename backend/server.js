@@ -71,7 +71,6 @@ app.use(express.static(path.join(__dirname, 'views')));
 app.use(require('./backend/middlewares/auditLogs').log);
 
 // Routes(API)
-app.use('/server', require('./backend/api/server'));
 app.use('/alert', require('./backend/api/alert'));
 app.use('/user', require('./backend/api/user'));
 app.use('/token', require('./backend/api/token'));

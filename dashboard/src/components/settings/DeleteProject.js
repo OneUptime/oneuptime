@@ -6,7 +6,7 @@ import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { showDeleteModal } from '../../actions/project';
-import { IS_FYIPE_HOSTED } from '../../config';
+import { IS_SAAS_SERVICE } from '../../config';
 
 export class DeleteProjectBox extends Component {
     handleClick = () => {
@@ -24,7 +24,7 @@ export class DeleteProjectBox extends Component {
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        {IS_FYIPE_HOSTED &&
+                                        {IS_SAAS_SERVICE &&
                                             'Cancel Subscription and'}{' '}
                                         Delete Project
                                     </span>

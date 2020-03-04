@@ -1,5 +1,5 @@
 import pages from './pages';
-import { IS_FYIPE_HOSTED } from './config';
+import { IS_SAAS_SERVICE } from './config';
 
 const {
     Settings,
@@ -151,7 +151,7 @@ export const groups = [
                         title: 'Billing',
                         path: '/project/:projectId/settings/billing',
                         icon: 'radar',
-                        visible: IS_FYIPE_HOSTED,
+                        visible: IS_SAAS_SERVICE,
                         subRoutes: [],
                         component: Billing,
                         index: 1,
@@ -214,7 +214,7 @@ export const groups = [
                 title: 'Billing',
                 path: '/profile/billing',
                 icon: 'customers',
-                visible: IS_FYIPE_HOSTED,
+                visible: IS_SAAS_SERVICE,
                 component: ProfileBilling,
                 subRoutes: [],
                 index: 1,

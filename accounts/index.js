@@ -7,7 +7,7 @@ const child_process = require('child_process');
 const compression = require('compression');
 
 const env = {
-    REACT_APP_FYIPE_HOSTED: process.env.IS_SAAS_SERVICE,
+    REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
     REACT_APP_HOST: process.env.HOST,
     REACT_APP_DASHBOARD_HOST: process.env.DASHBOARD_HOST,
     REACT_APP_BACKEND_HOST: process.env.BACKEND_HOST,

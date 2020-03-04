@@ -49,7 +49,7 @@ module.exports = {
             if (typeof projectSeats === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
-            if (!plan && IS_FYIPE_HOSTED) {
+            if (!plan && IS_SAAS_SERVICE) {
                 const error = new Error('Invalid project plan.');
                 error.code = 400;
                 ErrorService.log('monitorService.create', error);
@@ -800,4 +800,4 @@ const TeamService = require('./teamService');
 const ErrorService = require('./errorService');
 const moment = require('moment');
 const _ = require('lodash');
-const { IS_FYIPE_HOSTED } = require('../config/server');
+const { IS_SAAS_SERVICE } = require('../config/server');

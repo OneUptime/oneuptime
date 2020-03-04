@@ -69,7 +69,7 @@ build_n_test_backend:
     - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
     - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
     - sudo docker ps
-    - sudo docker run --env-file ./backend/.env --name fyipe --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm test
+    - sudo docker run --name fyipe --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm test
   except:
     refs:
       - hotfix-master
@@ -107,7 +107,7 @@ build_n_test_dashboard:
     - sudo docker build -t fyipeproject/init-script:3.0.$CI_PIPELINE_IID ./init-script
     - sudo docker run -e NODE_ENV=development --net=host -d fyipeproject/init-script:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/probe:3.0.$CI_PIPELINE_IID ./probe
     - sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
@@ -116,7 +116,7 @@ build_n_test_dashboard:
     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
     - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-    - sudo docker run --env-file ./dashboard/.env -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./dashboard/.env -e REACT_APP_IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker ps
     - cd dashboard
     - npm ci

@@ -1,6 +1,6 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/project';
-import { User, IS_FYIPE_HOSTED } from '../config.js';
+import { User, IS_SAAS_SERVICE } from '../config.js';
 import { history } from '../store';
 import {
     fetchMonitors,
@@ -196,7 +196,7 @@ export function createProject(values) {
 
         return promise.then(
             function(project) {
-                if (IS_FYIPE_HOSTED) {
+                if (IS_SAAS_SERVICE) {
                     User.setCardRegistered(true);
                 }
                 dispatch(createProjectSuccess(project.data));

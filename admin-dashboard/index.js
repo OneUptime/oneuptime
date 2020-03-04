@@ -6,7 +6,7 @@ const fs = require('fs');
 const child_process = require('child_process');
 
 const env = {
-    REACT_APP_FYIPE_HOSTED: process.env.IS_SAAS_SERVICE,
+    REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
 };
 
 fs.writeFileSync('.env', envfile.stringifySync(env));

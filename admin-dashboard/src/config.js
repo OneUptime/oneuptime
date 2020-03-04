@@ -10,7 +10,7 @@ let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
 let adminDashboardUrl = null;
-let fyipeHosted = false;
+let isSaasService = false;
 
 export function env(value) {
     const { _env } = window;
@@ -32,19 +32,14 @@ if (!isServer) {
         dashboardUrl = 'http://staging-dashboard.fyipe.com';
         accountsUrl = 'http://staging-accounts.fyipe.com';
         domain = 'fyipe.com';
-        if (env['FYIPE_HOSTED'] === 'true') {
-            fyipeHosted = true;
-        }
     } else {
         apiUrl = 'https://api.fyipe.com';
         dashboardUrl = 'https://fyipe.com';
         accountsUrl = 'https://accounts.fyipe.com';
         domain = 'fyipe.com';
-        if (env['FYIPE_HOSTED'] === 'true') {
-            fyipeHosted = true;
-        } else {
-            fyipeHosted = false;
-        }
+    }
+    if (env('IS_SAAS_SERVICE') === 'true') {
+        isSaasService = true;
     }
 }
 
@@ -58,7 +53,7 @@ export const DOMAIN_URL = domain;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
-export const IS_FYIPE_HOSTED = fyipeHosted;
+export const IS_SAAS_SERVICE = isSaasService;
 
 export const User = {
     getAccessToken() {

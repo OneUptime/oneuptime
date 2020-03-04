@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { User, IS_DEV, IS_FYIPE_HOSTED } from '../../config';
+import { User, IS_DEV, IS_SAAS_SERVICE } from '../../config';
 import { openModal, closeModal } from '../../actions/modal';
 import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
@@ -125,7 +125,7 @@ export class ProfileMenu extends Component {
                                             </div>
                                         </Link>
                                     </div>
-                                    <ShouldRender if={IS_FYIPE_HOSTED}>
+                                    <ShouldRender if={IS_SAAS_SERVICE}>
                                         <div
                                             className="Box-root"
                                             style={{
