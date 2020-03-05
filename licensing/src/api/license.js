@@ -1,5 +1,6 @@
 const express = require('express');
-const router = express.Router();const { confirmLicense } = require('../services/licenseServices');
+const router = express.Router();
+const { confirmLicense } = require('../services/licenseServices');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 

@@ -4,7 +4,7 @@ module.exports.checker = (payload, req, res, next) => {
     Object.entries(payload).forEach(([key, value]) => {
         if(value == null || value == undefined){
             result.message = `Please provide your ${key}`
-            result.statusCode = 200
+            result.statusCode = 400
             result.status = false
         }
     })

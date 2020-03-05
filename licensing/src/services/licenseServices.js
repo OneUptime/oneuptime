@@ -3,24 +3,20 @@ const { generateWebToken } = require('../utils/handleToken')
 const { findLicense, updateEmail } = require('./airtableService')
 
 exports.confirmLicense = async (userDetails) => {
-    return new Promise((resolve, reject) => {
         let check = checker(userDetails)
 
         if(check.status){
             try{
-                const result = findLicense(userDetails.license)
-                const update = updateEmail(userDetails)
+                const result = await findLicense(userDetails.license)
+                await updateEmail(result.id, userDetails.email)
 
-                if(result && update){
-                    let token = generateWebToken({expires: result.Expires})
-
-                    resolve(token)
-                }
+                
+                let token = generateWebToken(result.expiryDate)
+                return {token}
             }catch(error){
-                reject(error)
+                return (error)
             }
         }else{
-            reject({message: check.message, statusCode: check.statusCode})
+            return ({message: check.message, statusCode: check.statusCode})
         }
-    })
 }

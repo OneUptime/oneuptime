@@ -47,7 +47,7 @@ app.use(bodyParser.json({ limit: '10mb' }));
 
 // Routes(API)
 app.use('/license', require('./src/api/license'));
-app.set('port', process.env.PORT || 3005);
+app.set('port', process.env.PORT || 3001);
 
 const server = http.listen(app.get('port'), function() {
     // eslint-disable-next-line
