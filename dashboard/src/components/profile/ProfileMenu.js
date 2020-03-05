@@ -127,6 +127,7 @@ export class ProfileMenu extends Component {
                                     </div>
                                     <ShouldRender if={IS_SAAS_SERVICE}>
                                         <div
+                                            id="profileBilling"
                                             className="Box-root"
                                             style={{
                                                 padding: '10px',
