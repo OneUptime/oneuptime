@@ -6,8 +6,6 @@
 FROM node:12.16.1
 
 #SET ENV Variables
-ENV PRODUCTION=true
-
 RUN mkdir -p /usr/src/app
 
 WORKDIR /usr/src/app

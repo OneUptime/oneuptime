@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { confirmLicense } = require('../services/licenseServices');
+const  validator = require('../middlewares/checkInput')
+const licenseService = require('../services/licenseService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 
 router.post('/', async(req, res) => {
     var userDetails = {
@@ -12,10 +12,11 @@ router.post('/', async(req, res) => {
     }
 
     try{
-        var item = await confirmLicense(userDetails)
+        validator.checkPayload(userDetails)
+
+        var item = await licenseService.confirmService(userDetails);
 
         return sendItemResponse(req, res, item)
-        
     }catch(error){
         return sendErrorResponse(req, res, error)
     }

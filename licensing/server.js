@@ -60,7 +60,7 @@ app.get('/', function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-api',
+            serviceType: 'fyipe-license-server',
         })
     );
 });
