@@ -1,7 +1,12 @@
-const license = "AAfdkdn"
+const validLicense = "AAfdkdn"
+const invalidLicense = "DDrjndk"
+const expiredLicense = "EEcerov"
+
 const email = "license@email.com"
 
 module.exports = {
-    license,
+    validLicense,
+    invalidLicense,
+    expiredLicense,
     email
 };

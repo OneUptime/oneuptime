@@ -12,7 +12,7 @@ module.exports = {
     findLicense: async function(license) {
         return new Promise((resolve, reject) => {
             base('License').select({
-                maxRecords: 3,
+                maxRecords: 5,
                 view: "Grid view"
             }).eachPage(function page(records, fetchNextPage) {
                 records.forEach(function(record) {
@@ -29,7 +29,11 @@ module.exports = {
             
                 fetchNextPage();     
             }, function done(err) {
-                if (err) reject(err)
+                    if(err === null){
+                        resolve(null)
+                    }else{
+                        reject(err)
+                    }
             }); 
         });
     },

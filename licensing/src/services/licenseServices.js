@@ -1,5 +1,6 @@
 const  { checker } = require('../utils/checkInput')
 const { generateWebToken } = require('../utils/handleToken')
+const { notFound, expired } = require('../utils/messages')
 const { findLicense, updateEmail } = require('./airtableService')
 
 exports.confirmLicense = async (userDetails) => {
@@ -8,13 +9,19 @@ exports.confirmLicense = async (userDetails) => {
         if(check.status){
             try{
                 const result = await findLicense(userDetails.license)
-                await updateEmail(result.id, userDetails.email)
+                if(result === null) return {message: notFound}
 
-                
-                let token = generateWebToken(result.expiryDate)
+                const date = new Date();
+                const mydate = new Date(result.expiryDate);
+
+                if(mydate < date) return {message: expired}
+
+                await updateEmail(result.id, userDetails.email)
+        
+                let token = generateWebToken(date, mydate)
                 return {token}
             }catch(error){
-                return (error)
+                throw (error)
             }
         }else{
             return ({message: check.message, statusCode: check.statusCode})

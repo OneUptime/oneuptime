@@ -1,4 +1,7 @@
 module.exports = {
+    sendEmptyResponse(req, res) {
+        return res.status(200).send({});
+    },
     sendErrorResponse: function(req, res, error) {
         if (error.statusCode && error.message) {
             res.resBody = { message: error.message };
