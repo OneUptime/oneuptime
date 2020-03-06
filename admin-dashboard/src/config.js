@@ -10,6 +10,15 @@ let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
 let adminDashboardUrl = null;
+let isSaasService = false;
+
+export function env(value) {
+    const { _env } = window;
+    return (
+        (_env && _env[`REACT_APP_${value}`]) ||
+        process.env[`REACT_APP_${value}`]
+    );
+}
 
 if (!isServer) {
     if (window.location.href.indexOf('localhost') > -1) {
@@ -29,6 +38,9 @@ if (!isServer) {
         accountsUrl = 'https://accounts.fyipe.com';
         domain = 'fyipe.com';
     }
+    if (env('IS_SAAS_SERVICE') === 'true') {
+        isSaasService = true;
+    }
 }
 
 export const API_URL = apiUrl;
@@ -40,6 +52,8 @@ export const ACCOUNTS_URL = accountsUrl;
 export const DOMAIN_URL = domain;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
+
+export const IS_SAAS_SERVICE = isSaasService;
 
 export const User = {
     getAccessToken() {
