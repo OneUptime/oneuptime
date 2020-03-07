@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import { postApi, getApi } from '../api';
 import * as types from '../constants/login';
 import {
     User,
@@ -230,5 +230,60 @@ export function saveStatusPage(data) {
     return {
         type: types.SAVE_STATUS_PAGE,
         payload: data,
+    };
+}
+
+export function masterAdminExistsRequest(promise) {
+    return {
+        type: types.MASTER_ADMIN_EXISTS_REQUEST,
+        payload: promise,
+    };
+}
+
+export function masterAdminExistsError(error) {
+    return {
+        type: types.MASTER_ADMIN_EXISTS_FAILED,
+        payload: error,
+    };
+}
+
+export function masterAdminExistsSuccess(data) {
+    return {
+        type: types.MASTER_ADMIN_EXISTS_SUCCESS,
+        payload: data,
+    };
+}
+
+export const resetMasterAdminExists = () => {
+    return {
+        type: types.RESET_MASTER_ADMIN_EXISTS,
+    };
+};
+
+// Calls the API to register a user.
+export function checkIfMasterAdminExists(values) {
+    return function(dispatch) {
+        const promise = getApi('user/masterAdminExists', values);
+        dispatch(masterAdminExistsRequest(promise));
+        promise.then(
+            function(response) {
+                dispatch(masterAdminExistsSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(masterAdminExistsError(errors(error)));
+            }
+        );
+
+        return promise;
     };
 }

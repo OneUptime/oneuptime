@@ -1,15 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import { history, isServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import NotFound from './components/404';
 import BackboneModals from './containers/BackboneModals';
-import { User, DASHBOARD_URL, DOMAIN_URL } from './config';
+import { User, DASHBOARD_URL, DOMAIN_URL, IS_SAAS_SERVICE } from './config';
 import queryString from 'query-string';
 import ReactGA from 'react-ga';
 import Cookies from 'universal-cookie';
-import { saveStatusPage } from './actions/login';
+import { saveStatusPage, checkIfMasterAdminExists } from './actions/login';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 
@@ -34,6 +34,12 @@ if (logoutData && User.isLoggedIn()) {
 }
 
 const App = props => {
+    useEffect(() => {
+        if (!IS_SAAS_SERVICE) {
+            props.checkIfMasterAdminExists();
+        }
+    }, []);
+
     if (statusPageLogin && statusPageURL) {
         props.saveStatusPage({
             statusPageLogin,
@@ -74,13 +80,17 @@ App.displayName = 'App';
 
 App.propTypes = {
     saveStatusPage: PropTypes.func.isRequired,
+    checkIfMasterAdminExists: PropTypes.func.isRequired,
 };
 
 function mapStateToProps(state) {
     return state.login;
 }
 function mapDispatchToProps(dispatch) {
-    return bindActionCreators({ saveStatusPage }, dispatch);
+    return bindActionCreators(
+        { saveStatusPage, checkIfMasterAdminExists },
+        dispatch
+    );
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(App);

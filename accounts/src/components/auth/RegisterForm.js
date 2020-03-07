@@ -18,7 +18,7 @@ import {
     identify,
     logEvent,
 } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { IS_DEV, IS_SAAS_SERVICE } from '../../config';
 
 export class RegisterForm extends Component {
     constructor(props) {
@@ -55,20 +55,40 @@ export class RegisterForm extends Component {
                             }
                         });
                 } else {
-                    thisObj.props.incrementStep();
-                    if (!IS_DEV) {
-                        setUserId(values.email);
-                        identify(values.email);
-                        setUserProperties({
-                            Name: values.name,
-                            Created: new Date(),
-                            Email: values.email,
-                            CompanyName: values.companyName,
-                            CompanyPhoneNumber: values.companyPhoneNumber,
+                    if (!IS_SAAS_SERVICE) {
+                        thisObj.props.signupUser(values).then(user => {
+                            if (user && user.data && user.data.id) {
+                                if (!IS_DEV) {
+                                    setUserId(user.data.id);
+                                    identify(user.data.id);
+                                    setUserProperties({
+                                        Name: user.data.name,
+                                        Created: new Date(),
+                                        Email: user.data.email,
+                                    });
+                                    logEvent('Sign up completed for user', {
+                                        'First Time': 'TRUE',
+                                        id: user.data.id,
+                                    });
+                                }
+                            }
                         });
-                        logEvent('Sign up step one completed', {
-                            'First Time': 'TRUE',
-                        });
+                    } else {
+                        thisObj.props.incrementStep();
+                        if (!IS_DEV) {
+                            setUserId(values.email);
+                            identify(values.email);
+                            setUserProperties({
+                                Name: values.name,
+                                Created: new Date(),
+                                Email: values.email,
+                                CompanyName: values.companyName,
+                                CompanyPhoneNumber: values.companyPhoneNumber,
+                            });
+                            logEvent('Sign up step one completed', {
+                                'First Time': 'TRUE',
+                            });
+                        }
                     }
                 }
             },
@@ -128,7 +148,7 @@ RegisterForm.propTypes = {
     saveUserState: PropTypes.func.isRequired,
     isUserInvited: PropTypes.func.isRequired,
     register: PropTypes.object.isRequired,
-    planId: PropTypes.string.isRequired,
+    planId: PropTypes.string,
     location: PropTypes.object.isRequired,
 };
 

@@ -17,6 +17,7 @@ const constants = require('../config/constants.json');
 const { emaildomains } = require('../config/emaildomains');
 const randToken = require('rand-token');
 const VerificationTokenModel = require('../models/verificationToken');
+const { IS_SAAS_SERVICE } = require('../config/server');
 const { ACCOUNTS_HOST } = process.env;
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
@@ -26,8 +27,18 @@ router.post('/signup', async function(req, res) {
     try {
         const data = req.body;
 
-        //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
-        delete data.role;
+        if (IS_SAAS_SERVICE) {
+            //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
+            delete data.role;
+        } else {
+            const users = await UserService.findBy({});
+
+            if (!users || users.length === 0) {
+                data.role = 'master-admin';
+            } else {
+                delete data.role;
+            }
+        }
 
         if (!data.email) {
             return sendErrorResponse(req, res, {
@@ -174,6 +185,7 @@ router.post('/signup', async function(req, res) {
                 email: user.email,
                 airtableId: user.airtableId,
                 cardRegistered: user.stripeCustomerId ? true : false,
+                role: user.role || null,
             };
             winston.info('A User just signed up');
             const project = await ProjectService.findOneBy({
@@ -184,6 +196,20 @@ router.post('/signup', async function(req, res) {
                 res,
                 Object.assign(authUserObj, { project: project })
             );
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/masterAdminExists', async function(req, res) {
+    try {
+        const masterAdmin = await UserService.findBy({ role: 'master-admin' });
+
+        if (masterAdmin && masterAdmin.length > 0) {
+            return sendItemResponse(req, res, { result: true });
+        } else {
+            return sendItemResponse(req, res, { result: false });
         }
     } catch (error) {
         return sendErrorResponse(req, res, error);

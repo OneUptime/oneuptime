@@ -34,7 +34,7 @@ class LoginPage extends React.Component {
     };
 
     render() {
-        const { login } = this.props;
+        const { login, masterAdminExists, requestingMasterAdmin } = this.props;
 
         if (login.success && !login.user.tokens) {
             history.push('/user-auth/token');
@@ -74,12 +74,14 @@ class LoginPage extends React.Component {
                 )}
 
                 {/* FOOTER */}
-                <div className="below-box">
-                    <p>
-                        Don&#39;t have an account?{' '}
-                        <Link to="/register">Sign up</Link>.
-                    </p>
-                </div>
+                {!masterAdminExists && !requestingMasterAdmin && (
+                    <div className="below-box">
+                        <p>
+                            Don&#39;t have an account?{' '}
+                            <Link to="/register">Sign up</Link>.
+                        </p>
+                    </div>
+                )}
 
                 {/* END FOOTER */}
                 <div id="footer_spacer" />
@@ -109,6 +111,8 @@ class LoginPage extends React.Component {
 const mapStateToProps = state => {
     return {
         login: state.login,
+        masterAdminExists: state.login.masterAdmin.exists,
+        requestingMasterAdmin: state.login.masterAdmin.requesting,
     };
 };
 
@@ -121,6 +125,8 @@ LoginPage.propTypes = {
     success: PropTypes.bool,
     error: PropTypes.oneOfType([PropTypes.object, PropTypes.bool]),
     location: PropTypes.object,
+    masterAdminExists: PropTypes.bool,
+    requestingMasterAdmin: PropTypes.bool,
 };
 
 LoginPage.displayName = 'LoginPage';
