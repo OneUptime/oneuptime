@@ -35,10 +35,10 @@ if (logoutData && User.isLoggedIn()) {
 
 const App = props => {
     useEffect(() => {
-        if (!IS_SAAS_SERVICE) {
+        if (!IS_SAAS_SERVICE && props.masterAdmin.exists === null) {
             props.checkIfMasterAdminExists();
         }
-    }, []);
+    }, [props.masterAdmin.exists]);
 
     if (statusPageLogin && statusPageURL) {
         props.saveStatusPage({
@@ -81,6 +81,7 @@ App.displayName = 'App';
 App.propTypes = {
     saveStatusPage: PropTypes.func.isRequired,
     checkIfMasterAdminExists: PropTypes.func.isRequired,
+    masterAdmin: PropTypes.object,
 };
 
 function mapStateToProps(state) {

@@ -40,7 +40,7 @@ const initialState = {
         success: false,
     },
     masterAdmin: {
-        exists: false,
+        exists: null,
         requesting: false,
         error: null,
         success: false,
