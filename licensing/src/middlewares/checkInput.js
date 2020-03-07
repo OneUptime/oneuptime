@@ -1,15 +1,12 @@
 const sendErrorResponse = require('./response').sendErrorResponse;
 
-module.exports.checkPayload = (payload, req, res, next) => {
-    var error = {}
+module.exports = (req, res, next)=> {
+    if(req.body.license == null || req.body.license == undefined || req.body.email == null || req.body.email == undefined){
+        const error = new Error('Please provide all the required details'); 
+        error.statusCode = 400;
 
-    Object.entries(payload).forEach(([key, value]) => {
-        if(value == null || value == undefined){
-            error.message = `Please provide your ${key}`
-            error.statusCode = 400
-            
-            throw error 
-        }
-    })
-    return
+        return sendErrorResponse(req, res, error) 
+    }
+
+    next()
 }

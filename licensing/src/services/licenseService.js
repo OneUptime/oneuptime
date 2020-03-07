@@ -1,25 +1,26 @@
-const tokenUtil = require('../utils/tokenUtil')
-//const { notFound, expired } = require('../utils/messages')
-const airtableService = require('./airtableService')
-const getUserRecord = require('../utils/getUserRecord')
+const tokenUtil = require('../utils/tokenUtil').generateWebToken
+const AirtableService = require('./airtableService')
 
 module.exports = {
-    confirmService: async (userDetails) => {
+    confirm: async (payload) => {
         try{
-            const searchDetails = {
-                tableName: "License",
-                view: "Grid view",
-                limit: 9999
+            let records = await AirtableService.find({ tableName: "License", view: "Grid view" })
+            let userRecord = {}
+
+            for(let record of records) {
+                let fetchedLicense = record.get("License Key")
+                if(payload.license === fetchedLicense){  
+                        userRecord['id'] = record.id
+                        userRecord['expiryDate'] = record.get("Expires")
+                }
+            }               
+
+            if(Object.entries(userRecord).length === 0){
+                const error = new Error('Not Found'); 
+                    error.statusCode = 400;
+
+                throw error
             }
-
-            const records = await airtableService.find(searchDetails)
-
-            var getUserDetails = {
-                records, 
-                license: userDetails.license
-            }
-
-            const userRecord = await getUserRecord.search(getUserDetails)
 
             const presentTime = new Date().getTime();
             const expiryTime = new Date(userRecord.expiryDate).getTime();
@@ -30,20 +31,9 @@ module.exports = {
                 throw error
             }
 
-            var updateDetails = {
-                id: userRecord.id, 
-                email: userDetails.email, 
-                tableName: "License"
-            }
-
-            await airtableService.update(updateDetails)
+            await AirtableService.update({ id: userRecord.id, email: payload.email, tableName: "License" })
             
-            var data = {
-                license: userDetails.license,
-                presentTime,
-                expiryTime
-            }
-            let token = tokenUtil.generateWebToken(data)
+            let token = tokenUtil({ license: payload.license, presentTime, expiryTime })
 
             return {token}
         }catch(error){
