@@ -33,15 +33,19 @@ if (logoutData && User.isLoggedIn()) {
     window.location = DASHBOARD_URL;
 }
 
-const App = props => {
+const App = ({
+    masterAdmin: { exists },
+    checkIfMasterAdminExists,
+    saveStatusPage,
+}) => {
     useEffect(() => {
-        if (!IS_SAAS_SERVICE && props.masterAdmin.exists === null) {
-            props.checkIfMasterAdminExists();
+        if (!IS_SAAS_SERVICE && exists === null) {
+            checkIfMasterAdminExists();
         }
-    }, [props.masterAdmin.exists]);
+    }, [exists, checkIfMasterAdminExists]);
 
     if (statusPageLogin && statusPageURL) {
-        props.saveStatusPage({
+        saveStatusPage({
             statusPageLogin,
             statusPageURL,
         });

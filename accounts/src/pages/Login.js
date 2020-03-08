@@ -75,7 +75,7 @@ class LoginPage extends React.Component {
 
                 {/* FOOTER */}
                 {!masterAdminExists && !requestingMasterAdmin && (
-                    <div className="below-box">
+                    <div id="signUpLink" className="below-box">
                         <p>
                             Don&#39;t have an account?{' '}
                             <Link to="/register">Sign up</Link>.
