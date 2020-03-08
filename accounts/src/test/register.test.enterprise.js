@@ -3,8 +3,6 @@ const should = require('should');
 const utils = require('./test-utils');
 const init = require('./test-init');
 
-require('should');
-
 let browser;
 let page;
 
@@ -53,6 +51,7 @@ describe('Enterprise Registration API', () => {
     it('Should login Initial User to Admin Dashboard', async () => {
         await init.loginUser(user, page);
 
+        await page.waitFor(10000);
         const localStorageData = await page.evaluate(() => {
             const json = {};
             for (let i = 0; i < localStorage.length; i++) {
