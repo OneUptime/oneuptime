@@ -67,6 +67,15 @@ describe('Enterprise User API', function() {
         expect(userRole).to.equal('master-admin');
     });
 
+    it('should confirm that `master-admin` exists', function(done) {
+        request.get('/user/masterAdminExists').end(function(err, res) {
+            expect(res).to.have.status(200);
+            expect(res.body).have.property('result');
+            expect(res.body.result).to.eql(true);
+            done();
+        });
+    });
+
     // 'post /user/signup'
     it('should register `user` without stripeToken, stripePlanId', function(done) {
         createEnterpriseUser(request, data.newUser, function(err, res) {
