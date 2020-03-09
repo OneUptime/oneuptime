@@ -51,6 +51,18 @@ describe('Enterprise Registration API', () => {
     it('Should login Initial User to Admin Dashboard', async () => {
         await init.loginUser(user, page);
 
+        const localStorageData = await page.evaluate(() => {
+            const json = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                json[key] = localStorage.getItem(key);
+            }
+            return json;
+        });
+
+        await page.waitFor(10000);
+        localStorageData.should.have.property('access_token');
+        localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
     }, 160000);
 });
