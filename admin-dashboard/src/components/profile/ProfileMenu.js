@@ -23,7 +23,7 @@ export class ProfileMenu extends Component {
         return this.props.visible ? (
             <div
                 className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
-                style={{ top: '49px', width: '232px', right: '40px' }}
+                style={{ top: '49px', width: '232px', right: '20px' }}
             >
                 <span>
                     <div

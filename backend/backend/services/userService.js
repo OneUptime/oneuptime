@@ -116,6 +116,39 @@ module.exports = {
             const user = await UserModel.findOne(query).sort([
                 ['createdAt', -1],
             ]);
+            if (user && IS_SAAS_SERVICE) {
+                // find user subprojects and parent projects
+                let userProjects = await ProjectService.findBy({
+                    'users.userId': user._id,
+                });
+                let parentProjectIds = [];
+                let projectIds = [];
+                if (userProjects.length > 0) {
+                    const subProjects = userProjects
+                        .map(project =>
+                            project.parentProjectId ? project : null
+                        )
+                        .filter(subProject => subProject !== null);
+                    parentProjectIds = subProjects.map(
+                        subProject => subProject.parentProjectId._id
+                    );
+                    const projects = userProjects
+                        .map(project =>
+                            project.parentProjectId ? null : project
+                        )
+                        .filter(project => project !== null);
+                    projectIds = projects.map(project => project._id);
+                }
+                userProjects = await ProjectService.findBy({
+                    $or: [
+                        { _id: { $in: parentProjectIds } },
+                        { _id: { $in: projectIds } },
+                    ],
+                });
+                return await Object.assign({}, user._doc, {
+                    projects: userProjects,
+                });
+            }
             return user;
         } catch (error) {
             ErrorService.log('userService.findOneBy', error);

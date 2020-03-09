@@ -7,6 +7,10 @@ import {
     FETCH_USER_SUCCESS,
     FETCH_USER_FAILURE,
     FETCH_USER_RESET,
+    ADD_USER_REQUEST,
+    ADD_USER_SUCCESS,
+    ADD_USER_FAILURE,
+    ADD_USER_RESET,
     UPDATE_USER_SETTING_REQUEST,
     UPDATE_USER_SETTING_SUCCESS,
     UPDATE_USER_SETTING_FAILURE,
@@ -52,6 +56,11 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         user: null,
+    },
+    addUser: {
+        error: null,
+        requesting: false,
+        success: false,
     },
     userSetting: {
         error: null,
@@ -164,6 +173,47 @@ export default function user(state = INITIAL_STATE, action) {
         case FETCH_USER_RESET:
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
+            });
+
+        case ADD_USER_SUCCESS:
+            return Object.assign({}, state, {
+                users: {
+                    ...state.users,
+                    users: [action.payload].concat(state.users.users),
+                    count: state.users.count + 1,
+                },
+                addUser: {
+                    error: null,
+                    requesting: false,
+                    success: true,
+                },
+            });
+
+        case ADD_USER_REQUEST:
+            return Object.assign({}, state, {
+                addUser: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case ADD_USER_FAILURE:
+            return Object.assign({}, state, {
+                addUser: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case ADD_USER_RESET:
+            return Object.assign({}, state, {
+                addUser: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
             });
 
         //update user setting

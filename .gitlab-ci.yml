@@ -94,6 +94,7 @@ build_n_test_enterprise_backend:
 ##DASHBOARD
 audit_dashboard:
   stage: BuildAndTest
+  allow_failure: true
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
