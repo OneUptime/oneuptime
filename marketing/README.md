@@ -99,4 +99,4 @@ Please find them [here](/covers)
 
 -   Website: https://fyipe.com
 -   GitHub: https://github.com/fyipe
--   Blog: https://medium.com/fyipe
+-   Blog: https://blog.fyipe.com
