@@ -3,14 +3,14 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { User } from '../../config';
+import { User, IS_DEV, IS_SAAS_SERVICE } from '../../config';
 import { openModal, closeModal } from '../../actions/modal';
 import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
 import About from '../modals/About';
 import uuid from 'uuid';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import ShouldRender from '../basic/ShouldRender';
 
 export class ProfileMenu extends Component {
     constructor(props) {
@@ -125,31 +125,34 @@ export class ProfileMenu extends Component {
                                             </div>
                                         </Link>
                                     </div>
-                                    <div
-                                        className="Box-root"
-                                        style={{
-                                            padding: '10px',
-                                            fontWeight: '500',
-                                            marginTop: '-12px',
-                                        }}
-                                    >
-                                        <Link
-                                            to="/profile/billing"
-                                            className="ButtonLink db-Menu-item db-Menu-item--link"
-                                            type="button"
-                                            onClick={() =>
-                                                this.props.hideProfileMenu()
-                                            }
+                                    <ShouldRender if={IS_SAAS_SERVICE}>
+                                        <div
+                                            id="profileBilling"
+                                            className="Box-root"
+                                            style={{
+                                                padding: '10px',
+                                                fontWeight: '500',
+                                                marginTop: '-12px',
+                                            }}
                                         >
-                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed">
-                                                <span className="ButtonLink-label Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                    <span className="Text-color--primary Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <span>Billing</span>
+                                            <Link
+                                                to="/profile/billing"
+                                                className="ButtonLink db-Menu-item db-Menu-item--link"
+                                                type="button"
+                                                onClick={() =>
+                                                    this.props.hideProfileMenu()
+                                                }
+                                            >
+                                                <div className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed">
+                                                    <span className="ButtonLink-label Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                        <span className="Text-color--primary Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <span>Billing</span>
+                                                        </span>
                                                     </span>
-                                                </span>
-                                            </div>
-                                        </Link>
-                                    </div>
+                                                </div>
+                                            </Link>
+                                        </div>
+                                    </ShouldRender>
                                     <div
                                         className="Box-root"
                                         style={{
