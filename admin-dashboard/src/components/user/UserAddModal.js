@@ -253,7 +253,7 @@ class UserAddModal extends Component {
                                         <span>Cancel</span>
                                     </button>
                                     <button
-                                        id="add_probe"
+                                        id="add_user_btn"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={disabled}
                                         type="submit"

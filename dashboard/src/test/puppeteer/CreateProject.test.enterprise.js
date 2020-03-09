@@ -10,7 +10,7 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Enterprise Project API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = 100000;
 
     beforeAll(async done => {
         jest.setTimeout(200000);
@@ -34,7 +34,6 @@ describe('Enterprise Project API', () => {
             };
             // user
             await init.registerEnterpriseUser(user, page);
-            await init.loginUser(user, page);
         });
 
         await cluster.queue({ email, password });

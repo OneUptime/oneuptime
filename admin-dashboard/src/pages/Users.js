@@ -164,7 +164,7 @@ class Users extends Component {
                                                                                     disabled={
                                                                                         false
                                                                                     }
-                                                                                    id="add_probe"
+                                                                                    id="add_user"
                                                                                     onClick={
                                                                                         this
                                                                                             .handleClick
