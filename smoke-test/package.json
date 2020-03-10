@@ -4,7 +4,8 @@
     "description": "Smoke tests for fyipe",
     "main": "index.test.js",
     "scripts": {
-        "test": "jest --runInBand ."
+        "test": "jest --runInBand ./*.test.js",
+        "enterpise-test": "jest --runInBand ./*.test.enterprise.js"
     },
     "keywords": [],
     "author": "",
@@ -15,5 +16,11 @@
         "jest": "^24.9.0",
         "puppeteer": "^1.19.0",
         "should": "^13.2.3"
+    },
+    "jest": {
+        "testMatch": [
+            "<rootDir>/**/*.test.js",
+            "<rootDir>/**/*.test.enterprise.js"
+        ]
     }
 }
