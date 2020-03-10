@@ -12,6 +12,10 @@ import {
     BACKUP_CODE_VERIFICATION_REQUEST,
     BACKUP_CODE_VERIFICATION_SUCCESS,
     RESET_BACKUP_CODE_VERIFICATION,
+    MASTER_ADMIN_EXISTS_REQUEST,
+    MASTER_ADMIN_EXISTS_FAILED,
+    MASTER_ADMIN_EXISTS_SUCCESS,
+    RESET_MASTER_ADMIN_EXISTS,
 } from '../constants/login';
 
 // The auth reducer. The starting state sets authentication
@@ -31,6 +35,12 @@ const initialState = {
         success: false,
     },
     backupCode: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
+    masterAdmin: {
+        exists: null,
         requesting: false,
         error: null,
         success: false,
@@ -60,6 +70,40 @@ export default function register(state = initialState, action) {
 
         case RESET_LOGIN:
             return Object.assign({}, state, initialState);
+
+        case MASTER_ADMIN_EXISTS_REQUEST:
+            return Object.assign({}, state, {
+                masterAdmin: {
+                    ...state.masterAdmin,
+                    requesting: true,
+                    error: null,
+                },
+            });
+
+        case MASTER_ADMIN_EXISTS_SUCCESS:
+            return Object.assign({}, state, {
+                masterAdmin: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    exists: action.payload.result,
+                },
+            });
+
+        case MASTER_ADMIN_EXISTS_FAILED:
+            return Object.assign({}, state, {
+                masterAdmin: {
+                    ...state.masterAdmin,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case RESET_MASTER_ADMIN_EXISTS:
+            return Object.assign({}, state, {
+                masterAdmin: initialState.masterAdmin,
+            });
 
         case AUTH_VERIFICATION_REQUEST:
             return Object.assign({}, state, {

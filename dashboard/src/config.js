@@ -12,6 +12,7 @@ let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
 let developmentEnv = false;
+let isSaasService = false;
 
 export function env(value) {
     const { _env } = window;
@@ -40,6 +41,9 @@ if (!isServer) {
             developmentEnv = true;
         }
     }
+    if (env('IS_SAAS_SERVICE') === 'true') {
+        isSaasService = true;
+    }
 }
 
 export const API_URL = apiUrl;
@@ -51,6 +55,8 @@ export const ACCOUNTS_URL = accountsUrl;
 export const DOMAIN_URL = domain;
 
 export const IS_DEV = developmentEnv;
+
+export const IS_SAAS_SERVICE = isSaasService;
 
 export const User = {
     getAccessToken() {

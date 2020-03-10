@@ -85,6 +85,56 @@ module.exports = {
         await page.waitFor(15000);
         // await page.screenshot({path: 'screenshot-login.png'});
     },
+    registerEnterpriseUser: async function(user, page) {
+        const masterAdmin = {
+            email: 'masteradmin@hackerbay.io',
+            password: '1234567890',
+        };
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
+        const signUp = await page.$('#signUpLink');
+        if (signUp) {
+            await page.goto(utils.ACCOUNTS_URL + '/register', {
+                waitUntil: 'networkidle2',
+            });
+            await page.waitForSelector('#email');
+            await page.click('input[name=email]');
+            await page.type('input[name=email]', masterAdmin.email);
+            await page.click('input[name=name]');
+            await page.type('input[name=name]', 'Master Admin');
+            await page.click('input[name=companyName]');
+            await page.type('input[name=companyName]', 'Master');
+            await page.click('input[name=companyPhoneNumber]');
+            await page.type('input[name=companyPhoneNumber]', '99105688');
+            await page.click('input[name=password]');
+            await page.type('input[name=password]', '1234567890');
+            await page.click('input[name=confirmPassword]');
+            await page.type('input[name=confirmPassword]', '1234567890');
+            await page.click('button[type=submit]');
+            await page.waitFor(5000);
+        }
+        await this.loginUser(masterAdmin, page);
+        // create the user from admin dashboard
+        const { email } = user;
+        await page.waitForSelector('#add_user');
+        await page.click('#add_user');
+        await page.waitForSelector('#email');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', email);
+        await page.click('input[name=name]');
+        await page.type('input[name=name]', 'Test Name');
+        await page.click('input[name=companyName]');
+        await page.type('input[name=companyName]', 'Test Name');
+        await page.click('input[name=companyPhoneNumber]');
+        await page.type('input[name=companyPhoneNumber]', '99105688');
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', '1234567890');
+        await page.click('input[name=confirmPassword]');
+        await page.type('input[name=confirmPassword]', '1234567890');
+        await page.click('button[type=submit]');
+        await page.waitFor(10000);
+    },
     addSchedule: async function(callSchedule, page) {
         await page.waitForSelector('#callSchedules');
         await page.click('#callSchedules');

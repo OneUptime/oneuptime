@@ -96,4 +96,25 @@ module.exports = {
         await page.click('button[type=submit]');
         await page.waitFor(10000);
     },
+    registerEnterpriseUser: async function(user, page) {
+        const { email } = user;
+        await page.goto(utils.ACCOUNTS_URL + '/register', {
+            waitUntil: 'networkidle2',
+        });
+        await page.waitForSelector('#email');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', email);
+        await page.click('input[name=name]');
+        await page.type('input[name=name]', 'Test Name');
+        await page.click('input[name=companyName]');
+        await page.type('input[name=companyName]', 'Test Name');
+        await page.click('input[name=companyPhoneNumber]');
+        await page.type('input[name=companyPhoneNumber]', '99105688');
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', '1234567890');
+        await page.click('input[name=confirmPassword]');
+        await page.type('input[name=confirmPassword]', '1234567890');
+        await page.click('button[type=submit]');
+        await page.waitFor(5000);
+    },
 };

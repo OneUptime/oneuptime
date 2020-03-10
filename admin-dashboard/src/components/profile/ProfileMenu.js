@@ -4,12 +4,13 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { User } from '../../config';
 import { hideProfileMenu } from '../../actions/profile';
+import { logoutUser } from '../../actions/logout';
 
 export class ProfileMenu extends Component {
     logout() {
         const values = { name: User.getName(), email: User.getEmail() };
-        User.clear();
-        window.location.href = '/login'; //hard refresh.
+        const { logoutUser } = this.props;
+        logoutUser();
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('User Logged Out', values);
         }
@@ -22,7 +23,7 @@ export class ProfileMenu extends Component {
         return this.props.visible ? (
             <div
                 className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
-                style={{ top: '49px', width: '232px', right: '40px' }}
+                style={{ top: '49px', width: '232px', right: '20px' }}
             >
                 <span>
                     <div
@@ -88,11 +89,12 @@ ProfileMenu.displayName = 'ProfileMenu';
 const mapStateToProps = state_Ignored => ({});
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ hideProfileMenu }, dispatch);
+    return bindActionCreators({ hideProfileMenu, logoutUser }, dispatch);
 };
 
 ProfileMenu.propTypes = {
     visible: PropTypes.bool,
+    logoutUser: PropTypes.func.isRequired,
 };
 
 ProfileMenu.contextTypes = {

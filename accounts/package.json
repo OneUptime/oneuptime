@@ -1,6 +1,6 @@
 {
     "name": "fyipe-accounts",
-    "version": "3.0.1974",
+    "version": "3.0.1995",
     "private": true,
     "homepage": "/",
     "dependencies": {
@@ -41,7 +41,8 @@
         "dev": "PORT=3003 react-scripts start",
         "build": "react-scripts build && npm run build-sw && npm run clean-cra-sw",
         "clean-cra-sw": "rm -f build/precache-manifest.*.js && rm -f build/service-worker.js",
-        "test": "jest --runInBand src/test",
+        "test": "jest --runInBand ./src/test/*.test.js",
+        "enterprise-test": "jest --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "light-house": "node lighthouse.js --web",
@@ -68,6 +69,10 @@
             "!src/config.js",
             "!src/routes.js",
             "!src/setupTests.js"
+        ],
+        "testMatch": [
+            "<rootDir>/src/test/**/*.test.js",
+            "<rootDir>/src/test/**/*.test.enterprise.js"
         ]
     },
     "browserslist": {

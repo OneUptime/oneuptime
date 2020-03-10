@@ -4,10 +4,9 @@ import { reduxForm, Field } from 'redux-form';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
-import { Validate } from '../../config';
 import PlanFields from './PlanFields';
 import { Spinner } from '../basic/Loader';
-import { User } from '../../config';
+import { User, Validate, env, IS_SAAS_SERVICE } from '../../config';
 import {
     checkCard,
     createProjectRequest,
@@ -19,7 +18,6 @@ import {
     Elements,
     injectStripe,
 } from 'react-stripe-elements';
-import { env } from '../../config';
 
 function validate(values) {
     const errors = {};
@@ -68,7 +66,7 @@ class _ProjectForm extends React.Component {
             companyName,
             submitForm,
         } = this.props;
-        if (cardRegistered) {
+        if (cardRegistered || !IS_SAAS_SERVICE) {
             submitForm(values);
         } else if (stripe && !cardRegistered) {
             createProjectRequest();
@@ -170,49 +168,51 @@ class _ProjectForm extends React.Component {
                                     </div>
                                 </div>
                             </fieldset>
-                            <fieldset className="bs-Fieldset">
-                                <div className="bs-Fieldset-rows">
-                                    <div className="Margin-bottom--12 Text-fontWeight--medium">
-                                        Choose a Plan
-                                    </div>
-                                    <div
-                                        className="bs-Fieldset-row .Flex-justifyContent--center"
-                                        style={{
-                                            padding: 0,
-                                            flexDirection: 'column',
-                                        }}
-                                    >
-                                        <PlanFields />
-                                    </div>
-                                </div>
-                            </fieldset>
-                            <ShouldRender
-                                if={
-                                    !cardRegistered ||
-                                    cardRegistered === 'false'
-                                }
-                            >
+                            <ShouldRender if={IS_SAAS_SERVICE}>
                                 <fieldset className="bs-Fieldset">
                                     <div className="bs-Fieldset-rows">
                                         <div className="Margin-bottom--12 Text-fontWeight--medium">
-                                            Your Credit or Debit Card
+                                            Choose a Plan
                                         </div>
-                                        <div className="bs-Modal-block bs-u-paddingless">
-                                            <div className="bs-Modal-content">
-                                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                                    <label>
-                                                        <CardElement
-                                                            {...createOptions(
-                                                                this.props
-                                                                    .elementFontSize
-                                                            )}
-                                                        />
-                                                    </label>
-                                                </div>
-                                            </div>
+                                        <div
+                                            className="bs-Fieldset-row .Flex-justifyContent--center"
+                                            style={{
+                                                padding: 0,
+                                                flexDirection: 'column',
+                                            }}
+                                        >
+                                            <PlanFields />
                                         </div>
                                     </div>
                                 </fieldset>
+                                <ShouldRender
+                                    if={
+                                        !cardRegistered ||
+                                        cardRegistered === 'false'
+                                    }
+                                >
+                                    <fieldset className="bs-Fieldset">
+                                        <div className="bs-Fieldset-rows">
+                                            <div className="Margin-bottom--12 Text-fontWeight--medium">
+                                                Your Credit or Debit Card
+                                            </div>
+                                            <div className="bs-Modal-block bs-u-paddingless">
+                                                <div className="bs-Modal-content">
+                                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                                        <label>
+                                                            <CardElement
+                                                                {...createOptions(
+                                                                    this.props
+                                                                        .elementFontSize
+                                                                )}
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+                                </ShouldRender>
                             </ShouldRender>
                         </div>
                     </div>

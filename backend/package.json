@@ -1,6 +1,6 @@
 {
     "name": "fyipe-backend",
-    "version": "3.0.1974",
+    "version": "3.0.1995",
     "private": true,
     "dependencies": {
         "@slack/client": "^4.12.0",
@@ -49,6 +49,7 @@
         "start": "node server.js",
         "dev": "cross-env NODE_ENV=development nodemon server.js",
         "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
+        "enterprise-test": "cross-env NODE_ENV=development mocha --exit test/enterprise.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
     },

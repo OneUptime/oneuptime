@@ -8,6 +8,7 @@ const MailService = require('../services/mailService');
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
+const { IS_SAAS_SERVICE } = require('../config/server');
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
@@ -38,28 +39,33 @@ router.post('/create', getUser, async function(req, res) {
             });
         }
 
-        if (!data.planId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Stripe Plan Id must be present.',
-            });
+        let stripePlanId;
+
+        if (IS_SAAS_SERVICE) {
+            if (!data.planId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Stripe Plan Id must be present.',
+                });
+            }
+
+            if (typeof data.planId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Stripe Plan Id is not in string format.',
+                });
+            }
+
+            stripePlanId = data.planId;
+
+            if (!data.stripePlanId) {
+                data.stripePlanId = stripePlanId;
+            }
         }
 
-        if (typeof data.planId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Stripe Plan Id is not in string format.',
-            });
-        }
-
-        const stripePlanId = data.planId;
         const projectName = data.projectName;
         const userId = req.user ? req.user.id : null;
         data.userId = userId;
-
-        if (!data.stripePlanId) {
-            data.stripePlanId = stripePlanId;
-        }
 
         // check if user has a project with provided name already
         const countProject = await ProjectService.countBy({
@@ -69,7 +75,7 @@ router.post('/create', getUser, async function(req, res) {
 
         if (countProject < 1) {
             let user = await UserService.findOneBy({ _id: userId });
-            if (!user.stripeCustomerId) {
+            if (!user.stripeCustomerId && IS_SAAS_SERVICE) {
                 if (!data.paymentIntent) {
                     return sendErrorResponse(req, res, {
                         code: 400,
@@ -115,25 +121,28 @@ router.post('/create', getUser, async function(req, res) {
                 );
                 return sendItemResponse(req, res, project);
             } else {
-                const subscription = await PaymentService.subscribePlan(
-                    stripePlanId,
-                    user.stripeCustomerId
-                );
-                if (
-                    subscription.subscriptionPaymentStatus === 'canceled' ||
-                    subscription.subscriptionPaymentStatus === 'unpaid'
-                ) {
-                    user = await UserService.findOneBy({ _id: userId });
-                    await MailService.sendPaymentFailedEmail(
-                        projectName,
-                        user.email,
-                        user.name
+                if (IS_SAAS_SERVICE) {
+                    const subscription = await PaymentService.subscribePlan(
+                        stripePlanId,
+                        user.stripeCustomerId
                     );
+                    if (
+                        subscription.subscriptionPaymentStatus === 'canceled' ||
+                        subscription.subscriptionPaymentStatus === 'unpaid'
+                    ) {
+                        user = await UserService.findOneBy({ _id: userId });
+                        await MailService.sendPaymentFailedEmail(
+                            projectName,
+                            user.email,
+                            user.name
+                        );
+                    }
+                    if (!data.stripeSubscriptionId) {
+                        data.stripeSubscriptionId =
+                            subscription.stripeSubscriptionId;
+                    }
                 }
-                if (!data.stripeSubscriptionId) {
-                    data.stripeSubscriptionId =
-                        subscription.stripeSubscriptionId;
-                }
+
                 const project = await ProjectService.create(data);
                 user = await UserService.findOneBy({ _id: userId });
                 await MailService.sendCreateProjectMail(
