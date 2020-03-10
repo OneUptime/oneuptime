@@ -1,5 +1,7 @@
 try {
-    require('./license.test.js');
+    require('./license.test');
 } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error);
     throw error;
 }

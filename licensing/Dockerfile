@@ -1,11 +1,13 @@
 #
-# Fyipe-backend Dockerfile
+# Fyipe-licensing Dockerfile
 #
 
 # Pull base image nodejs image.
 FROM node:12.16.1
 
 #SET ENV Variables
+ENV PRODUCTION=true
+
 RUN mkdir -p /usr/src/app
 
 WORKDIR /usr/src/app
@@ -18,8 +20,8 @@ RUN npm ci
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 3002: Fyipe-backend
-EXPOSE 3008
+#   - 3004: Fyipe-licensing
+EXPOSE 3004
 
 #Run the app
 CMD [ "npm", "start"]

@@ -1,68 +1,29 @@
-# Licencing Project
+# README
 
-## Getting Started
-Please follow the guidelines below to set up a copy of this project locally on your machine for development and testing purposes. 
+This README would normally document whatever steps are necessary to get your application up and running.
 
-### First steps
+### What is this repository for?
 
-Your can get a copy of this project by using the;
-* git clone command
+-   Quick summary
+-   Version
+-   [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
 
-Using the terminal, move into the root folder of this project, move into the 'licensing' project folder and then run
+### How do I get set up?
 
-```
-npm install
+-   Summary of set up
+-   Configuration
+-   Dependencies
+-   Database configuration
+-   How to run tests
+-   Deployment instructions
 
-```
-to install required dependencies.
+### Contribution guidelines
 
-### Furthermore
-A secret variable is required for both the Airtable configuration and token generation at license confirmation. Therefore, on your project directory:
-* Create an env file
-* Inside .env file, type the following : 
+-   Writing tests
+-   Code review
+-   Other guidelines
 
-```
-AIRTABLE_API_KEY = "******"
-AIRTABLE_BASE_ID = "******"
-TOKEN_SECRET="******"
-```
-*N/B: The secret variable can be any text of your choice*
+### Who do I talk to?
 
-### Testing
-To start the API server run
-
-```
-npm start
-```
-You can then start making requests via postman.
-
-To test the application on your local machine, run
-
-```
-npm test
-```
-
-## API Endpoints
-
-### License confirmation
-* Request Method: POST
-* URL: https://localhost:5000/api/license
-
-Request body should contain license and email; the API will return a token for the user.
-* Sample Request: {
-                    "license": "user license",
-                    "email": "user email"
-                }
-* Sample Response: {
-                    "token": "The generate web token"   
-                }
-
-## Modules used
-
-* [mocha](http://mochajs.org) - A test framework for automated tests.
-* [jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken) - Token generation and verification.
-* [chai](https://www.npmjs.com/package/chai) - An assertion library.
-
-## Author
-
-* **Okeke Chekwube Julius**
+-   Repo owner or admin
+-   Other community or team contact

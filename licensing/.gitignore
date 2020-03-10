@@ -2,9 +2,7 @@
 
 # dependencies
 /node_modules
-
-# production
-/build
+.idea
 
 # misc
 .DS_Store
@@ -14,3 +12,6 @@
 .env.production.local
 
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+yarn.lock

@@ -5,7 +5,7 @@ const { NODE_ENV } = process.env;
 
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /licensing/.env
-    require('dotenv').config();
+    require('custom-env').env();
 }
 
 process.on('exit', () => {
@@ -47,7 +47,7 @@ app.use(bodyParser.json({ limit: '10mb' }));
 
 // Routes(API)
 app.use('/license', require('./src/api/license'));
-app.set('port', process.env.PORT || 3008);
+app.set('port', process.env.PORT || 3004);
 
 const server = http.listen(app.get('port'), function() {
     // eslint-disable-next-line
@@ -60,7 +60,7 @@ app.get('/', function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-license-server',
+            serviceType: 'fyipe-licensing',
         })
     );
 });
