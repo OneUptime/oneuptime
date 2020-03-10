@@ -26,8 +26,8 @@ FYIPE_DIR="$DIR/.."
 
 function build {
   cd $1
-  sudo docker build -t localhost:32000/$1:master .
-  sudo docker push localhost:32000/$1
+  sudo docker build -t fyipeproject:32000/$1:test .
+  sudo docker push fyipeproject/$1:test
   cd ..
 }
 
@@ -40,5 +40,6 @@ build home
 build status-page 
 build api-docs
 build probe
+build admin-dashboard
 
 cd $DIR
