@@ -69,7 +69,7 @@ class UserAddModal extends Component {
                             </div>
                         </div>
                         <form
-                            id="frmIncident"
+                            id="frmUser"
                             onSubmit={handleSubmit(this.submitForm)}
                         >
                             <div className="bs-Modal-content bs-u-paddingless">
@@ -330,7 +330,7 @@ const validate = function(values) {
 };
 
 const UserAddModalForm = reduxForm({
-    form: 'AddProbe', // a unique identifier for this form
+    form: 'AddUser', // a unique identifier for this form
     validate,
 })(UserAddModal);
 

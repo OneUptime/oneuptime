@@ -179,7 +179,13 @@ export default function user(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 users: {
                     ...state.users,
-                    users: [action.payload].concat(state.users.users),
+                    users:
+                        state.users.users && state.users.users.length < 10
+                            ? [action.payload, ...state.users.users]
+                            : [
+                                  action.payload,
+                                  ...state.users.users.slice(0, -1),
+                              ],
                     count: state.users.count + 1,
                 },
                 addUser: {
