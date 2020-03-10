@@ -1,0 +1,23 @@
+apiVersion: v2
+name: Fyipe
+version: 3.0.0
+description: One complete DevOps and IT Ops platform.
+keywords:
+  - DevOps
+  - IT DevOps
+  - IT Ops
+  - Monitoring
+  - Status Page
+  - On-Call
+  - On-Call Management
+  - Incident Management
+  - Performance Monitoring
+  - API Test
+  - Website Monitoring
+  - Website Test
+home: https://fyipe.com
+maintainers:
+  - name:  Fyipe Support
+    email: support@fyipe.com
+    url: https://fyipe.com/support
+icon: https://fyipe.com/img/Fyipe.svg

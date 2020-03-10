@@ -1,0 +1,6 @@
+dashboardHost: ""
+accountsHost: ""
+adminDashobardHost: ""
+backendHost: ""
+namespace: "fyipe"
+
