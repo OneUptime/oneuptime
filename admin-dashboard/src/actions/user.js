@@ -96,6 +96,59 @@ export const fetchUser = userId => async dispatch => {
     }
 };
 
+// Add user
+
+export const addUserRequest = () => {
+    return {
+        type: types.ADD_USER_REQUEST,
+    };
+};
+
+export const addUserSuccess = user => {
+    return {
+        type: types.ADD_USER_SUCCESS,
+        payload: user,
+    };
+};
+
+export const addUserError = error => {
+    return {
+        type: types.ADD_USER_FAILURE,
+        payload: error,
+    };
+};
+
+export const resetAddUser = () => {
+    return {
+        type: types.ADD_USER_RESET,
+    };
+};
+
+// Calls the API to add user.
+export const addUser = user => async dispatch => {
+    try {
+        dispatch(addUserRequest());
+        const response = await postApi(`user/signup`, user);
+        const userResponse = await getApi(`user/users/${response.data.id}`);
+
+        dispatch(addUserSuccess(userResponse.data));
+        return 'ok';
+    } catch (error) {
+        let errorMsg;
+        if (error && error.response && error.response.data)
+            errorMsg = error.response.data;
+        if (error && error.data) {
+            errorMsg = error.data;
+        }
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else {
+            errorMsg = 'Network Error';
+        }
+        dispatch(addUserError(errors(errorMsg)));
+    }
+};
+
 //Update user setting
 
 export const updateUserSettingRequest = () => {

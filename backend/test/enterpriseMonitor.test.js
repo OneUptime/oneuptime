@@ -8,7 +8,7 @@ chai.use(require('chai-http'));
 const app = require('../server');
 
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
+const { createEnterpriseUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
@@ -23,7 +23,7 @@ describe('Enterprise Monitor API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
+        createEnterpriseUser(request, userData.user, function(err, res) {
             const project = res.body.project;
             projectId = project._id;
             userId = res.body.id;
@@ -53,8 +53,9 @@ describe('Enterprise Monitor API', function() {
     });
 
     after(async function() {
-        await ProjectService.hardDeleteBy({ _id: projectId });
-        await ProjectService.hardDeleteBy({ _id: newProjectId });
+        await ProjectService.hardDeleteBy({
+            _id: { $in: [projectId, newProjectId] },
+        });
         await UserService.hardDeleteBy({ email: userData.user.email });
         await AirtableService.deleteUser(airtableId);
     });

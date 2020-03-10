@@ -47,7 +47,7 @@ export default (ComposedComponent, extras) => {
         }
     }
 
-    OutsideCkick.displayName = 'PublicPage';
+    OutsideCkick.displayName = 'OutsideCkick';
 
     return OutsideCkick;
 };

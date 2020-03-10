@@ -1,7 +1,4 @@
-const faker = require('faker');
-
 const ACCOUNTS_URL = 'http://localhost:3003';
-const DASHBOARD_URL = 'http://localhost:3000';
 const ADMIN_DASHBOARD_URL = 'http://localhost:3100';
 
 const puppeteerLaunchConfig = {
@@ -19,8 +16,6 @@ const puppeteerLaunchConfig = {
         '--disable-web-security',
     ],
 };
-
-const user = faker.helpers.createCard();
 
 function generateWrongEmail() {
     return (
@@ -51,10 +46,8 @@ function generateRandomBusinessEmail() {
 
 module.exports = {
     ACCOUNTS_URL,
-    DASHBOARD_URL,
     ADMIN_DASHBOARD_URL,
     puppeteerLaunchConfig,
-    user,
     generateWrongEmail,
     generateRandomString,
     generateRandomBusinessEmail,

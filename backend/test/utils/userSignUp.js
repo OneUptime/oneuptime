@@ -26,6 +26,14 @@ module.exports = {
                 });
             });
     },
+    createEnterpriseUser: function(request, userData, callback) {
+        request
+            .post('/user/signup')
+            .send(userData)
+            .end(function(err, res) {
+                return callback(err, res);
+            });
+    },
 };
 
 const payment = require('../../backend/config/payment');
