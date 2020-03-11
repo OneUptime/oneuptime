@@ -36,7 +36,7 @@ This chart bootstraps a [Fyipe](https://fyipe.com) deployment on a [Kubernetes](
 
 ## Installing the Chart
 
-To install the chart with the release name `fyipe`:
+To install the chart with the release name `fyipe-app`:
 
 ```console
 helm install fyipe-app fyipe

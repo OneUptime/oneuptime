@@ -295,12 +295,14 @@ module.exports = {
                 error.code = 400;
                 return error;
             }
+
             const options = {
                 body:
                     'This is a test message from Fyipe to check your Twilio credentials.',
                 from: data.phoneNumber,
                 to: twilioCredentials.testphoneNumber,
             };
+            
             const newClient = dynamicClient(data.accountSid, data.authToken);
 
             const message = await newClient.messages.create(options);

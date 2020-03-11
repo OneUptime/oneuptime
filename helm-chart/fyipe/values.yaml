@@ -1,7 +1,73 @@
-dashboardHost: ""
-accountsHost: ""
-adminDashobardHost: ""
-backendHost: ""
+## SMTP Settings to send email alerts to users
+## If you use SendGrid, MailJet, AWS SES, or any other email management service
+##
+smtpMail: 
+  email: 
+  password: 
+  fromName: Fyipe
+  smtpServer: 
+  smtpPort: 
+  smtpSecure: 
+
+twilio:
+  accountSid: 
+  authToken:
+  phoneNumber: 
+  verificationSid: 
+  twilioAlertLimit: 99999
+
+fyipe: 
+  emailEnabled: true
+  callEnabled: true
+  smsEnabled: true
+  clusterKey: test-cluster-key
+
+host: 
+  dashboard:
+  accounts:
+  adminDashobard:
+  backend:
+  statuspage:
+  backendPort: 3002
+  statusPagePort: 3006
+  dashboardPort: 3000
+  accountsPort: 3003
+  adminDashboardPort: 3100
+  dashboardServicePort: 80
+  backendServicePort: 80
+  statusPageServicePort: 80
+  dashboardServicePort: 80
+  accountsServicePort: 80
+  adminDashboardServicePort: 80
+
+mongo:
+  replicaSetName: rs0
+  port: 27017
+
+redis: 
+  port: 6379
+
+probes:
+  probe1: 
+    port: 3008
+    name: Probe 1
+    key: test-key
+    servicePort: 80
+  probe2: 
+    name: Probe 2
+    port: 3008
+    key: test-key
+    servicePort: 80
+
+domain: 
+
+rateLimitter:
+  enabled: false
+  requestLimit: 5000
+  requestLimitTimePeriodInMS: 216000
+
+encryption:
+  secret: 'sample-secret'
 
 ## Fyipe official image version on Docker Hub
 ## ref: https://hub.docker.com/u/fyipeproject
@@ -10,6 +76,8 @@ image:
   registry: docker.io
   repository: fyipeproject
   tag: latest
+  pullPolicy: Always
+  restartPolicy: Always
 
 replicaCount: 1
 
@@ -37,4 +105,4 @@ persistence:
   ## the existingClaim variable
   # existingClaim: your-claim
   accessMode: ReadWriteOnce
-  size: 10Gi
+  size: 20Gi

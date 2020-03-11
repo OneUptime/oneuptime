@@ -2,39 +2,37 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: dashboard
+    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
     labels:
-        app: dashboard
+        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
 spec:
     selector:
         matchLabels:
-            app: dashboard
-    replicas: 3
+            app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    replicas: {{ .Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: dashboard
+                app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
         spec:
             containers:
-                - image: fyipeproject/dashboard:latest
-                  name: dashboard
-                  imagePullPolicy: Always
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "dashboard" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: HOST
-                        value: 'https://dashboard.fyipe.com'
+                        value: {{ .Values.host.dashboard }}
                       - name: ACCOUNTS_HOST
-                        value: 'https://accounts.fyipe.com'
+                        value: {{ .Values.host.accounts }}
                       - name: BACKEND_HOST
-                        value: 'https://api.fyipe.com'
+                        value: {{ .Values.host.backend }}
                       - name: DOMAIN
-                        value: 'fyipe.com'
-                      - name: AMPLITUDE_PUBLIC_KEY
-                        value: '802d95003af23aad17ed068b6cfdeb2b'
+                        value: {{ .Values.domain }}
                   ports:
-                      - containerPort: 3000
-                        hostPort: 3000
-                        name: dashboard
-            restartPolicy: Always
+                      - containerPort: {{ .Values.host.dashboardPort }}
+                        hostPort: {{ .Values.host.dashboardPort }}
+                        name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
 
 ---
 # Fyipe Dashoard Service
@@ -42,18 +40,18 @@ apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: dashboard
-    name: dashboard
+        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
 spec:
     ports:
-        - port: 80
+        - port: {{ .Values.host.dashboardServicePort }}
           protocol: TCP
-          targetPort: 3000
+          targetPort: {{ .Values.host.dashboardPort }}
     selector:
-        app: dashboard
-    type: LoadBalancer
+        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    type: {{ .Values.service.type }}
 ---
-#########################################
+##########################################################
 
 ############-----ACCOUNTS----#############################
 apiVersion: apps/v1
@@ -66,34 +64,30 @@ spec:
     selector:
         matchLabels:
             app: accounts
-    replicas: 3
+    replicas: {{ .Values.replicaCount }}
     template:
         metadata:
             labels:
                 app: accounts
         spec:
             containers:
-                - image: fyipeproject/accounts:latest
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "accounts" .Values.image.tag }}
                   name: accounts
-                  imagePullPolicy: Always
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: HOST
-                        value: 'https://accounts.fyipe.com'
+                        value: {{ .Values.host.accounts }}
                       - name: DASHBOARD_HOST
-                        value: 'https://dashboard.fyipe.com'
+                        value: {{ .Values.host.dashboard }}
                       - name: BACKEND_HOST
-                        value: 'https://api.fyipe.com'
+                        value: {{ .Values.host.backend }}
                       - name: DOMAIN
-                        value: 'fyipe.com'
-                      - name: STRIPE_PUBLIC_KEY
-                        value: 'pk_live_j4tvMzviY2MUsRdWvDI8vN8B'
-                      - name: AMPLITUDE_PUBLIC_KEY
-                        value: '802d95003af23aad17ed068b6cfdeb2b'
+                        value: {{ .Values.domain }}
                   ports:
-                      - containerPort: 3003
-                        hostPort: 3003
+                      - containerPort: {{ .Values.host.accountsPort }}
+                        hostPort: {{ .Values.host.accountsPort }}
                         name: accounts
-            restartPolicy: Always
+            restartPolicy: {{ .Values.image.restartPolicy }}
 
 ---
 # Fyipe Accounts Service
@@ -105,12 +99,12 @@ metadata:
     name: accounts
 spec:
     ports:
-        - port: 80
+        - port: {{ .Values.host.accountsServicePort }}
           protocol: TCP
-          targetPort: 3003
+          targetPort: {{ .Values.host.accountsPort }}
     selector:
         app: accounts
-    type: LoadBalancer
+    type: {{ .Values.service.type }}
 ---
 ###########################################
 
@@ -120,79 +114,83 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: backend
+    name: {{ printf "%s-%s" .Release.Name "backend"  }}
     labels:
-        app: backend
+        app: {{ printf "%s-%s" .Release.Name "backend"  }}
 spec:
     selector:
         matchLabels:
-            app: backend
-    replicas: 3
+            app: {{ printf "%s-%s" .Release.Name "backend"  }}
+    replicas: {{ .Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: backend
+                app: {{ printf "%s-%s" .Release.Name "backend"  }}
         spec:
             containers:
-                - image: fyipeproject/backend:latest
-                  name: backend
-                  imagePullPolicy: Always
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "backend" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "backend"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: JWT_SECRET
-                        value: 'idfn3873458973457453'
+                        value: {{ .Values.encryption.secret }}
                       - name: MONGO_URL
-                        value: 'mongodb://mongo-0.mongo.default.svc.cluster.local:27017,mongo-1.mongo.default.svc.cluster.local:27017,mongo-2.mongo.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0'
+                        value: {{ printf "mongodb://%s-%s:%s/fyipedb?replicaSet=%s" .Release.Name "mongo-0.default.svc.cluster.local" .Values.mongo.port .Values.mongo.replicaSetName }}
                       - name: REDIS_HOST
-                        value: 'redis.default.svc.cluster.local'
+                        value: {{ printf "%s-%s.%s" .Release.Name "redis" "default.svc.cluster.local" }}
                       - name: REDIS_PORT
-                        value: '6379'
-                      - name: STRIPE_PUBLIC_KEY
-                        value: 'pk_live_j4tvMzviY2MUsRdWvDI8vN8B'
-                      - name: STRIPE_PRIVATE_KEY
-                        value: 'sk_live_ADLzzMrOCz0kyYTsxWatAqxh'
+                        value: {{ .Values.redis.port }}
                       - name: PORT
-                        value: '3002'
+                        value: {{ .Values.host.backendPort }}
                       - name: EMAIL_ENABLED
-                        value: 'true'
+                        value: {{ .Values.fyipe.emailEnabled }}
                       - name: CALL_ENABLED
-                        value: 'true'
+                        value: {{ .Values.fyipe.callEnabled }}
                       - name: SMS_ENABLED
-                        value: 'true'
+                        value: {{ .Values.fyipe.smsEnabled }}
                       - name: MAIL_USER
-                        value: 'noreply@fyipe.com'
+                        value: {{ .Values.smtpMail.email }}
                       - name: MAIL_PASSWORD
-                        value: 'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD'
+                        value: {{ .Values.smtpMail.password }}
                       - name: MAIL_FROM
-                        value: 'Fyipe'
+                        value: {{ .Values.smtpMail.fromName }}
                       - name: MAIL_SERVER_SMTP
-                        value: 'smtp.gmail.com'
+                        value: {{ .Values.smtpMail.smtpServer }}
                       - name: MAIL_PORT_SMTP
-                        value: '465'
+                        value: {{ .Values.smtpMail.smtpPort }}
                       - name: MAIL_SMTP_SECURE
-                        value: 'true'
+                        value: {{ .Values.smtpMail.smtpSecure }}
                       - name: EMAIL_VERIFY_TIME
                         value: '3600'
                       - name: BACKEND_HOST
-                        value: 'https://api.fyipe.com'
+                        value: {{ .Values.host.backend }}
                       - name: ACCOUNTS_HOST
-                        value: 'https://accounts.fyipe.com'
+                        value: {{ .Values.host.accounts }}
                       - name: HOME_HOST
                         value: 'https://fyipe.com'
                       - name: DASHBOARD_HOST
-                        value: 'https://dashboard.fyipe.com'
+                        value: {{ .Values.host.dashboard }}
                       - name: NODE_ENV
                         value: 'production'
                       - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
-                        value: '216000'
+                        value: {{ .Values.rateLimitter.requestLimitTimePeriodInMS }}
                       - name: RATE_LIMITTER_REQUEST_LIMIT
-                        value: '5000'
+                        value: {{ .Values.rateLimitter.requestLimit }}
                       - name: RATE_LIMITTER_ENABLED
-                        value: 'false'
+                        value: {{ .Values.rateLimitter.enabled }}
+                      - name: TWILIO_ACCOUNTSID
+                        value: {{ .Values.twilio.accountSid }}
+                      - name: TWILIO_AUTHTOKEN
+                        value: {{ .Values.twilio.authToken }}
+                      - name: TWILIO_NUMBER
+                        value: {{ .Values.twilio.phoneNumber }}
+                      - name: TWILIO_ALERT_LIMIT
+                        value: {{ .Values.twilio.twilioAlertLimit }}
                   ports:
-                      - containerPort: 3002
-                        hostPort: 3002
-                        name: backend
-            restartPolicy: Always
+                      - containerPort: {{ .Values.host.backendPort }}
+                        hostPort: {{ .Values.host.backendPort }}
+                        name: {{ printf "%s-%s" .Release.Name "backend"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
 
 ---
 # Fyipe Backend Deployment
@@ -200,116 +198,69 @@ apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: backend
-    name: backend
+        app: {{ printf "%s-%s" .Release.Name "backend"  }}
+    name: {{ printf "%s-%s" .Release.Name "backend"  }}
 spec:
     ports:
-        - port: 80
+        - port: {{ .Values.host.backendServicePort }}
           protocol: TCP
-          targetPort: 3002
+          targetPort: {{ .Values.host.backendPort }}
     selector:
-        app: backend
-    type: LoadBalancer
+        app: {{ printf "%s-%s" .Release.Name "backend"  }}
+    type: {{ .Values.service.type }}
 ---
-###########################################
-
-###########-----SLACK------##############
-# Slack
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-    name: slack
-    labels:
-        app: slack
-spec:
-    selector:
-        matchLabels:
-            app: slack
-    replicas: 1
-    template:
-        metadata:
-            labels:
-                app: slack
-        spec:
-            containers:
-                - image: fyipeproject/slack:latest
-                  name: slack
-                  imagePullPolicy: Always
-                  ports:
-                      - containerPort: 1267
-                        hostPort: 1267
-                        name: slack
-            restartPolicy: Always
-
----
-apiVersion: v1
-kind: Service
-metadata:
-    labels:
-        app: slack
-    name: slack
-spec:
-    ports:
-        - port: 80
-          protocol: TCP
-          targetPort: 1267
-    selector:
-        app: slack
-    type: LoadBalancer
----
-###########################################
+##################################################
 
 ###########-----STATUS PAGE------#################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: status-page
+    name: {{ printf "%s-%s" .Release.Name "status-page"  }}
     labels:
-        app: status-page
+        app: {{ printf "%s-%s" .Release.Name "status-page"  }}
 spec:
     selector:
         matchLabels:
-            app: status-page
-    replicas: 3
+            app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+    replicas: {{ .Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: status-page
+                app: {{ printf "%s-%s" .Release.Name "status-page"  }}
         spec:
             containers:
-                - image: fyipeproject/status-page:latest
-                  name: status-page
-                  imagePullPolicy: Always
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "status-page" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: HOST
-                        value: 'https://statuspage.fyipe.com'
+                        value: {{ .Values.host.statusPage }}
                       - name: DASHBOARD_HOST
-                        value: 'https://staging-dashboard.fyipe.com'
+                        value: {{ .Values.host.dashboard }}
                       - name: BACKEND_HOST
-                        value: 'https://staging-api.fyipe.com'
+                        value: {{ .Values.host.backend }}
                       - name: ACCOUNTS_HOST
-                        value: 'https://staging-accounts.fyipe.com'
+                        value: {{ .Values.host.accounts }}
                   ports:
-                      - containerPort: 3006
-                        hostPort: 3006
-                        name: status-page
-            restartPolicy: Always
-
+                      - containerPort: {{ .Values.host.statusPagePort }}
+                        hostPort: {{ .Values.host.statusPagePort }}
+                        name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: status-page
-    name: status-page
+        app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+    name: {{ printf "%s-%s" .Release.Name "status-page"  }}
 spec:
     ports:
-        - port: 80
+        - port: {{ .Values.host.statusPageServicePort }}
           protocol: TCP
-          targetPort: 3006
+          targetPort: {{ .Values.host.statusPagePort }}
     selector:
-        app: status-page
-    type: LoadBalancer
+        app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+    type: {{ .Values.service.type }}
 ---
 ########################################
 
@@ -317,45 +268,44 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: admin-dashboard
+    name: {{ printf "%s-%s" .Release.Name "admin-dashboard"  }}
     labels:
-        app: admin-dashboard
+        app: {{ printf "%s-%s" .Release.Name "admin-dashboard"  }}
 spec:
     selector:
         matchLabels:
-            app: admin-dashboard
-    replicas: 1
+            app: {{ printf "%s-%s" .Release.Name "admin-dashboard"  }}
+    replicas: {{ .Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: admin-dashboard
+                app: {{ printf "%s-%s" .Release.Name "admin-dashboard"  }}
         spec:
             containers:
                 - image: fyipeproject/admin-dashboard:latest
-                  name: admin-dashboard
-                  imagePullPolicy: Always
+                  name: {{ printf "%s-%s" .Release.Name "admin-dashboard"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                   ports:
-                      - containerPort: 3100
-                        hostPort: 3100
-                        name: admin-dashboard
-            restartPolicy: Always
-
+                      - containerPort: {{ .Values.host.adminDashboardPort }}
+                        hostPort: {{ .Values.host.adminDashboardPort }}
+                        name: {{ printf "%s-%s" .Release.Name "admin-dashboard"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: admin-dashboard
-    name: admin-dashboard
+        app: {{ printf "%s-%s" .Release.Name "admin-dashboard"  }}
+    name: {{ printf "%s-%s" .Release.Name "admin-dashboard"  }}
 spec:
     ports:
-        - port: 80
+        - port: {{ .Values.host.adminDashboardServicePort }}
           protocol: TCP
-          targetPort: 3100
+          targetPort: {{ .Values.host.adminDashboardPort }}
     selector:
-        app: admin-dashboard
-    type: LoadBalancer
+        app: {{ printf "%s-%s" .Release.Name "admin-dashboard"  }}
+    type: {{ .Values.service.type }}
 ---
 ##################################
 
@@ -364,53 +314,53 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: probe-1
+    name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
     labels:
-        app: probe-1
+        app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
 spec:
     selector:
         matchLabels:
-            app: probe-1
+            app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
     replicas: 1 # THIS SHOULD STRICTLY BE 1
     template:
         metadata:
             labels:
-                app: probe-1
+                app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
         spec:
             containers:
                 - image: fyipeproject/probe:latest
-                  name: probe-1
-                  imagePullPolicy: Always
+                  name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: SERVER_URL
-                        value: 'https://api.fyipe.com'
+                        value: {{ .Values.host.backend }}
                       - name: PORT
-                        value: '3008'
+                        value: {{ .Values.probe.probe1.port }}
                       - name: PROBE_NAME
-                        value: 'EU'
+                        value: {{ .Values.probe.probe1.name }}
                       - name: PROBE_KEY
-                        value: 'lfg9859-30as-nm32-q2as-jsdfg89547hjg'
+                        value: {{ .Values.probe.probe1.key }}
                   ports:
-                      - containerPort: 3008
-                        hostPort: 3008
-                        name: probe-1
-            restartPolicy: Always
+                      - containerPort: {{ .Values.probe.probe1.port }}
+                        hostPort: {{ .Values.probe.probe1.port }}
+                        name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: probe-1
-    name: probe-1
+        app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
+    name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
 spec:
     ports:
-        - port: 80
+        - port: {{ .Values.probe.probe1.servicePort }}
           protocol: TCP
-          targetPort: 3008
+          targetPort: {{ .Values.probe.probe1.port }}
     selector:
-        app: probe-1
-    type: LoadBalancer
+        app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
+    type: {{ .Values.service.type }}
 ---
 ###########################
 
@@ -419,53 +369,53 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: probe-2
+    name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
     labels:
-        app: probe-2
+        app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
 spec:
     selector:
         matchLabels:
-            app: probe-2
+            app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
     replicas: 1 # THIS SHOULD STRICTLY BE 1
     template:
         metadata:
             labels:
-                app: probe-2
+                app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
         spec:
             containers:
                 - image: fyipeproject/probe:latest
-                  name: probe-2
-                  imagePullPolicy: Always
+                  name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: SERVER_URL
-                        value: 'https://api.fyipe.com'
+                        value: {{ .Values.host.backend }}
                       - name: PORT
-                        value: '3008'
+                        value: {{ .Values.probe.probe2.port }}
                       - name: PROBE_NAME
-                        value: 'US'
+                        value: {{ .Values.probe.probe2.name }}
                       - name: PROBE_KEY
-                        value: 'qerw234ewr-30as-nm32-q2as-poi90'
+                        value: {{ .Values.probe.probe2.key }}
                   ports:
-                      - containerPort: 3008
-                        hostPort: 3008
-                        name: probe-2
-            restartPolicy: Always
+                      - containerPort:  {{ .Values.probe.probe2.port }}
+                        hostPort:  {{ .Values.probe.probe2.port }}
+                        name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: probe-2
-    name: probe-2
+        app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
+    name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
 spec:
     ports:
-        - port: 80
+        - port: {{ .Values.probe.probe2.servicePort }}
           protocol: TCP
-          targetPort: 3008
+          targetPort:  {{ .Values.probe.probe2.port }}
     selector:
-        app: probe-2
-    type: LoadBalancer
+        app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
+    type: {{ .Values.service.type }}
 ---
 ###########################
 
@@ -483,10 +433,10 @@ spec:
             containers:
                 - image: fyipeproject/init-script:latest
                   name: init-script
-                  imagePullPolicy: Always
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: MONGO_URL
-                        value: 'mongodb://mongo-0.mongo.default.svc.cluster.local:27017,mongo-1.mongo.default.svc.cluster.local:27017,mongo-2.mongo.default.svc.cluster.local:27017/fyipedb?replicaSet=rs0'
+                        value: {{ printf "mongodb://%s-%s:%s/fyipedb?replicaSet=%s" .Release.Name "mongo-0.default.svc.cluster.local" .Values.mongo.port .Values.mongo.replicaSetName }}
             restartPolicy: Never
 
 ---
@@ -501,7 +451,7 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-    name: mongo
+    name: {{ printf "%s-%s" .Release.Name "mongo"  }}
     namespace: default
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -530,19 +480,19 @@ roleRef:
     name: pod-service-endpoint-reader
 subjects:
     - kind: ServiceAccount
-      name: mongo
+      name: {{ printf "%s-%s" .Release.Name "mongo"  }}
       namespace: default
 ---
 apiVersion: v1
 kind: Service
 metadata:
-    name: mongo
+    name: {{ printf "%s-%s" .Release.Name "mongo"  }}
     labels:
-        name: mongo
+        name: {{ printf "%s-%s" .Release.Name "mongo"  }}
 spec:
     ports:
-        - port: 27017
-          targetPort: 27017
+        - port: {{ .Values.mongo.port }}
+          targetPort: {{ .Values.mongo.port }}
     clusterIP: None
     selector:
         role: mongo
@@ -550,7 +500,7 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-    name: mongo
+    name: {{ printf "%s-%s" .Release.Name "mongo"  }}
 spec:
     serviceName: 'mongo'
     replicas: 3
@@ -567,19 +517,19 @@ spec:
             automountServiceAccountToken: true
             terminationGracePeriodSeconds: 30
             containers:
-                - name: mongo
+                - name: {{ printf "%s-%s" .Release.Name "mongo"  }}
                   image: mongo:4.2.3
                   command:
                       - mongod
                   args:
-                      - '--replSet=rs0'
+                      - {{ printf "--replSet=%s" .Values.mongo.replicaSetName }}
                       - '--bind_ip=0.0.0.0'
                   ports:
-                      - containerPort: 27017
+                      - containerPort: {{ .Values.mongo.port }}
                   volumeMounts:
-                      - name: mongo-persistent-storage
+                      - name: {{ printf "%s-%s" .Release.Name "mongo-persistent-storage"  }}
                         mountPath: /data/db
-                - name: mongo-sidecar
+                - name: {{ printf "%s-%s" .Release.Name "mongo-sidecar"  }}
                   image: morphy/k8s-mongo-sidecar
                   env:
                       - name: KUBERNETES_POD_LABELS
@@ -588,7 +538,7 @@ spec:
                         value: 'mongo'
     volumeClaimTemplates:
         - metadata:
-              name: mongo-persistent-storage
+              name: {{ printf "%s-%s" .Release.Name "mongo-persistent-storage"  }}
           spec:
               storageClassName: mongo
               accessModes: ['ReadWriteOnce']
@@ -599,7 +549,7 @@ spec:
 kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
-    name: mongo
+    name: {{ printf "%s-%s" .Release.Name "mongo"  }}
 provisioner: memorialhealth/nfs
 parameters:
     type: pd-ssd
@@ -614,21 +564,21 @@ parameters:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-    name: redis
+    name: {{ printf "%s-%s" .Release.Name "redis"  }}
     labels:
-        app: redis
+        app: {{ printf "%s-%s" .Release.Name "redis"  }}
 spec:
     serviceName: 'redis'
     selector:
         matchLabels:
-            app: redis
+            app: {{ printf "%s-%s" .Release.Name "redis"  }}
             role: master
             tier: backend
     replicas: 1 #Strictly 1. We're not forming a cluster.
     template:
         metadata:
             labels:
-                app: redis
+                app: {{ printf "%s-%s" .Release.Name "redis"  }}
                 role: master
                 tier: backend
         spec:
@@ -640,7 +590,7 @@ spec:
                           cpu: 100m
                           memory: 100Mi
                   ports:
-                      - containerPort: 6379
+                      - containerPort: {{ .Values.redis.port }}
                   volumeMounts:
                       - name: data
                         mountPath: /data
@@ -658,24 +608,24 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-    name: redis
+    name: {{ printf "%s-%s" .Release.Name "redis"  }}
     labels:
-        app: redis
+        app: {{ printf "%s-%s" .Release.Name "redis"  }}
         role: master
         tier: backend
 spec:
     ports:
-        - port: 6379
-          targetPort: 6379
+        - port: {{ .Values.redis.port }}
+          targetPort: {{ .Values.redis.port }}
     selector:
-        app: redis
+        app: {{ printf "%s-%s" .Release.Name "redis"  }}
         role: master
         tier: backend
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
-    name: redis
+    name: {{ printf "%s-%s" .Release.Name "redis"  }}
 parameters:
     type: pd-ssd
 ---
