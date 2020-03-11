@@ -1,10 +1,36 @@
-Thank you for installing Fyipe. 
+============================================ 
+After Installation Steps
+============================================ 
 
-1. Please run these commands to get Fyipe URL
+** Thank you for installing Fyipe **
+** Please be patient while the chart is being deployed **
+** This usually takes few minutes or more **
 
-export NODE_PORT=$(kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services {{ template "wordpress.fullname" . }})
-export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
-echo "WordPress URL: http://$NODE_IP:$NODE_PORT/"
-echo "WordPress Admin URL: http://$NODE_IP:$NODE_PORT/admin"
+To access your Fyipe app from outside the cluster follow the steps below:
 
-Please visit <URL> and sign up for an admin account.
+{{- if .Values.ingress.enabled }}
+============================================ 
+STEP 1
+============================================ 
+
+Please run these commands to get Fyipe URL
+
+$ kubectl get svc accounts
+
+NOTE: It may take a few minutes for the LoadBalancer IP to be available. 
+If the load balancer did not assign an external IP yet (if the IP is in pending). 
+Retry this command after few mins. 
+
+Please visit <EXTERNAL URL> and sign up for an admin account.
+
+============================================ 
+STEP 2
+============================================
+
+When your external IP URL is available, run the following commands. 
+
+$ export SERVICE_IP=$(kubectl get svc accounts --template "{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}")
+$ echo "Fyipe Signup URL: http://$SERVICE_IP/"
+
+{{- else }}
+{{- $port := .Values.service.port | toString }}

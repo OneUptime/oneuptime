@@ -21,3 +21,4 @@ maintainers:
     email: support@fyipe.com
     url: https://fyipe.com/support
 icon: https://fyipe.com/img/Fyipe.svg
+engine: gotpl
