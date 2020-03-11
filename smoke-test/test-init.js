@@ -81,7 +81,7 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await page.click('button[type=submit]');
-        await page.waitFor(15000);
+        await page.waitFor(20000);
     },
     registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
@@ -110,7 +110,7 @@ module.exports = {
             await page.click('input[name=confirmPassword]');
             await page.type('input[name=confirmPassword]', '1234567890');
             await page.click('button[type=submit]');
-            await page.waitFor(5000);
+            await page.waitFor(10000);
         }
         await this.loginUser(masterAdmin, page);
         // create the user from admin dashboard
@@ -131,7 +131,7 @@ module.exports = {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', '1234567890');
         await page.click('button[type=submit]');
-        await page.waitFor(15000);
+        await page.waitFor(20000);
     },
     selectByText: async function(selector, text, page) {
         await page.click(selector);
