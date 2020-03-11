@@ -16,7 +16,7 @@ const user = {
 
 describe('Enterprise Admin Dashboard API', () => {
     beforeAll(async () => {
-        jest.setTimeout(100000);
+        jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -47,5 +47,5 @@ describe('Enterprise Admin Dashboard API', () => {
             'masteradmin@hackerbay.io'
         );
         page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
-    }, 200000);
+    }, 160000);
 });

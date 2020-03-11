@@ -10,16 +10,16 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Enterprise Accounts API', () => {
-    const operationTimeOut = 200000;
+    const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(300000);
+        jest.setTimeout(200000);
 
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 200000,
+            timeout: 120000,
         });
 
         cluster.on('taskerror', err => {
@@ -54,7 +54,7 @@ describe('Enterprise Accounts API', () => {
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
                 puppeteer,
-                timeout: 200000,
+                timeout: 100000,
             });
 
             cluster.on('taskerror', err => {
