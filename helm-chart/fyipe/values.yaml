@@ -3,4 +3,5 @@ accountsHost: ""
 adminDashobardHost: ""
 backendHost: ""
 namespace: "fyipe"
-
+enablePersistence: ""
+storageClassName: ""

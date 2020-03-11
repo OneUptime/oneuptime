@@ -600,7 +600,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
     name: mongo
-provisioner: kubernetes.io/gce-pd
+provisioner: memorialhealth/nfs
 parameters:
     type: pd-ssd
 ---
@@ -676,7 +676,6 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
     name: redis
-provisioner: kubernetes.io/gce-pd
 parameters:
     type: pd-ssd
 ---
