@@ -1,5 +1,5 @@
 ============================================ 
-After Installation Steps
+IMPORTANT: After Installation Steps
 ============================================ 
 
 ** Thank you for installing Fyipe **
@@ -7,8 +7,6 @@ After Installation Steps
 ** This usually takes few minutes or more **
 
 To access your Fyipe app from outside the cluster follow the steps below:
-
-{{- if .Values.ingress.enabled }}
 
 ============================================ 
 STEP 1: Make sure ALL external IP's are assigned. 
@@ -25,16 +23,10 @@ Retry this command after few mins.
 Make sure external IP's of all services are available (and not in "pending" state).
 
 ============================================ 
-STEP 2
+STEP 2: Sign Up
 ============================================
 
 When your external IP URL is available, run the following commands. 
-
-$ export SERVICE_IP=$(kubectl get svc accounts --template "{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}")
-$ echo "Fyipe Signup URL: http://$SERVICE_IP/"
-
-{{- else }}
-{{- $port := .Values.service.port | toString }}
 
 ============================================ 
 STEP 3: Setup Email
@@ -52,4 +44,33 @@ When you're done signing up the admin account. Head over to "Settings" -> "Call 
 
 Add your Twilio Settings here to enable call and SMS alert.
 
+============================================ 
+STEP 4: Create User
+============================================
 
+When you're done signing up the admin account. Head over to "Settings" -> "Call and SMS"
+
+Add your Twilio Settings here to enable call and SMS alert.
+
+============================================ 
+STEP 5: Buy License
+============================================
+
+Fyipe which you just installed runs on an evaluation license. 
+Please contact us at sales@fyipe.com to buy a commercial license. 
+We support companies of all sizes.
+
+Once you buy the commercial license, 
+you can enter that license key on your admin dashboard.
+
+============================================ 
+Support and Demo
+============================================
+
+**Demo:** 
+If you're looking for a personlized Fyipe demo. 
+Please email us at demo@fyipe.com to schedule one. 
+
+**Support and Help:** 
+If you're looking for help with anything,
+Please email us at support@fyipe.com and we'll get back to you in less than 1 business day.  

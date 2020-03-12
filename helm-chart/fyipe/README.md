@@ -20,6 +20,7 @@ Website: https://fyipe.com
 ## TL;DR;
 
 ```console
+helm repo add bitnami https://charts.fyipe.com/fyipe
 helm install fyipe-app fyipe
 ```
 
@@ -39,6 +40,7 @@ This chart bootstraps a [Fyipe](https://fyipe.com) deployment on a [Kubernetes](
 To install the chart with the release name `fyipe-app`:
 
 ```console
+helm repo add bitnami https://charts.fyipe.com/fyipe
 helm install fyipe-app fyipe
 ```
 

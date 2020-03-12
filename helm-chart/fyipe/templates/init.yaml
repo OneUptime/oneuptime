@@ -335,14 +335,14 @@ spec:
                       - name: SERVER_URL
                         value: {{ .Values.host.backend }}
                       - name: PORT
-                        value: {{ .Values.probe.probe1.port }}
+                        value: {{ .Values.probes.probe1.port }}
                       - name: PROBE_NAME
-                        value: {{ .Values.probe.probe1.name }}
+                        value: {{ .Values.probes.probe1.name }}
                       - name: PROBE_KEY
-                        value: {{ .Values.probe.probe1.key }}
+                        value: {{ .Values.probes.probe1.key }}
                   ports:
-                      - containerPort: {{ .Values.probe.probe1.port }}
-                        hostPort: {{ .Values.probe.probe1.port }}
+                      - containerPort: {{ .Values.probes.probe1.port }}
+                        hostPort: {{ .Values.probes.probe1.port }}
                         name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 
@@ -355,9 +355,9 @@ metadata:
     name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
 spec:
     ports:
-        - port: {{ .Values.probe.probe1.servicePort }}
+        - port: {{ .Values.probes.probe1.servicePort }}
           protocol: TCP
-          targetPort: {{ .Values.probe.probe1.port }}
+          targetPort: {{ .Values.probes.probe1.port }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
     type: {{ .Values.service.type }}
@@ -390,14 +390,14 @@ spec:
                       - name: SERVER_URL
                         value: {{ .Values.host.backend }}
                       - name: PORT
-                        value: {{ .Values.probe.probe2.port }}
+                        value: {{ .Values.probes.probe2.port }}
                       - name: PROBE_NAME
-                        value: {{ .Values.probe.probe2.name }}
+                        value: {{ .Values.probes.probe2.name }}
                       - name: PROBE_KEY
-                        value: {{ .Values.probe.probe2.key }}
+                        value: {{ .Values.probes.probe2.key }}
                   ports:
-                      - containerPort:  {{ .Values.probe.probe2.port }}
-                        hostPort:  {{ .Values.probe.probe2.port }}
+                      - containerPort:  {{ .Values.probes.probe2.port }}
+                        hostPort:  {{ .Values.probes.probe2.port }}
                         name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 
@@ -410,9 +410,9 @@ metadata:
     name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
 spec:
     ports:
-        - port: {{ .Values.probe.probe2.servicePort }}
+        - port: {{ .Values.probes.probe2.servicePort }}
           protocol: TCP
-          targetPort:  {{ .Values.probe.probe2.port }}
+          targetPort:  {{ .Values.probes.probe2.port }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
     type: {{ .Values.service.type }}
@@ -440,10 +440,9 @@ spec:
             restartPolicy: Never
 
 ---
-###########################
+####################################
 
 ############-MONGO DB-##############
-
 # IMPORTANT: Inspiration from: https://github.com/Fyipe/k8s-mongo-sidecar
 # Replicasets are configured automatically.
 # You DO NEED to get into a mongo container to configre them.
@@ -503,7 +502,7 @@ metadata:
     name: {{ printf "%s-%s" .Release.Name "mongo"  }}
 spec:
     serviceName: 'mongo'
-    replicas: 3
+    replicas: 1
     selector:
         matchLabels:
             role: mongo
@@ -540,7 +539,7 @@ spec:
         - metadata:
               name: {{ printf "%s-%s" .Release.Name "mongo-persistent-storage"  }}
           spec:
-              storageClassName: mongo
+              storageClassName: {{ printf "%s-%s" .Release.Name "mongo"  }}
               accessModes: ['ReadWriteOnce']
               resources:
                   requests:
@@ -599,7 +598,7 @@ spec:
         - metadata:
               name: data
           spec:
-              storageClassName: redis
+              storageClassName: {{ printf "%s-%s" .Release.Name "redis"  }}
               accessModes: ['ReadWriteOnce']
               resources:
                   requests:

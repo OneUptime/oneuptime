@@ -9,6 +9,11 @@ smtpMail:
   smtpPort: 
   smtpSecure: 
 
+ingress:
+  hosts:
+  - name: mongodb.local
+    path: /
+
 twilio:
   accountSid: 
   authToken:
