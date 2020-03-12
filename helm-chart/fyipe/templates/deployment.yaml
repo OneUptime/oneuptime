@@ -310,7 +310,7 @@ spec:
 ##################################
 
 ########-PROBE-1-#################
-# Probe service and deployement
+Probe service and deployement
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -456,7 +456,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-    name: pod-service-endpoint-reader
+    name: {{ printf "%s-%s" .Release.Name "pod-service-reader"  }}
 rules:
     - apiGroups:
           - ''
@@ -476,7 +476,7 @@ metadata:
 roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: ClusterRole
-    name: pod-service-endpoint-reader
+    name: {{ printf "%s-%s" .Release.Name "pod-service-reader"  }}
 subjects:
     - kind: ServiceAccount
       name: {{ printf "%s-%s" .Release.Name "mongo"  }}
@@ -549,7 +549,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
     name: {{ printf "%s-%s" .Release.Name "mongo"  }}
-provisioner: memorialhealth/nfs
+provisioner: kubernetes.io/gce-pd
 parameters:
     type: pd-ssd
 ---
@@ -625,6 +625,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1beta1
 metadata:
     name: {{ printf "%s-%s" .Release.Name "redis"  }}
+provisioner: kubernetes.io/gce-pd
 parameters:
     type: pd-ssd
 ---

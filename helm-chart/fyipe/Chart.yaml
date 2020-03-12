@@ -16,9 +16,16 @@ keywords:
   - Website Monitoring
   - Website Test
 home: https://fyipe.com
+dependencies:
+- name: nginx-ingress-controller
+  version: "5.3.9"
+  repository: "https://charts.bitnami.com/bitnami"
+- name: mongodb
+  version: "7.8.10"
+  repository: "https://charts.bitnami.com/bitnami"
 maintainers:
   - name:  Fyipe Support
     email: support@fyipe.com
     url: https://fyipe.com/support
 icon: https://fyipe.com/img/Fyipe.svg
-engine: gotpl
+engine: gotplhelm dependency update
