@@ -1,3 +1,8 @@
+/**
+ *
+ * Copyright HackerBay, Inc.
+ *
+ */
 const replacer = (key, value) => (value === null ? '' : value); // specify how you want to handle null values here
 
 module.exports = {

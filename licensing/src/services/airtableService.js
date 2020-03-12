@@ -4,74 +4,27 @@
  *
  */
 const Airtable = require('airtable');
-const AirtableApiKey = process.env['AIRTABLE_API_KEY'];
-const AirtableBaseId = process.env['AIRTABLE_BASE_ID'];
-const base = new Airtable({ apiKey: AirtableApiKey }).base(AirtableBaseId);
+const { airtableApiKey, airtableBaseId } = require('../config/airtable');
+
+const base = new Airtable({ apiKey: airtableApiKey }).base(airtableBaseId);
 
 module.exports = {
-    find: async function({ tableName, view }) {
-        return new Promise((resolve, reject) => {
-            base(tableName)
-                .select({ view })
-                .firstPage((err, records) => {
-                    if (err) {
-                        reject(err);
-                    }
-                    resolve(records);
-                });
-        });
+    find: async function({ tableName, view, limit }) {
+        return base(tableName)
+            .select({ view, pageSize: limit })
+            .firstPage();
     },
 
-    update: async function({ id, email, tableName }) {
-        return new Promise((resolve, reject) => {
-            base(tableName).update(
-                id,
-                {
-                    'Contact Email': email,
-                },
-                (err, record) => {
-                    if (err) {
-                        reject(err);
-                    }
-                    resolve(record);
-                }
-            );
-        });
+    update: async function({ tableName, id, fields }) {
+        return base(tableName).update(id, fields);
     },
 
-    seedData: async function({ tableName, license, date }) {
-        return new Promise((resolve, reject) => {
-            base(tableName).create(
-                [
-                    {
-                        fields: {
-                            'License Key': license,
-                            Expires: date,
-                        },
-                    },
-                ],
-                function(err, records) {
-                    if (err) {
-                        reject(err);
-                    }
-                    records.forEach(function(record) {
-                        const id = record.id;
-                        resolve(id);
-                    });
-                }
-            );
-        });
+    create: async function({ tableName, fields }) {
+        return base(tableName).create(fields);
     },
 
-    clearData: async function({ tableName, id }) {
-        return new Promise((resolve, reject) => {
-            base(tableName).destroy(id, function(err, deletedRecords) {
-                if (err) {
-                    reject(err);
-                }
-                resolve(deletedRecords);
-            });
-        });
+    delete: async function({ tableName, id }) {
+        return base(tableName).destroy(id);
     },
 
     base,

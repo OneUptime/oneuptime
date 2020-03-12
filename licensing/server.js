@@ -20,6 +20,7 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
+const path = require('path');
 const http = require('http').createServer(app);
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -45,6 +46,12 @@ app.use(function(req, res, next) {
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
+//View engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+
+app.use(express.static(path.join(__dirname, 'views')));
+
 // Routes(API)
 app.use('/license', require('./src/api/license'));
 app.set('port', process.env.PORT || 3004);
@@ -60,13 +67,13 @@ app.get('/', function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-licensing',
+            serviceType: 'fyipe-license-server',
         })
     );
 });
 
 app.use('/*', function(req, res) {
-    res.status(404).render('Not Found ', {});
+    res.status(404).render('notFound.ejs', {});
 });
 
 module.exports = app;

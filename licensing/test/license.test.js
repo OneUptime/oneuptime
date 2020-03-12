@@ -15,7 +15,13 @@ chai.use(require('chai-http'));
 //     var id
 
 //     before('ensuring anything gets started', (done)=>{
-//         id = airtableService.seedData({ tableName: 'License', license: testData.validLicense, date: testData.validDate })
+// id = airtableService.seedData({
+//     tableName: 'License',
+//     fields: {
+//         'License Key': testData.validLicense,
+//         Expires: testData.validDate,
+//     },
+// });
 //         done()
 //     });
 
@@ -37,7 +43,7 @@ chai.use(require('chai-http'));
 //     });
 
 //     after('ensuring everything is cleaned up', (done)=>{
-//         airtableService.clearData({ tableName: 'License', id })
+//         airtableService.delete({ tableName: 'License', id })
 //         done();
 //     });
 // });
@@ -48,7 +54,13 @@ chai.use(require('chai-http'));
 //     var id
 
 //     before('ensuring anything gets started', (done)=>{
-//         id = airtableService.seedData({ tableName: 'License', license: testData.expiredLicense, date: testData.expiredDate })
+// id = airtableService.seedData({
+//     tableName: 'License',
+//     fields: {
+//         'License Key': testData.validLicense,
+//         Expires: testData.validDate,
+//     },
+// });
 //         done()
 //     });
 
@@ -70,7 +82,7 @@ chai.use(require('chai-http'));
 //     });
 
 //     after('ensuring everything is cleaned up', (done)=>{
-//         airtableService.clearData({ tableName: 'License', id })
+//         airtableService.delete({ tableName: 'License', id })
 //         done();
 //     });
 // });

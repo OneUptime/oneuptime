@@ -1,12 +1,15 @@
-const tokenUtil = require('../utils/tokenUtil').generateWebToken;
-const AirtableService = require('./airtableService');
-
+/**
+ *
+ * Copyright HackerBay, Inc.
+ *
+ */
 module.exports = {
     confirm: async payload => {
         try {
             const records = await AirtableService.find({
                 tableName: 'License',
                 view: 'Grid view',
+                limit: payload.limit,
             });
             const userRecord = {};
 
@@ -19,9 +22,8 @@ module.exports = {
             }
 
             if (Object.entries(userRecord).length === 0) {
-                const error = new Error('Not Found');
+                const error = new Error('License Not Found');
                 error.statusCode = 400;
-
                 throw error;
             }
 
@@ -35,12 +37,14 @@ module.exports = {
             }
 
             await AirtableService.update({
-                id: userRecord.id,
-                email: payload.email,
                 tableName: 'License',
+                id: userRecord.id,
+                fields: {
+                    'Contact Email': payload.email,
+                },
             });
 
-            const token = tokenUtil({
+            const token = generateWebToken({
                 license: payload.license,
                 presentTime,
                 expiryTime,
@@ -48,9 +52,12 @@ module.exports = {
 
             return { token };
         } catch (error) {
-            // eslint-disable-next-line no-console
-            console.error(error);
+            ErrorService.log('licenseService.confirm', error);
             throw error;
         }
     },
 };
+
+const generateWebToken = require('../utils/WebToken').generateWebToken;
+const AirtableService = require('./airtableService');
+const ErrorService = require('./errorService');
