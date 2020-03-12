@@ -4,8 +4,8 @@ services:
         image: mongo:4.2.3
         ports:
             - '27017:27017'
-        # volumes:
-        #     - mongodata:/data/db
+        volumes:
+            - mongodata:/data/db
 
     redis:
         image: redis:5.0.7
@@ -140,5 +140,5 @@ services:
         ports:
             - '25:25'
         build: ./haraka
-# volumes:
-#     mongodata:
+volumes:
+    mongodata:
