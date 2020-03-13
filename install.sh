@@ -14,4 +14,4 @@ sudo ./uninstall.sh
 sleep 5s
 
 #Docker compose up as a daemon.
-sudo docker-compose up -d --build
+sudo -E docker-compose up -d --build

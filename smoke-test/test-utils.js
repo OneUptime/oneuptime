@@ -15,6 +15,8 @@ const puppeteerLaunchConfig = {
 
 const HOME_URL = process.env.HOME_URL || 'http://localhost:1444';
 const ACCOUNTS_URL = process.env.ACCOUNTS_URL || 'http://localhost:3003';
+const ADMIN_DASHBOARD_URL =
+    process.env.ADMIN_DASHBOARD_URL || 'http://localhost:3100';
 const DASHBOARD_URL = process.env.DASHBOARD_URL || 'http://localhost:3000';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 const STATUSPAGE_URL = process.env.STATUSPAGE_URL || 'http://localhost:3006';
@@ -46,6 +48,7 @@ function generateRandomString() {
 module.exports = {
     HOME_URL,
     ACCOUNTS_URL,
+    ADMIN_DASHBOARD_URL,
     DASHBOARD_URL,
     BACKEND_URL,
     STATUSPAGE_URL,

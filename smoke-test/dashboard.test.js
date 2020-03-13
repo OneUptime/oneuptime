@@ -66,9 +66,7 @@ describe('Monitor API', () => {
             await page.click('button[type=submit]');
             await page.waitFor(5000);
             let spanElement;
-            spanElement = await page.$(
-                '#frmNewMonitor > div > div > div > fieldset > div > div > div > span >  div > div > span'
-            );
+            spanElement = await page.$('#field-error');
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('This field cannot be left blank');

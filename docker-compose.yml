@@ -22,6 +22,7 @@ services:
         environment:
             - MONGO_URL=mongodb://mongo:27017/fyipedb
             - REDIS_HOST=redis
+            - IS_SAAS_SERVICE
         depends_on:
             - mongo
             - redis
@@ -33,6 +34,8 @@ services:
         build: ./accounts
         env_file:
             - ./accounts/.env
+        environment:
+            - IS_SAAS_SERVICE
         depends_on:
             - backend
 
@@ -42,8 +45,11 @@ services:
         build: ./dashboard
         env_file:
             - ./dashboard/.env
+        environment:
+            - IS_SAAS_SERVICE
         depends_on:
             - backend
+            - accounts
 
     home:
         ports:
@@ -66,9 +72,11 @@ services:
     admin-dashboard:
         ports:
             - '3100:3100'
+        build: ./admin-dashboard
         env_file:
             - ./admin-dashboard/.env
-        build: ./admin-dashboard
+        environment:
+            - IS_SAAS_SERVICE
         depends_on:
             - backend
             - accounts
@@ -132,6 +140,5 @@ services:
         ports:
             - '25:25'
         build: ./haraka
-
 volumes:
     mongodata:
