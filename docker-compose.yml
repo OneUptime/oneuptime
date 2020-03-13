@@ -80,6 +80,13 @@ services:
             - ./http-test-server/.env
         build: ./http-test-server
 
+    licensing:
+        ports:
+            - '3004:3004'
+        env_file:
+            - ./licensing/.env
+        build: ./licensing
+
     probe1:
         ports:
             - '3024:3024'

@@ -40,5 +40,6 @@ build home
 build status-page 
 build api-docs
 build probe
+build licensing
 
 cd $DIR

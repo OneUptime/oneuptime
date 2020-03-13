@@ -4,18 +4,24 @@
  *
  */
 module.exports = {
-    confirm: async payload => {
+    confirm: async ({ license, email, limit }) => {
         try {
+            if (!limit) limit = 9999;
+
+            if (typeof limit === 'string') {
+                limit = parseInt(limit);
+            }
+
             const records = await AirtableService.find({
                 tableName: 'License',
                 view: 'Grid view',
-                limit: payload.limit,
+                limit,
             });
             const userRecord = {};
 
             for (const record of records) {
                 const fetchedLicense = record.get('License Key');
-                if (payload.license === fetchedLicense) {
+                if (license === fetchedLicense) {
                     userRecord['id'] = record.id;
                     userRecord['expiryDate'] = record.get('Expires');
                 }
@@ -40,12 +46,12 @@ module.exports = {
                 tableName: 'License',
                 id: userRecord.id,
                 fields: {
-                    'Contact Email': payload.email,
+                    'Contact Email': email,
                 },
             });
 
             const token = generateWebToken({
-                license: payload.license,
+                license,
                 presentTime,
                 expiryTime,
             });

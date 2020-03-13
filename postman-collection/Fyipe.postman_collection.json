@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "0009aad2-d3df-4b6b-9a25-915bf7cb5585",
+        "_postman_id": "0b6c66c9-c83b-44fb-8e1f-a270e65906ee",
         "name": "Fyipe",
         "description": "Fyipe backend",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -24753,6 +24753,139 @@
                 }
             ],
             "description": "Zapier API",
+            "protocolProfileBehavior": {}
+        },
+        {
+            "name": "License",
+            "item": [
+                {
+                    "name": "Confirm License",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n\t\"license\": \"valid-license\",\n\t\"email\": \"nawazdhandala@hackerbay.io\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:3004/license?limit=10",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3004",
+                            "path": ["license"],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Confirm Fyipe Enterprise License"
+                    },
+                    "response": [
+                        {
+                            "name": "Confirm License",
+                            "originalRequest": {
+                                "method": "POST",
+                                "header": [],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n\t\"license\": \"valid-license\",\n\t\"email\": \"nawazdhandala@hackerbay.io\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "http://localhost:3004/license?limit=10",
+                                    "protocol": "http",
+                                    "host": ["localhost"],
+                                    "port": "3004",
+                                    "path": ["license"],
+                                    "query": [
+                                        {
+                                            "key": "limit",
+                                            "value": "10"
+                                        }
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "X-Powered-By",
+                                    "value": "Express"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Origin",
+                                    "value": "undefined"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Credentials",
+                                    "value": "true"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Methods",
+                                    "value": "GET,PUT,POST,DELETE,OPTIONS"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Headers",
+                                    "value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+                                },
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=utf-8"
+                                },
+                                {
+                                    "key": "Content-Length",
+                                    "value": "140"
+                                },
+                                {
+                                    "key": "ETag",
+                                    "value": "W/\"8c-dbqtTOwXwnwVYs3azFzP41OL1Qo\""
+                                },
+                                {
+                                    "key": "Date",
+                                    "value": "Fri, 13 Mar 2020 10:49:06 GMT"
+                                },
+                                {
+                                    "key": "Connection",
+                                    "value": "keep-alive"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE1ODQwOTY1NDYsImV4cCI6MTU4NDE0NDAwMX0.IS92G8T0Fl0uPUxp_nxvjRwvgRx0jdRZrDVjAs1P4_w\"\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "License API",
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "id": "181c49ab-ea0e-4383-a58f-cb1d8fa3bb78",
+                        "type": "text/javascript",
+                        "exec": [""]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "id": "58a5bf99-db1a-4ae2-8e15-6349a82fa193",
+                        "type": "text/javascript",
+                        "exec": [""]
+                    }
+                }
+            ],
             "protocolProfileBehavior": {}
         }
     ],

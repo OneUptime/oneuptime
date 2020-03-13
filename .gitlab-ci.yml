@@ -664,6 +664,40 @@ build_n_test_server-monitor:
       - hotfix-master
       - hotfix-release
 
+# LICENSING
+audit_licensing:
+  stage: BuildAndTest
+  allow_failure: true
+  script:
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
+    - cd licensing
+    - npm ci
+    - npm run audit
+    - npm run dep-check
+    - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
+build_n_test_licensing:
+  stage: BuildAndTest
+  script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker.
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker build -t fyipeproject/licensing:3.0.$CI_PIPELINE_IID ./licensing
+    - sudo docker ps
+    - sudo docker run --env-file ./licensing/.env --net=host fyipeproject/licensing:3.0.$CI_PIPELINE_IID npm test
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
 ##E2E Stage.
 # e2e_minikube_test:
 #   stage: E2E
@@ -678,6 +712,7 @@ build_n_test_server-monitor:
 #     - export BACKEND_URL=http://backend.app.local:3002
 #     - export STATUSPAGE_URL=http://status-page.app.local:3006
 #     - export APIDOCS_URL=http://api-docs.app.local:1445
+#     - export LICENSING_URL=http://licensing.app.local:3004
 #     - chmod +x ./kubernetes/ci/hosts-setup.sh
 #     - ./kubernetes/ci/hosts-setup.sh
 #     - cd smoke-test
@@ -706,6 +741,7 @@ e2e_docker_compose_test:
     - export BACKEND_URL=http://localhost:3002
     - export STATUSPAGE_URL=http://localhost:3006
     - export APIDOCS_URL=http://localhost:1445
+    - export LICENSING_URL=http://localhost:3004
     - cd smoke-test
     - npm ci
     - npm run test
@@ -788,6 +824,54 @@ deploy_production_backend:
   environment:
     name: production
 
+# DEPLOYMENT STAGE - LICENSING
+deploy_staging_licensing:
+  stage: Deploy
+  allow_failure: true
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy licensing.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipeproject/licensing:master ./licensing
+    - sudo docker tag fyipeproject/licensing:master fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/licensing:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/licensing licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+      - hotfix-master
+  environment:
+    name: staging
+
+deploy_production_licensing:
+  stage: Deploy
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipeproject/licensing:latest ./licensing
+    - sudo docker tag fyipeproject/licensing:latest fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/licensing:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/licensing licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+      - hotfix-release
+  environment:
+    name: production
 
 # DEPLOYMENT STAGE - Api docs
 deploy_staging_api-docs:
@@ -1316,6 +1400,7 @@ smoke_test_production:
     - export BACKEND_URL=https://api.fyipe.com
     - export STATUSPAGE_URL=https://statuspage.fyipe.com
     - export APIDOCS_URL=https://docs.fyipe.com
+    - export LICENSING_URL=https://licensing.fyipe.com
     - cd smoke-test
     - npm ci
     - npm run test
@@ -1338,6 +1423,7 @@ smoke_test_staging:
     - export BACKEND_URL=https://staging-api.fyipe.com
     - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
     - export APIDOCS_URL=https://staging-docs.fyipe.com
+    - export LICENSING_URL=https://staging-licensing.fyipe.com
     - cd smoke-test
     - npm ci
     - npm run test
@@ -1397,6 +1483,24 @@ staging_rollback_backend:
     - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
+  only:
+    refs:
+      - master
+  except:
+    - $SMOKE_TEST_STATUS == "success"
+
+staging_rollback_licensing:
+  stage: RollbackIfSmokeTestFail
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Rollback licensing
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/licensing
   only:
     refs:
       - master
@@ -1558,6 +1662,22 @@ production_rollback_backend:
     - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
+  only:
+    refs:
+      - release
+
+production_rollback_licensing:
+  stage: RollbackIfSmokeTestFail
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    # Rollback licensing
+    - chmod +x ./kubernetes/ci/job-status.sh
+    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/licensing
   only:
     refs:
       - release

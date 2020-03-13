@@ -29,6 +29,7 @@ function check {
         rollback api-docs
         rollback probe
         rollback admin-dashboard
+        rollback licensing
         exit 1
     else
         echo "$1 Deployment successful"
@@ -44,3 +45,4 @@ check api-docs
 check probe
 check admin-dashboard
 check server-monitor
+check licensing

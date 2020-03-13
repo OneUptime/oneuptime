@@ -45,7 +45,7 @@ router.post('/', async (req, res) => {
         const item = await LicenseService.confirm({
             license: data.license,
             email: data.email,
-            limit: data.limit || 100,
+            limit: req.query.limit || 100,
         });
 
         return sendItemResponse(req, res, item);
