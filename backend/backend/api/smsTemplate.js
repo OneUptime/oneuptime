@@ -122,7 +122,15 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
             data.push(value);
         }
         for (const value of data) {
-            await SmsTemplateService.updateOneBy({ _id: value._id }, value);
+            const smsTemplate = await SmsTemplateService.findOneBy({
+                projectId: value.projectId,
+                smsType: value.smsType,
+            });
+            if (smsTemplate) {
+                await SmsTemplateService.updateOneBy({ _id: value._id }, value);
+            } else {
+                await SmsTemplateService.create(value);
+            }
         }
         const smsTemplates = await SmsTemplateService.getTemplates(
             req.params.projectId
