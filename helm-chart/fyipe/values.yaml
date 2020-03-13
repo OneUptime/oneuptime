@@ -1,6 +1,7 @@
 ## SMTP Settings to send email alerts to users
 ## If you use SendGrid, MailJet, AWS SES, or any other email management service
 ##
+
 smtpMail: 
   email: 
   password: 
@@ -19,7 +20,7 @@ twilio:
   authToken:
   phoneNumber: 
   verificationSid: 
-  twilioAlertLimit: 99999
+  twilioAlertLimit: "99999"
 
 fyipe: 
   emailEnabled: true
@@ -33,43 +34,43 @@ host:
   adminDashobard:
   backend:
   statuspage:
-  backendPort: 3002
-  statusPagePort: 3006
-  dashboardPort: 3000
-  accountsPort: 3003
-  adminDashboardPort: 3100
-  dashboardServicePort: 80
-  backendServicePort: 80
-  statusPageServicePort: 80
-  dashboardServicePort: 80
-  accountsServicePort: 80
-  adminDashboardServicePort: 80
+  backendPort: "3002"
+  statusPagePort: "3006"
+  dashboardPort: "3000"
+  accountsPort: "3003"
+  adminDashboardPort: "3100"
+  dashboardServicePort: "80"
+  backendServicePort: "80"
+  statusPageServicePort: "80"
+  dashboardServicePort: "80"
+  accountsServicePort: "80"
+  adminDashboardServicePort: "80"
 
 mongo:
   replicaSetName: rs0
-  port: 27017
+  port: "27017"
 
 redis: 
-  port: 6379
+  port: "6379"
 
 probes:
   probe1: 
-    port: 3008
-    name: Probe 1
+    port: "3008"
+    name: "Probe 1"
     key: test-key
-    servicePort: 80
+    servicePort: "80"
   probe2: 
-    name: Probe 2
-    port: 3008
+    name: "Probe 2"
+    port: "3008"
     key: test-key
-    servicePort: 80
+    servicePort: "80"
 
 domain: 
 
 rateLimitter:
   enabled: false
-  requestLimit: 5000
-  requestLimitTimePeriodInMS: 216000
+  requestLimit: "5000"
+  requestLimitTimePeriodInMS: "216000"
 
 encryption:
   secret: 'sample-secret'
