@@ -147,6 +147,26 @@ describe('Email Template API', function() {
             });
     });
 
+    it('should update default email template', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/emailTemplate/${projectId}`)
+            .send([
+                {
+                    subject: 'Updated Mail Subject',
+                    body: 'Updated Mail Body',
+                    emailType: 'Subscriber Incident Acknowldeged',
+                },
+            ])
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                expect(res.body[1].subject).to.be.equal('Updated Mail Subject');
+                done();
+            });
+    });
+
     it('should deleted an email template', function(done) {
         const authorization = `Basic ${token}`;
         request

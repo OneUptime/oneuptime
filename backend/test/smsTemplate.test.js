@@ -145,6 +145,25 @@ describe('SMS Template API', function() {
             });
     });
 
+    it('should update default sms template', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/smsTemplate/${projectId}`)
+            .send([
+                {
+                    body: 'Updated SMS Body',
+                    smsType: 'Subscriber Incident Acknowldeged',
+                },
+            ])
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                expect(res.body[1].body).to.be.equal('Updated SMS Body');
+                done();
+            });
+    });
+
     it('should deleted an sms template', function(done) {
         const authorization = `Basic ${token}`;
         request
