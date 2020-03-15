@@ -1,10 +1,70 @@
+############----INGRESS-TLS-SECRET----#########################
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: fyipe-secret
+# type: Opaque
+# data:
+#   tls.crt: {{ .Values.tls.crt }}
+#   tls.key: {{ .Values.tls.key }}
+
+############----INGRESS---#####################################
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-%s" .Release.Name "ingress" }}
+spec:
+  tls:
+  - hosts:
+    - {{ .Values.domain }}
+    secretName: fyipe-secret
+  rules:
+  - host: {{ printf "%s.%s" "accounts" .Values.domain }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ printf "%s-%s" .Release.Name "accounts"  }}
+          servicePort: 80
+  - host: {{ printf "%s.%s" "api" .Values.domain }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ printf "%s-%s" .Release.Name "backend"  }}
+          servicePort: 80
+  - host: {{ printf "%s.%s" "dashboard" .Values.domain }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+          servicePort: 80
+  - host: {{ printf "%s.%s" "admin-dashboard" .Values.domain }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+          servicePort: 80
+  - host: {{ printf "%s.%s" "status-page" .Values.domain }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ printf "%s-%s" .Release.Name "status-page"  }}
+          servicePort: 80
+      
+
 ############-----DASHBOARD----#############################
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+        app: {{ printf "%s-%s" .Release.Name "dashboard" }}
 spec:
     selector:
         matchLabels:
@@ -135,19 +195,19 @@ spec:
                       - name: JWT_SECRET
                         value: {{ .Values.encryption.secret }}
                       - name: MONGO_URL
-                        value: {{ printf "mongodb://%s-%s:%s/fyipedb?replicaSet=%s" .Release.Name "mongo-0.default.svc.cluster.local" .Values.mongo.port .Values.mongo.replicaSetName }}
+                        value: {{ template "fyipe.mongodbConnectionString" . }}
                       - name: REDIS_HOST
-                        value: {{ printf "%s-%s.%s" .Release.Name "redis" "default.svc.cluster.local" }}
+                        value: {{ template "fyipe.redisHost" . }}
                       - name: REDIS_PORT
-                        value: {{ .Values.redis.port }}
+                        value: {{ .Values.redis.redisPort | quote }}
                       - name: PORT
-                        value: {{ .Values.host.backendPort }}
+                        value: {{ .Values.host.backendPort | quote }}
                       - name: EMAIL_ENABLED
-                        value: {{ .Values.fyipe.emailEnabled }}
+                        value: {{ .Values.fyipe.emailEnabled | quote }}
                       - name: CALL_ENABLED
-                        value: {{ .Values.fyipe.callEnabled }}
+                        value: {{ .Values.fyipe.callEnabled | quote }}
                       - name: SMS_ENABLED
-                        value: {{ .Values.fyipe.smsEnabled }}
+                        value: {{ .Values.fyipe.smsEnabled | quote }}
                       - name: MAIL_USER
                         value: {{ .Values.smtpMail.email }}
                       - name: MAIL_PASSWORD
@@ -173,11 +233,11 @@ spec:
                       - name: NODE_ENV
                         value: 'production'
                       - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
-                        value: {{ .Values.rateLimitter.requestLimitTimePeriodInMS }}
+                        value: {{ .Values.rateLimitter.requestLimitTimePeriodInMS | quote }}
                       - name: RATE_LIMITTER_REQUEST_LIMIT
-                        value: {{ .Values.rateLimitter.requestLimit }}
+                        value: {{ .Values.rateLimitter.requestLimit | quote }}
                       - name: RATE_LIMITTER_ENABLED
-                        value: {{ .Values.rateLimitter.enabled }}
+                        value: {{ .Values.rateLimitter.enabled | quote  }}
                       - name: TWILIO_ACCOUNTSID
                         value: {{ .Values.twilio.accountSid }}
                       - name: TWILIO_AUTHTOKEN
@@ -185,7 +245,7 @@ spec:
                       - name: TWILIO_NUMBER
                         value: {{ .Values.twilio.phoneNumber }}
                       - name: TWILIO_ALERT_LIMIT
-                        value: {{ .Values.twilio.twilioAlertLimit }}
+                        value: {{ .Values.twilio.twilioAlertLimit | quote }}
                   ports:
                       - containerPort: {{ .Values.host.backendPort }}
                         hostPort: {{ .Values.host.backendPort }}
@@ -335,7 +395,7 @@ spec:
                       - name: SERVER_URL
                         value: {{ .Values.host.backend }}
                       - name: PORT
-                        value: {{ .Values.probes.probe1.port }}
+                        value: {{ .Values.probes.probe1.port | quote }}
                       - name: PROBE_NAME
                         value: {{ .Values.probes.probe1.name }}
                       - name: PROBE_KEY
@@ -390,7 +450,7 @@ spec:
                       - name: SERVER_URL
                         value: {{ .Values.host.backend }}
                       - name: PORT
-                        value: {{ .Values.probes.probe2.port }}
+                        value: {{ .Values.probes.probe2.port | quote }}
                       - name: PROBE_NAME
                         value: {{ .Values.probes.probe2.name }}
                       - name: PROBE_KEY
@@ -436,9 +496,8 @@ spec:
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: MONGO_URL
-                        value: {{ printf "mongodb://%s-%s:%s/fyipedb?replicaSet=%s" .Release.Name "mongo-0.default.svc.cluster.local" .Values.mongo.port .Values.mongo.replicaSetName }}
+                        value:  {{ template "fyipe.mongodbConnectionString" . }}
             restartPolicy: Never
-
 ---
 ####################################
 

@@ -23,6 +23,9 @@ dependencies:
 - name: mongodb
   version: "7.8.10"
   repository: "https://charts.bitnami.com/bitnami"
+- name: redis
+  version: "10.5.11"
+  repository: "https://charts.bitnami.com/bitnami"
 maintainers:
   - name:  Fyipe Support
     email: support@fyipe.com
