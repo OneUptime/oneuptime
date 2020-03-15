@@ -143,7 +143,18 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
             data.push(value);
         }
         for (const value of data) {
-            await EmailTemplateService.updateOneBy({ _id: value._id }, value);
+            const emailTemplate = await EmailTemplateService.findOneBy({
+                projectId: value.projectId,
+                emailType: value.emailType,
+            });
+            if (emailTemplate) {
+                await EmailTemplateService.updateOneBy(
+                    { _id: value._id },
+                    value
+                );
+            } else {
+                await EmailTemplateService.create(value);
+            }
         }
         const emailTemplates = await EmailTemplateService.getTemplates(
             req.params.projectId
