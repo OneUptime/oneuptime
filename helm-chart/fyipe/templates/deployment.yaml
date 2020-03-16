@@ -1,64 +1,41 @@
-############----INGRESS-TLS-SECRET----#########################
-# apiVersion: v1
-# kind: Secret
-# metadata:
-#   name: fyipe-secret
-# type: Opaque
-# data:
-#   tls.crt: {{ .Values.tls.crt }}
-#   tls.key: {{ .Values.tls.key }}
-
 ############----INGRESS---#####################################
-
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
   name: {{ printf "%s-%s" .Release.Name "ingress" }}
 spec:
-  tls:
-  - hosts:
-    - {{ .Values.domain }}
-    secretName: fyipe-secret
   rules:
-  - host: {{ printf "%s.%s" "accounts" .Values.domain }}
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: {{ printf "%s-%s" .Release.Name "accounts"  }}
-          servicePort: 80
-  - host: {{ printf "%s.%s" "api" .Values.domain }}
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: {{ printf "%s-%s" .Release.Name "backend"  }}
-          servicePort: 80
-  - host: {{ printf "%s.%s" "dashboard" .Values.domain }}
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: {{ printf "%s-%s" .Release.Name "dashboard"  }}
-          servicePort: 80
-  - host: {{ printf "%s.%s" "admin-dashboard" .Values.domain }}
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
-          servicePort: 80
-  - host: {{ printf "%s.%s" "status-page" .Values.domain }}
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: {{ printf "%s-%s" .Release.Name "status-page"  }}
-          servicePort: 80
-      
+    - host: fyipe.test
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "accounts"  }}
+              servicePort: {{ .Values.host.accountsServicePort }}
+          - path: /accounts
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "accounts"  }}
+              servicePort: {{ .Values.host.accountsServicePort }}
+          - path: /api
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "backend"  }}
+              servicePort: {{ .Values.host.backendServicePort }}
+          - path: /dashboard
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+              servicePort: {{ .Values.host.dashboardServicePort }}
+          - path: /admin-dashboard
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+              servicePort: {{ .Values.host.adminDashboardServicePort }}
+          - path: /status-page
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "status-page"  }}
+              servicePort: {{ .Values.host.statusPageServicePort }}
 
 ############-----DASHBOARD----#############################
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:

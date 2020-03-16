@@ -6,9 +6,7 @@ global:
   imageRepository: fyipeproject
   imagePullSecrets: []
 
-tls:
-  crt: nil
-  key: nil
+
 ## Values for Subcharts
 ##
 
@@ -41,7 +39,7 @@ mongodb:
     enabled: true
     name: rs0
     useHostnames: true
-    key: fyipe
+    key: mongodbfyipe
     secondary: 1
     arbiter: 1
   persistence:
@@ -50,7 +48,11 @@ mongodb:
     size: 20Gi
   useStatefulSet: true
   
-
+nginx-ingress-controller: 
+  defaultBackend: 
+    enabled: false
+  service:
+    type: LoadBalancer
 
 ## SMTP Settings to send email alerts to users
 ## If you use SendGrid, MailJet, AWS SES, or any other email management service
@@ -87,12 +89,17 @@ host:
   dashboardPort: 3000
   accountsPort: 3003
   adminDashboardPort: 3100
-  dashboardServicePort: 80
   backendServicePort: 80
   statusPageServicePort: 80
   dashboardServicePort: 80
   accountsServicePort: 80
   adminDashboardServicePort: 80
+  backendNodePort: 80
+  statusPageNodePort: 80
+  dashboardNodePort: 80
+  accountsNodePort: 80
+  adminDashboardNodePort: 80
+
 
 probes:
   probe1: 
@@ -132,7 +139,7 @@ replicaCount: 1
 ## For minikube, set this to NodePort, elsewhere use LoadBalancer or ClusterIP
 ##
 service:
-  type: LoadBalancer
+  type: ClusterIP
 
 ## Enable persistence using Persistent Volume Claims
 ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
