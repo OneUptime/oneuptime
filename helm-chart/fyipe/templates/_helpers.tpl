@@ -10,3 +10,7 @@ Expand the name of the chart.
 {{- define "fyipe.redisHost" -}}
 {{ printf "%s-redis-master.%s" .Release.Name "default.svc.cluster.local" }}
 {{- end -}}
+
+{{- define "fyipe.backendHost" -}}
+{{ printf "%s-backend.%s" .Release.Name "default.svc.cluster.local" }}
+{{- end -}}

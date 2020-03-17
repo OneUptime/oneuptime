@@ -1,12 +1,102 @@
+##################################################################################  
+## Important: If you're implenting this in the enterprise environment, this should always be `false`. 
+## Is this Fyipe SaaS service. This will deploy all the SaaS env vars
 
-## GLOBAL VALUES
+saas: 
+  isSaasService: false
+  stripe: 
+    publicKey: pk_live_j4tvMzviY2MUsRdWvDI8vN8B
+    privateKey: sk_live_ADLzzMrOCz0kyYTsxWatAqxh
+  airtable: 
+    key: keyenXfDDP4Dutazt
+    baseId: appff3DtEBUNxGN9W
+  amplitude: 
+    key: 802d95003af23aad17ed068b6cfdeb2b
+
+###################################################################################
+fyipe: 
+  emailEnabled: true
+  callEnabled: true
+  smsEnabled: true
+  clusterKey: test-cluster-key
+  twilio:
+    accountSid: 
+    authToken:
+    phoneNumber: 
+    verificationSid: 
+    twilioAlertLimit: 99999
+  smtpMail: 
+    email: 
+    password: 
+    fromName: Fyipe
+    smtpServer: 
+    smtpPort: 
+    smtpSecure: 
+
+host: 
+  backendPort: 3002
+  homePort: 
+  slackPort: 1267
+  statusPagePort: 3006
+  dashboardPort: 3000
+  accountsPort: 3003
+  apiDocsPort: 1445
+  adminDashboardPort: 3100
+  backendServicePort: 80
+  homeServicePort: 80
+  apiDocsServicePort: 80
+  slackServicePort: 80
+  statusPageServicePort: 80
+  dashboardServicePort: 80
+  accountsServicePort: 80
+  adminDashboardServicePort: 80
+  backendNodePort: 80
+  statusPageNodePort: 80
+  dashboardNodePort: 80
+  accountsNodePort: 80
+  adminDashboardNodePort: 80
+
+
+probes:
+  probe1: 
+    port: 3024
+    name: Probe 1
+    key: test-key
+    servicePort: 80
+  probe2: 
+    name: Probe 2
+    port: 3025
+    key: test-key
+    servicePort: 80
+
+rateLimitter:
+  enabled: false
+  requestLimit: 5000
+  requestLimitTimePeriodInMS: 216000
+
+encryption:
+  secret: 'sample-secret'
+
+## Fyipe official image version on Docker Hub
+## ref: https://hub.docker.com/u/fyipeproject
 ##
-global: 
-  imageRegistry: docker.io
-  imageRepository: fyipeproject
-  imagePullSecrets: []
+image:
+  registry: docker.io
+  repository: fyipeproject
+  tag: latest
+  pullPolicy: Always
+  restartPolicy: Always
 
+replicaCount: 1
 
+## Service Configuration
+## For minikube, set this to NodePort, elsewhere use LoadBalancer or ClusterIP
+##
+service:
+  type: ClusterIP
+
+##################################################################################
+## IMPORTANT: 
 ## Values for Subcharts
 ##
 
@@ -17,8 +107,7 @@ redis:
     repository: bitnami/redis
     tag: latest
     pullPolicy: Always
-  password: password
-  usePassword: true
+  usePassword: false
   persistence:
     enabled: true
     mountPath: /bitnami/mongodb
@@ -47,116 +136,5 @@ mongodb:
     mountPath: /bitnami/mongodb
     size: 20Gi
   useStatefulSet: true
-  
-nginx-ingress-controller: 
-  defaultBackend: 
-    enabled: false
-  service:
-    type: LoadBalancer
 
-## SMTP Settings to send email alerts to users
-## If you use SendGrid, MailJet, AWS SES, or any other email management service
-##
-smtpMail: 
-  email: 
-  password: 
-  fromName: Fyipe
-  smtpServer: 
-  smtpPort: 
-  smtpSecure: 
-
-twilio:
-  accountSid: 
-  authToken:
-  phoneNumber: 
-  verificationSid: 
-  twilioAlertLimit: 99999
-
-fyipe: 
-  emailEnabled: true
-  callEnabled: true
-  smsEnabled: true
-  clusterKey: test-cluster-key
-
-host: 
-  dashboard: https://dashboard.fyipe.com
-  accounts: https://accounts.fyipe.com
-  adminDashobard: https://admin-dashboard.fyipe.com
-  backend: https://api.fyipe.com
-  statuspage: https://status-page.fyipe.com
-  backendPort: 3002
-  statusPagePort: 3006
-  dashboardPort: 3000
-  accountsPort: 3003
-  adminDashboardPort: 3100
-  backendServicePort: 80
-  statusPageServicePort: 80
-  dashboardServicePort: 80
-  accountsServicePort: 80
-  adminDashboardServicePort: 80
-  backendNodePort: 80
-  statusPageNodePort: 80
-  dashboardNodePort: 80
-  accountsNodePort: 80
-  adminDashboardNodePort: 80
-
-
-probes:
-  probe1: 
-    port: 3024
-    name: Probe 1
-    key: test-key
-    servicePort: 80
-  probe2: 
-    name: Probe 2
-    port: 3025
-    key: test-key
-    servicePort: 80
-
-domain: fyipe.test
-
-rateLimitter:
-  enabled: false
-  requestLimit: 5000
-  requestLimitTimePeriodInMS: 216000
-
-encryption:
-  secret: 'sample-secret'
-
-## Fyipe official image version on Docker Hub
-## ref: https://hub.docker.com/u/fyipeproject
-##
-image:
-  registry: docker.io
-  repository: fyipeproject
-  tag: latest
-  pullPolicy: Always
-  restartPolicy: Always
-
-replicaCount: 1
-
-## Kubernetes configuration
-## For minikube, set this to NodePort, elsewhere use LoadBalancer or ClusterIP
-##
-service:
-  type: ClusterIP
-
-## Enable persistence using Persistent Volume Claims
-## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
-##
-persistence:
-  enabled: true
-  ## Fyipe data Persistent Volume Storage Class
-  ## If defined, storageClassName: <storageClass>
-  ## If set to "-", storageClassName: "", which disables dynamic provisioning
-  ## If undefined (the default) or set to null, no storageClassName spec is
-  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
-  ##   GKE, AWS & OpenStack)
-  ##
-  # storageClass: "-"
-  ##
-  ## If you want to reuse an existing claim, you can pass the name of the PVC using
-  ## the existingClaim variable
-  # existingClaim: your-claim
-  accessMode: ReadWriteOnce
-  size: 20Gi
+  ##################################################################################
