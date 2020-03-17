@@ -30,6 +30,20 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" .Release.Name "status-page"  }}
               servicePort: 80
+          {{- if .Values.saas.isSaasService }}
+          - path: /slack
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "slack"  }}
+              servicePort: 80
+          - path: /
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "home"  }}
+              servicePort: 80
+          - path: /docs
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "api-docs"  }}
+              servicePort: 80
+          {{- end }}
           
 ############-----DASHBOARD----#############################
 apiVersion: apps/v1
