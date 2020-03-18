@@ -41,5 +41,6 @@ build status-page
 build api-docs
 build probe
 build admin-dashboard
+build init-script
 
 cd $DIR
