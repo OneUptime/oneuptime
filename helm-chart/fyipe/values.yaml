@@ -3,7 +3,7 @@
 ## Is this Fyipe SaaS service. This will deploy all the SaaS env vars
 
 saas: 
-  isSaasService: false
+  isSaasService: true
   stripe: 
     publicKey: pk_live_j4tvMzviY2MUsRdWvDI8vN8B
     privateKey: sk_live_ADLzzMrOCz0kyYTsxWatAqxh
@@ -35,7 +35,7 @@ fyipe:
 
 host: 
   backendPort: 3002
-  homePort: 
+  homePort: 1444
   slackPort: 1267
   statusPagePort: 3006
   dashboardPort: 3000

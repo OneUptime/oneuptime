@@ -43,132 +43,129 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" .Release.Name "api-docs"  }}
               servicePort: 80
-          {{- end }}
-          
-############-----DASHBOARD----#############################
+          {{- end }}   
+---
+##################################
+
+########-PROBE-1-#################
+#Probe service and deployement
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "dashboard" }}
+        app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
+    replicas: 1 # THIS SHOULD STRICTLY BE 1
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+                app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "dashboard" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "probe" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
-                      - name: HOST
-                        value: {{ .Values.host.dashboard }}
-                      - name: ACCOUNTS_HOST
-                        value: {{ .Values.host.accounts }}
-                      - name: BACKEND_HOST
-                        value: {{ .Values.host.backend }}
-                      - name: DOMAIN
-                        value: {{ .Values.domain }}
+                      - name: SERVER_URL
+                        value: {{ template "fyipe.backendHost" . }}
+                      - name: PORT
+                        value: {{ .Values.probes.probe1.port | quote }}
+                      - name: PROBE_NAME
+                        value: {{ .Values.probes.probe1.name }}
+                      - name: PROBE_KEY
+                        value: {{ .Values.probes.probe1.key }}
+                      - name: CLUSTER_KEY
+                        value: {{ .Values.fyipe.clusterKey }}
                       {{- if .Values.saas.isSaasService }}
-                      - name: STRIPE_PUBLIC_KEY
-                        value: {{ .Values.saas.stripe.publicKey }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
-                      - name: AMPLITUDE_PUBLIC_KEY
-                        value: {{ .Values.saas.amplitide.key }}
                       {{- end }}
                   ports:
-                      - containerPort: {{ .Values.host.dashboardPort }}
-                        hostPort: {{ .Values.host.dashboardPort }}
-                        name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+                      - containerPort: {{ .Values.probes.probe1.port }}
+                        hostPort: {{ .Values.probes.probe1.port }}
+                        name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 
 ---
-# Fyipe Dashoard Service
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
-    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+        app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
+    name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
 spec:
     ports:
-        - port: {{ .Values.host.dashboardServicePort }}
-          targetPort: {{ .Values.host.dashboardPort }}
+        - port: {{ .Values.probes.probe1.servicePort }}
+          targetPort: {{ .Values.probes.probe1.port }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+        app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
     type: {{ .Values.service.type }}
 ---
-##########################################################
+###########################
 
-############-----ACCOUNTS----#############################
+########-PROBE-2-##########
+# Probe service and deployement
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+        app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "accounts"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
+    replicas: 1 # THIS SHOULD STRICTLY BE 1
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+                app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "accounts" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "probe" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
-                      - name: HOST
-                        value: {{ .Values.host.accounts }}
-                      - name: DASHBOARD_HOST
-                        value: {{ .Values.host.dashboard }}
-                      - name: BACKEND_HOST
-                        value: {{ .Values.host.backend }}
-                      - name: DOMAIN
-                        value: {{ .Values.domain }}
+                      - name: SERVER_URL
+                        value: {{ template "fyipe.backendHost" . }}
+                      - name: PORT
+                        value: {{ .Values.probes.probe2.port | quote }}
+                      - name: CLUSTER_KEY
+                        value: {{ .Values.fyipe.clusterKey }}
+                      - name: PROBE_NAME
+                        value: {{ .Values.probes.probe2.name }}
+                      - name: PROBE_KEY
+                        value: {{ .Values.probes.probe2.key }}
                       {{- if .Values.saas.isSaasService }}
-                      - name: STRIPE_PUBLIC_KEY
-                        value: {{ .Values.saas.stripe.publicKey }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
-                      - name: AMPLITUDE_PUBLIC_KEY
-                        value: {{ .Values.saas.amplitide.key }}
                       {{- end }}
                   ports:
-                      - containerPort: {{ .Values.host.accountsPort }}
-                        hostPort: {{ .Values.host.accountsPort }}
-                        name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+                      - containerPort:  {{ .Values.probes.probe2.port }}
+                        hostPort:  {{ .Values.probes.probe2.port }}
+                        name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 
 ---
-# Fyipe Accounts Service
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "accounts"  }}
-    name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+        app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
+    name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
 spec:
     ports:
-        - port: {{ .Values.host.accountsServicePort }}
-          targetPort: {{ .Values.host.accountsPort }}
+        - port: {{ .Values.probes.probe2.servicePort }}
+          targetPort:  {{ .Values.probes.probe2.port }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+        app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
     type: {{ .Values.service.type }}
 ---
-###########################################
-
+###########################
 ###########-----BACKEND------##############
 
 # Fyipe Backend Deployment
@@ -333,6 +330,131 @@ spec:
 ---
 ########################################
 
+############-----DASHBOARD----#############################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "dashboard" }}
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    replicas: {{ .Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "dashboard" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                      - name: HOST
+                        value: {{ .Values.host.dashboard }}
+                      - name: ACCOUNTS_HOST
+                        value: {{ .Values.host.accounts }}
+                      - name: BACKEND_HOST
+                        value: {{ .Values.host.backend }}
+                      - name: DOMAIN
+                        value: {{ .Values.domain }}
+                      {{- if .Values.saas.isSaasService }}
+                      - name: STRIPE_PUBLIC_KEY
+                        value: {{ .Values.saas.stripe.publicKey }}
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: AMPLITUDE_PUBLIC_KEY
+                        value: {{ .Values.saas.amplitude.key }}
+                      {{- end }}
+                  ports:
+                      - containerPort: {{ .Values.host.dashboardPort }}
+                        hostPort: {{ .Values.host.dashboardPort }}
+                        name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+
+---
+# Fyipe Dashoard Service
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+spec:
+    ports:
+        - port: {{ .Values.host.dashboardServicePort }}
+          targetPort: {{ .Values.host.dashboardPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    type: {{ .Values.service.type }}
+---
+##########################################################
+
+############-----ACCOUNTS----#############################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    replicas: {{ .Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "accounts" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                      - name: HOST
+                        value: {{ .Values.host.accounts }}
+                      - name: DASHBOARD_HOST
+                        value: {{ .Values.host.dashboard }}
+                      - name: BACKEND_HOST
+                        value: {{ .Values.host.backend }}
+                      - name: DOMAIN
+                        value: {{ .Values.domain }}
+                      {{- if .Values.saas.isSaasService }}
+                      - name: STRIPE_PUBLIC_KEY
+                        value: {{ .Values.saas.stripe.publicKey }}
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: AMPLITUDE_PUBLIC_KEY
+                        value: {{ .Values.saas.amplitude.key }}
+                      {{- end }}
+                  ports:
+                      - containerPort: {{ .Values.host.accountsPort }}
+                        hostPort: {{ .Values.host.accountsPort }}
+                        name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+
+---
+# Fyipe Accounts Service
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+spec:
+    ports:
+        - port: {{ .Values.host.accountsServicePort }}
+          targetPort: {{ .Values.host.accountsPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    type: {{ .Values.service.type }}
+---
+###########################################
+
+
 ############-ADMIN-DASHBOARD-#########
 apiVersion: apps/v1
 kind: Deployment
@@ -381,130 +503,7 @@ spec:
 ---
 ##################################
 
-########-PROBE-1-#################
-#Probe service and deployement
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-    name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
-    labels:
-        app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
-spec:
-    selector:
-        matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
-    replicas: 1 # THIS SHOULD STRICTLY BE 1
-    template:
-        metadata:
-            labels:
-                app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
-        spec:
-            containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "probe" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
-                  env:
-                      - name: SERVER_URL
-                        value: {{ template "fyipe.backendHost" . }}
-                      - name: PORT
-                        value: {{ .Values.probes.probe1.port | quote }}
-                      - name: PROBE_NAME
-                        value: {{ .Values.probes.probe1.name }}
-                      - name: PROBE_KEY
-                        value: {{ .Values.probes.probe1.key }}
-                      - name: CLUSTER_KEY
-                      value: {{ .Values.fyipe.clusterKey }}
-                      {{- if .Values.saas.isSaasService }}
-                      - name: IS_SAAS_SERVICE
-                        value: 'true'
-                      {{- end }}
-                  ports:
-                      - containerPort: {{ .Values.probes.probe1.port }}
-                        hostPort: {{ .Values.probes.probe1.port }}
-                        name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
-
----
-apiVersion: v1
-kind: Service
-metadata:
-    labels:
-        app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
-    name: {{ printf "%s-%s" .Release.Name "probe-1"  }}
-spec:
-    ports:
-        - port: {{ .Values.probes.probe1.servicePort }}
-          targetPort: {{ .Values.probes.probe1.port }}
-    selector:
-        app: {{ printf "%s-%s" .Release.Name "probe-1"  }}
-    type: {{ .Values.service.type }}
----
-###########################
-
-########-PROBE-2-##########
-# Probe service and deployement
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-    name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
-    labels:
-        app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
-spec:
-    selector:
-        matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
-    replicas: 1 # THIS SHOULD STRICTLY BE 1
-    template:
-        metadata:
-            labels:
-                app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
-        spec:
-            containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "probe" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
-                  env:
-                      - name: SERVER_URL
-                        value: {{ template "fyipe.backendHost" . }}
-                      - name: PORT
-                        value: {{ .Values.probes.probe2.port | quote }}
-                      - name: CLUSTER_KEY
-                        value: {{ .Values.fyipe.clusterKey }}
-                      - name: PROBE_NAME
-                        value: {{ .Values.probes.probe2.name }}
-                      - name: PROBE_KEY
-                        value: {{ .Values.probes.probe2.key }}
-                      {{- if .Values.saas.isSaasService }}
-                      - name: IS_SAAS_SERVICE
-                        value: 'true'
-                      {{- end }}
-                  ports:
-                      - containerPort:  {{ .Values.probes.probe2.port }}
-                        hostPort:  {{ .Values.probes.probe2.port }}
-                        name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
-
----
-apiVersion: v1
-kind: Service
-metadata:
-    labels:
-        app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
-    name: {{ printf "%s-%s" .Release.Name "probe-2"  }}
-spec:
-    ports:
-        - port: {{ .Values.probes.probe2.servicePort }}
-          targetPort:  {{ .Values.probes.probe2.port }}
-    selector:
-        app: {{ printf "%s-%s" .Release.Name "probe-2"  }}
-    type: {{ .Values.service.type }}
----
-###########################
-
 ########-INIT-SCRIPT-##########
-#########
-#UPDATE: Any update to this file should also be accompanied with ./init-script/production.yaml
-#########
 apiVersion: batch/v1
 kind: Job
 metadata:

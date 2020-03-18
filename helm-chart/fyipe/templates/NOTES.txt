@@ -67,10 +67,13 @@ you can enter that license key on your admin dashboard.
 Support and Demo
 ============================================
 
-**Demo:** 
+Demo:
 If you're looking for a personlized Fyipe demo. 
 Please email us at demo@fyipe.com to schedule one. 
 
-**Support and Help:** 
+Support and Help:
 If you're looking for help with anything,
-Please email us at support@fyipe.com and we'll get back to you in less than 1 business day.  
+Please email us at support@fyipe.com and we'll get back to you in less than 1 business day. 
+
+License and Sales: 
+Please contact sales@fyipe.com
