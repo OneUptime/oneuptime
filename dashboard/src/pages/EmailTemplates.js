@@ -7,7 +7,7 @@ import EmailTemplatesBox from '../components/emailTemplates/EmailTemplatesBox';
 import EmailSmtpBox from '../components/emailTemplates/EmailSmtpBox';
 import { getEmailTemplates, getSmtpConfig } from '../actions/emailTemplates';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class EmailTemplates extends Component {
     constructor(props) {
@@ -21,7 +21,7 @@ class EmailTemplates extends Component {
     };
 
     componentDidMount() {
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('EmailTemplates page Loaded');
         }
     }

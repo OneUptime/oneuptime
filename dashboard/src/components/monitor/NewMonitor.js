@@ -37,7 +37,7 @@ import AceEditor from 'react-ace';
 import 'brace/mode/javascript';
 import 'brace/theme/github';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 import Tooltip from '../basic/Tooltip';
 const selector = formValueSelector('NewMonitor');
 
@@ -278,7 +278,7 @@ class NewMonitor extends Component {
                         3
                     );
                 }
-                if (!IS_DEV) {
+                if (!SHOULD_LOG_ANALYTICS) {
                     logEvent('Monitor Edit', values);
                 }
             });
@@ -286,7 +286,7 @@ class NewMonitor extends Component {
             this.props.createMonitor(postObj.projectId, postObj).then(
                 () => {
                     thisObj.props.reset();
-                    if (!IS_DEV) {
+                    if (!SHOULD_LOG_ANALYTICS) {
                         logEvent('Add New Monitor', values);
                     }
                 },
@@ -336,7 +336,7 @@ class NewMonitor extends Component {
 
     cancelEdit = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Monitor Edit Cancelled', {});
         }
     };

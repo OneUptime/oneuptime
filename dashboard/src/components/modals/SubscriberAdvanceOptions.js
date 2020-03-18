@@ -8,7 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { updateSubscriberOption } from '../../actions/statusPage';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class SubscriberAdvanceOption extends React.Component {
     submitForm = values => {
@@ -27,7 +27,7 @@ class SubscriberAdvanceOption extends React.Component {
                     id: this.props.subscriberAdvanceOptionModalId,
                 });
             });
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Private StatusPage Updated', values);
         }
     };

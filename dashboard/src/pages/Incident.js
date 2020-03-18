@@ -26,7 +26,7 @@ import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
 import IncidentTimelineBox from '../components/incident/IncidentTimelineBox';
 import { getMonitorLogs } from '../actions/monitor';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -34,7 +34,7 @@ class Incident extends React.Component {
         this.props = props;
     }
     componentDidMount() {
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Incident Page Loaded');
         }
     }
@@ -44,7 +44,7 @@ class Incident extends React.Component {
             this.props.match.params.incidentId,
             note
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Internal Note Added', {
                 projectId: this.props.match.params.projectId,
                 incidentId: this.props.match.params.incidentId,
@@ -58,7 +58,7 @@ class Incident extends React.Component {
             this.props.match.params.incidentId,
             note
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Incident Note Added', {
                 projectId: this.props.match.params.projectId,
                 incidentId: this.props.match.params.incidentId,
@@ -73,7 +73,7 @@ class Incident extends React.Component {
             parseInt(this.props.skip, 10) + parseInt(this.props.limit, 10),
             parseInt(this.props.limit, 10)
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Next Incident Alert Requested', {
                 projectId: this.props.match.params.projectId,
                 incidentId: this.props.match.params.incidentId,
@@ -88,7 +88,7 @@ class Incident extends React.Component {
             parseInt(this.props.skip, 10) - parseInt(this.props.limit, 10),
             parseInt(this.props.limit, 10)
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Previous Incident Alert Requested', {
                 projectId: this.props.match.params.projectId,
                 incidentId: this.props.match.params.incidentId,
@@ -104,7 +104,7 @@ class Incident extends React.Component {
                 parseInt(this.props.incidentTimeline.limit, 10),
             parseInt(this.props.incidentTimeline.limit, 10)
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Next Incident Timeline Requested', {
                 projectId: this.props.match.params.projectId,
                 incidentId: this.props.match.params.incidentId,
@@ -120,7 +120,7 @@ class Incident extends React.Component {
                 parseInt(this.props.incidentTimeline.limit, 10),
             parseInt(this.props.incidentTimeline.limit, 10)
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Previous Incident Timeline Requested', {
                 projectId: this.props.match.params.projectId,
                 incidentId: this.props.match.params.incidentId,
@@ -136,7 +136,7 @@ class Incident extends React.Component {
                 parseInt(this.props.subscribersAlerts.limit, 10),
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Next Subscriber Alert Requested', {
                 projectId: this.props.match.params.projectId,
                 incidentId: this.props.match.params.incidentId,
@@ -152,7 +152,7 @@ class Incident extends React.Component {
                 parseInt(this.props.subscribersAlerts.limit, 10),
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Previous Subscriber Alert Requested', {
                 projectId: this.props.match.params.projectId,
                 incidentId: this.props.match.params.incidentId,
@@ -203,7 +203,7 @@ class Incident extends React.Component {
             null,
             this.props.match.params.incidentId
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Incident Page Ready, Data Requested', {
                 projectId: this.props.match.params.projectId,
                 incidentId: this.props.match.params.incidentId,

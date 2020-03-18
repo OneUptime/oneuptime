@@ -16,7 +16,7 @@ import projectTeamMemberNotification from './projectTeamMemberNotification.js';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class FormModal extends Component {
     constructor(props) {
@@ -66,7 +66,7 @@ export class FormModal extends Component {
                 }
             );
         }
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Team member invitation form', values);
         }
     };

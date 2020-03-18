@@ -28,7 +28,7 @@ import StatusIndicator from './StatusIndicator';
 import ProbeBar from './ProbeBar';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class MonitorDetail extends Component {
     constructor(props) {
@@ -100,7 +100,7 @@ export class MonitorDetail extends Component {
                 : 3,
             3
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Previous Incident Requested', {
                 ProjectId: this.props.monitor.projectId._id,
                 monitorId: this.props.monitor._id,
@@ -120,7 +120,7 @@ export class MonitorDetail extends Component {
                 : 3,
             3
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Next Incident Requested', {
                 ProjectId: this.props.monitor.projectId._id,
                 monitorId: this.props.monitor._id,
@@ -133,7 +133,7 @@ export class MonitorDetail extends Component {
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Edit Monitor Switch Clicked', {});
         }
     };

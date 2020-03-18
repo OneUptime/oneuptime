@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { User, IS_DEV, IS_SAAS_SERVICE } from '../../config';
+import { User, SHOULD_LOG_ANALYTICS, IS_SAAS_SERVICE } from '../../config';
 import { openModal, closeModal } from '../../actions/modal';
 import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
@@ -33,7 +33,7 @@ export class ProfileMenu extends Component {
         const values = { name: User.getName(), email: User.getEmail() };
         const { logoutUser } = this.props;
         logoutUser();
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('User Logged Out', values);
         }
     }

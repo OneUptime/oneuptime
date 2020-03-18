@@ -18,7 +18,7 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 export class OnCall extends Component {
     constructor(props) {
@@ -35,7 +35,7 @@ export class OnCall extends Component {
         if (subProjectSchedules.length === 0 && currentProjectId) {
             fetchSubProjectSchedules(currentProjectId);
         }
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Call Schedule Page Loaded');
         }
     }
@@ -63,7 +63,7 @@ export class OnCall extends Component {
             10
         );
         paginate('prev');
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous Webhook');
         }
     };
@@ -73,7 +73,7 @@ export class OnCall extends Component {
 
         fetchProjectSchedule(subProjectId, skip + limit, 10);
         paginate('next');
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Next Webhook');
         }
     };
@@ -86,7 +86,7 @@ export class OnCall extends Component {
                 `/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`
             );
         });
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('New Schedule Created', { subProjectId, name: 'Unnamed' });
         }
     };

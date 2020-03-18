@@ -11,7 +11,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -103,7 +103,7 @@ export class OnCallAlertBox extends Component {
         const { subProjectId, scheduleId } = this.props;
         await this.props.addEscalation(subProjectId, scheduleId, values);
         if (this.props.afterSave) this.props.afterSave();
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Links Updated', values);
         }
     };

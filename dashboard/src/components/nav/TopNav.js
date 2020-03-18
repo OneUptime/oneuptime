@@ -12,7 +12,7 @@ import { getVersion } from '../../actions/version';
 import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class TopContent extends Component {
     componentDidMount() {
@@ -23,28 +23,28 @@ class TopContent extends Component {
 
     showFeedbackModal = () => {
         this.props.openFeedbackModal();
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Feedback Modal Opened', {});
         }
     };
 
     hideFeedbackModal = () => {
         this.props.closeFeedbackModal();
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Feedback Modal Closed', {});
         }
     };
 
     showProfileMenu = e => {
         this.props.showProfileMenu(e.clientX);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Profile Menu Opened', {});
         }
     };
 
     showNotificationsMenu = e => {
         this.props.openNotificationMenu(e.clientX);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Notification Menu Opened', {});
         }
     };

@@ -11,18 +11,18 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import ShouldRender from '../components/basic/ShouldRender';
 import uuid from 'uuid';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class AlertLog extends Component {
     componentDidMount() {
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Alert Log Loaded');
         }
     }
 
     ready = () => {
         this.props.fetchAlert(this.props.currentProject._id);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Project Ready', {
                 projectId: this.props.currentProject._id,
             });
@@ -37,14 +37,14 @@ class AlertLog extends Component {
                 : 0,
             10
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous Alert');
         }
     };
 
     nextClicked = (projectId, skip, limit) => {
         this.props.fetchProjectAlert(projectId, skip + limit, 10);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Next Alert');
         }
     };

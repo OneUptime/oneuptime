@@ -8,7 +8,7 @@ import { getSlackTeams, paginate } from '../../actions/slack';
 import { OnCallTableHeader } from '../onCall/OnCallData';
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class SlackTeamList extends React.Component {
     ready() {
@@ -20,7 +20,7 @@ class SlackTeamList extends React.Component {
         if (teams.length === 0 && projectId) {
             getSlackTeams(projectId);
         }
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Call WebHook Integration Component Loaded');
         }
     }
@@ -47,7 +47,7 @@ class SlackTeamList extends React.Component {
             10
         );
         paginate('prev');
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous slack');
         }
     };
@@ -62,7 +62,7 @@ class SlackTeamList extends React.Component {
 
         getSlackTeams(projectId, skip + limit, 10);
         paginate('next');
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Next slack');
         }
     };

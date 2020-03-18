@@ -12,7 +12,7 @@ import { deleteMonitor } from '../../actions/monitor';
 import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class MonitorViewDeleteBox extends Component {
     constructor(props) {
@@ -28,7 +28,7 @@ export class MonitorViewDeleteBox extends Component {
             projectId
         );
         history.push(`/project/${this.props.currentProject._id}/monitoring`);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Monitor Deleted', {
                 ProjectId: this.props.currentProject._id,
                 monitorId: this.props.monitor._id,

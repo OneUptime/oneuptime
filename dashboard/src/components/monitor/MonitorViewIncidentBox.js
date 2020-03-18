@@ -12,7 +12,7 @@ import { openModal, closeModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import CreateManualIncident from '../modals/CreateManualIncident';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class MonitorViewIncidentBox extends Component {
     constructor(props) {
@@ -31,7 +31,7 @@ export class MonitorViewIncidentBox extends Component {
                 : 5,
             5
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Previous Incident Requested', {
                 projectId: this.props.monitor.projectId._id,
             });
@@ -47,7 +47,7 @@ export class MonitorViewIncidentBox extends Component {
                 : 5,
             5
         );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Next Incident Requested', {
                 projectId: this.props.monitor.projectId._id,
             });

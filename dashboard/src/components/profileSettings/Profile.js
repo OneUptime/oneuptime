@@ -36,7 +36,7 @@ import ReactPhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { User } from '../../config';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import TwoFactorAuthModal from '../modals/TwoFactorAuth';
@@ -137,7 +137,7 @@ export class ProfileSetting extends Component {
     };
 
     async componentDidMount() {
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Profile settings page Loaded');
         }
         await this.props.userSettings();
@@ -206,7 +206,7 @@ export class ProfileSetting extends Component {
         } catch (error) {
             return;
         }
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('New Profile Picture selected');
         }
     };
@@ -275,7 +275,7 @@ export class ProfileSetting extends Component {
         updateProfileSetting(values).then(function() {
             resetFile();
         });
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Update Profile', values);
         }
         User.setEmail(values.email);

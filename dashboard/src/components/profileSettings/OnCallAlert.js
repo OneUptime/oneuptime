@@ -21,7 +21,7 @@ export class OnCallAlertSetting extends Component {
         }, function () {
 
         });
-        if(!IS_DEV){
+        if(!SHOULD_LOG_ANALYTICS){
         logEvent('Update On Call Alert', alerts);
         }
     }

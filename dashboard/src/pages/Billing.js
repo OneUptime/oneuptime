@@ -8,7 +8,7 @@ import RenderIfOwner from '../components/basic/RenderIfOwner';
 import ChangePlan from '../components/settings/ChangePlan';
 import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class Billing extends Component {
     constructor(props) {
@@ -17,7 +17,7 @@ class Billing extends Component {
     }
 
     componentDidMount() {
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Billing page Loaded');
         }
     }

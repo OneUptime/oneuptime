@@ -10,7 +10,7 @@ import {
     showForm,
 } from '../../actions/project';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class ProjectSwitcher extends Component {
     constructor(props) {
@@ -34,7 +34,7 @@ export class ProjectSwitcher extends Component {
 
         if (project._id !== currentProject._id) {
             switchProject(dispatch, project);
-            if (!IS_DEV) {
+            if (!SHOULD_LOG_ANALYTICS) {
                 logEvent('Project Switched', project);
             }
         }

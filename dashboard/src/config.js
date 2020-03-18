@@ -7,12 +7,10 @@ import FileSaver from 'file-saver';
 import moment from 'moment';
 import { emaildomains } from './constants/emaildomains';
 
-let apiUrl = 'http://localhost:3002';
-let dashboardUrl = null;
-let accountsUrl = null;
+let apiUrl = window.location.origin+'/api';
+let dashboardUrl = window.location.origin+'/dashboard';
+let accountsUrl = window.location.origin+'/accounts';
 let domain = null;
-let developmentEnv = false;
-let isSaasService = false;
 
 export function env(value) {
     const { _env } = window;
@@ -22,29 +20,6 @@ export function env(value) {
     );
 }
 
-if (!isServer) {
-    if (window.location.href.indexOf('localhost') > -1) {
-        apiUrl = 'http://localhost:3002';
-        dashboardUrl = 'http://localhost:3000';
-        accountsUrl = 'http://localhost:3003';
-        developmentEnv = true;
-        domain = 'localhost';
-    } else if (env('BACKEND_HOST')) {
-        apiUrl = env('BACKEND_HOST');
-        dashboardUrl = env('HOST');
-        accountsUrl = env('ACCOUNTS_HOST');
-        domain = env('DOMAIN');
-        if (
-            apiUrl.indexOf('staging') > -1 ||
-            apiUrl.indexOf('app.local') > -1
-        ) {
-            developmentEnv = true;
-        }
-    }
-    if (env('IS_SAAS_SERVICE') === 'true') {
-        isSaasService = true;
-    }
-}
 
 export const API_URL = apiUrl;
 
@@ -52,11 +27,11 @@ export const DASHBOARD_URL = dashboardUrl;
 
 export const ACCOUNTS_URL = accountsUrl;
 
-export const DOMAIN_URL = domain;
+export const DOMAIN_URL = window.location.origin;
 
-export const IS_DEV = developmentEnv;
+export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');;
 
-export const IS_SAAS_SERVICE = isSaasService;
+export const IS_SAAS_SERVICE = !!env("IS_SAAS_SERVICE");
 
 export const User = {
     getAccessToken() {

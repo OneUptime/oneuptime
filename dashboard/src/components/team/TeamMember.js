@@ -21,7 +21,7 @@ import { history } from '../../store';
 
 import '@trendmicro/react-dropdown/dist/react-dropdown.css';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class TeamMember extends Component {
     constructor(props) {
@@ -46,7 +46,7 @@ export class TeamMember extends Component {
                 });
             } else return null;
         });
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Team Member Removed', {
                 projectId: this.props.subProjectId,
                 userId: values.userId,
@@ -66,7 +66,7 @@ export class TeamMember extends Component {
         this.props
             .teamUpdateRole(this.props.subProjectId, data)
             .then(team => changeProjectRoles(team.data));
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Team Member Role Changed', {
                 projectId: this.props.subProjectId,
                 role: data.role,

@@ -5,7 +5,7 @@ import Dashboard from '../components/Dashboard';
 import RenderIfAdmin from '../components/basic/RenderIfAdmin';
 import MonitorCategories from '../components/settings/MonitorCategories';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class Monitors extends Component {
     constructor(props) {
@@ -14,7 +14,7 @@ class Monitors extends Component {
     }
 
     componentDidMount() {
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Monitors page Loaded');
         }
     }

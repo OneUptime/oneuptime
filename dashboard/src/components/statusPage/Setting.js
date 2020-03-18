@@ -17,7 +17,7 @@ import PropTypes from 'prop-types';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -43,7 +43,7 @@ export class Setting extends Component {
                 },
                 function() {}
             );
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Domain Updated', values);
         }
     };

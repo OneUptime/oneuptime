@@ -13,7 +13,7 @@ import Cookies from 'universal-cookie';
 import 'font-awesome/css/font-awesome.min.css';
 import { loadPage } from './actions/page';
 import { setUserId, setUserProperties, identify, logEvent } from './analytics';
-import { IS_DEV } from './config';
+import { SHOULD_LOG_ANALYTICS } from './config';
 
 if (!isServer) {
     history.listen(location => {
@@ -31,7 +31,7 @@ if (userData !== undefined) {
     User.setEmail(userData.email);
     User.setName(userData.name);
     User.setCardRegistered(userData.cardRegistered);
-    if (!IS_DEV) {
+    if (!SHOULD_LOG_ANALYTICS) {
         setUserId(userData.id);
         identify(userData.id);
         setUserProperties({
@@ -49,7 +49,7 @@ if (!User.isLoggedIn()) {
     store.dispatch(loadPage('Home'));
 } else {
     const id = User.getUserId();
-    if (!IS_DEV) {
+    if (!SHOULD_LOG_ANALYTICS) {
         setUserId(id);
     }
 }

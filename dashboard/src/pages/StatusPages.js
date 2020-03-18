@@ -7,11 +7,11 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class StatusPage extends Component {
     componentDidMount() {
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Settings Loaded');
         }
     }

@@ -3,7 +3,7 @@ import Dashboard from '../components/Dashboard';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import ZapierBox from '../components/zapier/ZapierBox';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class Integrations extends Component {
     constructor(props) {
@@ -12,7 +12,7 @@ class Integrations extends Component {
     }
 
     componentDidMount() {
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Integration page Loaded');
         }
     }

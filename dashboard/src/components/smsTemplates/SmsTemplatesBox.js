@@ -13,7 +13,7 @@ import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
 import { RenderSelect } from '../basic/RenderSelect';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class SmsTemplatesBox extends React.Component {
     submitForm = values => {
@@ -27,7 +27,7 @@ class SmsTemplatesBox extends React.Component {
             }
         });
         this.props.editSmsTemplates(currentProject._id, val);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('SMS Templates Updated');
         }
     };
@@ -35,7 +35,7 @@ class SmsTemplatesBox extends React.Component {
     resetTemplate = templateId => {
         const { currentProject } = this.props;
         this.props.resetSmsTemplates(currentProject._id, templateId);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('SMS Templates Reset');
         }
     };

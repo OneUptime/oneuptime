@@ -15,7 +15,7 @@ import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin
 import { LoadingState } from '../components/basic/Loader';
 import PropTypes from 'prop-types';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import { history } from '../store';
 import {
     fetchSubProjectStatusPages,
@@ -51,7 +51,7 @@ class StatusPage extends Component {
                 });
             }
         }
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Settings Loaded');
         }
     }

@@ -9,7 +9,7 @@ import { renameProject } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 function validate(value) {
     const errors = {};
@@ -33,7 +33,7 @@ export class ProjectSettings extends Component {
                         document.title = val.data.name + ' Dashboard';
                     }
                 });
-            if (!IS_DEV) {
+            if (!SHOULD_LOG_ANALYTICS) {
                 logEvent('Rename Project', values);
             }
         }

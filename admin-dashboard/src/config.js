@@ -25,7 +25,7 @@ export const ACCOUNTS_URL = accountsUrl;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
-export const IS_SAAS_SERVICE = env("IS_SAAS_SERVICE");
+export const IS_SAAS_SERVICE = !!env("IS_SAAS_SERVICE");
 
 export const User = {
     getAccessToken() {

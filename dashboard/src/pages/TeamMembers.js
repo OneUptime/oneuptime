@@ -17,7 +17,7 @@ import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import ShouldRender from '../components/basic/ShouldRender';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import { history } from '../store';
 
 const LoadingState = () => (
@@ -226,7 +226,7 @@ class TeamApp extends Component {
         } else {
             this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Team members page Loaded');
         }
     }

@@ -8,7 +8,7 @@ import { RenderTextArea } from './basic/RenderTextArea';
 import { reset } from 'redux-form';
 import PropTypes from 'prop-types';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 export class FeedbackModal extends Component {
     submitForm = values => {
@@ -26,7 +26,7 @@ export class FeedbackModal extends Component {
                     function() {}
                 );
 
-            if (!IS_DEV) {
+            if (!SHOULD_LOG_ANALYTICS) {
                 logEvent('Feedback Values', values);
             }
             this.props.closeFeedbackModal();

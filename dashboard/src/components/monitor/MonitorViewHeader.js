@@ -25,7 +25,7 @@ import { history } from '../../store';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class MonitorViewHeader extends Component {
     constructor(props) {
@@ -79,7 +79,7 @@ export class MonitorViewHeader extends Component {
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Edit Monitor Switch Clicked', {});
         }
     };
@@ -90,7 +90,7 @@ export class MonitorViewHeader extends Component {
             this.props.monitor.projectId._id || this.props.monitor.projectId
         );
         history.push(`/project/${this.props.currentProject._id}/monitoring`);
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Monitor Deleted', {
                 ProjectId: this.props.currentProject._id,
                 monitorId: this.props.monitor._id,

@@ -12,7 +12,7 @@ import PropTypes from 'prop-types';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 function validate(value) {
     const errors = {};
@@ -26,7 +26,7 @@ function validate(value) {
 
 export class RenameScheduleBox extends Component {
     componentDidMount() {
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent('Schedule settings page Loaded');
         }
     }
@@ -38,7 +38,7 @@ export class RenameScheduleBox extends Component {
 
         if (scheduleName) {
             renameSchedule(subProjectId, scheduleId, scheduleName);
-            if (!IS_DEV) {
+            if (!SHOULD_LOG_ANALYTICS) {
                 logEvent('Rename Schedule', values);
             }
         }
