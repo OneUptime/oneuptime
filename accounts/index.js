@@ -34,7 +34,7 @@ app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-const PORT = 3003;
+const PORT = process.env.PORT || 3003;
 /* eslint-disable no-console */
 console.log(`This project is running on port ${PORT}`);
 app.listen(PORT);

@@ -2,15 +2,11 @@ import React from 'react';
 import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
-import { isServer } from './store';
 import FileSaver from 'file-saver';
 
-let apiUrl = 'http://localhost:3002';
-let dashboardUrl = null;
-let accountsUrl = null;
-let domain = null;
-let adminDashboardUrl = null;
-let isSaasService = false;
+let apiUrl = window.location.origin+'/api';
+let dashboardUrl = window.location.origin+'/dashboard';
+let adminDashboardUrl = window.location.origin+'/admin';
 
 export function env(value) {
     const { _env } = window;
@@ -20,28 +16,6 @@ export function env(value) {
     );
 }
 
-if (!isServer) {
-    if (window.location.href.indexOf('localhost') > -1) {
-        apiUrl = 'http://localhost:3002';
-        dashboardUrl = 'http://localhost:3000';
-        accountsUrl = 'http://localhost:3003';
-        domain = 'localhost';
-        adminDashboardUrl = 'http://localhost:3100';
-    } else if (window.location.href.indexOf('staging') > -1) {
-        apiUrl = 'https://staging-api.fyipe.com';
-        dashboardUrl = 'http://staging-dashboard.fyipe.com';
-        accountsUrl = 'http://staging-accounts.fyipe.com';
-        domain = 'fyipe.com';
-    } else {
-        apiUrl = 'https://api.fyipe.com';
-        dashboardUrl = 'https://fyipe.com';
-        accountsUrl = 'https://accounts.fyipe.com';
-        domain = 'fyipe.com';
-    }
-    if (env('IS_SAAS_SERVICE') === 'true') {
-        isSaasService = true;
-    }
-}
 
 export const API_URL = apiUrl;
 
@@ -49,11 +23,9 @@ export const DASHBOARD_URL = dashboardUrl;
 
 export const ACCOUNTS_URL = accountsUrl;
 
-export const DOMAIN_URL = domain;
-
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
-export const IS_SAAS_SERVICE = isSaasService;
+export const IS_SAAS_SERVICE = env("IS_SAAS_SERVICE");
 
 export const User = {
     getAccessToken() {

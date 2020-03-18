@@ -8,7 +8,7 @@ import { bindActionCreators } from 'redux';
 import { RenderField } from '../components/basic/RenderField';
 import { Link } from 'react-router-dom';
 import { identify, setUserId, logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 const errorStyle = { color: '#c23d4b' };
 
@@ -26,7 +26,7 @@ export class VerifyAuthToken extends Component {
     submitForm = values => {
         this.props.verifyAuthToken(values).then(user => {
             if (user && user.data && user.data.id) {
-                if (!IS_DEV) {
+                if (!SHOULD_LOG_ANALYTICS) {
                     identify(user.data.id);
                     setUserId(user.data.id);
                     logEvent('Log in user', { id: user.data.id });

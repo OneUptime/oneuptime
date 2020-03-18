@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import NotFound from './components/404';
 import BackboneModals from './containers/BackboneModals';
-import { User, DASHBOARD_URL, DOMAIN_URL } from './config';
+import { User, DASHBOARD_URL } from './config';
 import queryString from 'query-string';
 import ReactGA from 'react-ga';
 import Cookies from 'universal-cookie';
@@ -27,7 +27,7 @@ const statusPageLogin = queryString.parse(window.location.search).statusPage;
 const statusPageURL = queryString.parse(window.location.search).statusPageURL;
 
 if (logoutData && User.isLoggedIn()) {
-    cookies.remove('logoutData', { domain: DOMAIN_URL });
+    cookies.remove('logoutData', { domain: window.location.hostname });
     localStorage.clear();
 } else if (!statusPageLogin && !logoutData && User.isLoggedIn()) {
     window.location = DASHBOARD_URL;

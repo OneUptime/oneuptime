@@ -2,15 +2,12 @@ import React from 'react';
 import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
-import { isServer } from './store';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
 
-let apiUrl = 'http://localhost:3002';
-let dashboardUrl = null;
-let domain = null;
-let adminDashboardUrl = null;
-let developmentEnv = false;
+let apiUrl = window.location.origin+'/api';
+let dashboardUrl = window.location.origin+'/dashboard';
+let adminDashboardUrl = window.location.origin+'/admin';
 
 export function env(value) {
     const { _env } = window;
@@ -20,35 +17,13 @@ export function env(value) {
     );
 }
 
-if (!isServer) {
-    if (window.location.href.indexOf('localhost') > -1) {
-        apiUrl = 'http://localhost:3002';
-        dashboardUrl = 'http://localhost:3000';
-        domain = 'localhost';
-        adminDashboardUrl = 'http://localhost:3100';
-        developmentEnv = true;
-    } else if (env('BACKEND_HOST')) {
-        apiUrl = env('BACKEND_HOST');
-        dashboardUrl = env('DASHBOARD_HOST');
-        domain = env('DOMAIN');
-        if (
-            apiUrl.indexOf('staging') > -1 ||
-            apiUrl.indexOf('app.local') > -1
-        ) {
-            developmentEnv = true;
-        }
-    }
-}
-
 export const API_URL = apiUrl;
 
 export const DASHBOARD_URL = dashboardUrl;
 
-export const DOMAIN_URL = domain;
-
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
-export const IS_DEV = developmentEnv;
+export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 
 export const User = {
     getAccessToken() {

@@ -9,7 +9,7 @@ import { ButtonSpinner } from '../basic/Loader.js';
 import { removeQuery } from '../../store';
 import queryString from 'query-string';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class UserForm extends Component {
     state = {
@@ -43,7 +43,7 @@ class UserForm extends Component {
                     return obj;
                 }, {});
 
-        if (!IS_DEV) {
+        if (!SHOULD_LOG_ANALYTICS) {
             logEvent(`Register page click on # ${target.id}`, {
                 data: filteredValues,
             });

@@ -7,7 +7,7 @@ import LoginForm from '../components/auth/LoginForm';
 import { loginUser, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
 import { identify, setUserId, logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import { history } from '../store';
 
 class LoginPage extends React.Component {
@@ -24,7 +24,7 @@ class LoginPage extends React.Component {
     submitHandler = values => {
         this.props.loginUser(values).then(user => {
             if (user && user.data && user.data.id) {
-                if (!IS_DEV) {
+                if (!SHOULD_LOG_ANALYTICS) {
                     identify(user.data.id);
                     setUserId(user.data.id);
                     logEvent('Log in user', { id: user.data.id });

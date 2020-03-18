@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class ErrorBoundary extends Component {
     constructor(props) {
@@ -14,7 +14,7 @@ class ErrorBoundary extends Component {
         this.setState({ hasError: true });
         // You can also log the error to an error reporting service
         try {
-            if (!IS_DEV) {
+            if (!SHOULD_LOG_ANALYTICS) {
                 logEvent('Error', { error, info });
             }
         } catch (error) {
