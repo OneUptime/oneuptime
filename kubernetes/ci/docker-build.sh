@@ -26,7 +26,7 @@ FYIPE_DIR="$DIR/.."
 
 function build {
   cd $1
-  sudo docker build -t fyipeproject:32000/$1:test .
+  sudo docker build -t fyipeproject/$1:test .
   sudo docker push fyipeproject/$1:test
   cd ..
 }
