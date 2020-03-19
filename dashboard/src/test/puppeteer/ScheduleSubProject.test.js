@@ -12,19 +12,21 @@ const subProjectMonitorName = utils.generateRandomString();
 const newEmail = utils.generateRandomBusinessEmail();
 const newPassword = '1234567890';
 const subProjectName = utils.generateRandomString();
+const componentName = utils.generateRandomString();
 
 describe('Schedule API With SubProjects', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = 500000;
 
-    beforeAll(async done => {
+    let cluster;
+    beforeAll(async () => {
         jest.setTimeout(200000);
 
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_CONTEXT,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             maxConcurrency: 2,
             puppeteer,
-            timeout: 120000,
+            timeout: utils.timeout,
         });
 
         cluster.on('taskerror', err => {
@@ -32,14 +34,15 @@ describe('Schedule API With SubProjects', () => {
         });
 
         // Register user
-        await cluster.task(async ({ page, data }) => {
+        const task = async ({ page, data }) => {
+            await page.setDefaultTimeout(utils.timeout);
             const user = {
                 email: data.email,
                 password: data.password,
             };
 
             // user
-            await init.registerUser(user, page);
+            await init.registerUser(user, page, data.isParentUser);
             await init.loginUser(user, page);
 
             if (data.isParentUser) {
@@ -47,6 +50,12 @@ describe('Schedule API With SubProjects', () => {
                 await init.renameProject(data.projectName, page);
                 // add sub-project
                 await init.addSubProject(data.subProjectName, page);
+                // Create Component
+                await init.addComponent(
+                    componentName,
+                    page,
+                    data.subProjectName
+                );
                 // add new user to sub-project
                 await init.addUserToProject(
                     {
@@ -56,158 +65,129 @@ describe('Schedule API With SubProjects', () => {
                     },
                     page
                 );
+                // Navigate to details page of component created
+                await init.navigateToComponentDetails(componentName, page);
                 // add new monitor to sub-project
                 await init.addMonitorToSubProject(
                     data.subProjectMonitorName,
                     data.subProjectName,
+                    componentName,
                     page
                 );
             }
-        });
+        };
 
-        await cluster.queue({
-            projectName,
-            subProjectName,
-            email,
-            password,
-            newEmail,
-            subProjectMonitorName,
-            isParentUser: true,
-        });
-        await cluster.queue({
-            projectName,
-            subProjectName,
-            email: newEmail,
-            password: newPassword,
-            isParentUser: false,
-        });
+        await cluster.execute(
+            {
+                projectName,
+                subProjectName,
+                email,
+                password,
+                newEmail,
+                subProjectMonitorName,
+                isParentUser: true,
+            },
+            task
+        );
 
-        await cluster.idle();
-        await cluster.close();
-        done();
+        await cluster.execute(
+            {
+                projectName,
+                subProjectName,
+                email: newEmail,
+                password: newPassword,
+                isParentUser: false,
+            },
+            task
+        );
     });
 
-    afterAll(async done => {
-        done();
+    afterAll(async () => {
+        await cluster.idle();
+        await cluster.close();
     });
 
     test(
         'should not display create schedule button for subproject `member` role.',
-        async done => {
+        async () => {
             expect.assertions(1);
+            await cluster.execute(
+                {
+                    email: newEmail,
+                    password: newPassword,
+                    projectName,
+                    subProjectName,
+                },
+                async ({ page, data }) => {
+                    await page.setDefaultTimeout(utils.timeout);
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
 
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
+                    await init.loginUser(user, page);
+                    // switch to invited project for new user
+                    // await init.switchProject(data.projectName, page);
 
-            cluster.on('taskerror', err => {
-                throw err;
-            });
+                    await page.waitForSelector('#callSchedules');
+                    await page.click('#callSchedules');
 
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
+                    const createButton = await page.$(
+                        `#btnCreateSchedule_${data.subProjectName}`
+                    );
 
-                await init.loginUser(user, page);
-                // switch to invited project for new user
-                await init.switchProject(data.projectName, page);
-
-                await page.waitForSelector('#callSchedules > a');
-                await page.click('#callSchedules > a');
-
-                const createButton = await page.$(
-                    `#btnCreateSchedule_${data.subProjectName}`
-                );
-
-                expect(createButton).toBe(null);
-            });
-
-            cluster.queue({
-                email: newEmail,
-                password: newPassword,
-                projectName,
-                subProjectName,
-            });
-            await cluster.idle();
-            await cluster.close();
-            done();
+                    expect(createButton).toBe(null);
+                }
+            );
         },
         operationTimeOut
     );
 
     test(
         'should create a schedule in sub-project for sub-project `admin`',
-        async done => {
+        async () => {
             expect.assertions(1);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
             const scheduleName = utils.generateRandomString();
 
-            cluster.on('taskerror', err => {
-                throw err;
-            });
+            await cluster.execute(
+                { email, password, subProjectName, scheduleName },
+                async ({ page, data }) => {
+                    await page.setDefaultTimeout(utils.timeout);
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
 
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
+                    await init.loginUser(user, page);
+                    await init.addScheduleToProject(
+                        data.scheduleName,
+                        data.subProjectName,
+                        page
+                    );
+                    await page.waitFor(2000);
+                    await page.waitForSelector(
+                        `#schedule_count_${data.subProjectName}`
+                    );
 
-                await init.loginUser(user, page);
-                await init.addScheduleToProject(
-                    data.scheduleName,
-                    data.subProjectName,
-                    page
-                );
-                await page.waitForSelector(
-                    `#schedule_count_${data.subProjectName}`
-                );
+                    const scheduleCountSelector = await page.$(
+                        `#schedule_count_${data.subProjectName}`
+                    );
+                    let textContent = await scheduleCountSelector.getProperty(
+                        'innerText'
+                    );
 
-                const scheduleCountSelector = await page.$(
-                    `#schedule_count_${data.subProjectName}`
-                );
-                let textContent = await scheduleCountSelector.getProperty(
-                    'innerText'
-                );
-
-                textContent = await textContent.jsonValue();
-                expect(textContent).toEqual('1 schedule');
-            });
-
-            cluster.queue({ email, password, subProjectName, scheduleName });
-            await cluster.idle();
-            await cluster.close();
-            done();
+                    textContent = await textContent.jsonValue();
+                    expect(textContent).toEqual('1 schedule');
+                }
+            );
         },
         operationTimeOut
     );
 
-    test('should get list schedules in sub-projects and paginate schedules in sub-project', async done => {
+    test('should get list schedules in sub-projects and paginate schedules in sub-project', async () => {
         expect.assertions(3);
-
-        const cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_CONTEXT,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 150000,
-            maxConcurrency: 2,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        await cluster.task(async ({ page, data }) => {
+        const fn = async ({ page, data }) => {
+            await page.setDefaultTimeout(utils.timeout);
             const user = {
                 email: data.email,
                 password: data.password,
@@ -218,19 +198,19 @@ describe('Schedule API With SubProjects', () => {
                 // add 10 more schedules to sub-project to test for pagination
                 for (let i = 0; i < 10; i++) {
                     const scheduleName = utils.generateRandomString();
-
                     await init.addScheduleToProject(
                         scheduleName,
                         data.subProjectName,
                         page
                     );
+                    await page.waitFor(1000);
                 }
             } else {
-                await cluster.waitForOne();
-                // switch to invited project for new user
-                await init.switchProject(data.projectName, page);
-                await page.waitForSelector('#callSchedules > a');
-                await page.click('#callSchedules > a');
+                // await cluster.waitForOne();
+                // // switch to invited project for new user
+                // await init.switchProject(data.projectName, page);
+                await page.waitForSelector('#callSchedules');
+                await page.click('#callSchedules');
                 await page.waitFor(3000);
 
                 let scheduleRows = await page.$$('tr.scheduleListItem');
@@ -254,132 +234,107 @@ describe('Schedule API With SubProjects', () => {
                 countSchedules = scheduleRows.length;
                 expect(countSchedules).toEqual(10);
             }
-        });
+        };
 
-        cluster.queue({ email, password, subProjectName, isParentUser: true });
-        cluster.queue({
-            email: newEmail,
-            password: newPassword,
-            projectName,
-            isParentUser: false,
-        });
-
-        await cluster.idle();
-        await cluster.close();
-        done();
+        await cluster.execute(
+            { email, password, subProjectName, isParentUser: true },
+            fn
+        );
+        await cluster.execute(
+            {
+                email: newEmail,
+                password: newPassword,
+                projectName,
+                isParentUser: false,
+            },
+            fn
+        );
     }, 200000);
 
     test(
         'should add monitor to sub-project schedule',
-        async done => {
+        async () => {
             expect.assertions(1);
+            await cluster.execute(
+                {
+                    email,
+                    password,
+                    projectName,
+                    subProjectMonitorName,
+                },
+                async ({ page, data }) => {
+                    await page.setDefaultTimeout(utils.timeout);
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
 
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 50000,
-            });
+                    await init.loginUser(user, page);
+                    await page.waitForSelector('#callSchedules');
+                    await page.click('#callSchedules');
+                    await page.waitForSelector('tr.scheduleListItem');
+                    await page.click('tr.scheduleListItem');
+                    await page.waitForSelector(
+                        `span[title="${data.subProjectMonitorName}"]`
+                    );
+                    await page.click(
+                        `span[title="${data.subProjectMonitorName}"]`
+                    );
+                    await page.waitForSelector('#btnSaveMonitors');
+                    await page.click('#btnSaveMonitors');
+                    await page.waitFor(5000);
 
-            cluster.on('taskerror', err => {
-                throw err;
-            });
+                    const monitorSelectValue = await page.$eval(
+                        'input[type=checkbox]',
+                        el => el.value
+                    );
 
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#callSchedules > a');
-                await page.click('#callSchedules > a');
-                await page.waitFor(3000);
-                await page.waitForSelector('tr.scheduleListItem');
-                await page.click('tr.scheduleListItem');
-                await page.waitFor(5000);
-                await page.waitForSelector(
-                    `span[title="${data.subProjectMonitorName}"]`
-                );
-                await page.click(`span[title="${data.subProjectMonitorName}"]`);
-                await page.waitForSelector('#btnSaveMonitors');
-                await page.click('#btnSaveMonitors');
-                await page.waitFor(5000);
-
-                const monitorSelectValue = await page.$eval(
-                    'input[type=checkbox]',
-                    el => el.value
-                );
-
-                expect(monitorSelectValue).toBe('true');
-            });
-
-            cluster.queue({
-                email,
-                password,
-                projectName,
-                subProjectMonitorName,
-            });
-            await cluster.idle();
-            await cluster.close();
-            done();
+                    expect(monitorSelectValue).toBe('true');
+                }
+            );
         },
         operationTimeOut
     );
 
     test(
         'should delete sub-project schedule',
-        async done => {
+        async () => {
             expect.assertions(1);
+            await cluster.execute(
+                {
+                    email,
+                    password,
+                    projectName,
+                    subProjectMonitorName,
+                },
+                async ({ page, data }) => {
+                    await page.setDefaultTimeout(utils.timeout);
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
 
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 60000,
-            });
+                    await init.loginUser(user, page);
+                    await page.waitForSelector('#callSchedules');
+                    await page.click('#callSchedules');
+                    await page.waitForSelector('tr.scheduleListItem');
+                    await page.click('tr.scheduleListItem');
+                    await page.waitForSelector('#delete');
+                    await page.click('#delete');
+                    await page.waitForSelector('#confirmDelete');
+                    await page.click('#confirmDelete');
+                    await page.waitFor(2000);
 
-            cluster.on('taskerror', err => {
-                throw err;
-            });
+                    await page.waitForSelector('#callSchedules');
+                    await page.click('#callSchedules');
+                    await page.waitForSelector('tr.scheduleListItem');
 
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
+                    const scheduleRows = await page.$$('tr.scheduleListItem');
+                    const countSchedules = scheduleRows.length;
 
-                await init.loginUser(user, page);
-                await page.waitForSelector('#callSchedules > a');
-                await page.click('#callSchedules > a');
-                await page.waitFor(3000);
-                await page.waitForSelector('tr.scheduleListItem');
-                await page.click('tr.scheduleListItem');
-                await page.waitFor(5000);
-                await page.waitForSelector('#delete');
-                await page.click('#delete');
-                await page.waitForSelector('#confirmDelete');
-                await page.click('#confirmDelete');
-                await page.waitFor(5000);
-                await page.waitForSelector('#callSchedules > a');
-                await page.click('#callSchedules > a');
-                await page.waitFor(3000);
-
-                const scheduleRows = await page.$$('tr.scheduleListItem');
-                const countSchedules = scheduleRows.length;
-
-                expect(countSchedules).toEqual(10);
-            });
-
-            cluster.queue({
-                email,
-                password,
-                projectName,
-                subProjectMonitorName,
-            });
-            await cluster.idle();
-            await cluster.close();
-            done();
+                    expect(countSchedules).toEqual(10);
+                }
+            );
         },
         operationTimeOut
     );

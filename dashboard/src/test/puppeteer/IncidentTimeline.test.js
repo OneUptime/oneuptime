@@ -9,20 +9,23 @@ const password = '1234567890';
 
 const projectName = utils.generateRandomString();
 const projectMonitorName = utils.generateRandomString();
+const componentName = utils.generateRandomString();
 
 const bodyText = utils.generateRandomString();
 
 describe('Incident Timeline API', () => {
     const operationTimeOut = 500000;
 
-    beforeAll(async done => {
+    let cluster;
+
+    beforeAll(async () => {
         jest.setTimeout(360000);
 
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 120000,
+            timeout: 500000,
         });
 
         cluster.on('taskerror', err => {
@@ -30,68 +33,49 @@ describe('Incident Timeline API', () => {
         });
 
         // Register user
-        await cluster.task(async ({ page, data }) => {
+        await cluster.execute(null, async ({ page }) => {
             const user = {
-                email: data.email,
-                password: data.password,
+                email,
+                password,
             };
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
 
             // rename default project
-            await init.renameProject(data.projectName, page);
+            await init.renameProject(projectName, page);
+
+            // Create component
+            await init.addComponent(componentName, page);
+            await init.navigateToComponentDetails(componentName, page);
 
             // add new monitor to project
             await page.reload({ waitUntil: 'domcontentloaded' });
             await page.waitForSelector('#monitors');
             await page.click('#monitors');
-            await page.waitForSelector('#frmNewMonitor');
+            await page.waitForSelector('#form-new-monitor');
             await page.click('input[id=name]');
-            await page.type('input[id=name]', data.projectMonitorName);
+            await page.type('input[id=name]', projectMonitorName);
             await init.selectByText('#type', 'url', page);
             await page.waitForSelector('#url');
             await page.click('#url');
             await page.type('#url', utils.HTTP_TEST_SERVER_URL);
             await page.click('button[type=submit]');
-            await page.waitFor(5000);
+            await page.waitFor(2000);
         });
-
-        await cluster.queue({
-            email,
-            password,
-            projectMonitorName,
-            projectName,
-        });
-        await cluster.idle();
-        await cluster.close();
-        done();
     });
 
-    afterAll(async done => {
-        done();
+    afterAll(async () => {
+        await cluster.idle();
+        await cluster.close();
     });
 
     test(
         'should create incident in project with multi-probes and add to incident timeline',
-        async done => {
+        async () => {
             expect.assertions(2);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 360000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            const testServer = async ({ page, data }) => {
-                await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
-                    waitUntil: 'networkidle2',
-                });
+            const testServer = async ({ page }) => {
+                await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
                 await page.evaluate(
                     () => (document.getElementById('responseTime').value = '')
                 );
@@ -112,22 +96,19 @@ describe('Incident Timeline API', () => {
                 await page.click('textarea[name=body]');
                 await page.type(
                     'textarea[name=body]',
-                    `<h1 id="html"><span>${data.bodyText}</span></h1>`
+                    `<h1 id="html"><span>${bodyText}</span></h1>`
                 );
                 await page.click('button[type=submit]');
                 await page.waitForSelector('#save-btn');
             };
 
-            const dashboard = async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-                await init.loginUser(user, page);
-
+            const dashboard = async ({ page }) => {
                 await page.waitFor(300000);
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
 
                 await page.waitForSelector('#incident_span_0');
+
                 const incidentTitleSelector = await page.$('#incident_span_0');
 
                 let textContent = await incidentTitleSelector.getProperty(
@@ -138,47 +119,28 @@ describe('Incident Timeline API', () => {
                     `${projectMonitorName}'s Incident Status`.toLowerCase()
                 );
 
-                await page.waitForSelector(
-                    `#incident_${data.projectMonitorName}_0`
-                );
-                await page.click(`#incident_${data.projectMonitorName}_0`);
+                await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+                await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(5000);
 
                 const incidentTimelineRows = await page.$$(
                     'tr.incidentListItem'
                 );
                 const countIncidentTimelines = incidentTimelineRows.length;
-
                 expect(countIncidentTimelines).toEqual(2);
             };
 
-            cluster.queue({ bodyText }, testServer);
-            cluster.queue({ email, password, projectMonitorName }, dashboard);
-
-            await cluster.idle();
-            await cluster.close();
-            done();
+            await cluster.execute(null, testServer);
+            await cluster.execute(null, dashboard);
         },
         operationTimeOut
     );
 
     test(
         'should auto-resolve incident in project with multi-probes and add to incident timeline',
-        async done => {
+        async () => {
             expect.assertions(2);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 360000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            const testServer = async ({ page, data }) => {
+            const testServer = async ({ page }) => {
                 await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
                     waitUntil: 'networkidle2',
                 });
@@ -202,85 +164,58 @@ describe('Incident Timeline API', () => {
                 await page.click('textarea[name=body]');
                 await page.type(
                     'textarea[name=body]',
-                    `<h1 id="html"><span>${data.bodyText}</span></h1>`
+                    `<h1 id="html"><span>${bodyText}</span></h1>`
                 );
                 await page.click('button[type=submit]');
                 await page.waitForSelector('#save-btn');
             };
 
-            const dashboard = async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-                await init.loginUser(user, page);
-
+            const dashboard = async ({ page }) => {
                 await page.waitFor(300000);
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
 
                 await page.waitForSelector('#ResolveText_0');
 
                 const resolveTextSelector = await page.$('#ResolveText_0');
                 expect(resolveTextSelector).not.toBeNull();
 
-                await page.waitForSelector(
-                    `#incident_${data.projectMonitorName}_0`
-                );
-                await page.click(`#incident_${data.projectMonitorName}_0`);
+                await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+                await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(5000);
 
                 const incidentTimelineRows = await page.$$(
                     'tr.incidentListItem'
                 );
                 const countIncidentTimelines = incidentTimelineRows.length;
-
                 expect(countIncidentTimelines).toEqual(6);
             };
 
-            cluster.queue({ bodyText }, testServer);
-            cluster.queue({ email, password, projectMonitorName }, dashboard);
-
-            await cluster.idle();
-            await cluster.close();
-            done();
+            await cluster.execute(null, testServer);
+            await cluster.execute(null, dashboard);
         },
         operationTimeOut
     );
 
-    test('should get incident timeline and paginate for incident timeline in project', async done => {
+    test('should get incident timeline and paginate for incident timeline in project', async () => {
         expect.assertions(3);
-
-        const cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 180000,
-        });
         const internalNote = utils.generateRandomString();
+        await cluster.execute(null, async ({ page }) => {
+            // Navigate to Component details
+            await init.navigateToComponentDetails(componentName, page);
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        await cluster.task(async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-            await init.loginUser(user, page);
-
-            await page.waitForSelector(
-                `#incident_${data.projectMonitorName}_0`
-            );
-            await page.click(`#incident_${data.projectMonitorName}_0`);
+            await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+            await page.click(`#incident_${projectMonitorName}_0`);
 
             for (let i = 0; i < 10; i++) {
                 // update internal note
                 await page.waitForSelector('#txtInternalNote');
-                await page.type('#txtInternalNote', data.internalNote);
+                await page.type('#txtInternalNote', internalNote);
                 await page.click('#btnUpdateInternalNote');
-                await page.waitFor(5000);
+                await page.waitFor(1000);
             }
 
+            await page.waitForSelector('tr.incidentListItem');
             let incidentTimelineRows = await page.$$('tr.incidentListItem');
             let countIncidentTimelines = incidentTimelineRows.length;
 
@@ -289,7 +224,7 @@ describe('Incident Timeline API', () => {
             const nextSelector = await page.$('#btnTimelineNext');
 
             await nextSelector.click();
-            await page.waitFor(5000);
+            await page.waitFor(7000);
             incidentTimelineRows = await page.$$('tr.incidentListItem');
             countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(6);
@@ -297,15 +232,10 @@ describe('Incident Timeline API', () => {
             const prevSelector = await page.$('#btnTimelinePrev');
 
             await prevSelector.click();
-            await page.waitFor(5000);
+            await page.waitFor(7000);
             incidentTimelineRows = await page.$$('tr.incidentListItem');
             countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(10);
         });
-
-        cluster.queue({ email, password, projectMonitorName, internalNote });
-        await cluster.idle();
-        await cluster.close();
-        done();
-    }, 240000);
+    }, 300000);
 });

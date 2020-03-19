@@ -31,13 +31,46 @@ describe('Monitor API', () => {
         await browser.close();
     });
 
+    const componentName = utils.generateRandomString();
+    const monitorName = utils.generateRandomString();
+
+    it(
+        'Should create new component',
+        async () => {
+            // Navigate to Components page
+            await page.waitForSelector('#components');
+            await page.click('#components');
+
+            // Fill and submit New Component form
+            await page.waitForSelector('#form-new-component');
+            await page.click('input[id=name]');
+            await page.type('input[id=name]', componentName);
+            await page.click('button[type=submit]');
+
+            let spanElement;
+            spanElement = await page.waitForSelector(
+                `#component-title-${componentName}`
+            );
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            spanElement.should.be.exactly(componentName);
+        },
+        operationTimeOut
+    );
+
     it(
         'Should create new monitor with correct details',
         async () => {
-            const monitorName = utils.generateRandomString();
-            await page.waitForSelector('#monitors');
-            await page.click('#monitors');
-            await page.waitForSelector('#frmNewMonitor');
+            // Navigate to Components page
+            await page.waitForSelector('#components');
+            await page.click('#components');
+
+            // Navigate to details page of component created in previous test
+            await page.waitForSelector(`#more-details-${componentName}`);
+            await page.click(`#more-details-${componentName}`);
+            await page.waitForSelector('#form-new-monitor');
+
+            // Fill and submit New Monitor form
             await page.click('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await init.selectByText('#type', 'url', page);
@@ -45,9 +78,11 @@ describe('Monitor API', () => {
             await page.click('#url');
             await page.type('#url', 'https://google.com');
             await page.click('button[type=submit]');
-            await page.waitFor(10000);
+
             let spanElement;
-            spanElement = await page.$(`#monitor_title_${monitorName}`);
+            spanElement = await page.waitForSelector(
+                `#monitor-title-${monitorName}`
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(monitorName);
@@ -58,16 +93,16 @@ describe('Monitor API', () => {
     it(
         'Should not create new monitor when details that are incorrect',
         async () => {
-            await page.waitFor(10000);
+            // Submit New Monitor form with incorrect details
             await page.waitForSelector('#name');
             await init.selectByText('#type', 'url', page);
             await page.waitForSelector('#url');
             await page.type('#url', 'https://google.com');
             await page.click('button[type=submit]');
-            await page.waitFor(5000);
+
             let spanElement;
-            spanElement = await page.$(
-                '#frmNewMonitor > div > div > div > fieldset > div > div > div > span >  div > div > span'
+            spanElement = await page.waitForSelector(
+                '#form-new-monitor span#field-error'
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();

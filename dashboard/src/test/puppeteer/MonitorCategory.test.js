@@ -6,18 +6,21 @@ const { Cluster } = require('puppeteer-cluster');
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const componentName = utils.generateRandomString();
 
 describe('Monitor Category', () => {
     const operationTimeOut = 50000;
 
-    beforeAll(async done => {
+    let cluster;
+
+    beforeAll(async () => {
         jest.setTimeout(200000);
 
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 120000,
+            timeout: utils.timeout,
         });
 
         cluster.on('taskerror', err => {
@@ -25,55 +28,37 @@ describe('Monitor Category', () => {
         });
 
         // Register user
-        await cluster.task(async ({ page, data }) => {
+        await cluster.execute(async ({ page }) => {
             const user = {
-                email: data.email,
-                password: data.password,
+                email,
+                password,
             };
 
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
+            // Create Component first
+            await init.addComponent(componentName, page);
         });
-
-        await cluster.queue({ email, password });
-
-        await cluster.idle();
-        await cluster.close();
-        done();
     });
 
-    afterAll(async done => {
-        done();
+    afterAll(async () => {
+        await cluster.idle();
+        await cluster.close();
     });
 
     test(
         'should create a new monitor category',
-        async done => {
+        async () => {
             expect.assertions(1);
 
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#monitors:nth-of-type(2)');
-                await page.click('#monitors:nth-of-type(2)');
+
+                await page.waitForSelector('li#monitors a');
+                await page.click('li#monitors a');
                 await page.waitForSelector('#createMonitorCategoryButton');
                 await page.click('#createMonitorCategoryButton');
                 await page.type(
@@ -81,10 +66,12 @@ describe('Monitor Category', () => {
                     utils.monitorCategoryName
                 );
                 await page.click('#addMonitorCategoryButton');
-                await page.waitFor(5000);
 
                 const createdMonitorCategorySelector =
                     '#monitorCategoryList #monitor-category-name:nth-child(2)';
+
+                await page.waitForSelector(createdMonitorCategorySelector);
+
                 const createdMonitorCategoryName = await page.$eval(
                     createdMonitorCategorySelector,
                     el => el.textContent
@@ -94,38 +81,18 @@ describe('Monitor Category', () => {
                     utils.monitorCategoryName
                 );
             });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
-            done();
         },
         operationTimeOut
     );
 
     test(
         'should show created monitor category in new monitor dropdown',
-        async done => {
+        async () => {
             expect.assertions(1);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
+            await cluster.execute(null, async ({ page }) => {
+                // Navigate to details page of component created
+                await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector('#form-new-monitor');
 
                 let monitorCategoryCheck = false;
 
@@ -142,37 +109,18 @@ describe('Monitor Category', () => {
                 }
                 expect(monitorCategoryCheck).toEqual(true);
             });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
-            done();
         },
         operationTimeOut
     );
 
     test(
         'should create a new monitor by selecting monitor category from dropdown',
-        async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                // Navigate to details page of component created
+                await init.navigateToComponentDetails(componentName, page);
 
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#frmNewMonitor');
+                await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', utils.monitorName);
                 await init.selectByText(
@@ -187,7 +135,7 @@ describe('Monitor Category', () => {
                 await page.click('button[type=submit]');
                 await page.waitFor(5000);
 
-                const createdMonitorSelector = `#monitor_title_${utils.monitorName}`;
+                const createdMonitorSelector = `#monitor-title-${utils.monitorName}`;
                 const createdMonitorName = await page.$eval(
                     createdMonitorSelector,
                     el => el.textContent
@@ -195,42 +143,21 @@ describe('Monitor Category', () => {
 
                 expect(createdMonitorName).toEqual(utils.monitorName);
             });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
-            done();
         },
         operationTimeOut
     );
 
     test(
         'should delete the created monitor category',
-        async done => {
+        async () => {
             expect.assertions(1);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#monitors:nth-of-type(2)');
-                await page.click('#monitors:nth-of-type(2)');
+
+                await page.waitForSelector('li#monitors a');
+                await page.click('li#monitors a');
 
                 const deleteButtonSelector =
                     '#deleteMonitorCategoryBtn > button';
@@ -249,11 +176,6 @@ describe('Monitor Category', () => {
 
                 expect(monitorCategoryCount).toEqual('0 Monitor Category');
             });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
-            done();
         },
         operationTimeOut
     );
