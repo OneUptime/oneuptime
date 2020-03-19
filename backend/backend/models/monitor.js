@@ -7,6 +7,10 @@ const monitorSchema = new Schema({
         ref: 'Project',
         alias: 'project',
     }, //which project this monitor belongs to.
+    componentId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Component',
+    },
     name: String,
     data: Object, //can be URL, IP address, or anything that depends on the type.
     createdById: { type: String, ref: 'User' }, //userId.

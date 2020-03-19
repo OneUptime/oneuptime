@@ -78,6 +78,7 @@ module.exports = {
                         monitor.monitorCategoryId = data.monitorCategoryId;
                     }
                     monitor.visibleOnStatusPage = data.visibleOnStatusPage;
+                    monitor.componentId = data.componentId;
                     monitor.projectId = data.projectId;
                     if (
                         data.type === 'url' ||

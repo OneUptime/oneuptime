@@ -1,4 +1,5 @@
 import { combineReducers } from 'redux';
+import component from './component';
 import monitor from './monitor';
 import { routerReducer } from 'react-router-redux';
 import { reducer as formReducer } from 'redux-form';
@@ -38,6 +39,7 @@ const appReducer = combineReducers({
     modal,
     project,
     changePassword,
+    component,
     monitor,
     monitorCategories,
     schedule,

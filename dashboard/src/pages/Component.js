@@ -3,39 +3,34 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { destroy } from 'redux-form';
 import Dashboard from '../components/Dashboard';
-import NewMonitor from '../components/monitor/NewMonitor';
-import MonitorList from '../components/monitor/MonitorList';
+import NewComponent from '../components/component/NewComponent';
+import ComponentList from '../components/component/ComponentList';
 import ShouldRender from '../components/basic/ShouldRender';
-import IncidentStatus from '../components/incident/IncidentStatus';
+// import IncidentStatus from '../components/incident/IncidentStatus';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMember';
 import { LoadingState } from '../components/basic/Loader';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
-import {
-    fetchMonitorLogs,
-    fetchMonitorsIncidents,
-    fetchMonitorStatuses,
-    fetchMonitors,
-} from '../actions/monitor';
+import { fetchComponents } from '../actions/component';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import { getProbes } from '../actions/probe';
-import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
+// import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { IS_DEV } from '../config';
 
 class DashboardView extends Component {
     componentDidMount() {
-        this.props.loadPage('Monitors');
+        this.props.loadPage('Components');
         if (!IS_DEV) {
-            logEvent('Main monitor page Loaded');
+            logEvent('Main component page Loaded');
         }
     }
 
     componentWillUnmount() {
-        this.props.destroy('NewMonitor');
+        this.props.destroy('NewComponent');
     }
 
     ready = () => {
@@ -43,91 +38,61 @@ class DashboardView extends Component {
             ? this.props.currentProject._id
             : null;
         this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
-        this.props.fetchMonitors(projectId).then(() => {
-            this.props.monitor.monitorsList.monitors.forEach(subProject => {
-                if (subProject.monitors.length > 0) {
-                    subProject.monitors.forEach(monitor => {
-                        this.props.fetchMonitorLogs(
-                            monitor.projectId._id || monitor.projectId,
-                            monitor._id,
-                            this.props.startDate,
-                            this.props.endDate
-                        );
-                        this.props.fetchMonitorsIncidents(
-                            monitor.projectId._id || monitor.projectId,
-                            monitor._id,
-                            0,
-                            3
-                        );
-                        this.props.fetchMonitorStatuses(
-                            monitor.projectId._id || monitor.projectId,
-                            monitor._id,
-                            this.props.startDate,
-                            this.props.endDate
-                        );
-                    });
+        this.props.fetchComponents(projectId).then(() => {
+            this.props.component.componentList.components.forEach(
+                subProject => {
+                    if (subProject.components.length > 0) {
+                        subProject.components.forEach(component => {
+                            this.props.fetchComponentLogs(
+                                component.projectId._id || component.projectId,
+                                component._id,
+                                this.props.startDate,
+                                this.props.endDate
+                            );
+                        });
+                    }
                 }
-            });
+            );
         });
         this.props.fetchTutorial();
     };
 
     render() {
-        let incidentslist = null;
-
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
         }
 
-        if (this.props.monitors.length) {
+        if (this.props.components.length) {
             const scriptElement = document.createElement('script');
             scriptElement.type = 'text/javascript';
             scriptElement.src = '/assets/js/landing.base.js';
             document.head.appendChild(scriptElement);
         }
 
-        if (this.props.incidents) {
-            incidentslist = this.props.incidents.map((incident, i) => {
-                return (
-                    <RenderIfUserInSubProject
-                        key={`${incident._id || i}`}
-                        subProjectId={
-                            incident.projectId._id || incident.projectId
-                        }
-                    >
-                        <IncidentStatus
-                            count={i}
-                            incident={incident}
-                            multiple={true}
-                        />
-                    </RenderIfUserInSubProject>
-                );
-            });
-        }
-
-        const { componentId, subProjects, currentProject } = this.props;
+        const { subProjects, currentProject } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
-        let allMonitors = this.props.monitor.monitorsList.monitors
-            .map(monitor => monitor.monitors)
+        let allComponents = this.props.component.componentList.components
+            .map(component => component.components)
             .flat();
 
-        // SubProject Monitors List
-        const monitors =
+        // SubProject Components List
+        const components =
             subProjects &&
             subProjects.map((subProject, i) => {
-                const subProjectMonitor = this.props.monitor.monitorsList.monitors.find(
-                    subProjectMonitor =>
-                        subProjectMonitor._id === subProject._id
+                const subProjectComponent = this.props.component.componentList.components.find(
+                    subProjectComponent =>
+                        subProjectComponent._id === subProject._id
                 );
-                allMonitors = IsUserInSubProject(subProject)
-                    ? allMonitors
-                    : allMonitors.filter(
-                          monitor =>
-                              monitor.projectId !== subProjectMonitor._id ||
-                              monitor.projectId._id !== subProjectMonitor._id
+                allComponents = IsUserInSubProject(subProject)
+                    ? allComponents
+                    : allComponents.filter(
+                          component =>
+                              component.projectId !== subProjectComponent._id ||
+                              component.projectId._id !==
+                                  subProjectComponent._id
                       );
-                return subProjectMonitor &&
-                    subProjectMonitor.monitors.length > 0 ? (
+                return subProjectComponent &&
+                    subProjectComponent.components.length > 0 ? (
                     <div
                         id={`box_${subProject.name}`}
                         className="Box-root Margin-vertical--12"
@@ -137,13 +102,14 @@ class DashboardView extends Component {
                             className="db-Trends Card-root"
                             style={{ overflow: 'visible' }}
                         >
-                            <MonitorList
+                            <ComponentList
                                 shouldRenderProjectType={
                                     subProjects && subProjects.length > 0
                                 }
+                                projectId={subProject._id}
                                 projectType={'subproject'}
                                 projectName={subProject.name}
-                                monitors={subProjectMonitor.monitors}
+                                components={subProjectComponent.components}
                             />
                         </div>
                     </div>
@@ -152,19 +118,19 @@ class DashboardView extends Component {
                 );
             });
 
-        // Add Project Monitors to Monitors List
-        let projectMonitor = this.props.monitor.monitorsList.monitors.find(
-            subProjectMonitor => subProjectMonitor._id === currentProjectId
+        // Add Project Components to Components List
+        let projectComponent = this.props.component.componentList.components.find(
+            subProjectComponent => subProjectComponent._id === currentProjectId
         );
-        allMonitors = IsUserInSubProject(currentProject)
-            ? allMonitors
-            : allMonitors.filter(
-                  monitor =>
-                      monitor.projectId !== currentProject._id ||
-                      monitor.projectId._id !== currentProject._id
+        allComponents = IsUserInSubProject(currentProject)
+            ? allComponents
+            : allComponents.filter(
+                  component =>
+                      component.projectId !== currentProject._id ||
+                      component.projectId._id !== currentProject._id
               );
-        projectMonitor =
-            projectMonitor && projectMonitor.monitors.length > 0 ? (
+        projectComponent =
+            projectComponent && projectComponent.components.length > 0 ? (
                 <div
                     id={`box_${currentProject.name}`}
                     key={`box_${currentProject.name}`}
@@ -174,14 +140,14 @@ class DashboardView extends Component {
                         className="db-Trends Card-root"
                         style={{ overflow: 'visible' }}
                     >
-                        <MonitorList
-                            componentId={componentId}
+                        <ComponentList
                             shouldRenderProjectType={
                                 subProjects && subProjects.length > 0
                             }
+                            projectId={currentProjectId}
                             projectType={'project'}
                             projectName={'Project'}
-                            monitors={projectMonitor.monitors}
+                            components={projectComponent.components}
                         />
                     </div>
                 </div>
@@ -189,7 +155,7 @@ class DashboardView extends Component {
                 false
             );
 
-        monitors && monitors.unshift(projectMonitor);
+        components && components.unshift(projectComponent);
 
         return (
             <Dashboard ready={this.ready}>
@@ -203,35 +169,27 @@ class DashboardView extends Component {
                                             <span>
                                                 <ShouldRender
                                                     if={
-                                                        !this.props.monitor
-                                                            .monitorsList
+                                                        !this.props.component
+                                                            .componentList
                                                             .requesting
                                                     }
                                                 >
                                                     <ShouldRender
                                                         if={
                                                             this.props
-                                                                .monitorTutorial
+                                                                .componentTutorial
                                                                 .show
                                                         }
                                                     >
-                                                        <TutorialBox type="monitor" />
+                                                        <TutorialBox type="component" />
                                                     </ShouldRender>
 
-                                                    <div className="Box-root Margin-bottom--12">
-                                                        {incidentslist}
-                                                    </div>
-
-                                                    {monitors}
+                                                    {components}
 
                                                     <RenderIfSubProjectAdmin>
-                                                        <NewMonitor
+                                                        <NewComponent
                                                             index={1000}
-                                                            formKey="NewMonitorForm"
-                                                            componentId={
-                                                                this.props
-                                                                    .componentId
-                                                            }
+                                                            formKey="NewComponentForm"
                                                         />
                                                     </RenderIfSubProjectAdmin>
 
@@ -239,10 +197,10 @@ class DashboardView extends Component {
                                                         <ShouldRender
                                                             if={
                                                                 !this.props
-                                                                    .monitor
-                                                                    .monitorsList
+                                                                    .component
+                                                                    .componentList
                                                                     .requesting &&
-                                                                allMonitors.length ===
+                                                                allComponents.length ===
                                                                     0
                                                             }
                                                         >
@@ -290,7 +248,8 @@ class DashboardView extends Component {
                                                                             '16px',
                                                                     }}
                                                                 >
-                                                                    No monitors
+                                                                    No
+                                                                    components
                                                                     are added to
                                                                     this
                                                                     project.
@@ -306,8 +265,8 @@ class DashboardView extends Component {
 
                                                 <ShouldRender
                                                     if={
-                                                        this.props.monitor
-                                                            .monitorsList
+                                                        this.props.component
+                                                            .componentList
                                                             .requesting
                                                     }
                                                 >
@@ -330,10 +289,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             destroy,
-            fetchMonitorLogs,
-            fetchMonitorsIncidents,
-            fetchMonitorStatuses,
-            fetchMonitors,
+            fetchComponents,
             loadPage,
             fetchTutorial,
             getProbes,
@@ -342,16 +298,8 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = (state, props) => {
-    const componentId = props.match.params.componentId;
-    const monitor = state.monitor;
-
-    monitor.monitorsList.monitors.forEach(item => {
-        item.monitors = item.monitors.filter(
-            monitor => monitor.componentId === componentId
-        );
-    });
-
+const mapStateToProps = state => {
+    const component = state.component;
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
@@ -365,15 +313,14 @@ const mapStateToProps = (state, props) => {
         );
 
     return {
-        monitor,
-        componentId,
+        component,
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
-        monitors: state.monitor.monitorsList.monitors,
+        components: state.component.componentList.components,
         subProjects,
-        monitorTutorial: state.tutorial.monitor,
-        startDate: state.monitor.monitorsList.startDate,
-        endDate: state.monitor.monitorsList.endDate,
+        componentTutorial: state.tutorial.component,
+        startDate: state.component.componentList.startDate,
+        endDate: state.component.componentList.endDate,
     };
 };
 
@@ -382,27 +329,20 @@ DashboardView.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    componentId: PropTypes.string,
-    monitor: PropTypes.oneOfType([
+    component: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    monitors: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    incidents: PropTypes.oneOfType([
+    components: PropTypes.oneOfType([
         PropTypes.array,
         PropTypes.oneOf([null, undefined]),
     ]),
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
-    fetchMonitorLogs: PropTypes.func,
-    fetchMonitorsIncidents: PropTypes.func.isRequired,
-    fetchMonitorStatuses: PropTypes.func.isRequired,
-    fetchMonitors: PropTypes.func.isRequired,
+    fetchComponentLogs: PropTypes.func,
+    fetchComponents: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
-    monitorTutorial: PropTypes.object,
+    componentTutorial: PropTypes.object,
     fetchTutorial: PropTypes.func,
     getProbes: PropTypes.func,
     startDate: PropTypes.object,

@@ -17,6 +17,7 @@ export function MonitorList(props) {
                         shouldRenderProjectType={props.shouldRenderProjectType}
                         projectName={props.projectName}
                         projectType={props.projectType}
+                        componentId={props.componentId}
                         monitor={monitor}
                         index={monitor._id}
                         key={monitor._id}

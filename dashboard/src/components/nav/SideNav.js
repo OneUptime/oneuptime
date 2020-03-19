@@ -47,6 +47,33 @@ class SideNav extends Component {
     };
 
     render() {
+        const { location, selectedComponent } = this.props;
+        const switchToComponentDetailNav =
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/monitoring/
+            ) ||
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/incident-log/
+            );
+
+        let groupsToRender = [];
+
+        if (switchToComponentDetailNav) {
+            groupsToRender = groups
+                .filter(group => group.visibleOnComponentDetail)
+                .map((group, index) => {
+                    if (index === 0 && selectedComponent) {
+                        group.routes[0].title = selectedComponent.name;
+                    }
+                    return group;
+                });
+        } else {
+            groupsToRender = groups
+                .filter(group => !group.isPublic)
+                .filter(group => !group.visibleOnComponentDetail)
+                .filter(group => group.visible);
+        }
+
         return (
             <ClickOutside onClickOutside={this.props.closeSideNav}>
                 <div
@@ -59,8 +86,9 @@ class SideNav extends Component {
                         <div className="Box-root Margin-bottom--20">
                             <div>
                                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                                    <div tabIndex="-1" id="AccountSwitcherId">
+                                    <div tabIndex="-1">
                                         <div
+                                            id="AccountSwitcherId"
                                             className="db-AccountSwitcherX-button Box-root Flex-flex Flex-alignItems--center"
                                             onClick={this.showSwitcher}
                                         >
@@ -112,33 +140,30 @@ class SideNav extends Component {
                         </div>
 
                         <div className="db-SideNav-navSections Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStaIt">
-                            {groups
-                                .filter(group => !group.isPublic)
-                                .filter(group => group.visible)
-                                .map((group, index, array) => {
-                                    const marginClass =
-                                        index === array.length - 1
-                                            ? 'Box-root '
-                                            : 'Box-root Margin-bottom--16';
-                                    return (
-                                        <div
-                                            key={group.group}
-                                            className={marginClass}
-                                        >
-                                            <ul>
-                                                {group.routes.map(route => {
-                                                    return (
-                                                        <li key={route.index}>
-                                                            <NavItem
-                                                                route={route}
-                                                            />
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                        </div>
-                                    );
-                                })}
+                            {groupsToRender.map((group, index, array) => {
+                                const marginClass =
+                                    index === array.length - 1
+                                        ? 'Box-root '
+                                        : 'Box-root Margin-bottom--16';
+                                return (
+                                    <div
+                                        key={group.group}
+                                        className={marginClass}
+                                    >
+                                        <ul>
+                                            {group.routes.map(route => {
+                                                return (
+                                                    <li key={route.index}>
+                                                        <NavItem
+                                                            route={route}
+                                                        />
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -149,8 +174,17 @@ class SideNav extends Component {
 
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function(state) {
+const mapStateToProps = function(state, props) {
+    const { componentId } = props.match.params;
+    const allIndividualComponents = state.component.componentList.components.reduce(
+        (acc, curr) => acc.concat(curr.components || []),
+        []
+    );
+    const selectedComponent = allIndividualComponents.find(
+        component => component._id === componentId
+    );
     return {
+        selectedComponent,
         project: state.project,
         sidenavopen: state.page.sidenavopen,
     };
@@ -177,6 +211,9 @@ SideNav.propTypes = {
     hideForm: PropTypes.func.isRequired,
     closeSideNav: PropTypes.func,
     sidenavopen: PropTypes.bool,
+    selectedComponent: PropTypes.object,
+    location: PropTypes.object,
+    match: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SideNav);

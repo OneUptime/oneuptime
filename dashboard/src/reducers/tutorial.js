@@ -13,6 +13,9 @@ const initialState = {
     error: null,
     requesting: false,
     success: false,
+    component: {
+        show: true,
+    },
     monitor: {
         show: true,
     },
@@ -59,6 +62,9 @@ export default (state = initialState, action) => {
                 error: null,
                 requesting: false,
                 success: false,
+                component: {
+                    show: true,
+                },
                 monitor: {
                     show: true,
                 },

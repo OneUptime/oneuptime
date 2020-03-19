@@ -661,6 +661,34 @@ export const getMonitorStatus = (incidents, logs) => {
     return statusCompare || 'online';
 };
 
+export const getMonitorStatusColor = status => {
+    switch (status) {
+        case 'degraded':
+            return 'yellow';
+        case 'offline':
+            return 'red';
+        case 'online':
+            return 'green';
+        default:
+            return 'blue';
+    }
+};
+
+export const replaceDashWithSpace = string => {
+    return string.replace('-', ' ');
+};
+
+export const getMonitorTypeBadgeColor = type => {
+    switch (type) {
+        case 'manual':
+            return 'red';
+        case 'device':
+            return 'green';
+        default:
+            return 'blue';
+    }
+};
+
 export const filterProbeData = (monitor, probe, startDate, endDate) => {
     const monitorLogs = monitor.logs;
     const monitorStatuses = monitor.statuses;
