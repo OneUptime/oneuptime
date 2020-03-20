@@ -20,14 +20,6 @@ spec:
                   name: {{ printf "%s-%s" .Release.Name "accounts"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
-                      - name: HOST
-                        value: {{ .Values.host.accounts }}
-                      - name: DASHBOARD_HOST
-                        value: {{ .Values.host.dashboard }}
-                      - name: BACKEND_HOST
-                        value: {{ .Values.host.backend }}
-                      - name: DOMAIN
-                        value: {{ .Values.domain }}
                       {{- if .Values.saas.isSaasService }}
                       - name: STRIPE_PUBLIC_KEY
                         value: {{ .Values.saas.stripe.publicKey }}
