@@ -1,10 +1,6 @@
 import { postApi } from '../api';
 import * as types from '../constants/login';
-import {
-    User,
-    DASHBOARD_URL,
-    ADMIN_DASHBOARD_URL,
-} from '../config.js';
+import { User, DASHBOARD_URL, ADMIN_DASHBOARD_URL } from '../config.js';
 import errors from '../errors';
 import { getQueryVar } from '../config';
 import { resendToken } from './resendToken';

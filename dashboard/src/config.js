@@ -2,15 +2,13 @@ import React from 'react';
 import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
-import { isServer } from './store';
 import FileSaver from 'file-saver';
 import moment from 'moment';
 import { emaildomains } from './constants/emaildomains';
 
-let apiUrl = window.location.origin+'/api';
-let dashboardUrl = window.location.origin+'/dashboard';
-let accountsUrl = window.location.origin+'/accounts';
-let domain = null;
+const apiUrl = window.location.origin + '/api';
+const dashboardUrl = window.location.origin + '/dashboard';
+const accountsUrl = window.location.origin + '/accounts';
 
 export function env(value) {
     const { _env } = window;
@@ -20,7 +18,6 @@ export function env(value) {
     );
 }
 
-
 export const API_URL = apiUrl;
 
 export const DASHBOARD_URL = dashboardUrl;
@@ -29,9 +26,9 @@ export const ACCOUNTS_URL = accountsUrl;
 
 export const DOMAIN_URL = window.location.origin;
 
-export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');;
+export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 
-export const IS_SAAS_SERVICE = !!env("IS_SAAS_SERVICE");
+export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
 export const User = {
     getAccessToken() {

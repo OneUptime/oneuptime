@@ -161,7 +161,8 @@ export class Branding extends Component {
             },
             function() {}
         );
-        if (!SHOULD_LOG_ANALYTICS) logEvent('Updating status page Branding', values);
+        if (!SHOULD_LOG_ANALYTICS)
+            logEvent('Updating status page Branding', values);
     };
 
     submitForm = values => {

@@ -4,9 +4,10 @@ import validUrl from 'valid-url';
 import valid from 'card-validator';
 import FileSaver from 'file-saver';
 
-let apiUrl = window.location.origin+'/api';
-let dashboardUrl = window.location.origin+'/dashboard';
-let adminDashboardUrl = window.location.origin+'/admin';
+const apiUrl = window.location.origin + '/api';
+const dashboardUrl = window.location.origin + '/dashboard';
+const adminDashboardUrl = window.location.origin + '/admin';
+const accountsUrl = window.location.origin + '/accounts';
 
 export function env(value) {
     const { _env } = window;
@@ -16,7 +17,6 @@ export function env(value) {
     );
 }
 
-
 export const API_URL = apiUrl;
 
 export const DASHBOARD_URL = dashboardUrl;
@@ -25,7 +25,7 @@ export const ACCOUNTS_URL = accountsUrl;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
-export const IS_SAAS_SERVICE = !!env("IS_SAAS_SERVICE");
+export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
 export const User = {
     getAccessToken() {

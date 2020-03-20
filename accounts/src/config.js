@@ -5,9 +5,9 @@ import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
 
-let apiUrl = window.location.origin+'/api';
-let dashboardUrl = window.location.origin+'/dashboard';
-let adminDashboardUrl = window.location.origin+'/admin';
+const apiUrl = window.location.origin + '/api';
+const dashboardUrl = window.location.origin + '/dashboard';
+const adminDashboardUrl = window.location.origin + '/admin';
 
 export function env(value) {
     const { _env } = window;

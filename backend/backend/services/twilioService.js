@@ -302,7 +302,7 @@ module.exports = {
                 from: data.phoneNumber,
                 to: twilioCredentials.testphoneNumber,
             };
-            
+
             const newClient = dynamicClient(data.accountSid, data.authToken);
 
             const message = await newClient.messages.create(options);
