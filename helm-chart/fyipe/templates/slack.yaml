@@ -1,0 +1,51 @@
+
+####################################
+#IMPORTANT: Kube Reosurces below are ONLY for SaaS service
+####################################
+
+{{- if .Values.saas.isSaasService }}
+###########-----SLACK------##############
+# Slack
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "slack"  }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "slack"  }}
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "slack"  }}
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "slack"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "slack" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "slack"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  ports:
+                      - containerPort: {{ .Values.host.slackPort }}
+                        hostPort: {{ .Values.host.slackPort }}
+                        name: {{ printf "%s-%s" .Release.Name "slack"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "slack"  }}
+    name: {{ printf "%s-%s" .Release.Name "slack"  }}
+spec:
+    ports:
+        - port: {{ .Values.host.slackServicePort }}
+          protocol: TCP
+          targetPort: {{ .Values.host.slackPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "slack"  }}
+    type: {{ .Values.service.type }}
+---
+{{- end }}
