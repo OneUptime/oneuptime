@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:12.16.1
+FROM node:12.16.1-alpine
 
 #SET ENV Variables. 
 ENV PRODUCTION=true

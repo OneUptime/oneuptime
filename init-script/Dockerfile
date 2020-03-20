@@ -2,7 +2,7 @@
 # Fyipe Init Script
 #
 
-FROM node:12.16.1
+FROM node:12.16.1-alpine
 
 # Set env variables
 ENV PRODUCTION=true
