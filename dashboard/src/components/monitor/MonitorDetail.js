@@ -523,6 +523,9 @@ export class MonitorDetail extends Component {
                                                     </div>
                                                     <IncidentList
                                                         incidents={monitor}
+                                                        componentId={
+                                                            componentId
+                                                        }
                                                         prevClicked={
                                                             this.prevClicked
                                                         }
@@ -583,6 +586,7 @@ export class MonitorDetail extends Component {
                                                 </div>
                                                 <IncidentList
                                                     incidents={monitor}
+                                                    componentId={componentId}
                                                     prevClicked={
                                                         this.prevClicked
                                                     }

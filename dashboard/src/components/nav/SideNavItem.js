@@ -95,17 +95,19 @@ export class SidebarNavItem extends Component {
                         <div style={{ outline: 'none' }}>
                             <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
                                 <div className="Box-root Flex-flex Flex-alignItems--center">
-                                    <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
-                                        <span
-                                            className={`db-SideNav-icon db-SideNav-icon--${
-                                                route.icon
-                                            } ${
-                                                isLinkActive
-                                                    ? 'db-SideNav-icon--selected'
-                                                    : null
-                                            }`}
-                                        />
-                                    </div>
+                                    {route.icon ? (
+                                        <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
+                                            <span
+                                                className={`db-SideNav-icon db-SideNav-icon--${
+                                                    route.icon
+                                                } ${
+                                                    isLinkActive
+                                                        ? 'db-SideNav-icon--selected'
+                                                        : null
+                                                }`}
+                                            />
+                                        </div>
+                                    ) : null}
                                     <span
                                         className={
                                             'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +

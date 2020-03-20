@@ -11,6 +11,7 @@ module.exports = {
             let subProject = null;
             const existingMonitor = await _this.findBy({
                 name: data.name,
+                componentId: data.componentId,
                 projectId: data.projectId,
             });
             if (existingMonitor && existingMonitor.length > 0) {

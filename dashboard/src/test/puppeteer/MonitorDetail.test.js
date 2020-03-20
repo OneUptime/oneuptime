@@ -36,6 +36,7 @@ describe('Monitor Detail API', () => {
 
         // Register user
         await cluster.execute(null, async ({ page }) => {
+            await page.setDefaultTimeout(utils.timeout);
             const user = {
                 email: email,
                 password: password,
@@ -60,6 +61,7 @@ describe('Monitor Detail API', () => {
         'Should navigate to monitor details of monitor created with correct details',
         async () => {
             await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -83,6 +85,7 @@ describe('Monitor Detail API', () => {
         async () => {
             expect.assertions(1);
             await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -110,6 +113,7 @@ describe('Monitor Detail API', () => {
         async () => {
             expect.assertions(2);
             await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -142,6 +146,7 @@ describe('Monitor Detail API', () => {
         async () => {
             expect.assertions(1);
             await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -150,6 +155,7 @@ describe('Monitor Detail API', () => {
                 );
 
                 const addButtonSelector = '#addScheduledEventButton';
+                await page.waitForSelector(addButtonSelector);
                 await page.click(addButtonSelector);
 
                 await page.click('input[name=startDate]');
@@ -196,12 +202,16 @@ describe('Monitor Detail API', () => {
     test('Should navigate to monitor details and get list of scheduled events and paginate scheduled events', async () => {
         expect.assertions(2);
         await cluster.execute(null, async ({ page }) => {
+            await page.setDefaultTimeout(utils.timeout);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
                 monitorName,
                 page
             );
+
+            const addButtonSelector = '#addScheduledEventButton';
+            await page.waitForSelector(addButtonSelector);
 
             for (let i = 0; i < 10; i++) {
                 await init.addScheduledEvent(
@@ -244,6 +254,7 @@ describe('Monitor Detail API', () => {
         async () => {
             expect.assertions(1);
             await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -252,10 +263,11 @@ describe('Monitor Detail API', () => {
                 );
 
                 const addButtonSelector = '#addSubscriberButton';
+                await page.waitForSelector(addButtonSelector);
                 await page.click(addButtonSelector);
-                await page.waitFor(1000);
 
                 await page.waitForSelector('#alertViaId');
+
                 await init.selectByText('#alertViaId', 'email', page);
                 await page.type('input[name=email]', subscriberEmail);
                 await page.click('#createSubscriber');
@@ -277,14 +289,18 @@ describe('Monitor Detail API', () => {
     test('Should navigate to monitor details and get list of subscribers and paginate subscribers', async () => {
         expect.assertions(2);
         await cluster.execute(null, async ({ page }) => {
+            await page.setDefaultTimeout(utils.timeout);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
                 monitorName,
                 page
             );
+
+            const addButtonSelector = '#addSubscriberButton';
+            await page.waitForSelector(addButtonSelector);
+
             for (let i = 0; i < 5; i++) {
-                const addButtonSelector = '#addSubscriberButton';
                 await page.click(addButtonSelector);
                 await page.waitForSelector('#alertViaId');
                 await init.selectByText('#alertViaId', 'email', page);
@@ -326,6 +342,7 @@ describe('Monitor Detail API', () => {
         async () => {
             expect.assertions(1);
             await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -334,7 +351,9 @@ describe('Monitor Detail API', () => {
                 );
 
                 const addButtonSelector = '#addWebhookButton';
+                await page.waitForSelector(addButtonSelector);
                 await page.click(addButtonSelector);
+
                 await page.waitForSelector('#endpoint');
 
                 await page.type('#endpoint', webhookEndpoint);
@@ -366,6 +385,7 @@ describe('Monitor Detail API', () => {
     test('Should navigate to monitor details and get list of webhooks and paginate webhooks', async () => {
         // expect.assertions(2);
         await cluster.execute(null, async ({ page }) => {
+            await page.setDefaultTimeout(utils.timeout);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -373,8 +393,10 @@ describe('Monitor Detail API', () => {
                 page
             );
 
+            const addButtonSelector = '#addWebhookButton';
+            await page.waitForSelector(addButtonSelector);
+
             for (let i = 0; i < 10; i++) {
-                const addButtonSelector = '#addWebhookButton';
                 await page.click(addButtonSelector);
                 await page.waitForSelector('#endpoint');
 
@@ -420,6 +442,7 @@ describe('Monitor Detail API', () => {
         'Should navigate to monitor details and edit monitor',
         async () => {
             await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -453,6 +476,7 @@ describe('Monitor Detail API', () => {
         async () => {
             expect.assertions(1);
             await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,

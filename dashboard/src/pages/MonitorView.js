@@ -151,6 +151,10 @@ class MonitorView extends React.Component {
                                                         </div>
                                                         <div className="Box-root Margin-bottom--12">
                                                             <MonitorViewIncidentBox
+                                                                componentId={
+                                                                    this.props
+                                                                        .componentId
+                                                                }
                                                                 monitor={
                                                                     this.props
                                                                         .monitor

@@ -102,9 +102,14 @@ module.exports = {
         await page.waitFor(3000);
     },
     addComponent: async function(component, page, projectName = null) {
-        // Navigate to Components page
-        await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector('#components');
+        const componentsMenuItem = await page.$('#components');
+
+        if (componentsMenuItem == null) {
+            // Navigate to Components page
+            await page.goto(utils.DASHBOARD_URL);
+            await page.waitForSelector('#components');
+        }
+
         await page.click('#components');
 
         // Fill and submit New Component form
@@ -133,6 +138,7 @@ module.exports = {
         // Navigate to details page of monitor assumed created
         await page.waitForSelector(`#more-details-${monitor}`);
         await page.click(`#more-details-${monitor}`);
+        await page.waitForSelector(`#monitor-title-${monitor}`);
     },
     addSchedule: async function(callSchedule, page) {
         await page.waitForSelector('#callSchedules');
@@ -249,8 +255,10 @@ module.exports = {
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
+        if (projectName) {
+            await this.selectByText('#subProjectId', projectName, page);
+        }
         await this.selectByText('#type', 'device', page);
-        await this.selectByText('#subProjectId', projectName, page);
         await page.waitForSelector('#deviceId');
         await page.click('#deviceId');
         await page.type('#deviceId', utils.generateRandomString());

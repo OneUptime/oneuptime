@@ -71,7 +71,7 @@ describe('Incident API With SubProjects', () => {
                 // add new monitor to parent project
                 await init.addMonitorToSubProject(
                     data.projectMonitorName,
-                    data.projectName,
+                    null,
                     componentName,
                     page
                 );
@@ -82,8 +82,6 @@ describe('Incident API With SubProjects', () => {
                     componentName,
                     page
                 );
-
-                await init.logout(page);
             }
         };
 
@@ -131,14 +129,12 @@ describe('Incident API With SubProjects', () => {
                         password: data.password,
                     };
                     await init.loginUser(user, page);
-                    // Navigate to details page of component created
+                    // Navigate to details page of monitor
                     await init.navigateToComponentDetails(componentName, page);
                     await page.waitForSelector(
-                        `#create_incident_${data.projectMonitorName}`
+                        `#create_incident_${projectMonitorName}`
                     );
-                    await page.click(
-                        `#create_incident_${data.projectMonitorName}`
-                    );
+                    await page.click(`#create_incident_${projectMonitorName}`);
                     await page.waitForSelector('#createIncident');
                     await init.selectByText('#incidentType', 'Offline', page);
                     await page.click('#createIncident');
@@ -181,7 +177,7 @@ describe('Incident API With SubProjects', () => {
                     await init.loginUser(user, page);
                     // switch to invited project for new user
                     await init.switchProject(data.projectName, page);
-                    // Navigate to details page of component created
+                    // Navigate to details page of monitor
                     await init.navigateToComponentDetails(componentName, page);
                     // create incident
                     await page.waitForSelector(

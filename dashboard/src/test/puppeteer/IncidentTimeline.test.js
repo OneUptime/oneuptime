@@ -50,7 +50,6 @@ describe('Incident Timeline API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             // add new monitor to project
-            await page.reload({ waitUntil: 'domcontentloaded' });
             await page.waitForSelector('#monitors');
             await page.click('#monitors');
             await page.waitForSelector('#form-new-monitor');
@@ -103,7 +102,7 @@ describe('Incident Timeline API', () => {
             };
 
             const dashboard = async ({ page }) => {
-                await page.waitFor(300000);
+                await page.waitFor(350000);
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -171,7 +170,7 @@ describe('Incident Timeline API', () => {
             };
 
             const dashboard = async ({ page }) => {
-                await page.waitFor(300000);
+                await page.waitFor(350000);
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 

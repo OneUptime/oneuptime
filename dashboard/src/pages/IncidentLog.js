@@ -72,6 +72,7 @@ class IncidentLog extends React.Component {
             currentProject,
             subProjectIncidents,
             incidents,
+            componentId,
         } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
 
@@ -107,6 +108,7 @@ class IncidentLog extends React.Component {
                                         </div>
                                     </ShouldRender>
                                     <IncidentProjectBox
+                                        componentId={componentId}
                                         subProjectIncident={subProjectIncident}
                                         creating={creating}
                                         createIncidentModalId={
@@ -155,6 +157,7 @@ class IncidentLog extends React.Component {
                                     </div>
                                 </ShouldRender>
                                 <IncidentProjectBox
+                                    componentId={componentId}
                                     subProjectIncident={projectIncident}
                                     creating={creating}
                                     createIncidentModalId={
@@ -198,7 +201,8 @@ class IncidentLog extends React.Component {
     }
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
+    const { componentId } = props.match.params;
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
@@ -211,6 +215,7 @@ const mapStateToProps = state => {
             subProjects.find(subProject => subProject.name === name)
         );
     return {
+        componentId,
         currentProject: state.project.currentProject,
         incidents: state.incident.incidents,
         create: state.incident.newIncident.requesting,
@@ -237,6 +242,7 @@ const mapDispatchToProps = dispatch => {
 };
 
 IncidentLog.propTypes = {
+    componentId: PropTypes.string.isRequired,
     getIncidents: PropTypes.func,
     getProjectIncidents: PropTypes.func,
     incidents: PropTypes.object,

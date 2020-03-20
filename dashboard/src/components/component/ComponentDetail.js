@@ -175,7 +175,7 @@ export class ComponentDetail extends Component {
                                     );
                                 }}
                             >
-                                <span>More</span>
+                                <span>View</span>
                             </button>
                             <button
                                 id={`delete-component-${component.name}`}
