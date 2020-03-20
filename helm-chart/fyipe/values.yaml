@@ -13,8 +13,14 @@ saas:
   amplitude: 
     key: 802d95003af23aad17ed068b6cfdeb2b
 
+
 ###################################################################################
-fyipe: 
+fyipe:
+  tls:
+    enabled: 
+    crt: 
+    key:  
+    host: 
   emailEnabled: true
   callEnabled: true
   smsEnabled: true
@@ -83,7 +89,7 @@ encryption:
 image:
   registry: docker.io
   repository: fyipeproject
-  tag: latest
+  tag: test
   pullPolicy: Always
   restartPolicy: Always
 

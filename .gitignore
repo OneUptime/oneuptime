@@ -32,3 +32,5 @@ nohup.out*
 
 encrypted-credentials.tar
 encrypted-credentials/
+
+_README.md

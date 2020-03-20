@@ -42,5 +42,6 @@ build api-docs
 build probe
 build admin-dashboard
 build init-script
+build slack
 
 cd $DIR
