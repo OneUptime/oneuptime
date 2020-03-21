@@ -21,13 +21,16 @@ child_process.execSync('react-env', {
 
 app.use(compression());
 
-app.use(express.static(path.join(__dirname, 'build')));
-
 app.use('/', (req, res, next) => {
     //eslint-disable-next-line
     console.log(req.method, ' ', req.url);
+    if (req.url.startsWith('/accounts')) {
+        req.url = req.url.split('/accounts')[1];
+    }
     next();
 });
+
+app.use(express.static(path.join(__dirname, 'build')));
 
 app.get('/env.js', function(req, res) {
     res.sendFile(path.join(__dirname, 'public', 'env.js'));
