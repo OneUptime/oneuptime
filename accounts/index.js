@@ -24,9 +24,10 @@ app.use(compression());
 app.use(express.static(path.join(__dirname, 'build')));
 
 app.use('/', (req, res, next) => {
+    //eslint-disable-next-line
     console.log(req.method, ' ', req.url);
     next();
-})
+});
 
 app.get('/env.js', function(req, res) {
     res.sendFile(path.join(__dirname, 'public', 'env.js'));

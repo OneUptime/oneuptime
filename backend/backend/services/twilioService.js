@@ -49,14 +49,14 @@ const dynamicClient = (accountSid, authToken) => {
 };
 
 module.exports = {
-    sendResponseMessage: async function (to, body) {
+    sendResponseMessage: async function(to, body) {
         try {
             const options = {
                 body,
                 from: twilioCredentials.phoneNumber,
                 to,
             };
-            if(!twilioClient){
+            if (!twilioClient) {
                 const error = new Error('Twilio credentials not found.');
                 error.code = 400;
                 return error;
@@ -74,7 +74,7 @@ module.exports = {
             throw error;
         }
     },
-    sendIncidentCreatedMessage: async function (
+    sendIncidentCreatedMessage: async function(
         incidentTime,
         monitorName,
         number,
@@ -107,7 +107,7 @@ module.exports = {
                 incidentSMSAction.number = number;
                 incidentSMSAction.name = name;
                 await incidentSMSAction.save();
-                if(!twilioClient){
+                if (!twilioClient) {
                     const error = new Error('Twilio credentials not found.');
                     error.code = 400;
                     return error;
@@ -130,7 +130,7 @@ module.exports = {
         }
     },
 
-    sendIncidentCreatedMessageToSubscriber: async function (
+    sendIncidentCreatedMessageToSubscriber: async function(
         incidentTime,
         monitorName,
         number,
@@ -187,7 +187,7 @@ module.exports = {
         }
     },
 
-    sendIncidentAcknowldegedMessageToSubscriber: async function (
+    sendIncidentAcknowldegedMessageToSubscriber: async function(
         incidentTime,
         monitorName,
         number,
@@ -244,7 +244,7 @@ module.exports = {
         }
     },
 
-    sendIncidentResolvedMessageToSubscriber: async function (
+    sendIncidentResolvedMessageToSubscriber: async function(
         incidentTime,
         monitorName,
         number,
@@ -301,7 +301,7 @@ module.exports = {
         }
     },
 
-    test: async function (data) {
+    test: async function(data) {
         try {
             if (!SMSEnabled) {
                 const error = new Error('SMS Not Enabled');
@@ -332,7 +332,7 @@ module.exports = {
         }
     },
 
-    sendIncidentCreatedCall: async function (
+    sendIncidentCreatedCall: async function(
         incidentTime,
         monitorName,
         number,
@@ -370,12 +370,11 @@ module.exports = {
                 if (twilioClient) {
                     const call = await twilioClient.calls.create(options);
                     return call;
-                }else{
+                } else {
                     const error = new Error('Twilio credentials not found.');
                     error.code = 400;
                     return error;
                 }
-
             } else {
                 const error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
@@ -387,7 +386,7 @@ module.exports = {
         }
     },
 
-    getTemplate: async function (smsTemplate, smsTemplateType) {
+    getTemplate: async function(smsTemplate, smsTemplateType) {
         const defaultTemplate = defaultSmsTemplates.filter(
             template => template.smsType === smsTemplateType
         )[0];
@@ -402,7 +401,7 @@ module.exports = {
         const template = await Handlebars.compile(smsContent);
         return { template };
     },
-    sendVerificationSMS: async function (to, userId, projectId) {
+    sendVerificationSMS: async function(to, userId, projectId) {
         try {
             if (!SMSEnabled) {
                 const error = new Error('SMS Not Enabled');
@@ -417,7 +416,7 @@ module.exports = {
                     to = '+' + to;
                 }
                 const channel = 'sms';
-                if(!twilioClient){
+                if (!twilioClient) {
                     const error = new Error('Twilio credentials not found.');
                     error.code = 400;
                     return error;
@@ -442,7 +441,7 @@ module.exports = {
             throw error;
         }
     },
-    verifySMSCode: async function (to, code, userId, projectId) {
+    verifySMSCode: async function(to, code, userId, projectId) {
         try {
             if (!SMSEnabled) {
                 const error = new Error('SMS Not Enabled');
@@ -457,7 +456,7 @@ module.exports = {
                     to = '+' + to;
                 }
 
-                if(!twilioClient){
+                if (!twilioClient) {
                     const error = new Error('Twilio credentials not found.');
                     error.code = 400;
                     return error;
