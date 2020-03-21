@@ -30,7 +30,7 @@ export class IncidentDeleteBox extends Component {
             history.push(
                 `/project/${this.props.currentProject._id}/monitoring`
             );
-            if (!SHOULD_LOG_ANALYTICS) {
+            if (SHOULD_LOG_ANALYTICS) {
                 logEvent('Incident Deleted', {
                     projectId,
                     incidentId,

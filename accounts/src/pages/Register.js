@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import RegisterForm from '../components/auth/RegisterForm';
 import queryString from 'query-string';
-import { PricingPlan } from '../config';
+import { PricingPlan, IS_SAAS_SERVICE } from '../config';
 import MessageBox from '../components/MessageBox';
 import { savePlanId } from '../actions/register';
 
@@ -26,6 +26,16 @@ class RegisterPage extends React.Component {
             this.planId = PricingPlan.getPlans()[0].planId;
         }
         this.props.savePlanId(this.planId);
+    }
+
+    componentDidUpdate() {
+        if (
+            this.props.masterAdminExists &&
+            !this.props.register.success &&
+            !IS_SAAS_SERVICE
+        ) {
+            window.location.href = '/login';
+        }
     }
 
     render() {
@@ -84,6 +94,7 @@ class RegisterPage extends React.Component {
 const mapStateToProps = state => {
     return {
         register: state.register,
+        masterAdminExists: state.login.masterAdmin.exists,
     };
 };
 
@@ -101,6 +112,7 @@ RegisterPage.propTypes = {
     register: PropTypes.object,
     success: PropTypes.bool,
     savePlanId: PropTypes.func.isRequired,
+    masterAdminExists: PropTypes.bool,
 };
 
 RegisterPage.displayName = 'RegisterPage';

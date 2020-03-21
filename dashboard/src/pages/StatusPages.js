@@ -11,7 +11,7 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class StatusPage extends Component {
     componentDidMount() {
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Settings Loaded');
         }
     }

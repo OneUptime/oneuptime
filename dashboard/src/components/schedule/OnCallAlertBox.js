@@ -103,7 +103,7 @@ export class OnCallAlertBox extends Component {
         const { subProjectId, scheduleId } = this.props;
         await this.props.addEscalation(subProjectId, scheduleId, values);
         if (this.props.afterSave) this.props.afterSave();
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Links Updated', values);
         }
     };

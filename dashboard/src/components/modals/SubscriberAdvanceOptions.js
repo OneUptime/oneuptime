@@ -27,7 +27,7 @@ class SubscriberAdvanceOption extends React.Component {
                     id: this.props.subscriberAdvanceOptionModalId,
                 });
             });
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Private StatusPage Updated', values);
         }
     };

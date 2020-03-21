@@ -1,29 +1,42 @@
 import * as types from '../constants/logout';
+import Cookies from 'universal-cookie';
+import { DOMAIN_URL, ACCOUNTS_URL } from '../config';
 // Three possible states for our logout process as well.
 // Since we are using JWTs, we just need to remove the token
 // from localStorage. These actions are more useful if we
 // were calling the API to log the user out
 
-export const requestLogout = () => {
+export function requestLogout() {
     return {
         type: types.LOGOUT_REQUEST,
         isFetching: true,
         isAuthenticated: true,
     };
-};
+}
 
-export const receiveLogout = () => {
+export function receiveLogout() {
     return {
         type: types.LOGOUT_SUCCESS,
         isFetching: false,
         isAuthenticated: false,
     };
-};
+}
 
 // Logs the user out
-export const logoutUser = () => dispatch => {
-    dispatch(requestLogout());
-    localStorage.removeItem('id_token');
-    localStorage.removeItem('access_token');
-    dispatch(receiveLogout());
-};
+export function logoutUser() {
+    const cookies = new Cookies();
+    const logoutData = {
+        loggedIn: false,
+    };
+    cookies.set('logoutData', logoutData, {
+        path: '/',
+        maxAge: 30,
+        domain: DOMAIN_URL,
+    });
+    return dispatch => {
+        dispatch(requestLogout());
+        localStorage.clear();
+        dispatch(receiveLogout());
+        window.location = ACCOUNTS_URL;
+    };
+}

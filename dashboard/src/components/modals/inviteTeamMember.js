@@ -66,7 +66,7 @@ export class FormModal extends Component {
                 }
             );
         }
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Team member invitation form', values);
         }
     };

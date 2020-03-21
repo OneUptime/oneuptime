@@ -17,7 +17,7 @@ class Billing extends Component {
     }
 
     componentDidMount() {
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Billing page Loaded');
         }
     }

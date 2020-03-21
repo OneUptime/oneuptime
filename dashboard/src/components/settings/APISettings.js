@@ -31,7 +31,7 @@ export class APISettings extends Component {
                 return this.props
                     .resetProjectToken(this.props.currentProject._id)
                     .then(() => {
-                        if (!SHOULD_LOG_ANALYTICS) {
+                        if (SHOULD_LOG_ANALYTICS) {
                             logEvent('Project Token Reset', {
                                 projectId: this.props.currentProject._id,
                             });

@@ -278,7 +278,7 @@ class NewMonitor extends Component {
                         3
                     );
                 }
-                if (!SHOULD_LOG_ANALYTICS) {
+                if (SHOULD_LOG_ANALYTICS) {
                     logEvent('Monitor Edit', values);
                 }
             });
@@ -286,7 +286,7 @@ class NewMonitor extends Component {
             this.props.createMonitor(postObj.projectId, postObj).then(
                 () => {
                     thisObj.props.reset();
-                    if (!SHOULD_LOG_ANALYTICS) {
+                    if (SHOULD_LOG_ANALYTICS) {
                         logEvent('Add New Monitor', values);
                     }
                 },
@@ -336,7 +336,7 @@ class NewMonitor extends Component {
 
     cancelEdit = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Monitor Edit Cancelled', {});
         }
     };

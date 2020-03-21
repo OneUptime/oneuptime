@@ -88,7 +88,7 @@ export class SmsSmtpBox extends Component {
                 values
             );
         }
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Changed sms smtp configuration', {});
         }
     };

@@ -226,7 +226,7 @@ class TeamApp extends Component {
         } else {
             this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Team members page Loaded');
         }
     }

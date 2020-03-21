@@ -25,6 +25,8 @@ export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
 export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 
+export const IS_SAAS_SERVICE = isSaasService;
+
 export const User = {
     getAccessToken() {
         return localStorage.getItem('access_token');

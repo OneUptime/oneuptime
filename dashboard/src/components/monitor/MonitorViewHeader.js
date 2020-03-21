@@ -79,7 +79,7 @@ export class MonitorViewHeader extends Component {
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Edit Monitor Switch Clicked', {});
         }
     };
@@ -90,7 +90,7 @@ export class MonitorViewHeader extends Component {
             this.props.monitor.projectId._id || this.props.monitor.projectId
         );
         history.push(`/project/${this.props.currentProject._id}/monitoring`);
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Monitor Deleted', {
                 ProjectId: this.props.currentProject._id,
                 monitorId: this.props.monitor._id,

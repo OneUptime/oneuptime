@@ -42,7 +42,7 @@ export class Monitors extends Component {
                     10
                 );
             });
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Monitors Updated', values);
         }
     };

@@ -3573,7 +3573,7 @@ figure.bs-Number > figcaption {
   position: relative;
   z-index: 200;
   margin: 0 auto 20px;
-  width: 450px;
+  max-width: 450px;
   background: #f7f7f7;
   border-radius: 4px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.07), 0 2px 15px rgba(84, 96, 103, 0.25);
@@ -6223,6 +6223,7 @@ pre.bs-PropertyList-property {
 .bs-Fieldset-row {
   display: flex;
   padding: 10px 20px;
+  align-items: center;
 }
 .bs-Fieldset-row:first-child {
   padding-top: 20px;

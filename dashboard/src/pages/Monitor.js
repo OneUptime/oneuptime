@@ -29,7 +29,7 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Monitors');
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Main monitor page Loaded');
         }
     }

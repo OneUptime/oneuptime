@@ -100,7 +100,7 @@ export class MonitorDetail extends Component {
                 : 3,
             3
         );
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Previous Incident Requested', {
                 ProjectId: this.props.monitor.projectId._id,
                 monitorId: this.props.monitor._id,
@@ -120,7 +120,7 @@ export class MonitorDetail extends Component {
                 : 3,
             3
         );
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Next Incident Requested', {
                 ProjectId: this.props.monitor.projectId._id,
                 monitorId: this.props.monitor._id,
@@ -133,7 +133,7 @@ export class MonitorDetail extends Component {
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Edit Monitor Switch Clicked', {});
         }
     };

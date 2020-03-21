@@ -116,6 +116,39 @@ module.exports = {
             const user = await UserModel.findOne(query).sort([
                 ['createdAt', -1],
             ]);
+            if (user && !IS_SAAS_SERVICE) {
+                // find user subprojects and parent projects
+                let userProjects = await ProjectService.findBy({
+                    'users.userId': user._id,
+                });
+                let parentProjectIds = [];
+                let projectIds = [];
+                if (userProjects.length > 0) {
+                    const subProjects = userProjects
+                        .map(project =>
+                            project.parentProjectId ? project : null
+                        )
+                        .filter(subProject => subProject !== null);
+                    parentProjectIds = subProjects.map(
+                        subProject => subProject.parentProjectId._id
+                    );
+                    const projects = userProjects
+                        .map(project =>
+                            project.parentProjectId ? null : project
+                        )
+                        .filter(project => project !== null);
+                    projectIds = projects.map(project => project._id);
+                }
+                userProjects = await ProjectService.findBy({
+                    $or: [
+                        { _id: { $in: parentProjectIds } },
+                        { _id: { $in: projectIds } },
+                    ],
+                });
+                return await Object.assign({}, user._doc, {
+                    projects: userProjects,
+                });
+            }
             return user;
         } catch (error) {
             ErrorService.log('userService.findOneBy', error);
@@ -229,8 +262,8 @@ module.exports = {
         try {
             const _this = this;
             const email = data.email;
-            const stripePlanId = data.planId;
-            const paymentIntent = data.paymentIntent;
+            const stripePlanId = data.planId || null;
+            const paymentIntent = data.paymentIntent || null;
 
             if (util.isEmailValid(email)) {
                 let user = await _this.findOneBy({ email: email });
@@ -241,24 +274,28 @@ module.exports = {
                     ErrorService.log('userService.signup', error);
                     throw error;
                 } else {
-                    // Check here is the payment intent is successfully paid. If yes then create the customer else not.
-                    const processedPaymentIntent = await PaymentService.checkPaymentIntent(
-                        paymentIntent
-                    );
-                    if (processedPaymentIntent.status !== 'succeeded') {
-                        const error = new Error(
-                            'Unsuccessful attempt to charge card'
-                        );
-                        error.code = 400;
-                        ErrorService.log(
-                            'PaymentService.checkPaymentIntent',
-                            error
-                        );
-                        throw error;
-                    }
-                    const customerId = processedPaymentIntent.customer;
+                    let customerId, subscription;
 
-                    //save a user only when payment method is charged and then next steps
+                    if (IS_SAAS_SERVICE) {
+                        // Check here is the payment intent is successfully paid. If yes then create the customer else not.
+                        const processedPaymentIntent = await PaymentService.checkPaymentIntent(
+                            paymentIntent
+                        );
+                        if (processedPaymentIntent.status !== 'succeeded') {
+                            const error = new Error(
+                                'Unsuccessful attempt to charge card'
+                            );
+                            error.code = 400;
+                            ErrorService.log(
+                                'PaymentService.checkPaymentIntent',
+                                error
+                            );
+                            throw error;
+                        }
+                        customerId = processedPaymentIntent.customer;
+                    }
+
+                    // IS_SAAS_SERVICE: save a user only when payment method is charged and then next steps
                     user = await _this.create(data);
 
                     const createdAt = new Date(user.createdAt)
@@ -275,23 +312,27 @@ module.exports = {
 
                     await _this.sendToken(user, user.email);
 
-                    //update customer Id
-                    user = await _this.updateOneBy(
-                        { _id: user._id },
-                        { stripeCustomerId: customerId }
-                    );
-                    const subscription = await PaymentService.subscribePlan(
-                        stripePlanId,
-                        customerId,
-                        data.coupon
-                    );
+                    if (IS_SAAS_SERVICE) {
+                        //update customer Id
+                        user = await _this.updateOneBy(
+                            { _id: user._id },
+                            { stripeCustomerId: customerId }
+                        );
+                        subscription = await PaymentService.subscribePlan(
+                            stripePlanId,
+                            customerId,
+                            data.coupon
+                        );
+                    }
 
                     const projectName = 'Unnamed Project';
                     const projectData = {
                         name: projectName,
                         userId: user._id,
                         stripePlanId: stripePlanId,
-                        stripeSubscriptionId: subscription.stripeSubscriptionId,
+                        stripeSubscriptionId: subscription
+                            ? subscription.stripeSubscriptionId
+                            : null,
                     };
                     await ProjectService.create(projectData);
 
@@ -417,7 +458,7 @@ module.exports = {
                     const ipLocation = await _this.getUserIpLocation(clientIP);
                     await LoginIPLog.create({ userId: user._id, ipLocation });
 
-                    if (user.paymentFailedDate) {
+                    if (user.paymentFailedDate && IS_SAAS_SERVICE) {
                         // calculate number of days the subscription renewal has failed.
                         const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
                         const daysAfterPaymentFailed = Math.round(
@@ -827,6 +868,7 @@ const ErrorService = require('./errorService');
 const jwt = require('jsonwebtoken');
 const iplocation = require('iplocation').default;
 const jwtSecretKey = process.env['JWT_SECRET'];
+const { IS_SAAS_SERVICE } = require('../config/server');
 const { BACKEND_HOST, NODE_ENV } = process.env;
 const VerificationTokenModel = require('../models/verificationToken');
 const MailService = require('../services/mailService');

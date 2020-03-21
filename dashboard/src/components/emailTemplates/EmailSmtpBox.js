@@ -100,7 +100,7 @@ export class EmailSmtpBox extends Component {
                 values
             );
         }
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Changed smtp configuration', {});
         }
     };

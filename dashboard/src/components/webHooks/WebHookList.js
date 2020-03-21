@@ -29,7 +29,7 @@ class WebHookList extends React.Component {
         } else {
             getWebHook(projectId);
         }
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Call WebHook Integration Component Loaded');
         }
     }
@@ -67,7 +67,7 @@ class WebHookList extends React.Component {
             10
         );
         paginate('prev');
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous Webhook');
         }
     };
@@ -82,7 +82,7 @@ class WebHookList extends React.Component {
 
         getWebHook(projectId, skip + limit, 10);
         paginate('next');
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Next Webhook');
         }
     };

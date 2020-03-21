@@ -27,7 +27,7 @@ class SmsTemplatesBox extends React.Component {
             }
         });
         this.props.editSmsTemplates(currentProject._id, val);
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('SMS Templates Updated');
         }
     };
@@ -35,7 +35,7 @@ class SmsTemplatesBox extends React.Component {
     resetTemplate = templateId => {
         const { currentProject } = this.props;
         this.props.resetSmsTemplates(currentProject._id, templateId);
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('SMS Templates Reset');
         }
     };

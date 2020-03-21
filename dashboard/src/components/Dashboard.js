@@ -63,20 +63,20 @@ export class DashboardApp extends Component {
 
     showProjectForm = () => {
         this.props.showForm();
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Project Form Opened');
         }
     };
 
     hideProfileMenu = () => {
         this.props.hideProfileMenu();
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Profile Menu Closed');
         }
     };
     closeNotificationMenu = () => {
         this.props.closeNotificationMenu();
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Notification Menu Closed');
         }
     };

@@ -48,7 +48,7 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('New Logo Selected');
         }
     };
@@ -67,7 +67,7 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('New Favicon Selected');
         }
     };
@@ -87,7 +87,7 @@ export class Branding extends Component {
             },
             function() {}
         );
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Changed Logo, Style, Branding', values);
         }
     };

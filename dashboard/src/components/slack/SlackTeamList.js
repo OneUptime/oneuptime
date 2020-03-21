@@ -20,7 +20,7 @@ class SlackTeamList extends React.Component {
         if (teams.length === 0 && projectId) {
             getSlackTeams(projectId);
         }
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Call WebHook Integration Component Loaded');
         }
     }
@@ -47,7 +47,7 @@ class SlackTeamList extends React.Component {
             10
         );
         paginate('prev');
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous slack');
         }
     };
@@ -62,7 +62,7 @@ class SlackTeamList extends React.Component {
 
         getSlackTeams(projectId, skip + limit, 10);
         paginate('next');
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Next slack');
         }
     };

@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "98a7ca8c-47fc-486e-860b-f289d6880ffc",
+        "_postman_id": "0b6c66c9-c83b-44fb-8e1f-a270e65906ee",
         "name": "Fyipe",
         "description": "Fyipe backend",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -22371,6 +22371,84 @@
                             "body": "{\n    \"id\": \"5e2ecf3f516aae26b133f352\",\n    \"name\": \"Nawaz Dhandala\",\n    \"email\": \"nawazdhandala@hackerbay.io\",\n    \"password\": \"$2b$10$ZAU87IyvcQCC2jsgagL01.Qq9xAMKKYeVSQH6MR9WT.vlkzMr5112\",\n    \"companyName\": \"Hackerbay\",\n    \"companyRole\": null,\n    \"companySize\": null,\n    \"referral\": null,\n    \"isVerified\": true,\n    \"twoFactorAuthEnabled\": false,\n    \"companyPhoneNumber\": \"08058486168\",\n    \"alertPhoneNumber\": \"\",\n    \"profilePic\": null,\n    \"backupCodes\": [\n        {\n            \"code\": \"80656207\",\n            \"counter\": 0\n        },\n        {\n            \"code\": \"78637838\",\n            \"counter\": 1\n        },\n        {\n            \"code\": \"48066866\",\n            \"counter\": 2\n        },\n        {\n            \"code\": \"26884181\",\n            \"counter\": 3\n        },\n        {\n            \"code\": \"41967906\",\n            \"counter\": 4\n        },\n        {\n            \"code\": \"57108620\",\n            \"counter\": 5\n        },\n        {\n            \"code\": \"33195921\",\n            \"counter\": 6\n        },\n        {\n            \"code\": \"77324177\",\n            \"counter\": 7\n        }\n    ],\n    \"timezone\": \"\",\n    \"tokens\": {\n        \"jwtAccessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MTYyOTY5OSwiZXhwIjoxNTkwMjY5Njk5fQ.F5lKpj8y9qrvfJAVdRZYEtI6dYLlH6V9lPLWCDMIIjw\",\n        \"jwtRefreshToken\": \"0TWTMO3g2SkWVRMMWVZuyDsHylCg08FhLZAiXtWgsrVcCWjJs6RgfHisl9BlWeKnf7O5BO0hyl8jFJn8NVw94QzIbPjHlvdyfhvDtwz95cro6B4vFBntpOuuV4yjO4GLDD7tLDqpRr8SdA4iXDKRHTnbUgKn2pAXxslHchAgDE7bTfaKbzkfxjO8z0NTrBOwUIrCTVlgMKAeShWAlgJ5QQGFTaapiV8x1sFCyrHAn9QlEAod3DxZdGyuvQmjgtzJ\"\n    },\n    \"tempEmail\": null,\n    \"tempAlertPhoneNumber\": null\n}"
                         }
                     ]
+                },
+                {
+                    "name": "Check If Master Admin Exists",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3002/user/masterAdminExists",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3002",
+                            "path": ["user", "masterAdminExists"]
+                        },
+                        "description": "Check If Master Admin Exists"
+                    },
+                    "response": [
+                        {
+                            "name": "Check If Master Admin Exists",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "http://localhost:3002/user/masterAdminExists",
+                                    "protocol": "http",
+                                    "host": ["localhost"],
+                                    "port": "3002",
+                                    "path": ["user", "masterAdminExists"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "X-Powered-By",
+                                    "value": "Express"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Origin",
+                                    "value": "undefined"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Credentials",
+                                    "value": "true"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Methods",
+                                    "value": "GET,PUT,POST,DELETE,OPTIONS"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Headers",
+                                    "value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+                                },
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=utf-8"
+                                },
+                                {
+                                    "key": "Content-Length",
+                                    "value": "16"
+                                },
+                                {
+                                    "key": "ETag",
+                                    "value": "W/\"10-us8lSJutAxKqLzf8c1+n5XstcwY\""
+                                },
+                                {
+                                    "key": "Date",
+                                    "value": "Sat, 07 Mar 2020 15:38:32 GMT"
+                                },
+                                {
+                                    "key": "Connection",
+                                    "value": "keep-alive"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"result\": false\n}"
+                        }
+                    ]
                 }
             ],
             "description": "User API",
@@ -24675,6 +24753,139 @@
                 }
             ],
             "description": "Zapier API",
+            "protocolProfileBehavior": {}
+        },
+        {
+            "name": "License",
+            "item": [
+                {
+                    "name": "Confirm License",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n\t\"license\": \"valid-license\",\n\t\"email\": \"nawazdhandala@hackerbay.io\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:3004/license?limit=10",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3004",
+                            "path": ["license"],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Confirm Fyipe Enterprise License"
+                    },
+                    "response": [
+                        {
+                            "name": "Confirm License",
+                            "originalRequest": {
+                                "method": "POST",
+                                "header": [],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n\t\"license\": \"valid-license\",\n\t\"email\": \"nawazdhandala@hackerbay.io\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "http://localhost:3004/license?limit=10",
+                                    "protocol": "http",
+                                    "host": ["localhost"],
+                                    "port": "3004",
+                                    "path": ["license"],
+                                    "query": [
+                                        {
+                                            "key": "limit",
+                                            "value": "10"
+                                        }
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "X-Powered-By",
+                                    "value": "Express"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Origin",
+                                    "value": "undefined"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Credentials",
+                                    "value": "true"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Methods",
+                                    "value": "GET,PUT,POST,DELETE,OPTIONS"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Headers",
+                                    "value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+                                },
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=utf-8"
+                                },
+                                {
+                                    "key": "Content-Length",
+                                    "value": "140"
+                                },
+                                {
+                                    "key": "ETag",
+                                    "value": "W/\"8c-dbqtTOwXwnwVYs3azFzP41OL1Qo\""
+                                },
+                                {
+                                    "key": "Date",
+                                    "value": "Fri, 13 Mar 2020 10:49:06 GMT"
+                                },
+                                {
+                                    "key": "Connection",
+                                    "value": "keep-alive"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE1ODQwOTY1NDYsImV4cCI6MTU4NDE0NDAwMX0.IS92G8T0Fl0uPUxp_nxvjRwvgRx0jdRZrDVjAs1P4_w\"\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "License API",
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "id": "181c49ab-ea0e-4383-a58f-cb1d8fa3bb78",
+                        "type": "text/javascript",
+                        "exec": [""]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "id": "58a5bf99-db1a-4ae2-8e15-6349a82fa193",
+                        "type": "text/javascript",
+                        "exec": [""]
+                    }
+                }
+            ],
             "protocolProfileBehavior": {}
         }
     ],

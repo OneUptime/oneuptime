@@ -26,7 +26,7 @@ export class VerifyBackupCode extends Component {
     submitForm = values => {
         this.props.verifyBackupCode(values).then(user => {
             if (user && user.data && user.data.id) {
-                if (!SHOULD_LOG_ANALYTICS) {
+                if (SHOULD_LOG_ANALYTICS) {
                     identify(user.data.id);
                     setUserId(user.data.id);
                     logEvent('Log in user', { id: user.data.id });

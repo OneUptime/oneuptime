@@ -14,7 +14,7 @@ class ErrorBoundary extends Component {
         this.setState({ hasError: true });
         // You can also log the error to an error reporting service
         try {
-            if (!SHOULD_LOG_ANALYTICS) {
+            if (SHOULD_LOG_ANALYTICS) {
                 logEvent('Error', { error, info });
             }
         } catch (error) {

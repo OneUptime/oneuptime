@@ -31,7 +31,7 @@ export class MonitorViewIncidentBox extends Component {
                 : 5,
             5
         );
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Previous Incident Requested', {
                 projectId: this.props.monitor.projectId._id,
             });
@@ -47,7 +47,7 @@ export class MonitorViewIncidentBox extends Component {
                 : 5,
             5
         );
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Next Incident Requested', {
                 projectId: this.props.monitor.projectId._id,
             });

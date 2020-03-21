@@ -35,7 +35,7 @@ export class OnCall extends Component {
         if (subProjectSchedules.length === 0 && currentProjectId) {
             fetchSubProjectSchedules(currentProjectId);
         }
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Call Schedule Page Loaded');
         }
     }
@@ -63,7 +63,7 @@ export class OnCall extends Component {
             10
         );
         paginate('prev');
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous Webhook');
         }
     };
@@ -73,7 +73,7 @@ export class OnCall extends Component {
 
         fetchProjectSchedule(subProjectId, skip + limit, 10);
         paginate('next');
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Next Webhook');
         }
     };
@@ -86,7 +86,7 @@ export class OnCall extends Component {
                 `/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`
             );
         });
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('New Schedule Created', { subProjectId, name: 'Unnamed' });
         }
     };

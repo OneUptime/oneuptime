@@ -26,7 +26,7 @@ export class DeleteStatusPageBox extends Component {
             id: deleteModalId,
             onConfirm: () => {
                 return deleteStatusPage(subProjectId, scheduleId).then(() => {
-                    if (!SHOULD_LOG_ANALYTICS) {
+                    if (SHOULD_LOG_ANALYTICS) {
                         logEvent('Status Page Deleted', {
                             subProjectId,
                             scheduleId,

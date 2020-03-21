@@ -31,7 +31,7 @@ if (userData !== undefined) {
     User.setEmail(userData.email);
     User.setName(userData.name);
     User.setCardRegistered(userData.cardRegistered);
-    if (!SHOULD_LOG_ANALYTICS) {
+    if (SHOULD_LOG_ANALYTICS) {
         setUserId(userData.id);
         identify(userData.id);
         setUserProperties({
@@ -49,7 +49,7 @@ if (!User.isLoggedIn()) {
     store.dispatch(loadPage('Home'));
 } else {
     const id = User.getUserId();
-    if (!SHOULD_LOG_ANALYTICS) {
+    if (SHOULD_LOG_ANALYTICS) {
         setUserId(id);
     }
 }

@@ -45,5 +45,6 @@ build probe
 build admin-dashboard
 build init-script
 build slack
+build licensing
 
 cd $DIR

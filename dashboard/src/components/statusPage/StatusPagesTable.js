@@ -26,7 +26,7 @@ class StatusPagesTable extends Component {
 
     componentDidMount() {
         this.props.fetchSubProjectStatusPages(this.props.projectId);
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Settings Loaded');
         }
     }
@@ -46,7 +46,7 @@ class StatusPagesTable extends Component {
             10
         );
         paginate('prev');
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous Webhook');
         }
     };
@@ -56,7 +56,7 @@ class StatusPagesTable extends Component {
 
         fetchProjectStatusPage(projectId, false, skip + limit, 10);
         paginate('next');
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous Webhook');
         }
     };

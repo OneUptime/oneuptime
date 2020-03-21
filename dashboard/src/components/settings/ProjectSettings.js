@@ -33,7 +33,7 @@ export class ProjectSettings extends Component {
                         document.title = val.data.name + ' Dashboard';
                     }
                 });
-            if (!SHOULD_LOG_ANALYTICS) {
+            if (SHOULD_LOG_ANALYTICS) {
                 logEvent('Rename Project', values);
             }
         }

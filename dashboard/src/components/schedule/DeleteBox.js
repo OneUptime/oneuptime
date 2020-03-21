@@ -31,7 +31,7 @@ export class DeleteScheduleBox extends Component {
             id: deleteModalId,
             onConfirm: () => {
                 return deleteSchedule(subProjectId, scheduleId).then(() => {
-                    if (!SHOULD_LOG_ANALYTICS) {
+                    if (SHOULD_LOG_ANALYTICS) {
                         logEvent('Schedule Deleted', {
                             subProjectId,
                             scheduleId,

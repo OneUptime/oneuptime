@@ -3,6 +3,7 @@ import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
 import FileSaver from 'file-saver';
+import { emaildomains } from './constants/emaildomains';
 
 const apiUrl = window.location.origin + '/api';
 const dashboardUrl = window.location.origin + '/dashboard';
@@ -121,9 +122,28 @@ export const Validate = {
         }
     },
 
+    isValidNumber(number) {
+        // eslint-disable-next-line
+        if (number.match('^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-s./0-9]*$')) {
+            return true;
+        }
+        return false;
+    },
+
+    isStrongPassword(password) {
+        if (password.match('^(?=.{8,})')) {
+            return true;
+        }
+        return false;
+    },
+
     email(email) {
         if (this.text(email)) return isEmail(email);
         return false;
+    },
+
+    isValidBusinessEmail(email) {
+        return emaildomains.test(email);
     },
 
     compare(text1, text2) {
@@ -168,6 +188,14 @@ export const Validate = {
         }
 
         return true;
+    },
+
+    isValidName(name) {
+        // eslint-disable-next-line
+        if (name.match('[A-Z][a-zA-Z][^#&<>"~;$^%{}?]{1,20}$')) {
+            return true;
+        }
+        return false;
     },
 };
 

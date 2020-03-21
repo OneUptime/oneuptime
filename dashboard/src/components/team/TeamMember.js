@@ -46,7 +46,7 @@ export class TeamMember extends Component {
                 });
             } else return null;
         });
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Team Member Removed', {
                 projectId: this.props.subProjectId,
                 userId: values.userId,
@@ -66,7 +66,7 @@ export class TeamMember extends Component {
         this.props
             .teamUpdateRole(this.props.subProjectId, data)
             .then(team => changeProjectRoles(team.data));
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Team Member Role Changed', {
                 projectId: this.props.subProjectId,
                 role: data.role,

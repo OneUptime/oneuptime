@@ -73,7 +73,7 @@ export class Links extends Component {
                     id: this.state.createFooterLinkModalId,
                 });
             });
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Links Updated', values);
         }
     };

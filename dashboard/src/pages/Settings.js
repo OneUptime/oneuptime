@@ -16,7 +16,7 @@ import { logEvent } from '../analytics';
 
 class Settings extends Component {
     componentDidMount() {
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Project Settings Page Loaded');
         }
     }

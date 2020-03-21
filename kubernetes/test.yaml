@@ -238,6 +238,59 @@ spec:
 ---
 ###########################################
 
+###########-----LICENSING------##############
+# Fyipe Licensing Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: licensing
+    labels:
+        app: licensing
+spec:
+    selector:
+        matchLabels:
+            app: licensing
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: licensing
+        spec:
+            containers:
+                - image: localhost:32000/licensing:master
+                  name: licensing
+                  imagePullPolicy: Always
+                  env:
+                      - name: AIRTABLE_API_KEY
+                        value: 'key9VuqGqj1Pp07Q8'
+                      - name: AIRTABLE_BASE_ID
+                        value: 'appksCeuKfCS0e8fR'
+                      - name: TOKEN_SECRET
+                        value: 'LicenseTokenSecret'
+                  ports:
+                      - containerPort: 3004
+                        hostPort: 3004
+                        name: licensing
+            restartPolicy: Always
+---
+# Fyipe Licensing Deployment
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: licensing
+    name: licensing
+spec:
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 3004
+    selector:
+        app: licensing
+    type: LoadBalancer
+---
+###########################################
+
 ###########-----SLACK------##############
 # Slack
 apiVersion: apps/v1

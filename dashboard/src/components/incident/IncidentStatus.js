@@ -27,7 +27,7 @@ export class IncidentStatus extends Component {
             userId,
             this.props.multiple
         );
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Incident Acknowledged', {
                 ProjectId: this.props.incident.projectId,
                 incidentId: this.props.incident._id,
@@ -44,7 +44,7 @@ export class IncidentStatus extends Component {
             userId,
             this.props.multiple
         );
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Incident Resolved', {
                 ProjectId: this.props.incident.projectId,
                 incidentId: this.props.incident._id,

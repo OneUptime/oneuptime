@@ -1,7 +1,8 @@
 const faker = require('faker');
 
-const ACCOUNTS_URL = '/accounts';
-const DASHBOARD_URL = '/dashboard';
+const ACCOUNTS_URL = 'http://localhost:3003';
+const DASHBOARD_URL = 'http://localhost:3000';
+const ADMIN_DASHBOARD_URL = 'http://localhost:3100';
 
 const puppeteerLaunchConfig = {
     args: [
@@ -51,6 +52,7 @@ function generateRandomBusinessEmail() {
 module.exports = {
     ACCOUNTS_URL,
     DASHBOARD_URL,
+    ADMIN_DASHBOARD_URL,
     puppeteerLaunchConfig,
     user,
     generateWrongEmail,

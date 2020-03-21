@@ -25,7 +25,7 @@ const UserList = ({ users }) =>
                                 ? user.projects[0].name
                                 : 'Not Added Yet'
                         }`}{' '}
-                        {user.projects.length - 1 > 0
+                        {user.projects && user.projects.length - 1 > 0
                             ? user.projects.length - 1 > 1
                                 ? `and ${user.projects.length - 1} others`
                                 : 'and 1 other'

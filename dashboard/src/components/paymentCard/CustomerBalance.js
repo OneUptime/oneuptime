@@ -37,7 +37,7 @@ export class CustomerBalance extends Component {
         const { addBalance, projectId, openModal } = this.props;
         const { MessageBoxId } = this.state;
 
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Add amount to balance', values);
         }
         if (rechargeBalanceAmount) {

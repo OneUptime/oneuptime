@@ -24,7 +24,7 @@ function submitMonitorForm(values, dispatch, props) {
         }
     }
     props.addMonitors(subProjectId, scheduleId, { monitorIds: monitors });
-    if (!SHOULD_LOG_ANALYTICS) {
+    if (SHOULD_LOG_ANALYTICS) {
         logEvent('Attached Monitor To Schedule', {
             subProjectId,
             scheduleId,

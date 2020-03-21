@@ -126,7 +126,7 @@ export class Reports extends Component {
     }
 
     ready = () => {
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Reports Page Ready, Data Requested');
         }
     };

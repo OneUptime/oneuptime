@@ -43,7 +43,7 @@ export class PrivateStatusPage extends Component {
             .then(() => {
                 this.props.fetchProjectStatusPage(projectId, true);
             });
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Private StatusPage Updated', values);
         }
     };

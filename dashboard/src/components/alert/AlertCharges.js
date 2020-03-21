@@ -20,7 +20,7 @@ class AlertCharge extends Component {
     }
 
     componentDidMount() {
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('AlertCharge page Loaded');
         }
     }

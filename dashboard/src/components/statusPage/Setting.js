@@ -43,7 +43,7 @@ export class Setting extends Component {
                 },
                 function() {}
             );
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Domain Updated', values);
         }
     };

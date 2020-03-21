@@ -43,7 +43,7 @@ class UserForm extends Component {
                     return obj;
                 }, {});
 
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent(`Register page click on # ${target.id}`, {
                 data: filteredValues,
             });

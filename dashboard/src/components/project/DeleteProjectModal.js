@@ -31,7 +31,7 @@ export class DeleteProjectModal extends Component {
         deleteProject(projectId, values.feedback).then(() => {
             this.closeNotice();
         });
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Project Marked for Deleted', { projectId });
         }
     }

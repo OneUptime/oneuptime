@@ -23,7 +23,7 @@ class NotificationMenu extends Component {
 
     markAllAsRead(projectId) {
         this.props.markAllAsRead(projectId);
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Notification Marked All As Read', {
                 projectId: projectId,
             });
@@ -32,7 +32,7 @@ class NotificationMenu extends Component {
 
     markAsRead(notification) {
         this.props.markAsRead(notification.projectId, notification._id);
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Notification Marked As Read', {
                 projectId: notification.projectId,
                 notificationId: notification._id,

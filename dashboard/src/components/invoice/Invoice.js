@@ -21,7 +21,7 @@ class Invoice extends Component {
     }
 
     componentDidMount() {
-        if (!SHOULD_LOG_ANALYTICS) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Invoice page Loaded');
         }
         this.resetAndFetchInvoices();

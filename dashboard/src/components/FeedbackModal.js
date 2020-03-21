@@ -26,7 +26,7 @@ export class FeedbackModal extends Component {
                     function() {}
                 );
 
-            if (!SHOULD_LOG_ANALYTICS) {
+            if (SHOULD_LOG_ANALYTICS) {
                 logEvent('Feedback Values', values);
             }
             this.props.closeFeedbackModal();
