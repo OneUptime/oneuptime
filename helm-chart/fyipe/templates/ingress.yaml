@@ -54,6 +54,10 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" .Release.Name "api-docs"  }}
               servicePort: 80
+          - path: /license
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "licensing"  }}
+              servicePort: 80
           {{- else }}
           - path: /
             backend:

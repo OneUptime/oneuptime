@@ -12,7 +12,11 @@ saas:
     baseId: appff3DtEBUNxGN9W
   amplitude: 
     key: 802d95003af23aad17ed068b6cfdeb2b
-
+  licensing:
+    airtable: 
+      key: key9VuqGqj1Pp07Q8
+      baseId: appksCeuKfCS0e8fR
+    tokenSecret: LicenseTokenSecret
 
 ###################################################################################
 fyipe:
@@ -43,6 +47,7 @@ host:
   backendPort: 3002
   homePort: 1444
   slackPort: 1267
+  licensingPort: 3004
   statusPagePort: 3006
   dashboardPort: 3000
   accountsPort: 3003
@@ -61,6 +66,7 @@ host:
   dashboardNodePort: 80
   accountsNodePort: 80
   adminDashboardNodePort: 80
+  licensingServicePort: 80
 
 
 probes:

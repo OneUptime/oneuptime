@@ -1,0 +1,60 @@
+
+####################################
+#IMPORTANT: Kube Reosurces below are ONLY for SaaS service
+####################################
+
+{{- if .Values.saas.isSaasService }}
+###########-----LICENSING------##############
+# Licensing
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "licensing"  }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "licensing" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "licensing"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                    - name: IS_SAAS_SERVICE
+                      value: 'true'
+                    - name: AIRTABLE_API_KEY
+                      value: {{ .Values.saas.licensing.airtable.key }}
+                    - name: AIRTABLE_BASE_ID
+                      value: {{ .Values.saas.licensing.airtable.baseId }}
+                    - name: TOKEN_SECRET
+                      value: {{ .Values.saas.licensing.tokenSecret }}
+                  ports:
+                      - containerPort: {{ .Values.host.licensingPort }}
+                        hostPort: {{ .Values.host.licensingPort }}
+                        name: {{ printf "%s-%s" .Release.Name "licensing"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+    name: {{ printf "%s-%s" .Release.Name "licensing"  }}
+spec:
+    ports:
+        - port: {{ .Values.host.licensingServicePort }}
+          protocol: TCP
+          targetPort: {{ .Values.host.licensingPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+    type: {{ .Values.service.type }}
+---
+{{- end }}
