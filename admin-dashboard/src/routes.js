@@ -74,6 +74,13 @@ const joinFn = (acc = [], curr) => {
 export const allRoutes = groups
     .map(function merge(group) {
         const { routes } = group;
+        var newRoutes = [];
+        for(let route of routes){
+            newRoutes.push(route);
+            let tempRoute = {...route};
+            tempRoute.path = '/admin'+route.path;
+            newRoutes.push(tempRoute);
+        }
         const subRoutes = routes.map(route => route.subRoutes).reduce(joinFn);
         return routes.concat(subRoutes);
     })

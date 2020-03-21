@@ -25687,7 +25687,7 @@ div.identity-document-verification-intro img.passport {
   margin: 10px 30px 0 0;
 }
 div.identity-document-verification-success {
-  background: transparent url(/assets/email-confirmed-message-view/success.png)
+  background: transparent url(/accounts/assets/email-confirmed-message-view/success.png)
     0 0 no-repeat;
 }
 div.identity-document-verification-success h1 {
@@ -45874,13 +45874,13 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 #login div#header h1 a,
 .page-wrapper div#header h1 a {
   height: 55px;
-  background-image: url('/assets/img/black-svg-full.svg');
+  background-image: url('/accounts/assets/img/black-svg-full.svg');
   background-size: 100% 100%;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2) {
   #login div#header h1 a,
   .page-wrapper div#header h1 a {
-    background-image: url('/assets/img/black-svg-full.svg');
+    background-image: url('/accounts/assets/img/black-svg-full.svg');
   }
 }
 #login div.box,
@@ -46925,12 +46925,12 @@ html.placeholder #login p.remember label {
 }
 #recovery div#header h1 a {
   height: 105px;
-  background-image: url('/assets/img/black-svg-full.svg');
+  background-image: url('/accounts/assets/img/black-svg-full.svg');
   background-size: 100% 100%;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2) {
   #recovery div#header h1 a {
-    background-image: url('/assets/img/black-svg-full.svg');
+    background-image: url('/accounts/assets/img/black-svg-full.svg');
   }
 }
 .register #fyipe-explanation {

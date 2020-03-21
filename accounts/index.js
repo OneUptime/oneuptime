@@ -22,6 +22,7 @@ child_process.execSync('react-env', {
 app.use(compression());
 
 app.use('/', (req, res, next) => {
+    //eslint-disable-next-line
     console.log(req.method, ' ', req.originalUrl);
     next();
 });
@@ -31,14 +32,10 @@ app.use(express.static(path.join(__dirname, 'build')));
 app.use('/accounts', express.static(path.join(__dirname, 'build')));
 
 app.get('/env.js', function(req, res) {
-    //eslint-disable-next-line
-    console.log('Serve ENV File');
     res.sendFile(path.join(__dirname, 'public', 'env.js'));
 });
 
 app.get('/*', function(req, res) {
-    //eslint-disable-next-line
-    console.log('Serve INDEX File');
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
