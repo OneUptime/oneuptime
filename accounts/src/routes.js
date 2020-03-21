@@ -97,13 +97,22 @@ export const allRoutes = groups
     .map(function merge(group) {
         const { routes } = group;
         var newRoutes = [];
-        for(let route of routes){
+        for (let route of routes) {
             newRoutes.push(route);
-            let tempRoute = {...route};
-            tempRoute.path = '/accounts'+route.path;
+            let tempRoute = { ...route };
+            tempRoute.path = '/accounts' + route.path;
             newRoutes.push(tempRoute);
         }
-        const subRoutes = newRoutes.map(route => route.subRoutes).reduce(joinFn);
+        const subRoutes = newRoutes.map(route => {
+            var newSubRoutes = [];
+            for (let route of routes.subRoutes) {
+                newSubRoutes.push(route);
+                let tempRoute = { ...route };
+                tempRoute.path = '/accounts' + route.path;
+                newSubRoutes.push(tempRoute);
+            }
+            return newSubRoutes;
+        }).reduce(joinFn);
         return newRoutes.concat(subRoutes);
     })
     .reduce(joinFn);
