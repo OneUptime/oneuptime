@@ -58,7 +58,7 @@ export class RegisterForm extends Component {
                     if (!IS_SAAS_SERVICE) {
                         thisObj.props.signupUser(values).then(user => {
                             if (user && user.data && user.data.id) {
-                                if (!IS_DEV) {
+                                if (SHOULD_LOG_ANALYTICS) {
                                     setUserId(user.data.id);
                                     identify(user.data.id);
                                     setUserProperties({
