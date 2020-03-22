@@ -23,6 +23,8 @@ child_process.execSync('react-env', {
 
 app.use(express.static(path.join(__dirname, 'build')));
 
+app.use('/dashboard', express.static(path.join(__dirname, 'build')));
+
 app.get('/env.js', function(req, res) {
     res.sendFile(path.join(__dirname, 'public', 'env.js'));
 });
