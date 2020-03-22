@@ -53,6 +53,30 @@ audit_backend:
       - hotfix-master
       - hotfix-release
 
+# Helm Chart Repo
+audit_helmchart:
+  stage: BuildAndTest
+  allow_failure: true
+  script:
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
+    - cd helm-chart
+    - npm ci
+    - npm run audit
+    - npm run dep-check
+    # Install Helm.
+    - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    # Lint helm chart
+    - helm lint ./public/fyipe
+    - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
 build_n_test_backend:
   stage: BuildAndTest
   script:
@@ -1312,6 +1336,55 @@ deploy_staging_backend:
       - hotfix-master
   environment:
     name: staging
+
+# DEPLOYMENT STAGE - HELM CHART
+deploy_staging_helm-chart:
+  stage: Deploy
+  allow_failure: true
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
+    - ./kubernetes/ci/deployment-staging-setup.sh
+    # Build and deploy helm-chart.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipeproject/helm-chart:master ./helm-chart
+    - sudo docker tag fyipeproject/helm-chart:master fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/helm-chart:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/helm-chart helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+      - hotfix-master
+  environment:
+    name: staging
+
+deploy_production_helm-chart:
+  stage: Deploy
+  script:
+    - chmod +x ./kubernetes/ci/deployment-setup.sh
+    - ./kubernetes/ci/deployment-setup.sh
+    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
+    - ./kubernetes/ci/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipeproject/helm-chart:latest ./helm-chart
+    - sudo docker tag fyipeproject/helm-chart:latest fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/helm-chart:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/helm-chart helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
+    - ./kubernetes/ci/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+      - hotfix-release
+  environment:
+    name: production
 
 deploy_production_backend:
   stage: Deploy
