@@ -30,7 +30,7 @@ export function logoutUser() {
     };
     cookies.set('logoutData', logoutData, {
         path: '/',
-        maxAge: 30
+        maxAge: 30,
     });
     return dispatch => {
         dispatch(requestLogout());
