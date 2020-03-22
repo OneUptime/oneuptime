@@ -59,9 +59,9 @@ spec:
               serviceName: {{ printf "%s-%s" .Release.Name "licensing"  }}
               servicePort: 80
           - path: /chart
-              backend:
-                serviceName: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
-                servicePort: 80
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+              servicePort: 80
           {{- else }}
           - path: /
             backend:

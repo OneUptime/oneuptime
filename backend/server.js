@@ -67,44 +67,71 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 app.use(express.static(path.join(__dirname, 'views')));
-app.use('/api',express.static(path.join(__dirname, 'views')));
+app.use('/api', express.static(path.join(__dirname, 'views')));
 
 app.use(require('./backend/middlewares/auditLogs').log);
 
 // Routes(API)
-app.use(['/alert','/api/alert'], require('./backend/api/alert'));
-app.use(['/user','/api/user'], require('./backend/api/user'));
-app.use(['/token','/api/token'], require('./backend/api/token'));
-app.use(['/team','/api/team'], require('./backend/api/team'));
-app.use(['/project','/api/project'], require('./backend/api/project'));
-app.use(['/invoice','/api/invoice'], require('./backend/api/invoice'));
-app.use(['/schedule','/api/schedule'], require('./backend/api/schedule'));
-app.use(['/monitor','/api/monitor'], require('./backend/api/monitor'));
-app.use(['/statusPage','/api/statusPage'], require('./backend/api/statusPage'));
-app.use(['/file','/api/file'], require('./backend/api/file'));
-app.use(['/incident','/api/incident'], require('./backend/api/incident'));
-app.use(['/reports','/api/report'], require('./backend/api/report'));
-app.use(['/lead','/api/lead'], require('./backend/api/lead'));
-app.use(['/feedback','/api/feedback'], require('./backend/api/feedback'));
-app.use(['/twilio','/api/twilio'], require('./backend/api/twilio'));
-app.use(['/zapier','/api/zapier'], require('./backend/api/zapier'));
-app.use(['/slack','/api/slack'], require('./backend/api/slack'));
-app.use(['/webhook','/api/webHook'], require('./backend/api/webHook'));
-app.use(['/notification','/api/notification'], require('./backend/api/notification'));
-app.use(['/stripe','/api/stripe'], require('./backend/api/stripe'));
-app.use(['/subscriber','/api/subscriber'], require('./backend/api/subscriber'));
-app.use(['/subscriberAlert','/api/subscriberAlert'], require('./backend/api/subscriberAlert'));
-app.use(['/emailTemplate','/api/emailTemplate'], require('./backend/api/emailTemplate'));
-app.use(['/emailSmtp','/api/emailSmtp'], require('./backend/api/emailSmtp'));
-app.use(['/smsTemplate','/api/smsTemplate'], require('./backend/api/smsTemplate'));
-app.use(['/smsSmtp','/api/smsSmtp'], require('./backend/api/smsSmtp'));
-app.use(['/monitorCategory','/api/monitorCategory'], require('./backend/api/monitorCategory'));
-app.use(['/monitorCriteria','/api/monitorCriteria'], require('./backend/api/monitorCriteria'));
-app.use(['/scheduledEvent','/api/scheduledEvent'], require('./backend/api/scheduledEvent'));
-app.use(['/probe','/api/probe'], require('./backend/api/probe'));
-app.use(['/version','/api/version'], require('./backend/api/version'));
-app.use(['/tutorial','/api/tutorial'], require('./backend/api/tutorial'));
-app.use(['/audit-logs','/api/auditLogs'], require('./backend/api/auditLogs'));
+app.use(['/alert', '/api/alert'], require('./backend/api/alert'));
+app.use(['/user', '/api/user'], require('./backend/api/user'));
+app.use(['/token', '/api/token'], require('./backend/api/token'));
+app.use(['/team', '/api/team'], require('./backend/api/team'));
+app.use(['/project', '/api/project'], require('./backend/api/project'));
+app.use(['/invoice', '/api/invoice'], require('./backend/api/invoice'));
+app.use(['/schedule', '/api/schedule'], require('./backend/api/schedule'));
+app.use(['/monitor', '/api/monitor'], require('./backend/api/monitor'));
+app.use(
+    ['/statusPage', '/api/statusPage'],
+    require('./backend/api/statusPage')
+);
+app.use(['/file', '/api/file'], require('./backend/api/file'));
+app.use(['/incident', '/api/incident'], require('./backend/api/incident'));
+app.use(['/reports', '/api/report'], require('./backend/api/report'));
+app.use(['/lead', '/api/lead'], require('./backend/api/lead'));
+app.use(['/feedback', '/api/feedback'], require('./backend/api/feedback'));
+app.use(['/twilio', '/api/twilio'], require('./backend/api/twilio'));
+app.use(['/zapier', '/api/zapier'], require('./backend/api/zapier'));
+app.use(['/slack', '/api/slack'], require('./backend/api/slack'));
+app.use(['/webhook', '/api/webHook'], require('./backend/api/webHook'));
+app.use(
+    ['/notification', '/api/notification'],
+    require('./backend/api/notification')
+);
+app.use(['/stripe', '/api/stripe'], require('./backend/api/stripe'));
+app.use(
+    ['/subscriber', '/api/subscriber'],
+    require('./backend/api/subscriber')
+);
+app.use(
+    ['/subscriberAlert', '/api/subscriberAlert'],
+    require('./backend/api/subscriberAlert')
+);
+app.use(
+    ['/emailTemplate', '/api/emailTemplate'],
+    require('./backend/api/emailTemplate')
+);
+app.use(['/emailSmtp', '/api/emailSmtp'], require('./backend/api/emailSmtp'));
+app.use(
+    ['/smsTemplate', '/api/smsTemplate'],
+    require('./backend/api/smsTemplate')
+);
+app.use(['/smsSmtp', '/api/smsSmtp'], require('./backend/api/smsSmtp'));
+app.use(
+    ['/monitorCategory', '/api/monitorCategory'],
+    require('./backend/api/monitorCategory')
+);
+app.use(
+    ['/monitorCriteria', '/api/monitorCriteria'],
+    require('./backend/api/monitorCriteria')
+);
+app.use(
+    ['/scheduledEvent', '/api/scheduledEvent'],
+    require('./backend/api/scheduledEvent')
+);
+app.use(['/probe', '/api/probe'], require('./backend/api/probe'));
+app.use(['/version', '/api/version'], require('./backend/api/version'));
+app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
+app.use(['/audit-logs', '/api/auditLogs'], require('./backend/api/auditLogs'));
 app.set('port', process.env.PORT || 3002);
 
 const server = http.listen(app.get('port'), function() {
@@ -112,7 +139,7 @@ const server = http.listen(app.get('port'), function() {
     console.log('Server Started on port ' + app.get('port'));
 });
 
-app.get(['/','/api'], function(req, res) {
+app.get(['/', '/api'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

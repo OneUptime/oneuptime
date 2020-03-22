@@ -1,8 +1,6 @@
 const express = require('express');
 const path = require('path');
 const app = express();
-const envfile = require('envfile');
-const fs = require('fs');
 const child_process = require('child_process');
 const compression = require('compression');
 
@@ -13,7 +11,7 @@ const env = {
     REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
 };
 
-fs.writeFileSync('.env', envfile.stringifySync(env));
+env.home = 'true';
 
 child_process.execSync('react-env', {
     stdio: [0, 1, 2],
@@ -27,13 +25,12 @@ app.use('/', (req, res, next) => {
     next();
 });
 
-app.use(express.static(path.join(__dirname, 'build')));
-
-app.use('/accounts', express.static(path.join(__dirname, 'build')));
-
-app.get('/env.js', function(req, res) {
-    res.sendFile(path.join(__dirname, 'public', 'env.js'));
+app.get(['/env.js', '/accounts/env.js'], function(req, res) {
+    res.contentType('application/javascript');
+    res.send('window._env = ' + JSON.stringify(env));
 });
+
+app.use(['/', '/accounts'], express.static(path.join(__dirname, 'build')));
 
 app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));

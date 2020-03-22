@@ -17,12 +17,12 @@ helm install fi ./helm-chart/public/fyipe
 
 ### Install on staging
 ```
-helm install -f ../../../kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe 
+helm install -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe 
 ```
 
 ### Install on production
 ```
-helm install -f ../../../kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe 
+helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe 
 ```
 
 ### Docker build and push to docker repo
