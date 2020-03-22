@@ -22,7 +22,8 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
     res.send('window._env = ' + JSON.stringify(env));
 });
 
-app.use(['/', '/dashboard'], express.static(path.join(__dirname, 'build')));
+app.use(express.static(path.join(__dirname, 'build')));
+app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 
 app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
