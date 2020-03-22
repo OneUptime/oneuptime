@@ -7,5 +7,6 @@ slackin
         interval: 24 * 60 * 60 * 1000, //check slack registered users every day.
         org: 'fyipehelp', // fyipehelp.slack.com - required
         silent: false, // suppresses warnings
+        path: '/slack'
     })
     .listen(1267);
