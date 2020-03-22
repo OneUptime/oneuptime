@@ -25,7 +25,7 @@ helm install -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyi
 helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe 
 ```
 
-### Docker build and push to docker repo
+### Docker build and push to docker repo with `:test` tag
 ```
 chmod +x ./kubernetes/ci/docker-build.sh
 sudo ./kubernetes/ci/docker-build.sh

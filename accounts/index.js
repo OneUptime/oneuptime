@@ -11,8 +11,6 @@ const env = {
     REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
 };
 
-env.home = 'true';
-
 child_process.execSync('react-env', {
     stdio: [0, 1, 2],
 });

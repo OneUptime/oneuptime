@@ -7,6 +7,7 @@ const server = slackin.default({
     silent: false, // suppresses warning
     accent: 'black',
     proxy: true,
+    path: '/slack'
 });
 
 //to handle /slack path for application running behind ingress.
