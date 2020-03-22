@@ -3,20 +3,7 @@
 ## Is this Fyipe SaaS service. This will deploy all the SaaS env vars
 
 saas: 
-  isSaasService: true
-  stripe: 
-    publicKey: pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv
-    privateKey: sk_test_YxwnzywggtAd8jDaHecNmHiN
-  airtable: 
-    key: keyenXfDDP4Dutazt
-    baseId: appff3DtEBUNxGN9W
-  amplitude: 
-    key: 802d95003af23aad17ed068b6cfdeb2b
-  licensing:
-    airtable: 
-      key: key9VuqGqj1Pp07Q8
-      baseId: appksCeuKfCS0e8fR
-    tokenSecret: LicenseTokenSecret
+  isSaasService: false
 
 ###################################################################################
 fyipe:

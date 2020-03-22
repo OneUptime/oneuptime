@@ -1,9 +1,22 @@
-# Fyipe API Documentation
+# Important helm commands.
 
-[![Build Status](https://travis-ci.org/Fyipe/api-docs.svg?branch=master)](https://travis-ci.org/Fyipe/api-docs)
+Please run these commands from `root`
 
-This is the API Reference for Fyipe which is hosted at [https://docs.fyipe.com](https://docs.fyipe.com).
+### Lint chart
 
-# Contribute
+```
+helm lint ./helm-chart/public/fyipe 
+```
 
-Feel free to send PR's and contribute. Please send PR's to master and we'll have our team review them for you.
+### Uninstall and Install the chart
+```
+helm uninstall fi
+sleep 30s
+helm install fi ./helm-chart/public/fyipe 
+```
+
+### Docker build and push to docker repo
+```
+chmod +x ./kubernetes/ci/docker-build.sh
+sudo ./kubernetes/ci/docker-build.sh
+```
