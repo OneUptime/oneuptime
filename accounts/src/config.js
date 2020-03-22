@@ -201,9 +201,7 @@ export const Validate = {
 export const PricingPlan = {
     getPlans() {
         if (
-            window.location.href.indexOf('localhost') > -1 ||
-            window.location.href.indexOf('staging') > -1 ||
-            window.location.href.indexOf('app.local') > -1
+            env('STRIPE_PUBLIC_KEY') && env('STRIPE_PUBLIC_KEY').startsWith('sk_test')
         ) {
             return [
                 {
