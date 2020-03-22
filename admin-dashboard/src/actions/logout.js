@@ -1,6 +1,6 @@
 import * as types from '../constants/logout';
 import Cookies from 'universal-cookie';
-import { DOMAIN_URL, ACCOUNTS_URL } from '../config';
+import { ACCOUNTS_URL } from '../config';
 // Three possible states for our logout process as well.
 // Since we are using JWTs, we just need to remove the token
 // from localStorage. These actions are more useful if we
@@ -30,8 +30,7 @@ export function logoutUser() {
     };
     cookies.set('logoutData', logoutData, {
         path: '/',
-        maxAge: 30,
-        domain: DOMAIN_URL,
+        maxAge: 30
     });
     return dispatch => {
         dispatch(requestLogout());

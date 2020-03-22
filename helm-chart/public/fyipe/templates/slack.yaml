@@ -26,6 +26,9 @@ spec:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "slack" .Values.image.tag }}
                   name: {{ printf "%s-%s" .Release.Name "slack"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                    - name: SLACK_TOKEN
+                      value: {{ .Values.saas.support.slackToken }}
                   ports:
                       - containerPort: {{ .Values.host.slackPort }}
                         hostPort: {{ .Values.host.slackPort }}
