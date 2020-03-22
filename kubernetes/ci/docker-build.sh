@@ -46,5 +46,6 @@ build admin-dashboard
 build init-script
 build slack
 build licensing
+build helm-chart
 
 cd $DIR

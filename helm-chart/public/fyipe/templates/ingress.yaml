@@ -1,0 +1,68 @@
+############----INGRESS---#####################################
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/ssl-redirect: "true"
+  name: {{ printf "%s-%s" .Release.Name "ingress"  }}
+spec:
+  {{- if .Values.fyipe.tls.enabled }} 
+  tls:
+    - hosts:
+      - {{ .Values.fyipe.tls.host }} 
+      secretName: {{ printf "%s-%s" .Release.Name "secret"  }}
+  {{- end }}
+  rules:
+    {{- if .Values.fyipe.tls.enabled }} 
+    - host: {{ .Values.fyipe.tls.host }} 
+      http:
+    {{- else }}
+    - http:
+    {{- end }}
+        paths:
+          - path: /accounts
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "accounts"  }}
+              servicePort: 80
+          - path: /dashboard
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+              servicePort: 80
+          - path: /admin
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+              servicePort: 80
+          - path: /api
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "backend"  }}
+              servicePort: 80
+          - path: /statuspage
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "status-page"  }}
+              servicePort: 80
+          {{- if .Values.saas.isSaasService }}
+          - path: /slack
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "slack"  }}
+              servicePort: 80
+          - path: /
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "home"  }}
+              servicePort: 80
+          - path: /docs
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "api-docs"  }}
+              servicePort: 80
+          - path: /license
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "licensing"  }}
+              servicePort: 80
+          {{- else }}
+          - path: /
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "accounts"  }}
+              servicePort: 80
+          {{- end }}   
+---
+##################################

@@ -1,0 +1,11 @@
+{{- if .Values.fyipe.tls.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ printf "%s-%s" .Release.Name "secret"  }}
+type: Opaque
+data:
+  tls.crt: {{ .Values.fyipe.tls.crt }}
+  tls.key: {{ .Values.fyipe.tls.key }}
+---
+{{- end }}
