@@ -1,0 +1,55 @@
+
+####################################
+#IMPORTANT: Kube Reosurces below are ONLY for SaaS service
+####################################
+
+{{- if .Values.saas.isSaasService }}
+###########-----HELM CHART------#################
+# Fyipe HELM CHART
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+    replicas: {{ .Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "helm-chart" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                  ports:
+                      - containerPort: {{ .Values.host.helmChartPort }}
+                        hostPort: {{ .Values.host.helmChartPort }}
+                        name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+    name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+spec:
+    ports:
+        - port: {{ .Values.host.helmChartServicePort }}
+          protocol: TCP
+          targetPort: {{ .Values.host.helmChartPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+    type: {{ .Values.service.type }}
+---
+###########################################
+{{- end }}

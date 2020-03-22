@@ -38,6 +38,7 @@ host:
   statusPagePort: 3006
   dashboardPort: 3000
   accountsPort: 3003
+  helmChartPort: 3423
   apiDocsPort: 1445
   adminDashboardPort: 3100
   backendServicePort: 80
@@ -54,6 +55,7 @@ host:
   accountsNodePort: 80
   adminDashboardNodePort: 80
   licensingServicePort: 80
+  helmChartServicePort: 80
 
 
 probes:
