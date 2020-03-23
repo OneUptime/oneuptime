@@ -29,7 +29,7 @@ class Project extends Component {
     render() {
         return (
             <Dashboard ready={this.ready}>
-                <div className="Box-root">
+                <div className="Box-root Margin-vertical--12">
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">

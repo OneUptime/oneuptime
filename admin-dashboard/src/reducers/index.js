@@ -8,6 +8,7 @@ import user from './user';
 import project from './project';
 import probe from './probe';
 import auditLogs from './auditLogs';
+import license from './license';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -19,6 +20,7 @@ const appReducer = combineReducers({
     project,
     probe,
     auditLogs,
+    license,
 });
 
 export default (state, action) => {

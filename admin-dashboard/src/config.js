@@ -11,6 +11,7 @@ let dashboardUrl = null;
 let accountsUrl = null;
 let domain = null;
 let adminDashboardUrl = null;
+let licensingUrl = null;
 let isSaasService = false;
 
 export function env(value) {
@@ -28,16 +29,21 @@ if (!isServer) {
         accountsUrl = 'http://localhost:3003';
         domain = 'localhost';
         adminDashboardUrl = 'http://localhost:3100';
+        licensingUrl = 'http://localhost:3004';
     } else if (window.location.href.indexOf('staging') > -1) {
-        apiUrl = 'https://staging-api.fyipe.com';
+        apiUrl = 'http://staging-api.fyipe.com';
         dashboardUrl = 'http://staging-dashboard.fyipe.com';
         accountsUrl = 'http://staging-accounts.fyipe.com';
         domain = 'fyipe.com';
+        adminDashboardUrl = 'http://staging-admin.fyipe.com';
+        licensingUrl = 'http://staging-licensing.fyipe.com';
     } else {
         apiUrl = 'https://api.fyipe.com';
         dashboardUrl = 'https://fyipe.com';
         accountsUrl = 'https://accounts.fyipe.com';
         domain = 'fyipe.com';
+        adminDashboardUrl = 'https://admin.fyipe.com';
+        licensingUrl = 'https://licensing.fyipe.com';
     }
     if (env('IS_SAAS_SERVICE') === 'true') {
         isSaasService = true;
@@ -53,6 +59,8 @@ export const ACCOUNTS_URL = accountsUrl;
 export const DOMAIN_URL = domain;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
+
+export const LICENSING_URL = licensingUrl;
 
 export const IS_SAAS_SERVICE = isSaasService;
 

@@ -6,10 +6,7 @@ import { connect } from 'react-redux';
 export class ProjectDetails extends Component {
     render() {
         return (
-            <div
-                className="Box-root Margin-bottom--12"
-                style={{ marginTop: '60px' }}
-            >
+            <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
