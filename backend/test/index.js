@@ -14,6 +14,7 @@ try {
     require('./notification.test');
     require('./probe.test');
     require('./project.test');
+    require('./component.test');
     require('./reports.test');
     require('./schedule.test');
     require('./scheduledEvent.test');
