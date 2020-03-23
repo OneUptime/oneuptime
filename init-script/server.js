@@ -4,6 +4,8 @@ const fs = require('fs');
 const util = require('./util/db');
 const scripts = require('./scripts');
 
+const excludedScripts = ['index.js', 'start.js', 'end.js'];
+
 async function run() {
     // eslint-disable-next-line no-console
     console.log('Connecting to MongoDB.');
@@ -24,7 +26,7 @@ async function run() {
 
     const files = fs
         .readdirSync('./scripts')
-        .filter(file => file !== 'start.js' && file !== 'end.js') // Exclude start and end scripts
+        .filter(file => excludedScripts.indexOf(file) < 0) // Exclude index, start and end scripts
         .sort((a, b) =>
             parseInt(a.split('.')[2]) > parseInt(b.split('.')[2]) ? 1 : 0
         );
