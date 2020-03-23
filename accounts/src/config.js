@@ -5,9 +5,15 @@ import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
 
-const apiUrl = window.location.origin + '/api';
-const dashboardUrl = window.location.origin + '/dashboard';
-const adminDashboardUrl = window.location.origin + '/admin';
+let apiUrl = window.location.origin + '/api';
+let dashboardUrl = window.location.origin + '/dashboard';
+let adminDashboardUrl = window.location.origin + '/admin';
+
+if(window && window.location && window.location.hostname && window.location.hostname.includes("localhost:")){
+    apiUrl = window.location.protocol+"//localhost:3002"
+    dashboardUrl =  window.location.protocol+"//localhost:3000"
+    adminDashboardUrl =  window.location.protocol+"//localhost:3100"
+}
 
 export function env(value) {
     const { _env } = window;
