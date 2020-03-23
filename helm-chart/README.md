@@ -11,7 +11,10 @@ helm lint ./helm-chart/public/fyipe
 ### Uninstall and Install the chart
 ```
 helm uninstall fi
-sleep 30s
+```
+
+### Install as an Enterprise Cluster with default values
+```
 helm install fi ./helm-chart/public/fyipe 
 ```
 
