@@ -1,4 +1,5 @@
 try {
+    require('./enterpriseUser.test');
     require('./enterpriseProject.test');
     require('./enterpriseMonitor.test');
 } catch (error) {

@@ -23,6 +23,8 @@ class ChangePasswordPage extends React.Component {
     }
 
     render() {
+        const { masterAdminExists, requestingMasterAdmin } = this.props;
+
         return (
             <div id="wrap" style={{ paddingTop: 0 }}>
                 {/* Header */}
@@ -44,9 +46,11 @@ class ChangePasswordPage extends React.Component {
                 <div id="footer_spacer" />
                 <div id="bottom">
                     <ul>
-                        <li>
-                            <Link to="/register">Sign Up</Link>
-                        </li>
+                        {!masterAdminExists && !requestingMasterAdmin && (
+                            <li>
+                                <Link to="/register">Sign Up</Link>
+                            </li>
+                        )}
                         <li>
                             <a href="http://fyipe.com/legal/privacy">
                                 Privacy Policy
@@ -65,8 +69,11 @@ class ChangePasswordPage extends React.Component {
     }
 }
 
-const mapStateToProps = state_Ignored => {
-    return null;
+const mapStateToProps = state => {
+    return {
+        masterAdminExists: state.login.masterAdmin.exists,
+        requestingMasterAdmin: state.login.masterAdmin.requesting,
+    };
 };
 
 const mapDispatchToProps = dispatch_Ignored => {
@@ -75,6 +82,8 @@ const mapDispatchToProps = dispatch_Ignored => {
 
 ChangePasswordPage.propTypes = {
     match: PropTypes.object.isRequired,
+    masterAdminExists: PropTypes.bool,
+    requestingMasterAdmin: PropTypes.bool,
 };
 
 ChangePasswordPage.displayName = 'ChangePasswordPage';

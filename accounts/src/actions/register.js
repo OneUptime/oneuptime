@@ -1,6 +1,8 @@
 import { postApi } from '../api';
+import { masterAdminExistsSuccess } from './login';
 import * as types from '../constants/register';
 import errors from '../errors';
+import { IS_SAAS_SERVICE } from '../config';
 // There are three possible states for our login
 // process and we need actions for each of them
 
@@ -73,6 +75,9 @@ export function signupUser(values) {
         promise.then(
             function(user) {
                 dispatch(signupSuccess(user.data));
+                if (user.data.role === 'master-admin' && !IS_SAAS_SERVICE) {
+                    dispatch(masterAdminExistsSuccess({ result: true }));
+                }
             },
             function(error) {
                 if (error && error.response && error.response.data)

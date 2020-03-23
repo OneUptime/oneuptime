@@ -39,9 +39,11 @@ export class ResendTokenForm extends Component {
         removeQuery();
     }
     render() {
+        const { masterAdminExists, requestingMasterAdmin } = this.props;
         const { serverResponse } = this.state;
         const { success } = this.props.resendTokenState;
         const resendTokenError = this.props.resendTokenState.error;
+
         let header;
         if (success) {
             header = <span>Verification Email Sent</span>;
@@ -146,9 +148,11 @@ export class ResendTokenForm extends Component {
                 <div id="footer_spacer" />
                 <div id="bottom">
                     <ul>
-                        <li>
-                            <Link to="/register">Sign Up</Link>
-                        </li>
+                        {!masterAdminExists && !requestingMasterAdmin && (
+                            <li>
+                                <Link to="/register">Sign Up</Link>
+                            </li>
+                        )}
                         <li>
                             <a href="http://fyipe.com/legal/privacy">
                                 Privacy Policy
@@ -196,6 +200,8 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         resendTokenState: state.resendToken,
+        masterAdminExists: state.login.masterAdmin.exists,
+        requestingMasterAdmin: state.login.masterAdmin.requesting,
     };
 }
 
@@ -204,6 +210,8 @@ ResendTokenForm.propTypes = {
     resendTokenState: PropTypes.object.isRequired,
     resendToken: PropTypes.func.isRequired,
     location: PropTypes.object.isRequired,
+    masterAdminExists: PropTypes.bool,
+    requestingMasterAdmin: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(resendTokenForm);

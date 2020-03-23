@@ -9812,7 +9812,6 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 .db-World-scrollWrapper {
   background-color: #fdfdfd;
   height: 100%;
-  min-width: 1024px;
   position: relative;
   width: 100%;
 }
@@ -9827,19 +9826,19 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   width: 240px;
   z-index: 1;
 }
-.db-World-contentPane,
+/* .db-World-contentPane,
 .db-World-contentSticky {
   max-width: 1092px;
   min-width: 760px;
   width: calc(100vw - 278px - 24px);
-}
+} */
 .db-World-topContent {
   height: 68px;
   left: calc((50vw - 1390px / 2 + 278px) - 4px);
   margin: 0 -4px;
   width: calc(100vw - 278px - 24px + 16px);
-  max-width: 1108px;
-  min-width: 776px;
+  /* max-width: 1108px;
+  min-width: 776px; */
   padding-left: 8px;
   padding-right: 8px;
   position: absolute;
@@ -9906,10 +9905,10 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   .db-World-mainPane {
     padding-left: 278px;
   }
-  .db-World-contentPane,
+  /* .db-World-contentPane,
   .db-World-contentSticky {
     width: calc(100vw - 278px - 24px);
-  }
+  } */
 }
 @media only screen and (max-width: 1060px) {
   .db-World-sideNavContainer {
@@ -9922,10 +9921,10 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   .db-World-mainPane {
     padding-left: 244px;
   }
-  .db-World-contentPane,
+  /* .db-World-contentPane,
   .db-World-contentSticky {
     width: calc(100vw - 244px - 24px);
-  }
+  } */
 }
 @media only print {
   html.db-NewChrome,

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { connect } from 'react-redux';
 import ResetPasswordForm from '../components/auth/ResetPasswordForm';
@@ -10,6 +11,8 @@ class ResetPasswordPage extends React.Component {
     }
 
     render() {
+        const { masterAdminExists, requestingMasterAdmin } = this.props;
+
         return (
             <div id="wrap" style={{ paddingTop: 0 }}>
                 {/* Header */}
@@ -31,9 +34,11 @@ class ResetPasswordPage extends React.Component {
                 <div id="footer_spacer" />
                 <div id="bottom">
                     <ul>
-                        <li>
-                            <Link to="/register">Sign Up</Link>
-                        </li>
+                        {!masterAdminExists && !requestingMasterAdmin && (
+                            <li>
+                                <Link to="/register">Sign Up</Link>
+                            </li>
+                        )}
                         <li>
                             <a href="http://fyipe.com/legal/privacy">
                                 Privacy Policy
@@ -54,4 +59,16 @@ class ResetPasswordPage extends React.Component {
 
 ResetPasswordPage.displayName = 'ResetPasswordPage';
 
-export default connect(null, null)(ResetPasswordPage);
+const mapStateToProps = state => {
+    return {
+        masterAdminExists: state.login.masterAdmin.exists,
+        requestingMasterAdmin: state.login.masterAdmin.requesting,
+    };
+};
+
+ResetPasswordPage.propTypes = {
+    masterAdminExists: PropTypes.bool,
+    requestingMasterAdmin: PropTypes.bool,
+};
+
+export default connect(mapStateToProps, null)(ResetPasswordPage);

@@ -5,13 +5,19 @@ import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import UserList from '../components/user/UserList';
 import { fetchUsers, searchUsers } from '../actions/user';
-import { ListLoader } from '../components/basic/Loader';
+import { ListLoader, FormLoader } from '../components/basic/Loader';
+import ShouldRender from '../components/basic/ShouldRender';
+import uuid from 'uuid';
+import { openModal, closeModal } from '../actions/modal';
+import UserAddModal from '../components/user/UserAddModal';
+import { IS_SAAS_SERVICE } from '../config';
+
 class Users extends Component {
     constructor(props) {
         super(props);
-
         this.state = {
             searchBox: null,
+            addModalId: uuid.v4(),
         };
     }
 
@@ -57,6 +63,15 @@ class Users extends Component {
 
         this.setState({ searchBox: value });
         searchUsers(value, 0, 10);
+    };
+
+    handleClick = () => {
+        const { addModalId } = this.state;
+        this.props.openModal({
+            id: addModalId,
+            onConfirm: () => true,
+            content: UserAddModal,
+        });
     };
 
     render() {
@@ -137,6 +152,51 @@ class Users extends Component {
                                                                                 }
                                                                             />
                                                                         </div>
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                !IS_SAAS_SERVICE
+                                                                            }
+                                                                        >
+                                                                            <div>
+                                                                                <button
+                                                                                    className="bs-Button bs-ButtonLegacy ActionIconParent"
+                                                                                    type="button"
+                                                                                    disabled={
+                                                                                        false
+                                                                                    }
+                                                                                    id="add_user"
+                                                                                    onClick={
+                                                                                        this
+                                                                                            .handleClick
+                                                                                    }
+                                                                                    style={{
+                                                                                        marginLeft:
+                                                                                            '8px',
+                                                                                    }}
+                                                                                >
+                                                                                    <ShouldRender
+                                                                                        if={
+                                                                                            true
+                                                                                        }
+                                                                                    >
+                                                                                        <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                            <span>
+                                                                                                Add
+                                                                                                New
+                                                                                                User
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </ShouldRender>
+                                                                                    <ShouldRender
+                                                                                        if={
+                                                                                            false
+                                                                                        }
+                                                                                    >
+                                                                                        <FormLoader />
+                                                                                    </ShouldRender>
+                                                                                </button>
+                                                                            </div>
+                                                                        </ShouldRender>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -144,38 +204,47 @@ class Users extends Component {
                                                     </div>
                                                     <div className="bs-ContentSection-content Box-root">
                                                         <div className="bs-ObjectList db-UserList">
-                                                            <div className="bs-ObjectList-rows">
-                                                                <header className="bs-ObjectList-row bs-ObjectList-row--header">
-                                                                    <div className="bs-ObjectList-cell">
-                                                                        User
-                                                                    </div>
-                                                                    <div className="bs-ObjectList-cell">
-                                                                        Projects
-                                                                    </div>
-                                                                    <div className="bs-ObjectList-cell">
-                                                                        Status
-                                                                    </div>
-                                                                    <div className="bs-ObjectList-cell"></div>
-                                                                    <div className="bs-ObjectList-cell"></div>
-                                                                </header>
-                                                                {!requesting ? (
-                                                                    <UserList
-                                                                        users={
-                                                                            users
-                                                                        }
-                                                                    />
-                                                                ) : (
-                                                                    <Fragment>
-                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                            <div className="bs-ObjectList-cell-row"></div>
+                                                            <div
+                                                                style={{
+                                                                    overflow:
+                                                                        'hidden',
+                                                                    overflowX:
+                                                                        'auto',
+                                                                }}
+                                                            >
+                                                                <div className="bs-ObjectList-rows">
+                                                                    <header className="bs-ObjectList-row bs-ObjectList-row--header">
+                                                                        <div className="bs-ObjectList-cell">
+                                                                            User
                                                                         </div>
-                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                            <div className="bs-ObjectList-cell-row">
-                                                                                <ListLoader />
+                                                                        <div className="bs-ObjectList-cell">
+                                                                            Projects
+                                                                        </div>
+                                                                        <div className="bs-ObjectList-cell">
+                                                                            Status
+                                                                        </div>
+                                                                        <div className="bs-ObjectList-cell"></div>
+                                                                        <div className="bs-ObjectList-cell"></div>
+                                                                    </header>
+                                                                    {!requesting ? (
+                                                                        <UserList
+                                                                            users={
+                                                                                users
+                                                                            }
+                                                                        />
+                                                                    ) : (
+                                                                        <Fragment>
+                                                                            <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                                <div className="bs-ObjectList-cell-row"></div>
                                                                             </div>
-                                                                        </div>
-                                                                    </Fragment>
-                                                                )}
+                                                                            <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                                <div className="bs-ObjectList-cell-row">
+                                                                                    <ListLoader />
+                                                                                </div>
+                                                                            </div>
+                                                                        </Fragment>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -286,7 +355,10 @@ class Users extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ fetchUsers, searchUsers }, dispatch);
+    return bindActionCreators(
+        { fetchUsers, searchUsers, openModal, closeModal },
+        dispatch
+    );
 };
 
 const mapStateToProps = state => {
@@ -312,6 +384,7 @@ Users.propTypes = {
     fetchUsers: PropTypes.func.isRequired,
     searchUsers: PropTypes.func.isRequired,
     requesting: PropTypes.bool,
+    openModal: PropTypes.func,
 };
 
 Users.displayName = 'Users';

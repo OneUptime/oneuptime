@@ -27,6 +27,22 @@ Fyipe is a Status Page, Monitoring and On-call software all combined into one. F
 
 Fyipe is a Status Page, Monitoring and On-call software all combined into one. Today, Enterprises and Startups use a services like StatusPage.io, Status.io, etc. for a hosted status page, PagerDuty for On-call alerts during downtime, and Pingdom for website monitoring. Fyipe replaces all of these and combines them into one. You have everything you need to monitor your apps, website and API's and more, and alert your team instantly when downtime happens.
 
+### More detailed description
+
+Fyipe is one complete DevOps and IT Ops platform. 
+
+Fyipe lets you do: 
+
+Monitoring: Monitors your website, web apps, APIs, servers and more and give you detailed metrics of things that might be wrong with your infrastructure. 
+
+Status Page: Fyipe gives you a beautiful and customizable status page for your online business which helps improve transparency with your customers and cuts support costs.
+
+Tests: Write automated tests for your website, API's and more and know instantly when they start failing. 
+
+On-Call and Incident Management: On-Call Management lets you alert the right team at the right time saving you critical time during downtime.
+
+Performance Monitoring: Monitor the performance of your apps, servers, APIs, and more and alert your team when any of your performance metrics degrades.
+
 ## Target Market
 
 ### Who do we serve?
@@ -83,4 +99,4 @@ Please find them [here](/covers)
 
 -   Website: https://fyipe.com
 -   GitHub: https://github.com/fyipe
--   Blog: https://medium.com/fyipe
+-   Blog: https://blog.fyipe.com
