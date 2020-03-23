@@ -17,6 +17,16 @@ export const groups = [
         routes: [
             {
                 title: 'Login',
+                path: '/',
+                icon: 'home',
+                component: Login,
+                subRoutes: [],
+                isPublic: true,
+                visible: true,
+                index: 0,
+            },
+            {
+                title: 'Login',
                 path: '/login',
                 icon: 'home',
                 component: Login,
@@ -83,7 +93,7 @@ export const groups = [
                 subRoutes: [],
                 isPublic: true,
                 visible: true,
-                index: 5,
+                index: 6,
             },
         ],
     },
