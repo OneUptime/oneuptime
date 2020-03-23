@@ -48,7 +48,11 @@ export class ProjectSwitcher extends Component {
         if (projects && projects.length > 0) {
             projectOptions = projects.map(
                 project => (
-                    <div key={project._id} title={project.name}>
+                    <div
+                        key={project._id}
+                        id={project.name}
+                        title={project.name}
+                    >
                         <ReactHoverObserver>
                             {({ isHovering }) => (
                                 <div

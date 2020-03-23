@@ -151,7 +151,10 @@ export class DashboardApp extends Component {
                                         project.projects.projects[0]
                                     }
                                 >
-                                    <SideNav />
+                                    <SideNav
+                                        location={this.props.location}
+                                        match={this.props.match}
+                                    />
 
                                     <div className="db-World-mainPane Box-root Padding-right--20">
                                         <div className="db-World-contentPane Box-root Padding-bottom--48">

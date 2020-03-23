@@ -39,6 +39,28 @@ module.exports = {
         }
     },
 
+    sendComponentCreated: async component => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: component.projectId._id,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : component.projectId._id;
+
+            global.io.emit(`createComponent-${projectId}`, component);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendComponentCreated', error);
+            throw error;
+        }
+    },
+
     sendMonitorCreated: async monitor => {
         try {
             if (!global || !global.io) {
@@ -57,6 +79,28 @@ module.exports = {
             global.io.emit(`createMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realTimeService.sendMonitorCreated', error);
+            throw error;
+        }
+    },
+
+    sendComponentDelete: async component => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: component.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : component.projectId;
+
+            global.io.emit(`deleteComponent-${projectId}`, component);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendComponentDelete', error);
             throw error;
         }
     },
@@ -141,6 +185,28 @@ module.exports = {
             global.io.emit(`updateStatusPage-${projectId}`, statusPage);
         } catch (error) {
             ErrorService.log('realTimeService.statusPageEdit', error);
+            throw error;
+        }
+    },
+
+    componentEdit: async component => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: component.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : component.projectId;
+
+            global.io.emit(`updateComponent-${projectId}`, component);
+        } catch (error) {
+            ErrorService.log('realTimeService.componentEdit', error);
             throw error;
         }
     },

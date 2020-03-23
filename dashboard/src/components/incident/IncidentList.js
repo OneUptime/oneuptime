@@ -169,6 +169,9 @@ export class IncidentList extends Component {
                                                             this.props
                                                                 .currentProject
                                                                 ._id +
+                                                            '/' +
+                                                            this.props
+                                                                .componentId +
                                                             '/incidents/' +
                                                             incident._id
                                                     );
@@ -626,7 +629,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state, props) { console.info('Incidents', props);
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
@@ -642,6 +645,7 @@ IncidentList.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
+    componentId: PropTypes.string.isRequired,
     monitorState: PropTypes.object.isRequired,
     currentProject: PropTypes.object,
 };

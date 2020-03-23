@@ -29,11 +29,14 @@ export class SidebarNavItem extends Component {
             currentProject,
             loadPage,
         } = this.props;
-        let path = route.path.replace(
-            ':projectId',
-            match.params.projectId || (currentProject || {})._id
-        );
-        path = path.replace(':subProjectId', match.params.subProjectId);
+        const path = route.path
+            .replace(
+                ':projectId',
+                match.params.projectId || (currentProject || {})._id
+            )
+            .replace(':subProjectId', match.params.subProjectId)
+            .replace(':componentId', match.params.componentId)
+            .replace(':monitorId', match.params.monitorId);
         const isLinkActive =
             location.pathname === path ||
             (location.pathname.match(
@@ -47,6 +50,12 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/monitors\/([0-9]|[a-z])*/
             ) &&
+                route.title === 'Monitors') ||
+            (location.pathname.match(/project\/([0-9]|[a-z])*\/components*/) &&
+                route.title === 'Components') ||
+            (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/monitoring*/
+            ) &&
                 route.title === 'Monitors');
 
         const isChildLinkActive = route.subRoutes.some(link => {
@@ -57,6 +66,7 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);
             newPath = newPath.replace(/:monitorId/, match.params.monitorId);
+            newPath = newPath.replace(/:componentId/, match.params.componentId);
             const response =
                 newPath === match.url
                     ? true
@@ -75,21 +85,29 @@ export class SidebarNavItem extends Component {
         return (
             <div id={this.camalize(route.title)} style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
-                    <Link to={path} onClick={() => loadPage(route.title)}>
+                    <Link
+                        to={path}
+                        onClick={() => loadPage(route.title)}
+                        {...(route.disabled
+                            ? { style: { pointerEvents: 'none' } }
+                            : {})}
+                    >
                         <div style={{ outline: 'none' }}>
                             <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
                                 <div className="Box-root Flex-flex Flex-alignItems--center">
-                                    <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
-                                        <span
-                                            className={`db-SideNav-icon db-SideNav-icon--${
-                                                route.icon
-                                            } ${
-                                                isLinkActive
-                                                    ? 'db-SideNav-icon--selected'
-                                                    : null
-                                            }`}
-                                        />
-                                    </div>
+                                    {route.icon ? (
+                                        <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
+                                            <span
+                                                className={`db-SideNav-icon db-SideNav-icon--${
+                                                    route.icon
+                                                } ${
+                                                    isLinkActive
+                                                        ? 'db-SideNav-icon--selected'
+                                                        : null
+                                                }`}
+                                            />
+                                        </div>
+                                    ) : null}
                                     <span
                                         className={
                                             'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
@@ -113,14 +131,12 @@ export class SidebarNavItem extends Component {
                                 isChildLinkActive
                             }
                         >
-                            <ul style={{ marginBottom: '8px' }}>
-                                <RenderListItems
-                                    projectId={match.params.projectId}
-                                    schedule={schedule}
-                                    active={match.url}
-                                    onLoad={title => loadPage(title)}
-                                />
-                            </ul>
+                            <RenderListItems
+                                projectId={match.params.projectId}
+                                schedule={schedule}
+                                active={match.url}
+                                onLoad={title => loadPage(title)}
+                            />
                         </ShouldRender>
                     </span>
                 </div>
@@ -134,6 +150,7 @@ export class SidebarNavItem extends Component {
                 'Schedule',
                 'Incident',
                 'Monitor View',
+                'Component View',
                 'Status Page',
             ];
 
@@ -151,34 +168,42 @@ export class SidebarNavItem extends Component {
                     ? active
                     : false;
                 return (
-                    <li id={this.camalize(child.title)} key={`nav ${index}`}>
-                        <div style={{ position: 'relative' }}>
-                            <Link to={link} onClick={() => onLoad(child.title)}>
-                                <div style={{ outline: 'none' }}>
-                                    <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
-                                        <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32">
-                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <span
-                                                    className={
-                                                        link === active ||
-                                                        incidentLogLink ===
-                                                            active
-                                                            ? 'Text-color--fyipeblue Text-fontWeight--bold'
-                                                            : ''
-                                                    }
-                                                >
-                                                    {child.title}
+                    <ul style={{ marginBottom: '8px' }}>
+                        <li
+                            id={this.camalize(child.title)}
+                            key={`nav ${index}`}
+                        >
+                            <div style={{ position: 'relative' }}>
+                                <Link
+                                    to={link}
+                                    onClick={() => onLoad(child.title)}
+                                >
+                                    <div style={{ outline: 'none' }}>
+                                        <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
+                                            <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span
+                                                        className={
+                                                            link === active ||
+                                                            incidentLogLink ===
+                                                                active
+                                                                ? 'Text-color--fyipeblue Text-fontWeight--bold'
+                                                                : ''
+                                                        }
+                                                    >
+                                                        {child.title}
+                                                    </span>
                                                 </span>
-                                            </span>
+                                            </div>
                                         </div>
                                     </div>
+                                </Link>
+                                <div className="db-SideNav-item--root">
+                                    <span></span>
                                 </div>
-                            </Link>
-                            <div className="db-SideNav-item--root">
-                                <span></span>
                             </div>
-                        </div>
-                    </li>
+                        </li>
+                    </ul>
                 );
             } else {
                 return null;
@@ -190,6 +215,7 @@ export class SidebarNavItem extends Component {
 SidebarNavItem.displayName = 'SidebarNavItem';
 
 const mapStateToProps = state => ({
+    component: state.component,
     currentProject: state.project.currentProject,
     schedule:
         state.schedule &&
@@ -210,6 +236,7 @@ SidebarNavItem.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     currentProject: PropTypes.object,
+    component: PropTypes.object, // eslint-disable-line
     loadPage: PropTypes.func.isRequired,
 };
 

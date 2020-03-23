@@ -2,6 +2,7 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/project';
 import { User, IS_SAAS_SERVICE } from '../config.js';
 import { history } from '../store';
+import { fetchComponents } from './component';
 import {
     fetchMonitors,
     resetFetchMonitors,
@@ -223,10 +224,10 @@ export function switchProject(dispatch, project) {
     const currentProjectId = User.getCurrentProjectId();
     const historyProjectId = history.location.pathname.split('project')[1];
     if (!currentProjectId || project._id !== currentProjectId) {
-        history.push(`/project/${project._id}/monitoring`);
+        history.push(`/project/${project._id}/components`);
         User.setCurrentProjectId(project._id);
     } else if (historyProjectId && historyProjectId === '/') {
-        history.push(`/project/${project._id}/monitoring`);
+        history.push(`/project/${project._id}/components`);
     }
 
     dispatch(resetSubProjects());
@@ -242,6 +243,7 @@ export function switchProject(dispatch, project) {
     getSubProjects(project._id)(dispatch);
     fetchAlert(project._id)(dispatch);
     fetchSubProjectStatusPages(project._id)(dispatch);
+    fetchComponents(project._id)(dispatch);
     fetchMonitors(project._id)(dispatch);
     fetchMonitorCategories(project._id)(dispatch);
     fetchMonitorCategoriesForNewMonitor(project._id)(dispatch);

@@ -11,6 +11,7 @@ module.exports = {
             let subProject = null;
             const existingMonitor = await _this.findBy({
                 name: data.name,
+                componentId: data.componentId,
                 projectId: data.projectId,
             });
             if (existingMonitor && existingMonitor.length > 0) {
@@ -78,6 +79,7 @@ module.exports = {
                         monitor.monitorCategoryId = data.monitorCategoryId;
                     }
                     monitor.visibleOnStatusPage = data.visibleOnStatusPage;
+                    monitor.componentId = data.componentId;
                     monitor.projectId = data.projectId;
                     if (
                         data.type === 'url' ||

@@ -169,7 +169,7 @@ export class ScheduledEventBox extends Component {
                                     scheduledEvents.map(scheduledEvent => (
                                         <div
                                             key={scheduledEvent._id}
-                                            className="bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                            className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
                                             style={{ backgroundColor: 'white' }}
                                         >
                                             <div

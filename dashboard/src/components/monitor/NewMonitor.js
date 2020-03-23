@@ -110,6 +110,7 @@ class NewMonitor extends Component {
         const { upgradeModalId } = this.state;
         const postObj = { data: {}, criteria: {} };
         postObj.projectId = values[`subProject_${this.props.index}`];
+        postObj.componentId = thisObj.props.componentId;
         postObj.name = values[`name_${this.props.index}`];
         postObj.type = values[`type_${this.props.index}`]
             ? values[`type_${this.props.index}`]
@@ -286,7 +287,8 @@ class NewMonitor extends Component {
             this.props.createMonitor(postObj.projectId, postObj).then(
                 () => {
                     thisObj.props.reset();
-                    if (SHOULD_LOG_ANALYTICS) {
+                    thisObj.props.closeCreateMonitorModal();
+                    if (!IS_DEV) {
                         logEvent('Add New Monitor', values);
                     }
                 },
@@ -447,7 +449,7 @@ class NewMonitor extends Component {
                         </div>
 
                         <form
-                            id="frmNewMonitor"
+                            id="form-new-monitor"
                             onSubmit={handleSubmit(this.submitForm)}
                         >
                             <div

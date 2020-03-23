@@ -125,6 +125,7 @@ export class MonitorViewIncidentBox extends Component {
                 </div>
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentList
+                        componentId={this.props.componentId}
                         incidents={this.props.monitor}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
@@ -138,6 +139,7 @@ export class MonitorViewIncidentBox extends Component {
 MonitorViewIncidentBox.displayName = 'MonitorViewIncidentBox';
 
 MonitorViewIncidentBox.propTypes = {
+    componentId: PropTypes.string.isRequired,
     monitor: PropTypes.object.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     openModal: PropTypes.func,

@@ -132,6 +132,7 @@ app.use(['/probe', '/api/probe'], require('./backend/api/probe'));
 app.use(['/version', '/api/version'], require('./backend/api/version'));
 app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
 app.use(['/audit-logs', '/api/auditLogs'], require('./backend/api/auditLogs'));
+app.use(['/component', '/api/component'], require('./backend/api/component'));
 app.set('port', process.env.PORT || 3002);
 
 const server = http.listen(app.get('port'), function() {

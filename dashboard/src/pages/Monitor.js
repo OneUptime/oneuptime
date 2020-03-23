@@ -105,7 +105,7 @@ class DashboardView extends Component {
             });
         }
 
-        const { subProjects, currentProject } = this.props;
+        const { componentId, subProjects, currentProject } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
         let allMonitors = this.props.monitor.monitorsList.monitors
             .map(monitor => monitor.monitors)
@@ -175,6 +175,7 @@ class DashboardView extends Component {
                         style={{ overflow: 'visible' }}
                     >
                         <MonitorList
+                            componentId={componentId}
                             shouldRenderProjectType={
                                 subProjects && subProjects.length > 0
                             }
@@ -227,6 +228,10 @@ class DashboardView extends Component {
                                                         <NewMonitor
                                                             index={1000}
                                                             formKey="NewMonitorForm"
+                                                            componentId={
+                                                                this.props
+                                                                    .componentId
+                                                            }
                                                         />
                                                     </RenderIfSubProjectAdmin>
 
@@ -337,8 +342,16 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
+    const componentId = props.match.params.componentId;
     const monitor = state.monitor;
+
+    monitor.monitorsList.monitors.forEach(item => {
+        item.monitors = item.monitors.filter(
+            monitor => monitor.componentId === componentId
+        );
+    });
+
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
@@ -353,6 +366,7 @@ const mapStateToProps = state => {
 
     return {
         monitor,
+        componentId,
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         monitors: state.monitor.monitorsList.monitors,
@@ -368,6 +382,7 @@ DashboardView.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
+    componentId: PropTypes.string,
     monitor: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),

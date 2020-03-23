@@ -163,7 +163,7 @@ export class ProfileMenu extends Component {
                                     >
                                         <button
                                             className="ButtonLink db-Menu-item db-Menu-item--link"
-                                            id="logout-button"
+                                            id="about-button"
                                             type="button"
                                             onClick={() =>
                                                 this.showAboutModal()

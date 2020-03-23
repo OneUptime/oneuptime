@@ -93,7 +93,9 @@ export class MonitorTitle extends Component {
                                 className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                             >
                                 <StatusIndicator status={status} />
-                                <span>{monitor.name}</span>
+                                <span id={`monitor-title-${monitor.name}`}>
+                                    {monitor.name}
+                                </span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 {url && (

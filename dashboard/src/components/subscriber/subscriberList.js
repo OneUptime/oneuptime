@@ -162,7 +162,7 @@ export class SubscriberList extends Component {
                             subscribers.subscribers.length > 0 ? (
                                 subscribers.subscribers.map(subscriber => (
                                     <tr
-                                        className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
+                                        className="subscriber-list-item Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                                         key={subscriber._id}
                                     >
                                         <td
@@ -233,7 +233,7 @@ export class SubscriberList extends Component {
                                                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root Flex-flex">
                                                             <div className="Box-root Flex-flex">
-                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                <div className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                     {subscriber.contactWebhook ||
                                                                         subscriber.contactEmail ||
                                                                         subscriber.contactPhone ||
