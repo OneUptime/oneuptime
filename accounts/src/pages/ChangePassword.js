@@ -37,7 +37,7 @@ class ChangePasswordPage extends React.Component {
                 <ChangePasswordForm token={this.token} />
                 <div className="below-box">
                     <p>
-                        <Link to="/login">
+                        <Link to="/accounts/login">
                             Know your password? <strong>Sign in</strong>.
                         </Link>
                     </p>
@@ -48,7 +48,7 @@ class ChangePasswordPage extends React.Component {
                     <ul>
                         {!masterAdminExists && !requestingMasterAdmin && (
                             <li>
-                                <Link to="/register">Sign Up</Link>
+                                <Link to="/accounts/register">Sign Up</Link>
                             </li>
                         )}
                         <li>

@@ -109,14 +109,14 @@ export class VerifyAuthToken extends Component {
                 <div className="below-box">
                     <p>
                         Don&#39;t have your app authenticator?{' '}
-                        <Link to="/user-auth/backup">Use Backup code</Link>.
+                        <Link to="/accounts/user-auth/backup">Use Backup code</Link>.
                     </p>
                 </div>
                 <div id="footer_spacer" />
                 <div id="bottom">
                     <ul>
                         <li>
-                            <Link to="/login">Sign In</Link>
+                            <Link to="/accounts/login">Sign In</Link>
                         </li>
                         <li>
                             <a href="http://fyipe.com/legal/privacy">

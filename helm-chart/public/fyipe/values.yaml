@@ -23,12 +23,12 @@ fyipe:
     verificationSid: 
     twilioAlertLimit: 99999
   smtpMail: 
-    email: 
-    password: 
+    email: noreply@fyipe.com
+    password: qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD
     fromName: Fyipe
-    smtpServer: 
-    smtpPort: 
-    smtpSecure: 
+    smtpServer: smtp.gmail.com
+    smtpPort: 465
+    smtpSecure: true
 
 host: 
   backendPort: 3002

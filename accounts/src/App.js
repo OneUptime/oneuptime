@@ -72,7 +72,7 @@ const App = ({
                         key={'404'}
                         component={NotFound}
                     />
-                    <Redirect to="/login" />
+                    <Redirect to="/accounts/login" />
                 </Switch>
             </Router>
             <BackboneModals />

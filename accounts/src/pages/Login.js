@@ -63,7 +63,7 @@ class LoginPage extends React.Component {
                             <div className="below-box">
                                 <p>
                                     Click{' '}
-                                    <Link to="/user-verify/resend">here</Link>{' '}
+                                    <Link to="/accounts/user-verify/resend">here</Link>{' '}
                                     to resend verification link to your email.
                                 </p>
                             </div>
@@ -78,7 +78,7 @@ class LoginPage extends React.Component {
                     <div id="signUpLink" className="below-box">
                         <p>
                             Don&#39;t have an account?{' '}
-                            <Link to="/register">Sign up</Link>.
+                            <Link to="/accounts/register">Sign up</Link>.
                         </p>
                     </div>
                 )}
@@ -88,7 +88,7 @@ class LoginPage extends React.Component {
                 <div id="bottom">
                     <ul>
                         <li>
-                            <Link to="/forgot-password">Forgot Password</Link>
+                            <Link to="/accounts/forgot-password">Forgot Password</Link>
                         </li>
                         <li>
                             <a href="http://fyipe.com/legal/privacy">

@@ -105,7 +105,7 @@ export class VerifyBackupCode extends Component {
                 <div id="bottom">
                     <ul>
                         <li>
-                            <Link to="/login">Sign In</Link>
+                            <Link to="/accounts/login">Sign In</Link>
                         </li>
                         <li>
                             <a href="http://fyipe.com/legal/privacy">

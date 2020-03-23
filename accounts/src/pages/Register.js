@@ -64,14 +64,14 @@ class RegisterPage extends React.Component {
                 <div className="below-box">
                     <p>
                         Already have an account?{' '}
-                        <Link to="/login">Sign in</Link>.
+                        <Link to="/accounts/login">Sign in</Link>.
                     </p>
                 </div>
                 <div id="footer_spacer" />
                 <div id="bottom">
                     <ul>
                         <li>
-                            <Link to="/forgot-password">Forgot Password</Link>
+                            <Link to="/accounts/forgot-password">Forgot Password</Link>
                         </li>
                         <li>
                             <a href="http://fyipe.com/legal/privacy">

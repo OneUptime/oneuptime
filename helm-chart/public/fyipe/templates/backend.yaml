@@ -47,9 +47,9 @@ spec:
                       - name: MAIL_SERVER_SMTP
                         value: {{ .Values.fyipe.smtpMail.smtpServer }}
                       - name: MAIL_PORT_SMTP
-                        value: {{ .Values.fyipe.smtpMail.smtpPort }}
+                        value: {{ .Values.fyipe.smtpMail.smtpPort | quote }}
                       - name: MAIL_SMTP_SECURE
-                        value: {{ .Values.fyipe.smtpMail.smtpSecure }}
+                        value: {{ .Values.fyipe.smtpMail.smtpSecure | quote }}
                       - name: EMAIL_VERIFY_TIME
                         value: '3600'
                       - name: BACKEND_HOST
