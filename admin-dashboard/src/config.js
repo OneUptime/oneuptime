@@ -5,16 +5,18 @@ import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
 
-const apiUrl = window.location.origin + '/api';
-const dashboardUrl = window.location.origin + '/dashboard';
-const adminDashboardUrl = window.location.origin + '/admin';
-const accountsUrl = window.location.origin + '/accounts';
+let apiUrl = window.location.origin + '/api';
+let dashboardUrl = window.location.origin + '/dashboard';
+let adminDashboardUrl = window.location.origin + '/admin';
+let accountsUrl = window.location.origin + '/accounts';
 
 if (
     window &&
     window.location &&
     window.location.hostname &&
-    window.location.hostname.includes('localhost:')
+    (window.location.hostname.includes('localhost:') ||
+        window.location.hostname.includes('0.0.0.0:') ||
+        window.location.hostname.includes('127.0.0.1:'))
 ) {
     apiUrl = window.location.protocol + '//localhost:3002';
     dashboardUrl = window.location.protocol + '//localhost:3000';

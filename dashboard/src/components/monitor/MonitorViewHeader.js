@@ -92,7 +92,7 @@ export class MonitorViewHeader extends Component {
         history.push(
             `/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring`
         );
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Monitor Deleted', {
                 ProjectId: this.props.currentProject._id,
                 monitorId: this.props.monitor._id,

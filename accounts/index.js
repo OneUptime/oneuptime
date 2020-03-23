@@ -4,13 +4,6 @@ const app = express();
 const child_process = require('child_process');
 const compression = require('compression');
 
-const env = {
-    REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
-    REACT_APP_HOST: process.env.HOST,
-    REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
-    REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
-};
-
 child_process.execSync('react-env', {
     stdio: [0, 1, 2],
 });
@@ -24,6 +17,13 @@ app.use('/', (req, res, next) => {
 });
 
 app.get(['/env.js', '/accounts/env.js'], function(req, res) {
+    const env = {
+        REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
+        REACT_APP_HOST: req.host,
+        REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
+        REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
+    };
+
     res.contentType('application/javascript');
     res.send('window._env = ' + JSON.stringify(env));
 });

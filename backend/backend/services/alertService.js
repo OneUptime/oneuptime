@@ -567,8 +567,8 @@ module.exports = {
             expiresIn: 12 * 60 * 60 * 1000,
         });
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
-        const resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
+        const ack_url = `${global.host}/api/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
+        const resolve_url = `${global.host}/api/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
         const firstName = user.name;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {

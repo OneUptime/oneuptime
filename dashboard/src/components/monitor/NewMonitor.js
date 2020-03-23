@@ -288,7 +288,7 @@ class NewMonitor extends Component {
                 () => {
                     thisObj.props.reset();
                     thisObj.props.closeCreateMonitorModal();
-                    if (!IS_DEV) {
+                    if (SHOULD_LOG_ANALYTICS) {
                         logEvent('Add New Monitor', values);
                     }
                 },

@@ -54,12 +54,6 @@ spec:
                         value: '3600'
                       - name: BACKEND_HOST
                         value: {{ .Values.host.backend }}
-                      - name: ACCOUNTS_HOST
-                        value: {{ .Values.host.accounts }}
-                      - name: HOME_HOST
-                        value: 'https://fyipe.com'
-                      - name: DASHBOARD_HOST
-                        value: {{ .Values.host.dashboard }}
                       - name: NODE_ENV
                         value: 'production'
                       - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
