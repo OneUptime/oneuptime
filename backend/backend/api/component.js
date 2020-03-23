@@ -7,11 +7,8 @@
 const express = require('express');
 const UserService = require('../services/userService');
 const ComponentService = require('../services/componentService');
-// const ComponentLogService = require('../services/componentLogService');
 const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
-// const ScheduleService = require('../services/scheduleService');
-// const ProbeService = require('../services/probeService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
