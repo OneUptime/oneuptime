@@ -1010,7 +1010,7 @@ module.exports = {
                     alertStatus: 'Sent',
                 });
                 const alertId = subscriberAlert._id;
-                const trackEmailAsViewedUrl = `${BACKEND_HOST}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
+                const trackEmailAsViewedUrl = `${global.host}/api/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
                 if (templateType === 'Subscriber Incident Acknowldeged') {
                     await MailService.sendIncidentAcknowledgedMailToSubscriber(
                         date,
@@ -1272,9 +1272,7 @@ const ErrorService = require('./errorService');
 const StatusPageService = require('./statusPageService');
 const AlertChargeService = require('./alertChargeService');
 const countryCode = require('../config/countryCode');
-const baseApiUrl = process.env.BACKEND_HOST;
 const { getAlertChargeAmount, getCountryType } = require('../config/alertType');
-const { BACKEND_HOST } = process.env;
 const { twilioAlertLimit } = require('../config/twilio');
 const SmsCountService = require('./smsCountService');
 const DateTime = require('../utils/DateTime');

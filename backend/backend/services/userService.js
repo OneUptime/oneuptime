@@ -238,7 +238,7 @@ module.exports = {
             });
             const verificationToken = await verificationTokenModel.save();
             if (verificationToken) {
-                const verificationTokenURL = `${BACKEND_HOST}/user/confirmation/${verificationToken.token}`;
+                const verificationTokenURL = `${global.host}/api/user/confirmation/${verificationToken.token}`;
                 MailService.sendVerifyEmail(
                     verificationTokenURL,
                     user.name,
@@ -869,7 +869,7 @@ const jwt = require('jsonwebtoken');
 const iplocation = require('iplocation').default;
 const jwtSecretKey = process.env['JWT_SECRET'];
 const { IS_SAAS_SERVICE } = require('../config/server');
-const { BACKEND_HOST, NODE_ENV } = process.env;
+const { NODE_ENV } = process.env;
 const VerificationTokenModel = require('../models/verificationToken');
 const MailService = require('../services/mailService');
 const AirtableService = require('./airtableService');

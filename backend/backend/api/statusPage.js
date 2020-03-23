@@ -16,7 +16,6 @@ const validUrl = require('valid-url');
 const multer = require('multer');
 const ErrorService = require('../services/errorService');
 const { toXML } = require('jstoxml');
-const { BACKEND_HOST } = process.env;
 
 const { getUser, checkUser } = require('../middlewares/user');
 const { getSubProjects } = require('../middlewares/subProject');
@@ -393,7 +392,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                         'RSS feed for all incidents related to monitors attached to status page',
                 },
                 {
-                    Link: `${BACKEND_HOST}/statusPage/rss`,
+                    Link: `${global.host}/api/statusPage/rss`,
                 },
                 {
                     LastBuildDate: () => new Date(),

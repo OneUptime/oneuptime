@@ -49,6 +49,13 @@ app.use(function(req, res, next) {
         'Access-Control-Allow-Headers',
         'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
     );
+
+    // Add this to global object, and this can be used anywhere where you need backend host. 
+    global.host = req.host;
+    if(global.host.includes("localhost")){
+        global.host = req.protocol+"://"+global.host+":"+(process.env.PORT || 3002);
+    }
+    
     next();
 });
 
