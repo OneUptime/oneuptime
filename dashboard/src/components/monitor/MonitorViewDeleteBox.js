@@ -27,7 +27,9 @@ export class MonitorViewDeleteBox extends Component {
             this.props.monitor._id,
             projectId
         );
-        history.push(`/project/${this.props.currentProject._id}/monitoring`);
+        history.push(
+            `/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring`
+        );
         if (!IS_DEV) {
             logEvent('Monitor Deleted', {
                 ProjectId: this.props.currentProject._id,
@@ -120,11 +122,8 @@ MonitorViewDeleteBox.displayName = 'MonitorViewDeleteBox';
 const mapDispatchToProps = dispatch =>
     bindActionCreators({ openModal, closeModal, deleteMonitor }, dispatch);
 
-const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
-
+const mapStateToProps = state => {
     return {
-        projectId,
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
     };
@@ -132,6 +131,7 @@ const mapStateToProps = (state, props) => {
 
 MonitorViewDeleteBox.propTypes = {
     currentProject: PropTypes.object.isRequired,
+    componentId: PropTypes.object.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,

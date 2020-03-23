@@ -71,7 +71,7 @@ const App = () => (
                         );
                     })}
                 <Route path={'/:404_path'} key={'404'} component={NotFound} />
-                <Redirect to="/project/project/monitoring" />
+                <Redirect to="/project/project/components" />
             </Switch>
         </Router>
         <BackboneModals />

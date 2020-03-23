@@ -91,6 +91,11 @@ class MonitorView extends React.Component {
                                                                 }
                                                             >
                                                                 <MonitorViewHeader
+                                                                    componentId={
+                                                                        this
+                                                                            .props
+                                                                            .componentId
+                                                                    }
                                                                     monitor={
                                                                         this
                                                                             .props
@@ -146,6 +151,10 @@ class MonitorView extends React.Component {
                                                         </div>
                                                         <div className="Box-root Margin-bottom--12">
                                                             <MonitorViewIncidentBox
+                                                                componentId={
+                                                                    this.props
+                                                                        .componentId
+                                                                }
                                                                 monitor={
                                                                     this.props
                                                                         .monitor
@@ -219,6 +228,11 @@ class MonitorView extends React.Component {
                                                         >
                                                             <div className="Box-root Margin-bottom--12">
                                                                 <MonitorViewDeleteBox
+                                                                    componentId={
+                                                                        this
+                                                                            .props
+                                                                            .componentId
+                                                                    }
                                                                     monitor={
                                                                         this
                                                                             .props
@@ -245,7 +259,7 @@ class MonitorView extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { monitorId } = props.match.params;
+    const { componentId, monitorId } = props.match.params;
     const monitor = state.monitor.monitorsList.monitors
         .map(monitor =>
             monitor.monitors.find(monitor => monitor._id === monitorId)
@@ -333,6 +347,7 @@ const mapStateToProps = (state, props) => {
         }
     }
     return {
+        componentId,
         monitor,
         initialValues,
         match: props.match,
@@ -347,6 +362,7 @@ const mapDispatchToProps = dispatch => {
 };
 
 MonitorView.propTypes = {
+    componentId: PropTypes.object,
     monitor: PropTypes.object,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorsSubscribers: PropTypes.func.isRequired,

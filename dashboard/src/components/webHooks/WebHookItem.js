@@ -43,7 +43,7 @@ class WebHookInput extends React.Component {
         }
 
         return (
-            <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
+            <tr className="webhook-list-item Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
                 <WebHookTableBody text={endpoint} />
 
                 {!monitorId && <WebHookTableBody text={data.monitorId.name} />}

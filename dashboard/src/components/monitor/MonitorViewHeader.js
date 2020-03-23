@@ -89,7 +89,9 @@ export class MonitorViewHeader extends Component {
             this.props.monitor._id,
             this.props.monitor.projectId._id || this.props.monitor.projectId
         );
-        history.push(`/project/${this.props.currentProject._id}/monitoring`);
+        history.push(
+            `/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring`
+        );
         if (!IS_DEV) {
             logEvent('Monitor Deleted', {
                 ProjectId: this.props.currentProject._id,
@@ -302,6 +304,7 @@ export class MonitorViewHeader extends Component {
 MonitorViewHeader.displayName = 'MonitorViewHeader';
 
 MonitorViewHeader.propTypes = {
+    componentId: PropTypes.object.isRequired,
     monitor: PropTypes.object.isRequired,
     editMonitorSwitch: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,

@@ -74,6 +74,7 @@ const IncidentProjectBox = props => (
                 </div>
             </div>
             <IncidentList
+                componentId={props.componentId}
                 incidents={props.subProjectIncident}
                 prevClicked={props.prevClicked}
                 nextClicked={props.nextClicked}
@@ -86,6 +87,7 @@ IncidentProjectBox.displayName = 'IncidentProjectBox';
 
 IncidentProjectBox.propTypes = {
     openModal: PropTypes.func.isRequired,
+    componentId: PropTypes.string.isRequired,
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
     subProjectIncident: PropTypes.object.isRequired,

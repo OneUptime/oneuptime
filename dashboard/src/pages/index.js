@@ -18,6 +18,7 @@ import Settings from './Settings';
 
 import Billing from './Billing';
 import Monitors from './Monitors';
+import Component from './Component';
 import Integrations from './Integrations';
 
 import EmailTemplates from './EmailTemplates';
@@ -32,6 +33,7 @@ import ProfileBilling from './ProfileBilling';
 export default {
     ChangePassword,
     Monitor,
+    Component,
     Settings,
     OnCall,
     TeamMembers,

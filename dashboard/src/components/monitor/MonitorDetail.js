@@ -178,6 +178,7 @@ export class MonitorDetail extends Component {
             currentProject,
             probes,
             activeIncident,
+            componentId,
         } = this.props;
 
         const probe =
@@ -243,7 +244,7 @@ export class MonitorDetail extends Component {
                 onKeyDown={this.handleKeyBoard}
             >
                 <ShouldRender if={this.props.shouldRenderProjectType}>
-                    <div className="Box-root Padding-top--20 Padding-left--20 Padding-bottom--20">
+                    <div className="Box-root Padding-top--20 Padding-left--20">
                         <Badge
                             id={`badge_${this.props.projectName}`}
                             color={
@@ -267,7 +268,7 @@ export class MonitorDetail extends Component {
                                     >
                                         <StatusIndicator status={status} />
                                         <span
-                                            id={`monitor_title_${monitor.name}`}
+                                            id={`monitor-title-${monitor.name}`}
                                         >
                                             {monitor.name}
                                         </span>
@@ -400,14 +401,16 @@ export class MonitorDetail extends Component {
                                 </ShouldRender>
                             </button>
                             <button
-                                id={`more_details_${monitor.name}`}
+                                id={`more-details-${monitor.name}`}
                                 className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help"
                                 type="button"
                                 onClick={() => {
                                     history.push(
                                         '/project/' +
                                             currentProject._id +
-                                            '/monitors/' +
+                                            '/' +
+                                            componentId +
+                                            '/monitoring/' +
                                             monitor._id
                                     );
                                 }}
@@ -520,6 +523,9 @@ export class MonitorDetail extends Component {
                                                     </div>
                                                     <IncidentList
                                                         incidents={monitor}
+                                                        componentId={
+                                                            componentId
+                                                        }
                                                         prevClicked={
                                                             this.prevClicked
                                                         }
@@ -580,6 +586,7 @@ export class MonitorDetail extends Component {
                                                 </div>
                                                 <IncidentList
                                                     incidents={monitor}
+                                                    componentId={componentId}
                                                     prevClicked={
                                                         this.prevClicked
                                                     }
@@ -633,6 +640,7 @@ function mapStateToProps(state) {
 
 MonitorDetail.propTypes = {
     currentProject: PropTypes.object.isRequired,
+    componentId: PropTypes.object.isRequired,
     monitor: PropTypes.object.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,

@@ -48,9 +48,12 @@ function generateRandomWebsite() {
 }
 
 function generateRandomString() {
-    return Math.random()
-        .toString(36)
-        .substring(10);
+    return (
+        'str' + // Prevent strings starting with numbers
+        Math.random()
+            .toString(36)
+            .substring(10)
+    );
 }
 
 function generateRandomBusinessEmail() {
@@ -97,4 +100,5 @@ module.exports = {
     generateRandomString,
     generateRandomBusinessEmail,
     generateRandomWebsite,
+    timeout: 200000,
 };

@@ -78,6 +78,7 @@ app.use('/team', require('./backend/api/team'));
 app.use('/project', require('./backend/api/project'));
 app.use('/invoice', require('./backend/api/invoice'));
 app.use('/schedule', require('./backend/api/schedule'));
+app.use('/component', require('./backend/api/component'));
 app.use('/monitor', require('./backend/api/monitor'));
 app.use('/statusPage', require('./backend/api/statusPage'));
 app.use('/file', require('./backend/api/file'));

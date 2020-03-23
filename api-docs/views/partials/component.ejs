@@ -1,0 +1,1107 @@
+<article id="component" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <b>
+      <h1>Component</h1>
+    </b>
+    <p>
+      <p>Component API will allow you to create components that will contain monitors.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/component/</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container"></div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+  </section>
+</article>
+
+<article id="create-component" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Component<span class="requestType">POST</span></h3>
+    <p>
+      <p>Create Component by Project ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/component/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/component/5e6a37b644d6b86198ba4366</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "projectId": "5e6a37b644d6b86198ba4366",
+  "name": "Component 1"
+}
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "deleted": false,
+  "_id": "5e734ad31dacde220ae15158",
+  "createdAt": "2020-03-19T10:34:59.934Z",
+  "name": "Component 1",
+  "createdById": "5e6a37b144d6b86198ba4363",
+  "projectId": {
+      "_id": "5e6a37b644d6b86198ba4366",
+      "name": "Project 1"
+  },
+  "__v": 0
+}
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-all-components" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Components<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get All Components by Project ID. Return by skipping and limiting the number of results.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/component/:projectId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/component/5e6a37b644d6b86198ba4366?skip=0&limit=5</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+[
+  {
+      "components": [
+          {
+              "_id": "5e6f2bba1506a816eb888b5e",
+              "createdAt": "2020-03-16T07:33:14.329Z",
+              "name": "Component 2",
+              "createdById": "5e6a37b144d6b86198ba4363",
+              "projectId": {
+                  "_id": "5e6e7dd11506a816eb8879ba",
+                  "name": "Sub Project 1"
+              }
+          }
+      ],
+      "count": 1,
+      "_id": "5e6e7dd11506a816eb8879ba",
+      "skip": 0,
+      "limit": 0
+  },
+  {
+      "components": [
+          {
+              "_id": "5e6df591c9b5c930f078e8bc",
+              "createdAt": "2020-03-15T09:29:53.335Z",
+              "name": "Component 1",
+              "createdById": "5e6a37b144d6b86198ba4363",
+              "projectId": {
+                  "_id": "5e6a37b644d6b86198ba4366",
+                  "name": "Project 1"
+              }
+          }
+      ],
+      "count": 1,
+      "_id": "5e6a37b644d6b86198ba4366",
+      "skip": 0,
+      "limit": 0
+  }
+]
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-component" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Component<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get Single Component by Project ID and Component ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/component/:projectId/component/:componentId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>componentId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the component.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/component/5e6a37b644d6b86198ba4366/component/5e734ad31dacde220ae15158</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "deleted": false,
+  "_id": "5e734ad31dacde220ae15158",
+  "createdAt": "2020-03-19T10:34:59.934Z",
+  "name": "Component 1",
+  "createdById": "5e6a37b144d6b86198ba4363",
+  "projectId": {
+      "_id": "5e6a37b644d6b86198ba4366",
+      "name": "Project 1"
+  },
+  "__v": 0
+}                   
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="edit-component" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Edit Component<span class="requestType">PUT</span></h3>
+    <p>
+      <p>Edit Component by Project ID and Component ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/component/:projectId/:componentId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>componentId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the component.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/component/5e6a37b644d6b86198ba4366/5e734ad31dacde220ae15158</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "projectId": "5e089f94b400211639928c94",
+  "name": "Component 10"
+}   
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "deleted": false,
+  "_id": "5e734ad31dacde220ae15158",
+  "createdAt": "2020-03-19T10:34:59.934Z",
+  "name": "Component 10",
+  "createdById": "5e6a37b144d6b86198ba4363",
+  "projectId": null,
+  "__v": 0
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="delete-component" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Delete Component<span class="requestType">DELETE</span></h3>
+    <p>
+      <p>Delete Component by Project ID and Component ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/component/:projectId/:componentId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>componentId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the component.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/component/5e6a37b644d6b86198ba4366/5e734ad31dacde220ae15158</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "deleted": true,
+  "_id": "5e734fac4dafc853fb311137",
+  "createdAt": "2020-03-19T10:55:40.938Z",
+  "name": "Component 10",
+  "createdById": "5e6a37b144d6b86198ba4363",
+  "projectId": "5e6a37b644d6b86198ba4366",
+  "__v": 0,
+  "deletedAt": "2020-03-19T10:55:59.220Z",
+  "deletedById": {
+      "_id": "5e6a37b144d6b86198ba4363",
+      "name": "Jian Yang"
+  }
+}
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<!-- <article id="get-component-logs" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Component Logs<span class="requestType">POST</span></h3>
+    <p>
+      <p>Get Component Logs by Project ID and Component ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/component/:projectId/componentLogs/:componentId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>componentId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the component.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/component/5e6a37b644d6b86198ba4366/componentLogs/5e08a21b25c59a1c8033c7e7</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "skip": "0",
+  "limit": "5",
+  "probeValue": "5e08a2c83ccfdd73a3bb5f21"
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": {
+    "componentLogs": [
+      {
+        "incidentIds": [],
+        "_id": "5e1394b9a55da96da8d148bc",
+        "createdAt": "2020-01-06T20:12:41.149Z",
+        "componentId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "probeId": {
+          "_id": "5e08a2c83ccfdd73a3bb5f21",
+          "probeName": "US East"
+        },
+        "responseTime": 6051,
+        "responseStatus": 408,
+        "status": "offline"
+      },
+      {
+        "incidentIds": [],
+        "_id": "5e13947fa55da96da8d148b1",
+        "createdAt": "2020-01-06T20:11:43.098Z",
+        "componentId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "probeId": {
+          "_id": "5e08a2c83ccfdd73a3bb5f21",
+          "probeName": "US East"
+        },
+        "responseTime": 5059,
+        "responseStatus": 408,
+        "status": "offline"
+      },
+      {
+        "incidentIds": [],
+        "_id": "5e13943da55da96da8d148af",
+        "createdAt": "2020-01-06T20:10:37.854Z",
+        "componentId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "probeId": {
+          "_id": "5e08a2c83ccfdd73a3bb5f21",
+          "probeName": "US East"
+        },
+        "responseTime": 5028,
+        "responseStatus": 408,
+        "status": "offline"
+      },
+      {
+        "incidentIds": [],
+        "_id": "5e1393faa55da96da8d148a8",
+        "createdAt": "2020-01-06T20:09:30.195Z",
+        "componentId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "probeId": {
+          "_id": "5e08a2c83ccfdd73a3bb5f21",
+          "probeName": "US East"
+        },
+        "responseTime": 8709,
+        "responseStatus": 408,
+        "status": "offline"
+      },
+      {
+        "incidentIds": [],
+        "_id": "5e1393bea55da96da8d1489c",
+        "createdAt": "2020-01-06T20:08:30.212Z",
+        "componentId": {
+          "_id": "5e08a21b25c59a1c8033c7e7",
+          "name": "Google Home"
+        },
+        "probeId": {
+          "_id": "5e08a2c83ccfdd73a3bb5f21",
+          "probeName": "US East"
+        },
+        "responseTime": 5038,
+        "responseStatus": 408,
+        "status": "offline"
+      }
+    ],
+    "probes": [
+      {
+        "_id": "5e08a2c83ccfdd73a3bb5f21",
+        "probeName": "US East"
+      }
+    ]
+  },
+  "count": 113
+}                   
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-aggregate-component-logs" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Aggregate Component Logs<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get Aggregate Component Logs by Project ID and Component ID. Return results by Start Date and End Date.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/component/:projectId/log/:componentId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>startDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The start date of the date range.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>endDate</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The end date of the date range.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>componentId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the component.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://api.fyipe.com/component/5e6a37b644d6b86198ba4366/log/5e08a21b25c59a1c8033c7e7?startDate=Mon%20Dec%2009%202019%2021:06:54%20GMT+0100&endDate=Wed%20Jan%2008%202020%2021:06:54%20GMT+0100
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e08a2c83ccfdd73a3bb5f21",
+      "logs": [
+        {
+          "_id": {
+            "probeId": "5e08a2c83ccfdd73a3bb5f21",
+            "createdAt": "2020-01-06"
+          },
+          "componentId": "5e08a21b25c59a1c8033c7e7",
+          "probeId": "5e08a2c83ccfdd73a3bb5f21",
+          "responseTime": 6051,
+          "responseStatus": 408,
+          "status": "offline",
+          "data": null,
+          "createdAt": "2020-01-06T20:12:41.149Z",
+          "avgResponseTime": 4506.742857142857,
+          "avgCpuLoad": null,
+          "avgMemoryUsed": null,
+          "avgStorageUsed": null,
+          "avgMainTemp": null,
+          "count": 70,
+          "intervalDate": "Jan 6th 2020"
+        },
+        {
+          "_id": {
+            "probeId": "5e08a2c83ccfdd73a3bb5f21",
+            "createdAt": "2019-12-31"
+          },
+          "componentId": "5e08a21b25c59a1c8033c7e7",
+          "probeId": "5e08a2c83ccfdd73a3bb5f21",
+          "responseTime": 5730,
+          "responseStatus": 408,
+          "status": "offline",
+          "data": null,
+          "createdAt": "2019-12-31T16:14:00.756Z",
+          "avgResponseTime": 3369.521739130435,
+          "avgCpuLoad": null,
+          "avgMemoryUsed": null,
+          "avgStorageUsed": null,
+          "avgMainTemp": null,
+          "count": 23,
+          "intervalDate": "Dec 31st 2019"
+        },
+        {
+          "_id": {
+            "probeId": "5e08a2c83ccfdd73a3bb5f21",
+            "createdAt": "2019-12-30"
+          },
+          "componentId": "5e08a21b25c59a1c8033c7e7",
+          "probeId": "5e08a2c83ccfdd73a3bb5f21",
+          "responseTime": 5001,
+          "responseStatus": 408,
+          "status": "offline",
+          "data": null,
+          "createdAt": "2019-12-30T15:03:20.050Z",
+          "avgResponseTime": 4295.090909090909,
+          "avgCpuLoad": null,
+          "avgMemoryUsed": null,
+          "avgStorageUsed": null,
+          "avgMainTemp": null,
+          "count": 11,
+          "intervalDate": "Dec 30th 2019"
+        },
+        {
+          "_id": {
+            "probeId": "5e08a2c83ccfdd73a3bb5f21",
+            "createdAt": "2019-12-29"
+          },
+          "componentId": "5e08a21b25c59a1c8033c7e7",
+          "probeId": "5e08a2c83ccfdd73a3bb5f21",
+          "responseTime": 1369,
+          "responseStatus": 200,
+          "status": "online",
+          "data": null,
+          "createdAt": "2019-12-29T13:17:01.395Z",
+          "avgResponseTime": 1593.5,
+          "avgCpuLoad": null,
+          "avgMemoryUsed": null,
+          "avgStorageUsed": null,
+          "avgMainTemp": null,
+          "count": 4,
+          "intervalDate": "Dec 29th 2019"
+        }
+      ]
+    }
+  ],
+  "count": 1
+}                
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="add-component-seat-to-project" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Add Component Seat To Project<span class="requestType">POST</span></h3>
+    <p>
+      <p>Add Component Seat To Project by Project ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://api.fyipe.com/component/:projectId/addseat</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+    
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span></span>
+                <span class="item-type"></span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p></p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://api.fyipe.com/component/5e6a37b644d6b86198ba4366/addseat</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>A new seat added. Now you can add a component</p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article> -->

@@ -5,7 +5,7 @@ export default function MessageBox(props) {
     return (
         <div id="main-body" className="box css">
             <div className="inner">
-                <div className="request-reset-step step">
+                <div id="success-step" className="request-reset-step step">
                     <div className="title">
                         <h2 style={{ marginBottom: 0 }}>{props.title}</h2>
                     </div>
