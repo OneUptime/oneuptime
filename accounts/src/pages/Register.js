@@ -71,7 +71,9 @@ class RegisterPage extends React.Component {
                 <div id="bottom">
                     <ul>
                         <li>
-                            <Link to="/accounts/forgot-password">Forgot Password</Link>
+                            <Link to="/accounts/forgot-password">
+                                Forgot Password
+                            </Link>
                         </li>
                         <li>
                             <a href="http://fyipe.com/legal/privacy">

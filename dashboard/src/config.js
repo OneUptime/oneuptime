@@ -10,10 +10,15 @@ const apiUrl = window.location.origin + '/api';
 const dashboardUrl = window.location.origin + '/dashboard';
 const accountsUrl = window.location.origin + '/accounts';
 
-if(window && window.location && window.location.hostname && window.location.hostname.includes("localhost:")){
-    apiUrl = window.location.protocol+"//localhost:3002"
-    dashboardUrl =  window.location.protocol+"//localhost:3000"
-    accountsUrl = window.location.protocol+"//localhost:3003"
+if (
+    window &&
+    window.location &&
+    window.location.hostname &&
+    window.location.hostname.includes('localhost:')
+) {
+    apiUrl = window.location.protocol + '//localhost:3002';
+    dashboardUrl = window.location.protocol + '//localhost:3000';
+    accountsUrl = window.location.protocol + '//localhost:3003';
 }
 
 export function env(value) {

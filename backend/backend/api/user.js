@@ -858,7 +858,8 @@ router.get('/confirmation/:token', async function(req, res) {
                 $set: dataUpdate,
             });
             return res.redirect(
-                global.accountsHost + '/accounts/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP'
+                global.accountsHost +
+                    '/accounts/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP'
             );
         } else {
             return res.redirect(

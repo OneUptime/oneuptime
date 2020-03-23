@@ -111,7 +111,7 @@ module.exports = {
                 context: {
                     homeURL: global.homeHost,
                     name: name.split(' ')[0].toString(),
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
 
@@ -469,7 +469,7 @@ module.exports = {
                 template: 'reset_password_body',
                 context: {
                     homeURL: global.homeHost,
-                    accountsURL: global.homeHost+'/accounts',
+                    accountsURL: global.homeHost + '/accounts',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -579,7 +579,7 @@ module.exports = {
                     homeURL: global.homeHost,
                     projectName: project.name,
                     userName: addedByUser.name,
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -686,7 +686,7 @@ module.exports = {
                     homeURL: global.homeHost,
                     projectName: project.name,
                     userName: addedByUser.name,
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -736,7 +736,7 @@ module.exports = {
                     homeURL: global.homeHost,
                     projectName: project.name,
                     userName: addedByUser.name,
-                    accountsURL: global.homeHost+'/accounts',
+                    accountsURL: global.homeHost + '/accounts',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -789,7 +789,7 @@ module.exports = {
                     projectName: project.name,
                     userName: addedByUser.name,
                     role: role,
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -840,7 +840,7 @@ module.exports = {
                     homeURL: global.homeHost,
                     projectName: project.name,
                     userName: removedByUser.name,
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -894,7 +894,7 @@ module.exports = {
                     homeURL: global.homeHost,
                     subProjectName: subProject.name,
                     userName: removedByUser.name,
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -974,7 +974,7 @@ module.exports = {
                     resolveUrl,
                     incidentType,
                     projectName,
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -1351,7 +1351,7 @@ module.exports = {
                     projectName: projectName,
                     oldPlan: oldPlan,
                     newPlan: newPlan,
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -1397,7 +1397,7 @@ module.exports = {
                 context: {
                     homeURL: global.homeHost,
                     projectName: projectName,
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -1443,7 +1443,7 @@ module.exports = {
                 context: {
                     homeURL: global.homeHost,
                     subProjectName: subProjectName,
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
             if (!EMAIL_ENABLED) {
@@ -1549,7 +1549,7 @@ module.exports = {
                     projectName,
                     name,
                     chargeAttemptStage,
-                    dashboardURL: global.dashboardHost+"/dashbord",
+                    dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
             if (!EMAIL_ENABLED) {
