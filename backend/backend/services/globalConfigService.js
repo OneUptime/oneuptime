@@ -67,7 +67,7 @@ module.exports = {
             }
 
             const globalConfigs = await GlobalConfigModel.find(query)
-                .sort([['createdAt', 1]])
+                .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
 
@@ -104,6 +104,16 @@ module.exports = {
             return count;
         } catch (error) {
             ErrorService.log('globalConfigService.countBy', error);
+            throw error;
+        }
+    },
+
+    hardDeleteBy: async function(query) {
+        try {
+            await GlobalConfigModel.deleteMany(query);
+            return 'Global Config(s) Removed Successfully!';
+        } catch (error) {
+            ErrorService.log('globalConfigService.hardDeleteBy', error);
             throw error;
         }
     },

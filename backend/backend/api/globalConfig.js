@@ -11,12 +11,14 @@ const GlobalConfigService = require('../services/globalConfigService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const getUser = require('../middlewares/user').getUser;
+const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 // Route Description: Creating global config(s).
 // Body: [{name, value}] | {name, value}
 // Return: [{name, value, createdAt}] | {name, value, createdAt}
 
-router.post('/', async function(req, res) {
+router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         let configs;
 
@@ -70,7 +72,7 @@ router.post('/', async function(req, res) {
             globalConfigs.unshift(globalConfig);
         }
 
-        if (globalConfigs.length > 0) {
+        if (globalConfigs.length > 1) {
             return sendListResponse(req, res, globalConfigs);
         } else {
             return sendItemResponse(req, res, globalConfigs[0]);
@@ -84,7 +86,7 @@ router.post('/', async function(req, res) {
 // Params: [name];
 // Return: [{name, value, createdAt}]
 
-router.post('/configs', async function(req, res) {
+router.post('/configs', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const names = req.body;
 
@@ -109,7 +111,7 @@ router.post('/configs', async function(req, res) {
 // Params: {name};
 // Return: {name, value, createdAt}
 
-router.get('/:name', async function(req, res) {
+router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const globalConfig = await GlobalConfigService.findOneBy({
             name: req.params.name,
