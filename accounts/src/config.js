@@ -202,7 +202,7 @@ export const PricingPlan = {
     getPlans() {
         if (
             env('STRIPE_PUBLIC_KEY') &&
-            env('STRIPE_PUBLIC_KEY').startsWith('sk_test')
+            env('STRIPE_PUBLIC_KEY').startsWith('pk_test')
         ) {
             return [
                 {
