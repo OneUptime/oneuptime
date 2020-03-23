@@ -124,7 +124,7 @@ export class LicenseSetting extends Component {
                                             <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
                                         </div>
                                         <div className="Box-root">
-                                            <span style={{ color: 'red' }}>
+                                            <span id="licenseError" style={{ color: 'red' }}>
                                                 {error}
                                             </span>
                                         </div>
