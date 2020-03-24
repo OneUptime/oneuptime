@@ -33,3 +33,6 @@ helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/
 chmod +x ./kubernetes/ci/docker-build.sh
 sudo ./kubernetes/ci/docker-build.sh
 ```
+
+### Docker Images
+Docker Images are hosted at: https://hub.docker.com/orgs/fyipeproject/repositories and are public.
