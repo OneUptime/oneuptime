@@ -16,6 +16,7 @@ fyipe:
   callEnabled: true
   smsEnabled: true
   clusterKey: test-cluster-key
+  licenseUrl: https://fyipe.com/license
   twilio:
     accountSid: 
     authToken:

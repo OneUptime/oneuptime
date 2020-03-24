@@ -23,6 +23,9 @@ spec:
                     {{- if .Values.saas.isSaasService }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'
+                    {{- else }}
+                    - name: LICENSE_URL
+                      value: {{ .Values.fyipe.licenseUrl }}
                     {{- end }}
                   ports:
                       - containerPort: {{ .Values.host.adminDashboardPort }}

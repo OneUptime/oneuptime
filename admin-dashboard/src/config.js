@@ -5,11 +5,21 @@ import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
 
+
+export function env(value) {
+    const { _env } = window;
+    return (
+        (_env && _env[`REACT_APP_${value}`]) ||
+        process.env[`REACT_APP_${value}`]
+    );
+}
+
+
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let adminDashboardUrl = window.location.origin + '/admin';
 let accountsUrl = window.location.origin + '/accounts';
-const licensingUrl = 'https://fyipe.com/license';
+const licensingUrl = env('LICENSE_URL');
 
 if (
     window &&
@@ -25,13 +35,7 @@ if (
     accountsUrl = window.location.protocol + '//localhost:3003/accounts';
 }
 
-export function env(value) {
-    const { _env } = window;
-    return (
-        (_env && _env[`REACT_APP_${value}`]) ||
-        process.env[`REACT_APP_${value}`]
-    );
-}
+
 
 export const API_URL = apiUrl;
 
