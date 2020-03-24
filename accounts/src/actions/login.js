@@ -52,7 +52,7 @@ export function loginSuccess(user) {
     cookies.set('data', userData, {
         path: '/',
         maxAge: 30,
-        domain: window.location.hostname,
+        domain: window.location.host,
     });
 
     if (user.role === 'master-admin') {
@@ -62,7 +62,7 @@ export function loginSuccess(user) {
         cookies.set('admin-data', userData, {
             path: '/',
             maxAge: 30,
-            domain: window.location.hostname,
+            domain: window.location.host,
         });
     }
 

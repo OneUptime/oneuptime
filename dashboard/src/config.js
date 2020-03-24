@@ -13,10 +13,10 @@ let accountsUrl = window.location.origin + '/accounts';
 if (
     window &&
     window.location &&
-    window.location.hostname &&
-    (window.location.hostname.includes('localhost:') ||
-        window.location.hostname.includes('0.0.0.0:') ||
-        window.location.hostname.includes('127.0.0.1:'))
+    window.location.host &&
+    (window.location.host.includes('localhost:') ||
+        window.location.host.includes('0.0.0.0:') ||
+        window.location.host.includes('127.0.0.1:'))
 ) {
     apiUrl = window.location.protocol + '//localhost:3002/api';
     dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
@@ -42,6 +42,8 @@ export const DOMAIN_URL = window.location.origin;
 export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 
 export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
+
+debugger;
 
 export const User = {
     getAccessToken() {

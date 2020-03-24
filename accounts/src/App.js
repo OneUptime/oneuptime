@@ -27,7 +27,7 @@ const statusPageLogin = queryString.parse(window.location.search).statusPage;
 const statusPageURL = queryString.parse(window.location.search).statusPageURL;
 
 if (logoutData && User.isLoggedIn()) {
-    cookies.remove('logoutData', { domain: window.location.hostname });
+    cookies.remove('logoutData', { domain: window.location.host });
     localStorage.clear();
 } else if (!statusPageLogin && !logoutData && User.isLoggedIn()) {
     window.location = DASHBOARD_URL;

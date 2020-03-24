@@ -24,10 +24,10 @@ const licensingUrl = env('LICENSE_URL');
 if (
     window &&
     window.location &&
-    window.location.hostname &&
-    (window.location.hostname.includes('localhost:') ||
-        window.location.hostname.includes('0.0.0.0:') ||
-        window.location.hostname.includes('127.0.0.1:'))
+    window.location.host &&
+    (window.location.host.includes('localhost:') ||
+        window.location.host.includes('0.0.0.0:') ||
+        window.location.host.includes('127.0.0.1:'))
 ) {
     apiUrl = window.location.protocol + '//localhost:3002/api';
     dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
