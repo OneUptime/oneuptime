@@ -51,7 +51,7 @@
         "react-redux": "^5.0.7",
         "react-router-dom": "^4.2.2",
         "react-router-redux": "^4.0.8",
-        "react-scripts": "^3.0.1",
+        "react-scripts": "^3.4.1",
         "react-select": "^3.0.8",
         "react-stripe-elements": "^1.7.0",
         "react-widgets": "^4.4.9",

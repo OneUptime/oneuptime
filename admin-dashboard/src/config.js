@@ -5,7 +5,6 @@ import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
 
-
 export function env(value) {
     const { _env } = window;
     return (
@@ -13,7 +12,6 @@ export function env(value) {
         process.env[`REACT_APP_${value}`]
     );
 }
-
 
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
@@ -34,8 +32,6 @@ if (
     adminDashboardUrl = window.location.protocol + '//localhost:3100/admin';
     accountsUrl = window.location.protocol + '//localhost:3003/accounts';
 }
-
-
 
 export const API_URL = apiUrl;
 

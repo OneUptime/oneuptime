@@ -54,7 +54,7 @@
         "commander": "^4.0.1",
         "depcheck": "^0.9.2",
         "lighthouse": "^5.6.0",
-        "npm-audit-ci-wrapper": "^2.4.3",
+        "npm-audit-ci-wrapper": "^2.4.4",
         "ora": "^4.0.3",
         "redux-logger": "^3.0.6",
         "should": "^13.2.3",
