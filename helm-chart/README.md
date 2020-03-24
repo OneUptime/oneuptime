@@ -34,5 +34,12 @@ chmod +x ./kubernetes/ci/docker-build.sh
 sudo ./kubernetes/ci/docker-build.sh
 ```
 
+### Package and deploy helm chart
+```
+helm repo index ./fyipe
+helm package ./fyipe
+helm repo index .
+```
+
 ### Docker Images
 Docker Images are hosted at: https://hub.docker.com/orgs/fyipeproject/repositories and are public.
