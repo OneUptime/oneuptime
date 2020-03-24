@@ -75,7 +75,6 @@ const App = () => (
                     key={'404'}
                     component={NotFound}
                 />
-                <Route path={'/:404_path'} key={'404'} component={NotFound} />
                 <Redirect to="/dashboard/project/project/components" />
             </Switch>
         </Router>

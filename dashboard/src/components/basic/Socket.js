@@ -25,7 +25,7 @@ import {
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 
-const socket = io(API_URL);
+const socket = io.connect(API_URL, {path: '/api/socket.io'});
 
 class SocketApp extends Component {
     shouldComponentUpdate(nextProps) {
