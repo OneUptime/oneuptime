@@ -54,7 +54,7 @@ audit_backend:
       - hotfix-release
 
 # Helm Chart Repo
-audit_helmchart:
+audit_helm-chart:
   stage: BuildAndTest
   allow_failure: true
   script:
@@ -1348,6 +1348,13 @@ deploy_staging_helm-chart:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
     - ./kubernetes/ci/deployment-staging-setup.sh
+    # Install Helm.
+    - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    - cd helm-chart
+    - helm repo index ./fyipe
+    - helm package ./fyipe
+    - helm repo index .
+    - cd ..
     # Build and deploy helm-chart.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/helm-chart:master ./helm-chart
@@ -1372,6 +1379,14 @@ deploy_production_helm-chart:
     - ./kubernetes/ci/deployment-setup.sh
     - chmod +x ./kubernetes/ci/deployment-production-setup.sh
     - ./kubernetes/ci/deployment-production-setup.sh
+    # Install Helm.
+    - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    - cd helm-chart
+    - helm repo index ./fyipe
+    - helm package ./fyipe
+    - helm repo index .
+    - cd ..
+    # Deploy to production
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/helm-chart:latest ./helm-chart
     - sudo docker tag fyipeproject/helm-chart:latest fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
