@@ -45,7 +45,7 @@ if (userData !== undefined) {
 cookies.remove('data', { domain: DOMAIN_URL });
 
 if (!User.isLoggedIn()) {
-    window.location = ACCOUNTS_URL;
+    window.location = ACCOUNTS_URL+'/login';
     store.dispatch(loadPage('Home'));
 } else {
     const id = User.getUserId();

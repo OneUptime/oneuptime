@@ -480,7 +480,7 @@ router.post('/forgot-password', async function(req, res) {
         }
         // Call the UserService.
         const user = await UserService.forgotPassword(data.email);
-        const forgotPasswordURL = `${global.accountsHost}/accounts/change-password/${user.resetPasswordToken}`;
+        const forgotPasswordURL = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
         // Call the MailService.
         await MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
 
@@ -824,7 +824,7 @@ router.get('/confirmation/:token', async function(req, res) {
             if (!token) {
                 return res.redirect(
                     global.accountsHost +
-                        '/accounts/user-verify/resend?status=Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq'
+                        '/user-verify/resend?status=Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq'
                 );
             }
             const user = await UserModel.findOne({
@@ -833,7 +833,7 @@ router.get('/confirmation/:token', async function(req, res) {
             if (!user) {
                 return res.redirect(
                     global.accountsHost +
-                        '/accounts/register?status=z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk'
+                        '/register?status=z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk'
                 );
             }
             if (
@@ -843,7 +843,7 @@ router.get('/confirmation/:token', async function(req, res) {
             ) {
                 return res.redirect(
                     global.accountsHost +
-                        '/accounts/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC'
+                        '/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC'
                 );
             }
             let dataUpdate = { isVerified: true };
@@ -859,12 +859,12 @@ router.get('/confirmation/:token', async function(req, res) {
             });
             return res.redirect(
                 global.accountsHost +
-                    '/accounts/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP'
+                    '/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP'
             );
         } else {
             return res.redirect(
                 global.accountsHost +
-                    '/accounts/user-verify/resend?status=eG5aFRDeZXgOkjEfdhOYbFb2lA3Z0OJm'
+                    '/user-verify/resend?status=eG5aFRDeZXgOkjEfdhOYbFb2lA3Z0OJm'
             );
         }
     } catch (error) {

@@ -254,7 +254,7 @@ module.exports = {
             const _this = this;
             let subProject = null;
             let project = await ProjectService.findOneBy({ _id: projectId });
-            const registerUrl = `${global.accountsHost}/accounts/register`;
+            const registerUrl = `${global.accountsHost}/register`;
             if (project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({

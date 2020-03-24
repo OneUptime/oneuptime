@@ -567,8 +567,8 @@ module.exports = {
             expiresIn: 12 * 60 * 60 * 1000,
         });
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const ack_url = `${global.host}/api/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
-        const resolve_url = `${global.host}/api/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
+        const ack_url = `${global.host}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
+        const resolve_url = `${global.host}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
         const firstName = user.name;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -1010,7 +1010,7 @@ module.exports = {
                     alertStatus: 'Sent',
                 });
                 const alertId = subscriberAlert._id;
-                const trackEmailAsViewedUrl = `${global.host}/api/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
+                const trackEmailAsViewedUrl = `${global.host}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
                 if (templateType === 'Subscriber Incident Acknowldeged') {
                     await MailService.sendIncidentAcknowledgedMailToSubscriber(
                         date,

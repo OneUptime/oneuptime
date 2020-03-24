@@ -17,9 +17,9 @@ if (
         window.location.hostname.includes('0.0.0.0:') ||
         window.location.hostname.includes('127.0.0.1:'))
 ) {
-    apiUrl = window.location.protocol + '//localhost:3002';
-    dashboardUrl = window.location.protocol + '//localhost:3000';
-    adminDashboardUrl = window.location.protocol + '//localhost:3100';
+    apiUrl = window.location.protocol + '//localhost:3002/api';
+    dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
+    adminDashboardUrl = window.location.protocol + '//localhost:3100/admin';
 }
 
 export function env(value) {
