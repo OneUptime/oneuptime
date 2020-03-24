@@ -22,15 +22,15 @@ process.on('uncaughtException', err => {
 
 const path = require('path');
 const http = require('http').createServer(app);
-const io = require('socket.io')(http,{
-    path: '/api/socket.io'
+const io = require('socket.io')(http, {
+    path: '/api/socket.io',
 });
 const redisAdapter = require('socket.io-redis');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
 io.adapter(
-   redisAdapter({
+    redisAdapter({
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
     })
@@ -53,8 +53,8 @@ app.use(function(req, res, next) {
     );
 
     // Add this to global object, and this can be used anywhere where you need backend host.
-    global.host = req.host+'/api';
-    global.accountsHost = req.host+'/accounts';
+    global.host = req.host + '/api';
+    global.accountsHost = req.host + '/accounts';
     global.homeHost = req.host;
     if (global.host.includes('localhost')) {
         global.host =
@@ -62,10 +62,13 @@ app.use(function(req, res, next) {
             '://' +
             global.host +
             ':' +
-            (process.env.PORT || 3002)+'/api';
-        global.accountsHost = req.protocol + '://' + global.host + ':' + 3003+'/accounts';
+            (process.env.PORT || 3002) +
+            '/api';
+        global.accountsHost =
+            req.protocol + '://' + global.host + ':' + 3003 + '/accounts';
         global.homeHost = req.protocol + '://' + global.host + ':' + 1444;
-        global.dashboardHost = req.protocol + '://' + global.host + ':' + 3000+'/dashboard';
+        global.dashboardHost =
+            req.protocol + '://' + global.host + ':' + 3000 + '/dashboard';
     }
 
     next();
@@ -152,7 +155,10 @@ app.use(['/version', '/api/version'], require('./backend/api/version'));
 app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
 app.use(['/audit-logs', '/api/auditLogs'], require('./backend/api/auditLogs'));
 app.use(['/component', '/api/component'], require('./backend/api/component'));
-app.use(['/globalConfig','/api/globalConfig'], require('./backend/api/globalConfig'));
+app.use(
+    ['/globalConfig', '/api/globalConfig'],
+    require('./backend/api/globalConfig')
+);
 
 app.set('port', process.env.PORT || 3002);
 

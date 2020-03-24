@@ -9,7 +9,7 @@ let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let adminDashboardUrl = window.location.origin + '/admin';
 let accountsUrl = window.location.origin + '/accounts';
-let licensingUrl = 'https://fyipe.com/license'
+const licensingUrl = 'https://fyipe.com/license';
 
 if (
     window &&
