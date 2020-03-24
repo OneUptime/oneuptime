@@ -9,6 +9,7 @@ let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let adminDashboardUrl = window.location.origin + '/admin';
 let accountsUrl = window.location.origin + '/accounts';
+let licensingUrl = 'https://fyipe.com/license'
 
 if (
     window &&
@@ -41,6 +42,8 @@ export const ACCOUNTS_URL = accountsUrl;
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
 export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
+
+export const LICENSING_URL = licensingUrl;
 
 export const User = {
     getAccessToken() {

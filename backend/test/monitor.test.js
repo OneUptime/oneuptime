@@ -17,12 +17,15 @@ let NotificationService = require('../backend/services/notificationService');
 let AirtableService = require('../backend/services/airtableService');
 
 let VerificationTokenModel = require('../backend/models/verificationToken');
+let ComponentModel = require('../backend/models/component');
 
 let token, userId, airtableId, projectId, monitorId, monitorCategoryId;
 
 let monitorCategory = {
     monitorCategoryName: 'New Monitor Category',
 };
+
+let componentId;
 
 describe('Monitor API', function() {
     this.timeout(30000);
@@ -35,25 +38,31 @@ describe('Monitor API', function() {
             userId = res.body.id;
             airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
+            ComponentModel.create({ name: 'Test Component' }, function(
                 err,
-                verificationToken
+                component
             ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                done();
-                            });
-                    });
+                componentId = component;
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    done();
+                                });
+                        });
+                });
             });
         });
     });
@@ -95,6 +104,7 @@ describe('Monitor API', function() {
                 name: null,
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
+                componentId,
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -111,6 +121,7 @@ describe('Monitor API', function() {
                 name: 'New Monitor 1',
                 type: null,
                 data: { url: 'http://www.tests.org' },
+                componentId,
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -127,6 +138,7 @@ describe('Monitor API', function() {
                 name: 'New Monitor 2',
                 type: 'url',
                 data: null,
+                componentId,
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -143,6 +155,7 @@ describe('Monitor API', function() {
                 name: 'New Monitor 3',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
+                componentId,
             })
             .end(function(err, res) {
                 monitorId = res.body._id;
@@ -163,6 +176,7 @@ describe('Monitor API', function() {
                 type: 'url',
                 callScheduleId: scheduleId,
                 data: { url: 'http://www.tests.org' },
+                componentId,
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -189,6 +203,7 @@ describe('Monitor API', function() {
                         type: 'url',
                         callScheduleId: scheduleId,
                         data: { url: 'http://www.tests.org' },
+                        componentId,
                     })
                     .end(function(err, res) {
                         monitorId = res.body._id;
@@ -229,6 +244,7 @@ describe('Monitor API', function() {
                         type: 'url',
                         callScheduleId: scheduleId,
                         data: { url: 'http://www.tests.org' },
+                        componentId,
                     })
                     .end(function(err, res) {
                         monitorId = res.body._id;
@@ -240,6 +256,7 @@ describe('Monitor API', function() {
                                 type: 'url',
                                 callScheduleId: scheduleId,
                                 data: { url: 'http://www.tests.org' },
+                                componentId,
                             })
                             .end(function(err, res) {
                                 monitorId = res.body._id;
@@ -380,6 +397,7 @@ describe('Monitor API with monitor Category', function() {
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
                 monitorCategoryId: monitorCategoryId,
+                componentId,
             })
             .end(function(err, res) {
                 monitorId = res.body._id;
@@ -480,6 +498,7 @@ describe('Monitor API with Sub-Projects', function() {
                                         name: 'New Monitor 9',
                                         type: 'url',
                                         data: { url: 'http://www.tests.org' },
+                                        componentId,
                                     })
                                     .end(function(err, res) {
                                         expect(res).to.have.status(400);
@@ -503,6 +522,7 @@ describe('Monitor API with Sub-Projects', function() {
                 name: 'New Monitor 10',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
+                componentId,
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -522,6 +542,7 @@ describe('Monitor API with Sub-Projects', function() {
                 name: 'New Monitor 11',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
+                componentId,
             })
             .end(function(err, res) {
                 monitorId = res.body._id;
@@ -540,6 +561,7 @@ describe('Monitor API with Sub-Projects', function() {
                 name: 'New Monitor 12',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
+                componentId,
             })
             .end(function(err, res) {
                 subProjectMonitorId = res.body._id;
@@ -713,6 +735,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                 name: 'New Monitor 13',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
+                componentId,
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -733,6 +756,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                 name: 'New Monitor 14',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
+                componentId,
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -753,6 +777,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                 name: 'New Monitor 15',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
+                componentId,
             })
             .end(function(err, res) {
                 monitorId = res.body._id;

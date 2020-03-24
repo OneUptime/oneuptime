@@ -28,7 +28,9 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(/projects\/([0-9]|[a-z])*/) &&
                 route.title === 'Projects');
 
-        const isChildLinkActive = false;
+        const isChildLinkActive = route.subRoutes.some(link => {
+            return link.path === match.url ? true : false;
+        });
 
         const routeStyle = {
             position: 'relative',

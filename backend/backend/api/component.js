@@ -213,18 +213,4 @@ router.delete(
     }
 );
 
-// router.post('/:projectId/addseat', getUser, isAuthorized, async function(
-//     req,
-//     res
-// ) {
-//     try {
-//         const seatresponse = await ComponentService.addSeat({
-//             _id: req.params.projectId,
-//         });
-//         return sendItemResponse(req, res, seatresponse);
-//     } catch (error) {
-//         return sendErrorResponse(req, res, error);
-//     }
-// });
-
 module.exports = router;

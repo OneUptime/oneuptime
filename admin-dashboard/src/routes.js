@@ -1,6 +1,7 @@
 import pages from './pages';
+import { IS_SAAS_SERVICE } from './config';
 
-const { Users, User, Projects, Project, Probes, AuditLogs } = pages;
+const { Users, User, Projects, Project, Probes, AuditLogs, License } = pages;
 
 export const groups = [
     {
@@ -62,6 +63,32 @@ export const groups = [
                 visible: true,
                 subRoutes: [],
                 index: 4,
+            },
+        ],
+    },
+    {
+        group: 'Settings',
+        visible: !IS_SAAS_SERVICE,
+        routes: [
+            {
+                title: 'Settings',
+                path: '/settings/license',
+                icon: 'businessSettings',
+                component: License,
+                exact: true,
+                visible: true,
+                subRoutes: [
+                    {
+                        title: 'License',
+                        path: '/settings/license',
+                        icon: 'activate',
+                        component: License,
+                        visible: true,
+                        subRoutes: [],
+                        index: 1,
+                    },
+                ],
+                index: 1,
             },
         ],
     },
