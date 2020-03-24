@@ -16,6 +16,7 @@
     "express": "^4.17.1"
   },
   "devDependencies": {
-    "depcheck": "^0.9.2"
+    "depcheck": "^0.9.2",
+    "npm-audit-ci-wrapper": "^2.4.3"
   }
 }
