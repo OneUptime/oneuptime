@@ -629,7 +629,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state, props) { console.info('Incidents', props);
+function mapStateToProps(state) {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
