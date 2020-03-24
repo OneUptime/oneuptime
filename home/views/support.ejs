@@ -14,8 +14,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap">
   <script src="/js/amplitude.js"></script>
   <script>
-    var IS_DEV = false;
-    if (!IS_DEV) {
+    var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+    if (IS_SAAS_SERVICE) {
       amplitude.getInstance().logEvent('Contact us page viewed');
     }
   </script>

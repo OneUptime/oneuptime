@@ -27,7 +27,7 @@ import { ValidateField } from '../../config';
 import 'brace/mode/javascript';
 import 'brace/theme/github';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { IS_SAAS_SERVICE } from '../../config';
 
 const selector = formValueSelector('NewComponent');
 
@@ -75,7 +75,7 @@ class NewComponent extends Component {
             postObj._id = this.props.editComponentProp._id;
             this.props.editComponent(postObj.projectId, postObj).then(() => {
                 thisObj.props.destroy();
-                if (!IS_DEV) {
+                if (IS_SAAS_SERVICE) {
                     logEvent('Component Edit', values);
                 }
             });
@@ -83,7 +83,7 @@ class NewComponent extends Component {
             this.props.createComponent(postObj.projectId, postObj).then(
                 () => {
                     thisObj.props.reset();
-                    if (!IS_DEV) {
+                    if (IS_SAAS_SERVICE) {
                         logEvent('Add New Component', values);
                     }
                 },
@@ -125,7 +125,7 @@ class NewComponent extends Component {
 
     cancelEdit = () => {
         this.props.editComponentSwitch(this.props.index);
-        if (!IS_DEV) {
+        if (IS_SAAS_SERVICE) {
             logEvent('Component Edit Cancelled', {});
         }
     };

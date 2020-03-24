@@ -19,12 +19,12 @@ import { getProbes } from '../actions/probe';
 // import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { IS_SAAS_SERVICE } from '../config';
 
 class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Components');
-        if (!IS_DEV) {
+        if (IS_SAAS_SERVICE) {
             logEvent('Main component page Loaded');
         }
     }

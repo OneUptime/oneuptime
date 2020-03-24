@@ -22,13 +22,15 @@ process.on('uncaughtException', err => {
 
 const path = require('path');
 const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const io = require('socket.io')(http,{
+    path: '/api/socket.io'
+});
 const redisAdapter = require('socket.io-redis');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
 io.adapter(
-    redisAdapter({
+   redisAdapter({
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
     })
