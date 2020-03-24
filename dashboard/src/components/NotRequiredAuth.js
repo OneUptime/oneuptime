@@ -14,13 +14,13 @@ export default function(ComposedComponent) {
 
         componentDidMount() {
             if (this.isAuthenticated) {
-                history.push('/project/project/monitoring');
+                history.push('/dashboard/project/project/monitoring');
             }
         }
 
         componentDidUpdate() {
             if (this.isAuthenticated) {
-                history.push('/project/project/monitoring');
+                history.push('/dashboard/project/project/monitoring');
             }
         }
 

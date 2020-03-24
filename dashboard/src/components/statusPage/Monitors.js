@@ -193,7 +193,7 @@ export class Monitors extends Component {
                                                 project.{' '}
                                                 <Link
                                                     to={
-                                                        '/project/' +
+                                                        '/dashboard/project/' +
                                                         this.props
                                                             .currentProject
                                                             ._id +

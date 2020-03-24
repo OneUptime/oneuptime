@@ -406,7 +406,7 @@ export class MonitorDetail extends Component {
                                 type="button"
                                 onClick={() => {
                                     history.push(
-                                        '/project/' +
+                                        '/dashboard/project/' +
                                             currentProject._id +
                                             '/' +
                                             componentId +

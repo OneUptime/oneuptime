@@ -165,7 +165,7 @@ export class IncidentList extends Component {
                                                 className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                                 onClick={() => {
                                                     history.push(
-                                                        '/project/' +
+                                                        '/dashboard/project/' +
                                                             this.props
                                                                 .currentProject
                                                                 ._id +

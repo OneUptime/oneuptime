@@ -785,7 +785,7 @@ export class RenderOption extends Component {
                                 }}
                             >
                                 <img
-                                    src="/assets/img/plus.svg"
+                                    src="/dashboard/assets/img/plus.svg"
                                     style={{ height: '10px', width: '10px' }}
                                     alt=""
                                 />
@@ -813,7 +813,7 @@ export class RenderOption extends Component {
                                 }}
                             >
                                 <img
-                                    src="/assets/img/minus.svg"
+                                    src="/dashboard/assets/img/minus.svg"
                                     style={{ height: '10px', width: '10px' }}
                                     alt=""
                                 />
@@ -841,7 +841,7 @@ export class RenderOption extends Component {
                                 }}
                             >
                                 <img
-                                    src="/assets/img/more.svg"
+                                    src="/dashboard/assets/img/more.svg"
                                     style={{ height: '10px', width: '10px' }}
                                     alt=""
                                 />

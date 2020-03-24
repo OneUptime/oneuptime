@@ -3,7 +3,6 @@ import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import { history, isServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
-import NotFound from './components/404';
 import BackboneModals from './containers/BackboneModals';
 import { User, DASHBOARD_URL, IS_SAAS_SERVICE } from './config';
 import queryString from 'query-string';
@@ -67,7 +66,7 @@ const App = ({
                                 />
                             );
                         })}
-                    
+
                     <Redirect to="/accounts/login" />
                 </Switch>
             </Router>
