@@ -59,7 +59,7 @@ class AuditLogs extends React.Component {
             <Dashboard ready={this.ready}>
                 <div
                     onKeyDown={this.handleKeyBoard}
-                    className="db-World-contentPane Box-root Padding-bottom--48"
+                    className="Box-root Margin-vertical--12"
                 >
                     <div>
                         <div>

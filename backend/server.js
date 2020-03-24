@@ -105,6 +105,7 @@ app.use('/probe', require('./backend/api/probe'));
 app.use('/version', require('./backend/api/version'));
 app.use('/tutorial', require('./backend/api/tutorial'));
 app.use('/audit-logs', require('./backend/api/auditLogs'));
+app.use('/globalConfig', require('./backend/api/globalConfig'));
 app.set('port', process.env.PORT || 3002);
 
 const server = http.listen(app.get('port'), function() {

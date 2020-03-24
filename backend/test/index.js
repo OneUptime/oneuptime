@@ -4,6 +4,7 @@ try {
     require('./emailAuthorization.test');
     require('./emailTemplate.test');
     require('./feedback.test');
+    require('./globalConfig.test');
     require('./incident.test');
     require('./invoice.test');
     require('./jwttoken.test');
