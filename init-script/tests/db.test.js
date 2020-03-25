@@ -1,7 +1,7 @@
 /* eslint-disable no-undef */
 
 const url = process.env['MONGO_URL'] || 'mongodb://localhost/fyipedb';
-const collection = 'GlobalConfig';
+const collection = 'globalconfigs';
 
 const {
     collectionObject,

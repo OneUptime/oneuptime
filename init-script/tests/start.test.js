@@ -9,16 +9,16 @@ const save = jest.spyOn(util, 'save');
 
 const start = require('../scripts/start');
 
-test('Should query GlobalConfig for record with name "version"', async () => {
+test('Should query globalconfigs for record with name "version"', async () => {
     mockDbCollection(true);
     await start();
-    expect(find).toBeCalledWith('GlobalConfig', { name: 'version' });
+    expect(find).toBeCalledWith('globalconfigs', { name: 'version' });
 });
 
-test('Should save record to GlobalConfig if no records are found', async () => {
+test('Should save record to globalconfigs if no records are found', async () => {
     mockDbCollection();
     await start();
-    expect(save).toBeCalledWith('GlobalConfig', [
+    expect(save).toBeCalledWith('globalconfigs', [
         {
             name: 'version',
             value: PKG_VERSION,
