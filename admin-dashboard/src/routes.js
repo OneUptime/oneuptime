@@ -103,7 +103,7 @@ export const groups = [
                         component: Settings,
                         visible: true,
                         subRoutes: [],
-                        index: 5,
+                        index: 2,
                     },
                     {
                         title: 'Twilio',
@@ -112,7 +112,7 @@ export const groups = [
                         component: Settings,
                         visible: true,
                         subRoutes: [],
-                        index: 6,
+                        index: 3,
                     },
                 ],
                 index: 1,

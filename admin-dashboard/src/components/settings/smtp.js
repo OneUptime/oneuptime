@@ -109,7 +109,10 @@ export class Component extends React.Component {
                             </span>
                         </div>
                     </div>
-                    <form onSubmit={handleSubmit(this.submitForm)}>
+                    <form
+                        id="smtp-form"
+                        onSubmit={handleSubmit(this.submitForm)}
+                    >
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                             <div>
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
