@@ -1,6 +1,6 @@
 import pages from './pages';
 
-const { Users, User, Projects, Project, Probes, AuditLogs } = pages;
+const { Users, User, Projects, Project, Probes, AuditLogs, Settings } = pages;
 
 export const groups = [
     {
@@ -62,6 +62,24 @@ export const groups = [
                 visible: true,
                 subRoutes: [],
                 index: 4,
+            },
+            {
+                title: 'SMTP Settings',
+                path: '/smtp',
+                icon: 'auditLogs',
+                component: Settings,
+                visible: true,
+                subRoutes: [],
+                index: 5,
+            },
+            {
+                title: 'Twilio Settings',
+                path: '/twilio',
+                icon: 'auditLogs',
+                component: Settings,
+                visible: true,
+                subRoutes: [],
+                index: 6,
             },
         ],
     },

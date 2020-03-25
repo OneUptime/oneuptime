@@ -972,3 +972,66 @@ fieldset[disabled] .rw-multiselect-tag {
     box-shadow: none;
     cursor: not-allowed
 }
+
+@font-face {
+    font-family: 'RwWidgets';
+    font-weight: normal;
+    font-style: normal;
+    src: url('../fonts/rw-widgets.eot?v=4.1.0');
+    src: url('../fonts/rw-widgets.eot?#iefix&v=4.1.0') format('embedded-opentype'), url('../fonts/rw-widgets.woff?v=4.1.0') format('woff'), url('../fonts/rw-widgets.ttf?v=4.1.0') format('truetype'), url('../fonts/rw-widgets.svg?v=4.1.0#fontawesomeregular') format('svg')
+}
+
+.Toggler-wrap {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.Toggler-wrap input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.TogglerBtn-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.TogglerBtn-slider::after {
+    position: absolute;
+    content: "";
+    height: 19px;
+    width: 19px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.btn-toggler:checked + .TogglerBtn-slider {
+    background-color: #000000;
+}
+
+.btn-toggler:checked + .TogglerBtn-slider::after {
+    -webkit-transform: translateX(24px);
+    -ms-transform: translateX(24px);
+    transform: translateX(24px);
+}
+
+.TogglerBtn-slider.round {
+    border-radius: 34px;
+}
+
+.TogglerBtn-slider.round::after {
+    border-radius: 50%;
+}
