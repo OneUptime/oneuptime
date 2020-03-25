@@ -10,14 +10,14 @@ export const groups = [
         routes: [
             {
                 title: 'Users',
-                path: '/users',
+                path: '/admin/users',
                 icon: 'customers',
                 component: Users,
                 visible: true,
                 subRoutes: [
                     {
                         title: 'User',
-                        path: '/users/:userId',
+                        path: '/admin/users/:userId',
                         icon: 'customers',
                         component: User,
                         visible: true,
@@ -29,14 +29,14 @@ export const groups = [
             },
             {
                 title: 'Projects',
-                path: '/projects',
+                path: '/admin/projects',
                 icon: 'projects',
                 component: Projects,
                 visible: true,
                 subRoutes: [
                     {
                         title: 'Project',
-                        path: '/projects/:projectId',
+                        path: '/admin/projects/:projectId',
                         icon: 'projects',
                         component: Project,
                         visible: true,
@@ -48,7 +48,7 @@ export const groups = [
             },
             {
                 title: 'Probes',
-                path: '/probes',
+                path: '/admin/probes',
                 icon: 'probes',
                 component: Probes,
                 visible: true,
@@ -57,7 +57,7 @@ export const groups = [
             },
             {
                 title: 'Audit Logs',
-                path: '/auditLogs',
+                path: '/admin/auditLogs',
                 icon: 'auditLogs',
                 component: AuditLogs,
                 visible: true,
@@ -72,7 +72,7 @@ export const groups = [
         routes: [
             {
                 title: 'Settings',
-                path: '/settings/license',
+                path: '/admin/settings/license',
                 icon: 'businessSettings',
                 component: License,
                 exact: true,
@@ -80,7 +80,7 @@ export const groups = [
                 subRoutes: [
                     {
                         title: 'License',
-                        path: '/settings/license',
+                        path: '/admin/settings/license',
                         icon: 'activate',
                         component: License,
                         visible: true,
