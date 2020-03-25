@@ -663,13 +663,16 @@ module.exports = {
             });
         }
 
-        const hasEnoughBalance = await _this.hasEnoughBalance(
-            project._id,
-            user.alertPhoneNumber,
-            user._id,
-            AlertType.Call
-        );
-        if (hasEnoughBalance) {
+        let hasEnoughBalance;
+        if (IS_SAAS_SERVICE) {
+            hasEnoughBalance = await _this.hasEnoughBalance(
+                project._id,
+                user.alertPhoneNumber,
+                user._id,
+                AlertType.Call
+            );
+        }
+        if (hasEnoughBalance || !IS_SAAS_SERVICE) {
             const alertStatus = await TwilioService.sendIncidentCreatedCall(
                 date,
                 monitor.name,
@@ -705,20 +708,22 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: 'Success',
                 });
-                balanceStatus = await _this.getBalanceStatus(
-                    project._id,
-                    user.alertPhoneNumber,
-                    AlertType.Call
-                );
-                AlertChargeService.create(
-                    incident.projectId,
-                    balanceStatus.chargeAmount,
-                    balanceStatus.closingBalance,
-                    alert._id,
-                    monitorId,
-                    incident._id,
-                    user.alertPhoneNumber
-                );
+                if (IS_SAAS_SERVICE) {
+                    balanceStatus = await _this.getBalanceStatus(
+                        project._id,
+                        user.alertPhoneNumber,
+                        AlertType.Call
+                    );
+                    AlertChargeService.create(
+                        incident.projectId,
+                        balanceStatus.chargeAmount,
+                        balanceStatus.closingBalance,
+                        alert._id,
+                        monitorId,
+                        incident._id,
+                        user.alertPhoneNumber
+                    );
+                }
             }
         } else {
             alertStatus = 'Blocked - Low balance';
@@ -779,17 +784,23 @@ module.exports = {
             });
         }
 
-        const hasEnoughBalance = await _this.hasEnoughBalance(
-            incident.projectId,
-            user.alertPhoneNumber,
-            user._id,
-            AlertType.SMS
-        );
+        let hasEnoughBalance;
+        if (IS_SAAS_SERVICE) {
+            hasEnoughBalance = await _this.hasEnoughBalance(
+                incident.projectId,
+                user.alertPhoneNumber,
+                user._id,
+                AlertType.SMS
+            );
+        }
         const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
             incident.projectId,
             user.alertPhoneNumber
         );
-        if (hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig) {
+        if (
+            (hasEnoughBalance || !IS_SAAS_SERVICE) &&
+            doesPhoneNumberComplyWithHighRiskConfig
+        ) {
             let alertStatus = await TwilioService.sendIncidentCreatedMessage(
                 date,
                 monitor.name,
@@ -828,20 +839,22 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: alertStatus,
                 });
-                balanceStatus = await _this.getBalanceStatus(
-                    incident.projectId,
-                    user.alertPhoneNumber,
-                    AlertType.SMS
-                );
-                AlertChargeService.create(
-                    incident.projectId,
-                    balanceStatus.chargeAmount,
-                    balanceStatus.closingBalance,
-                    alert._id,
-                    monitorId,
-                    incident._id,
-                    user.alertPhoneNumber
-                );
+                if (IS_SAAS_SERVICE) {
+                    balanceStatus = await _this.getBalanceStatus(
+                        incident.projectId,
+                        user.alertPhoneNumber,
+                        AlertType.SMS
+                    );
+                    AlertChargeService.create(
+                        incident.projectId,
+                        balanceStatus.chargeAmount,
+                        balanceStatus.closingBalance,
+                        alert._id,
+                        monitorId,
+                        incident._id,
+                        user.alertPhoneNumber
+                    );
+                }
             }
         } else if (
             !hasEnoughBalance &&
@@ -1281,3 +1294,4 @@ const DateTime = require('../utils/DateTime');
 const moment = require('moment-timezone');
 const TimeZoneNames = moment.tz.names();
 const OnCallScheduleStatusService = require('./onCallScheduleStatusService');
+const { IS_SAAS_SERVICE } = require('../config/server');

@@ -397,10 +397,12 @@ module.exports = {
             }
             const newProjectSeats = projectSeats + extraUsersToAdd;
 
-            await PaymentService.changeSeats(
-                project.stripeSubscriptionId,
-                newProjectSeats
-            );
+            if (IS_SAAS_SERVICE) {
+                await PaymentService.changeSeats(
+                    project.stripeSubscriptionId,
+                    newProjectSeats
+                );
+            }
 
             await ProjectService.updateOneBy(
                 { _id: project._id },
@@ -748,3 +750,4 @@ const RealTimeService = require('../services/realTimeService');
 const ErrorService = require('./errorService');
 const domains = require('../config/domains');
 const { ACCOUNTS_HOST } = process.env;
+const { IS_SAAS_SERVICE } = require('../config/server');

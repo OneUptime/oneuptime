@@ -7,7 +7,7 @@ import {
     markAllAsRead,
     billingActionTaken,
 } from '../../actions/notification';
-import { User } from '../../config';
+import { User, IS_SAAS_SERVICE } from '../../config';
 import moment from 'moment';
 import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
 import { openModal } from '../../actions/modal';
@@ -164,7 +164,8 @@ class NotificationMenu extends Component {
                                                 if (
                                                     notification.meta &&
                                                     notification.meta
-                                                        .client_secret
+                                                        .client_secret &&
+                                                    IS_SAAS_SERVICE
                                                 ) {
                                                     return (
                                                         <div
