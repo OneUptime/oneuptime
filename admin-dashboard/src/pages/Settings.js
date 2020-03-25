@@ -8,9 +8,9 @@ import Twilio from '../components/settings/twilio';
 // eslint-disable-next-line react/display-name
 const getChild = key => {
     switch (key) {
-        case '/smtp':
+        case '/settings/smtp':
             return <SMTP />; // eslint-disable-line react/jsx-pascal-case
-        case '/twilio':
+        case '/settings/twilio':
             return <Twilio />;
         default:
             return null;
@@ -20,7 +20,7 @@ const getChild = key => {
 const Component = ({ location: { pathname } }) => {
     return (
         <Dashboard>
-            <div className="db-World-contentPane Box-root Padding-bottom--48">
+            <div className="Box-root Margin-vertical--12">
                 <div>
                     <div>
                         <div className="db-BackboneViewContainer">

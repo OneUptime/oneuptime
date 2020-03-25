@@ -2,6 +2,10 @@ sudo sed -i '/accounts/c\' /etc/hosts
 ACCOUNTS_IP=`sudo k describe svc accounts | grep Endpoints | cut -d ":" -f 2`
 echo $ACCOUNTS_IP'      accounts.app.local' | sudo tee -a /etc/hosts
 
+sudo sed -i '/admin-dashboard/c\' /etc/hosts
+ADMIN_DASHBOARD_IP=`sudo k describe svc admin-dashboard | grep Endpoints | cut -d ":" -f 2`
+echo $ADMIN_DASHBOARD_IP'      admin-dashboard.app.local' | sudo tee -a /etc/hosts
+
 sudo sed -i '/dashboard/c\' /etc/hosts
 DASHBOARD_IP=`sudo k describe svc dashboard | grep Endpoints | cut -d ":" -f 2`
 echo $DASHBOARD_IP'      dashboard.app.local' | sudo tee -a /etc/hosts

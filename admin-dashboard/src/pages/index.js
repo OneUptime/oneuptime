@@ -5,6 +5,7 @@ import Project from './Project';
 import Probes from './Probes';
 import AuditLogs from './AuditLogs';
 import Settings from './Settings';
+import License from './License';
 
 export default {
     Users,
@@ -14,4 +15,5 @@ export default {
     Probes,
     AuditLogs,
     Settings,
+    License,
 };

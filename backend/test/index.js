@@ -4,6 +4,7 @@ try {
     require('./emailAuthorization.test');
     require('./emailTemplate.test');
     require('./feedback.test');
+    require('./globalConfig.test');
     require('./incident.test');
     require('./invoice.test');
     require('./jwttoken.test');
@@ -14,6 +15,7 @@ try {
     require('./notification.test');
     require('./probe.test');
     require('./project.test');
+    require('./component.test');
     require('./reports.test');
     require('./schedule.test');
     require('./scheduledEvent.test');

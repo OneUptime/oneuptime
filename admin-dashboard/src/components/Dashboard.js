@@ -12,10 +12,13 @@ import { hideProfileMenu } from '../actions/profile';
 import NotificationMenu from './notification/NotificationMenu';
 import { closeNotificationMenu } from '../actions/notification';
 import { fetchUsers } from '../actions/user';
+import UnLicensedAlert from './license/UnLicensedAlert';
+import { fetchLicense } from '../actions/license';
+import { IS_SAAS_SERVICE } from '../config';
 
 export class DashboardApp extends Component {
     componentDidMount() {
-        const { fetchUsers, ready, user } = this.props;
+        const { fetchUsers, fetchLicense, ready, user, license } = this.props;
         if (
             user.users &&
             user.users.users &&
@@ -25,6 +28,10 @@ export class DashboardApp extends Component {
             fetchUsers().then(() => ready && ready());
         } else {
             this.props.ready && this.props.ready();
+        }
+
+        if (!license.data && !license.requesting && !license.error) {
+            fetchLicense();
         }
     }
 
@@ -60,7 +67,7 @@ export class DashboardApp extends Component {
     };
 
     render() {
-        const { user, children } = this.props;
+        const { user, children, license } = this.props;
 
         return (
             <Fragment>
@@ -81,7 +88,18 @@ export class DashboardApp extends Component {
                             <SideNav />
 
                             <div className="db-World-mainPane Box-root Padding-right--20">
-                                {children}
+                                <div className="db-World-contentPane Box-root Padding-bottom--48">
+                                    <ShouldRender
+                                        if={
+                                            !IS_SAAS_SERVICE &&
+                                            !license.requesting &&
+                                            !license.data
+                                        }
+                                    >
+                                        <UnLicensedAlert />
+                                    </ShouldRender>
+                                    {children}
+                                </div>
                             </div>
 
                             <TopNav />
@@ -155,15 +173,18 @@ DashboardApp.propTypes = {
     closeNotificationMenu: PropTypes.func,
     showForm: PropTypes.func,
     fetchUsers: PropTypes.func,
+    fetchLicense: PropTypes.func.isRequired,
     children: PropTypes.any,
     ready: PropTypes.func,
     user: PropTypes.object.isRequired,
+    license: PropTypes.oneOfType([null, PropTypes.object]),
 };
 
 const mapStateToProps = state => ({
     profile: state.profileSettings,
     notification: state.notifications,
     user: state.user,
+    license: state.license.license,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -172,6 +193,7 @@ const mapDispatchToProps = dispatch =>
             hideProfileMenu,
             closeNotificationMenu,
             fetchUsers,
+            fetchLicense,
         },
         dispatch
     );

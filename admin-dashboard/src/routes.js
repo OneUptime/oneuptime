@@ -1,6 +1,16 @@
 import pages from './pages';
+import { IS_SAAS_SERVICE } from './config';
 
-const { Users, User, Projects, Project, Probes, AuditLogs, Settings } = pages;
+const {
+    Users,
+    User,
+    Projects,
+    Project,
+    Probes,
+    AuditLogs,
+    Settings,
+    License,
+} = pages;
 
 export const groups = [
     {
@@ -63,23 +73,49 @@ export const groups = [
                 subRoutes: [],
                 index: 4,
             },
+        ],
+    },
+    {
+        group: 'Settings',
+        visible: !IS_SAAS_SERVICE,
+        routes: [
             {
-                title: 'SMTP Settings',
-                path: '/smtp',
-                icon: 'auditLogs',
-                component: Settings,
+                title: 'Settings',
+                path: '/settings/license',
+                icon: 'businessSettings',
+                component: License,
+                exact: true,
                 visible: true,
-                subRoutes: [],
-                index: 5,
-            },
-            {
-                title: 'Twilio Settings',
-                path: '/twilio',
-                icon: 'auditLogs',
-                component: Settings,
-                visible: true,
-                subRoutes: [],
-                index: 6,
+                subRoutes: [
+                    {
+                        title: 'License',
+                        path: '/settings/license',
+                        icon: 'activate',
+                        component: License,
+                        visible: true,
+                        subRoutes: [],
+                        index: 1,
+                    },
+                    {
+                        title: 'SMTP',
+                        path: '/settings/smtp',
+                        icon: 'settings',
+                        component: Settings,
+                        visible: true,
+                        subRoutes: [],
+                        index: 5,
+                    },
+                    {
+                        title: 'Twilio',
+                        path: '/settings/twilio',
+                        icon: 'settings',
+                        component: Settings,
+                        visible: true,
+                        subRoutes: [],
+                        index: 6,
+                    },
+                ],
+                index: 1,
             },
         ],
     },
