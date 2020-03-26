@@ -5,7 +5,7 @@ const Handlebars = require('handlebars');
 const Whitepapers = require('../config/whitepaper');
 const ErrorService = require('./errorService');
 const defaultEmailTemplates = require('../config/emailTemplate');
-const EmailSmtpService = require('./emailSmtpService');
+const GlobalConfigService = require('./globalConfigService');
 const EmailStatusService = require('./emailStatusService');
 const EMAIL_ENABLED = process.env['EMAIL_ENABLED'] === 'true';
 const options = {
@@ -18,18 +18,6 @@ const options = {
     viewPath: 'views/email/',
     extName: '.hbs',
 };
-
-const mailer = nodemailer.createTransport({
-    host: accountMail.host,
-    port: accountMail.port,
-    secure: accountMail.secure,
-    auth: {
-        user: accountMail.user,
-        pass: accountMail.pass,
-    },
-});
-
-mailer.use('compile', hbs(options));
 
 const getTemplates = async (emailTemplate, emailType) => {
     const defaultTemplate = defaultEmailTemplates.filter(
@@ -57,30 +45,26 @@ const getTemplates = async (emailTemplate, emailType) => {
     return { template, subject };
 };
 
-const getSmtpSettings = async projectId => {
-    let { user, pass, host, port, from, secure } = accountMail;
-    const smtpDb = await EmailSmtpService.findOneBy({
-        projectId,
-        enabled: true,
-    });
-    if (
-        smtpDb &&
-        smtpDb.user &&
-        smtpDb.user !== null &&
-        smtpDb.user !== undefined
-    ) {
-        user = smtpDb.user;
-        pass = smtpDb.pass;
-        host = smtpDb.host;
-        port = smtpDb.port;
-        from = smtpDb.from;
-        secure = smtpDb.secure;
+const getSmtpSettings = async () => {
+    const document = await GlobalConfigService.findOneBy({ name: 'smtp' });
+    if (document) {
+        return {
+            user: document.email,
+            pass: document.password,
+            host: document['smtp-server'],
+            port: document['smtp-port'],
+            from: document['from-name'],
+            secure: document['smtp-secure'],
+        };
     }
 
-    return { user, pass, host, port, from, secure };
+    const error = new Error('SMTP settings not found.');
+    ErrorService.log('mailService.getSmtpSettings', error);
+    throw error;
 };
 
-const createMailer = async (host, port, user, pass, secure) => {
+const createMailer = async settings => {
+    const { host, port, user, pass, secure } = settings || getSmtpSettings();
     const privateMailer = await nodemailer.createTransport({
         host: host,
         port: port,
@@ -126,6 +110,7 @@ module.exports = {
                 return;
             }
 
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
 
             await EmailStatusService.create({
@@ -174,6 +159,7 @@ module.exports = {
                 return;
             }
 
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -218,6 +204,7 @@ module.exports = {
                 });
                 return;
             }
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -263,6 +250,7 @@ module.exports = {
                 });
                 return;
             }
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -310,6 +298,7 @@ module.exports = {
                     });
                     return;
                 }
+                const mailer = createMailer();
                 const info = await mailer.sendMail(mailOptions);
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -377,6 +366,7 @@ module.exports = {
                         });
                         return;
                     }
+                    const mailer = createMailer();
                     const info = await mailer.sendMail(mailOptions);
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -432,6 +422,7 @@ module.exports = {
                 });
                 return;
             }
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -482,6 +473,7 @@ module.exports = {
                 });
                 return;
             }
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -538,6 +530,7 @@ module.exports = {
                 });
                 return;
             }
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -592,6 +585,7 @@ module.exports = {
                 });
                 return;
             }
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -645,6 +639,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -699,6 +695,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -749,6 +747,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -802,6 +802,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -853,6 +855,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -907,6 +911,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -987,6 +993,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1045,14 +1053,8 @@ module.exports = {
             };
             template = template(data);
             subject = subject(data);
-            const smtpSettings = await getSmtpSettings(incident.projectId);
-            const privateMailer = await createMailer(
-                smtpSettings.host,
-                smtpSettings.port,
-                smtpSettings.user,
-                smtpSettings.pass,
-                smtpSettings.secure
-            );
+            const smtpSettings = await getSmtpSettings();
+            const privateMailer = await createMailer(smtpSettings);
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
@@ -1133,14 +1135,8 @@ module.exports = {
             };
             template = template(data);
             subject = subject(data);
-            const smtpSettings = await getSmtpSettings(incident.projectId);
-            const privateMailer = await createMailer(
-                smtpSettings.host,
-                smtpSettings.port,
-                smtpSettings.user,
-                smtpSettings.pass,
-                smtpSettings.secure
-            );
+            const smtpSettings = await getSmtpSettings();
+            const privateMailer = await createMailer(smtpSettings);
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
@@ -1221,14 +1217,8 @@ module.exports = {
             };
             template = template(data);
             subject = subject(data);
-            const smtpSettings = await getSmtpSettings(incident.projectId);
-            const privateMailer = await createMailer(
-                smtpSettings.host,
-                smtpSettings.port,
-                smtpSettings.user,
-                smtpSettings.pass,
-                smtpSettings.secure
-            );
+            const smtpSettings = await getSmtpSettings();
+            const privateMailer = await createMailer();
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
@@ -1277,13 +1267,7 @@ module.exports = {
     testSmtpConfig: async function(data) {
         let mailOptions = {};
         try {
-            const privateMailer = await createMailer(
-                data.host,
-                data.port,
-                data.user,
-                data.pass,
-                data.secure
-            );
+            const privateMailer = await createMailer(data);
             mailOptions = {
                 from: '"Fyipe " <' + data.from + '>',
                 to: data.email,
@@ -1364,6 +1348,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1410,6 +1396,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1456,6 +1444,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1509,6 +1499,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1562,6 +1554,8 @@ module.exports = {
                 });
                 return;
             }
+
+            const mailer = createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
