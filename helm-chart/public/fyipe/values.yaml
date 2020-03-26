@@ -8,10 +8,10 @@ saas:
 ###################################################################################
 fyipe:
   tls:
-    enabled: 
+    enabled:
     crt: 
     key:  
-    host: 
+    host:
   emailEnabled: true
   callEnabled: true
   smsEnabled: true
