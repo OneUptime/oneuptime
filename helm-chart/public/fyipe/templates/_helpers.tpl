@@ -15,6 +15,10 @@ Expand the name of the chart.
 {{ printf "%s-backend.%s" $.Release.Name "default.svc.cluster.local" }}
 {{- end -}}
 
+{{- define "fyipe.serverUrl" -}}
+{{ printf "http://%s-backend.%s" $.Release.Name "default.svc.cluster.local" }}
+{{- end -}}
+
 {{- define "fyipe.clusterKey" -}}
 {{ randAlphaNum 10 | quote }}
 {{- end -}}

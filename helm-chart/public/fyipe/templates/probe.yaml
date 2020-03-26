@@ -23,7 +23,7 @@ spec:
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   env:
                       - name: SERVER_URL
-                        value: {{ template "fyipe.backendHost" $ }}
+                        value: {{ template "fyipe.serverUrl" $ }}
                       - name: PORT
                         value: {{ $value.port | quote }}
                       - name: PROBE_NAME
