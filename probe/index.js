@@ -16,7 +16,7 @@ http.listen(app.get('port'), function() {
     console.log(
         `Probe with Probe Name ${config.probeName} and Probe Key ${
             config.probeKey
-        } Started on port ${app.get('port')}`
+        } Started on port ${app.get('port')}. Fyipe API URL: ${config.serverUrl}`
     );
 });
 

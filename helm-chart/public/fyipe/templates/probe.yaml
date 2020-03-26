@@ -31,7 +31,7 @@ spec:
                       - name: PROBE_KEY
                         value: {{ $value.key }}
                       - name: CLUSTER_KEY
-                        value: {{ $.Values.fyipe.clusterKey }}
+                        value: {{ template "fyipe.clusterKey" . }}
                       {{- if $.Values.saas.isSaasService }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'

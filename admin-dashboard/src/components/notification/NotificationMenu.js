@@ -83,7 +83,7 @@ class NotificationMenu extends Component {
                                                     >
                                                         <div className="Notify-fyipe">
                                                             <img
-                                                                src={`/assets/img/${
+                                                                src={`/dashboard/assets/img/${
                                                                     notification.icon
                                                                         ? notification.icon
                                                                         : 'information'

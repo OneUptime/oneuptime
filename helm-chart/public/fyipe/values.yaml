@@ -15,7 +15,6 @@ fyipe:
   emailEnabled: true
   callEnabled: true
   smsEnabled: true
-  clusterKey: {{ randAlphaNum 10 | quote }}
   licenseUrl: https://fyipe.com/license
   enableStatusPageIngress: false
 

@@ -37,7 +37,7 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" .Release.Name "backend"  }}
               servicePort: 80
-          - path: /statuspage
+          - path: /status-page
             backend:
               serviceName: {{ printf "%s-%s" .Release.Name "status-page"  }}
               servicePort: 80
