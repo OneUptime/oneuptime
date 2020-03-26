@@ -24,16 +24,10 @@ export function receiveLogout() {
 
 // Logs the user out
 export function logoutUser() {
-    const cookies = new Cookies();
-    const logoutData = {
-        loggedIn: false,
-    };
-    cookies.set('logoutData', logoutData, {
-        path: '/',
-        maxAge: 30,
-    });
     return dispatch => {
         dispatch(requestLogout());
+        const cookies = new Cookies();
+        cookies.remove('admin-data');
         localStorage.clear();
         dispatch(receiveLogout());
         window.location = ACCOUNTS_URL;

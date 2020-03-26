@@ -4,7 +4,7 @@ import { history, isServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import BackboneModals from './containers/BackboneModals';
-import { User, DASHBOARD_URL, IS_SAAS_SERVICE } from './config';
+import { DASHBOARD_URL, ADMIN_DASHBOARD_URL, IS_SAAS_SERVICE } from './config';
 import queryString from 'query-string';
 import ReactGA from 'react-ga';
 import Cookies from 'universal-cookie';
@@ -13,7 +13,6 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 
 const cookies = new Cookies();
-const logoutData = cookies.get('logoutData');
 
 if (!isServer) {
     history.listen(location => {
@@ -24,12 +23,12 @@ if (!isServer) {
 
 const statusPageLogin = queryString.parse(window.location.search).statusPage;
 const statusPageURL = queryString.parse(window.location.search).statusPageURL;
+const userIsLoggedIn = cookies.get('data') || cookies.get('admin-data');
 
-if (logoutData && User.isLoggedIn()) {
-    cookies.remove('logoutData', { domain: window.location.host });
-    localStorage.clear();
-} else if (!statusPageLogin && !logoutData && User.isLoggedIn()) {
-    window.location = DASHBOARD_URL;
+if (userIsLoggedIn) {
+    window.location = cookies.get('admin-data')
+        ? ADMIN_DASHBOARD_URL
+        : DASHBOARD_URL;
 }
 
 const App = ({

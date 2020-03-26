@@ -17,17 +17,14 @@ if (!isServer) {
 }
 
 const cookies = new Cookies();
-
 const userData = cookies.get('admin-data');
+
 if (userData !== undefined) {
     User.setUserId(userData.id);
     User.setAccessToken(userData.tokens.jwtAccessToken);
     User.setEmail(userData.email);
     User.setName(userData.name);
-}
-cookies.remove('admin-data', { domain: window.location.origin });
-
-if (!User.isLoggedIn()) {
+} else {
     window.location = ACCOUNTS_URL;
 }
 
@@ -47,7 +44,7 @@ const App = () => (
                             />
                         );
                     })}
-                <Redirect to="/users" />
+                <Redirect to="admin/users" />
             </Switch>
         </Router>
         <BackboneModals />
