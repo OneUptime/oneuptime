@@ -38,18 +38,6 @@ spec:
                         value: {{ .Values.fyipe.callEnabled | quote }}
                       - name: SMS_ENABLED
                         value: {{ .Values.fyipe.smsEnabled | quote }}
-                      - name: MAIL_USER
-                        value: {{ .Values.fyipe.smtpMail.email }}
-                      - name: MAIL_PASSWORD
-                        value: {{ .Values.fyipe.smtpMail.password }}
-                      - name: MAIL_FROM
-                        value: {{ .Values.fyipe.smtpMail.fromName }}
-                      - name: MAIL_SERVER_SMTP
-                        value: {{ .Values.fyipe.smtpMail.smtpServer }}
-                      - name: MAIL_PORT_SMTP
-                        value: {{ .Values.fyipe.smtpMail.smtpPort | quote }}
-                      - name: MAIL_SMTP_SECURE
-                        value: {{ .Values.fyipe.smtpMail.smtpSecure | quote }}
                       - name: EMAIL_VERIFY_TIME
                         value: '3600'
                       - name: BACKEND_HOST
@@ -62,14 +50,6 @@ spec:
                         value: {{ .Values.rateLimitter.requestLimit | quote }}
                       - name: RATE_LIMITTER_ENABLED
                         value: {{ .Values.rateLimitter.enabled | quote  }}
-                      - name: TWILIO_ACCOUNTSID
-                        value: {{ .Values.fyipe.twilio.accountSid }}
-                      - name: TWILIO_AUTHTOKEN
-                        value: {{ .Values.fyipe.twilio.authToken }}
-                      - name: TWILIO_NUMBER
-                        value: {{ .Values.fyipe.twilio.phoneNumber }}
-                      - name: TWILIO_ALERT_LIMIT
-                        value: {{ .Values.fyipe.twilio.twilioAlertLimit | quote }}
                       - name: CLUSTER_KEY
                         value: {{ .Values.fyipe.clusterKey }}
                       {{- if .Values.saas.isSaasService }}
