@@ -1,7 +1,6 @@
 import { getApi, postApi } from '../api';
 import * as types from '../constants/settings';
 import errors from '../errors';
-import { User } from '../config';
 
 export const requestingSettings = () => {
     return {
@@ -28,7 +27,7 @@ export const fetchSettings = type => async dispatch => {
     dispatch(requestingSettings());
     try {
         const response = await getApi(
-            `globalConfig/${User.getUserId()}-${type}-settings`
+            `globalConfig/${type}`
         );
         const data = response.data || { value: {} };
         dispatch(requestingSettingsSucceeded(data.value, type));
@@ -53,7 +52,7 @@ export const saveSettings = (type, settings) => async dispatch => {
     dispatch(requestingSettings());
     try {
         const response = await postApi(`globalConfig`, {
-            name: `${User.getUserId()}-${type}-settings`,
+            name: type,
             value: settings,
         });
         const data = response.data || { value: {} };

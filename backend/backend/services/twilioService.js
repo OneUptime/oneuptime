@@ -16,7 +16,7 @@ if (twilioCredentials.accountSid && twilioCredentials.authToken) {
 const ErrorService = require('./errorService');
 const Handlebars = require('handlebars');
 const defaultSmsTemplates = require('../config/smsTemplate');
-const SmsSmtpService = require('./smsSmtpService');
+const GlobalConfigService = require('./globalConfigService');
 const UserModel = require('../models/user');
 const UserService = require('./userService');
 const SmsCountService = require('./smsCountService');
@@ -24,24 +24,19 @@ const AlertService = require('./alertService');
 const CallEnabled = process.env['CALL_ENABLED'] === 'true';
 const SMSEnabled = process.env['SMS_ENABLED'] === 'true';
 
-const getTwilioSettings = async projectId => {
-    let { accountSid, authToken, phoneNumber } = twilioCredentials;
-    const twilioDb = await SmsSmtpService.findOneBy({
-        projectId,
-        enabled: true,
-    });
-    if (
-        twilioDb &&
-        twilioDb.accountSid &&
-        twilioDb.accountSid !== null &&
-        twilioDb.accountSid !== undefined
-    ) {
-        accountSid = accountSid.accountSid;
-        authToken = accountSid.authToken;
-        phoneNumber = accountSid.phoneNumber;
+const getTwilioSettings = async () => {
+    const document = await GlobalConfigService.findOneBy({ name: 'twilio' });
+    if (document) {
+        return {
+            accountSid: document['account-sid'],
+            authToken: document['authentication-token'],
+            phoneNumber: document['phone'],
+        };
     }
 
-    return { accountSid, authToken, phoneNumber };
+    const error = new Error('Twilio settings not found.');
+    ErrorService.log('twillioService.getTwilioSettings', error);
+    throw error;
 };
 
 const dynamicClient = (accountSid, authToken) => {
@@ -157,7 +152,7 @@ module.exports = {
                 incidentType: incident.incidentType,
             };
             template = template(data);
-            const creds = await getTwilioSettings(incident.projectId);
+            const creds = await getTwilioSettings();
             const options = {
                 body: template,
                 from: creds.phoneNumber,
@@ -214,7 +209,7 @@ module.exports = {
                 incidentType: incident.incidentType,
             };
             template = template(data);
-            const creds = await getTwilioSettings(incident.projectId);
+            const creds = await getTwilioSettings();
             const options = {
                 body: template,
                 from: creds.phoneNumber,
@@ -271,7 +266,7 @@ module.exports = {
                 incidentType: incident.incidentType,
             };
             template = template(data);
-            const creds = await getTwilioSettings(incident.projectId);
+            const creds = await getTwilioSettings();
             const options = {
                 body: template,
                 from: creds.phoneNumber,
