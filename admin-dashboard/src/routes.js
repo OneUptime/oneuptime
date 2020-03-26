@@ -1,7 +1,16 @@
 import pages from './pages';
 import { IS_SAAS_SERVICE } from './config';
 
-const { Users, User, Projects, Project, Probes, AuditLogs, License } = pages;
+const {
+    Users,
+    User,
+    Projects,
+    Project,
+    Probes,
+    AuditLogs,
+    Settings,
+    License,
+} = pages;
 
 export const groups = [
     {
@@ -86,6 +95,24 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         index: 1,
+                    },
+                    {
+                        title: 'SMTP',
+                        path: '/settings/smtp',
+                        icon: 'settings',
+                        component: Settings,
+                        visible: true,
+                        subRoutes: [],
+                        index: 2,
+                    },
+                    {
+                        title: 'Twilio',
+                        path: '/settings/twilio',
+                        icon: 'settings',
+                        component: Settings,
+                        visible: true,
+                        subRoutes: [],
+                        index: 3,
                     },
                 ],
                 index: 1,

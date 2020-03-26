@@ -4,6 +4,7 @@ import Projects from './Projects';
 import Project from './Project';
 import Probes from './Probes';
 import AuditLogs from './AuditLogs';
+import Settings from './Settings';
 import License from './License';
 
 export default {
@@ -13,5 +14,6 @@ export default {
     Project,
     Probes,
     AuditLogs,
+    Settings,
     License,
 };

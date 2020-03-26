@@ -38,7 +38,9 @@ const RenderField = ({
                     <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
                 </div>
                 <div className="Box-root">
-                    <span style={{ color: 'red' }}>{meta.error}</span>
+                    <span className="field-error" style={{ color: 'red' }}>
+                        {meta.error}
+                    </span>
                 </div>
             </div>
         )}

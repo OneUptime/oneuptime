@@ -11,9 +11,10 @@ module.exports = {
         await page.type('input[name=email]', email);
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
-        await page.click('button[type=submit]');
-        await page.waitFor(15000);
-        // await page.screenshot({path: 'screenshot-login.png'});
+        await Promise.all([
+            page.waitForNavigation(),
+            page.click('button[type=submit]'),
+        ]);
     },
     registerEnterpriseUser: async function(user, page) {
         const { email } = user;
