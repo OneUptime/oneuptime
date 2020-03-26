@@ -50,7 +50,7 @@ module.exports = {
                 ErrorService.log('componentService.create', error);
                 throw error;
             } else {
-                if (count < projectSeats * 5) {
+                if (count < projectSeats * 5 || !IS_SAAS_SERVICE) {
                     let component = new ComponentModel();
                     component.name = data.name;
                     component.createdById = data.createdById;
@@ -251,16 +251,19 @@ module.exports = {
                 const seats = await TeamService.getSeats(projectUsers);
                 // check if project seats are more based on users in project or by count of components
                 if (
-                    projectSeats &&
-                    projectSeats > seats &&
-                    componentsCount > 0 &&
-                    componentsCount <= (projectSeats - 1) * 5
+                    !IS_SAAS_SERVICE ||
+                    (projectSeats &&
+                        projectSeats > seats &&
+                        componentsCount > 0 &&
+                        componentsCount <= (projectSeats - 1) * 5)
                 ) {
                     projectSeats = projectSeats - 1;
-                    await PaymentService.changeSeats(
-                        project.stripeSubscriptionId,
-                        projectSeats
-                    );
+                    if (IS_SAAS_SERVICE) {
+                        await PaymentService.changeSeats(
+                            project.stripeSubscriptionId,
+                            projectSeats
+                        );
+                    }
                     await ProjectService.updateOneBy(
                         { _id: project._id },
                         { seats: projectSeats.toString() }
@@ -340,10 +343,12 @@ module.exports = {
                 projectSeats = parseInt(projectSeats);
             }
             projectSeats = projectSeats + 1;
-            await PaymentService.changeSeats(
-                project.stripeSubscriptionId,
-                projectSeats
-            );
+            if (IS_SAAS_SERVICE) {
+                await PaymentService.changeSeats(
+                    project.stripeSubscriptionId,
+                    projectSeats
+                );
+            }
             project.seats = projectSeats.toString();
             await ProjectService.saveProject(project);
             return 'A new seat added. Now you can add a component';

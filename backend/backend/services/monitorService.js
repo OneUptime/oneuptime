@@ -56,7 +56,7 @@ module.exports = {
                 ErrorService.log('monitorService.create', error);
                 throw error;
             } else {
-                if (count < projectSeats * 5) {
+                if (count < projectSeats * 5 || !IS_SAAS_SERVICE) {
                     let monitor = new MonitorModel();
                     monitor.name = data.name;
                     monitor.type = data.type;
@@ -296,16 +296,19 @@ module.exports = {
                 const seats = await TeamService.getSeats(projectUsers);
                 // check if project seats are more based on users in project or by count of monitors
                 if (
-                    projectSeats &&
-                    projectSeats > seats &&
-                    monitorsCount > 0 &&
-                    monitorsCount <= (projectSeats - 1) * 5
+                    !IS_SAAS_SERVICE ||
+                    (projectSeats &&
+                        projectSeats > seats &&
+                        monitorsCount > 0 &&
+                        monitorsCount <= (projectSeats - 1) * 5)
                 ) {
                     projectSeats = projectSeats - 1;
-                    await PaymentService.changeSeats(
-                        project.stripeSubscriptionId,
-                        projectSeats
-                    );
+                    if (IS_SAAS_SERVICE) {
+                        await PaymentService.changeSeats(
+                            project.stripeSubscriptionId,
+                            projectSeats
+                        );
+                    }
                     await ProjectService.updateOneBy(
                         { _id: project._id },
                         { seats: projectSeats.toString() }
@@ -577,10 +580,12 @@ module.exports = {
                 projectSeats = parseInt(projectSeats);
             }
             projectSeats = projectSeats + 1;
-            await PaymentService.changeSeats(
-                project.stripeSubscriptionId,
-                projectSeats
-            );
+            if (IS_SAAS_SERVICE) {
+                await PaymentService.changeSeats(
+                    project.stripeSubscriptionId,
+                    projectSeats
+                );
+            }
             project.seats = projectSeats.toString();
             await ProjectService.saveProject(project);
             return 'A new seat added. Now you can add a monitor';

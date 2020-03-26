@@ -435,14 +435,17 @@ module.exports = {
                         }
                         // check if project seat after reduction still caters for monitors.
                         if (
-                            count < 1 &&
-                            countMonitor <= (projectSeats - 1) * 5
+                            !IS_SAAS_SERVICE ||
+                            (count < 1 &&
+                                countMonitor <= (projectSeats - 1) * 5)
                         ) {
                             projectSeats = projectSeats - 1;
-                            await PaymentService.changeSeats(
-                                project.stripeSubscriptionId,
-                                projectSeats
-                            );
+                            if (IS_SAAS_SERVICE) {
+                                await PaymentService.changeSeats(
+                                    project.stripeSubscriptionId,
+                                    projectSeats
+                                );
+                            }
                         }
                         await _this.updateOneBy(
                             { _id: project._id },
@@ -569,25 +572,31 @@ module.exports = {
                     projectOwner = await UserService.findOneBy({
                         _id: projectOwner.userId,
                     });
-                    const subscription = await PaymentService.subscribePlan(
-                        project.stripePlanId,
-                        projectOwner.stripeCustomerId
-                    );
+                    let subscription;
+                    if (IS_SAAS_SERVICE) {
+                        subscription = await PaymentService.subscribePlan(
+                            project.stripePlanId,
+                            projectOwner.stripeCustomerId
+                        );
+                    }
                     project = await _this.updateOneBy(
                         { _id: projectId },
                         {
                             deleted: false,
                             deletedBy: null,
                             deletedAt: null,
-                            stripeSubscriptionId:
-                                subscription.stripeSubscriptionId,
+                            stripeSubscriptionId: subscription
+                                ? subscription.stripeSubscriptionId
+                                : null,
                         }
                     );
                     const projectSeats = project.seats;
-                    await PaymentService.changeSeats(
-                        project.stripeSubscriptionId,
-                        projectSeats
-                    );
+                    if (IS_SAAS_SERVICE) {
+                        await PaymentService.changeSeats(
+                            project.stripeSubscriptionId,
+                            projectSeats
+                        );
+                    }
                     await ScheduleService.restoreBy({
                         projectId,
                         deleted: true,
@@ -618,24 +627,31 @@ module.exports = {
                 projectOwner = await UserService.findOneBy({
                     _id: projectOwner.userId,
                 });
-                const subscription = await PaymentService.subscribePlan(
-                    project.stripePlanId,
-                    projectOwner.stripeCustomerId
-                );
+                let subscription;
+                if (IS_SAAS_SERVICE) {
+                    subscription = await PaymentService.subscribePlan(
+                        project.stripePlanId,
+                        projectOwner.stripeCustomerId
+                    );
+                }
                 project = await _this.updateOneBy(
                     { _id: projectId },
                     {
                         deleted: false,
                         deletedBy: null,
                         deletedAt: null,
-                        stripeSubscriptionId: subscription.stripeSubscriptionId,
+                        stripeSubscriptionId: subscription
+                            ? subscription.stripeSubscriptionId
+                            : null,
                     }
                 );
                 const projectSeats = project.seats;
-                await PaymentService.changeSeats(
-                    project.stripeSubscriptionId,
-                    projectSeats
-                );
+                if (IS_SAAS_SERVICE) {
+                    await PaymentService.changeSeats(
+                        project.stripeSubscriptionId,
+                        projectSeats
+                    );
+                }
                 await integrationService.restoreBy({
                     projectId,
                     deleted: true,
@@ -700,3 +716,4 @@ const TeamService = require('./teamService');
 const StatusPageService = require('./statusPageService');
 const slugify = require('slugify');
 const generate = require('nanoid/generate');
+const { IS_SAAS_SERVICE } = require('../config/server');
