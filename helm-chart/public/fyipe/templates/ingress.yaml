@@ -69,4 +69,30 @@ spec:
               servicePort: 80
           {{- end }}   
 ---
+##########################################################################
+
+############----STATUS-PAGE-INGRESS--#####################################
+{{- if .Values.fyipe.tls.enabled }} 
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/ssl-redirect: "true"
+  name: {{ printf "%s-%s" .Release.Name "status-page-ingress"  }}
+spec:
+  tls:
+    - hosts:
+      - {{ .Values.fyipe.tls.host }} 
+      secretName: {{ printf "%s-%s" .Release.Name "secret"  }}
+  rules:
+    - host: {{ printf "%s.%s" "status-page" .Values.fyipe.tls.host }} 
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "status-page"  }}
+              servicePort: 80
+---
+{{- end}}
 ##################################

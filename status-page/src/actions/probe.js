@@ -3,7 +3,7 @@ import * as types from '../constants/probe';
 import errors from '../errors';
 
 // Fetch Project Probes list
-export function getProbes(projectId, skip, limit) {
+export function getProbes(statusPageId, skip, limit) {
     skip = parseInt(skip);
     limit = parseInt(limit);
 
@@ -11,10 +11,10 @@ export function getProbes(projectId, skip, limit) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
-                `statusPage/${projectId}/probes?skip=${skip}&limit=${limit}`
+                `statusPage/${statusPageId}/probes?skip=${skip}&limit=${limit}`
             );
         } else {
-            promise = getApi(`statusPage/${projectId}/probes`);
+            promise = getApi(`statusPage/${statusPageId}/probes`);
         }
         dispatch(probeRequest(promise));
 
