@@ -24,12 +24,12 @@ import { getProbes } from '../actions/probe';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Monitors');
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Main monitor page Loaded');
         }
     }

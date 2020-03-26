@@ -1,7 +1,16 @@
 import pages from './pages';
 import { IS_SAAS_SERVICE } from './config';
 
-const { Users, User, Projects, Project, Probes, AuditLogs, License } = pages;
+const {
+    Users,
+    User,
+    Projects,
+    Project,
+    Probes,
+    AuditLogs,
+    Settings,
+    License,
+} = pages;
 
 export const groups = [
     {
@@ -10,14 +19,14 @@ export const groups = [
         routes: [
             {
                 title: 'Users',
-                path: '/users',
+                path: '/admin/users',
                 icon: 'customers',
                 component: Users,
                 visible: true,
                 subRoutes: [
                     {
                         title: 'User',
-                        path: '/users/:userId',
+                        path: '/admin/users/:userId',
                         icon: 'customers',
                         component: User,
                         visible: true,
@@ -29,14 +38,14 @@ export const groups = [
             },
             {
                 title: 'Projects',
-                path: '/projects',
+                path: '/admin/projects',
                 icon: 'projects',
                 component: Projects,
                 visible: true,
                 subRoutes: [
                     {
                         title: 'Project',
-                        path: '/projects/:projectId',
+                        path: '/admin/projects/:projectId',
                         icon: 'projects',
                         component: Project,
                         visible: true,
@@ -48,7 +57,7 @@ export const groups = [
             },
             {
                 title: 'Probes',
-                path: '/probes',
+                path: '/admin/probes',
                 icon: 'probes',
                 component: Probes,
                 visible: true,
@@ -57,7 +66,7 @@ export const groups = [
             },
             {
                 title: 'Audit Logs',
-                path: '/auditLogs',
+                path: '/admin/auditLogs',
                 icon: 'auditLogs',
                 component: AuditLogs,
                 visible: true,
@@ -72,7 +81,7 @@ export const groups = [
         routes: [
             {
                 title: 'Settings',
-                path: '/settings/license',
+                path: '/admin/settings/license',
                 icon: 'businessSettings',
                 component: License,
                 exact: true,
@@ -80,12 +89,30 @@ export const groups = [
                 subRoutes: [
                     {
                         title: 'License',
-                        path: '/settings/license',
+                        path: '/admin/settings/license',
                         icon: 'activate',
                         component: License,
                         visible: true,
                         subRoutes: [],
                         index: 1,
+                    },
+                    {
+                        title: 'SMTP',
+                        path: '/settings/smtp',
+                        icon: 'settings',
+                        component: Settings,
+                        visible: true,
+                        subRoutes: [],
+                        index: 2,
+                    },
+                    {
+                        title: 'Twilio',
+                        path: '/settings/twilio',
+                        icon: 'settings',
+                        component: Settings,
+                        visible: true,
+                        subRoutes: [],
+                        index: 3,
                     },
                 ],
                 index: 1,
@@ -101,8 +128,26 @@ const joinFn = (acc = [], curr) => {
 export const allRoutes = groups
     .map(function merge(group) {
         const { routes } = group;
-        const subRoutes = routes.map(route => route.subRoutes).reduce(joinFn);
-        return routes.concat(subRoutes);
+        const newRoutes = [];
+        for (const route of routes) {
+            newRoutes.push(route);
+            const tempRoute = { ...route };
+            tempRoute.path = '/admin' + route.path;
+            newRoutes.push(tempRoute);
+        }
+        const subRoutes = newRoutes
+            .map(route => {
+                const newSubRoutes = [];
+                for (const subRoute of route.subRoutes) {
+                    newSubRoutes.push(subRoute);
+                    const tempRoute = { ...subRoute };
+                    tempRoute.path = '/admin' + subRoute.path;
+                    newSubRoutes.push(tempRoute);
+                }
+                return newSubRoutes;
+            })
+            .reduce(joinFn);
+        return newRoutes.concat(subRoutes);
     })
     .reduce(joinFn);
 

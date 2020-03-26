@@ -12,7 +12,7 @@ import { createMonitor, resetCreateMonitor } from '../../actions/monitor';
 import PropTypes from 'prop-types';
 import { PricingPlan } from '../../config';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class UpgradePlanModal extends Component {
     constructor(props) {
@@ -40,7 +40,7 @@ export class UpgradePlanModal extends Component {
         } = PricingPlan.getPlanById(values.planId);
         const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
         this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Plan Changed', { oldPlan, newPlan });
         }
         this.hideForm();

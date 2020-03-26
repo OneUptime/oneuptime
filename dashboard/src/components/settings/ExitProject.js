@@ -11,7 +11,7 @@ import ShouldRender from '../basic/ShouldRender';
 import ExitProjectModal from './ExitProjectModal';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class ExitProjectBox extends Component {
     handleClick = () => {
@@ -28,7 +28,7 @@ export class ExitProjectBox extends Component {
                 return exitProject(projectId, userId).then(function() {
                     !nextProject && dispatch({ type: 'CLEAR_STORE' });
                     getProjects(false);
-                    if (!IS_DEV) {
+                    if (SHOULD_LOG_ANALYTICS) {
                         logEvent('User Exited Project', { projectId, userId });
                     }
                 });

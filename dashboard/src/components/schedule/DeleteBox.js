@@ -9,7 +9,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { deleteSchedule } from '../../actions/schedule';
 import DeleteScheduleModal from './DeleteScheduleModal';
 import { openModal, closeModal } from '../../actions/modal';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 
 export class DeleteScheduleBox extends Component {
@@ -31,7 +31,7 @@ export class DeleteScheduleBox extends Component {
             id: deleteModalId,
             onConfirm: () => {
                 return deleteSchedule(subProjectId, scheduleId).then(() => {
-                    if (!IS_DEV) {
+                    if (SHOULD_LOG_ANALYTICS) {
                         logEvent('Schedule Deleted', {
                             subProjectId,
                             scheduleId,

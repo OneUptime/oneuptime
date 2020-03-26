@@ -2,17 +2,8 @@ import React from 'react';
 import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
-import { isServer } from './store';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
-
-let apiUrl = 'http://localhost:3002';
-let dashboardUrl = null;
-let accountsUrl = null;
-let domain = null;
-let adminDashboardUrl = null;
-let licensingUrl = null;
-let isSaasService = false;
 
 export function env(value) {
     const { _env } = window;
@@ -22,32 +13,24 @@ export function env(value) {
     );
 }
 
-if (!isServer) {
-    if (window.location.href.indexOf('localhost') > -1) {
-        apiUrl = 'http://localhost:3002';
-        dashboardUrl = 'http://localhost:3000';
-        accountsUrl = 'http://localhost:3003';
-        domain = 'localhost';
-        adminDashboardUrl = 'http://localhost:3100';
-        licensingUrl = 'http://localhost:3004';
-    } else if (window.location.href.indexOf('staging') > -1) {
-        apiUrl = 'http://staging-api.fyipe.com';
-        dashboardUrl = 'http://staging-dashboard.fyipe.com';
-        accountsUrl = 'http://staging-accounts.fyipe.com';
-        domain = 'fyipe.com';
-        adminDashboardUrl = 'http://staging-admin.fyipe.com';
-        licensingUrl = 'http://staging-licensing.fyipe.com';
-    } else {
-        apiUrl = 'https://api.fyipe.com';
-        dashboardUrl = 'https://fyipe.com';
-        accountsUrl = 'https://accounts.fyipe.com';
-        domain = 'fyipe.com';
-        adminDashboardUrl = 'https://admin.fyipe.com';
-        licensingUrl = 'https://licensing.fyipe.com';
-    }
-    if (env('IS_SAAS_SERVICE') === 'true') {
-        isSaasService = true;
-    }
+let apiUrl = window.location.origin + '/api';
+let dashboardUrl = window.location.origin + '/dashboard';
+let adminDashboardUrl = window.location.origin + '/admin';
+let accountsUrl = window.location.origin + '/accounts';
+const licensingUrl = env('LICENSE_URL');
+
+if (
+    window &&
+    window.location &&
+    window.location.host &&
+    (window.location.host.includes('localhost:') ||
+        window.location.host.includes('0.0.0.0:') ||
+        window.location.host.includes('127.0.0.1:'))
+) {
+    apiUrl = window.location.protocol + '//localhost:3002/api';
+    dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
+    adminDashboardUrl = window.location.protocol + '//localhost:3100/admin';
+    accountsUrl = window.location.protocol + '//localhost:3003/accounts';
 }
 
 export const API_URL = apiUrl;
@@ -56,13 +39,11 @@ export const DASHBOARD_URL = dashboardUrl;
 
 export const ACCOUNTS_URL = accountsUrl;
 
-export const DOMAIN_URL = domain;
-
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
-export const LICENSING_URL = licensingUrl;
+export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
-export const IS_SAAS_SERVICE = isSaasService;
+export const LICENSING_URL = licensingUrl;
 
 export const User = {
     getAccessToken() {
@@ -276,9 +257,8 @@ export const ValidateField = {
 export const PricingPlan = {
     getPlans() {
         if (
-            window.location.href.indexOf('localhost') > -1 ||
-            window.location.href.indexOf('staging') > -1 ||
-            window.location.href.indexOf('app.local') > -1
+            env('STRIPE_PUBLIC_KEY') &&
+            env('STRIPE_PUBLIC_KEY').startsWith('pk_test')
         ) {
             return [
                 {

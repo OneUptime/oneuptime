@@ -49,7 +49,7 @@ export class ChangePasswordForm extends Component {
                                 <p className="message">
                                     {' '}
                                     Your password is changed. Please{' '}
-                                    <Link to="/login">
+                                    <Link to="/accounts/login">
                                         {' '}
                                         click here to login{' '}
                                     </Link>{' '}

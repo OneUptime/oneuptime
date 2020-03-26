@@ -18,7 +18,7 @@ import {
     identify,
     logEvent,
 } from '../../analytics';
-import { IS_DEV, IS_SAAS_SERVICE } from '../../config';
+import { SHOULD_LOG_ANALYTICS, IS_SAAS_SERVICE } from '../../config';
 
 export class RegisterForm extends Component {
     constructor(props) {
@@ -36,7 +36,7 @@ export class RegisterForm extends Component {
                         .signupUser({ ...values, planId: thisObj.props.planId })
                         .then(user => {
                             if (user && user.data && user.data.id) {
-                                if (!IS_DEV) {
+                                if (SHOULD_LOG_ANALYTICS) {
                                     setUserId(user.data.id);
                                     identify(user.data.id);
                                     setUserProperties({
@@ -58,7 +58,7 @@ export class RegisterForm extends Component {
                     if (!IS_SAAS_SERVICE) {
                         thisObj.props.signupUser(values).then(user => {
                             if (user && user.data && user.data.id) {
-                                if (!IS_DEV) {
+                                if (SHOULD_LOG_ANALYTICS) {
                                     setUserId(user.data.id);
                                     identify(user.data.id);
                                     setUserProperties({
@@ -75,7 +75,7 @@ export class RegisterForm extends Component {
                         });
                     } else {
                         thisObj.props.incrementStep();
-                        if (!IS_DEV) {
+                        if (SHOULD_LOG_ANALYTICS) {
                             setUserId(values.email);
                             identify(values.email);
                             setUserProperties({

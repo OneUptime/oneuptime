@@ -205,6 +205,18 @@ spec:
                         value: 'keyenXfDDP4Dutazt'
                       - name: AIRTABLE_BASE_ID
                         value: 'appgek0ngJaHhppeJ'
+                      - name: TWILIO_ACCOUNTSID
+                        value: 'AC0a2295b7745a7ddc57fc73e77f9b72a0'
+                      - name: TWILIO_AUTHTOKEN
+                        value: '09336be1b05ab5b2c1a6870202d9b769'
+                      - name: TWILIO_NUMBER
+                        value: '+14143958232'
+                      - name: TWILIO_ALERT_LIMIT
+                        value: '100'
+                      - name: TWILIO_VERIFICATION_SID
+                        value: 'VA0832f242a8d417136df936f3e12af8c1'
+                      - name: CLUSTER_KEY
+                        value: '94d0e045-a659-4383-8ef9-632e07f6501d'
                   ports:
                       - containerPort: 3002
                         hostPort: 3002
@@ -582,6 +594,8 @@ spec:
                         value: 'EU'
                       - name: PROBE_KEY
                         value: 'jfgkljfdlk9085-lfgl85553242'
+                      - name: CLUSTER_KEY
+                        value: '94d0e045-a659-4383-8ef9-632e07f6501d'
                   ports:
                       - containerPort: 3008
                         hostPort: 3008
@@ -639,6 +653,8 @@ spec:
                         value: 'US'
                       - name: PROBE_KEY
                         value: 'hfgjoy6op97767534535-fglgdf5646'
+                      - name: CLUSTER_KEY
+                        value: '94d0e045-a659-4383-8ef9-632e07f6501d'
                   ports:
                       - containerPort: 3008
                         hostPort: 3008

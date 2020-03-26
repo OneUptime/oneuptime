@@ -12,7 +12,7 @@ import {
 } from '../../actions/invoice';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { IS_DEV, User } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
 
 class Invoice extends Component {
     constructor(props) {
@@ -21,7 +21,7 @@ class Invoice extends Component {
     }
 
     componentDidMount() {
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Invoice page Loaded');
         }
         this.resetAndFetchInvoices();

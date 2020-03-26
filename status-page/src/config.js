@@ -2,26 +2,21 @@ import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
 
-let apiUrl = null;
-let dashboardUrl = null;
-let accountsUrl = null;
-let domain = null;
+let apiUrl = window.location.origin + '/api';
+let dashboardUrl = window.location.origin + '/dashboard';
+let accountsUrl = window.location.origin + '/accounts';
 
-if (window.location.href.indexOf('localhost') > -1) {
-    apiUrl = 'http://localhost:3002';
-    dashboardUrl = 'http://localhost:3000';
-    accountsUrl = 'http://localhost:3003';
-    domain = 'localhost';
-} else if (window.location.href.indexOf('staging') > -1) {
-    apiUrl = 'https://staging-api.fyipe.com';
-    dashboardUrl = 'https://staging-dashboard.fyipe.com';
-    accountsUrl = 'https://staging-accounts.fyipe.com';
-    domain = 'fyipe.com';
-} else {
-    apiUrl = 'https://api.fyipe.com';
-    dashboardUrl = 'https://dashboard.fyipe.com';
-    accountsUrl = 'https://accounts.fyipe.com';
-    domain = 'fyipe.com';
+if (
+    window &&
+    window.location &&
+    window.location.host &&
+    (window.location.host.includes('localhost:') ||
+        window.location.host.includes('0.0.0.0:') ||
+        window.location.host.includes('127.0.0.1:'))
+) {
+    apiUrl = window.location.protocol + '//localhost:3002/api';
+    dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
+    accountsUrl = window.location.protocol + '//localhost:3003/accounts';
 }
 
 export const API_URL = apiUrl;
@@ -30,7 +25,7 @@ export const DASHBOARD_URL = dashboardUrl;
 
 export const ACCOUNTS_URL = accountsUrl;
 
-export const DOMAIN = domain;
+export const DOMAIN = window.location.origin;
 
 export const User = {
     getAccessToken() {

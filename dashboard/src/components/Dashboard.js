@@ -18,7 +18,7 @@ import NotificationMenu from './notification/NotificationMenu';
 import { closeNotificationMenu } from '../actions/notification';
 import UnVerifiedEmailBox from '../components/auth/UnVerifiedEmail';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
@@ -63,20 +63,20 @@ export class DashboardApp extends Component {
 
     showProjectForm = () => {
         this.props.showForm();
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Project Form Opened');
         }
     };
 
     hideProfileMenu = () => {
         this.props.hideProfileMenu();
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Profile Menu Closed');
         }
     };
     closeNotificationMenu = () => {
         this.props.closeNotificationMenu();
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Notification Menu Closed');
         }
     };
@@ -125,7 +125,10 @@ export class DashboardApp extends Component {
                                         project.projects.projects[0]
                                     }
                                 >
-                                    <SideNav />
+                                    <SideNav
+                                        location={this.props.location}
+                                        match={this.props.match}
+                                    />
                                 </ShouldRender>
 
                                 <div className="db-World-mainPane Box-root Padding-right--20">

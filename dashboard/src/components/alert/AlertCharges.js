@@ -9,7 +9,7 @@ import { downloadAlertCharges } from '../../actions/alert';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class AlertCharge extends Component {
     csvLink = React.createRef();
@@ -20,7 +20,7 @@ class AlertCharge extends Component {
     }
 
     componentDidMount() {
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('AlertCharge page Loaded');
         }
     }

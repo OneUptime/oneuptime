@@ -12,7 +12,7 @@ import { reduxForm } from 'redux-form';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import RenderIfMember from '../basic/RenderIfMember';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 function submitUserForm(values, dispatch, props) {
     const { projectId, scheduleId } = props.match.params;
@@ -24,7 +24,7 @@ function submitUserForm(values, dispatch, props) {
         }
     }
     props.addUsers(projectId, scheduleId, { users });
-    if (!IS_DEV) {
+    if (SHOULD_LOG_ANALYTICS) {
         logEvent('Added Users To Schedule', { projectId, scheduleId, users });
     }
 }

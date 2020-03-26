@@ -19,7 +19,7 @@ import CreateFooterLink from '../modals/FooterLink';
 import { openModal, closeModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -73,7 +73,7 @@ export class Links extends Component {
                     id: this.state.createFooterLinkModalId,
                 });
             });
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Links Updated', values);
         }
     };

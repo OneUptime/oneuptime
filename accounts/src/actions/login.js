@@ -1,11 +1,6 @@
 import { postApi, getApi } from '../api';
 import * as types from '../constants/login';
-import {
-    User,
-    DASHBOARD_URL,
-    DOMAIN_URL,
-    ADMIN_DASHBOARD_URL,
-} from '../config.js';
+import { User, DASHBOARD_URL, ADMIN_DASHBOARD_URL } from '../config.js';
 import errors from '../errors';
 import { getQueryVar } from '../config';
 import { resendToken } from './resendToken';
@@ -57,7 +52,7 @@ export function loginSuccess(user) {
     cookies.set('data', userData, {
         path: '/',
         maxAge: 30,
-        domain: DOMAIN_URL,
+        domain: window.location.host,
     });
 
     if (user.role === 'master-admin') {
@@ -67,7 +62,7 @@ export function loginSuccess(user) {
         cookies.set('admin-data', userData, {
             path: '/',
             maxAge: 30,
-            domain: DOMAIN_URL,
+            domain: window.location.host,
         });
     }
 

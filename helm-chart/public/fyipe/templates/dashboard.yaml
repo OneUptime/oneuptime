@@ -1,0 +1,55 @@
+############-----DASHBOARD----#############################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "dashboard" }}
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    replicas: {{ .Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "dashboard" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                      - name: DOMAIN
+                        value: {{ .Values.domain }}
+                      {{- if .Values.saas.isSaasService }}
+                      - name: STRIPE_PUBLIC_KEY
+                        value: {{ .Values.saas.stripe.publicKey }}
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: AMPLITUDE_PUBLIC_KEY
+                        value: {{ .Values.saas.amplitude.key }}
+                      {{- end }}
+                  ports:
+                      - containerPort: {{ .Values.host.dashboardPort }}
+                        hostPort: {{ .Values.host.dashboardPort }}
+                        name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+
+---
+# Fyipe Dashoard Service
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+spec:
+    ports:
+        - port: {{ .Values.host.dashboardServicePort }}
+          targetPort: {{ .Values.host.dashboardPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+    type: {{ .Values.service.type }}
+---
+##########################################################

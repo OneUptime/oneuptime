@@ -35,24 +35,19 @@ sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl s
 #Install Docker and setup registry and insecure access to it.
 echo "RUNNING COMMAND: curl -sSL https://get.docker.com/ | sh"
 curl -sSL https://get.docker.com/ | sh
-echo "RUNNING COMMAND: sudo touch /etc/docker/daemon.json"
-sudo touch /etc/docker/daemon.json
-echo "RUNNING COMMAND:  echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null"
-echo -e  "{\n   "insecure-registries": ["localhost:32000"]\n}" | sudo tee -a /etc/docker/daemon.json >> /dev/null
 echo "RUNNING COMMAND: sudo systemctl restart docker"
 sudo systemctl restart docker
 
-# We do not need to install kubectl here.
-# if [[ ! $(which kubectl) ]]
-# then
-#   #Install Kubectl
-#   echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-#   curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-#   echo "RUNNING COMMAND: chmod +x ./kubectl"
-#   chmod +x ./kubectl
-#   echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
-#   sudo mv ./kubectl /usr/local/bin/kubectl
-# fi
+if [[ ! $(which kubectl) ]]
+then
+  #Install Kubectl
+  echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+  echo "RUNNING COMMAND: chmod +x ./kubectl"
+  chmod +x ./kubectl
+  echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
+  sudo mv ./kubectl /usr/local/bin/kubectl
+fi
 
 #Install microK8s
 echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
@@ -121,6 +116,3 @@ ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils
 
 echo "RUNNING COMMAND: sleep 2m"
 sleep 2m
-
-echo "RUNNING COMMAND: curl localhost:32000/v2"
-curl localhost:32000/v2

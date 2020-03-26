@@ -16,7 +16,7 @@ import StatuspageProjectBox from './StatuspageProjectBox';
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
 import ShouldRender from '../basic/ShouldRender';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class StatusPagesTable extends Component {
     constructor(props) {
@@ -26,7 +26,7 @@ class StatusPagesTable extends Component {
 
     componentDidMount() {
         this.props.fetchSubProjectStatusPages(this.props.projectId);
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Settings Loaded');
         }
     }
@@ -46,7 +46,7 @@ class StatusPagesTable extends Component {
             10
         );
         paginate('prev');
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous Webhook');
         }
     };
@@ -56,7 +56,7 @@ class StatusPagesTable extends Component {
 
         fetchProjectStatusPage(projectId, false, skip + limit, 10);
         paginate('next');
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous Webhook');
         }
     };

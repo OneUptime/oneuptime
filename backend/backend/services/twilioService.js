@@ -6,10 +6,13 @@
 const twilioCredentials = require('../config/twilio');
 const incidentSMSActionModel = require('../models/incidentSMSAction');
 const twilio = require('twilio');
-const client = twilio(
-    twilioCredentials.accountSid,
-    twilioCredentials.authToken
-);
+let twilioClient = null;
+if (twilioCredentials.accountSid && twilioCredentials.authToken) {
+    twilioClient = twilio(
+        twilioCredentials.accountSid,
+        twilioCredentials.authToken
+    );
+}
 const ErrorService = require('./errorService');
 const Handlebars = require('handlebars');
 const defaultSmsTemplates = require('../config/smsTemplate');
@@ -53,8 +56,13 @@ module.exports = {
                 from: twilioCredentials.phoneNumber,
                 to,
             };
+            if (!twilioClient) {
+                const error = new Error('Twilio credentials not found.');
+                error.code = 400;
+                return error;
+            }
             if (SMSEnabled) {
-                const message = await client.messages.create(options);
+                const message = await twilioClient.messages.create(options);
                 return message;
             } else {
                 const error = new Error('SMS Not Enabled');
@@ -99,8 +107,13 @@ module.exports = {
                 incidentSMSAction.number = number;
                 incidentSMSAction.name = name;
                 await incidentSMSAction.save();
+                if (!twilioClient) {
+                    const error = new Error('Twilio credentials not found.');
+                    error.code = 400;
+                    return error;
+                }
                 if (SMSEnabled) {
-                    const message = await client.messages.create(options);
+                    const message = await twilioClient.messages.create(options);
                     return message;
                 }
             } else {
@@ -295,12 +308,14 @@ module.exports = {
                 error.code = 400;
                 return error;
             }
+
             const options = {
                 body:
                     'This is a test message from Fyipe to check your Twilio credentials.',
                 from: data.phoneNumber,
                 to: twilioCredentials.testphoneNumber,
             };
+
             const newClient = dynamicClient(data.accountSid, data.authToken);
 
             const message = await newClient.messages.create(options);
@@ -352,9 +367,14 @@ module.exports = {
                     from: twilioCredentials.phoneNumber,
                     to: number,
                 };
-
-                const call = await client.calls.create(options);
-                return call;
+                if (twilioClient) {
+                    const call = await twilioClient.calls.create(options);
+                    return call;
+                } else {
+                    const error = new Error('Twilio credentials not found.');
+                    error.code = 400;
+                    return error;
+                }
             } else {
                 const error = new Error('Alerts limit reached for the day.');
                 error.code = 400;
@@ -396,8 +416,12 @@ module.exports = {
                     to = '+' + to;
                 }
                 const channel = 'sms';
-
-                const verificationRequest = await client.verify
+                if (!twilioClient) {
+                    const error = new Error('Twilio credentials not found.');
+                    error.code = 400;
+                    return error;
+                }
+                const verificationRequest = await twilioClient.verify
                     .services(twilioCredentials.verificationSid)
                     .verifications.create({ to, channel });
 
@@ -432,7 +456,13 @@ module.exports = {
                     to = '+' + to;
                 }
 
-                const verificationResult = await client.verify
+                if (!twilioClient) {
+                    const error = new Error('Twilio credentials not found.');
+                    error.code = 400;
+                    return error;
+                }
+
+                const verificationResult = await twilioClient.verify
                     .services(twilioCredentials.verificationSid)
                     .verificationChecks.create({ to, code });
                 if (verificationResult.status === 'pending') {

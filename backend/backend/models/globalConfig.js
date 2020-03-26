@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 
 const globalConfigSchema = new Schema({
     name: String,
-    value: String,
+    value: Object,
 
     createdAt: { type: Date, default: Date.now },
 });

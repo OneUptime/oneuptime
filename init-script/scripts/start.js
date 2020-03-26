@@ -10,7 +10,7 @@ async function run() {
 }
 
 async function updateVersion() {
-    const collection = 'GlobalConfig';
+    const collection = 'globalconfigs';
     const name = 'version';
     const docs = await find(collection, { name });
 

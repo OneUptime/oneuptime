@@ -567,8 +567,8 @@ module.exports = {
             expiresIn: 12 * 60 * 60 * 1000,
         });
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const ack_url = `${baseApiUrl}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
-        const resolve_url = `${baseApiUrl}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
+        const ack_url = `${global.host}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
+        const resolve_url = `${global.host}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
         const firstName = user.name;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -1023,7 +1023,7 @@ module.exports = {
                     alertStatus: 'Sent',
                 });
                 const alertId = subscriberAlert._id;
-                const trackEmailAsViewedUrl = `${BACKEND_HOST}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
+                const trackEmailAsViewedUrl = `${global.host}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
                 if (templateType === 'Subscriber Incident Acknowldeged') {
                     await MailService.sendIncidentAcknowledgedMailToSubscriber(
                         date,
@@ -1285,9 +1285,7 @@ const ErrorService = require('./errorService');
 const StatusPageService = require('./statusPageService');
 const AlertChargeService = require('./alertChargeService');
 const countryCode = require('../config/countryCode');
-const baseApiUrl = process.env.BACKEND_HOST;
 const { getAlertChargeAmount, getCountryType } = require('../config/alertType');
-const { BACKEND_HOST } = process.env;
 const { twilioAlertLimit } = require('../config/twilio');
 const SmsCountService = require('./smsCountService');
 const DateTime = require('../utils/DateTime');

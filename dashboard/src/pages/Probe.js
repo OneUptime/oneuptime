@@ -24,7 +24,7 @@ class Probe extends React.Component {
                 : 10,
             10
         );
-        /* if (!IS_DEV) {
+        /* if (SHOULD_LOG_ANALYTICS) {
        logEvent('Previous Incident Requested', {
          projectId: this.props.currentProject._id,
        });
@@ -39,7 +39,7 @@ class Probe extends React.Component {
                 : 10,
             10
         );
-        /* if (!IS_DEV) {
+        /* if (SHOULD_LOG_ANALYTICS) {
        logEvent('Next Incident Requested', {
          projectId: this.props.currentProject._id,
        });

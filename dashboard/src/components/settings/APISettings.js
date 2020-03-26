@@ -10,7 +10,7 @@ import RenderIfAdmin from '../../components/basic/RenderIfAdmin';
 import ResetAPIKey from '../modals/ResetAPIKey';
 import { openModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class APISettings extends Component {
     constructor(props) {
@@ -31,7 +31,7 @@ export class APISettings extends Component {
                 return this.props
                     .resetProjectToken(this.props.currentProject._id)
                     .then(() => {
-                        if (!IS_DEV) {
+                        if (SHOULD_LOG_ANALYTICS) {
                             logEvent('Project Token Reset', {
                                 projectId: this.props.currentProject._id,
                             });

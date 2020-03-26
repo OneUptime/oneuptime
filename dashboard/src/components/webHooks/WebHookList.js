@@ -14,7 +14,7 @@ import {
 } from '../../actions/webHook';
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { history } from '../../store';
 
 class WebHookList extends React.Component {
@@ -29,7 +29,7 @@ class WebHookList extends React.Component {
         } else {
             getWebHook(projectId);
         }
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Call WebHook Integration Component Loaded');
         }
     }
@@ -67,7 +67,7 @@ class WebHookList extends React.Component {
             10
         );
         paginate('prev');
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Previous Webhook');
         }
     };
@@ -82,7 +82,7 @@ class WebHookList extends React.Component {
 
         getWebHook(projectId, skip + limit, 10);
         paginate('next');
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Fetch Next Webhook');
         }
     };

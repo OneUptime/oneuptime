@@ -2,16 +2,25 @@ import React from 'react';
 import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
-import { isServer } from './store';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
 
-let apiUrl = 'http://localhost:3002';
-let dashboardUrl = null;
-let domain = null;
-let adminDashboardUrl = null;
-let developmentEnv = false;
-let isSaasService = false;
+let apiUrl = window.location.origin + '/api';
+let dashboardUrl = window.location.origin + '/dashboard';
+let adminDashboardUrl = window.location.origin + '/admin';
+
+if (
+    window &&
+    window.location &&
+    window.location.host &&
+    (window.location.host.includes('localhost:') ||
+        window.location.host.includes('0.0.0.0:') ||
+        window.location.host.includes('127.0.0.1:'))
+) {
+    apiUrl = window.location.protocol + '//localhost:3002/api';
+    dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
+    adminDashboardUrl = window.location.protocol + '//localhost:3100/admin';
+}
 
 export function env(value) {
     const { _env } = window;
@@ -21,40 +30,15 @@ export function env(value) {
     );
 }
 
-if (!isServer) {
-    if (window.location.href.indexOf('localhost') > -1) {
-        apiUrl = 'http://localhost:3002';
-        dashboardUrl = 'http://localhost:3000';
-        domain = 'localhost';
-        adminDashboardUrl = 'http://localhost:3100';
-        developmentEnv = true;
-    } else if (env('BACKEND_HOST')) {
-        apiUrl = env('BACKEND_HOST');
-        dashboardUrl = env('DASHBOARD_HOST');
-        domain = env('DOMAIN');
-        if (
-            apiUrl.indexOf('staging') > -1 ||
-            apiUrl.indexOf('app.local') > -1
-        ) {
-            developmentEnv = true;
-        }
-    }
-    if (env('IS_SAAS_SERVICE') === 'true') {
-        isSaasService = true;
-    }
-}
-
 export const API_URL = apiUrl;
 
 export const DASHBOARD_URL = dashboardUrl;
 
-export const DOMAIN_URL = domain;
-
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
-export const IS_DEV = developmentEnv;
+export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 
-export const IS_SAAS_SERVICE = isSaasService;
+export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
 export const User = {
     getAccessToken() {
@@ -230,9 +214,8 @@ export const Validate = {
 export const PricingPlan = {
     getPlans() {
         if (
-            window.location.href.indexOf('localhost') > -1 ||
-            window.location.href.indexOf('staging') > -1 ||
-            window.location.href.indexOf('app.local') > -1
+            env('STRIPE_PUBLIC_KEY') &&
+            env('STRIPE_PUBLIC_KEY').startsWith('pk_test')
         ) {
             return [
                 {

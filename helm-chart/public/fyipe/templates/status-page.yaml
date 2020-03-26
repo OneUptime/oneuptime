@@ -1,0 +1,47 @@
+###########-----STATUS PAGE------#################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+    replicas: {{ .Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "status-page" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                    {{- if .Values.saas.isSaasService }}
+                    - name: IS_SAAS_SERVICE
+                      value: 'true'
+                    {{- end }}
+                  ports:
+                      - containerPort: {{ .Values.host.statusPagePort }}
+                        hostPort: {{ .Values.host.statusPagePort }}
+                        name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+    name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+spec:
+    ports:
+        - port: {{ .Values.host.statusPageServicePort }}
+          targetPort: {{ .Values.host.statusPagePort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+    type: {{ .Values.service.type }}
+---
+########################################

@@ -13,7 +13,7 @@ import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
 import { RenderSelect } from '../basic/RenderSelect';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class EmailTemplatesBox extends React.Component {
     submitForm = values => {
@@ -30,7 +30,7 @@ class EmailTemplatesBox extends React.Component {
             }
         );
         this.props.editEmailTemplates(currentProject._id, val);
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Email Templates Updated');
         }
     };
@@ -38,7 +38,7 @@ class EmailTemplatesBox extends React.Component {
     resetTemplate = templateId => {
         const { currentProject } = this.props;
         this.props.resetEmailTemplates(currentProject._id, templateId);
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Email Templates Reset');
         }
     };

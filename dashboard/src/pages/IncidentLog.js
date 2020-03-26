@@ -20,7 +20,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import { LoadingState } from '../components/basic/Loader';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class IncidentLog extends React.Component {
     constructor(props) {
@@ -30,14 +30,14 @@ class IncidentLog extends React.Component {
     }
 
     componentDidMount() {
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Incident Log Page Loaded');
         }
     }
 
     ready = () => {
         this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Incident Log Page Ready, Data Requested');
         }
     };
@@ -48,7 +48,7 @@ class IncidentLog extends React.Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Previous Incident Requested', {
                 projectId: projectId,
             });
@@ -57,7 +57,7 @@ class IncidentLog extends React.Component {
 
     nextClicked = (projectId, skip, limit) => {
         this.props.getProjectIncidents(projectId, skip + limit, 10);
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Next Incident Requested', {
                 projectId: projectId,
             });

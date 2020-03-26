@@ -13,7 +13,7 @@ import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
 import { logEvent } from '../../analytics';
-import { IS_DEV, env } from '../../config';
+import { SHOULD_LOG_ANALYTICS, env } from '../../config';
 
 function validate(value) {
     const errors = {};
@@ -37,7 +37,7 @@ export class CustomerBalance extends Component {
         const { addBalance, projectId, openModal } = this.props;
         const { MessageBoxId } = this.state;
 
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Add amount to balance', values);
         }
         if (rechargeBalanceAmount) {

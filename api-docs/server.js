@@ -12,8 +12,13 @@ app.set('view engine', 'ejs');
 // public static files
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 2592000 }));
 
+app.use(
+    '/docs',
+    express.static(path.join(__dirname, 'public'), { maxAge: 2592000 })
+);
+
 // index page
-app.get('/', function(req, res) {
+app.get(['/', '/docs'], function(req, res) {
     res.render('pages/index');
 });
 

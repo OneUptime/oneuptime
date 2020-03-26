@@ -19,7 +19,7 @@ import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin
 import { mapCriteria } from '../config';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
 import moment from 'moment';
 class MonitorView extends React.Component {
@@ -29,7 +29,7 @@ class MonitorView extends React.Component {
     }
 
     componentDidMount() {
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('MonitorView Page Loaded');
         }
     }
@@ -59,7 +59,7 @@ class MonitorView extends React.Component {
                 .utc(),
             moment().utc()
         ); //0 -> skip, 5-> limit.
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('MonitorView Page Ready, Data Requested');
         }
     };

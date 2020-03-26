@@ -13,7 +13,7 @@ import uuid from 'uuid';
 import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class MonitorViewSubscriberBox extends Component {
     constructor(props) {
@@ -34,7 +34,7 @@ export class MonitorViewSubscriberBox extends Component {
                 : 5,
             5
         );
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Previous Subscriber Requested', {
                 projectId: subProjectId,
             });
@@ -52,7 +52,7 @@ export class MonitorViewSubscriberBox extends Component {
                 : 5,
             5
         );
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Next Subscriber Requested', {
                 projectId: this.props.currentProject._id,
             });
