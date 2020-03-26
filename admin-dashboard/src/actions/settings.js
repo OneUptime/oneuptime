@@ -26,9 +26,7 @@ export const requestingSettingsFailed = payload => {
 export const fetchSettings = type => async dispatch => {
     dispatch(requestingSettings());
     try {
-        const response = await getApi(
-            `globalConfig/${type}`
-        );
+        const response = await getApi(`globalConfig/${type}`);
         const data = response.data || { value: {} };
         dispatch(requestingSettingsSucceeded(data.value, type));
         return response;

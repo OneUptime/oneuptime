@@ -6,8 +6,10 @@ const Whitepapers = require('../config/whitepaper');
 const ErrorService = require('./errorService');
 const defaultEmailTemplates = require('../config/emailTemplate');
 const GlobalConfigService = require('./globalConfigService');
+const EmailSmtpService = require('./emailSmtpService');
 const EmailStatusService = require('./emailStatusService');
 const EMAIL_ENABLED = process.env['EMAIL_ENABLED'] === 'true';
+
 const options = {
     viewEngine: {
         extname: '.hbs',
@@ -19,67 +21,105 @@ const options = {
     extName: '.hbs',
 };
 
-const getTemplates = async (emailTemplate, emailType) => {
-    const defaultTemplate = defaultEmailTemplates.filter(
-        template => template.emailType === emailType
-    );
-    let emailContent = defaultTemplate[0].body;
-    let emailSubject = defaultTemplate[0].subject;
+const _this = {
+    getProjectSmtpSettings: async projectId => {
+        let { user, pass, host, port, from, secure } = accountMail;
+        const smtpDb = await EmailSmtpService.findOneBy({
+            projectId,
+            enabled: true,
+        });
+        if (
+            smtpDb &&
+            smtpDb.user &&
+            smtpDb.user !== null &&
+            smtpDb.user !== undefined
+        ) {
+            user = smtpDb.user;
+            pass = smtpDb.pass;
+            host = smtpDb.host;
+            port = smtpDb.port;
+            from = smtpDb.from;
+            secure = smtpDb.secure;
+        } else {
+            const globalSettings = await _this.getSmtpSettings();
+            user = globalSettings.user;
+            pass = globalSettings.pass;
+            host = globalSettings.host;
+            port = globalSettings.port;
+            from = globalSettings.from;
+            secure = globalSettings.secure;
+        }
 
-    if (
-        emailTemplate != null &&
-        emailTemplate != undefined &&
-        emailTemplate.body
-    ) {
-        emailContent = emailTemplate.body;
-    }
-    if (
-        emailTemplate != null &&
-        emailTemplate != undefined &&
-        emailTemplate.subject
-    ) {
-        emailSubject = emailTemplate.subject;
-    }
-    const template = await Handlebars.compile(emailContent);
-    const subject = await Handlebars.compile(emailSubject);
-    return { template, subject };
-};
+        return { user, pass, host, port, from, secure };
+    },
 
-const getSmtpSettings = async () => {
-    const document = await GlobalConfigService.findOneBy({ name: 'smtp' });
-    if (document) {
-        return {
-            user: document.email,
-            pass: document.password,
-            host: document['smtp-server'],
-            port: document['smtp-port'],
-            from: document['from-name'],
-            secure: document['smtp-secure'],
-        };
-    }
+    createMailer: async function({ host, port, user, pass, secure }) {
+        if (!arguments[0]) {
+            const settings = await _this.getSmtpSettings();
+            host = settings.host;
+            port = settings.port;
+            user = settings.user;
+            pass = settings.pass;
+            secure = settings.secure;
+        }
 
-    const error = new Error('SMTP settings not found.');
-    ErrorService.log('mailService.getSmtpSettings', error);
-    throw error;
-};
+        const privateMailer = nodemailer.createTransport({
+            host: host,
+            port: port,
+            secure: secure,
+            auth: {
+                user: user,
+                pass: pass,
+            },
+        });
 
-const createMailer = async settings => {
-    const { host, port, user, pass, secure } = settings || getSmtpSettings();
-    const privateMailer = await nodemailer.createTransport({
-        host: host,
-        port: port,
-        secure: secure,
-        auth: {
-            user: user,
-            pass: pass,
-        },
-    });
+        privateMailer.use('compile', hbs(options));
+        return privateMailer;
+    },
 
-    privateMailer.use('compile', hbs(options));
-    return privateMailer;
-};
+    getSmtpSettings: async () => {
+        const document = await GlobalConfigService.findOneBy({ name: 'smtp' });
+        if (document) {
+            return {
+                user: document.email,
+                pass: document.password,
+                host: document['smtp-server'],
+                port: document['smtp-port'],
+                from: document['from-name'],
+                secure: document['smtp-secure'],
+            };
+        }
 
-module.exports = {
+        const error = new Error('SMTP settings not found.');
+        ErrorService.log('mailService.getSmtpSettings', error);
+        throw error;
+    },
+
+    getTemplates: async (emailTemplate, emailType) => {
+        const defaultTemplate = defaultEmailTemplates.filter(
+            template => template.emailType === emailType
+        );
+        let emailContent = defaultTemplate[0].body;
+        let emailSubject = defaultTemplate[0].subject;
+
+        if (
+            emailTemplate != null &&
+            emailTemplate != undefined &&
+            emailTemplate.body
+        ) {
+            emailContent = emailTemplate.body;
+        }
+        if (
+            emailTemplate != null &&
+            emailTemplate != undefined &&
+            emailTemplate.subject
+        ) {
+            emailSubject = emailTemplate.subject;
+        }
+        const template = Handlebars.compile(emailContent);
+        const subject = Handlebars.compile(emailSubject);
+        return { template, subject };
+    },
     // Description: Mails to user if they have successfully signed up.
     // Params:
     // Param 1: userEmail: Email of user
@@ -110,7 +150,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
 
             await EmailStatusService.create({
@@ -159,7 +199,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -204,7 +244,7 @@ module.exports = {
                 });
                 return;
             }
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -250,7 +290,7 @@ module.exports = {
                 });
                 return;
             }
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -298,7 +338,7 @@ module.exports = {
                     });
                     return;
                 }
-                const mailer = createMailer();
+                const mailer = await _this.createMailer();
                 const info = await mailer.sendMail(mailOptions);
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -366,7 +406,7 @@ module.exports = {
                         });
                         return;
                     }
-                    const mailer = createMailer();
+                    const mailer = await _this.createMailer();
                     const info = await mailer.sendMail(mailOptions);
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -422,7 +462,7 @@ module.exports = {
                 });
                 return;
             }
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -473,7 +513,7 @@ module.exports = {
                 });
                 return;
             }
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -530,7 +570,7 @@ module.exports = {
                 });
                 return;
             }
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -585,7 +625,7 @@ module.exports = {
                 });
                 return;
             }
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -640,7 +680,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -696,7 +736,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -748,7 +788,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -803,7 +843,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -856,7 +896,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -912,7 +952,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -994,7 +1034,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1037,7 +1077,7 @@ module.exports = {
     ) {
         let mailOptions = {};
         try {
-            let { template, subject } = await getTemplates(
+            let { template, subject } = await _this.getTemplates(
                 emailTemplate,
                 'Subscriber Incident Created'
             );
@@ -1053,8 +1093,10 @@ module.exports = {
             };
             template = template(data);
             subject = subject(data);
-            const smtpSettings = await getSmtpSettings();
-            const privateMailer = await createMailer(smtpSettings);
+            const smtpSettings = await _this.getProjectSmtpSettings(
+                incident.projectId
+            );
+            const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
@@ -1119,7 +1161,7 @@ module.exports = {
     ) {
         let mailOptions = {};
         try {
-            let { template, subject } = await getTemplates(
+            let { template, subject } = await _this.getTemplates(
                 emailTemplate,
                 'Subscriber Incident Acknowldeged'
             );
@@ -1135,8 +1177,10 @@ module.exports = {
             };
             template = template(data);
             subject = subject(data);
-            const smtpSettings = await getSmtpSettings();
-            const privateMailer = await createMailer(smtpSettings);
+            const smtpSettings = await _this.getProjectSmtpSettings(
+                incident.projectId
+            );
+            const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
@@ -1201,7 +1245,7 @@ module.exports = {
     ) {
         let mailOptions = {};
         try {
-            let { template, subject } = await getTemplates(
+            let { template, subject } = await _this.getTemplates(
                 emailTemplate,
                 'Subscriber Incident Resolved'
             );
@@ -1217,8 +1261,10 @@ module.exports = {
             };
             template = template(data);
             subject = subject(data);
-            const smtpSettings = await getSmtpSettings();
-            const privateMailer = await createMailer();
+            const smtpSettings = await _this.getProjectSmtpSettings(
+                incident.projectId
+            );
+            const privateMailer = await _this.createMailer();
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
@@ -1267,7 +1313,7 @@ module.exports = {
     testSmtpConfig: async function(data) {
         let mailOptions = {};
         try {
-            const privateMailer = await createMailer(data);
+            const privateMailer = await _this.createMailer(data);
             mailOptions = {
                 from: '"Fyipe " <' + data.from + '>',
                 to: data.email,
@@ -1349,7 +1395,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1397,7 +1443,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1445,7 +1491,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1500,7 +1546,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1544,6 +1590,7 @@ module.exports = {
                     dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
+
             if (!EMAIL_ENABLED) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1555,7 +1602,7 @@ module.exports = {
                 return;
             }
 
-            const mailer = createMailer();
+            const mailer = await _this.createMailer();
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -1578,3 +1625,5 @@ module.exports = {
         }
     },
 };
+
+module.exports = _this;

@@ -24,26 +24,26 @@ const AlertService = require('./alertService');
 const CallEnabled = process.env['CALL_ENABLED'] === 'true';
 const SMSEnabled = process.env['SMS_ENABLED'] === 'true';
 
-const getTwilioSettings = async () => {
-    const document = await GlobalConfigService.findOneBy({ name: 'twilio' });
-    if (document) {
-        return {
-            accountSid: document['account-sid'],
-            authToken: document['authentication-token'],
-            phoneNumber: document['phone'],
-        };
-    }
+const _this = {
+    getClient: (accountSid, authToken) => {
+        return twilio(accountSid, authToken);
+    },
+    getSettings: async () => {
+        const document = await GlobalConfigService.findOneBy({
+            name: 'twilio',
+        });
+        if (document) {
+            return {
+                accountSid: document['account-sid'],
+                authToken: document['authentication-token'],
+                phoneNumber: document['phone'],
+            };
+        }
 
-    const error = new Error('Twilio settings not found.');
-    ErrorService.log('twillioService.getTwilioSettings', error);
-    throw error;
-};
-
-const dynamicClient = (accountSid, authToken) => {
-    return twilio(accountSid, authToken);
-};
-
-module.exports = {
+        const error = new Error('Twilio settings not found.');
+        ErrorService.log('twillioService.getSettings', error);
+        throw error;
+    },
     sendResponseMessage: async function(to, body) {
         try {
             const options = {
@@ -152,13 +152,16 @@ module.exports = {
                 incidentType: incident.incidentType,
             };
             template = template(data);
-            const creds = await getTwilioSettings();
+            const creds = await _this.getSettings();
             const options = {
                 body: template,
                 from: creds.phoneNumber,
                 to: number,
             };
-            const newClient = dynamicClient(creds.accountSid, creds.authToken);
+            const newClient = _this.getClient(
+                creds.accountSid,
+                creds.authToken
+            );
             let alertLimit = true;
             if (twilioCredentials.accountSid === creds.accountSid) {
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
@@ -209,13 +212,16 @@ module.exports = {
                 incidentType: incident.incidentType,
             };
             template = template(data);
-            const creds = await getTwilioSettings();
+            const creds = await _this.getSettings();
             const options = {
                 body: template,
                 from: creds.phoneNumber,
                 to: number,
             };
-            const newClient = dynamicClient(creds.accountSid, creds.authToken);
+            const newClient = _this.getClient(
+                creds.accountSid,
+                creds.authToken
+            );
             let alertLimit = true;
             if (twilioCredentials.accountSid === creds.accountSid) {
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
@@ -266,13 +272,16 @@ module.exports = {
                 incidentType: incident.incidentType,
             };
             template = template(data);
-            const creds = await getTwilioSettings();
+            const creds = await _this.getSettings();
             const options = {
                 body: template,
                 from: creds.phoneNumber,
                 to: number,
             };
-            const newClient = dynamicClient(creds.accountSid, creds.authToken);
+            const newClient = _this.getClient(
+                creds.accountSid,
+                creds.authToken
+            );
             let alertLimit = true;
             if (twilioCredentials.accountSid === creds.accountSid) {
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
@@ -311,7 +320,7 @@ module.exports = {
                 to: twilioCredentials.testphoneNumber,
             };
 
-            const newClient = dynamicClient(data.accountSid, data.authToken);
+            const newClient = _this.getClient(data.accountSid, data.authToken);
 
             const message = await newClient.messages.create(options);
 
@@ -490,3 +499,5 @@ module.exports = {
         }
     },
 };
+
+module.exports = _this;
