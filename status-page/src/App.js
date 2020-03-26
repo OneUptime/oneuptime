@@ -28,7 +28,11 @@ const App = () => (
             <Switch>
                 <Route exact path="/" component={Main} />
                 <Route exact path="/status-page" component={Main} />
-                <Route exact path="/status-page/:statusPageId" component={Main} />
+                <Route
+                    exact
+                    path="/status-page/:statusPageId"
+                    component={Main}
+                />
                 <Redirect to="/" />
             </Switch>
         </Router>

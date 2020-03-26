@@ -88,8 +88,11 @@ class Main extends Component {
 
         let statusPageId, url;
 
-        if(window.location.pathname.includes("/status-page/") && window.location.pathname.split("/").length >= 3){
-            statusPageId = window.location.pathname.split("/")[2];
+        if (
+            window.location.pathname.includes('/status-page/') &&
+            window.location.pathname.split('/').length >= 3
+        ) {
+            statusPageId = window.location.pathname.split('/')[2];
             url = 'null';
         } else if (
             window.location.href.indexOf('localhost') > -1 ||

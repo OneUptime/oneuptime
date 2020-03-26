@@ -208,7 +208,8 @@ export const groups = [
                     },
                     {
                         title: 'Integrations',
-                        path: '/dashboard/project/:projectId/settings/integrations',
+                        path:
+                            '/dashboard/project/:projectId/settings/integrations',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],

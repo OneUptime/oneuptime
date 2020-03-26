@@ -3,4 +3,5 @@ module.exports = {
     probeName: process.env['PROBE_NAME'] || 'US East',
     probeKey:
         process.env['PROBE_KEY'] || '33b674ca-9fdd-11e9-a2a3-2a2ae2dbcce4',
+    clusterKey: process.env['CLUSTER_KEY'],
 };

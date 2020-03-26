@@ -10,12 +10,12 @@ spec:
   {{- if .Values.fyipe.tls.enabled }} 
   tls:
     - hosts:
-      - {{ .Values.fyipe.tls.host }} 
+      - {{ .Values.fyipe.host }} 
       secretName: {{ printf "%s-%s" .Release.Name "secret"  }}
   {{- end }}
   rules:
     {{- if .Values.fyipe.tls.enabled }} 
-    - host: {{ .Values.fyipe.tls.host }} 
+    - host: {{ .Values.fyipe.host }} 
       http:
     {{- else }}
     - http:
@@ -83,10 +83,10 @@ metadata:
 spec:
   tls:
     - hosts:
-      - {{ .Values.fyipe.tls.host }} 
+      - {{ .Values.fyipe.host }} 
       secretName: {{ printf "%s-%s" .Release.Name "secret"  }}
   rules:
-    - host: {{ printf "%s.%s" "status-page" .Values.fyipe.tls.host }} 
+    - host: {{ printf "%s.%s" "status-page" .Values.fyipe.host }} 
       http:
         paths:
           - path: /

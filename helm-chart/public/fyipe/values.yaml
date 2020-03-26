@@ -7,15 +7,15 @@ saas:
 
 ###################################################################################
 fyipe:
+  host: 
   tls:
     enabled:
     crt: 
     key:  
-    host:
   emailEnabled: true
   callEnabled: true
   smsEnabled: true
-  clusterKey: testclusterkey
+  clusterKey: {{ randAlphaNum 10 | quote }}
   licenseUrl: https://fyipe.com/license
 
 host: 

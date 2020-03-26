@@ -6,7 +6,7 @@
 const ProbeService = require('../services/probeService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ErrorService = require('../services/errorService');
-
+const CLUSTER_KEY = process.env.CLUSTER_KEY;
 module.exports = {
     isAuthorizedProbe: async function(req, res, next) {
         try {
@@ -45,18 +45,30 @@ module.exports = {
                     message: 'Probe Name not found.',
                 });
             }
-            const probe = await ProbeService.findOneBy({ probeKey, probeName });
-            if (probe) {
-                req.probe = {};
-                req.probe.id = probe._id;
-                await ProbeService.updateProbeStatus(probe._id);
-                next();
-            } else {
+
+            const clusterKey = req.headers['clusterKey'];
+
+            let probe = await ProbeService.findOneBy({ probeKey, probeName });
+
+            if (!probe && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Probe key and probe name do not match.',
                 });
             }
+
+            if (!probe) {
+                //create a new probe.
+                probe = await ProbeService.create({
+                    probeKey,
+                    probeName,
+                });
+            }
+
+            req.probe = {};
+            req.probe.id = probe._id;
+            await ProbeService.updateProbeStatus(probe._id);
+            next();
         } catch (error) {
             ErrorService.log('probeAuthorization.isAuthorizedProbe', error);
             throw error;
