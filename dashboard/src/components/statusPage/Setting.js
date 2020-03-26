@@ -17,7 +17,7 @@ import PropTypes from 'prop-types';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, IS_LOCALHOST, IS_SAAS_SERVICE } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -51,7 +51,7 @@ export class Setting extends Component {
     render() {
         let statusPageId = '';
         let hosted = '';
-        let statusurl = '';
+        let publicStatusPageUrl = '';
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
         if (
@@ -74,13 +74,15 @@ export class Setting extends Component {
         ) {
             statusPageId = this.props.statusPage.status._id;
         }
-        if (window.location.href.indexOf('staging') > -1) {
-            statusurl = `http://${statusPageId}.staging.fyipeapp.com`;
-        } else if (window.location.href.indexOf('localhost') > -1) {
-            statusurl = `http://${statusPageId}.localhost:3006`;
-        } else {
-            statusurl = `http://${statusPageId}.fyipeapp.com`;
+
+        if(IS_LOCALHOST){
+            publicStatusPageUrl = `http://${statusPageId}.localhost:3006`;
+        }else if(IS_SAAS_SERVICE){
+            publicStatusPageUrl = `http://${statusPageId}.fyipeapp.com`;
+        }else{
+            publicStatusPageUrl = window.location.origin + '/status-page/' + statusPageId;
         }
+
         const { handleSubmit, subProjects, currentProject } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
         let subProject =
@@ -138,10 +140,26 @@ export class Setting extends Component {
                                                             placeholder="domain"
                                                         />
                                                         <p className="bs-Fieldset-explanation">
-                                                            <span>
+                                                            {IS_LOCALHOST && <span>
+                                                                If you
+                                                                want to preview
+                                                                your status
+                                                                page. Please
+                                                                check{' '}
+                                                                <a
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    href={
+                                                                        publicStatusPageUrl
+                                                                    }
+                                                                >
+                                                                    {publicStatusPageUrl}{' '}
+                                                                </a>
+                                                            </span>}
+                                                            {IS_SAAS_SERVICE && !IS_LOCALHOST && <span>
                                                                 Add
                                                                 statuspage.fyipeapp.com
-                                                                to your domains
+                                                                to your 
                                                                 CNAME. If you
                                                                 want to preview
                                                                 your status
@@ -151,12 +169,28 @@ export class Setting extends Component {
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     href={
-                                                                        statusurl
+                                                                        publicStatusPageUrl
                                                                     }
                                                                 >
-                                                                    {statusurl}{' '}
+                                                                    {publicStatusPageUrl}{' '}
                                                                 </a>
-                                                            </span>
+                                                            </span>}
+                                                            {!IS_SAAS_SERVICE && !IS_LOCALHOST && <span>
+                                                                If you
+                                                                want to preview
+                                                                your status
+                                                                page. Please
+                                                                check{' '}
+                                                                <a
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    href={
+                                                                        publicStatusPageUrl
+                                                                    }
+                                                                >
+                                                                    {publicStatusPageUrl}{' '}
+                                                                </a>
+                                                            </span>}
                                                         </p>
                                                     </div>
                                                 </div>

@@ -9,14 +9,15 @@ import { emaildomains } from './constants/emaildomains';
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
+let isLocalhost = window &&
+window.location &&
+window.location.host &&
+(window.location.host.includes('localhost:') ||
+    window.location.host.includes('0.0.0.0:') ||
+    window.location.host.includes('127.0.0.1:'));
 
 if (
-    window &&
-    window.location &&
-    window.location.host &&
-    (window.location.host.includes('localhost:') ||
-        window.location.host.includes('0.0.0.0:') ||
-        window.location.host.includes('127.0.0.1:'))
+    isLocalhost
 ) {
     apiUrl = window.location.protocol + '//localhost:3002/api';
     dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
@@ -42,6 +43,8 @@ export const DOMAIN_URL = window.location.origin;
 export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 
 export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
+
+export const IS_LOCALHOST = isLocalhost;
 
 export const User = {
     getAccessToken() {
