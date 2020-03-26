@@ -86,23 +86,27 @@ class Main extends Component {
                 'none transparent';
         }
 
-        let projectId, url;
-        if (
+        let statusPageId, url;
+
+        if(window.location.pathname.includes("/status-page/") && window.location.pathname.split("/").length >= 3){
+            statusPageId = window.location.pathname.split("/")[2];
+            url = 'null';
+        } else if (
             window.location.href.indexOf('localhost') > -1 ||
             window.location.href.indexOf('fyipeapp.com') > 0
         ) {
-            projectId = window.location.host.split('.')[0];
+            statusPageId = window.location.host.split('.')[0];
             url = 'null';
         } else {
-            projectId = 'null';
+            statusPageId = 'null';
             url = window.location.host;
         }
 
-        this.props.getProbes(projectId, 0, 10).then(() => {
+        this.props.getProbes(statusPageId, 0, 10).then(() => {
             this.selectbutton(this.props.activeProbe);
         });
 
-        this.props.getStatusPage(projectId, url).catch(err => {
+        this.props.getStatusPage(statusPageId, url).catch(err => {
             if (err.message === 'Request failed with status code 401') {
                 const { loginRequired } = this.props.login;
                 if (loginRequired) {
