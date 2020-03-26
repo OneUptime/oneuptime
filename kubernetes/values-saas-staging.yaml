@@ -24,3 +24,4 @@ saas:
       slackToken: xoxp-369430749728-370026359715-370129302482-08f43c6a1306d2e8f4be4b0d8abbdb80
 
 fyipe.clusterKey: f414c23b4cdf4e84a6a66ecfd528eff2
+fyipe.enableStatusPageIngress: true

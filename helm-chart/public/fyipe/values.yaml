@@ -17,6 +17,7 @@ fyipe:
   smsEnabled: true
   clusterKey: {{ randAlphaNum 10 | quote }}
   licenseUrl: https://fyipe.com/license
+  enableStatusPageIngress: false
 
 host: 
   backendPort: 3002

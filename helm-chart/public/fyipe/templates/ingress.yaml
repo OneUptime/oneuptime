@@ -14,7 +14,7 @@ spec:
       secretName: {{ printf "%s-%s" .Release.Name "secret"  }}
   {{- end }}
   rules:
-    {{- if .Values.fyipe.tls.enabled }} 
+    {{- if .Values.fyipe.host }} 
     - host: {{ .Values.fyipe.host }} 
       http:
     {{- else }}
@@ -72,7 +72,7 @@ spec:
 ##########################################################################
 
 ############----STATUS-PAGE-INGRESS--#####################################
-{{- if .Values.fyipe.tls.enabled }} 
+{{- if .Values.fyipe.enableStatusPageIngress }} 
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -81,10 +81,12 @@ metadata:
     ingress.kubernetes.io/ssl-redirect: "true"
   name: {{ printf "%s-%s" .Release.Name "status-page-ingress"  }}
 spec:
+  {{- if .Values.fyipe.tls.enabled }} 
   tls:
     - hosts:
       - {{ .Values.fyipe.host }} 
       secretName: {{ printf "%s-%s" .Release.Name "secret"  }}
+  {{- end }}
   rules:
     - host: {{ printf "%s.%s" "status-page" .Values.fyipe.host }} 
       http:
