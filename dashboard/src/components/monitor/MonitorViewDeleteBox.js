@@ -28,7 +28,7 @@ export class MonitorViewDeleteBox extends Component {
             projectId
         );
         history.push(
-            `/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring`
+            `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring`
         );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('Monitor Deleted', {

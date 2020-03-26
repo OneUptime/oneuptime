@@ -37,7 +37,7 @@ export class DeleteScheduleBox extends Component {
                             scheduleId,
                         });
                     }
-                    history.push(`/project/${projectId}/on-call`);
+                    history.push(`/dashboard/project/${projectId}/on-call`);
                 });
             },
             content: DeleteScheduleModal,

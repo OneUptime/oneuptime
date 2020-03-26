@@ -8,7 +8,7 @@ function Row(props) {
     const { projectId } = props.match.params;
     const { subProjectId } = props;
 
-    const path = `/project/${projectId}/sub-project/${subProjectId}/schedule/${props.id}`;
+    const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/schedule/${props.id}`;
 
     return (
         <tr

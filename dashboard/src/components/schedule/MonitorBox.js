@@ -92,7 +92,7 @@ export function MonitorBox(props) {
                                                         this schedule.{' '}
                                                     </span>
                                                     <Link
-                                                        to={`/project/${props.projectId}/monitoring`}
+                                                        to={`/dashboard/project/${props.projectId}/monitoring`}
                                                     >
                                                         <span className="Text-fontWeight--medium">
                                                             Please add one to

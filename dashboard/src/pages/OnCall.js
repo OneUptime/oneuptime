@@ -83,7 +83,7 @@ export class OnCall extends Component {
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
             history.push(
-                `/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`
+                `/dashboard/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`
             );
         });
         if (SHOULD_LOG_ANALYTICS) {

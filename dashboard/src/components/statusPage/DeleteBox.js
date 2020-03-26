@@ -32,7 +32,7 @@ export class DeleteStatusPageBox extends Component {
                             scheduleId,
                         });
                     }
-                    history.push(`/project/${projectId}/status-pages`);
+                    history.push(`/dashboard/project/${projectId}/status-pages`);
                 });
             },
             content: DeleteStatusPageModal,

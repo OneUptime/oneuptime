@@ -224,10 +224,10 @@ export function switchProject(dispatch, project) {
     const currentProjectId = User.getCurrentProjectId();
     const historyProjectId = history.location.pathname.split('project')[1];
     if (!currentProjectId || project._id !== currentProjectId) {
-        history.push(`/project/${project._id}/components`);
+        history.push(`/dashboard/project/${project._id}/components`);
         User.setCurrentProjectId(project._id);
     } else if (historyProjectId && historyProjectId === '/') {
-        history.push(`/project/${project._id}/components`);
+        history.push(`/dashboard/project/${project._id}/components`);
     }
 
     dispatch(resetSubProjects());
