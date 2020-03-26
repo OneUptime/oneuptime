@@ -15,7 +15,7 @@ fyipe:
   emailEnabled: true
   callEnabled: true
   smsEnabled: true
-  clusterKey: test-cluster-key
+  clusterKey: testclusterkey
   licenseUrl: https://fyipe.com/license
 
 host: 
