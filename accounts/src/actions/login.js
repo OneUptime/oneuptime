@@ -27,7 +27,6 @@ export function loginError(error) {
 export function loginSuccess(user) {
     //save user session details.
     if (!user.id) {
-        User.setEmail(user.email);
         return {
             type: types.LOGIN_SUCCESS,
             payload: user,
@@ -40,29 +39,20 @@ export function loginSuccess(user) {
         const newURL = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
         return (window.location = newURL);
     }
-    User.setUserId(user.id);
-    User.setAccessToken(user.tokens.jwtAccessToken);
-    User.setEmail(user.email);
-    User.setName(user.name);
-    User.setCardRegistered(user.cardRegistered);
 
     //share localStorage with dashboard app
-    let cookies = new Cookies();
-    let userData = user;
-    cookies.set('data', userData, {
+    const cookies = new Cookies();
+    cookies.set('data', user, {
         path: '/',
-        maxAge: 30,
-        domain: window.location.host,
+        maxAge: 8640000,
     });
 
     if (user.role === 'master-admin') {
         //share localStorage with admin dashboard app
-        cookies = new Cookies();
-        userData = user;
-        cookies.set('admin-data', userData, {
+        const cookies = new Cookies();
+        cookies.set('admin-data', user, {
             path: '/',
-            maxAge: 30,
-            domain: window.location.host,
+            maxAge: 8640000,
         });
     }
 

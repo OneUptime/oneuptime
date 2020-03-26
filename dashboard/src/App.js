@@ -8,7 +8,7 @@ import './components/Dashboard';
 import BackboneModals from './containers/BackboneModals';
 import Socket from './components/basic/Socket';
 import ReactGA from 'react-ga';
-import { User, ACCOUNTS_URL, DOMAIN_URL } from './config';
+import { User, ACCOUNTS_URL } from './config';
 import Cookies from 'universal-cookie';
 import 'font-awesome/css/font-awesome.min.css';
 import { loadPage } from './actions/page';
@@ -23,8 +23,8 @@ if (!isServer) {
 }
 
 const cookies = new Cookies();
-
 const userData = cookies.get('data');
+
 if (userData !== undefined) {
     User.setUserId(userData.id);
     User.setAccessToken(userData.tokens.jwtAccessToken);
@@ -41,18 +41,18 @@ if (userData !== undefined) {
         });
         logEvent('Logged in successfully', { id: userData.id });
     }
-}
-cookies.remove('data', { domain: DOMAIN_URL });
-
-if (!User.isLoggedIn()) {
+} else {
     window.location = ACCOUNTS_URL + '/login';
     store.dispatch(loadPage('Home'));
-} else {
+}
+
+if (User.isLoggedIn()) {
     const id = User.getUserId();
     if (SHOULD_LOG_ANALYTICS) {
         setUserId(id);
     }
 }
+
 const App = () => (
     <div style={{ height: '100%' }}>
         <Socket />
