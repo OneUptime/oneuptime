@@ -1,12 +1,7 @@
 'use strict';
 
 const cacheName = 'Fyipe';
-const filesToCache = [
-    '/',
-    '/assets/css/dashboard.css',
-    '/assets/css/newdashboard.css',
-    '/assets/css/sail.css',
-];
+const filesToCache = [];
 
 self.addEventListener('install', function(event) {
     self.skipWaiting();

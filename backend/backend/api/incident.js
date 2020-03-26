@@ -10,7 +10,6 @@ const IncidentService = require('../services/incidentService');
 const IncidentTimelineService = require('../services/incidentTimelineService');
 const MonitorStatusService = require('../services/monitorStatusService');
 const RealTimeService = require('../services/realTimeService');
-const DashboardUrl = process.env.DASHBOARD_HOST;
 const router = express.Router();
 
 const { isAuthorized } = require('../middlewares/authorization');
@@ -430,7 +429,7 @@ router.get(
                 title_message: 'Incident Resolved',
                 body_message: 'Your incident is now resolved.',
                 action: 'resolve',
-                dashboard_url: DashboardUrl,
+                dashboard_url: global.dashboardHost + '/dashboard',
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -461,7 +460,7 @@ router.get(
                 title_message: 'Incident Acknowledged',
                 body_message: 'Your incident is now acknowledged',
                 action: 'acknowledge',
-                dashboard_url: DashboardUrl,
+                dashboard_url: global.dashboardHost + '/dashboard',
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);

@@ -14,7 +14,7 @@ import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
 import { logEvent } from '../../analytics';
-import { IS_DEV, env } from '../../config';
+import { SHOULD_LOG_ANALYTICS, env } from '../../config';
 
 class NotificationMenu extends Component {
     state = {
@@ -23,7 +23,7 @@ class NotificationMenu extends Component {
 
     markAllAsRead(projectId) {
         this.props.markAllAsRead(projectId);
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Notification Marked All As Read', {
                 projectId: projectId,
             });
@@ -32,7 +32,7 @@ class NotificationMenu extends Component {
 
     markAsRead(notification) {
         this.props.markAsRead(notification.projectId, notification._id);
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Notification Marked As Read', {
                 projectId: notification.projectId,
                 notificationId: notification._id,

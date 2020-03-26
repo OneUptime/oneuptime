@@ -14,8 +14,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap">
   <script src="/js/amplitude.js"></script>
   <script>
-    var IS_DEV = false;
-    if (!IS_DEV) {
+    var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+    if (IS_SAAS_SERVICE) {
       amplitude.getInstance().logEvent('Contact us page viewed');
     }
   </script>
@@ -86,7 +86,7 @@
           <section>
             <h3 class="common-BodyTitle">Join us on Slack</h3>
             <p class="common-BodyText">If you have technical questions, chat live with developers on our Slack Group.
-              <br /><a href='https://slack.fyipe.com' class='common-Link '>Send me an invite to join.</a>
+              <br /><a href='/slack' class='common-Link '>Send me an invite to join.</a>
           </section>
           <section>
             <h3 class="common-BodyTitle">General communication</h3>

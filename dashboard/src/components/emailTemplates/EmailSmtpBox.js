@@ -17,7 +17,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class EmailSmtpBox extends Component {
     constructor(props) {
@@ -100,7 +100,7 @@ export class EmailSmtpBox extends Component {
                 values
             );
         }
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Changed smtp configuration', {});
         }
     };

@@ -17,7 +17,7 @@ import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class PrivateStatusPage extends Component {
     constructor(props) {
@@ -43,7 +43,7 @@ export class PrivateStatusPage extends Component {
             .then(() => {
                 this.props.fetchProjectStatusPage(projectId, true);
             });
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Private StatusPage Updated', values);
         }
     };

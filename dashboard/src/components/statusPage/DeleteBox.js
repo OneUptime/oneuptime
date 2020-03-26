@@ -10,7 +10,7 @@ import { deleteStatusPage } from '../../actions/statusPage';
 import DeleteStatusPageModal from './DeleteStatusPageModal';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class DeleteStatusPageBox extends Component {
     constructor(props) {
@@ -26,7 +26,7 @@ export class DeleteStatusPageBox extends Component {
             id: deleteModalId,
             onConfirm: () => {
                 return deleteStatusPage(subProjectId, scheduleId).then(() => {
-                    if (!IS_DEV) {
+                    if (SHOULD_LOG_ANALYTICS) {
                         logEvent('Status Page Deleted', {
                             subProjectId,
                             scheduleId,

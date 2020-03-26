@@ -7,7 +7,7 @@ import SmsTemplatesBox from '../components/smsTemplates/SmsTemplatesBox';
 import SmsSmtpBox from '../components/smsTemplates/SmsSmtpBox';
 import { getSmsTemplates, getSmtpConfig } from '../actions/smsTemplates';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class SmsTemplates extends Component {
     constructor(props) {
@@ -21,7 +21,7 @@ class SmsTemplates extends Component {
     };
 
     componentDidMount() {
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('SmsTemplates page Loaded');
         }
     }

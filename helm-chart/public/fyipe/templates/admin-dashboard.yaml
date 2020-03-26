@@ -1,0 +1,50 @@
+############-ADMIN-DASHBOARD-#########
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+    replicas: {{ .Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "admin-dashboard" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                    {{- if .Values.saas.isSaasService }}
+                    - name: IS_SAAS_SERVICE
+                      value: 'true'
+                    {{- else }}
+                    - name: LICENSE_URL
+                      value: {{ .Values.fyipe.licenseUrl }}
+                    {{- end }}
+                  ports:
+                      - containerPort: {{ .Values.host.adminDashboardPort }}
+                        hostPort: {{ .Values.host.adminDashboardPort }}
+                        name: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+    name: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+spec:
+    ports:
+        - port: {{ .Values.host.adminDashboardServicePort }}
+          targetPort: {{ .Values.host.adminDashboardPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+    type: {{ .Values.service.type }}
+---
+##################################

@@ -50,7 +50,7 @@ function IncidentDescription(props) {
                                                 <span className="value">
                                                     <Link
                                                         to={
-                                                            '/project/' +
+                                                            '/dashboard/project/' +
                                                             props.projectId +
                                                             '/monitors/' +
                                                             props.incident

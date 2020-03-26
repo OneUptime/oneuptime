@@ -176,7 +176,7 @@ class CreateIncident extends Component {
                                                         onClick={() => {
                                                             closeThisDialog();
                                                             history.push(
-                                                                '/project/' +
+                                                                '/dashboard/project/' +
                                                                     this.props
                                                                         .currentProject
                                                                         ._id +

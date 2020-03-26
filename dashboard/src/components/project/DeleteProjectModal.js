@@ -12,7 +12,7 @@ import {
 import { history } from '../../store';
 import DeleteRequestModal from './DeleteRequesModal';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class DeleteProjectModal extends Component {
     constructor(props) {
@@ -31,7 +31,7 @@ export class DeleteProjectModal extends Component {
         deleteProject(projectId, values.feedback).then(() => {
             this.closeNotice();
         });
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Project Marked for Deleted', { projectId });
         }
     }

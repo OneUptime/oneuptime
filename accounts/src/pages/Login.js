@@ -7,7 +7,7 @@ import LoginForm from '../components/auth/LoginForm';
 import { loginUser, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
 import { identify, setUserId, logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import { history } from '../store';
 
 class LoginPage extends React.Component {
@@ -24,7 +24,7 @@ class LoginPage extends React.Component {
     submitHandler = values => {
         this.props.loginUser(values).then(user => {
             if (user && user.data && user.data.id) {
-                if (!IS_DEV) {
+                if (SHOULD_LOG_ANALYTICS) {
                     identify(user.data.id);
                     setUserId(user.data.id);
                     logEvent('Log in user', { id: user.data.id });
@@ -63,7 +63,9 @@ class LoginPage extends React.Component {
                             <div className="below-box">
                                 <p>
                                     Click{' '}
-                                    <Link to="/user-verify/resend">here</Link>{' '}
+                                    <Link to="/accounts/user-verify/resend">
+                                        here
+                                    </Link>{' '}
                                     to resend verification link to your email.
                                 </p>
                             </div>
@@ -78,7 +80,7 @@ class LoginPage extends React.Component {
                     <div id="signUpLink" className="below-box">
                         <p>
                             Don&#39;t have an account?{' '}
-                            <Link to="/register">Sign up</Link>.
+                            <Link to="/accounts/register">Sign up</Link>.
                         </p>
                     </div>
                 )}
@@ -88,7 +90,9 @@ class LoginPage extends React.Component {
                 <div id="bottom">
                     <ul>
                         <li>
-                            <Link to="/forgot-password">Forgot Password</Link>
+                            <Link to="/accounts/forgot-password">
+                                Forgot Password
+                            </Link>
                         </li>
                         <li>
                             <a href="http://fyipe.com/legal/privacy">

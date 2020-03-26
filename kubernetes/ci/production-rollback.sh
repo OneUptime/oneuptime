@@ -30,6 +30,8 @@ function check {
         rollback probe
         rollback admin-dashboard
         rollback licensing
+        rollback helm-chart
+        rollback slack
         exit 1
     else
         echo "$1 Deployment successful"
@@ -49,3 +51,4 @@ check server-monitor
 check licensing
 check init-script
 check slack
+check helm-chart

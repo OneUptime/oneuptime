@@ -1,0 +1,53 @@
+############-----ACCOUNTS----#############################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    replicas: {{ .Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "accounts" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                      {{- if .Values.saas.isSaasService }}
+                      - name: STRIPE_PUBLIC_KEY
+                        value: {{ .Values.saas.stripe.publicKey }}
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: AMPLITUDE_PUBLIC_KEY
+                        value: {{ .Values.saas.amplitude.key }}
+                      {{- end }}
+                  ports:
+                      - containerPort: {{ .Values.host.accountsPort }}
+                        hostPort: {{ .Values.host.accountsPort }}
+                        name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+
+---
+# Fyipe Accounts Service
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+spec:
+    ports:
+        - port: {{ .Values.host.accountsServicePort }}
+          targetPort: {{ .Values.host.accountsPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    type: {{ .Values.service.type }}
+---
+###########################################

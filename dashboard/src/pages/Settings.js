@@ -11,12 +11,12 @@ import RenderIfOwner from '../components/basic/RenderIfOwner';
 import ExitProject from '../components/settings/ExitProject';
 import { hideDeleteModal } from '../actions/project';
 import PropTypes from 'prop-types';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
 
 class Settings extends Component {
     componentDidMount() {
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Project Settings Page Loaded');
         }
     }

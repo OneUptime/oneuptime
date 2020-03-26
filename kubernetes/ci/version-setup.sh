@@ -20,4 +20,5 @@ version admin-dashboard
 version slack
 version init-script
 version licensing
+version helm-chart
 version .

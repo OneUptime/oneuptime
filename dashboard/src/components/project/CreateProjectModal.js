@@ -7,7 +7,7 @@ import ProjectForm from './ProjectForm';
 import { hideForm, createProject, switchProject } from '../../actions/project';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class CreateProjectModal extends Component {
     constructor(props) {
@@ -16,7 +16,7 @@ export class CreateProjectModal extends Component {
     }
 
     createProject(values) {
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('New Project Created', values);
         }
         const { switchProject, dispatch } = this.props;

@@ -1,6 +1,6 @@
 # This is the staging Kubectl config which is used to run the test cluster in Single Node Kubernetes (microk8s) and also in CI/CD.
 # IMPORTANT: ANY CHANGE TO THIS FILE SHOULD BE ACCOMPANIED WITH CHANGES TO ci-server.yaml, staging.yaml, and production.yaml
-# Images Tagged with localhost:32000 because of https://microk8s.io/docs/working
+# Images Tagged with fyipeproject because of https://microk8s.io/docs/working
 
 ############-----DASHBOARD----#############################
 apiVersion: apps/v1
@@ -20,7 +20,7 @@ spec:
                 app: dashboard
         spec:
             containers:
-                - image: localhost:32000/dashboard:master
+                - image: fyipeproject/dashboard:test
                   name: dashboard
                   imagePullPolicy: Always
                   env:
@@ -81,7 +81,7 @@ spec:
                 app: accounts
         spec:
             containers:
-                - image: localhost:32000/accounts:master
+                - image: fyipeproject/accounts:test
                   name: accounts
                   imagePullPolicy: Always
                   env:
@@ -142,7 +142,7 @@ spec:
                 app: backend
         spec:
             containers:
-                - image: localhost:32000/backend:master
+                - image: fyipeproject/backend:test
                   name: backend
                   imagePullPolicy: Always
                   env:
@@ -202,6 +202,18 @@ spec:
                         value: 'keyenXfDDP4Dutazt'
                       - name: AIRTABLE_BASE_ID
                         value: 'appgek0ngJaHhppeJ'
+                      - name: TWILIO_ACCOUNTSID
+                        value: 'AC0a2295b7745a7ddc57fc73e77f9b72a0'
+                      - name: TWILIO_AUTHTOKEN
+                        value: '09336be1b05ab5b2c1a6870202d9b769'
+                      - name: TWILIO_NUMBER
+                        value: '+14143958232'
+                      - name: TWILIO_ALERT_LIMIT
+                        value: '100'
+                      - name: TWILIO_VERIFICATION_SID
+                        value: 'VA0832f242a8d417136df936f3e12af8c1'
+                      - name: CLUSTER_KEY
+                        value: '94d0e045-a659-4383-8ef9-632e07f6501d'
                   ports:
                       - containerPort: 3002
                         hostPort: 3002
@@ -298,7 +310,7 @@ spec:
                 app: slack
         spec:
             containers:
-                - image: localhost:32000/slack:master
+                - image: fyipeproject/slack:test
                   name: slack
                   imagePullPolicy: Always
                   ports:
@@ -343,7 +355,7 @@ spec:
                 app: home
         spec:
             containers:
-                - image: localhost:32000/home:master
+                - image: fyipeproject/home:test
                   name: home
                   imagePullPolicy: Always
                   env:
@@ -400,7 +412,7 @@ spec:
                 app: api-docs
         spec:
             containers:
-                - image: localhost:32000/api-docs:master
+                - image: fyipeproject/api-docs:test
                   name: api-docs
                   imagePullPolicy: Always
                   env:
@@ -455,7 +467,7 @@ spec:
                 app: status-page
         spec:
             containers:
-                - image: localhost:32000/status-page:master
+                - image: fyipeproject/status-page:test
                   name: status-page
                   imagePullPolicy: Always
                   env:
@@ -511,7 +523,7 @@ spec:
                 app: admin-dashboard
         spec:
             containers:
-                - image: localhost:32000/admin-dashboard:master
+                - image: fyipeproject/admin-dashboard:test
                   name: admin-dashboard
                   imagePullPolicy: Always
                   env:
@@ -557,7 +569,7 @@ spec:
                 app: probe-1
         spec:
             containers:
-                - image: localhost:32000/probe:master
+                - image: fyipeproject/probe:test
                   name: probe-1
                   imagePullPolicy: Always
                   env:
@@ -571,6 +583,8 @@ spec:
                         value: 'EU'
                       - name: PROBE_KEY
                         value: 'test-key'
+                      - name: CLUSTER_KEY
+                        value: '94d0e045-a659-4383-8ef9-632e07f6501d'
                   ports:
                       - containerPort: 3008
                         hostPort: 3008
@@ -613,7 +627,7 @@ spec:
                 app: probe-2
         spec:
             containers:
-                - image: localhost:32000/probe:master
+                - image: fyipeproject/probe:test
                   name: probe-2
                   imagePullPolicy: Always
                   env:
@@ -627,6 +641,8 @@ spec:
                         value: 'US'
                       - name: PROBE_KEY
                         value: 'test-key'
+                      - name: CLUSTER_KEY
+                        value: '94d0e045-a659-4383-8ef9-632e07f6501d'
                   ports:
                       - containerPort: 3008
                         hostPort: 3009
@@ -663,7 +679,7 @@ spec:
         spec:
             containers:
                 - name: init-script
-                  image: localhost:32000/init-script:master
+                  image: fyipeproject/init-script:test
                   imagePullPolicy: Always
                   env:
                       - name: MONGO_URL

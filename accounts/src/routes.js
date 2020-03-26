@@ -83,7 +83,7 @@ export const groups = [
                 subRoutes: [],
                 isPublic: true,
                 visible: true,
-                index: 5,
+                index: 6,
             },
         ],
     },
@@ -96,8 +96,26 @@ const joinFn = (acc = [], curr) => {
 export const allRoutes = groups
     .map(function merge(group) {
         const { routes } = group;
-        const subRoutes = routes.map(route => route.subRoutes).reduce(joinFn);
-        return routes.concat(subRoutes);
+        const newRoutes = [];
+        for (const route of routes) {
+            newRoutes.push(route);
+            const tempRoute = { ...route };
+            tempRoute.path = '/accounts' + route.path;
+            newRoutes.push(tempRoute);
+        }
+        const subRoutes = newRoutes
+            .map(route => {
+                const newSubRoutes = [];
+                for (const subRoute of route.subRoutes) {
+                    newSubRoutes.push(subRoute);
+                    const tempRoute = { ...subRoute };
+                    tempRoute.path = '/accounts' + subRoute.path;
+                    newSubRoutes.push(tempRoute);
+                }
+                return newSubRoutes;
+            })
+            .reduce(joinFn);
+        return newRoutes.concat(subRoutes);
     })
     .reduce(joinFn);
 

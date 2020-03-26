@@ -14,7 +14,7 @@ import ShouldRender from '../basic/ShouldRender';
 import Badge from '../common/Badge';
 import { history } from '../../store';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { IS_SAAS_SERVICE } from '../../config';
 
 export class ComponentDetail extends Component {
     constructor(props) {
@@ -34,7 +34,7 @@ export class ComponentDetail extends Component {
                 : 3,
             3
         );
-        if (!IS_DEV) {
+        if (IS_SAAS_SERVICE) {
             logEvent('Previous Monitor Requested', {
                 ProjectId: this.props.component.projectId._id,
                 componentId: this.props.component._id,
@@ -54,7 +54,7 @@ export class ComponentDetail extends Component {
                 : 3,
             3
         );
-        if (!IS_DEV) {
+        if (IS_SAAS_SERVICE) {
             logEvent('Next Monitor Requested', {
                 ProjectId: this.props.component.projectId._id,
                 componentId: this.props.component._id,
@@ -93,7 +93,7 @@ export class ComponentDetail extends Component {
             this.props.component.projectId;
         const promise = this.props.deleteComponent(componentId, projectId);
         history.push(`/project/${this.props.currentProject._id}/components`);
-        if (!IS_DEV) {
+        if (IS_SAAS_SERVICE) {
             logEvent('Component Deleted', {
                 ProjectId: this.props.currentProject._id,
                 componentId,
@@ -167,7 +167,7 @@ export class ComponentDetail extends Component {
                                 type="button"
                                 onClick={() => {
                                     history.push(
-                                        '/project/' +
+                                        '/dashboard/project/' +
                                             currentProject._id +
                                             '/' +
                                             component._id +

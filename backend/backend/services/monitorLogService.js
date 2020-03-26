@@ -248,7 +248,7 @@ module.exports = {
             const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
             });
-            if (monitor && monitor.projectId._id) {
+            if (monitor && monitor.projectId && monitor.projectId._id) {
                 await RealTimeService.updateMonitorLog(
                     data,
                     monitor.projectId._id

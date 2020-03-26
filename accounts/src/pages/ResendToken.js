@@ -150,7 +150,7 @@ export class ResendTokenForm extends Component {
                     <ul>
                         {!masterAdminExists && !requestingMasterAdmin && (
                             <li>
-                                <Link to="/register">Sign Up</Link>
+                                <Link to="/accounts/register">Sign Up</Link>
                             </li>
                         )}
                         <li>

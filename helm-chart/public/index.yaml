@@ -1,0 +1,41 @@
+apiVersion: v1
+entries:
+  Fyipe:
+  - apiVersion: v2
+    created: "2020-03-24T19:50:13.71358+01:00"
+    dependencies:
+    - name: nginx-ingress-controller
+      repository: https://charts.bitnami.com/bitnami
+      version: 5.3.9
+    - name: mongodb
+      repository: https://charts.bitnami.com/bitnami
+      version: 7.8.10
+    - name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 10.5.11
+    description: One complete DevOps and IT Ops platform.
+    digest: a0ad470b6f3218c6d3bc2499f4d630ed9b915368e843ff5d5ae22a2e46979e9e
+    home: https://fyipe.com
+    icon: https://fyipe.com/img/Fyipe.svg
+    keywords:
+    - DevOps
+    - IT DevOps
+    - IT Ops
+    - Monitoring
+    - Status Page
+    - On-Call
+    - On-Call Management
+    - Incident Management
+    - Performance Monitoring
+    - API Test
+    - Website Monitoring
+    - Website Test
+    maintainers:
+    - email: support@fyipe.com
+      name: Fyipe Support
+      url: https://fyipe.com/support
+    name: Fyipe
+    urls:
+    - Fyipe-3.0.0.tgz
+    version: 3.0.0
+generated: "2020-03-24T19:50:13.691843+01:00"

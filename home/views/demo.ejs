@@ -14,8 +14,8 @@
     <script src="/js/emaildomains.js"></script>
     <script src="/js/amplitude.js"></script>
     <script async>
-        var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
-        if (!IS_DEV) {
+        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (IS_SAAS_SERVICE) {
             amplitude.getInstance().logEvent('Demo page viewed');
         }
     </script>
@@ -1002,8 +1002,8 @@
                     try {
                         var queryString = $('#demoform').serialize();
                         var formData = Object.fromEntries(new URLSearchParams(queryString));
-                        var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
-                        if (!IS_DEV) {
+                        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+                        if (IS_SAAS_SERVICE) {
                             amplitude.getInstance().logEvent('Filling demo form', { data: formData });
                         }
                     } catch { }
@@ -1022,8 +1022,8 @@
             document.getElementById('demoform').addEventListener('click', function () {
                 var queryString = $('#demoform').serialize();
                 var formData = Object.fromEntries(new URLSearchParams(queryString));
-                var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
-                if (!IS_DEV) {
+                var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+                if (IS_SAAS_SERVICE) {
                     amplitude.getInstance().logEvent('Filling demo form', { data: formData });
                 }
             })

@@ -8,7 +8,7 @@ import { bindActionCreators } from 'redux';
 import { RenderField } from '../components/basic/RenderField';
 import { Link } from 'react-router-dom';
 import { identify, setUserId, logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 const errorStyle = { color: '#c23d4b' };
 
@@ -26,7 +26,7 @@ export class VerifyAuthToken extends Component {
     submitForm = values => {
         this.props.verifyAuthToken(values).then(user => {
             if (user && user.data && user.data.id) {
-                if (!IS_DEV) {
+                if (SHOULD_LOG_ANALYTICS) {
                     identify(user.data.id);
                     setUserId(user.data.id);
                     logEvent('Log in user', { id: user.data.id });
@@ -109,14 +109,17 @@ export class VerifyAuthToken extends Component {
                 <div className="below-box">
                     <p>
                         Don&#39;t have your app authenticator?{' '}
-                        <Link to="/user-auth/backup">Use Backup code</Link>.
+                        <Link to="/accounts/user-auth/backup">
+                            Use Backup code
+                        </Link>
+                        .
                     </p>
                 </div>
                 <div id="footer_spacer" />
                 <div id="bottom">
                     <ul>
                         <li>
-                            <Link to="/login">Sign In</Link>
+                            <Link to="/accounts/login">Sign In</Link>
                         </li>
                         <li>
                             <a href="http://fyipe.com/legal/privacy">

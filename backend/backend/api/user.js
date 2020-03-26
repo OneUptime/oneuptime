@@ -18,7 +18,6 @@ const { emaildomains } = require('../config/emaildomains');
 const randToken = require('rand-token');
 const VerificationTokenModel = require('../models/verificationToken');
 const { IS_SAAS_SERVICE } = require('../config/server');
-const { ACCOUNTS_HOST } = process.env;
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
@@ -481,7 +480,7 @@ router.post('/forgot-password', async function(req, res) {
         }
         // Call the UserService.
         const user = await UserService.forgotPassword(data.email);
-        const forgotPasswordURL = `${ACCOUNTS_HOST}/change-password/${user.resetPasswordToken}`;
+        const forgotPasswordURL = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
         // Call the MailService.
         await MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
 
@@ -824,7 +823,7 @@ router.get('/confirmation/:token', async function(req, res) {
             });
             if (!token) {
                 return res.redirect(
-                    ACCOUNTS_HOST +
+                    global.accountsHost +
                         '/user-verify/resend?status=Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq'
                 );
             }
@@ -833,7 +832,7 @@ router.get('/confirmation/:token', async function(req, res) {
             });
             if (!user) {
                 return res.redirect(
-                    ACCOUNTS_HOST +
+                    global.accountsHost +
                         '/register?status=z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk'
                 );
             }
@@ -843,7 +842,7 @@ router.get('/confirmation/:token', async function(req, res) {
                     (user.tempEmail && user.tempEmail === user.email))
             ) {
                 return res.redirect(
-                    ACCOUNTS_HOST +
+                    global.accountsHost +
                         '/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC'
                 );
             }
@@ -859,11 +858,12 @@ router.get('/confirmation/:token', async function(req, res) {
                 $set: dataUpdate,
             });
             return res.redirect(
-                ACCOUNTS_HOST + '/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP'
+                global.accountsHost +
+                    '/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP'
             );
         } else {
             return res.redirect(
-                ACCOUNTS_HOST +
+                global.accountsHost +
                     '/user-verify/resend?status=eG5aFRDeZXgOkjEfdhOYbFb2lA3Z0OJm'
             );
         }

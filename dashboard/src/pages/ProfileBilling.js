@@ -5,7 +5,7 @@ import Dashboard from '../components/Dashboard';
 import Invoice from '../components/invoice/Invoice';
 import PaymentCard from '../components/paymentCard/PaymentCard';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 class ProfileBilling extends Component {
     constructor(props) {
@@ -14,7 +14,7 @@ class ProfileBilling extends Component {
     }
 
     componentDidMount() {
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Profile billing page Loaded');
         }
     }

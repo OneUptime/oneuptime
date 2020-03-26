@@ -27,7 +27,7 @@ import Colors from './Colors';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -89,7 +89,7 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('New Logo Selected');
         }
     };
@@ -108,7 +108,7 @@ export class Branding extends Component {
             return;
         }
 
-        if (!IS_DEV) logEvent('New Banner Selected');
+        if (!SHOULD_LOG_ANALYTICS) logEvent('New Banner Selected');
     };
 
     changefavicon = e => {
@@ -125,7 +125,7 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('New Favicon Selected');
         }
     };
@@ -161,7 +161,8 @@ export class Branding extends Component {
             },
             function() {}
         );
-        if (!IS_DEV) logEvent('Updating status page Branding', values);
+        if (!SHOULD_LOG_ANALYTICS)
+            logEvent('Updating status page Branding', values);
     };
 
     submitForm = values => {
@@ -187,7 +188,7 @@ export class Branding extends Component {
             },
             function() {}
         );
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Changed Logo, Style, Branding', values);
         }
     };

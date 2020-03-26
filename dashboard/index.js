@@ -1,31 +1,44 @@
 const express = require('express');
 const path = require('path');
 const app = express();
-const envfile = require('envfile');
-const fs = require('fs');
 const child_process = require('child_process');
-
-const env = {
-    REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
-    REACT_APP_HOST: process.env.HOST,
-    REACT_APP_ACCOUNTS_HOST: process.env.ACCOUNTS_HOST,
-    REACT_APP_BACKEND_HOST: process.env.BACKEND_HOST,
-    REACT_APP_DOMAIN: process.env.DOMAIN,
-    REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
-    REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
-};
-
-fs.writeFileSync('.env', envfile.stringifySync(env));
 
 child_process.execSync('react-env', {
     stdio: [0, 1, 2],
 });
 
-app.use(express.static(path.join(__dirname, 'build')));
+app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
+    global.host = req.host;
+    global.accountsHost = req.host;
+    global.backendHost = req.host;
+    if (global.host.includes('localhost')) {
+        global.host =
+            req.protocol +
+            '://' +
+            global.host +
+            ':' +
+            (process.env.PORT || 3002);
+        global.accountsHost = req.protocol + '://' + global.host + ':' + 3003;
+        global.homeHost = req.protocol + '://' + global.host + ':' + 1444;
+        global.backendHost = req.protocol + '://' + global.host + ':' + 3002;
+    }
 
-app.get('/env.js', function(req, res) {
-    res.sendFile(path.join(__dirname, 'public', 'env.js'));
+    const env = {
+        REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
+        REACT_APP_HOST: global.host,
+        REACT_APP_ACCOUNTS_HOST: global.accountsHost,
+        REACT_APP_BACKEND_HOST: global.backendHost,
+        REACT_APP_DOMAIN: global.host,
+        REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
+        REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
+    };
+
+    res.contentType('application/javascript');
+    res.send('window._env = ' + JSON.stringify(env));
 });
+
+app.use(express.static(path.join(__dirname, 'build')));
+app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 
 app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));

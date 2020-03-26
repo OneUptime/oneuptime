@@ -15,7 +15,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class Monitors extends Component {
     submitForm = values => {
@@ -42,7 +42,7 @@ export class Monitors extends Component {
                     10
                 );
             });
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Monitors Updated', values);
         }
     };
@@ -193,7 +193,7 @@ export class Monitors extends Component {
                                                 project.{' '}
                                                 <Link
                                                     to={
-                                                        '/project/' +
+                                                        '/dashboard/project/' +
                                                         this.props
                                                             .currentProject
                                                             ._id +

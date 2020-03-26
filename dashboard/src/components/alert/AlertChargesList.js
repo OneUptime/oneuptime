@@ -133,7 +133,7 @@ export class AlertChargesList extends Component {
                                                     <div
                                                         onClick={() => {
                                                             history.push(
-                                                                '/project/' +
+                                                                '/dashboard/project/' +
                                                                     projectId +
                                                                     '/monitors/' +
                                                                     alertCharge
@@ -166,7 +166,7 @@ export class AlertChargesList extends Component {
                                                     <div
                                                         onClick={() => {
                                                             history.push(
-                                                                '/project/' +
+                                                                '/dashboard/project/' +
                                                                     projectId +
                                                                     '/incidents/' +
                                                                     alertCharge.incidentId

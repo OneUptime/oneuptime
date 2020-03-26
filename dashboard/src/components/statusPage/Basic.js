@@ -19,7 +19,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -48,7 +48,7 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('New Logo Selected');
         }
     };
@@ -67,7 +67,7 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('New Favicon Selected');
         }
     };
@@ -87,7 +87,7 @@ export class Branding extends Component {
             },
             function() {}
         );
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Changed Logo, Style, Branding', values);
         }
     };

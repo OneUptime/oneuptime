@@ -26,7 +26,7 @@ class Tooltip extends Component {
                 }}
             >
                 <img
-                    src="/assets/img/question.svg"
+                    src="/dashboard/assets/img/question.svg"
                     style={{ height: '18px', width: '18px', cursor: 'pointer' }}
                     alt=""
                     onClick={this.handleClick}

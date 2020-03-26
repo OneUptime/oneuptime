@@ -10,7 +10,7 @@ import Incidents from '../components/reports/Incidents';
 import ResolveTime from '../components/reports/ResolveTime';
 import Select from '../components/basic/react-select-fyipe';
 import { logEvent } from '../analytics';
-import { IS_DEV } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 
 const styles = {
     cardGrid: {
@@ -126,7 +126,7 @@ export class Reports extends Component {
     }
 
     ready = () => {
-        if (!IS_DEV) {
+        if (SHOULD_LOG_ANALYTICS) {
             logEvent('Reports Page Ready, Data Requested');
         }
     };

@@ -254,9 +254,7 @@ module.exports = {
             const _this = this;
             let subProject = null;
             let project = await ProjectService.findOneBy({ _id: projectId });
-            const registerUrl = ACCOUNTS_HOST
-                ? `${ACCOUNTS_HOST}/register`
-                : 'https://accounts.fyipe.com/register';
+            const registerUrl = `${global.accountsHost}/register`;
             if (project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({
@@ -747,4 +745,3 @@ const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
 const ErrorService = require('./errorService');
 const domains = require('../config/domains');
-const { ACCOUNTS_HOST } = process.env;

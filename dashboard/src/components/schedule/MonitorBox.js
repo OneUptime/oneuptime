@@ -12,7 +12,7 @@ import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { logEvent } from '../../analytics';
-import { IS_DEV } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 function submitMonitorForm(values, dispatch, props) {
     const { subProjectId, scheduleId } = props.match.params;
@@ -24,7 +24,7 @@ function submitMonitorForm(values, dispatch, props) {
         }
     }
     props.addMonitors(subProjectId, scheduleId, { monitorIds: monitors });
-    if (!IS_DEV) {
+    if (SHOULD_LOG_ANALYTICS) {
         logEvent('Attached Monitor To Schedule', {
             subProjectId,
             scheduleId,

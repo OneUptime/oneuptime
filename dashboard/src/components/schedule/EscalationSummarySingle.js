@@ -97,7 +97,7 @@ const EscalationSummarySingle = ({
                                     className="Box-root Margin-right--16 pointer"
                                 >
                                     <img
-                                        src="/assets/img/profile-user.svg"
+                                        src="/dashboard/assets/img/profile-user.svg"
                                         key={membersFromList._id}
                                         className="userIcon"
                                         alt=""
@@ -220,7 +220,7 @@ const EscalationSummarySingle = ({
                                             className="Box-root Margin-right--16 pointer"
                                         >
                                             <img
-                                                src="/assets/img/profile-user.svg"
+                                                src="/dashboard/assets/img/profile-user.svg"
                                                 className="userIcon"
                                                 alt=""
                                             />

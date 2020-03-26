@@ -1,0 +1,78 @@
+apiVersion: v1
+entries:
+  mongodb:
+  - apiVersion: v1
+    appVersion: 4.2.4
+    created: "2020-03-24T19:48:37.417066+01:00"
+    description: NoSQL document-oriented database that stores JSON-like documents
+      with dynamic schemas, simplifying the integration of data in content-driven
+      applications.
+    digest: 830154796c9c562df4a6a074729b64e998a90949eb2a0476ab19dd7bd833a6cf
+    home: https://mongodb.org
+    icon: https://bitnami.com/assets/stacks/mongodb/img/mongodb-stack-220x234.png
+    keywords:
+    - mongodb
+    - database
+    - nosql
+    - cluster
+    - replicaset
+    - replication
+    maintainers:
+    - email: containers@bitnami.com
+      name: Bitnami
+    name: mongodb
+    sources:
+    - https://github.com/bitnami/bitnami-docker-mongodb
+    urls:
+    - charts/mongodb-7.8.10.tgz
+    version: 7.8.10
+  nginx-ingress-controller:
+  - apiVersion: v1
+    appVersion: 0.30.0
+    created: "2020-03-24T19:48:37.429516+01:00"
+    description: Chart for the nginx Ingress controller
+    digest: 46529208c77b4f9532ff6e95fb8734feeb4139b0d6bdee1820318ab59172e21d
+    home: https://github.com/kubernetes/ingress-nginx
+    icon: https://bitnami.com/assets/stacks/nginx-ingress-controller/img/nginx-ingress-controller-stack-220x234.png
+    keywords:
+    - ingress
+    - nginx
+    - http
+    - web
+    - www
+    - reverse proxy
+    maintainers:
+    - email: containers@bitnami.com
+      name: Bitnami
+    name: nginx-ingress-controller
+    sources:
+    - https://github.com/bitnami/bitnami-docker-nginx-ingress-controller
+    urls:
+    - charts/nginx-ingress-controller-5.3.9.tgz
+    version: 5.3.9
+  redis:
+  - apiVersion: v1
+    appVersion: 5.0.8
+    created: "2020-03-24T19:48:37.438069+01:00"
+    description: Open source, advanced key-value store. It is often referred to as
+      a data structure server since keys can contain strings, hashes, lists, sets
+      and sorted sets.
+    digest: 4ed66548563014a67cb6f69e1cd252957fb4d98e19412c65f9dd9d7e183dd234
+    home: http://redis.io/
+    icon: https://bitnami.com/assets/stacks/redis/img/redis-stack-220x234.png
+    keywords:
+    - redis
+    - keyvalue
+    - database
+    maintainers:
+    - email: containers@bitnami.com
+      name: Bitnami
+    - email: cedric@desaintmartin.fr
+      name: desaintmartin
+    name: redis
+    sources:
+    - https://github.com/bitnami/bitnami-docker-redis
+    urls:
+    - charts/redis-10.5.11.tgz
+    version: 10.5.11
+generated: "2020-03-24T19:48:37.408206+01:00"
