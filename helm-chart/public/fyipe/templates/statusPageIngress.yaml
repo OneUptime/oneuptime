@@ -1,0 +1,31 @@
+############----STATUS-PAGE-INGRESS--#####################################
+{{- if .Values.statusPage.enableIngress }} 
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/ssl-redirect: "true"
+  name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+spec:
+  {{- if .Values.statusPage.tls.enabled }} 
+  tls:
+    - hosts:
+      - {{ .Values.statusPage.host }} 
+      secretName: {{ printf "%s-%s" .Release.Name "statuspagesecret"  }}
+  {{- end }}
+  rules:
+    {{- if .Values.statusPage.host }} 
+    - host: {{ .Values.statusPage.host }} 
+      http:
+    {{- else }}
+    - http:
+    {{- end }}
+        paths:
+          - path: /
+            backend:
+              serviceName: {{ printf "%s-%s" .Release.Name "status-page"  }}
+              servicePort: 80
+---
+{{- end}}
+##################################

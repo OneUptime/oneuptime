@@ -23,4 +23,11 @@ saas:
     support: 
       slackToken: xoxp-369430749728-370026359715-370129302482-08f43c6a1306d2e8f4be4b0d8abbdb80
 
-enableStatusPageIngress: true
+
+statusPage: 
+  enableIngress: true
+  host: status.flowappplatform.com
+  tls:
+    enabled: false
+    crt: 
+    key: 

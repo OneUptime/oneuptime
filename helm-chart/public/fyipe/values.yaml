@@ -4,19 +4,41 @@
 
 saas: 
   isSaasService: false
+  stripe: 
+    publicKey: 
+    privateKey: 
+  airtable: 
+    key: 
+    baseId: 
+  amplitude: 
+    key: 
+  licensing:
+    airtable: 
+      key: 
+      baseId: 
+    tokenSecret: 
+  support: 
+    slackToken: 
 
-enableStatusPageIngress: false
+statusPage: 
+  enableIngress: false
+  statusPageIngressHost: 
+  tls:
+    enabled: false
+    crt: 
+    key: 
+
 ###################################################################################
 fyipe:
   host: 
   tls:
-    enabled:
+    enabled: false
     crt: 
     key:  
   emailEnabled: true
   callEnabled: true
   smsEnabled: true
-  licenseUrl: https://fyipe.com/license
+  licensingUrl: https://fyipe.com/license
   
 
 host: 

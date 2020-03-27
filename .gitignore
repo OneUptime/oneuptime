@@ -24,7 +24,6 @@ yarn-error.log*
 
 yarn.lock
 Untitled-1
-cleanup.sh
 *.local.sh
 *.local.yaml
 

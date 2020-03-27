@@ -25,7 +25,7 @@ spec:
                       value: 'true'
                     {{- else }}
                     - name: LICENSE_URL
-                      value: {{ .Values.fyipe.licenseUrl }}
+                      value: {{ .Values.fyipe.licensingUrl }}
                     {{- end }}
                     - name: NODE_ENV
                       value: 'production'
