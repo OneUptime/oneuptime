@@ -35,6 +35,8 @@ spec:
                       value: {{ .Values.saas.licensing.airtable.baseId }}
                     - name: TOKEN_SECRET
                       value: {{ .Values.saas.licensing.tokenSecret }}
+                    - name: NODE_ENV
+                      value: 'production'
                   ports:
                       - containerPort: {{ .Values.host.licensingPort }}
                         hostPort: {{ .Values.host.licensingPort }}

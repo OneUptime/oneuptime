@@ -29,6 +29,8 @@ spec:
                   env:
                     - name: SLACK_TOKEN
                       value: {{ .Values.saas.support.slackToken }}
+                    - name: NODE_ENV
+                      value: 'production'
                   ports:
                       - containerPort: {{ .Values.host.slackPort }}
                         hostPort: {{ .Values.host.slackPort }}

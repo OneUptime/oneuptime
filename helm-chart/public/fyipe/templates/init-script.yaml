@@ -13,6 +13,8 @@ spec:
                   env:
                       - name: MONGO_URL
                         value:  {{ template "fyipe.mongodbConnectionString" . }}
+                      - name: NODE_ENV
+                        value: 'production'
             restartPolicy: Never
 ---
 ####################################

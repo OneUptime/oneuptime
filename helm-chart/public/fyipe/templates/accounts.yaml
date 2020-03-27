@@ -28,6 +28,8 @@ spec:
                       - name: AMPLITUDE_PUBLIC_KEY
                         value: {{ .Values.saas.amplitude.key }}
                       {{- end }}
+                      - name: NODE_ENV
+                        value: 'production'
                   ports:
                       - containerPort: {{ .Values.host.accountsPort }}
                         hostPort: {{ .Values.host.accountsPort }}

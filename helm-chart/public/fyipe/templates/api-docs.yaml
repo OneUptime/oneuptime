@@ -30,6 +30,8 @@ spec:
                   env:
                       - name: IS_SAAS_SERVICE
                         value: 'true'
+                      - name: NODE_ENV
+                        value: 'production'
                   ports:
                       - containerPort: {{ .Values.host.apiDocsPort }}
                         hostPort: {{ .Values.host.apiDocsPort }}

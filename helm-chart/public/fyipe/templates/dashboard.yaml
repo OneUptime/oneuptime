@@ -22,6 +22,8 @@ spec:
                   env:
                       - name: DOMAIN
                         value: {{ .Values.domain }}
+                      - name: NODE_ENV
+                        value: 'production'
                       {{- if .Values.saas.isSaasService }}
                       - name: STRIPE_PUBLIC_KEY
                         value: {{ .Values.saas.stripe.publicKey }}
