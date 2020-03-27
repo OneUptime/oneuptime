@@ -45,7 +45,7 @@ TODO
 ## Alternative ways to run the project in development
 - If Docker and Docker compose is not your thing, you can run `npm install` and `npm run dev` on projects you want to work on. Ideally you would need to run those commands in `accounts`, `backend`, `probe`, `dashboard`, and `status-page` in seperate terminal instances to run the basic app.
 
-## Running in on-prem, staging, and production.
+## Running on: on-prem, staging, or production.
 - We run this by using helm charts, please check `README.md` in the `helm-chart` folder.
 
 ## LISENCE
