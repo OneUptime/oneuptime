@@ -406,8 +406,8 @@ desktop_lighthouse_accounts:
   stage: BuildAndTest
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/setup-docker.sh
-    - ./kubernetes/ci/setup-docker.sh
+    - chmod +x ./ci/scripts/setup-docker.sh
+    - ./ci/scripts/setup-docker.sh
     - echo "Setup machine for running lighthouse on accounts pages"
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -436,8 +436,8 @@ mobile_lighthouse_accounts:
   stage: BuildAndTest
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/setup-docker.sh
-    - ./kubernetes/ci/setup-docker.sh
+    - chmod +x ./ci/scripts/setup-docker.sh
+    - ./ci/scripts/setup-docker.sh
     - echo "Setup machine for running lighthouse on accounts pages"
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -544,8 +544,8 @@ desktop_lighthouse_home:
   stage: BuildAndTest
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/setup-docker.sh
-    - ./kubernetes/ci/setup-docker.sh
+    - chmod +x ./ci/scripts/setup-docker.sh
+    - ./ci/scripts/setup-docker.sh
     - echo "Setup machine for running lighthouse on home page"
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -566,8 +566,8 @@ mobile_lighthouse_home:
   stage: BuildAndTest
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/setup-docker.sh
-    - ./kubernetes/ci/setup-docker.sh
+    - chmod +x ./ci/scripts/setup-docker.sh
+    - ./ci/scripts/setup-docker.sh
     - echo "Setup machine for running lighthouse on home page"
     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -729,10 +729,10 @@ build_n_test_licensing:
 # e2e_minikube_test:
 #   stage: E2E
 #   script:
-#     - chmod +x ./kubernetes/ci/setup-machine.sh
-#     - ./kubernetes/ci/setup-machine.sh
-#     - chmod +x ./kubernetes/ci/setup.sh
-#     - ./kubernetes/ci/setup.sh
+#     - chmod +x ./ci/scripts/setup-machine.sh
+#     - ./ci/scripts/setup-machine.sh
+#     - chmod +x ./ci/scripts/setup.sh
+#     - ./ci/scripts/setup.sh
 #     - export HOME_URL=http://home.app.local:1444
 #     - export ACCOUNTS_URL=http://accounts.app.local:3003
 #     - export DASHBOARD_URL=http://dashboard.app.local:3000
@@ -740,8 +740,8 @@ build_n_test_licensing:
 #     - export STATUSPAGE_URL=http://status-page.app.local:3006
 #     - export APIDOCS_URL=http://api-docs.app.local:1445
 #     - export LICENSING_URL=http://licensing.app.local:3004
-#     - chmod +x ./kubernetes/ci/hosts-setup.sh
-#     - ./kubernetes/ci/hosts-setup.sh
+#     - chmod +x ./ci/scripts/hosts-setup.sh
+#     - ./ci/scripts/hosts-setup.sh
 #     - cd smoke-test
 #     - npm ci
 #     # try building, if there are warnings then this will fail
@@ -954,8 +954,8 @@ build_n_test_licensing:
 #   stage: BuildAndTest
 #   allow_failure: true
 #   script:
-#     - chmod +x ./kubernetes/ci/setup-docker.sh
-#     - ./kubernetes/ci/setup-docker.sh
+#     - chmod +x ./ci/scripts/setup-docker.sh
+#     - ./ci/scripts/setup-docker.sh
 #     - echo "Setup machine for running lighthouse on accounts pages"
 #     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
 #     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -984,8 +984,8 @@ build_n_test_licensing:
 #   stage: BuildAndTest
 #   allow_failure: true
 #   script:
-#     - chmod +x ./kubernetes/ci/setup-docker.sh
-#     - ./kubernetes/ci/setup-docker.sh
+#     - chmod +x ./ci/scripts/setup-docker.sh
+#     - ./ci/scripts/setup-docker.sh
 #     - echo "Setup machine for running lighthouse on accounts pages"
 #     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
 #     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -1061,8 +1061,8 @@ build_n_test_licensing:
 #   stage: BuildAndTest
 #   allow_failure: true
 #   script:
-#     - chmod +x ./kubernetes/ci/setup-docker.sh
-#     - ./kubernetes/ci/setup-docker.sh
+#     - chmod +x ./ci/scripts/setup-docker.sh
+#     - ./ci/scripts/setup-docker.sh
 #     - echo "Setup machine for running lighthouse on home page"
 #     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
 #     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -1083,8 +1083,8 @@ build_n_test_licensing:
 #   stage: BuildAndTest
 #   allow_failure: true
 #   script:
-#     - chmod +x ./kubernetes/ci/setup-docker.sh
-#     - ./kubernetes/ci/setup-docker.sh
+#     - chmod +x ./ci/scripts/setup-docker.sh
+#     - ./ci/scripts/setup-docker.sh
 #     - echo "Setup machine for running lighthouse on home page"
 #     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
 #     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -1213,18 +1213,18 @@ e2e_minikube_test:
   stage: E2E
   script:
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - chmod +x ./kubernetes/ci/setup-machine.sh
-    - ./kubernetes/ci/setup-machine.sh
-    - chmod +x ./kubernetes/ci/setup.sh
-    - ./kubernetes/ci/setup.sh
+    - chmod +x ./ci/scripts/setup-machine.sh
+    - ./ci/scripts/setup-machine.sh
+    - chmod +x ./ci/scripts/setup.sh
+    - ./ci/scripts/setup.sh
     - export HOME_URL=http://home.app.local:1444
     - export ACCOUNTS_URL=http://accounts.app.local:3003
     - export DASHBOARD_URL=http://dashboard.app.local:3000
     - export BACKEND_URL=http://backend.app.local:3002
     - export STATUSPAGE_URL=http://status-page.app.local:3006
     - export APIDOCS_URL=http://api-docs.app.local:1445
-    - chmod +x ./kubernetes/ci/hosts-setup.sh
-    - ./kubernetes/ci/hosts-setup.sh
+    - chmod +x ./ci/scripts/hosts-setup.sh
+    - ./ci/scripts/hosts-setup.sh
     - cd smoke-test
     - npm ci
     - npm run test
@@ -1301,8 +1301,8 @@ version_update:
     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
     - sudo apt-get install -y nodejs
     - git checkout $CI_COMMIT_REF_NAME
-    - chmod +x ./kubernetes/ci/version-setup.sh
-    - ./kubernetes/ci/version-setup.sh
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - git add .
     - git commit -m "Version Update 3.0.$CI_PIPELINE_IID [skip ci]"
     - git push origin $CI_COMMIT_REF_NAME
@@ -1318,10 +1318,10 @@ deploy_staging_backend:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Build and deploy backend.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/backend:master ./backend
@@ -1330,8 +1330,8 @@ deploy_staging_backend:
     - sudo docker push fyipeproject/backend:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/backend backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1344,10 +1344,10 @@ deploy_staging_helm-chart:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Install Helm.
     - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
     - cd helm-chart
@@ -1363,8 +1363,8 @@ deploy_staging_helm-chart:
     - sudo docker push fyipeproject/helm-chart:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/helm-chart helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1375,10 +1375,10 @@ deploy_staging_helm-chart:
 deploy_production_helm-chart:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Install Helm.
     - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
     - cd helm-chart
@@ -1394,8 +1394,8 @@ deploy_production_helm-chart:
     - sudo docker push fyipeproject/helm-chart:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/helm-chart helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1406,10 +1406,10 @@ deploy_production_helm-chart:
 deploy_production_backend:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/backend:latest ./backend
     - sudo docker tag fyipeproject/backend:latest fyipeproject/backend:3.0.$CI_PIPELINE_IID
@@ -1417,8 +1417,8 @@ deploy_production_backend:
     - sudo docker push fyipeproject/backend:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/backend backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1431,10 +1431,10 @@ deploy_staging_licensing:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Build and deploy licensing.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/licensing:master ./licensing
@@ -1443,8 +1443,8 @@ deploy_staging_licensing:
     - sudo docker push fyipeproject/licensing:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/licensing licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1455,10 +1455,10 @@ deploy_staging_licensing:
 deploy_production_licensing:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/licensing:latest ./licensing
     - sudo docker tag fyipeproject/licensing:latest fyipeproject/licensing:3.0.$CI_PIPELINE_IID
@@ -1466,8 +1466,8 @@ deploy_production_licensing:
     - sudo docker push fyipeproject/licensing:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/licensing licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1480,10 +1480,10 @@ deploy_staging_api-docs:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Build and deploy api-docs.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/api-docs:master ./api-docs
@@ -1492,8 +1492,8 @@ deploy_staging_api-docs:
     - sudo docker push fyipeproject/api-docs:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/api-docs api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1504,10 +1504,10 @@ deploy_staging_api-docs:
 deploy_production_api-docs:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/api-docs:latest ./api-docs
     - sudo docker tag fyipeproject/api-docs:latest fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
@@ -1515,8 +1515,8 @@ deploy_production_api-docs:
     - sudo docker push fyipeproject/api-docs:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/api-docs api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1529,10 +1529,10 @@ deploy_staging_home:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Build and deploy home.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/home:master ./home
@@ -1541,8 +1541,8 @@ deploy_staging_home:
     - sudo docker push fyipeproject/home:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/home home=fyipeproject/home:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1553,10 +1553,10 @@ deploy_staging_home:
 deploy_production_home:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/home:latest ./home
     - sudo docker tag fyipeproject/home:latest fyipeproject/home:3.0.$CI_PIPELINE_IID
@@ -1564,8 +1564,8 @@ deploy_production_home:
     - sudo docker push fyipeproject/home:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/home home=fyipeproject/home:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1578,10 +1578,10 @@ deploy_staging_slack:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Build and deploy slack.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/slack:master ./slack
@@ -1590,8 +1590,8 @@ deploy_staging_slack:
     - sudo docker push fyipeproject/slack:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/slack slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1602,10 +1602,10 @@ deploy_staging_slack:
 deploy_production_slack:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/slack:latest ./slack
     - sudo docker tag fyipeproject/slack:latest fyipeproject/slack:3.0.$CI_PIPELINE_IID
@@ -1613,8 +1613,8 @@ deploy_production_slack:
     - sudo docker push fyipeproject/slack:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/slack slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1627,10 +1627,10 @@ deploy_staging_probe:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Build and deploy probe.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/probe:master ./probe
@@ -1641,8 +1641,8 @@ deploy_staging_probe:
     # Additionally update probe1 deployment as well.
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-2 probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1653,10 +1653,10 @@ deploy_staging_probe:
 deploy_production_probe:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/probe:latest ./probe
     - sudo docker tag fyipeproject/probe:latest fyipeproject/probe:3.0.$CI_PIPELINE_IID
@@ -1665,8 +1665,8 @@ deploy_production_probe:
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-1 probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/probe-2 probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1679,10 +1679,10 @@ deploy_staging_status-page:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Build and deploy status-page.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/status-page:master ./status-page
@@ -1691,8 +1691,8 @@ deploy_staging_status-page:
     - sudo docker push fyipeproject/status-page:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/status-page status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1703,10 +1703,10 @@ deploy_staging_status-page:
 deploy_production_status-page:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/status-page:latest ./status-page
     - sudo docker tag fyipeproject/status-page:latest fyipeproject/status-page:3.0.$CI_PIPELINE_IID
@@ -1714,8 +1714,8 @@ deploy_production_status-page:
     - sudo docker push fyipeproject/status-page:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/status-page status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1728,10 +1728,10 @@ deploy_staging_admin-dashboard:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Build and deploy admin-dashboard.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/admin-dashboard:master ./admin-dashboard
@@ -1740,8 +1740,8 @@ deploy_staging_admin-dashboard:
     - sudo docker push fyipeproject/admin-dashboard:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/admin-dashboard admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1752,10 +1752,10 @@ deploy_staging_admin-dashboard:
 deploy_production_admin-dashboard:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/admin-dashboard:latest ./admin-dashboard
     - sudo docker tag fyipeproject/admin-dashboard:latest fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
@@ -1763,8 +1763,8 @@ deploy_production_admin-dashboard:
     - sudo docker push fyipeproject/admin-dashboard:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/admin-dashboard admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1777,10 +1777,10 @@ deploy_staging_accounts:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Build and deploy accounts.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/accounts:master ./accounts
@@ -1789,8 +1789,8 @@ deploy_staging_accounts:
     - sudo docker push fyipeproject/accounts:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/accounts accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1801,10 +1801,10 @@ deploy_staging_accounts:
 deploy_production_accounts:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/accounts:latest ./accounts
     - sudo docker tag fyipeproject/accounts:latest fyipeproject/accounts:3.0.$CI_PIPELINE_IID
@@ -1812,8 +1812,8 @@ deploy_production_accounts:
     - sudo docker push fyipeproject/accounts:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/accounts accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1826,10 +1826,10 @@ deploy_staging_dashboard:
   stage: Deploy
   allow_failure: true
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Build and deploy dashboard.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/dashboard:master ./dashboard
@@ -1838,8 +1838,8 @@ deploy_staging_dashboard:
     - sudo docker push fyipeproject/dashboard:master
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/dashboard dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1850,10 +1850,10 @@ deploy_staging_dashboard:
 deploy_production_dashboard:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/dashboard:latest ./dashboard
     - sudo docker tag fyipeproject/dashboard:latest fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
@@ -1861,8 +1861,8 @@ deploy_production_dashboard:
     - sudo docker push fyipeproject/dashboard:latest
     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/dashboard dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1919,10 +1919,10 @@ deploy_production_server-monitor:
 deploy_staging_init-script:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/init-script:master ./init-script
     - sudo docker tag fyipeproject/init-script:master fyipeproject/init-script:3.0.$CI_PIPELINE_IID
@@ -1930,10 +1930,10 @@ deploy_staging_init-script:
     - sudo docker push fyipeproject/init-script:master
     ## You cannot update a Kubernetes job. They are immutable. Delete it and then create one again. 
     - sudo $HOME/google-cloud-sdk/bin/kubectl delete job init-script
-    - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./kubernetes/init-script/staging.yaml
+    - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./ci/init-script/staging.yaml
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - master
@@ -1944,10 +1944,10 @@ deploy_staging_init-script:
 deploy_production_init-script:
   stage: Deploy
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - sudo docker build -t fyipeproject/init-script:latest ./init-script
     - sudo docker tag fyipeproject/init-script:latest fyipeproject/init-script:3.0.$CI_PIPELINE_IID
@@ -1955,10 +1955,10 @@ deploy_production_init-script:
     - sudo docker push fyipeproject/init-script:latest
     ## You cannot update a Kubernetes job. They are immutable. Delete it and then create one again. 
     - sudo $HOME/google-cloud-sdk/bin/kubectl delete job init-script
-    - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./kubernetes/init-script/production.yaml
+    - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./ci/init-script/production.yaml
     # Cleanup
-    - chmod +x ./kubernetes/ci/deployment-cleanup.sh
-    - ./kubernetes/ci/deployment-cleanup.sh
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
   only:
     refs:
       - release
@@ -1969,12 +1969,12 @@ deploy_production_init-script:
 rollback_if_staging_deployment_fails:
   stage: RollbackIfDeploymentFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
-    - chmod +x ./kubernetes/ci/staging-rollback.sh
-    - ./kubernetes/ci/staging-rollback.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/staging-rollback.sh
+    - ./ci/scripts/staging-rollback.sh
   only:
     refs:
       - master
@@ -1982,12 +1982,12 @@ rollback_if_staging_deployment_fails:
 rollback_if_production_deployment_fails:
   stage: RollbackIfDeploymentFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
-    - chmod +x ./kubernetes/ci/production-rollback.sh
-    - ./kubernetes/ci/production-rollback.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/production-rollback.sh
+    - ./ci/scripts/production-rollback.sh
   only:
     refs:
       - release
@@ -2040,13 +2040,13 @@ smoke_test_staging:
 staging_rollback_dashboard:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Rollback dashboard
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/dashboard
   only:
@@ -2058,13 +2058,13 @@ staging_rollback_dashboard:
 staging_rollback_accounts:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Rollback accounts
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/accounts
   only:
@@ -2076,13 +2076,13 @@ staging_rollback_accounts:
 staging_rollback_backend:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Rollback backend
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
   only:
@@ -2094,13 +2094,13 @@ staging_rollback_backend:
 staging_rollback_licensing:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Rollback licensing
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/licensing
   only:
@@ -2112,13 +2112,13 @@ staging_rollback_licensing:
 staging_rollback_home:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Rollback home
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/home
   only:
@@ -2130,13 +2130,13 @@ staging_rollback_home:
 staging_rollback_slack:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Rollback slack
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/slack
   only:
@@ -2148,13 +2148,13 @@ staging_rollback_slack:
 staging_rollback_status-page:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Rollback status-page
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/status-page
   only:
@@ -2166,13 +2166,13 @@ staging_rollback_status-page:
 staging_rollback_api-docs:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Rollback api-docs
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/api-docs
   only:
@@ -2184,13 +2184,13 @@ staging_rollback_api-docs:
 staging_rollback_admin-dashboard:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Rollback admin-dashboard
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/admin-dashboard
   only:
@@ -2202,13 +2202,13 @@ staging_rollback_admin-dashboard:
 staging_rollback_probe:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-staging-setup.sh
-    - ./kubernetes/ci/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     # Rollback probe
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_staging_status=`./kubernetes/ci/job-status.sh smoke_test_staging`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe
     # Additionally rollback probe1 deployment
@@ -2223,13 +2223,13 @@ staging_rollback_probe:
 production_rollback_dashboard:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Rollback dashboard
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/dashboard
   only:
@@ -2239,13 +2239,13 @@ production_rollback_dashboard:
 production_rollback_accounts:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Rollback accounts
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/accounts
   only:
@@ -2255,13 +2255,13 @@ production_rollback_accounts:
 production_rollback_backend:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Rollback backend
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/backend
   only:
@@ -2271,13 +2271,13 @@ production_rollback_backend:
 production_rollback_licensing:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Rollback licensing
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/licensing
   only:
@@ -2287,13 +2287,13 @@ production_rollback_licensing:
 production_rollback_home:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Rollback home
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/home
   only:
@@ -2303,13 +2303,13 @@ production_rollback_home:
 production_rollback_slack:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Rollback slack
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/slack
   only:
@@ -2319,13 +2319,13 @@ production_rollback_slack:
 production_rollback_status-page:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Rollback status-page
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/status-page
   only:
@@ -2335,13 +2335,13 @@ production_rollback_status-page:
 production_rollback_api-docs:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Rollback api-docs
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/api-docs
   only:
@@ -2351,13 +2351,13 @@ production_rollback_api-docs:
 production_rollback_admin-dashboard:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Rollback admin-dashboard
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/admin-dashboard
   only:
@@ -2367,13 +2367,13 @@ production_rollback_admin-dashboard:
 production_rollback_probe:
   stage: RollbackIfSmokeTestFail
   script:
-    - chmod +x ./kubernetes/ci/deployment-setup.sh
-    - ./kubernetes/ci/deployment-setup.sh
-    - chmod +x ./kubernetes/ci/deployment-production-setup.sh
-    - ./kubernetes/ci/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
     # Rollback probe
-    - chmod +x ./kubernetes/ci/job-status.sh
-    - export smoke_test_production_status=`./kubernetes/ci/job-status.sh smoke_test_production`
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/probe
   only:
