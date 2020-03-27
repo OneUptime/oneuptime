@@ -11,14 +11,13 @@ const request = chai.request.agent(app);
 const { createEnterpriseUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
-const MonitorService = require('../backend/services/monitorService');
 const AirtableService = require('../backend/services/airtableService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, projectId, newProjectId, userId, airtableId, monitorId;
+let token, projectId, newProjectId, userId, airtableId;
 
-describe('Enterprise Monitor API', function() {
+describe('Enterprise Team API', function() {
     this.timeout(30000);
 
     before(function(done) {
@@ -56,35 +55,24 @@ describe('Enterprise Monitor API', function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
         });
-        await MonitorService.hardDeleteBy({ _id: monitorId });
         await UserService.hardDeleteBy({ email: userData.user.email });
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should create a new monitor for project with no billing plan', function(done) {
+    it('should add new user with valid details for project with no billing plan', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post('/project/create')
+            .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
-                projectName: 'Test Project',
+                emails: 'noreply1@fyipe.com',
+                role: 'Member',
             })
             .end(function(err, res) {
-                newProjectId = res.body._id;
-                request
-                    .post(`/monitor/${newProjectId}`)
-                    .set('Authorization', authorization)
-                    .send({
-                        name: 'New Monitor',
-                        type: 'url',
-                        data: { url: 'http://www.tests.org' },
-                    })
-                    .end(function(err, res) {
-                        monitorId = res.body._id;
-                        expect(res).to.have.status(200);
-                        expect(res.body.name).to.be.equal('New Monitor');
-                        done();
-                    });
+                anotherUser = res.body[0].team[0].userId;
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                done();
             });
     });
 });
