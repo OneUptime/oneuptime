@@ -8,11 +8,6 @@ Please run these commands from `root`
 helm lint ./helm-chart/public/fyipe 
 ```
 
-### Uninstall and Install the chart
-```
-helm uninstall fi
-```
-
 ### Install as an Enterprise Cluster with default values
 ```
 helm install fi ./helm-chart/public/fyipe 
@@ -26,6 +21,11 @@ helm install -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyi
 ### Install on production
 ```
 helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe 
+```
+
+### Uninstall and Install the chart
+```
+helm uninstall fi
 ```
 
 ### Docker build and push to docker repo with `:test` tag

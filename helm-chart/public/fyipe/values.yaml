@@ -5,6 +5,7 @@
 saas: 
   isSaasService: false
 
+enableStatusPageIngress: false
 ###################################################################################
 fyipe:
   host: 
@@ -16,7 +17,7 @@ fyipe:
   callEnabled: true
   smsEnabled: true
   licenseUrl: https://fyipe.com/license
-  enableStatusPageIngress: false
+  
 
 host: 
   backendPort: 3002

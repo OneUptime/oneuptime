@@ -205,7 +205,7 @@ class Main extends Component {
     renderError = () => {
         const { error } = this.props.status;
         if (error === 'Input data schema mismatch.') {
-            return 'Status Page Not present';
+            return 'Page Not Found';
         } else if (error === 'Project Not present') {
             return 'Invalid Project.';
         } else return error;

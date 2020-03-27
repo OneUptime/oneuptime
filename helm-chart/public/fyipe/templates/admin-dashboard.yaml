@@ -28,7 +28,7 @@ spec:
                       value: {{ .Values.fyipe.licenseUrl }}
                     {{- end }}
                     - name: NODE_ENV
-                        value: 'production'
+                      value: 'production'
                   ports:
                       - containerPort: {{ .Values.host.adminDashboardPort }}
                         hostPort: {{ .Values.host.adminDashboardPort }}

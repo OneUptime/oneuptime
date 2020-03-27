@@ -338,7 +338,7 @@ module.exports = {
                 });
                 statusPage.monitorsData = _.flatten(filteredMonitorData);
             } else {
-                const error = new Error('Status Page Not present');
+                const error = new Error('Page Not Found');
                 error.code = 400;
                 ErrorService.log('statusPageService.getStatus', error);
                 throw error;
