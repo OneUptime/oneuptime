@@ -11,14 +11,14 @@ const request = chai.request.agent(app);
 const { createEnterpriseUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
-const MonitorService = require('../backend/services/monitorService');
+const ComponentService = require('../backend/services/componentService');
 const AirtableService = require('../backend/services/airtableService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, projectId, newProjectId, userId, airtableId, monitorId;
+let token, projectId, newProjectId, userId, airtableId, componentId;
 
-describe('Enterprise Monitor API', function() {
+describe('Enterprise Component API', function() {
     this.timeout(30000);
 
     before(function(done) {
@@ -56,12 +56,12 @@ describe('Enterprise Monitor API', function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
         });
-        await MonitorService.hardDeleteBy({ _id: monitorId });
+        await ComponentService.hardDeleteBy({ _id: componentId });
         await UserService.hardDeleteBy({ email: userData.user.email });
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should create a new monitor for project with no billing plan', function(done) {
+    it('should create a new component for project with no billing plan', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post('/project/create')
@@ -72,17 +72,15 @@ describe('Enterprise Monitor API', function() {
             .end(function(err, res) {
                 newProjectId = res.body._id;
                 request
-                    .post(`/monitor/${newProjectId}`)
+                    .post(`/component/${newProjectId}`)
                     .set('Authorization', authorization)
                     .send({
-                        name: 'New Monitor',
-                        type: 'url',
-                        data: { url: 'http://www.tests.org' },
+                        name: 'New Component',
                     })
                     .end(function(err, res) {
-                        monitorId = res.body._id;
+                        componentId = res.body._id;
                         expect(res).to.have.status(200);
-                        expect(res.body.name).to.be.equal('New Monitor');
+                        expect(res.body.name).to.be.equal('New Component');
                         done();
                     });
             });

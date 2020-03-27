@@ -3,6 +3,7 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const userData = require('./data/user');
+const incidentData = require('./data/incident');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
@@ -12,13 +13,15 @@ const { createEnterpriseUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const MonitorService = require('../backend/services/monitorService');
+const IncidentService = require('../backend/services/incidentService');
+const AlertService = require('../backend/services/alertService');
 const AirtableService = require('../backend/services/airtableService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, projectId, newProjectId, userId, airtableId, monitorId;
+let token, projectId, userId, airtableId, monitorId, incidentId, alertId;
 
-describe('Enterprise Monitor API', function() {
+describe('Enterprise Alert API', function() {
     this.timeout(30000);
 
     before(function(done) {
@@ -45,7 +48,19 @@ describe('Enterprise Monitor API', function() {
                             })
                             .end(function(err, res) {
                                 token = res.body.tokens.jwtAccessToken;
-                                done();
+                                const authorization = `Basic ${token}`;
+                                request
+                                    .post(`/monitor/${projectId}`)
+                                    .set('Authorization', authorization)
+                                    .send({
+                                        name: 'New Monitor',
+                                        type: 'url',
+                                        data: { url: 'http://www.tests.org' },
+                                    })
+                                    .end(function(err, res) {
+                                        monitorId = res.body._id;
+                                        done();
+                                    });
                             });
                     });
             });
@@ -53,36 +68,34 @@ describe('Enterprise Monitor API', function() {
     });
 
     after(async function() {
-        await ProjectService.hardDeleteBy({
-            _id: { $in: [projectId, newProjectId] },
-        });
+        await ProjectService.hardDeleteBy({ _id: projectId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await UserService.hardDeleteBy({ email: userData.user.email });
+        await IncidentService.hardDeleteBy({ _id: incidentId });
+        await AlertService.hardDeleteBy({ _id: alertId });
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should create a new monitor for project with no billing plan', function(done) {
+    it('should create alert with valid details for project with no billing plan', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post('/project/create')
+            .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .send({
-                projectName: 'Test Project',
-            })
+            .send(incidentData)
             .end(function(err, res) {
-                newProjectId = res.body._id;
+                incidentId = res.body._id;
                 request
-                    .post(`/monitor/${newProjectId}`)
+                    .post(`/alert/${projectId}`)
                     .set('Authorization', authorization)
                     .send({
-                        name: 'New Monitor',
-                        type: 'url',
-                        data: { url: 'http://www.tests.org' },
+                        monitorId,
+                        alertVia: 'email',
+                        incidentId,
                     })
                     .end(function(err, res) {
-                        monitorId = res.body._id;
+                        alertId = res.body._id;
                         expect(res).to.have.status(200);
-                        expect(res.body.name).to.be.equal('New Monitor');
+                        expect(res.body).to.be.an('object');
                         done();
                     });
             });

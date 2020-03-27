@@ -15,7 +15,6 @@ const AirtableService = require('../backend/services/airtableService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-// let token, userId, projectId;
 let token, projectId, newProjectId, userId, airtableId;
 
 describe('Enterprise Project API', function() {
@@ -69,8 +68,8 @@ describe('Enterprise Project API', function() {
                 projectName: 'Test Project',
             })
             .end(function(err, res) {
-                expect(res).to.have.status(200);
                 newProjectId = res.body._id;
+                expect(res).to.have.status(200);
                 done();
             });
     });
