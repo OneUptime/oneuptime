@@ -7,7 +7,7 @@
 -   `backend` - NodeJS Service. It's Fyipe API's.
 -   `home` - HTML/CSS. Home Page / Marketing page of Fyipe.
 -   `http-test-server` - A test server used to test website monitors for Fyipe.
--   `kubernetes` - yaml files to deploy fyipe on staging, production or any enterprise kubernetes cluster. This also contains DevOps/CI/CD scripts.
+-   `ci` -  DevOps/CI/CD scripts.
 -   `marketing` - This is where you'll find logos, brief description of Fyipe, etc.
 -   `certifications` - SOC/ISO/PCI certifications and more.
 -   `postman-collection` - Postman collection for Fyipe API.
