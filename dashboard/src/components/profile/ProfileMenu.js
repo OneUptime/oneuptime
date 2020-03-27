@@ -109,7 +109,7 @@ export class ProfileMenu extends Component {
                                         }}
                                     >
                                         <Link
-                                            to="/profile/settings"
+                                            to="/dashboard/profile/settings"
                                             className="ButtonLink db-Menu-item db-Menu-item--link"
                                             type="button"
                                             onClick={() =>
@@ -136,7 +136,7 @@ export class ProfileMenu extends Component {
                                             }}
                                         >
                                             <Link
-                                                to="/profile/billing"
+                                                to="/dashboard/profile/billing"
                                                 className="ButtonLink db-Menu-item db-Menu-item--link"
                                                 type="button"
                                                 onClick={() =>

@@ -115,7 +115,7 @@ export class DashboardApp extends Component {
                 <div onKeyDown={this.handleKeyBoard} className="db-World-root">
                     <div className="db-World-wrapper Box-root Flex-flex Flex-direction--column">
                         <ShouldRender
-                            if={location.pathname === '/profile/settings'}
+                            if={location.pathname === '/dashboard/profile/settings'}
                         >
                             <div className="db-World-scrollWrapper">
                                 <ShouldRender
@@ -143,7 +143,7 @@ export class DashboardApp extends Component {
                             if={
                                 !project.projects.requesting &&
                                 project.projects.success &&
-                                location.pathname !== '/profile/settings'
+                                location.pathname !== '/dashboard/profile/settings'
                             }
                         >
                             <div className="db-World-scrollWrapper">
@@ -243,7 +243,7 @@ export class DashboardApp extends Component {
                             if={
                                 project.projects.success &&
                                 project.projects.projects.length === 0 &&
-                                location.pathname !== '/profile/settings'
+                                location.pathname !== '/dashboard/profile/settings'
                             }
                         >
                             <div>

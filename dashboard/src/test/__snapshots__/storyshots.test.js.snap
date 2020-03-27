@@ -4349,7 +4349,7 @@ Array [
                 >
                   <a
                     className="ButtonLink db-Menu-item db-Menu-item--link"
-                    href="/profile/settings"
+                    href="/dashboard/profile/settings"
                     onClick={[Function]}
                     type="button"
                   >
@@ -13449,7 +13449,7 @@ exports[`Storyshots Profile ProfileMenu 1`] = `
               >
                 <a
                   className="ButtonLink db-Menu-item db-Menu-item--link"
-                  href="/profile/settings"
+                  href="/dashboard/profile/settings"
                   onClick={[Function]}
                   type="button"
                 >
