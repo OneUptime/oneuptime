@@ -11,7 +11,7 @@ spec:
   tls:
     - hosts:
       - {{ .Values.fyipe.host }} 
-      secretName: {{ printf "%s-%s" .Release.Name "secret"  }}
+      secretName: {{ printf "%s-%s" .Release.Name "tlssecret"  }}
   {{- end }}
   rules:
     {{- if .Values.fyipe.host }} 
@@ -85,7 +85,7 @@ spec:
   tls:
     - hosts:
       - {{ .Values.fyipe.host }} 
-      secretName: {{ printf "%s-%s" .Release.Name "secret"  }}
+      secretName: {{ printf "%s-%s" .Release.Name "tlssecret"  }}
   {{- end }}
   rules:
     {{- if .Values.fyipe.host }} 

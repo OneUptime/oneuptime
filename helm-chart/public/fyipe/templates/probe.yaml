@@ -31,7 +31,10 @@ spec:
                       - name: PROBE_KEY
                         value: {{ $value.key }}
                       - name: CLUSTER_KEY
-                        value: {{ template "fyipe.clusterKey" . }}
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: clusterkey
                       {{- if $.Values.saas.isSaasService }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'

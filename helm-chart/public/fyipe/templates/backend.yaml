@@ -51,7 +51,10 @@ spec:
                       - name: RATE_LIMITTER_ENABLED
                         value: {{ .Values.rateLimitter.enabled | quote  }}
                       - name: CLUSTER_KEY
-                        value: {{ template "fyipe.clusterKey" . }}
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: clusterkey
                       {{- if .Values.saas.isSaasService }}
                       - name: STRIPE_PUBLIC_KEY
                         value: {{ .Values.saas.stripe.publicKey }}

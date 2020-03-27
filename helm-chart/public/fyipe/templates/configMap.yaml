@@ -1,0 +1,6 @@
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+data:
+  clusterkey: {{ randAlphaNum 15 | quote }}
