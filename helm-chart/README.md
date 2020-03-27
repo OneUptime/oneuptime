@@ -30,8 +30,8 @@ helm uninstall fi
 
 ### Docker build and push to docker repo with `:test` tag
 ```
-chmod +x ./kubernetes/ci/docker-build.sh
-sudo ./kubernetes/ci/docker-build.sh
+chmod +x ./ci/scripts/docker-build.sh
+sudo ./ci/scripts/docker-build.sh
 ```
 
 ### Package and deploy helm chart

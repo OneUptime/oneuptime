@@ -3,10 +3,10 @@ echo "
 This script rollbacks every project if any of the deployment fails
 "
 
-chmod +x ./kubernetes/ci/job-status.sh
+chmod +x ./ci/scripts/job-status.sh
 
 function rollback {
-  export status=`./kubernetes/ci/job-status.sh deploy_production_$1`
+  export status=`./ci/scripts/job-status.sh deploy_production_$1`
   if [[ $status == \"success\" ]]
     then
         echo "Rolling back $1"
@@ -17,7 +17,7 @@ function rollback {
 }
 
 function check {
-  export status=`./kubernetes/ci/job-status.sh deploy_production_$1`
+  export status=`./ci/scripts/job-status.sh deploy_production_$1`
   if [[ $status == \"failed\" ]]
     then
         echo "Deployment unsuccessful for $1, rolling back all new deployments"

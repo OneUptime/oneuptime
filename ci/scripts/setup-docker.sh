@@ -1,8 +1,8 @@
 # Cleanup
 echo "RUNNING COMMAND:  chmod +x ./ci/cleanup.sh"
-chmod +x ./kubernetes/ci/cleanup.sh
+chmod +x ./ci/scripts/cleanup.sh
 echo "RUNNING COMMAND:  ./ci/cleanup.sh"
-./kubernetes/ci/cleanup.sh
+./ci/scripts/cleanup.sh
 
 #Install Docker and setup registry and insecure access to it.
 #IF docker is already installed, do not install docker.

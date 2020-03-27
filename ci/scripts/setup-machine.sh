@@ -5,9 +5,9 @@
 
 # Cleanup
 echo "RUNNING COMMAND:  chmod +x ./ci/cleanup.sh"
-chmod +x ./kubernetes/ci/cleanup.sh
+chmod +x ./ci/scripts/cleanup.sh
 echo "RUNNING COMMAND:  ./ci/cleanup.sh"
-./kubernetes/ci/cleanup.sh
+./ci/scripts/cleanup.sh
 # Flush all repos
 echo "RUNNING COMMAND:  sudo rm /etc/apt/sources.list  || echo 'File not found'"
 sudo rm /etc/apt/sources.list  || echo 'File not found'
