@@ -10,7 +10,7 @@ const CLUSTER_KEY = process.env.CLUSTER_KEY;
 module.exports = {
     isAuthorizedProbe: async function(req, res, next) {
         try {
-            let probeKey, probeName;
+            let probeKey, probeName, clusterKey;
 
             if (req.params.probeKey) {
                 probeKey = req.params.probeKey;
@@ -46,7 +46,34 @@ module.exports = {
                 });
             }
 
-            const clusterKey = req.headers['clusterKey'];
+            if (req.params.probeName) {
+                probeName = req.params.probeName;
+            } else if (req.query.probeName) {
+                probeName = req.query.probeName;
+            } else if (req.headers['probeName']) {
+                probeName = req.headers['probeName'];
+            } else if (req.headers['probename']) {
+                probeName = req.headers['probename'];
+            } else if (req.body.probeName) {
+                probeName = req.body.probeName;
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Probe Name not found.',
+                });
+            }
+
+            if (req.params.clusterKey) {
+                clusterKey = req.params.clusterKey;
+            } else if (req.query.clusterKey) {
+                clusterKey = req.query.clusterKey;
+            } else if (req.headers['clusterKey']) {
+                clusterKey = req.headers['clusterKey'];
+            } else if (req.headers['clusterkey']) {
+                clusterKey = req.headers['clusterkey'];
+            } else if (req.body.clusterKey) {
+                clusterKey = req.body.clusterKey;
+            }
 
             let probe = await ProbeService.findOneBy({ probeKey, probeName });
 

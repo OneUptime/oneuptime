@@ -1,17 +1,20 @@
 const axios = require('axios');
 const config = require('./config');
 
-const headers = {
-    'Access-Control-Allow-Origin': '*',
-    Accept: 'application/json',
-    'Content-Type': 'application/json;charset=UTF-8',
-    probeName: config.probeName,
-    probeKey: config.probeKey,
-    clusterKey: config.clusterKey,
-};
-
-module.exports = {
+const _this = {
+    getHeaders: () => {
+        return {
+            'Access-Control-Allow-Origin': '*',
+            Accept: 'application/json',
+            'Content-Type': 'application/json;charset=UTF-8',
+            probeName: config.probeName,
+            probeKey: config.probeKey,
+            clusterKey: config.clusterKey,
+        };
+    },
     postApi: (url, data) => {
+        const headers = _this.getHeaders();
+
         return new Promise((resolve, reject) => {
             axios({
                 method: 'POST',
@@ -34,6 +37,7 @@ module.exports = {
     },
 
     getApi: url => {
+        const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'GET',
@@ -55,6 +59,7 @@ module.exports = {
     },
 
     putApi: (url, data) => {
+        const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'PUT',
@@ -77,6 +82,7 @@ module.exports = {
     },
 
     deleteApi: (url, data) => {
+        const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'DELETE',
@@ -98,3 +104,5 @@ module.exports = {
         });
     },
 };
+
+module.exports = _this;

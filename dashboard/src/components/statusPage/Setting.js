@@ -17,7 +17,11 @@ import PropTypes from 'prop-types';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, IS_LOCALHOST, IS_SAAS_SERVICE } from '../../config';
+import {
+    SHOULD_LOG_ANALYTICS,
+    IS_LOCALHOST,
+    IS_SAAS_SERVICE,
+} from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -75,12 +79,13 @@ export class Setting extends Component {
             statusPageId = this.props.statusPage.status._id;
         }
 
-        if(IS_LOCALHOST){
+        if (IS_LOCALHOST) {
             publicStatusPageUrl = `http://${statusPageId}.localhost:3006`;
-        }else if(IS_SAAS_SERVICE){
+        } else if (IS_SAAS_SERVICE) {
             publicStatusPageUrl = `http://${statusPageId}.fyipeapp.com`;
-        }else{
-            publicStatusPageUrl = window.location.origin + '/status-page/' + statusPageId;
+        } else {
+            publicStatusPageUrl =
+                window.location.origin + '/status-page/' + statusPageId;
         }
 
         const { handleSubmit, subProjects, currentProject } = this.props;
@@ -140,57 +145,78 @@ export class Setting extends Component {
                                                             placeholder="domain"
                                                         />
                                                         <p className="bs-Fieldset-explanation">
-                                                            {IS_LOCALHOST && <span>
-                                                                If you
-                                                                want to preview
-                                                                your status
-                                                                page. Please
-                                                                check{' '}
-                                                                <a
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    href={
-                                                                        publicStatusPageUrl
-                                                                    }
-                                                                >
-                                                                    {publicStatusPageUrl}{' '}
-                                                                </a>
-                                                            </span>}
-                                                            {IS_SAAS_SERVICE && !IS_LOCALHOST && <span>
-                                                                Add
-                                                                statuspage.fyipeapp.com
-                                                                to your 
-                                                                CNAME. If you
-                                                                want to preview
-                                                                your status
-                                                                page. Please
-                                                                check{' '}
-                                                                <a
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    href={
-                                                                        publicStatusPageUrl
-                                                                    }
-                                                                >
-                                                                    {publicStatusPageUrl}{' '}
-                                                                </a>
-                                                            </span>}
-                                                            {!IS_SAAS_SERVICE && !IS_LOCALHOST && <span>
-                                                                If you
-                                                                want to preview
-                                                                your status
-                                                                page. Please
-                                                                check{' '}
-                                                                <a
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    href={
-                                                                        publicStatusPageUrl
-                                                                    }
-                                                                >
-                                                                    {publicStatusPageUrl}{' '}
-                                                                </a>
-                                                            </span>}
+                                                            {IS_LOCALHOST && (
+                                                                <span>
+                                                                    If you want
+                                                                    to preview
+                                                                    your status
+                                                                    page. Please
+                                                                    check{' '}
+                                                                    <a
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        href={
+                                                                            publicStatusPageUrl
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            publicStatusPageUrl
+                                                                        }{' '}
+                                                                    </a>
+                                                                </span>
+                                                            )}
+                                                            {IS_SAAS_SERVICE &&
+                                                                !IS_LOCALHOST && (
+                                                                    <span>
+                                                                        Add
+                                                                        statuspage.fyipeapp.com
+                                                                        to your
+                                                                        CNAME.
+                                                                        If you
+                                                                        want to
+                                                                        preview
+                                                                        your
+                                                                        status
+                                                                        page.
+                                                                        Please
+                                                                        check{' '}
+                                                                        <a
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            href={
+                                                                                publicStatusPageUrl
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                publicStatusPageUrl
+                                                                            }{' '}
+                                                                        </a>
+                                                                    </span>
+                                                                )}
+                                                            {!IS_SAAS_SERVICE &&
+                                                                !IS_LOCALHOST && (
+                                                                    <span>
+                                                                        If you
+                                                                        want to
+                                                                        preview
+                                                                        your
+                                                                        status
+                                                                        page.
+                                                                        Please
+                                                                        check{' '}
+                                                                        <a
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            href={
+                                                                                publicStatusPageUrl
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                publicStatusPageUrl
+                                                                            }{' '}
+                                                                        </a>
+                                                                    </span>
+                                                                )}
                                                         </p>
                                                     </div>
                                                 </div>

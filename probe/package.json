@@ -23,6 +23,7 @@
     "dependencies": {
         "axios": "^0.19.0",
         "cors": "^2.8.5",
+        "custom-env": "^2.0.1",
         "express": "^4.17.1",
         "moment": "^2.24.0",
         "node-cron": "^2.0.3",

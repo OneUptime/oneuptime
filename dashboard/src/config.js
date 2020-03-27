@@ -9,16 +9,15 @@ import { emaildomains } from './constants/emaildomains';
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
-let isLocalhost = window &&
-window.location &&
-window.location.host &&
-(window.location.host.includes('localhost:') ||
-    window.location.host.includes('0.0.0.0:') ||
-    window.location.host.includes('127.0.0.1:'));
+const isLocalhost =
+    window &&
+    window.location &&
+    window.location.host &&
+    (window.location.host.includes('localhost:') ||
+        window.location.host.includes('0.0.0.0:') ||
+        window.location.host.includes('127.0.0.1:'));
 
-if (
-    isLocalhost
-) {
+if (isLocalhost) {
     apiUrl = window.location.protocol + '//localhost:3002/api';
     dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
     accountsUrl = window.location.protocol + '//localhost:3003/accounts';
