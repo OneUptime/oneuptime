@@ -33,7 +33,7 @@ spec:
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: clusterkey
                       {{- if $.Values.saas.isSaasService }}
                       - name: IS_SAAS_SERVICE
