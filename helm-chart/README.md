@@ -23,7 +23,7 @@ helm install -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyi
 helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe 
 ```
 
-### Uninstall and Install the chart
+### Uninstall
 ```
 helm uninstall fi
 ```

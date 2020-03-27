@@ -20,6 +20,8 @@ spec:
                   name: {{ printf "%s-%s" .Release.Name "status-page"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
+                    - name: FYIPE_HOST
+                      values: {{ .Values.fyipe.host }}
                     {{- if .Values.saas.isSaasService }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'

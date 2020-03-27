@@ -18,3 +18,4 @@
 -   `zapier` - Fyipe integrates with zapier. This is where integration code is. This gets deployed to zapier directly.
 -   `init-script` - a container that runs schema migration script.
 -   `helm-chart` - Helm Chart Scripts for installation of Fyipe into Kubernetes. 
+-   `kubernetes` - Values of Kubenrets env
