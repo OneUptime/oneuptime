@@ -63,7 +63,7 @@ class DashboardView extends Component {
         if (this.props.components.length) {
             const scriptElement = document.createElement('script');
             scriptElement.type = 'text/javascript';
-            scriptElement.src = '/assets/js/landing.base.js';
+            scriptElement.src = '/dashboard/assets/js/landing.base.js';
             document.head.appendChild(scriptElement);
         }
 
