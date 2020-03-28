@@ -56,7 +56,7 @@ module.exports = {
                 userModel.password = hash;
             }
             // setting isVerified true for master admin
-            if(data.role == 'master-admin') userModel.isVerified = true;
+            if (data.role == 'master-admin') userModel.isVerified = true;
             userModel.jwtRefreshToken = randToken.uid(256);
 
             const user = await userModel.save();

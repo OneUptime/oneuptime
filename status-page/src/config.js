@@ -17,6 +17,19 @@ if (
     apiUrl = window.location.protocol + '//localhost:3002/api';
     dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
     accountsUrl = window.location.protocol + '//localhost:3003/accounts';
+} else if (env('FYIPE_HOST')) {
+    apiUrl = window.location.protocol + `//${env('FYIPE_HOST')}/api`;
+    dashboardUrl =
+        window.location.protocol + `//${env('FYIPE_HOST')}/dashboard`;
+    accountsUrl = window.location.protocol + `//${env('FYIPE_HOST')}/accounts`;
+}
+
+export function env(value) {
+    const { _env } = window;
+    return (
+        (_env && _env[`REACT_APP_${value}`]) ||
+        process.env[`REACT_APP_${value}`]
+    );
 }
 
 export const API_URL = apiUrl;

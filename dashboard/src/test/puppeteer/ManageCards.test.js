@@ -71,7 +71,9 @@ describe('Stripe cards API', () => {
 
                 await init.loginUser(user, page);
                 await page.waitForSelector('#projectSettings');
-                await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
+                await page.goto(
+                    `${utils.DASHBOARD_URL}/dashboard/profile/billing`
+                );
                 await page.waitForSelector('#addCardButton');
                 await page.click('#addCardButton');
                 await page.waitFor(3000);
@@ -135,7 +137,9 @@ describe('Stripe cards API', () => {
 
                 await init.loginUser(user, page);
                 await page.waitForSelector('#projectSettings');
-                await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
+                await page.goto(
+                    `${utils.DASHBOARD_URL}/dashboard/profile/billing`
+                );
                 await page.waitForSelector('#deleteCard1');
                 await page.click('#deleteCard1');
                 await page.waitForSelector('#deleteCardButton');
@@ -182,7 +186,9 @@ describe('Stripe cards API', () => {
 
                 await init.loginUser(user, page);
                 await page.waitForSelector('#projectSettings');
-                await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
+                await page.goto(
+                    `${utils.DASHBOARD_URL}/dashboard/profile/billing`
+                );
                 await page.waitForSelector('#deleteCard0');
                 await page.click('#deleteCard0');
                 await page.waitForSelector('#deleteCardButton');
@@ -228,7 +234,9 @@ describe('Stripe cards API', () => {
 
                 await init.loginUser(user, page);
                 await page.waitForSelector('#projectSettings');
-                await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
+                await page.goto(
+                    `${utils.DASHBOARD_URL}/dashboard/profile/billing`
+                );
                 await page.waitForSelector('#addCardButton');
                 await page.click('#addCardButton');
                 await page.waitFor(2000);
