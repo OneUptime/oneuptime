@@ -184,6 +184,16 @@ router.post('/signup', async function(req, res) {
                 email: user.email,
                 airtableId: user.airtableId,
                 cardRegistered: user.stripeCustomerId ? true : false,
+                tokens: {
+                    jwtAccessToken: `${jwt.sign(
+                        {
+                            id: user._id,
+                        },
+                        jwtSecretKey,
+                        { expiresIn: 8640000 }
+                    )}`,
+                    jwtRefreshToken: user.jwtRefreshToken,
+                },
                 role: user.role || null,
             };
             winston.info('A User just signed up');
