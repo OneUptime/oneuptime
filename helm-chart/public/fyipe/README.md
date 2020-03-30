@@ -65,6 +65,19 @@ The following table lists the configurable parameters of the Fyipe chart and the
 
 ### Fyipe parameters (optional)
 
+You can add multiple hosts for the fyipe service. It's in this format: 
+
+```
+fyipe:
+  hosts:
+    host1: 
+      host: 
+      tls:
+        enabled: false
+        crt: 
+        key: 
+```
+
 | Parameter                 | Description                                     | Default                                                 |
 |---------------------------|-------------------------------------------------|---------------------------------------------------------|
 | `fyipe.host`            | Hostname where you want to run fyipe on | `*`                                                   |
@@ -75,7 +88,20 @@ The following table lists the configurable parameters of the Fyipe chart and the
 
 ### Status Page parameters (optional)
 
-**Important:** If you want to run status pages on your subdomain (like status.yourcompany.com). You need to provide Fyipe Host (Yes, `fyipe.host` param, NOT `statusPage.host`). If you specify `statusPage.host`. Status page will work for that particular host and not for multiple hosts. 
+You can add multiple hosts for the status page. It's in this format: 
+
+```
+statusPage:
+  hosts:
+    host1: 
+      host: 
+      tls:
+        enabled: false
+        crt: 
+        key: 
+```
+
+**Important:** If you want to run status pages on your subdomain (like status.yourcompany.com). You need to provide Fyipe Host (Yes, `fyipe.hosts.host1.host` param, NOT `statusPage.hosts.host1.host`). If you specify `statusPage.hosts.host1.host`. Status page will work for that particular host and not for multiple hosts. 
 
 | Parameter                 | Description                                     | Default                                                 |
 |---------------------------|-------------------------------------------------|---------------------------------------------------------|

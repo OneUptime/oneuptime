@@ -24,14 +24,6 @@ saas:
       slackToken: xoxp-369430749728-370026359715-370129302482-08f43c6a1306d2e8f4be4b0d8abbdb80
 
 
-statusPage: 
-  enableIngress: true
-  host: 
-  tls:
-    enabled: false
-    crt: 
-    key: 
-
 fyipe:
   hosts:
     host1: 
@@ -40,6 +32,7 @@ fyipe:
         enabled: false
         crt: 
         key: 
+    host2:
       host: www.flowappplatform.com
       tls:
         enabled: false

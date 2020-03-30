@@ -23,4 +23,18 @@ saas:
     support: 
       slackToken: xoxp-369430749728-370026359715-370129302482-08f43c6a1306d2e8f4be4b0d8abbdb80
 
-fyipe.enableStatusPageIngress: true
+fyipe:
+  hosts:
+    host1: 
+      host: fyipe.com
+      tls:
+        enabled: false
+        crt: 
+        key: 
+    host2:
+      host: www.flowappplatform.com
+      tls:
+        enabled: false
+        crt: 
+        key: 
+  licensingUrl: https://fyipe.com/license

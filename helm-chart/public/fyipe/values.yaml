@@ -23,12 +23,13 @@ saas:
 ###################################################################################
 
 statusPage: 
-  enabled: true
-  host: 
-  tls:
-    enabled: false
-    crt: 
-    key: 
+  hosts:
+    host1: 
+      host: 
+      tls:
+        enabled: false
+        crt: 
+        key: 
 
 ##################################################################################  
 ## Important: Fyipe Values. More information in the Readme.md 

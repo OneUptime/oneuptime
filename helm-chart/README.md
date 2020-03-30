@@ -29,9 +29,19 @@ helm uninstall fi
 ```
 
 ### Docker build and push to docker repo with `:test` tag
+
+Build and deploy all: 
+
+```
+chmod +x ./ci/scripts/docker-build-all.sh
+sudo ./ci/scripts/docker-build-all.sh
+```
+
+Build and deploy one: 
+
 ```
 chmod +x ./ci/scripts/docker-build.sh
-sudo ./ci/scripts/docker-build.sh
+sudo ./ci/scripts/docker-build.sh status-page
 ```
 
 ### Package and deploy helm chart

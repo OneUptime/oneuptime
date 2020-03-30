@@ -1,22 +1,23 @@
 ############----STATUS-PAGE-INGRESS--#####################################
-{{- if and .Values.statusPage.enabled .Values.fyipe.host }} 
+{{- if .Values.fyipe.hosts.host1.host }} 
+{{- range $key, $value := $.Values.statusPage.hosts }}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     ingress.kubernetes.io/ssl-redirect: "true"
-  name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+  name: {{ printf "%s-%s-%s" $.Release.Name $key "statuspage"  }}
 spec:
-  {{- if .Values.statusPage.tls.enabled }} 
+  {{- if  $value.tls.enabled }} 
   tls:
     - hosts:
-      - {{ .Values.statusPage.host }} 
-      secretName: {{ printf "%s-%s" .Release.Name "statuspagesecret"  }}
+      - {{  $value.host }} 
+      secretName: {{ printf "%s-%s-%s" $.Release.Name $key "statuspagetls"  }}
   {{- end }}
   rules:
-    {{- if .Values.statusPage.host }} 
-    - host: {{ .Values.statusPage.host }} 
+    {{- if  $value.host }} 
+    - host: {{  $value.host }} 
       http:
     {{- else }}
     - http:
@@ -24,8 +25,9 @@ spec:
         paths:
           - path: /
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "status-page"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "status-page"  }}
               servicePort: 80
 ---
-{{- end}}
+{{- end }}
+{{- end }}
 ##################################
