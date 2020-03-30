@@ -27,7 +27,8 @@ export function logoutUser() {
     return dispatch => {
         dispatch(requestLogout());
         const cookies = new Cookies();
-        cookies.remove('admin-data');
+        cookies.remove('admin-data', {path: '/'});
+        cookies.remove('data', {path: '/'});
         localStorage.clear();
         dispatch(receiveLogout());
         window.location = ACCOUNTS_URL;
