@@ -10,8 +10,15 @@ class NotificationMenu extends Component {
         const userId = User.getUserId();
         return this.props.visible ? (
             <div
-                className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
-                style={{ top: '49px', width: '450px', right: '20px' }}
+                className="notifications ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
+                style={{
+                    top: '49px',
+                    width: '450px',
+                    left: this.props.position
+                        ? `${this.props.position - 391.5}px`
+                        : 'unset',
+                    right: '40px',
+                }}
             >
                 <div className="ContextualPopover-animate ContextualPopover-animate-entered">
                     <div
@@ -148,6 +155,7 @@ NotificationMenu.displayName = 'NotificationMenu';
 const mapStateToProps = state => {
     return {
         notifications: state.notifications.notifications,
+        position: state.notifications.notificationsPosition,
     };
 };
 
@@ -163,6 +171,7 @@ NotificationMenu.propTypes = {
     ]),
     length: PropTypes.number,
     map: PropTypes.func,
+    position: PropTypes.number,
 };
 
 NotificationMenu.contextTypes = {

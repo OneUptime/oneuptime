@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { Link, withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
+import { loadPage } from '../../actions/page';
 
 export class SidebarNavItem extends Component {
     constructor(props) {
@@ -19,7 +21,7 @@ export class SidebarNavItem extends Component {
 
     render() {
         const { RenderListItems } = this;
-        const { route, location, match } = this.props;
+        const { route, location, match, loadPage } = this.props;
         const path = route.path;
         const isLinkActive =
             location.pathname === path ||
@@ -39,7 +41,7 @@ export class SidebarNavItem extends Component {
         return (
             <div id={this.camalize(route.title)} style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
-                    <Link to={path}>
+                    <Link to={path} onClick={() => loadPage(route.title)}>
                         <div style={{ outline: 'none' }}>
                             <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
                                 <div className="Box-root Flex-flex Flex-alignItems--center">
@@ -136,10 +138,16 @@ SidebarNavItem.displayName = 'SidebarNavItem';
 
 const mapStateToProps = state_Ignored => ({});
 
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ loadPage }, dispatch);
+
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
     route: PropTypes.object.isRequired,
+    loadPage: PropTypes.func.isRequired,
 };
 
-export default withRouter(connect(mapStateToProps)(SidebarNavItem));
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(SidebarNavItem)
+);

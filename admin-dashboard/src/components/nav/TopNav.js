@@ -5,17 +5,18 @@ import { connect } from 'react-redux';
 import { showProfileMenu } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
 import { API_URL, User } from '../../config';
+import { openSideNav } from '../../actions/page';
 
 class TopContent extends Component {
-    showProfileMenu = () => {
-        this.props.showProfileMenu();
+    showProfileMenu = e => {
+        this.props.showProfileMenu(e.clientX);
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Profile Menu Opened', {});
         }
     };
 
-    showNotificationsMenu = () => {
-        this.props.openNotificationMenu();
+    showNotificationsMenu = e => {
+        this.props.openNotificationMenu(e.clientX);
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Notification Menu Opened', {});
         }
@@ -60,11 +61,20 @@ class TopContent extends Component {
                 className="db-World-topContent Box-root Box-background--surface Padding-vertical--20"
             >
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                    <div className="db-SearchField db-SearchField--tokenizable">
-                        <span />
+                    <div className="Box-root" onClick={this.props.openSideNav}>
+                        <div className="db-MenuContainer">
+                            <div
+                                className={
+                                    'db-MenuIcon Box-root Box-background--white'
+                                }
+                            >
+                                <div className="db-MenuIcon--content db-MenuIcon--menu" />
+                            </div>
+                        </div>
                     </div>
-                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                        <div className="Box-root Flex-flex">
+
+                    <div className="Box-root Flex-flex">
+                        <div>
                             <div
                                 tabIndex="-1"
                                 style={{ outline: 'none', marginRight: '15px' }}
@@ -119,9 +129,13 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ showProfileMenu, openNotificationMenu }, dispatch);
+    bindActionCreators(
+        { showProfileMenu, openNotificationMenu, openSideNav },
+        dispatch
+    );
 
 TopContent.propTypes = {
+    openSideNav: PropTypes.func,
     showProfileMenu: PropTypes.func.isRequired,
     openNotificationMenu: PropTypes.func.isRequired,
     profilePic: PropTypes.oneOfType([

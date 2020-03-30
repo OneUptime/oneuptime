@@ -85,24 +85,26 @@ export class DashboardApp extends Component {
                         if={!user.users.requesting && user.users.success}
                     >
                         <div className="db-World-wrapper Box-root Flex-flex Flex-direction--column">
-                            <SideNav />
+                            <div className="db-World-scrollWrapper">
+                                <SideNav />
 
-                            <div className="db-World-mainPane Box-root Padding-right--20">
-                                <div className="db-World-contentPane Box-root Padding-bottom--48">
-                                    <ShouldRender
-                                        if={
-                                            !IS_SAAS_SERVICE &&
-                                            !license.requesting &&
-                                            !license.data
-                                        }
-                                    >
-                                        <UnLicensedAlert />
-                                    </ShouldRender>
-                                    {children}
+                                <div className="db-World-mainPane Box-root Padding-right--20">
+                                    <div className="db-World-contentPane Box-root Padding-bottom--48">
+                                        <ShouldRender
+                                            if={
+                                                !IS_SAAS_SERVICE &&
+                                                !license.requesting &&
+                                                !license.data
+                                            }
+                                        >
+                                            <UnLicensedAlert />
+                                        </ShouldRender>
+                                        {children}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <TopNav />
+                                <TopNav />
+                            </div>
                         </div>
                     </ShouldRender>
 

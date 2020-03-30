@@ -173,7 +173,8 @@ export class ProjectList extends Component {
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                                             onClick={() => {
                                                 history.push(
-                                                    '/projects/' + project._id
+                                                    '/admin/projects/' +
+                                                        project._id
                                                 );
                                             }}
                                         >
