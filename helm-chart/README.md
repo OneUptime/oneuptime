@@ -53,3 +53,6 @@ helm repo index ./helm-chart/public
 
 ### Docker Images
 Docker Images are hosted at: https://hub.docker.com/orgs/fyipeproject/repositories and are public.
+
+### More info
+Read readme at [./public/fyipe/Readme.md](./public/fyipe/Readme.md)

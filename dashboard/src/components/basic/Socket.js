@@ -25,6 +25,7 @@ import {
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 
+// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 const socket = io.connect(API_URL, { path: '/api/socket.io' });
 
 class SocketApp extends Component {

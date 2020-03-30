@@ -14,7 +14,8 @@ import {
     updateprobebysocket,
 } from '../../actions/socket';
 
-const socket = io(API_URL);
+// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
+const socket = io(API_URL, { path: '/api/socket.io' });
 
 class SocketApp extends Component {
     shouldComponentUpdate(nextProps) {
