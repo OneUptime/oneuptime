@@ -1,5 +1,5 @@
 ############----STATUS-PAGE-INGRESS--#####################################
-{{- if .Values.statusPage.enableIngress }} 
+{{- if and .Values.statusPage.enabled .Values.fyipe.host }} 
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:

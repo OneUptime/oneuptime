@@ -1,4 +1,4 @@
-{{- if .Values.fyipe.tls.enabled }}
+{{- if .Values.statusPage.tls.enabled }}
 apiVersion: v1
 kind: Secret
 metadata:

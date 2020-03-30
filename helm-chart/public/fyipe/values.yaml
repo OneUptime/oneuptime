@@ -1,93 +1,71 @@
 ##################################################################################  
 ## Important: If you're implenting this in the enterprise environment, this should always be `false`. 
-## Is this Fyipe SaaS service. This will deploy all the SaaS env vars
-
+## This is for Fyipe SaaS service. This will deploy all the SaaS env vars
+################################################################################## 
 saas: 
   isSaasService: false
   stripe: 
-    publicKey: 
+    publicKey: #Stripe public and private key
     privateKey: 
   airtable: 
-    key: 
+    key: #Airtbale key to store leads. 
     baseId: 
   amplitude: 
-    key: 
+    key: #Amplitude for tracking. 
   licensing:
-    airtable: 
+    airtable: # Airtable for validating licenses. 
       key: 
       baseId: 
-    tokenSecret: 
+    tokenSecret: # Encrypting lisense with tokens to send them to clients. 
   support: 
-    slackToken: 
+    slackToken: # Slack token for Fyipe-help workspace
+
+###################################################################################
 
 statusPage: 
-  enableIngress: false
-  statusPageIngressHost: 
+  enabled: true
+  host: 
   tls:
     enabled: false
     crt: 
     key: 
 
-###################################################################################
+##################################################################################  
+## Important: Fyipe Values. More information in the Readme.md 
+################################################################################## 
 fyipe:
   host: 
   tls:
     enabled: false
     crt: 
     key:  
-  emailEnabled: true
-  callEnabled: true
-  smsEnabled: true
   licensingUrl: https://fyipe.com/license
-  
 
-host: 
-  backendPort: 3002
-  homePort: 1444
-  slackPort: 1267
-  licensingPort: 3004
-  statusPagePort: 3006
-  dashboardPort: 3000
-  accountsPort: 3003
-  helmChartPort: 3423
-  apiDocsPort: 1445
-  adminDashboardPort: 3100
-  backendServicePort: 80
-  homeServicePort: 80
-  apiDocsServicePort: 80
-  slackServicePort: 80
-  statusPageServicePort: 80
-  dashboardServicePort: 80
-  accountsServicePort: 80
-  adminDashboardServicePort: 80
-  backendNodePort: 80
-  statusPageNodePort: 80
-  dashboardNodePort: 80
-  accountsNodePort: 80
-  adminDashboardNodePort: 80
-  licensingServicePort: 80
-  helmChartServicePort: 80
-
+##################################################################################  
+## Important: Probe Values. More information in the Readme.md 
+################################################################################## 
 
 probes:
   probe1: 
     port: 3024
     name: Probe 1
-    key: test-key
+    key: sample-key
     servicePort: 80
   probe2: 
     name: Probe 2
     port: 3025
-    key: test-key
+    key: sample-key
     servicePort: 80
+
+##################################################################################  
+## Important: RateLimitter Values. More information in the Readme.md 
+################################################################################## 
 
 rateLimitter:
   enabled: false
   requestLimit: 5000
   requestLimitTimePeriodInMS: 216000
 
-encryption:
-  secret: 'sample-secret'
 
 ## Fyipe official image version on Docker Hub
 ## ref: https://hub.docker.com/u/fyipeproject
@@ -102,7 +80,7 @@ image:
 replicaCount: 1
 
 ## Service Configuration
-## For minikube, set this to NodePort, elsewhere use LoadBalancer or ClusterIP
+## For minikube, set this to NodePort, elsewhere use ClusterIP
 ##
 service:
   type: ClusterIP
@@ -150,3 +128,30 @@ mongodb:
   useStatefulSet: true
 
   ##################################################################################
+
+  host: 
+    backendPort: 3002
+    homePort: 1444
+    slackPort: 1267
+    licensingPort: 3004
+    statusPagePort: 3006
+    dashboardPort: 3000
+    accountsPort: 3003
+    helmChartPort: 3423
+    apiDocsPort: 1445
+    adminDashboardPort: 3100
+    backendServicePort: 80
+    homeServicePort: 80
+    apiDocsServicePort: 80
+    slackServicePort: 80
+    statusPageServicePort: 80
+    dashboardServicePort: 80
+    accountsServicePort: 80
+    adminDashboardServicePort: 80
+    backendNodePort: 80
+    statusPageNodePort: 80
+    dashboardNodePort: 80
+    accountsNodePort: 80
+    adminDashboardNodePort: 80
+    licensingServicePort: 80
+    helmChartServicePort: 80

@@ -23,7 +23,10 @@ spec:
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: JWT_SECRET
-                        value: {{ .Values.encryption.secret }}
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: encryptionkey
                       - name: MONGO_URL
                         value: {{ template "fyipe.mongodbConnectionString" . }}
                       - name: REDIS_HOST
@@ -32,12 +35,6 @@ spec:
                         value: {{ .Values.redis.redisPort | quote }}
                       - name: PORT
                         value: {{ .Values.host.backendPort | quote }}
-                      - name: EMAIL_ENABLED
-                        value: {{ .Values.fyipe.emailEnabled | quote }}
-                      - name: CALL_ENABLED
-                        value: {{ .Values.fyipe.callEnabled | quote }}
-                      - name: SMS_ENABLED
-                        value: {{ .Values.fyipe.smsEnabled | quote }}
                       - name: EMAIL_VERIFY_TIME
                         value: '3600'
                       - name: BACKEND_HOST

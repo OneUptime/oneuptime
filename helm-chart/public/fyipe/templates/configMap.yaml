@@ -4,3 +4,4 @@ metadata:
   name: {{ printf "%s-%s" .Release.Name "configmap"  }}
 data:
   clusterkey: {{ randAlphaNum 15 | quote }}
+  encryptionkey: {{ randAlphaNum 15 | quote }}
