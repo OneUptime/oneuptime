@@ -10,6 +10,7 @@ import probe from './probe';
 import auditLogs from './auditLogs';
 import settings from './settings';
 import license from './license';
+import page from './page';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -23,6 +24,7 @@ const appReducer = combineReducers({
     auditLogs,
     settings,
     license,
+    page,
 });
 
 export default (state, action) => {

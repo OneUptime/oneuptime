@@ -3578,6 +3578,12 @@ figure.bs-Number > figcaption {
   border-radius: 4px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.07), 0 2px 15px rgba(84, 96, 103, 0.25);
 }
+@media only screen and (max-width: 470px) {
+  .bs-Modal {
+    margin: 0 10px 20px;
+    width: auto;
+  }
+}
 .bs-Modal:focus {
   outline: none;
 }
@@ -51009,3 +51015,85 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
       list-style-type: disc;
       list-style-position: inside;
       }
+
+.button-as-anchor {
+  display: inline !important;
+  border: none; 
+  margin: 0; 
+  padding: 0; 
+  font: inherit; 
+  text-decoration: underline; 
+  cursor: pointer !important; 
+  text-align: inherit;
+  background-color: inherit;
+  color: #000000;
+}
+
+.team-header-label {
+  margin: auto;
+  width: 70px;
+  /* display: flex;
+  flex: 0 0 55%;
+  align-items: flex-start;
+  flex-direction: column; */
+}
+
+.team-header-label > h3 {
+    text-align: center;
+    margin-left: -60px;
+    width: 70px;
+    font-weight: bold;
+    background-color: white;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 14px;
+    margin-bottom: 5px;
+    border: 0.5px solid #B4B3B3;
+    border-radius: 5px;
+    margin-top: -21px;
+}
+
+.team-line-demarcator {
+    margin-left: 32%;
+    margin-right: 42%;
+    background-color: #DDDDDD;
+    height: 1px;
+    border: 0;
+    margin-top:50px;
+}
+
+.greendot{
+  display: inline-block; border-radius: 2px; height: 8px; width: 8px; margin: 0px 8px 1px 0px; background-color: rgb(117, 211, 128);
+}
+
+.yellowdot{
+  display: inline-block; border-radius: 2px; height: 8px; width: 8px; margin: 0px 8px 1px 0px; background-color: rgb(255, 222, 36)
+}
+
+.userIcon{
+  display: inline-block; height: 20px; width: 20px; border-radius: 50%; margin: 5px 10px -4px 0px;
+}
+
+.labelfield{
+  margin-top:6px;
+}
+.pointer{
+  cursor: pointer
+}
+
+.flex{
+  display: flex;
+}
+
+.flex-center{
+  display: flex;
+  justify-content:center;
+}
+
+.red{
+  color:#FF2D55 !important;
+}
+
+.underline{
+  text-decoration:underline !important;
+}

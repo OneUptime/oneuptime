@@ -5,6 +5,8 @@ import { connect } from 'react-redux';
 import NavItem from './SideNavItem';
 import { groups } from '../../routes';
 import { openModal, closeModal } from '../../actions/modal';
+import { closeSideNav } from '../../actions/page';
+import ClickOutside from 'react-click-outside';
 
 class SideNav extends Component {
     handleKeyBoard = e => {
@@ -18,10 +20,12 @@ class SideNav extends Component {
 
     render() {
         return (
-            <div className="db-World-scrollWrapper">
+            <ClickOutside onClickOutside={this.props.closeSideNav}>
                 <div
                     onKeyDown={this.handleKeyBoard}
-                    className="db-World-sideNavContainer"
+                    className={`db-World-sideNavContainer${
+                        this.props.sidenavopen ? ' open' : ''
+                    }`}
                 >
                     <div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
                         <div className="Box-root Margin-bottom--20">
@@ -87,15 +91,17 @@ class SideNav extends Component {
                         </div>
                     </div>
                 </div>
-            </div>
+            </ClickOutside>
         );
     }
 }
 
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function(state_Ignored) {
-    return {};
+const mapStateToProps = function(state) {
+    return {
+        sidenavopen: state.page.sidenavopen,
+    };
 };
 
 const mapDispatchToProps = function(dispatch) {
@@ -103,12 +109,16 @@ const mapDispatchToProps = function(dispatch) {
         {
             openModal,
             closeModal,
+            closeSideNav,
         },
         dispatch
     );
 };
 
-SideNav.propTypes = {};
+SideNav.propTypes = {
+    closeSideNav: PropTypes.func,
+    sidenavopen: PropTypes.bool,
+};
 SideNav.contextTypes = {
     mixpanel: PropTypes.object.isRequired,
 };

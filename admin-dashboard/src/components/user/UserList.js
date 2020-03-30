@@ -6,7 +6,7 @@ const UserList = ({ users }) =>
     users.map((user, k) => {
         return (
             <Link
-                to={`/users/${user._id}`}
+                to={`/admin/users/${user._id}`}
                 key={k}
                 className="bs-ObjectList-row db-UserListRow db-UserListRow--withName"
             >

@@ -1,8 +1,9 @@
 import * as types from '../constants/profile';
 
-export const showProfileMenu = () => {
+export const showProfileMenu = position => {
     return {
         type: types.SHOW_PROFILE_MENU,
+        payload: position,
     };
 };
 

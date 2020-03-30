@@ -1,8 +1,9 @@
 import * as types from '../constants/notification';
 
-export const openNotificationMenu = () => {
+export const openNotificationMenu = position => {
     return {
         type: types.OPEN_NOTIFICATION_MENU,
+        payload: position,
     };
 };
 export const closeNotificationMenu = error => {

@@ -23,7 +23,14 @@ export class ProfileMenu extends Component {
         return this.props.visible ? (
             <div
                 className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
-                style={{ top: '49px', width: '232px', right: '20px' }}
+                style={{
+                    top: '49px',
+                    width: '232px',
+                    left: this.props.position
+                        ? `${this.props.position - 214.25}px`
+                        : 'unset',
+                    right: '40px',
+                }}
             >
                 <span>
                     <div
@@ -86,7 +93,11 @@ export class ProfileMenu extends Component {
 
 ProfileMenu.displayName = 'ProfileMenu';
 
-const mapStateToProps = state_Ignored => ({});
+const mapStateToProps = state => {
+    return {
+        position: state.profileSettings.menuPosition,
+    };
+};
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators({ hideProfileMenu, logoutUser }, dispatch);
@@ -95,6 +106,7 @@ const mapDispatchToProps = dispatch => {
 ProfileMenu.propTypes = {
     visible: PropTypes.bool,
     logoutUser: PropTypes.func.isRequired,
+    position: PropTypes.number,
 };
 
 ProfileMenu.contextTypes = {
