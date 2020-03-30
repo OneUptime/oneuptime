@@ -1,21 +1,22 @@
 ############----INGRESS---#####################################
+{{- range $key, $value := $.Values.fyipe.hosts }}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     ingress.kubernetes.io/ssl-redirect: "true"
-  name: {{ printf "%s-%s" .Release.Name "ingress"  }}
+  name: {{ printf "%s-%s-%s" $.Release.Name $key "ingress"  }}
 spec:
-  {{- if .Values.fyipe.tls.enabled }} 
+  {{- if $value.tls.enabled }} 
   tls:
     - hosts:
-      - {{ .Values.fyipe.host }} 
-      secretName: {{ printf "%s-%s" .Release.Name "tlssecret"  }}
+      - {{ $value.host }}
+      secretName: {{ printf "%s-%s-%s" $.Release.Name $key "tls"  }}
   {{- end }}
   rules:
-    {{- if .Values.fyipe.host }} 
-    - host: {{ .Values.fyipe.host }} 
+    {{- if $value.host }} 
+    - host: {{ $value.host }}
       http:
     {{- else }}
     - http:
@@ -23,50 +24,51 @@ spec:
         paths:
           - path: /accounts
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "accounts"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "accounts"  }}
               servicePort: 80
           - path: /dashboard
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
               servicePort: 80
           - path: /admin
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "admin-dash"  }}
               servicePort: 80
           - path: /api
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "backend"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "backend"  }}
               servicePort: 80
           - path: /status-page
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "status-page"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "status-page"  }}
               servicePort: 80
-          {{- if .Values.saas.isSaasService }}
+          {{- if $.Values.saas.isSaasService }}
           - path: /slack
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "slack"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "slack"  }}
               servicePort: 80
           - path: /
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "home"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "home"  }}
               servicePort: 80
           - path: /docs
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "api-docs"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
               servicePort: 80
           - path: /license
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "licensing"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "licensing"  }}
               servicePort: 80
           - path: /chart
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
               servicePort: 80
           {{- else }}
           - path: /
             backend:
-              serviceName: {{ printf "%s-%s" .Release.Name "accounts"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "accounts"  }}
               servicePort: 80
           {{- end }}   
 ---
+{{- end }}
 ##########################################################################

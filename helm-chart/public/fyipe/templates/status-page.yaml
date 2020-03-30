@@ -21,7 +21,7 @@ spec:
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                     - name: FYIPE_HOST
-                      values: {{ .Values.fyipe.host }}
+                      value: {{ .Values.fyipe.hosts.host1.host }}
                     {{- if .Values.saas.isSaasService }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'

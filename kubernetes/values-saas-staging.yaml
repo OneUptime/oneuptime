@@ -26,8 +26,23 @@ saas:
 
 statusPage: 
   enableIngress: true
-  host: status.flowappplatform.com
+  host: 
   tls:
     enabled: false
     crt: 
     key: 
+
+fyipe:
+  hosts:
+    host1: 
+      host: flowappplatform.com
+      tls:
+        enabled: false
+        crt: 
+        key: 
+      host: www.flowappplatform.com
+      tls:
+        enabled: false
+        crt: 
+        key: 
+  licensingUrl: https://fyipe.com/license

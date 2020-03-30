@@ -223,5 +223,7 @@ If you need any help with deployments, please reach out to our engineering suppo
 
 ## License
 
-For a commercial license, please reach out to sales@fyipe.com. 
+The project will be deployed on Evaluation License by default. For a commercial license, please reach out to sales@fyipe.com. 
+
+If you already have a commercial license. Please enter the license key on your dashboard (after you log in to Fyipe)
 

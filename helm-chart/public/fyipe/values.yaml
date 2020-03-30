@@ -34,11 +34,13 @@ statusPage:
 ## Important: Fyipe Values. More information in the Readme.md 
 ################################################################################## 
 fyipe:
-  host: 
-  tls:
-    enabled: false
-    crt: 
-    key:  
+  hosts:
+    host1: 
+      host: 
+      tls:
+        enabled: false
+        crt: 
+        key: 
   licensingUrl: https://fyipe.com/license
 
 ##################################################################################  
@@ -129,29 +131,29 @@ mongodb:
 
   ##################################################################################
 
-  host: 
-    backendPort: 3002
-    homePort: 1444
-    slackPort: 1267
-    licensingPort: 3004
-    statusPagePort: 3006
-    dashboardPort: 3000
-    accountsPort: 3003
-    helmChartPort: 3423
-    apiDocsPort: 1445
-    adminDashboardPort: 3100
-    backendServicePort: 80
-    homeServicePort: 80
-    apiDocsServicePort: 80
-    slackServicePort: 80
-    statusPageServicePort: 80
-    dashboardServicePort: 80
-    accountsServicePort: 80
-    adminDashboardServicePort: 80
-    backendNodePort: 80
-    statusPageNodePort: 80
-    dashboardNodePort: 80
-    accountsNodePort: 80
-    adminDashboardNodePort: 80
-    licensingServicePort: 80
-    helmChartServicePort: 80
+host: 
+  backendPort: 3002
+  homePort: 1444
+  slackPort: 1267
+  licensingPort: 3004
+  statusPagePort: 3006
+  dashboardPort: 3000
+  accountsPort: 3003
+  helmChartPort: 3423
+  apiDocsPort: 1445
+  adminDashboardPort: 3100
+  backendServicePort: 80
+  homeServicePort: 80
+  apiDocsServicePort: 80
+  slackServicePort: 80
+  statusPageServicePort: 80
+  dashboardServicePort: 80
+  accountsServicePort: 80
+  adminDashboardServicePort: 80
+  backendNodePort: 80
+  statusPageNodePort: 80
+  dashboardNodePort: 80
+  accountsNodePort: 80
+  adminDashboardNodePort: 80
+  licensingServicePort: 80
+  helmChartServicePort: 80
