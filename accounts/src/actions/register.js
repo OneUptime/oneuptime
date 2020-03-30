@@ -1,5 +1,5 @@
 import { postApi } from '../api';
-import { masterAdminExistsSuccess } from './login';
+import { masterAdminExistsSuccess, loginSuccess } from './login';
 import * as types from '../constants/register';
 import errors from '../errors';
 import { IS_SAAS_SERVICE } from '../config';
@@ -76,6 +76,7 @@ export function signupUser(values) {
             function(user) {
                 dispatch(signupSuccess(user.data));
                 if (user.data.role === 'master-admin' && !IS_SAAS_SERVICE) {
+                    dispatch(loginSuccess(user.data))
                     dispatch(masterAdminExistsSuccess({ result: true }));
                 }
             },
