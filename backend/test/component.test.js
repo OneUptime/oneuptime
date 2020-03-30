@@ -57,7 +57,7 @@ describe('Component API', function() {
         request
             .post(`/component/${projectId}`)
             .send({
-                name: 'New Schedule',
+                name: 'New Component',
             })
             .end(function(err, res) {
                 expect(res).to.have.status(401);
@@ -71,7 +71,7 @@ describe('Component API', function() {
             .post(`/component/${projectId}`)
             .set('Authorization', authorization)
             .send({
-                name: null
+                name: null,
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -85,12 +85,12 @@ describe('Component API', function() {
             .post(`/component/${projectId}`)
             .set('Authorization', authorization)
             .send({
-                name: 'New Component 3',
+                name: 'New Component',
             })
             .end(function(err, res) {
                 componentId = res.body._id;
                 expect(res).to.have.status(200);
-                expect(res.body.name).to.be.equal('New Component 3');
+                expect(res.body.name).to.be.equal('New Component');
                 done();
             });
     });
@@ -150,7 +150,16 @@ describe('Component API', function() {
 });
 
 // eslint-disable-next-line no-unused-vars
-let subProjectId, newUserToken, subProjectComponentId;
+let subProjectId,
+    newUserToken,
+    newUserId,
+    newAirtableId,
+    newProjectId,
+    otherUserId,
+    otherAirtableId,
+    otherProjectId,
+    subProjectComponentId,
+    newComponentId;
 
 describe('Component API with Sub-Projects', function() {
     this.timeout(30000);
@@ -166,54 +175,91 @@ describe('Component API with Sub-Projects', function() {
                 subProjectId = res.body[0]._id;
                 // sign up second user (subproject user)
                 createUser(request, userData.newUser, function(err, res) {
-                    userId = res.body.id;
-                    VerificationTokenModel.findOne({ userId }, function(
-                        err,
-                        verificationToken
-                    ) {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end(function() {
-                                request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.newUser.email,
-                                        password: userData.newUser.password,
-                                    })
-                                    .end(function(err, res) {
-                                        newUserToken =
-                                            res.body.tokens.jwtAccessToken;
-                                        let authorization = `Basic ${token}`;
-                                        // add second user to subproject
-                                        request
-                                            .post(`/team/${subProjectId}`)
-                                            .set('Authorization', authorization)
-                                            .send({
-                                                emails: userData.newUser.email,
-                                                role: 'Member',
-                                            })
-                                            .end(function() {
-                                                done();
-                                            });
-                                    });
-                            });
-                    });
+                    let project = res.body.project;
+                    newProjectId = project._id;
+                    newUserId = res.body.id;
+                    newAirtableId = res.body.airtableId;
+
+                    VerificationTokenModel.findOne(
+                        { userId: newUserId },
+                        function(err, verificationToken) {
+                            request
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function() {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.newUser.email,
+                                            password: userData.newUser.password,
+                                        })
+                                        .end(function(err, res) {
+                                            newUserToken =
+                                                res.body.tokens.jwtAccessToken;
+                                            let authorization = `Basic ${token}`;
+                                            // add second user to subproject
+                                            request
+                                                .post(`/team/${subProjectId}`)
+                                                .set(
+                                                    'Authorization',
+                                                    authorization
+                                                )
+                                                .send({
+                                                    emails:
+                                                        userData.newUser.email,
+                                                    role: 'Member',
+                                                })
+                                                .end(function() {
+                                                    done();
+                                                });
+                                        });
+                                });
+                        }
+                    );
                 });
             });
     });
 
     after(async function() {
-        await ComponentService.hardDeleteBy({ _id: componentId });
-        await ComponentService.hardDeleteBy({ _id: subProjectComponentId });
+        await ProjectService.hardDeleteBy({
+            _id: {
+                $in: [projectId, newProjectId, otherProjectId, subProjectId],
+            },
+        });
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [
+                    userData.user.email,
+                    userData.newUser.email,
+                    userData.anotherUser.email,
+                ],
+            },
+        });
+        await ComponentService.hardDeleteBy({
+            _id: { $in: [componentId, newComponentId, subProjectComponentId] },
+        });
+        await NotificationService.hardDeleteBy({
+            projectId: {
+                $in: [projectId, newProjectId, otherProjectId, subProjectId],
+            },
+        });
+        await AirtableService.deleteUser([
+            airtableId,
+            newAirtableId,
+            otherAirtableId,
+        ]);
     });
 
     it('should not create a component for user not present in project', function(done) {
         createUser(request, userData.anotherUser, function(err, res) {
-            userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(
+            let project = res.body.project;
+            otherProjectId = project._id;
+            otherUserId = res.body.id;
+            otherAirtableId = res.body.airtableId;
+
+            VerificationTokenModel.findOne({ userId: otherUserId }, function(
                 err,
                 verificationToken
             ) {
@@ -232,7 +278,7 @@ describe('Component API with Sub-Projects', function() {
                                 request
                                     .post(`/component/${projectId}`)
                                     .set('Authorization', authorization)
-                                    .send({ name: 'New Component 9' })
+                                    .send({ name: 'New Component 1' })
                                     .end(function(err, res) {
                                         expect(res).to.have.status(400);
                                         expect(res.body.message).to.be.equal(
@@ -252,7 +298,7 @@ describe('Component API with Sub-Projects', function() {
             .post(`/component/${subProjectId}`)
             .set('Authorization', authorization)
             .send({
-                name: 'New Component 10',
+                name: 'New Component 1',
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -269,12 +315,12 @@ describe('Component API with Sub-Projects', function() {
             .post(`/component/${projectId}`)
             .set('Authorization', authorization)
             .send({
-                name: 'New Component 11',
+                name: 'New Component 1',
             })
             .end(function(err, res) {
-                componentId = res.body._id;
+                newComponentId = res.body._id;
                 expect(res).to.have.status(200);
-                expect(res.body.name).to.be.equal('New Component 11');
+                expect(res.body.name).to.be.equal('New Component 1');
                 done();
             });
     });
@@ -285,12 +331,12 @@ describe('Component API with Sub-Projects', function() {
             .post(`/component/${subProjectId}`)
             .set('Authorization', authorization)
             .send({
-                name: 'New Component 12',
+                name: 'New Component 2',
             })
             .end(function(err, res) {
                 subProjectComponentId = res.body._id;
                 expect(res).to.have.status(200);
-                expect(res.body.name).to.be.equal('New Component 12');
+                expect(res.body.name).to.be.equal('New Component 2');
                 done();
             });
     });
@@ -355,7 +401,7 @@ describe('Component API with Sub-Projects', function() {
     it('should delete project component', function(done) {
         let authorization = `Basic ${token}`;
         request
-            .delete(`/component/${projectId}/${componentId}`)
+            .delete(`/component/${projectId}/${newComponentId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
