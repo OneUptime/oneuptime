@@ -16,6 +16,7 @@ const initialState = {
         notifications: [],
     },
     notificationsVisible: false,
+    notificationsPosition: 0,
 };
 
 export default (state = initialState, action) => {
@@ -23,6 +24,7 @@ export default (state = initialState, action) => {
         case OPEN_NOTIFICATION_MENU:
             return Object.assign({}, state, {
                 notificationsVisible: true,
+                notificationsPosition: action.payload,
             });
 
         case CLOSE_NOTIFICATION_MENU:
