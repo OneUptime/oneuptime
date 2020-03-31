@@ -1,4 +1,4 @@
-cd ./kubernetes/credentials
+cd ./ci/credentials
 openssl enc -in encrypted-credentials.enc -out encrypted-credentials.tar -d -aes256 -pbkdf2 -k $KUBE_ENC
 tar -xvf encrypted-credentials.tar
 cd ..
