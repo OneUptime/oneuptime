@@ -29,14 +29,7 @@ const _this = {
             name: 'twilio',
         });
         if (document && document.value) {
-            return {
-                'account-sid': document.value['account-sid'],
-                'authentication-token': document.value['authentication-token'],
-                phone: document.value['phone'],
-                'sms-enabled': document.value['sms-enabled'],
-                'call-enabled': document.value['call-enabled'],
-                'alert-limit': document.value['alert-limit']
-            };
+            return document.value;
         }
 
         const error = new Error('Twilio settings not found.');
