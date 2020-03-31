@@ -21,12 +21,11 @@ const IncidentService = require('../backend/services/incidentService');
 const MonitorService = require('../backend/services/monitorService');
 const NotificationService = require('../backend/services/notificationService');
 const AirtableService = require('../backend/services/airtableService');
-
+const Config = require('./utils/config');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const AlertModel = require('../backend/models/alert');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
-const TwilioConfig = require('../backend/config/twilio');
 
 let token,
     userId,
@@ -338,7 +337,7 @@ describe('Incident API', function() {
         await sleep(5000);
         await UserModel.findByIdAndUpdate(userId, {
             $set: {
-                alertPhoneNumber: TwilioConfig.testphoneNumber,
+                alertPhoneNumber: Config.testphoneNumber,
             },
         });
         const schedule = await request

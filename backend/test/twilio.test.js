@@ -17,7 +17,7 @@ const MonitorService = require('../backend/services/monitorService');
 const NotificationService = require('../backend/services/notificationService');
 const AirtableService = require('../backend/services/airtableService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
-const TwilioConfig = require('../backend/config/twilio');
+const Config = require('./utils/config');
 
 let token, userId, airtableId, projectId, monitorId;
 const monitor = {
@@ -102,7 +102,7 @@ describe('Twilio API', function() {
             .post(`/twilio/sms/sendVerificationToken?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send({
-                to: TwilioConfig.testphoneNumber,
+                to: Config.testphoneNumber,
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
