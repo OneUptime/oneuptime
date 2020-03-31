@@ -59,7 +59,7 @@ const _this = {
     },
 
     createMailer: async function({ host, port, user, pass, secure }) {
-        if (!arguments[0]) {
+        if (!host || !user || !pass) {
             const settings = await _this.getSmtpSettings();
             host = settings.host;
             port = settings.port;
@@ -150,7 +150,7 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -212,7 +212,7 @@ const _this = {
                 return;
             }
 
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
@@ -249,7 +249,7 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -300,7 +300,7 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -352,7 +352,7 @@ const _this = {
                     template: 'request_demo_body',
                 };
 
-                const mailer = await _this.createMailer();
+                const mailer = await _this.createMailer({});
 
                 if (!mailer) {
                     await EmailStatusService.create({
@@ -424,7 +424,7 @@ const _this = {
                         },
                     };
 
-                    const mailer = await _this.createMailer();
+                    const mailer = await _this.createMailer({});
 
                     if (!mailer) {
                         await EmailStatusService.create({
@@ -484,7 +484,7 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -538,7 +538,7 @@ const _this = {
                     accountsURL: global.homeHost + '/accounts',
                 },
             };
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -598,7 +598,7 @@ const _this = {
                     registerUrl,
                 },
             };
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -655,7 +655,7 @@ const _this = {
                     dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -711,7 +711,7 @@ const _this = {
                     userName: addedByUser.name,
                 },
             };
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -768,7 +768,7 @@ const _this = {
                     dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -821,7 +821,7 @@ const _this = {
                     accountsURL: global.homeHost + '/accounts',
                 },
             };
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -878,7 +878,7 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -934,7 +934,7 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -993,7 +993,7 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -1077,7 +1077,7 @@ const _this = {
                     dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1319,7 +1319,7 @@ const _this = {
             const smtpSettings = await _this.getProjectSmtpSettings(
                 incident.projectId
             );
-            const privateMailer = await _this.createMailer();
+            const privateMailer = await _this.createMailer({});
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
@@ -1441,7 +1441,7 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -1493,7 +1493,7 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -1543,7 +1543,7 @@ const _this = {
                     dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -1600,7 +1600,7 @@ const _this = {
                     email: email,
                 },
             };
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1656,7 +1656,7 @@ const _this = {
                     dashboardURL: global.dashboardHost + '/dashbord',
                 },
             };
-            const mailer = await _this.createMailer();
+            const mailer = await _this.createMailer({});
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
