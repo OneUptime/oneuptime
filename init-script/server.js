@@ -1,12 +1,11 @@
-const PKG_VERSION = require('./package.json').version.split('.')[2];
-
 const fs = require('fs');
 const util = require('./util/db');
 const scripts = require('./scripts');
 
-const excludedScripts = ['index.js', 'start.js', 'end.js'];
-
 async function run() {
+    
+    const excludedScripts = ['index.js', 'start.js', 'end.js'];
+
     // eslint-disable-next-line no-console
     console.log('Connecting to MongoDB.');
 
@@ -15,6 +14,12 @@ async function run() {
 
     // eslint-disable-next-line no-console
     console.log('Connected to MongoDB.');
+
+    var currentVersion = await util.getVersion();
+    console.log("Current Version: "+currentVersion);
+    if(currentVersion){
+        currentVersion = currentVersion.split('.')[2];
+    }
 
     // eslint-disable-next-line no-console
     console.log('START SCRIPT: Running script.');
@@ -34,7 +39,7 @@ async function run() {
     // Switched to for loop, forEach does not await the callback
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (PKG_VERSION < file.split('.')[2]) {
+        if (currentVersion && parseInt(currentVersion) < parseInt(file.split('.')[2])) {
             // eslint-disable-next-line no-console
             console.log(file + ': Running script.');
 

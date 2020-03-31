@@ -5,7 +5,8 @@
     "main": "server.js",
     "scripts": {
         "test": "jest tests",
-        "start": "node server.js"
+        "start": "node server.js",
+        "dev": "nodemon server.js"
     },
     "dependencies": {
         "mongodb": "^3.5.2"
