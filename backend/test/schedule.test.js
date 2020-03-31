@@ -6,7 +6,7 @@ const userData = require('./data/user');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
-
+const GlobalConfig = require('./utils/globalConfig');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 // let log = require('./data/log');
@@ -24,35 +24,38 @@ describe('Schedule API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            projectId = res.body.project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                projectId = res.body.project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                done();
-                            });
-                    });
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    done();
+                                });
+                        });
+                });
             });
         });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ScheduleService.hardDeleteBy({ _id: scheduleId });
         await AirtableService.deleteUser(airtableId);
     });
@@ -161,57 +164,65 @@ describe('Schedule API with Sub-Projects', function() {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
         // create a subproject for parent project
-        request
-            .post(`/project/${projectId}/subProject`)
-            .set('Authorization', authorization)
-            .send({ subProjectName: 'New SubProject' })
-            .end(function(err, res) {
-                subProjectId = res.body[0]._id;
-                // sign up second user (subproject user)
-                createUser(request, userData.newUser, function(err, res) {
-                    VerificationTokenModel.findOne(
-                        { userId: res.body.id },
-                        function(err, verificationToken) {
-                            request
-                                .get(
-                                    `/user/confirmation/${verificationToken.token}`
-                                )
-                                .redirects(0)
-                                .end(function() {
-                                    request
-                                        .post('/user/login')
-                                        .send({
-                                            email: userData.newUser.email,
-                                            password: userData.newUser.password,
-                                        })
-                                        .end(function(err, res) {
-                                            newUserToken =
-                                                res.body.tokens.jwtAccessToken;
-                                            const authorization = `Basic ${token}`;
-                                            // add second user to subproject
-                                            request
-                                                .post(`/team/${subProjectId}`)
-                                                .set(
-                                                    'Authorization',
-                                                    authorization
-                                                )
-                                                .send({
-                                                    emails:
-                                                        userData.newUser.email,
-                                                    role: 'Member',
-                                                })
-                                                .end(function() {
-                                                    done();
-                                                });
-                                        });
-                                });
-                        }
-                    );
+        GlobalConfig.initTestConfig().then(function() {
+            request
+                .post(`/project/${projectId}/subProject`)
+                .set('Authorization', authorization)
+                .send({ subProjectName: 'New SubProject' })
+                .end(function(err, res) {
+                    subProjectId = res.body[0]._id;
+                    // sign up second user (subproject user)
+                    createUser(request, userData.newUser, function(err, res) {
+                        VerificationTokenModel.findOne(
+                            { userId: res.body.id },
+                            function(err, verificationToken) {
+                                request
+                                    .get(
+                                        `/user/confirmation/${verificationToken.token}`
+                                    )
+                                    .redirects(0)
+                                    .end(function() {
+                                        request
+                                            .post('/user/login')
+                                            .send({
+                                                email: userData.newUser.email,
+                                                password:
+                                                    userData.newUser.password,
+                                            })
+                                            .end(function(err, res) {
+                                                newUserToken =
+                                                    res.body.tokens
+                                                        .jwtAccessToken;
+                                                const authorization = `Basic ${token}`;
+                                                // add second user to subproject
+                                                request
+                                                    .post(
+                                                        `/team/${subProjectId}`
+                                                    )
+                                                    .set(
+                                                        'Authorization',
+                                                        authorization
+                                                    )
+                                                    .send({
+                                                        emails:
+                                                            userData.newUser
+                                                                .email,
+                                                        role: 'Member',
+                                                    })
+                                                    .end(function() {
+                                                        done();
+                                                    });
+                                            });
+                                    });
+                            }
+                        );
+                    });
                 });
-            });
+        });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
         });

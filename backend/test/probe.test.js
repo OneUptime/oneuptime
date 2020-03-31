@@ -14,6 +14,7 @@ const ProjectService = require('../backend/services/projectService');
 const request = chai.request.agent(app);
 const ProbeService = require('../backend/services/probeService');
 let probeId;
+const GlobalConfig = require('./utils/globalConfig');
 let token, userId, projectId;
 const probeKey = 'test-key';
 const generateRandomString = require('./utils/string').generateRandomString;
@@ -23,6 +24,7 @@ describe('Probe API', function() {
 
     before(async function() {
         this.timeout(40000);
+        await GlobalConfig.initTestConfig();
         await UserService.create({
             ...userData.user,
             role: 'master-admin',
@@ -38,6 +40,7 @@ describe('Probe API', function() {
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProbeService.hardDeleteBy({ _id: probeId });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({

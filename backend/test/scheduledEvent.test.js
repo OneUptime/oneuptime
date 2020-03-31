@@ -6,7 +6,7 @@ const userData = require('./data/user');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
-
+const GlobalConfig = require('./utils/globalConfig');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
@@ -57,48 +57,53 @@ describe('Scheduled event API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            const project = res.body.project;
-            userId = res.body.id;
-            projectId = project._id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                const project = res.body.project;
+                userId = res.body.id;
+                projectId = project._id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                const authorization = `Basic ${token}`;
-                                request
-                                    .post(`/monitor/${projectId}`)
-                                    .set('Authorization', authorization)
-                                    .send({
-                                        name: 'New Monitor 1',
-                                        type: 'url',
-                                        data: { url: 'http://www.tests.org' },
-                                    })
-                                    .end(function(err, res) {
-                                        monitorId = res.body._id;
-                                        done();
-                                    });
-                            });
-                    });
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    const authorization = `Basic ${token}`;
+                                    request
+                                        .post(`/monitor/${projectId}`)
+                                        .set('Authorization', authorization)
+                                        .send({
+                                            name: 'New Monitor 1',
+                                            type: 'url',
+                                            data: {
+                                                url: 'http://www.tests.org',
+                                            },
+                                        })
+                                        .end(function(err, res) {
+                                            monitorId = res.body._id;
+                                            done();
+                                        });
+                                });
+                        });
+                });
             });
         });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -204,36 +209,41 @@ describe('User from other project have access to read / write and delete API.', 
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            const project = res.body.project;
-            projectId = project._id;
-            createUser(request, userData.newUser, function(err, res) {
-                userId = res.body.id;
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.newUser.email,
-                                    password: userData.newUser.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    done();
-                                });
-                        });
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                const project = res.body.project;
+                projectId = project._id;
+                createUser(request, userData.newUser, function(err, res) {
+                    userId = res.body.id;
+                    VerificationTokenModel.findOne({ userId }, function(
+                        err,
+                        verificationToken
+                    ) {
+                        request
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end(function() {
+                                request
+                                    .post('/user/login')
+                                    .send({
+                                        email: userData.newUser.email,
+                                        password: userData.newUser.password,
+                                    })
+                                    .end(function(err, res) {
+                                        token = res.body.tokens.jwtAccessToken;
+                                        done();
+                                    });
+                            });
+                    });
                 });
             });
         });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -308,6 +318,7 @@ describe('Scheduled Event API - Check pagination for 12 scheduled events', funct
 
     before(async function() {
         this.timeout(30000);
+        await GlobalConfig.initTestConfig();
         const checkCardData = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
             email: userData.email,
@@ -357,6 +368,7 @@ describe('Scheduled Event API - Check pagination for 12 scheduled events', funct
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -451,114 +463,119 @@ describe('Non-admin user access to create, delete and access scheduled events.',
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            const project = res.body.project;
-            projectId = project._id;
-            userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                const authorization = `Basic ${token}`;
-                                request
-                                    .post(
-                                        `/scheduledEvent/${projectId}/${monitorId}`
-                                    )
-                                    .set('Authorization', authorization)
-                                    .send(scheduledEvent)
-                                    .end(function(err, res) {
-                                        scheduleEventId = res.body._id;
-                                        createUser(
-                                            request,
-                                            userData.newUser,
-                                            function(err, res) {
-                                                projectIdSecondUser =
-                                                    res.body.project._id;
-                                                emailToBeInvited =
-                                                    userData.newUser.email;
-                                                userId = res.body.id;
-                                                request
-                                                    .post(`/team/${projectId}`)
-                                                    .set(
-                                                        'Authorization',
-                                                        authorization
-                                                    )
-                                                    .send({
-                                                        emails: emailToBeInvited,
-                                                        role: 'Member',
-                                                    })
-                                                    .end(function() {
-                                                        VerificationTokenModel.findOne(
-                                                            { userId },
-                                                            function(
-                                                                err,
-                                                                verificationToken
-                                                            ) {
-                                                                request
-                                                                    .get(
-                                                                        `/user/confirmation/${verificationToken.token}`
-                                                                    )
-                                                                    .redirects(
-                                                                        0
-                                                                    )
-                                                                    .end(
-                                                                        function() {
-                                                                            request
-                                                                                .post(
-                                                                                    '/user/login'
-                                                                                )
-                                                                                .send(
-                                                                                    {
-                                                                                        email:
-                                                                                            userData
-                                                                                                .newUser
-                                                                                                .email,
-                                                                                        password:
-                                                                                            userData
-                                                                                                .newUser
-                                                                                                .password,
-                                                                                    }
-                                                                                )
-                                                                                .end(
-                                                                                    function(
-                                                                                        err,
-                                                                                        res
-                                                                                    ) {
-                                                                                        token =
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                const project = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    const authorization = `Basic ${token}`;
+                                    request
+                                        .post(
+                                            `/scheduledEvent/${projectId}/${monitorId}`
+                                        )
+                                        .set('Authorization', authorization)
+                                        .send(scheduledEvent)
+                                        .end(function(err, res) {
+                                            scheduleEventId = res.body._id;
+                                            createUser(
+                                                request,
+                                                userData.newUser,
+                                                function(err, res) {
+                                                    projectIdSecondUser =
+                                                        res.body.project._id;
+                                                    emailToBeInvited =
+                                                        userData.newUser.email;
+                                                    userId = res.body.id;
+                                                    request
+                                                        .post(
+                                                            `/team/${projectId}`
+                                                        )
+                                                        .set(
+                                                            'Authorization',
+                                                            authorization
+                                                        )
+                                                        .send({
+                                                            emails: emailToBeInvited,
+                                                            role: 'Member',
+                                                        })
+                                                        .end(function() {
+                                                            VerificationTokenModel.findOne(
+                                                                { userId },
+                                                                function(
+                                                                    err,
+                                                                    verificationToken
+                                                                ) {
+                                                                    request
+                                                                        .get(
+                                                                            `/user/confirmation/${verificationToken.token}`
+                                                                        )
+                                                                        .redirects(
+                                                                            0
+                                                                        )
+                                                                        .end(
+                                                                            function() {
+                                                                                request
+                                                                                    .post(
+                                                                                        '/user/login'
+                                                                                    )
+                                                                                    .send(
+                                                                                        {
+                                                                                            email:
+                                                                                                userData
+                                                                                                    .newUser
+                                                                                                    .email,
+                                                                                            password:
+                                                                                                userData
+                                                                                                    .newUser
+                                                                                                    .password,
+                                                                                        }
+                                                                                    )
+                                                                                    .end(
+                                                                                        function(
+                                                                                            err,
                                                                                             res
-                                                                                                .body
-                                                                                                .tokens
-                                                                                                .jwtAccessToken;
-                                                                                        done();
-                                                                                    }
-                                                                                );
-                                                                        }
-                                                                    );
-                                                            }
-                                                        );
-                                                    });
-                                            }
-                                        );
-                                    });
-                            });
-                    });
+                                                                                        ) {
+                                                                                            token =
+                                                                                                res
+                                                                                                    .body
+                                                                                                    .tokens
+                                                                                                    .jwtAccessToken;
+                                                                                            done();
+                                                                                        }
+                                                                                    );
+                                                                            }
+                                                                        );
+                                                                }
+                                                            );
+                                                        });
+                                                }
+                                            );
+                                        });
+                                });
+                        });
+                });
             });
         });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await ProjectService.hardDeleteBy({ _id: projectIdSecondUser });
         await UserService.hardDeleteBy({
@@ -630,15 +647,18 @@ describe('Scheduled events APIs accesible through API key', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            const project = res.body.project;
-            projectId = project._id;
-            apiKey = project.apiKey;
-            done();
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                const project = res.body.project;
+                projectId = project._id;
+                apiKey = project.apiKey;
+                done();
+            });
         });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -709,7 +729,7 @@ describe('Scheduled events APIs for status page', function() {
 
     before(async function() {
         this.timeout(30000);
-
+        await GlobalConfig.initTestConfig();
         let checkCardData = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
             email: userData.email,
@@ -802,6 +822,7 @@ describe('Scheduled events APIs for status page', function() {
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {

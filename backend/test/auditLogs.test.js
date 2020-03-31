@@ -8,7 +8,7 @@ const userData = require('./data/user');
 const app = require('../server');
 chai.use(require('chai-http'));
 const request = chai.request.agent(app);
-
+const GlobalConfig = require('./utils/globalConfig');
 const { createUser } = require('./utils/userSignUp');
 const AuditLogsService = require('../backend/services/auditLogsService');
 const UserService = require('../backend/services/userService');
@@ -25,31 +25,33 @@ describe('Audit Logs API', function() {
     before(function(done) {
         testSuiteStartTime = new Date();
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            const project = res.body.project;
-            projectId = project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                const project = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                done();
-                            });
-                    });
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    done();
+                                });
+                        });
+                });
             });
         });
     });
@@ -66,6 +68,7 @@ describe('Audit Logs API', function() {
             },
         });
         await AirtableService.deleteUser(airtableId);
+        await GlobalConfig.removeTestConfig();
 
         // Deleting any auditLogs created between this test suite.
         // Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)

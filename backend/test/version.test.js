@@ -4,7 +4,6 @@ const expect = require('chai').expect;
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
-
 const request = chai.request.agent(app);
 
 describe('Version API', function() {

@@ -12,7 +12,7 @@ const UserService = require('../backend/services/userService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
-
+const GlobalConfig = require('./utils/globalConfig');
 const payment = require('../backend/config/payment');
 const stripe = require('stripe')(payment.paymentPrivateKey);
 
@@ -23,6 +23,7 @@ describe('Invoice API', function() {
 
     before(async function() {
         this.timeout(30000);
+        await GlobalConfig.initTestConfig();
         const checkCardData = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
             email: userData.email,
@@ -86,6 +87,7 @@ describe('Invoice API', function() {
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
                 $in: [

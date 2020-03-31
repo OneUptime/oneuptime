@@ -1,10 +1,10 @@
 module.exports = {
-    create: async function(data) {
+    create: async function({ name, value }) {
         try {
             let globalConfig = new GlobalConfigModel();
 
-            globalConfig.name = data.name;
-            globalConfig.value = data.value;
+            globalConfig.name = name;
+            globalConfig.value = value;
 
             globalConfig = await globalConfig.save();
 

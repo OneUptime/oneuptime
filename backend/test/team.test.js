@@ -6,7 +6,7 @@ const userData = require('./data/user');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
-
+const GlobalConfig = require('./utils/globalConfig');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
@@ -26,36 +26,39 @@ describe('Team API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            const project = res.body.project;
-            projectId = project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                const project = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                done();
-                            });
-                    });
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    done();
+                                });
+                        });
+                });
             });
         });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
     });
@@ -213,6 +216,7 @@ describe('Team API with Sub-Projects', async function() {
     this.timeout(20000);
     before(async function() {
         this.timeout(30000);
+        await GlobalConfig.initTestConfig();
         const authorization = `Basic ${token}`;
         // create a subproject for parent project
         const res1 = await request
@@ -254,6 +258,7 @@ describe('Team API with Sub-Projects', async function() {
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
         });

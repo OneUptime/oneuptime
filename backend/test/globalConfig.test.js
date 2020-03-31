@@ -14,7 +14,7 @@ const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 const GlobalConfigService = require('../backend/services/globalConfigService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
-
+const GlobalConfig = require('./utils/globalConfig');
 let projectId, userId, airtableId, token;
 
 describe('Global Config API', function() {
@@ -22,41 +22,44 @@ describe('Global Config API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, data.user, function(err, res) {
-            const project = res.body.project;
-            projectId = project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, data.user, function(err, res) {
+                const project = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: data.user.email,
-                                password: data.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                UserService.updateBy(
-                                    { _id: userId },
-                                    { role: 'master-admin' }
-                                ).then(function() {
-                                    done();
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: data.user.email,
+                                    password: data.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    UserService.updateBy(
+                                        { _id: userId },
+                                        { role: 'master-admin' }
+                                    ).then(function() {
+                                        done();
+                                    });
                                 });
-                            });
-                    });
+                        });
+                });
             });
         });
     });
 
     after(async () => {
+        await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({ email: data.user.email });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await AirtableService.deleteUser(airtableId);

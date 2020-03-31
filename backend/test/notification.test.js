@@ -12,7 +12,7 @@ const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const NotificationService = require('../backend/services/notificationService');
 const AirtableService = require('../backend/services/airtableService');
-
+const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
 const request = chai.request.agent(app);
@@ -25,36 +25,39 @@ describe('Notification API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            const project = res.body.project;
-            projectId = project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                const project = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                done();
-                            });
-                    });
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    done();
+                                });
+                        });
+                });
             });
         });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
                 $in: [

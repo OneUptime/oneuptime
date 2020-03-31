@@ -3,7 +3,6 @@ const expect = require('chai').expect;
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
-
 const request = chai.request.agent(app);
 const leadService = require('../backend/services/leadService');
 const EmailStatusService = require('../backend/services/emailStatusService');

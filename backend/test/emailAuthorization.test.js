@@ -8,6 +8,7 @@ chai.use(require('chai-http'));
 const app = require('../server');
 const EmailStatusService = require('../backend/services/emailStatusService');
 const request = chai.request.agent(app);
+const GlobalConfig = require('./utils/globalConfig');
 const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
@@ -21,16 +22,19 @@ describe('Email verification API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            userId = res.body.id;
-            projectId = res.body.project._id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                userId = res.body.id;
+                projectId = res.body.project._id;
+                airtableId = res.body.airtableId;
 
-            done();
+                done();
+            });
         });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
                 $in: [

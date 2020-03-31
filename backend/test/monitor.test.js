@@ -6,7 +6,7 @@ let chai = require('chai');
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
 let app = require('../server');
-
+let GlobalConfig = require('./utils/globalConfig');
 let request = chai.request.agent(app);
 let { createUser } = require('./utils/userSignUp');
 let UserService = require('../backend/services/userService');
@@ -31,6 +31,7 @@ describe('Monitor API', function() {
     this.timeout(30000);
 
     before(function(done) {
+        GlobalConfig.initTestConfig().then(function () {
         this.timeout(40000);
         createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
@@ -66,8 +67,10 @@ describe('Monitor API', function() {
             });
         });
     });
+    });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ projectId });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -344,9 +347,10 @@ describe('Monitor API', function() {
 
 describe('Monitor API with monitor Category', function() {
     this.timeout(30000);
-
+    
     before(function(done) {
         this.timeout(40000);
+        GlobalConfig.initTestConfig().then(function () {
         createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
@@ -381,8 +385,10 @@ describe('Monitor API with monitor Category', function() {
             });
         });
     });
+    });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await MonitorCategoryService.hardDeleteBy({ _id: monitorCategoryId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
     });
@@ -417,6 +423,7 @@ let subProjectId, newUserToken, subProjectMonitorId;
 describe('Monitor API with Sub-Projects', function() {
     this.timeout(30000);
     before(function(done) {
+        GlobalConfig.initTestConfig().then(function () {
         this.timeout(30000);
         let authorization = `Basic ${token}`;
         // create a subproject for parent project
@@ -465,9 +472,11 @@ describe('Monitor API with Sub-Projects', function() {
                     });
                 });
             });
+        });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await MonitorService.hardDeleteBy({ _id: subProjectMonitorId });
     });
@@ -697,7 +706,9 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
     ];
 
     before(async function() {
+        
         this.timeout(30000);
+        await GlobalConfig.initTestConfig()
         let authorization = `Basic ${token}`;
         await Promise.all(
             monitorDataArray.map(async monitor => {
@@ -710,6 +721,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
         });

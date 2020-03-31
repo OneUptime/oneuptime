@@ -24,6 +24,7 @@ const AirtableService = require('../backend/services/airtableService');
 const Config = require('./utils/config');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const AlertModel = require('../backend/models/alert');
+const GlobalConfig = require('./utils/globalConfig');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
@@ -50,6 +51,7 @@ describe('Incident API', function() {
     this.timeout(500000);
     before(function(done) {
         this.timeout(60000);
+        GlobalConfig.initTestConfig().then(function() {
         createUser(request, userData.user, function(err, res) {
             projectId = res.body.project._id;
             userId = res.body.id;
@@ -88,9 +90,11 @@ describe('Incident API', function() {
                     });
             });
         });
+        });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
     });
@@ -440,51 +444,57 @@ describe('Incident API with Sub-Projects', function() {
         this.timeout(60000);
         const authorization = `Basic ${token}`;
         // create a subproject for parent project
-        request
-            .post(`/project/${projectId}/subProject`)
-            .set('Authorization', authorization)
-            .send({ subProjectName: 'New SubProject' })
-            .end(function(err, res) {
-                subProjectId = res.body[0]._id;
-                // sign up second user (subproject user)
-                createUser(request, userData.newUser, function(err, res) {
-                    userId = res.body.id;
-                    VerificationTokenModel.findOne({ userId }, function(
-                        err,
-                        verificationToken
-                    ) {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end(function() {
-                                request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.newUser.email,
-                                        password: userData.newUser.password,
-                                    })
-                                    .end(function(err, res) {
-                                        newUserToken =
-                                            res.body.tokens.jwtAccessToken;
-                                        const authorization = `Basic ${token}`;
-                                        // add second user to subproject
-                                        request
-                                            .post(`/team/${subProjectId}`)
-                                            .set('Authorization', authorization)
-                                            .send({
-                                                emails: userData.newUser.email,
-                                                role: 'Member',
-                                            })
-                                            .end(function() {
-                                                done();
-                                            });
-                                    });
-                            });
+        GlobalConfig.initTestConfig().then(function() {
+            request
+                .post(`/project/${projectId}/subProject`)
+                .set('Authorization', authorization)
+                .send({ subProjectName: 'New SubProject' })
+                .end(function(err, res) {
+                    subProjectId = res.body[0]._id;
+                    // sign up second user (subproject user)
+                    createUser(request, userData.newUser, function(err, res) {
+                        userId = res.body.id;
+                        VerificationTokenModel.findOne({ userId }, function(
+                            err,
+                            verificationToken
+                        ) {
+                            request
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function() {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.newUser.email,
+                                            password: userData.newUser.password,
+                                        })
+                                        .end(function(err, res) {
+                                            newUserToken =
+                                                res.body.tokens.jwtAccessToken;
+                                            const authorization = `Basic ${token}`;
+                                            // add second user to subproject
+                                            request
+                                                .post(`/team/${subProjectId}`)
+                                                .set(
+                                                    'Authorization',
+                                                    authorization
+                                                )
+                                                .send({
+                                                    emails:
+                                                        userData.newUser.email,
+                                                    role: 'Member',
+                                                })
+                                                .end(function() {
+                                                    done();
+                                                });
+                                        });
+                                });
+                        });
                     });
                 });
-            });
+        });
     });
 
     after(async function() {

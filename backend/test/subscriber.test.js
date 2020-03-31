@@ -8,7 +8,7 @@ chai.use(require('chai-http'));
 const app = require('../server');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
-
+const GlobalConfig = require('./utils/globalConfig');
 const UserService = require('../backend/services/userService');
 const StatusPageService = require('../backend/services/statusPageService');
 const ProjectService = require('../backend/services/projectService');
@@ -31,62 +31,73 @@ describe('Subscriber API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            projectId = res.body.project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                projectId = res.body.project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                const authorization = `Basic ${token}`;
-                                request
-                                    .post(`/monitor/${projectId}`)
-                                    .set('Authorization', authorization)
-                                    .send(monitor)
-                                    .end(function(err, res) {
-                                        monitorId = res.body._id;
-                                        expect(res.body.name).to.be.equal(
-                                            monitor.name
-                                        );
-                                        request
-                                            .post(`/statusPage/${projectId}`)
-                                            .set('Authorization', authorization)
-                                            .send({
-                                                links: [],
-                                                title: 'Status title',
-                                                description:
-                                                    'status description',
-                                                copyright: 'status copyright',
-                                                projectId,
-                                                monitorIds: [monitorId],
-                                            })
-                                            .end(function(err, res) {
-                                                statusPageId = res.body._id;
-                                                expect(res).to.have.status(200);
-                                                done();
-                                            });
-                                    });
-                            });
-                    });
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    const authorization = `Basic ${token}`;
+                                    request
+                                        .post(`/monitor/${projectId}`)
+                                        .set('Authorization', authorization)
+                                        .send(monitor)
+                                        .end(function(err, res) {
+                                            monitorId = res.body._id;
+                                            expect(res.body.name).to.be.equal(
+                                                monitor.name
+                                            );
+                                            request
+                                                .post(
+                                                    `/statusPage/${projectId}`
+                                                )
+                                                .set(
+                                                    'Authorization',
+                                                    authorization
+                                                )
+                                                .send({
+                                                    links: [],
+                                                    title: 'Status title',
+                                                    description:
+                                                        'status description',
+                                                    copyright:
+                                                        'status copyright',
+                                                    projectId,
+                                                    monitorIds: [monitorId],
+                                                })
+                                                .end(function(err, res) {
+                                                    statusPageId = res.body._id;
+                                                    expect(res).to.have.status(
+                                                        200
+                                                    );
+                                                    done();
+                                                });
+                                        });
+                                });
+                        });
+                });
             });
         });
     });
 
     after(async () => {
+        await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
                 $in: [

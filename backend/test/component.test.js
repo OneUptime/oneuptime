@@ -6,7 +6,7 @@ let chai = require('chai');
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
 let app = require('../server');
-
+let GlobalConfig = require('./utils/globalConfig');
 let request = chai.request.agent(app);
 let { createUser } = require('./utils/userSignUp');
 let UserService = require('../backend/services/userService');
@@ -24,6 +24,7 @@ describe('Component API', function() {
 
     before(function(done) {
         this.timeout(40000);
+        GlobalConfig.initTestConfig().then(function () {
         createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
@@ -51,6 +52,7 @@ describe('Component API', function() {
                     });
             });
         });
+    });
     });
 
     it('should reject the request of an unauthenticated user', function(done) {
@@ -167,6 +169,7 @@ describe('Component API with Sub-Projects', function() {
         this.timeout(30000);
         let authorization = `Basic ${token}`;
         // create a subproject for parent project
+        GlobalConfig.initTestConfig().then(function () {
         request
             .post(`/project/${projectId}/subProject`)
             .set('Authorization', authorization)
@@ -220,9 +223,11 @@ describe('Component API with Sub-Projects', function() {
                     );
                 });
             });
+            });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: {
                 $in: [projectId, newProjectId, otherProjectId, subProjectId],

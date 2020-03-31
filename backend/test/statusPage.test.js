@@ -6,7 +6,7 @@ const userData = require('./data/user');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
-
+const GlobalConfig = require('./utils/globalConfig');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
@@ -41,51 +41,57 @@ describe('Status API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            projectId = res.body.project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                projectId = res.body.project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                const authorization = `Basic ${token}`;
-                                request
-                                    .post(`/monitorCategory/${projectId}`)
-                                    .set('Authorization', authorization)
-                                    .send(monitorCategory)
-                                    .end(function(err, res) {
-                                        monitorCategoryId = res.body._id;
-                                        monitor.monitorCategoryId = monitorCategoryId;
-                                        request
-                                            .post(`/monitor/${projectId}`)
-                                            .set('Authorization', authorization)
-                                            .send(monitor)
-                                            .end(function(err, res) {
-                                                monitorId = res.body._id;
-                                                done();
-                                            });
-                                    });
-                            });
-                    });
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    const authorization = `Basic ${token}`;
+                                    request
+                                        .post(`/monitorCategory/${projectId}`)
+                                        .set('Authorization', authorization)
+                                        .send(monitorCategory)
+                                        .end(function(err, res) {
+                                            monitorCategoryId = res.body._id;
+                                            monitor.monitorCategoryId = monitorCategoryId;
+                                            request
+                                                .post(`/monitor/${projectId}`)
+                                                .set(
+                                                    'Authorization',
+                                                    authorization
+                                                )
+                                                .send(monitor)
+                                                .end(function(err, res) {
+                                                    monitorId = res.body._id;
+                                                    done();
+                                                });
+                                        });
+                                });
+                        });
+                });
             });
         });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await StatusService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
@@ -246,56 +252,63 @@ describe('StatusPage API with Sub-Projects', function() {
     before(function(done) {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
-        // create a subproject for parent project
-        request
-            .post(`/project/${projectId}/subProject`)
-            .set('Authorization', authorization)
-            .send({ subProjectName: 'New SubProject' })
-            .end(function(err, res) {
-                subProjectId = res.body[0]._id;
-                // sign up second user (subproject user)
-                createUser(request, userData.newUser, function(err, res) {
-                    subProjectUserId = res.body.id;
-                    VerificationTokenModel.findOne(
-                        { userId: subProjectUserId },
-                        function(err, verificationToken) {
-                            request
-                                .get(
-                                    `/user/confirmation/${verificationToken.token}`
-                                )
-                                .redirects(0)
-                                .end(function() {
-                                    request
-                                        .post('/user/login')
-                                        .send({
-                                            email: userData.newUser.email,
-                                            password: userData.newUser.password,
-                                        })
-                                        .end(function(err, res) {
-                                            newUserToken =
-                                                res.body.tokens.jwtAccessToken;
-                                            const authorization = `Basic ${token}`;
-                                            // add second user to subproject
-                                            request
-                                                .post(`/team/${subProjectId}`)
-                                                .set(
-                                                    'Authorization',
-                                                    authorization
-                                                )
-                                                .send({
-                                                    emails:
-                                                        userData.newUser.email,
-                                                    role: 'Member',
-                                                })
-                                                .end(function() {
-                                                    done();
-                                                });
-                                        });
-                                });
-                        }
-                    );
+        GlobalConfig.initTestConfig().then(function() {
+            // create a subproject for parent project
+            request
+                .post(`/project/${projectId}/subProject`)
+                .set('Authorization', authorization)
+                .send({ subProjectName: 'New SubProject' })
+                .end(function(err, res) {
+                    subProjectId = res.body[0]._id;
+                    // sign up second user (subproject user)
+                    createUser(request, userData.newUser, function(err, res) {
+                        subProjectUserId = res.body.id;
+                        VerificationTokenModel.findOne(
+                            { userId: subProjectUserId },
+                            function(err, verificationToken) {
+                                request
+                                    .get(
+                                        `/user/confirmation/${verificationToken.token}`
+                                    )
+                                    .redirects(0)
+                                    .end(function() {
+                                        request
+                                            .post('/user/login')
+                                            .send({
+                                                email: userData.newUser.email,
+                                                password:
+                                                    userData.newUser.password,
+                                            })
+                                            .end(function(err, res) {
+                                                newUserToken =
+                                                    res.body.tokens
+                                                        .jwtAccessToken;
+                                                const authorization = `Basic ${token}`;
+                                                // add second user to subproject
+                                                request
+                                                    .post(
+                                                        `/team/${subProjectId}`
+                                                    )
+                                                    .set(
+                                                        'Authorization',
+                                                        authorization
+                                                    )
+                                                    .send({
+                                                        emails:
+                                                            userData.newUser
+                                                                .email,
+                                                        role: 'Member',
+                                                    })
+                                                    .end(function() {
+                                                        done();
+                                                    });
+                                            });
+                                    });
+                            }
+                        );
+                    });
                 });
-            });
+        });
     });
 
     after(async function() {

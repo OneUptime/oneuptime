@@ -18,7 +18,7 @@ const NotificationService = require('../backend/services/notificationService');
 const AirtableService = require('../backend/services/airtableService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const Config = require('./utils/config');
-
+const GlobalConfig = require('./utils/globalConfig');
 let token, userId, airtableId, projectId, monitorId;
 const monitor = {
     name: 'New Monitor',
@@ -31,55 +31,63 @@ describe('Twilio API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        createUser(request, userData.user, function(err, res) {
-            projectId = res.body.project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                projectId = res.body.project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                const authorization = `Basic ${token}`;
-                                request
-                                    .post(`/monitor/${projectId}`)
-                                    .set('Authorization', authorization)
-                                    .send(monitor)
-                                    .end(function(err, res) {
-                                        monitorId = res.body._id;
-                                        request
-                                            .post(
-                                                `/incident/${projectId}/${monitorId}`
-                                            )
-                                            .set('Authorization', authorization)
-                                            .send(incidentData)
-                                            .end((err, res) => {
-                                                expect(res).to.have.status(200);
-                                                expect(res.body).to.be.an(
-                                                    'object'
-                                                );
-                                                done();
-                                            });
-                                    });
-                            });
-                    });
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    const authorization = `Basic ${token}`;
+                                    request
+                                        .post(`/monitor/${projectId}`)
+                                        .set('Authorization', authorization)
+                                        .send(monitor)
+                                        .end(function(err, res) {
+                                            monitorId = res.body._id;
+                                            request
+                                                .post(
+                                                    `/incident/${projectId}/${monitorId}`
+                                                )
+                                                .set(
+                                                    'Authorization',
+                                                    authorization
+                                                )
+                                                .send(incidentData)
+                                                .end((err, res) => {
+                                                    expect(res).to.have.status(
+                                                        200
+                                                    );
+                                                    expect(res.body).to.be.an(
+                                                        'object'
+                                                    );
+                                                    done();
+                                                });
+                                        });
+                                });
+                        });
+                });
             });
         });
     });
 
     after(async function() {
+        await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
