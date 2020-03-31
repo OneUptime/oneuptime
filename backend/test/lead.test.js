@@ -1,9 +1,12 @@
+/* eslint-disable no-undef */
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
 const request = chai.request.agent(app);
+const GlobalConfig = require('./utils/globalConfig');
 const leadService = require('../backend/services/leadService');
 const EmailStatusService = require('../backend/services/emailStatusService');
 
@@ -21,6 +24,15 @@ const leadData = {
 
 describe('Lead API', function() {
     this.timeout(20000);
+
+    before(async function() {
+        this.timeout(30000);
+        await GlobalConfig.initTestConfig();
+    });
+
+    after(async function() {
+        await GlobalConfig.removeTestConfig();
+    });
 
     it('should add lead when requested for type demo or whitepaper', function(done) {
         request
