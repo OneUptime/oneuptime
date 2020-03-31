@@ -69,7 +69,11 @@ audit_helm-chart:
     - npm run dep-check
     # Install Helm.
     - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-    # Lint helm chart
+    # Lint helm chart - helm lint needs a kubeconfig file and this is why we do staging deployment setup.
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
     - helm lint ./public/fyipe
     - cd ..
   except:
