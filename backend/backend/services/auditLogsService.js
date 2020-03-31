@@ -62,10 +62,10 @@ module.exports = {
         return { searchedAuditLogs, totalSearchCount };
     },
 
-    hardDeleteBy: async function({ query }) {
+    deleteAll: async function({ query }) {
         try {
             await AuditLogsModel.deleteMany(query);
-            return 'Audit Log(s) Removed Successfully!';
+            return 'Audit Log(s) removed successfully!';
         } catch (error) {
             ErrorService.log('auditLogs.hardDeleteBy', error);
             throw error;
