@@ -3,7 +3,6 @@ const util = require('./util/db');
 const scripts = require('./scripts');
 
 async function run() {
-    
     const excludedScripts = ['index.js', 'start.js', 'end.js'];
 
     // eslint-disable-next-line no-console
@@ -15,9 +14,12 @@ async function run() {
     // eslint-disable-next-line no-console
     console.log('Connected to MongoDB.');
 
-    var currentVersion = await util.getVersion();
-    console.log("Current Version: "+currentVersion);
-    if(currentVersion){
+    let currentVersion = await util.getVersion();
+
+    // eslint-disable-next-line no-console
+    console.log('Current Version: ' + currentVersion);
+
+    if (currentVersion) {
         currentVersion = currentVersion.split('.')[2];
     }
 
@@ -39,7 +41,10 @@ async function run() {
     // Switched to for loop, forEach does not await the callback
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (currentVersion && parseInt(currentVersion) < parseInt(file.split('.')[2])) {
+        if (
+            currentVersion &&
+            parseInt(currentVersion) < parseInt(file.split('.')[2])
+        ) {
             // eslint-disable-next-line no-console
             console.log(file + ': Running script.');
 

@@ -213,7 +213,6 @@ const _this = {
                 return;
             }
 
-            
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,

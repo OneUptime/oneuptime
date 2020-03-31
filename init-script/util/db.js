@@ -23,9 +23,12 @@ async function update(collection, query, value) {
 }
 
 async function getVersion() {
-    var docs =  await global.db.collection("globalconfigs").find({name: "version"}).toArray();
-    
-    if(docs.length > 0){
+    const docs = await global.db
+        .collection('globalconfigs')
+        .find({ name: 'version' })
+        .toArray();
+
+    if (docs.length > 0) {
         return docs[0].value;
     }
 
@@ -37,5 +40,5 @@ module.exports = {
     find,
     save,
     update,
-    getVersion
+    getVersion,
 };
