@@ -1,4 +1,4 @@
-import { getApi, postApi } from '../api';
+import { getApi, postApi, deleteApi } from '../api';
 import * as types from '../constants/auditLogs';
 import errors from '../errors';
 
@@ -102,5 +102,52 @@ export const searchAuditLogs = (filter, skip, limit) => async dispatch => {
             errorMsg = 'Network Error';
         }
         dispatch(searchAuditLogsError(errors(errorMsg)));
+    }
+};
+
+// Delete All Audit Logs
+export const deleteAuditLogsRequest = () => {
+    return {
+        type: types.DELETE_ALL_AUDITLOGS_REQUEST,
+    };
+};
+
+export const deleteAuditLogsSuccess = message => {
+    return {
+        type: types.DELETE_ALL_AUDITLOGS_SUCCESS,
+        payload: message,
+    };
+};
+
+export const deleteAuditLogsError = error => {
+    return {
+        type: types.DELETE_ALL_AUDITLOGS_FAILURE,
+        payload: error,
+    };
+};
+
+export const deleteAuditLogs = () => async dispatch => {
+    dispatch(deleteAuditLogsRequest());
+
+    try {
+        const response = await deleteApi(`audit-logs`);
+        const message = response.data.message;
+
+        dispatch(deleteAuditLogsSuccess(message));
+
+        return response;
+    } catch (error) {
+        let errorMsg;
+        if (error && error.response && error.response.data)
+            errorMsg = error.response.data;
+        if (error && error.data) {
+            errorMsg = error.data;
+        }
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else {
+            errorMsg = 'Network Error';
+        }
+        dispatch(deleteAuditLogsError(errors(errorMsg)));
     }
 };
