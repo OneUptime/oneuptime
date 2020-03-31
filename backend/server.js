@@ -108,13 +108,13 @@ app.use(
 );
 app.use(['/file', '/api/file'], require('./backend/api/file'));
 app.use(['/incident', '/api/incident'], require('./backend/api/incident'));
-app.use(['/reports', '/api/report'], require('./backend/api/report'));
+app.use(['/reports', '/api/reports'], require('./backend/api/report'));
 app.use(['/lead', '/api/lead'], require('./backend/api/lead'));
 app.use(['/feedback', '/api/feedback'], require('./backend/api/feedback'));
 app.use(['/twilio', '/api/twilio'], require('./backend/api/twilio'));
 app.use(['/zapier', '/api/zapier'], require('./backend/api/zapier'));
 app.use(['/slack', '/api/slack'], require('./backend/api/slack'));
-app.use(['/webhook', '/api/webHook'], require('./backend/api/webHook'));
+app.use(['/webhook', '/api/webhook'], require('./backend/api/webHook'));
 app.use(
     ['/notification', '/api/notification'],
     require('./backend/api/notification')
@@ -153,7 +153,7 @@ app.use(
 app.use(['/probe', '/api/probe'], require('./backend/api/probe'));
 app.use(['/version', '/api/version'], require('./backend/api/version'));
 app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
-app.use(['/audit-logs', '/api/auditLogs'], require('./backend/api/auditLogs'));
+app.use(['/audit-logs', '/api/audit-logs'], require('./backend/api/auditLogs'));
 app.use(['/component', '/api/component'], require('./backend/api/component'));
 app.use(
     ['/globalConfig', '/api/globalConfig'],

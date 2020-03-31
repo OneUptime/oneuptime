@@ -49,7 +49,8 @@ class RegisterPage extends React.Component {
                 </div>
 
                 {/* REGISTRATION BOX */}
-                {this.props.register.success && !this.props.masterAdminExists ? (
+                {this.props.register.success &&
+                !this.props.masterAdminExists ? (
                     <MessageBox
                         title="Activate your Fyipe account"
                         message="An email is on its way to you with a verification link. Please don't forget to check spam. "

@@ -76,7 +76,7 @@ export function signupUser(values) {
             function(user) {
                 dispatch(signupSuccess(user.data));
                 if (user.data.role === 'master-admin' && !IS_SAAS_SERVICE) {
-                    dispatch(loginSuccess(user.data))
+                    dispatch(loginSuccess(user.data));
                     dispatch(masterAdminExistsSuccess({ result: true }));
                 }
             },
