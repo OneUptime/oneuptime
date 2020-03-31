@@ -15,8 +15,8 @@
     },
     "scripts": {
         "start": "node server.js",
-        "dev": "cross-env NODE_ENV=development nodemon server.js",
-        "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
+        "dev": "nodemon server.js",
+        "test": "mocha --exit test/index.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
     },
