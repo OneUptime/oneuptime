@@ -39,6 +39,42 @@ const settingsType = 'twilio';
 
 const fields = [
     {
+        key: 'call-enabled',
+        label: 'Enable Call Alerts',
+        // eslint-disable-next-line react/display-name, react/prop-types
+        component: ({ input: { value, onChange } }) => (
+            <label className="Toggler-wrap">
+                <input
+                    className="btn-toggler"
+                    checked={value}
+                    onChange={onChange}
+                    type="checkbox"
+                    name="call-enabled"
+                    id="call-enabled"
+                />
+                <span className="TogglerBtn-slider round"></span>
+            </label>
+        ),
+    },
+    {
+        key: 'sms-enabled',
+        label: 'Enable SMS Alerts',
+        // eslint-disable-next-line react/display-name, react/prop-types
+        component: ({ input: { value, onChange } }) => (
+            <label className="Toggler-wrap">
+                <input
+                    className="btn-toggler"
+                    checked={value}
+                    onChange={onChange}
+                    type="checkbox"
+                    name="sms-enabled"
+                    id="sms-enabled"
+                />
+                <span className="TogglerBtn-slider round"></span>
+            </label>
+        ),
+    },
+    {
         key: 'account-sid',
         label: 'Account SID',
         type: 'text',

@@ -63,7 +63,7 @@ export class LicenseSetting extends Component {
                             </div>
                             <p>
                                 <span>
-                                    Update your license key and email.
+                                    Update your License Key and Email. To buy a license, please email sales@fyipe.com
                                 </span>
                             </p>
                         </div>

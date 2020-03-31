@@ -1248,10 +1248,11 @@ module.exports = {
             createdAt: { $gte: yesterday },
         });
         const project = await ProjectService.findOneBy({ _id: projectId });
+        const twilioSettings = await TwilioService.getSettings();
         let limit =
             project && project.alertLimit
                 ? project.alertLimit
-                : twilioAlertLimit;
+                : twilioSettings['alert-limit'];
         if (limit && typeof limit === 'string') {
             limit = parseInt(limit, 10);
         }
@@ -1286,7 +1287,6 @@ const StatusPageService = require('./statusPageService');
 const AlertChargeService = require('./alertChargeService');
 const countryCode = require('../config/countryCode');
 const { getAlertChargeAmount, getCountryType } = require('../config/alertType');
-const { twilioAlertLimit } = require('../config/twilio');
 const SmsCountService = require('./smsCountService');
 const DateTime = require('../utils/DateTime');
 const moment = require('moment-timezone');
