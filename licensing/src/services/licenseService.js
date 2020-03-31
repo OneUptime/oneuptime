@@ -28,7 +28,7 @@ module.exports = {
             }
 
             if (Object.entries(userRecord).length === 0) {
-                const error = new Error('License Not Found');
+                const error = new Error('Invalid License');
                 error.statusCode = 400;
                 throw error;
             }

@@ -60,7 +60,7 @@ describe('License API', function() {
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
-                expect(res.body.message).to.equal('License Not Found');
+                expect(res.body.message).to.equal('Invalid License');
                 done();
             });
     });

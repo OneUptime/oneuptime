@@ -57,7 +57,7 @@ export class LicenseSetting extends Component {
                                 </span>
                                 <div className={`Badge Badge--color--${isLicensed ? 'green' : 'red'} Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}>
                                     <span className={`Badge-text Text-color--${isLicensed ? 'green' : 'red'} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}>
-                                        <span>{isLicensed ? 'Licensed' : 'Evaluation License'}</span>
+                                        <span>{isLicensed ? 'Valid License' : 'Evaluation License'}</span>
                                     </span>
                                 </div>
                             </div>
