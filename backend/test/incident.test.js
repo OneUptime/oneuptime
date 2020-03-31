@@ -52,44 +52,44 @@ describe('Incident API', function() {
     before(function(done) {
         this.timeout(60000);
         GlobalConfig.initTestConfig().then(function() {
-        createUser(request, userData.user, function(err, res) {
-            projectId = res.body.project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+            createUser(request, userData.user, function(err, res) {
+                projectId = res.body.project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                const authorization = `Basic ${token}`;
-                                request
-                                    .post(`/monitor/${projectId}`)
-                                    .set('Authorization', authorization)
-                                    .send(monitor)
-                                    .end(function(err, res) {
-                                        monitorId = res.body._id;
-                                        expect(res).to.have.status(200);
-                                        expect(res.body.name).to.be.equal(
-                                            monitor.name
-                                        );
-                                        done();
-                                    });
-                            });
-                    });
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    const authorization = `Basic ${token}`;
+                                    request
+                                        .post(`/monitor/${projectId}`)
+                                        .set('Authorization', authorization)
+                                        .send(monitor)
+                                        .end(function(err, res) {
+                                            monitorId = res.body._id;
+                                            expect(res).to.have.status(200);
+                                            expect(res.body.name).to.be.equal(
+                                                monitor.name
+                                            );
+                                            done();
+                                        });
+                                });
+                        });
+                });
             });
-        });
         });
     });
 
