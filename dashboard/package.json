@@ -76,7 +76,7 @@
         "enterprise-test": "jest --runInBand ./src/test/puppeteer/*.test.enterprise.js",
         "start": "node index.js",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
-        "audit": "npm-audit-ci-wrapper --threshold=low",
+        "audit": "npm-audit-ci-wrapper --threshold=high",
         "fix-lint": "eslint . --fix"
     },
     "devDependencies": {
