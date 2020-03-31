@@ -14,6 +14,7 @@
     -   Let other projects / containers run on docker. They will work perfectly fine with a project you're working on.
 
 ## Alternative ways to run the project in development
+- Run MongoDB and Redis manually on port 27017 and 6379 respectively. 
 - If Docker and Docker compose is not your thing, you can run `npm install` and `npm run dev` on projects you want to work on. Ideally you would need to run those commands in `accounts`, `backend`, `probe`, `dashboard`, and `status-page` in seperate terminal instances to run the basic app.
 
 ## Running on: on-prem, staging, or production.
