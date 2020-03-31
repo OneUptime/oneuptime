@@ -1,3 +1,3 @@
 module.exports = {
-    testphoneNumber: "+1‪9173976235‬"
-}
+    testphoneNumber: '+1‪9173976235‬',
+};

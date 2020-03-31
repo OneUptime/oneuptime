@@ -1353,7 +1353,7 @@ deploy_staging_helm-chart:
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
     - ./ci/scripts/deployment-staging-setup.sh
     # Install Helm.
-    - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
     - cd helm-chart
     - helm repo index ./fyipe
     - helm package ./fyipe
