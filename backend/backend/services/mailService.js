@@ -201,6 +201,7 @@ const _this = {
                     name: name.split(' ')[0].toString(),
                 },
             };
+            const mailer = await _this.createMailer({});
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -212,7 +213,7 @@ const _this = {
                 return;
             }
 
-            const mailer = await _this.createMailer({});
+            
             const info = await mailer.sendMail(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,

@@ -904,7 +904,7 @@ router.post('/resend', async function(req, res) {
                 });
             }
             const checkUser = await UserModel.findOne({ email });
-            if (checkUser) {
+            if (checkUser && checkUser.id !== user.id) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'User already registered with this email',
