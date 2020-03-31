@@ -28,13 +28,13 @@ const _this = {
         const document = await GlobalConfigService.findOneBy({
             name: 'twilio',
         });
-        if (document) {
+        if (document && document.value) {
             return {
-                'account-sid': document['account-sid'],
-                'authentication-token': document['authentication-token'],
-                phone: document['phone'],
-                'sms-enabled': document['sms-enabled'],
-                'call-enabled': document['call-enabled'],
+                'account-sid': document.value['account-sid'],
+                'authentication-token': document.value['authentication-token'],
+                phone: document.value['phone'],
+                'sms-enabled': document.value['sms-enabled'],
+                'call-enabled': document.value['call-enabled'],
             };
         }
 

@@ -88,15 +88,15 @@ const _this = {
 
     getSmtpSettings: async () => {
         const document = await GlobalConfigService.findOneBy({ name: 'smtp' });
-        if (document) {
+        if (document && document.value) {
             return {
-                user: document.email,
-                pass: document.password,
-                host: document['smtp-server'],
-                port: document['smtp-port'],
-                from: document['from-name'],
-                secure: document['smtp-secure'],
-                'email-enabled': document['email-enabled'],
+                user: document.value.email,
+                pass: document.value.password,
+                host: document.value['smtp-server'],
+                port: document.value['smtp-port'],
+                from: document.value['from-name'],
+                secure: document.value['smtp-secure'],
+                'email-enabled': document.value['email-enabled'],
             };
         }
 

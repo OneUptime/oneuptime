@@ -56,19 +56,19 @@ app.use(function(req, res, next) {
     global.host = req.hostname + '/api';
     global.accountsHost = req.hostname + '/accounts';
     global.homeHost = req.hostname;
-    if (global.host.includes('localhost')) {
+    if (req.hostname.includes('localhost')) {
         global.host =
             req.protocol +
             '://' +
-            global.host +
+            req.hostname +
             ':' +
             (process.env.PORT || 3002) +
             '/api';
         global.accountsHost =
-            req.protocol + '://' + global.host + ':' + 3003 + '/accounts';
-        global.homeHost = req.protocol + '://' + global.host + ':' + 1444;
+            req.protocol + '://' + req.hostname + ':' + 3003 + '/accounts';
+        global.homeHost = req.protocol + '://' + req.hostname + ':' + 1444;
         global.dashboardHost =
-            req.protocol + '://' + global.host + ':' + 3000 + '/dashboard';
+            req.protocol + '://' + req.hostname + ':' + 3000 + '/dashboard';
     }
 
     next();
