@@ -22,9 +22,20 @@ async function update(collection, query, value) {
     return global.db.collection(collection).updateOne(query, { $set: value });
 }
 
+async function getVersion() {
+    var docs =  await global.db.collection("globalconfigs").find({name: "version"}).toArray();
+    
+    if(docs.length > 0){
+        return docs[0].value;
+    }
+
+    return null;
+}
+
 module.exports = {
     connectToDb,
     find,
     save,
     update,
+    getVersion
 };
