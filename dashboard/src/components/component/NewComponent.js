@@ -168,10 +168,11 @@ class NewComponent extends Component {
                                 <p>
                                     <ShouldRender if={!this.props.edit}>
                                         <span>
-                                            Monitor any resources (Websites,
-                                            API, Servers, IoT Devices and more)
-                                            constantly and notify your team when
-                                            they do not behave the way you want.
+                                            Components are like containers that
+                                            contain other Fyipe resources. For
+                                            example: If you're trying to monitor
+                                            your Home Page of your business,
+                                            create a new container called Home.
                                         </span>
                                     </ShouldRender>
                                     <ShouldRender if={this.props.edit}>

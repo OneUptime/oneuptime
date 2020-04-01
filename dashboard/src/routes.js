@@ -41,6 +41,11 @@ export const groups = [
                 exact: true,
                 subRoutes: [],
                 index: 1,
+                textStyle: {
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    color: 'black',
+                },
             },
             {
                 title: 'Monitors',

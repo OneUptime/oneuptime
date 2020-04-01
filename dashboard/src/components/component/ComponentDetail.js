@@ -214,9 +214,10 @@ export class ComponentDetail extends Component {
                                                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
                                                                 Here&apos;s a
-                                                                list of monitors
-                                                                which belong to
-                                                                this component.
+                                                                list of
+                                                                resources which
+                                                                belong to this
+                                                                component.
                                                             </span>
                                                         </span>
                                                     </div>

@@ -24843,7 +24843,7 @@ exports[`Storyshots Tutorial Tutorials base component 1`] = `
                 className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
               >
                 <span>
-                  Quick tips
+                  Quick Tips
                 </span>
               </span>
               <span
