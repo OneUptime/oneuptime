@@ -288,6 +288,11 @@ module.exports = {
             }
 
             const monitor = await MonitorService.findOneBy({ _id: monitorId });
+            
+            if(!monitor){
+                return;
+            }
+
             const project = await ProjectService.findOneBy({
                 _id: monitor.projectId,
             });
@@ -295,7 +300,7 @@ module.exports = {
                 ? project.parentProjectId
                     ? project.parentProjectId._id
                     : project._id
-                : projectId;
+                : monitor.projectId;
 
             global.io.emit(`updateProbe-${projectId}`, data);
         } catch (error) {

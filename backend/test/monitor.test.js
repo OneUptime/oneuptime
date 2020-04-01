@@ -31,8 +31,8 @@ describe('Monitor API', function() {
     this.timeout(30000);
 
     before(function(done) {
+        this.timeout(30000);
         GlobalConfig.initTestConfig().then(function () {
-        this.timeout(40000);
         createUser(request, userData.user, function(err, res) {
             let project = res.body.project;
             projectId = project._id;
@@ -424,7 +424,6 @@ describe('Monitor API with Sub-Projects', function() {
     this.timeout(30000);
     before(function(done) {
         GlobalConfig.initTestConfig().then(function () {
-        this.timeout(30000);
         let authorization = `Basic ${token}`;
         // create a subproject for parent project
         request
