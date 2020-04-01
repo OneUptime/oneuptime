@@ -5,6 +5,9 @@ import {
     SEARCH_AUDITLOGS_REQUEST,
     SEARCH_AUDITLOGS_SUCCESS,
     SEARCH_AUDITLOGS_FAILURE,
+    DELETE_ALL_AUDITLOGS_REQUEST,
+    DELETE_ALL_AUDITLOGS_SUCCESS,
+    DELETE_ALL_AUDITLOGS_FAILURE
 } from '../constants/auditLogs';
 
 const INITIAL_STATE = {
@@ -16,6 +19,8 @@ const INITIAL_STATE = {
         count: null,
         limit: null,
         skip: null,
+        deleteRequest: false,
+        deleted: false
     },
     searchAuditLogs: {
         requesting: false,
@@ -46,6 +51,8 @@ export default function project(state = INITIAL_STATE, action) {
                     count: action.payload.count,
                     limit: action.payload.limit,
                     skip: action.payload.skip,
+                    deleteRequest: false,
+                    deleted: false,
                 },
             });
 
@@ -78,6 +85,8 @@ export default function project(state = INITIAL_STATE, action) {
                     count: action.payload.count,
                     limit: action.payload.limit,
                     skip: action.payload.skip,
+                    deleteRequest: false,
+                    deleted: true,
                 },
                 searchAuditLogs: {
                     requesting: false,
@@ -92,6 +101,41 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
+                },
+            });
+
+        //Delete all Audit logs
+        case DELETE_ALL_AUDITLOGS_REQUEST:
+            return Object.assign({}, state, {
+                auditLogs: {
+                    error: null,
+                    success: false,
+                    deleteRequest: true
+                },
+            });
+
+        case DELETE_ALL_AUDITLOGS_SUCCESS:
+            return Object.assign({}, state, {
+                auditLogs: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    deleteRequest: false,
+                    deleted: true,
+                    auditLogs: [],
+                    count: null,
+                    limit: null,
+                    skip: null,
+
+                },
+            });
+
+        case DELETE_ALL_AUDITLOGS_FAILURE:
+            return Object.assign({}, state, {
+                auditLogs: {
+                    error: action.payload,
+                    success: false,
+                    deleteRequest: false
                 },
             });
 
