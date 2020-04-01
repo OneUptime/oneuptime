@@ -27,13 +27,13 @@ saas:
 fyipe:
   hosts:
     host1: 
-      host: flowappplatform.com
+      host: test.fyipe.com
       tls:
         enabled: false
         crt: 
         key: 
     host2:
-      host: www.flowappplatform.com
+      host: staging.fyipe.com
       tls:
         enabled: false
         crt: 
