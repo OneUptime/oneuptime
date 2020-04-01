@@ -3,7 +3,7 @@ const utils = require('./test-utils');
 module.exports = {
     loginUser: async function(user, page) {
         const { email, password } = user;
-        await page.goto(utils.ACCOUNTS_URL + '/login', {
+        await page.goto(utils.ACCOUNTS_URL + '/accounts/login', {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#login-button');
@@ -12,8 +12,8 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await Promise.all([
-            page.waitForNavigation(),
             page.click('button[type=submit]'),
+            page.waitForNavigation(),
         ]);
     },
     registerEnterpriseUser: async function(user, page) {
