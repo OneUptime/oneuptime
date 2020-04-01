@@ -105,7 +105,7 @@ class AuditLogs extends React.Component {
                                                                         <input
                                                                             id="searchAuditLog"
                                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                            placeholder="Search Log's API URL"
+                                                                            placeholder="Search Logs"
                                                                             onChange={
                                                                                 this.onChange
                                                                             }
