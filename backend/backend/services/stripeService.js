@@ -14,7 +14,7 @@ const Services = {
                 stripeSubscriptionId: subscriptionId,
             });
 
-            await MailService.sendPaymentFailedEmail(
+            MailService.sendPaymentFailedEmail(
                 project.name,
                 user.email,
                 user.name,

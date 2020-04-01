@@ -578,7 +578,7 @@ module.exports = {
         }
 
         try {
-            await MailService.sendIncidentCreatedMail({
+            MailService.sendIncidentCreatedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
                 email: user.email,
@@ -1025,7 +1025,7 @@ module.exports = {
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.host}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
                 if (templateType === 'Subscriber Incident Acknowldeged') {
-                    await MailService.sendIncidentAcknowledgedMailToSubscriber(
+                    MailService.sendIncidentAcknowledgedMailToSubscriber(
                         date,
                         subscriber.monitorName,
                         subscriber.contactEmail,
@@ -1037,7 +1037,7 @@ module.exports = {
                         trackEmailAsViewedUrl
                     );
                 } else if (templateType === 'Subscriber Incident Resolved') {
-                    await MailService.sendIncidentResolvedMailToSubscriber(
+                    MailService.sendIncidentResolvedMailToSubscriber(
                         date,
                         subscriber.monitorName,
                         subscriber.contactEmail,
@@ -1049,7 +1049,7 @@ module.exports = {
                         trackEmailAsViewedUrl
                     );
                 } else {
-                    await MailService.sendIncidentCreatedMailToSubscriber(
+                    MailService.sendIncidentCreatedMailToSubscriber(
                         date,
                         subscriber.monitorName,
                         subscriber.contactEmail,
