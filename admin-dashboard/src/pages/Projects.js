@@ -92,8 +92,8 @@ class Projects extends React.Component {
                                                                 <span>
                                                                     Here is a
                                                                     list of all
-                                                                    fyipe
-                                                                    projects
+                                                                    the projects
+                                                                    on Fyipe.
                                                                 </span>
                                                             </span>
                                                         </div>
@@ -103,7 +103,7 @@ class Projects extends React.Component {
                                                                     <div>
                                                                         <input
                                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                            placeholder="search project's name"
+                                                                            placeholder="Search Projects"
                                                                             onChange={
                                                                                 this
                                                                                     .onChange
