@@ -29,25 +29,17 @@ describe('Enterprise User API', function() {
                 userRole = res.body.role;
                 airtableId = res.body.airtableId;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: data.user.email,
-                                    password: data.user.password,
-                                })
-                                .end(function() {
-                                    done();
-                                });
-                        });
-                });
+                
+                request
+                    .post('/user/login')
+                    .send({
+                        email: data.user.email,
+                        password: data.user.password,
+                    })
+                    .end(function() {
+                        done();
+                    });
+                       
             });
         });
     });

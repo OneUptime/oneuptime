@@ -290,13 +290,13 @@ module.exports = {
                     );
                     if (userInProject) {
                         if (role === 'Viewer') {
-                            await MailService.sendExistingStatusPageViewerMail(
+                            MailService.sendExistingStatusPageViewerMail(
                                 subProject,
                                 addedBy,
                                 member.email
                             );
                         } else {
-                            await MailService.sendExistingUserAddedToSubProjectMail(
+                            MailService.sendExistingUserAddedToSubProjectMail(
                                 subProject,
                                 addedBy,
                                 member.email
@@ -310,13 +310,13 @@ module.exports = {
                         );
                     } else {
                         if (role === 'Viewer') {
-                            await MailService.sendNewStatusPageViewerMail(
+                            MailService.sendNewStatusPageViewerMail(
                                 project,
                                 addedBy,
                                 member.email
                             );
                         } else {
-                            await MailService.sendExistingUserAddedToProjectMail(
+                            MailService.sendExistingUserAddedToProjectMail(
                                 project,
                                 addedBy,
                                 member.email
@@ -331,13 +331,13 @@ module.exports = {
                     }
                 } else {
                     if (role === 'Viewer') {
-                        await MailService.sendNewStatusPageViewerMail(
+                        MailService.sendNewStatusPageViewerMail(
                             project,
                             addedBy,
                             member.email
                         );
                     } else {
-                        await MailService.sendNewUserAddedToProjectMail(
+                        MailService.sendNewUserAddedToProjectMail(
                             project,
                             addedBy,
                             member.email,
@@ -525,7 +525,7 @@ module.exports = {
                     _id: teamMemberUserId,
                 });
                 if (subProject) {
-                    await MailService.sendRemoveFromSubProjectEmailToUser(
+                    MailService.sendRemoveFromSubProjectEmailToUser(
                         subProject,
                         user,
                         member.email
@@ -537,7 +537,7 @@ module.exports = {
                         'information'
                     );
                 } else {
-                    await MailService.sendRemoveFromProjectEmailToUser(
+                    MailService.sendRemoveFromProjectEmailToUser(
                         project,
                         user,
                         member.email
@@ -680,14 +680,14 @@ module.exports = {
                         _id: teamMemberUserId,
                     });
                     if (subProject) {
-                        await MailService.sendChangeRoleEmailToUser(
+                        MailService.sendChangeRoleEmailToUser(
                             subProject,
                             user,
                             member.email,
                             role
                         );
                     } else {
-                        await MailService.sendChangeRoleEmailToUser(
+                        MailService.sendChangeRoleEmailToUser(
                             project,
                             user,
                             member.email,

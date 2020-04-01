@@ -74,7 +74,7 @@ audit_helm-chart:
     - npm run dep-check
     # Install Helm.
     - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
-    - helm lint ./public/fyipe
+    - sudo helm lint ./public/fyipe
     - cd ..
   except:
     refs:
@@ -1384,9 +1384,9 @@ deploy_production_helm-chart:
     # Install Helm.
     - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
     - cd helm-chart
-    - helm repo index ./fyipe
-    - helm package ./fyipe
-    - helm repo index .
+    - sudo helm repo index ./fyipe
+    - sudo helm package ./fyipe
+    - sudo helm repo index .
     - cd ..
     # Deploy to production
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD

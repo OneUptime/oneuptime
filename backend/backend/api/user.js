@@ -176,7 +176,7 @@ router.post('/signup', async function(req, res) {
             // Call the UserService.
             user = await UserService.signup(data);
             // Call the MailService.
-            await MailService.sendSignupMail(user.email, user.name);
+            MailService.sendSignupMail(user.email, user.name);
             // create access token and refresh token.
             const authUserObj = {
                 id: user._id,
@@ -492,7 +492,7 @@ router.post('/forgot-password', async function(req, res) {
         const user = await UserService.forgotPassword(data.email);
         const forgotPasswordURL = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
         // Call the MailService.
-        await MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
+        MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
 
         return sendItemResponse(req, res, {
             message: 'User received mail succcessfully.',
@@ -549,7 +549,7 @@ router.post('/reset-password', async function(req, res) {
         }
 
         // Call the MailService.
-        await MailService.sendResetPasswordConfirmMail(user.email);
+        MailService.sendResetPasswordConfirmMail(user.email);
         return sendItemResponse(req, res, {
             message: 'User password has been reset successfully.',
         });

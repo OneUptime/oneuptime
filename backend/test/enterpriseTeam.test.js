@@ -29,14 +29,7 @@ describe('Enterprise Team API', function() {
                 userId = res.body.id;
                 airtableId = res.body.airtableId;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+               
                             request
                                 .post('/user/login')
                                 .send({
@@ -48,8 +41,7 @@ describe('Enterprise Team API', function() {
                                     done();
                                 });
                         });
-                });
-            });
+               
         });
     });
 

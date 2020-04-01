@@ -25,22 +25,22 @@ FYIPE_DIR="$DIR/.."
 
 chmod +x ./ci/scripts/docker-build.sh
 function build {
-  ./ci/scripts/docker-build.sh $1
+  ./ci/scripts/docker-build.sh $1 $2
 }
 
 # cd ..
 
-build dashboard
-build accounts 
-build backend
-build home 
-build status-page 
-build api-docs
-build probe
-build admin-dashboard
-build init-script
-build slack
-build licensing
-build helm-chart
+build dashboard $1
+build accounts $1 
+build backend $1
+build home $1
+build status-page $1
+build api-docs $1
+build probe $1
+build admin-dashboard $1
+build init-script $1
+build slack $1
+build licensing $1
+build helm-chart $1
 
 cd $DIR

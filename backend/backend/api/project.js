@@ -115,7 +115,7 @@ router.post('/create', getUser, async function(req, res) {
                         subscriptionnew.stripeSubscriptionId;
                 }
                 const project = await ProjectService.create(data);
-                await MailService.sendCreateProjectMail(
+                MailService.sendCreateProjectMail(
                     projectName,
                     user.email
                 );
@@ -131,7 +131,7 @@ router.post('/create', getUser, async function(req, res) {
                         subscription.subscriptionPaymentStatus === 'unpaid'
                     ) {
                         user = await UserService.findOneBy({ _id: userId });
-                        await MailService.sendPaymentFailedEmail(
+                        MailService.sendPaymentFailedEmail(
                             projectName,
                             user.email,
                             user.name
@@ -145,7 +145,7 @@ router.post('/create', getUser, async function(req, res) {
 
                 const project = await ProjectService.create(data);
                 user = await UserService.findOneBy({ _id: userId });
-                await MailService.sendCreateProjectMail(
+                MailService.sendCreateProjectMail(
                     projectName,
                     user.email
                 );
@@ -451,7 +451,7 @@ router.post(
             const project = await ProjectService.changePlan(projectId, planId);
             const user = await UserService.findOneBy({ _id: userId });
             const email = user.email;
-            await MailService.sendChangePlanMail(
+            MailService.sendChangePlanMail(
                 projectName,
                 oldPlan,
                 newPlan,
@@ -502,7 +502,7 @@ router.post(
             }
             const user = await UserService.findOneBy({ _id: userId });
             const email = user.email;
-            await MailService.sendUpgradeToEnterpriseMail(
+            MailService.sendUpgradeToEnterpriseMail(
                 projectName,
                 projectId,
                 oldPlan,

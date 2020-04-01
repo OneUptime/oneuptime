@@ -28,11 +28,11 @@ module.exports = {
             MailService.sendLeadEmailToFyipeTeam(lead);
             if (data.type) {
                 if (data.type === 'demo') {
-                    await MailService.sendRequestDemoEmail(data.email);
+                    MailService.sendRequestDemoEmail(data.email);
                 }
 
                 if (data.type === 'whitepaper') {
-                    await MailService.sendWhitepaperEmail(
+                    MailService.sendWhitepaperEmail(
                         data.email,
                         data.whitepaperName
                     ); //whitepaper name should be stored in moreInfo.

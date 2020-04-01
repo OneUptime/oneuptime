@@ -311,7 +311,9 @@ module.exports = {
                         createdAt,
                     });
 
-                    await _this.sendToken(user, user.email);
+                    if(user.role !== 'master-admin'){
+                        await _this.sendToken(user, user.email);
+                    }
 
                     if (IS_SAAS_SERVICE) {
                         //update customer Id

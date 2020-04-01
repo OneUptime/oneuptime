@@ -35,8 +35,8 @@ module.exports = {
             });
             feedback.airtableId = record.id || null;
 
-            await MailService.sendLeadEmailToFyipeTeam(feedback);
-            await MailService.sendUserFeedbackResponse(user.email, user.name);
+            MailService.sendLeadEmailToFyipeTeam(feedback);
+            MailService.sendUserFeedbackResponse(user.email, user.name);
             return feedback;
         } catch (error) {
             ErrorService.log('feedbackService.create', error);
