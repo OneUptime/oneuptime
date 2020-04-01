@@ -343,7 +343,7 @@ export const tutorials = {
                 description: (
                     <p>
                         Components are like containers that contain other Fyipe
-                        resources. For example: If you're trying to monitor your
+                        resources. For example: If you&apos;re trying to monitor your
                         Home Page of your business, create a new container
                         called Home
                     </p>
