@@ -13,8 +13,9 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
+const { sendItemResponse } = require('../middlewares/response');
 
-router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
+router.get('/', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const query = {};
         const skip = req.query.skip;
@@ -29,7 +30,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.post('/search', getUser, isUserMasterAdmin, async function(req, res) {
+router.post('/search', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const filter = req.body.filter;
         const skip = req.query.skip;
@@ -45,5 +46,18 @@ router.post('/search', getUser, isUserMasterAdmin, async function(req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.delete('/', getUser, isUserMasterAdmin, async function (req, res) {
+    try {
+        const query = {};
+
+        const msg = await AuditLogsService.hardDeleteBy({ query });
+
+
+        return sendItemResponse(req, res, msg);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+})
 
 module.exports = router;

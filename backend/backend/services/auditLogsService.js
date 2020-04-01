@@ -65,7 +65,6 @@ module.exports = {
     hardDeleteBy: async function({ query }) {
         try {
             await AuditLogsModel.deleteMany(query);
-            return 'Audit Log(s) Removed Successfully!';
         } catch (error) {
             ErrorService.log('auditLogs.hardDeleteBy', error);
             throw error;
