@@ -80,10 +80,6 @@ module.exports = {
         return res.status(200).send();
     },
 
-    sendResponseMessage(req, res, message){
-        return res.status(200).send({success: true, message});
-    },
-
     sendFileResponse(req, res, file) {
         /** create read stream */
 

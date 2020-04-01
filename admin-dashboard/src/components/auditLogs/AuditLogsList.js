@@ -11,17 +11,36 @@ import AuditLogsJsonViewModal from './AuditLogsJsonViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 export class AuditLogsList extends Component {
-    state = {
-        confirmDelete: false
+    constructor(props) {
+        super(props);
+        this.state = { deleteModalId: uuid.v4() };
     }
 
     handleDelete = () => {
-        this.setState({ confirmDelete: true });
+        const { deleteAuditLogs } = this.props;
+        const thisObj = this;
+        const { deleteModalId } = this.state;
+        this.props.openModal({
+            id: deleteModalId,
+            onConfirm: () => {
+                return deleteAuditLogs().then(() => {
+                    if (window.location.href.indexOf('localhost') <= -1) {
+                        thisObj.context.mixpanel.track('Audit Log Deleted');
+                    }
+                });
+            },
+            content: DeleteConfirmationModal,
+        });
     };
 
-    cancelDelete = () => {
-        this.setState({ confirmDelete: false })
-    }
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({ id: this.state.deleteModalId });
+            default:
+                return false;
+        }
+    };
 
     render() {
         if (
@@ -64,15 +83,9 @@ export class AuditLogsList extends Component {
             canPrev = false;
         }
         return (
-            <div>
-                <DeleteConfirmationModal
-                    confirmDelete={this.state.confirmDelete}
-                    cancelDelete={this.cancelDelete}
-                    deleteRequest={() => {
-                        this.props.deleteAuditLogs();
-                        this.cancelDelete();
-                    }}
-                />
+            <div
+                onKeyDown={this.handleKeyBoard}
+            >
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
                     <table className="Table">
                         <thead className="Table-body">

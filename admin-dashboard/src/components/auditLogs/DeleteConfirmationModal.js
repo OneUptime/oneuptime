@@ -1,55 +1,95 @@
 import React from 'react';
+import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 
-const DeleteConfirmationModal = ({ deleteRequest, confirmDelete, cancelDelete }) => {
+const DeleteConfirmationModal = ({ confirmThisDialog, closeThisDialog, deleteRequest, error }) => {
     return (
-        <ShouldRender if={confirmDelete}>
-            <div className="modal__container" onClick={cancelDelete}>
-                <div className="modal__items">
-                    <div className="modal__body">
-                        <div>Do you want to delete all the logs?</div>
-                    </div>
-                    <div className="Box-root modal__footer">
-
-                        <button
-                            onClick={deleteRequest}
-                            className={
-                                'Button bs-ButtonLegacy Margin-right--8'
-                            }
-                            type="button"
-                        >
-                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                    <span>Yes</span>
+        <div
+            onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
+            className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
+        >
+            <div
+                className="ModalLayer-contents"
+                tabIndex={-1}
+                style={{ marginTop: 40 }}
+            >
+                <div className="bs-BIM">
+                    <div className="bs-Modal bs-Modal--medium">
+                        <div className="bs-Modal-header">
+                            <div className="bs-Modal-header-copy">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span>Delete Audit Log</span>
                                 </span>
                             </div>
-                        </button>
-                        <button
-                            onClick={cancelDelete}
-                            className={
-                                'Button bs-ButtonLegacy'
-                            }
-                            type="button"
-                        >
-                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                    <span>No</span>
-                                </span>
+                        </div>
+                        <div className="bs-Modal-content">
+                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                Do you want to delete all the logs?
+                            </span>
+                        </div>
+                        <div className="bs-Modal-footer">
+                            <div className="bs-Modal-footer-actions">
+                                <ShouldRender if={error}>
+                                    <div className="bs-Tail-copy">
+                                        <div
+                                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                            style={{ marginTop: '10px' }}
+                                        >
+                                            <div className="Box-root Margin-right--8">
+                                                <div
+                                                    className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
+                                                    style={{ marginTop: '2px' }}
+                                                ></div>
+                                            </div>
+                                            <div className="Box-root">
+                                                <span style={{ color: 'red' }}>
+                                                    {error}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ShouldRender>
+                                <button
+                                    className={`bs-Button ${deleteRequest &&
+                                        'bs-is-disabled'}`}
+                                    type="button"
+                                    onClick={closeThisDialog}
+                                    disabled={deleteRequest}
+                                >
+                                    <span>Cancel</span>
+                                </button>
+                                <button
+                                    id="confirmDelete"
+                                    className={`bs-Button bs-Button--red Box-background--red ${deleteRequest &&
+                                        'bs-is-disabled'}`}
+                                    onClick={confirmThisDialog}
+                                    disabled={deleteRequest}
+                                >
+                                    <span>Delete Logs</span>
+                                </button>
                             </div>
-                        </button>
+                        </div>
                     </div>
                 </div>
             </div>
-
-        </ShouldRender>
+        </div>
     )
 }
 
+const mapStateToProps = (state) => ({
+    deleteRequest: state.auditLogs.auditLogs.deleteRequest,
+    error: state.auditLogs.auditLogs.error
+})
+
 DeleteConfirmationModal.propTypes = {
-    deleteRequest: PropTypes.func,
-    confirmDelete: PropTypes.bool,
-    cancelDelete: PropTypes.func
+    confirmThisDialog: PropTypes.func.isRequired,
+    closeThisDialog: PropTypes.func,
+    deleteRequest: PropTypes.bool,
+    error: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 }
 
-export default DeleteConfirmationModal;
+export default connect(mapStateToProps)(DeleteConfirmationModal);

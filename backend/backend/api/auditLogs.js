@@ -13,7 +13,7 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const { sendResponseMessage } = require('../middlewares/response');
+const { sendItemResponse } = require('../middlewares/response');
 
 router.get('/', getUser, isUserMasterAdmin, async function (req, res) {
     try {
@@ -51,10 +51,10 @@ router.delete('/', getUser, isUserMasterAdmin, async function (req, res) {
     try {
         const query = {};
 
-        const msg = await AuditLogsService.deleteAll({ query });
+        const msg = await AuditLogsService.hardDeleteBy({ query });
 
 
-        return sendResponseMessage(req, res, msg);
+        return sendItemResponse(req, res, msg);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
