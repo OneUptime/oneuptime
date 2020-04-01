@@ -288,8 +288,8 @@ module.exports = {
             }
 
             const monitor = await MonitorService.findOneBy({ _id: monitorId });
-            
-            if(!monitor){
+
+            if (!monitor) {
                 return;
             }
 

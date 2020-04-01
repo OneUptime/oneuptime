@@ -115,10 +115,7 @@ router.post('/create', getUser, async function(req, res) {
                         subscriptionnew.stripeSubscriptionId;
                 }
                 const project = await ProjectService.create(data);
-                MailService.sendCreateProjectMail(
-                    projectName,
-                    user.email
-                );
+                MailService.sendCreateProjectMail(projectName, user.email);
                 return sendItemResponse(req, res, project);
             } else {
                 if (IS_SAAS_SERVICE) {
@@ -145,10 +142,7 @@ router.post('/create', getUser, async function(req, res) {
 
                 const project = await ProjectService.create(data);
                 user = await UserService.findOneBy({ _id: userId });
-                MailService.sendCreateProjectMail(
-                    projectName,
-                    user.email
-                );
+                MailService.sendCreateProjectMail(projectName, user.email);
                 return sendItemResponse(req, res, project);
             }
         } else {

@@ -3,7 +3,12 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 
-const DeleteConfirmationModal = ({ confirmThisDialog, closeThisDialog, deleteRequest, error }) => {
+const DeleteConfirmationModal = ({
+    confirmThisDialog,
+    closeThisDialog,
+    deleteRequest,
+    error,
+}) => {
     return (
         <div
             onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
@@ -74,13 +79,15 @@ const DeleteConfirmationModal = ({ confirmThisDialog, closeThisDialog, deleteReq
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
-const mapStateToProps = (state) => ({
+const mapStateToProps = state => ({
     deleteRequest: state.auditLogs.auditLogs.deleteRequest,
-    error: state.auditLogs.auditLogs.error
-})
+    error: state.auditLogs.auditLogs.error,
+});
+
+DeleteConfirmationModal.displayName = 'Delete Confirmation Modal';
 
 DeleteConfirmationModal.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
@@ -90,6 +97,6 @@ DeleteConfirmationModal.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
-}
+};
 
 export default connect(mapStateToProps)(DeleteConfirmationModal);

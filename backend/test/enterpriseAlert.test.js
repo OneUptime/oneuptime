@@ -17,9 +17,7 @@ const IncidentService = require('../backend/services/incidentService');
 const AlertService = require('../backend/services/alertService');
 const AirtableService = require('../backend/services/airtableService');
 
-const VerificationTokenModel = require('../backend/models/verificationToken');
-
-let token, projectId, userId, airtableId, monitorId, incidentId, alertId;
+let token, projectId, airtableId, monitorId, incidentId, alertId;
 
 describe('Enterprise Alert API', function() {
     this.timeout(30000);
@@ -30,36 +28,33 @@ describe('Enterprise Alert API', function() {
             createEnterpriseUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
-                userId = res.body.id;
                 airtableId = res.body.airtableId;
 
-                
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
-                                    request
-                                        .post(`/monitor/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send({
-                                            name: 'New Monitor',
-                                            type: 'url',
-                                            data: {
-                                                url: 'http://www.tests.org',
-                                            },
-                                        })
-                                        .end(function(err, res) {
-                                            monitorId = res.body._id;
-                                            done();
-                                        });
-                                });
-                        });
-               
+                request
+                    .post('/user/login')
+                    .send({
+                        email: userData.user.email,
+                        password: userData.user.password,
+                    })
+                    .end(function(err, res) {
+                        token = res.body.tokens.jwtAccessToken;
+                        const authorization = `Basic ${token}`;
+                        request
+                            .post(`/monitor/${projectId}`)
+                            .set('Authorization', authorization)
+                            .send({
+                                name: 'New Monitor',
+                                type: 'url',
+                                data: {
+                                    url: 'http://www.tests.org',
+                                },
+                            })
+                            .end(function(err, res) {
+                                monitorId = res.body._id;
+                                done();
+                            });
+                    });
+            });
         });
     });
 

@@ -311,7 +311,7 @@ module.exports = {
                         createdAt,
                     });
 
-                    if(user.role !== 'master-admin'){
+                    if (user.role !== 'master-admin') {
                         await _this.sendToken(user, user.email);
                     }
 

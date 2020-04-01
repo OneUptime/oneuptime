@@ -14,9 +14,7 @@ const ProjectService = require('../backend/services/projectService');
 const ComponentService = require('../backend/services/componentService');
 const AirtableService = require('../backend/services/airtableService');
 
-const VerificationTokenModel = require('../backend/models/verificationToken');
-
-let token, projectId, newProjectId, userId, airtableId, componentId;
+let token, projectId, newProjectId, airtableId, componentId;
 
 describe('Enterprise Component API', function() {
     this.timeout(30000);
@@ -27,22 +25,19 @@ describe('Enterprise Component API', function() {
             createEnterpriseUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
-                userId = res.body.id;
                 airtableId = res.body.airtableId;
 
-                
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    done();
-                                });
-                        });
-               
+                request
+                    .post('/user/login')
+                    .send({
+                        email: userData.user.email,
+                        password: userData.user.password,
+                    })
+                    .end(function(err, res) {
+                        token = res.body.tokens.jwtAccessToken;
+                        done();
+                    });
+            });
         });
     });
 

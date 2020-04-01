@@ -7,7 +7,7 @@ import {
     SEARCH_AUDITLOGS_FAILURE,
     DELETE_ALL_AUDITLOGS_REQUEST,
     DELETE_ALL_AUDITLOGS_SUCCESS,
-    DELETE_ALL_AUDITLOGS_FAILURE
+    DELETE_ALL_AUDITLOGS_FAILURE,
 } from '../constants/auditLogs';
 
 const INITIAL_STATE = {
@@ -20,7 +20,7 @@ const INITIAL_STATE = {
         limit: null,
         skip: null,
         deleteRequest: false,
-        deleted: false
+        deleted: false,
     },
     searchAuditLogs: {
         requesting: false,
@@ -110,7 +110,7 @@ export default function project(state = INITIAL_STATE, action) {
                 auditLogs: {
                     error: null,
                     success: false,
-                    deleteRequest: true
+                    deleteRequest: true,
                 },
             });
 
@@ -126,7 +126,6 @@ export default function project(state = INITIAL_STATE, action) {
                     count: null,
                     limit: null,
                     skip: null,
-
                 },
             });
 
@@ -135,7 +134,7 @@ export default function project(state = INITIAL_STATE, action) {
                 auditLogs: {
                     error: action.payload,
                     success: false,
-                    deleteRequest: false
+                    deleteRequest: false,
                 },
             });
 

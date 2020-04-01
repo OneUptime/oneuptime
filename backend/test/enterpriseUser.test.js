@@ -12,9 +12,8 @@ const { createEnterpriseUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
-const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let projectId, newProjectId, userId, userRole, airtableId, newAirtableId;
+let projectId, newProjectId, userRole, airtableId, newAirtableId;
 
 describe('Enterprise User API', function() {
     this.timeout(20000);
@@ -25,11 +24,9 @@ describe('Enterprise User API', function() {
             createEnterpriseUser(request, data.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
-                userId = res.body.id;
                 userRole = res.body.role;
                 airtableId = res.body.airtableId;
 
-                
                 request
                     .post('/user/login')
                     .send({
@@ -39,7 +36,6 @@ describe('Enterprise User API', function() {
                     .end(function() {
                         done();
                     });
-                       
             });
         });
     });
