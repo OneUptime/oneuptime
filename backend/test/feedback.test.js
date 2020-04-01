@@ -84,11 +84,11 @@ describe('Feedback API', function() {
                 FeedbackService.hardDeleteBy({ _id: res.body._id });
                 AirtableService.deleteFeedback(res.body.airtableId);
                 const emailStatuses = await EmailStatusService.findBy({});
-                if(emailStatuses[0].subject.includes('Thank you')){
+                if (emailStatuses[0].subject.includes('Thank you')) {
                     expect(emailStatuses[0].subject).to.equal(
                         'Thank you for your feedback!'
                     );
-                }else{
+                } else {
                     expect(emailStatuses[0].subject).to.equal(
                         'Welcome to Fyipe.'
                     );
