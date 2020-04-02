@@ -56,7 +56,6 @@ describe('Audit Logs', () => {
                 await page.click('#deleteLog');
                 await page.waitForSelector('#confirmDelete');
                 await page.click('#confirmDelete');
-                await page.waitFor(5000);
 
                 let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
 
@@ -79,7 +78,6 @@ describe('Audit Logs', () => {
                 await page.click('#deleteLog');
                 await page.waitForSelector('#cancelAuditDelete');
                 await page.click('#cancelAuditDelete');
-                await page.waitFor(2000);
 
                 let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
 
@@ -106,7 +104,6 @@ describe('Audit Logs', () => {
                 await page.click('#probes');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
-                await page.waitFor(2000);
 
                 let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
 
@@ -128,7 +125,6 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#searchAuditLog');
                 await page.click('#searchAuditLog');
                 await page.type('#searchAuditLog', 'probe');
-                await page.waitFor(2000);
 
                 let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
 
@@ -150,7 +146,6 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#searchAuditLog');
                 await page.click('#searchAuditLog');
                 await page.type('#searchAuditLog', 'somerandom');
-                await page.waitFor(2000);
 
                 let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
 

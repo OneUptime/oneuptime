@@ -39,8 +39,10 @@ module.exports = {
             await page.type('input[name=password]', '1234567890');
             await page.click('input[name=confirmPassword]');
             await page.type('input[name=confirmPassword]', '1234567890');
-            await page.click('button[type=submit]');
-            await page.waitFor(5000);
+            await Promise.all([
+                page.click('button[type=submit]'),
+                page.waitForNavigation(),
+            ]);
         }
     },
 };
