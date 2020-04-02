@@ -219,14 +219,14 @@ describe('Monitor Detail API', () => {
                     utils.scheduledEventDescription,
                     page
                 );
-                await page.waitFor(1000);
+                await page.waitFor(10000);
             }
 
-            await page.waitFor(2000);
+            await page.waitFor(10000);
 
             const nextSelector = await page.$('#btnNextSchedule');
             await nextSelector.click();
-            await page.waitFor(2000);
+            await page.waitFor(5000);
 
             const createdScheduledEventSelector =
                 '#scheduledEventsList > div.scheduled-event-list-item';
