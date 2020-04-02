@@ -213,21 +213,20 @@ describe('Monitor Detail API', () => {
             const addButtonSelector = '#addScheduledEventButton';
             await page.waitForSelector(addButtonSelector);
 
-            for (let i = 0; i < 10; i++) {
-                const eventName = utils.generateRandomString();
+            for (let i = 0; i < 6; i++) {
                 await init.addScheduledEvent(
-                    `${eventName}${i}`,
+                    `${utils.generateRandomString()}${i}`,
                     utils.scheduledEventDescription,
                     page
                 );
-                await page.waitFor(5000);
+                await page.waitFor(1000);
             }
 
             await page.waitFor(2000);
 
             const nextSelector = await page.$('#btnNextSchedule');
             await nextSelector.click();
-            await page.waitFor(5000);
+            await page.waitFor(2000);
 
             const createdScheduledEventSelector =
                 '#scheduledEventsList > div.scheduled-event-list-item';
@@ -237,7 +236,7 @@ describe('Monitor Detail API', () => {
             );
             let countScheduledEvent = scheduledEventRows.length;
 
-            expect(countScheduledEvent).toEqual(5);
+            expect(countScheduledEvent).toEqual(1);
 
             const prevSelector = await page.$('#btnPrevSchedule');
             await prevSelector.click();
