@@ -16,7 +16,7 @@ const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = 300000;
 
     let cluster;
 
@@ -214,19 +214,20 @@ describe('Monitor Detail API', () => {
             await page.waitForSelector(addButtonSelector);
 
             for (let i = 0; i < 10; i++) {
+                const eventName = utils.generateRandomString();
                 await init.addScheduledEvent(
-                    `${utils.generateRandomString()}${i}`,
+                    `${eventName}${i}`,
                     utils.scheduledEventDescription,
                     page
                 );
-                await page.waitFor(1000);
+                await page.waitFor(5000);
             }
 
             await page.waitFor(2000);
 
             const nextSelector = await page.$('#btnNextSchedule');
             await nextSelector.click();
-            await page.waitFor(2000);
+            await page.waitFor(5000);
 
             const createdScheduledEventSelector =
                 '#scheduledEventsList > div.scheduled-event-list-item';
@@ -236,7 +237,7 @@ describe('Monitor Detail API', () => {
             );
             let countScheduledEvent = scheduledEventRows.length;
 
-            expect(countScheduledEvent).toEqual(2);
+            expect(countScheduledEvent).toEqual(5);
 
             const prevSelector = await page.$('#btnPrevSchedule');
             await prevSelector.click();

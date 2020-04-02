@@ -385,7 +385,7 @@ module.exports = {
         await page.click(
             'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
         );
-        await page.waitFor(1000);
+        await page.waitFor(2000);
         await page.click('input[name=endDate]');
         await page.click(
             'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
