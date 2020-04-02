@@ -210,28 +210,35 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            const addButtonSelector = '#addScheduledEventButton';
-            await page.waitForSelector(addButtonSelector);
-            await page.click(addButtonSelector);
+            await Promise.all([
+                async () => {
+                    const addButtonSelector = '#addScheduledEventButton';
+                    await page.waitForSelector(addButtonSelector);
+                    await page.click(addButtonSelector);
 
-            await page.click('input[name=startDate]');
-            await page.click(
-                'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
-            );
-            await page.waitFor(1000);
-            await page.click('input[name=endDate]');
-            await page.click(
-                'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
-            );
+                    await page.click('input[name=startDate]');
+                    await page.click(
+                        'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
+                    );
+                    await page.waitFor(1000);
+                    await page.click('input[name=endDate]');
+                    await page.click(
+                        'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
+                    );
 
-            await page.type('input[name=name]', `${utils.scheduledEventName}1`);
-            await page.type(
-                'textarea[name=description]',
-                utils.scheduledEventDescription
-            );
+                    await page.type(
+                        'input[name=name]',
+                        `${utils.scheduledEventName}1`
+                    );
+                    await page.type(
+                        'textarea[name=description]',
+                        utils.scheduledEventDescription
+                    );
 
-            await page.click('#createScheduledEventButton');
-            await page.waitFor(10000);
+                    await page.click('#createScheduledEventButton');
+                    await page.waitFor(10000);
+                },
+            ]);
 
             const createdScheduledEventSelector =
                 '#scheduledEventsList > div.scheduled-event-list-item';

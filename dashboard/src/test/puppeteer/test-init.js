@@ -89,8 +89,8 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await Promise.all([
-            page.waitForNavigation(),
             page.click('button[type=submit]'),
+            page.waitFor(10000),
         ]);
     },
     logout: async function(page) {

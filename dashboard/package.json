@@ -72,7 +72,7 @@
         "build": "react-scripts build && npm run build-sw && npm run clean-cra-sw",
         "clean-cra-sw": "rm -f build/precache-manifest.*.js && rm -f build/service-worker.js",
         "build-sw": "node ./src/sw-build.js",
-        "test": "jest --runInBand ./src/test/puppeteer/*.test.js",
+        "test": "jest --runInBand ./src/test/puppeteer/MonitorDetail.test.js",
         "enterprise-test": "jest --runInBand ./src/test/puppeteer/*.test.enterprise.js",
         "start": "node index.js",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
