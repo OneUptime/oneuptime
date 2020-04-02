@@ -10,7 +10,7 @@ const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 describe('Audit Logs', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = 1000000;
 
     let cluster;
 
@@ -28,12 +28,12 @@ describe('Audit Logs', () => {
             throw err;
         });
 
-        // login user
         await cluster.execute({ email, password }, async ({ page, data }) => {
             const user = {
                 email: data.email,
                 password: data.password,
             };
+            await init.registerEnterpriseUser(user, page);
             await init.loginUser(user, page);
         });
     });
@@ -58,11 +58,9 @@ describe('Audit Logs', () => {
                 await page.click('#confirmDelete');
                 await page.waitFor(5000);
 
-                let afterDeleteText = "We don't have any logs yet";
-                let text = await page.$eval('#aStatus', status => status.textContent);
+                let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
 
-                expect(text).toBeTruthy();
-                expect(text).toBe(afterDeleteText);
+                expect(rowNum).toEqual(0);
             })
         },
         operationTimeOut
@@ -83,10 +81,9 @@ describe('Audit Logs', () => {
                 await page.click('#cancelAuditDelete');
                 await page.waitFor(2000);
 
-                let text = await page.$eval('#aStatus', status => status.textContent);
+                let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
 
-                expect(text).toBeFalsy();
-                expect(text).toBe('');
+                expect(rowNum).toBeGreaterThan(0);
             })
         },
         operationTimeOut
@@ -113,14 +110,14 @@ describe('Audit Logs', () => {
 
                 let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
 
-                expect(rowNum).toBeGreaterThanOrEqual(rowNum);
+                expect(rowNum).toBeGreaterThanOrEqual(0);
             })
         },
         operationTimeOut
     );
 
     test(
-        'Should show audit log(s) that match the search parameter',
+        'Should show audit log(s) that match the search parameter(s)',
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
@@ -129,19 +126,20 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
                 await page.waitForSelector('#searchAuditLog');
+                await page.click('#searchAuditLog');
                 await page.type('#searchAuditLog', 'probe');
                 await page.waitFor(2000);
 
                 let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
 
-                expect(rowNum).toBeGreaterThanOrEqual(rowNum);
+                expect(rowNum).toBeGreaterThanOrEqual(0);
             })
         },
         operationTimeOut
     );
 
     test(
-        'Should not show any audit log if the search parameter does not match any log',
+        'Should not show any audit log if the search parameter(s) does not match any log',
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
@@ -150,14 +148,13 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
                 await page.waitForSelector('#searchAuditLog');
+                await page.click('#searchAuditLog');
                 await page.type('#searchAuditLog', 'somerandom');
                 await page.waitFor(2000);
 
-                let afterDeleteText = "We don't have any logs yet";
-                let text = await page.$eval('#aStatus', status => status.textContent);
+                let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
 
-                expect(text).toBeTruthy();
-                expect(text).toBe(afterDeleteText);
+                expect(rowNum).toEqual(0);
             })
         },
         operationTimeOut
