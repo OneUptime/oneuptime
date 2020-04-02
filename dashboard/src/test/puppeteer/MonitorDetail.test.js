@@ -210,7 +210,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            Promise.all([
+            await Promise.all([
                 async () => {
                     const addButtonSelector = '#addScheduledEventButton';
                     await page.waitForSelector(addButtonSelector);
