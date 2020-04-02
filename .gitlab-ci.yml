@@ -4,17 +4,17 @@
 # It's your responsibility to clean the VM up in the cleanup stage after job finishes executing.
 # This script runs on Microk8s. Since our deployments are on Kubernetes, our aim is to create EXACT same replica for test, staging and production.
 
-# # Define stages
-# stages:
-#   - BuildAndTest
-#   - E2E
-#   - VersionUpdate
-#   - Deploy
-#   - RollbackIfDeploymentFail
-#   - SmokeTest
-#   - RollbackIfSmokeTestFail
-#   - CleanUp
-#   - Misc
+# Define stages
+stages:
+  - BuildAndTest
+  - E2E
+  - VersionUpdate
+  - Deploy
+  - RollbackIfDeploymentFail
+  - SmokeTest
+  - RollbackIfSmokeTestFail
+  - CleanUp
+  - Misc
 
 # # Run lint all projects
 # lint-projects:
