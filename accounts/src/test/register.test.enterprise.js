@@ -23,6 +23,9 @@ describe('Enterprise Registration API', () => {
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );
+        await otherPage.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
     });
 
     afterAll(async () => {
@@ -49,9 +52,13 @@ describe('Enterprise Registration API', () => {
     }, 160000);
 
     it('Should redirect to Login Page and hide Sign Up Link for Subsequent Users', async () => {
-        await otherPage.goto(utils.ACCOUNTS_URL + '/register', {
-            waitUntil: 'networkidle2',
-        });
+        try {
+            await otherPage.goto(utils.ACCOUNTS_URL + '/register', {
+                waitUntil: 'networkidle2',
+            });
+        } catch (e) {
+            //
+        }
         await otherPage.waitFor(5000);
         otherPage.url().should.containEql(utils.ACCOUNTS_URL + '/login');
 
