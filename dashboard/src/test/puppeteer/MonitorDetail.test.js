@@ -16,12 +16,12 @@ const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = 500000;
 
     let cluster;
 
     beforeAll(async () => {
-        jest.setTimeout(200000);
+        jest.setTimeout(500000);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -162,7 +162,7 @@ describe('Monitor Detail API', () => {
                 await page.click(
                     'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
                 );
-                await page.waitFor(1000);
+                await page.waitFor(5000);
                 await page.click('input[name=endDate]');
                 await page.click(
                     'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
@@ -219,14 +219,14 @@ describe('Monitor Detail API', () => {
                     utils.scheduledEventDescription,
                     page
                 );
-                await page.waitFor(1000);
+                await page.waitFor(5000);
             }
 
-            await page.waitFor(2000);
+            await page.waitFor(5000);
 
             const nextSelector = await page.$('#btnNextSchedule');
             await nextSelector.click();
-            await page.waitFor(2000);
+            await page.waitFor(5000);
 
             const createdScheduledEventSelector =
                 '#scheduledEventsList > div.scheduled-event-list-item';
@@ -240,7 +240,7 @@ describe('Monitor Detail API', () => {
 
             const prevSelector = await page.$('#btnPrevSchedule');
             await prevSelector.click();
-            await page.waitFor(2000);
+            await page.waitFor(5000);
 
             scheduledEventRows = await page.$$(createdScheduledEventSelector);
             countScheduledEvent = scheduledEventRows.length;
@@ -271,7 +271,7 @@ describe('Monitor Detail API', () => {
                 await init.selectByText('#alertViaId', 'email', page);
                 await page.type('input[name=email]', subscriberEmail);
                 await page.click('#createSubscriber');
-                await page.waitFor(2000);
+                await page.waitFor(5000);
 
                 const createdSubscriberSelector =
                     '#subscribersList > tbody > tr.subscriber-list-item .contact';
@@ -309,14 +309,14 @@ describe('Monitor Detail API', () => {
                     utils.generateRandomBusinessEmail()
                 );
                 await page.click('#createSubscriber');
-                await page.waitFor(1000);
+                await page.waitFor(5000);
             }
 
-            await page.waitFor(2000);
+            await page.waitFor(5000);
 
             const nextSelector = await page.$('#btnNextSubscriber');
             await nextSelector.click();
-            await page.waitFor(2000);
+            await page.waitFor(5000);
 
             const createdSubscriberSelector =
                 '#subscribersList > tbody > tr.subscriber-list-item';
@@ -328,7 +328,7 @@ describe('Monitor Detail API', () => {
 
             const prevSelector = await page.$('#btnPrevSubscriber');
             await prevSelector.click();
-            await page.waitFor(2000);
+            await page.waitFor(5000);
 
             subscriberRows = await page.$$(createdSubscriberSelector);
             countSubscribers = subscriberRows.length;
@@ -408,10 +408,10 @@ describe('Monitor Detail API', () => {
                         .click();
                 });
                 await page.click('#createWebhook');
-                await page.waitFor(1000);
+                await page.waitFor(5000);
             }
 
-            await page.waitFor(2000);
+            await page.waitFor(5000);
 
             const nextSelector = await page.$('#btnNextWebhook');
 
@@ -419,7 +419,7 @@ describe('Monitor Detail API', () => {
                 '#webhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
 
             await nextSelector.click();
-            await page.waitFor(1000);
+            await page.waitFor(5000);
 
             let webhookRows = await page.$$(createdWebhookSelector);
             let countWebhooks = webhookRows.length;
@@ -429,7 +429,7 @@ describe('Monitor Detail API', () => {
             const prevSelector = await page.$('#btnPrevWebhook');
 
             await prevSelector.click();
-            await page.waitFor(1000);
+            await page.waitFor(5000);
 
             webhookRows = await page.$$(createdWebhookSelector);
             countWebhooks = webhookRows.length;
