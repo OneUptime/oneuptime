@@ -80,66 +80,66 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    test(
-        'Should navigate to monitor details and create an incident',
-        async () => {
-            expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
-                await page.setDefaultTimeout(utils.timeout);
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    monitorName,
-                    page
-                );
+    // test(
+    //     'Should navigate to monitor details and create an incident',
+    //     async () => {
+    //         expect.assertions(1);
+    //         await cluster.execute(null, async ({ page }) => {
+    //             await page.setDefaultTimeout(utils.timeout);
+    //             // Navigate to Monitor details
+    //             await init.navigateToMonitorDetails(
+    //                 componentName,
+    //                 monitorName,
+    //                 page
+    //             );
 
-                await page.waitForSelector(`#createIncident_${monitorName}`);
-                await page.click(`#createIncident_${monitorName}`);
-                await page.waitForSelector('#createIncident');
-                await init.selectByText('#incidentType', 'Offline', page);
-                await page.click('#createIncident');
+    //             await page.waitForSelector(`#createIncident_${monitorName}`);
+    //             await page.click(`#createIncident_${monitorName}`);
+    //             await page.waitForSelector('#createIncident');
+    //             await init.selectByText('#incidentType', 'Offline', page);
+    //             await page.click('#createIncident');
 
-                const selector = 'tr.incidentListItem';
-                await page.waitForSelector(selector);
+    //             const selector = 'tr.incidentListItem';
+    //             await page.waitForSelector(selector);
 
-                expect((await page.$$(selector)).length).toEqual(1);
-            });
-        },
-        operationTimeOut
-    );
+    //             expect((await page.$$(selector)).length).toEqual(1);
+    //         });
+    //     },
+    //     operationTimeOut
+    // );
 
-    test(
-        'Should navigate to monitor details and get list of incidents and paginate incidents',
-        async () => {
-            expect.assertions(2);
-            await cluster.execute(null, async ({ page }) => {
-                await page.setDefaultTimeout(utils.timeout);
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    monitorName,
-                    page
-                );
+    // test(
+    //     'Should navigate to monitor details and get list of incidents and paginate incidents',
+    //     async () => {
+    //         expect.assertions(2);
+    //         await cluster.execute(null, async ({ page }) => {
+    //             await page.setDefaultTimeout(utils.timeout);
+    //             // Navigate to Monitor details
+    //             await init.navigateToMonitorDetails(
+    //                 componentName,
+    //                 monitorName,
+    //                 page
+    //             );
 
-                const nextSelector = await page.waitForSelector('#btnNext');
-                await nextSelector.click();
+    //             const nextSelector = await page.waitForSelector('#btnNext');
+    //             await nextSelector.click();
 
-                let incidentRows = await page.$$('tr.incidentListItem');
-                let countIncidents = incidentRows.length;
+    //             let incidentRows = await page.$$('tr.incidentListItem');
+    //             let countIncidents = incidentRows.length;
 
-                expect(countIncidents).toEqual(1);
+    //             expect(countIncidents).toEqual(1);
 
-                const prevSelector = await page.waitForSelector('#btnPrev');
-                await prevSelector.click();
+    //             const prevSelector = await page.waitForSelector('#btnPrev');
+    //             await prevSelector.click();
 
-                incidentRows = await page.$$('tr.incidentListItem');
-                countIncidents = incidentRows.length;
+    //             incidentRows = await page.$$('tr.incidentListItem');
+    //             countIncidents = incidentRows.length;
 
-                expect(countIncidents).toEqual(1);
-            });
-        },
-        operationTimeOut
-    );
+    //             expect(countIncidents).toEqual(1);
+    //         });
+    //     },
+    //     operationTimeOut
+    // );
 
     test(
         'Should navigate to monitor details and create a scheduled event',
@@ -238,268 +238,268 @@ describe('Monitor Detail API', () => {
                     await page.click('#createScheduledEventButton');
                     await page.waitFor(10000);
                 },
-            ]);
+            ]).then(async () => {
+                const createdScheduledEventSelector =
+                    '#scheduledEventsList > div.scheduled-event-list-item';
 
-            const createdScheduledEventSelector =
-                '#scheduledEventsList > div.scheduled-event-list-item';
+                const scheduledEventRows = await page.$$(
+                    createdScheduledEventSelector
+                );
+                const countScheduledEvent = scheduledEventRows.length;
 
-            const scheduledEventRows = await page.$$(
-                createdScheduledEventSelector
-            );
-            const countScheduledEvent = scheduledEventRows.length;
-
-            expect(countScheduledEvent).toEqual(2);
+                expect(countScheduledEvent).toEqual(2);
+            });
         });
     });
 
-    test(
-        'Should navigate to monitor details and create a new subscriber',
-        async () => {
-            expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
-                await page.setDefaultTimeout(utils.timeout);
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    monitorName,
-                    page
-                );
+    // test(
+    //     'Should navigate to monitor details and create a new subscriber',
+    //     async () => {
+    //         expect.assertions(1);
+    //         await cluster.execute(null, async ({ page }) => {
+    //             await page.setDefaultTimeout(utils.timeout);
+    //             // Navigate to Monitor details
+    //             await init.navigateToMonitorDetails(
+    //                 componentName,
+    //                 monitorName,
+    //                 page
+    //             );
 
-                const addButtonSelector = '#addSubscriberButton';
-                await page.waitForSelector(addButtonSelector);
-                await page.click(addButtonSelector);
+    //             const addButtonSelector = '#addSubscriberButton';
+    //             await page.waitForSelector(addButtonSelector);
+    //             await page.click(addButtonSelector);
 
-                await page.waitForSelector('#alertViaId');
+    //             await page.waitForSelector('#alertViaId');
 
-                await init.selectByText('#alertViaId', 'email', page);
-                await page.type('input[name=email]', subscriberEmail);
-                await page.click('#createSubscriber');
-                await page.waitFor(2000);
+    //             await init.selectByText('#alertViaId', 'email', page);
+    //             await page.type('input[name=email]', subscriberEmail);
+    //             await page.click('#createSubscriber');
+    //             await page.waitFor(2000);
 
-                const createdSubscriberSelector =
-                    '#subscribersList > tbody > tr.subscriber-list-item .contact';
-                const createdSubscriberEmail = await page.$eval(
-                    createdSubscriberSelector,
-                    el => el.textContent
-                );
+    //             const createdSubscriberSelector =
+    //                 '#subscribersList > tbody > tr.subscriber-list-item .contact';
+    //             const createdSubscriberEmail = await page.$eval(
+    //                 createdSubscriberSelector,
+    //                 el => el.textContent
+    //             );
 
-                expect(createdSubscriberEmail).toEqual(subscriberEmail);
-            });
-        },
-        operationTimeOut
-    );
+    //             expect(createdSubscriberEmail).toEqual(subscriberEmail);
+    //         });
+    //     },
+    //     operationTimeOut
+    // );
 
-    test('Should navigate to monitor details and get list of subscribers and paginate subscribers', async () => {
-        expect.assertions(2);
-        await cluster.execute(null, async ({ page }) => {
-            await page.setDefaultTimeout(utils.timeout);
-            // Navigate to Monitor details
-            await init.navigateToMonitorDetails(
-                componentName,
-                monitorName,
-                page
-            );
+    // test('Should navigate to monitor details and get list of subscribers and paginate subscribers', async () => {
+    //     expect.assertions(2);
+    //     await cluster.execute(null, async ({ page }) => {
+    //         await page.setDefaultTimeout(utils.timeout);
+    //         // Navigate to Monitor details
+    //         await init.navigateToMonitorDetails(
+    //             componentName,
+    //             monitorName,
+    //             page
+    //         );
 
-            const addButtonSelector = '#addSubscriberButton';
-            await page.waitForSelector(addButtonSelector);
+    //         const addButtonSelector = '#addSubscriberButton';
+    //         await page.waitForSelector(addButtonSelector);
 
-            for (let i = 0; i < 5; i++) {
-                await page.click(addButtonSelector);
-                await page.waitForSelector('#alertViaId');
-                await init.selectByText('#alertViaId', 'email', page);
-                await page.type(
-                    'input[name=email]',
-                    utils.generateRandomBusinessEmail()
-                );
-                await page.click('#createSubscriber');
-                await page.waitFor(1000);
-            }
+    //         for (let i = 0; i < 5; i++) {
+    //             await page.click(addButtonSelector);
+    //             await page.waitForSelector('#alertViaId');
+    //             await init.selectByText('#alertViaId', 'email', page);
+    //             await page.type(
+    //                 'input[name=email]',
+    //                 utils.generateRandomBusinessEmail()
+    //             );
+    //             await page.click('#createSubscriber');
+    //             await page.waitFor(1000);
+    //         }
 
-            await page.waitFor(2000);
+    //         await page.waitFor(2000);
 
-            const nextSelector = await page.$('#btnNextSubscriber');
-            await nextSelector.click();
-            await page.waitFor(2000);
+    //         const nextSelector = await page.$('#btnNextSubscriber');
+    //         await nextSelector.click();
+    //         await page.waitFor(2000);
 
-            const createdSubscriberSelector =
-                '#subscribersList > tbody > tr.subscriber-list-item';
+    //         const createdSubscriberSelector =
+    //             '#subscribersList > tbody > tr.subscriber-list-item';
 
-            let subscriberRows = await page.$$(createdSubscriberSelector);
-            let countSubscribers = subscriberRows.length;
+    //         let subscriberRows = await page.$$(createdSubscriberSelector);
+    //         let countSubscribers = subscriberRows.length;
 
-            expect(countSubscribers).toEqual(1);
+    //         expect(countSubscribers).toEqual(1);
 
-            const prevSelector = await page.$('#btnPrevSubscriber');
-            await prevSelector.click();
-            await page.waitFor(2000);
+    //         const prevSelector = await page.$('#btnPrevSubscriber');
+    //         await prevSelector.click();
+    //         await page.waitFor(2000);
 
-            subscriberRows = await page.$$(createdSubscriberSelector);
-            countSubscribers = subscriberRows.length;
+    //         subscriberRows = await page.$$(createdSubscriberSelector);
+    //         countSubscribers = subscriberRows.length;
 
-            expect(countSubscribers).toEqual(5);
-        });
-    });
+    //         expect(countSubscribers).toEqual(5);
+    //     });
+    // });
 
-    test(
-        'Should navigate to monitor details and create a webhook',
-        async () => {
-            expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
-                await page.setDefaultTimeout(utils.timeout);
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    monitorName,
-                    page
-                );
+    // test(
+    //     'Should navigate to monitor details and create a webhook',
+    //     async () => {
+    //         expect.assertions(1);
+    //         await cluster.execute(null, async ({ page }) => {
+    //             await page.setDefaultTimeout(utils.timeout);
+    //             // Navigate to Monitor details
+    //             await init.navigateToMonitorDetails(
+    //                 componentName,
+    //                 monitorName,
+    //                 page
+    //             );
 
-                const addButtonSelector = '#addWebhookButton';
-                await page.waitForSelector(addButtonSelector);
-                await page.click(addButtonSelector);
+    //             const addButtonSelector = '#addWebhookButton';
+    //             await page.waitForSelector(addButtonSelector);
+    //             await page.click(addButtonSelector);
 
-                await page.waitForSelector('#endpoint');
+    //             await page.waitForSelector('#endpoint');
 
-                await page.type('#endpoint', webhookEndpoint);
-                await init.selectByText('#endpointType', 'GET', page);
+    //             await page.type('#endpoint', webhookEndpoint);
+    //             await init.selectByText('#endpointType', 'GET', page);
 
-                await page.evaluate(() => {
-                    document
-                        .querySelector('input[name=incidentCreated]')
-                        .click();
-                });
+    //             await page.evaluate(() => {
+    //                 document
+    //                     .querySelector('input[name=incidentCreated]')
+    //                     .click();
+    //             });
 
-                const createdWebhookSelector =
-                    '#webhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+    //             const createdWebhookSelector =
+    //                 '#webhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
 
-                await page.click('#createWebhook');
-                await page.waitForSelector(createdWebhookSelector);
+    //             await page.click('#createWebhook');
+    //             await page.waitForSelector(createdWebhookSelector);
 
-                const createdWebhookEndpoint = await page.$eval(
-                    createdWebhookSelector,
-                    el => el.textContent
-                );
+    //             const createdWebhookEndpoint = await page.$eval(
+    //                 createdWebhookSelector,
+    //                 el => el.textContent
+    //             );
 
-                expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
-            });
-        },
-        operationTimeOut
-    );
+    //             expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
+    //         });
+    //     },
+    //     operationTimeOut
+    // );
 
-    test('Should navigate to monitor details and get list of webhooks and paginate webhooks', async () => {
-        // expect.assertions(2);
-        await cluster.execute(null, async ({ page }) => {
-            await page.setDefaultTimeout(utils.timeout);
-            // Navigate to Monitor details
-            await init.navigateToMonitorDetails(
-                componentName,
-                monitorName,
-                page
-            );
+    // test('Should navigate to monitor details and get list of webhooks and paginate webhooks', async () => {
+    //     // expect.assertions(2);
+    //     await cluster.execute(null, async ({ page }) => {
+    //         await page.setDefaultTimeout(utils.timeout);
+    //         // Navigate to Monitor details
+    //         await init.navigateToMonitorDetails(
+    //             componentName,
+    //             monitorName,
+    //             page
+    //         );
 
-            const addButtonSelector = '#addWebhookButton';
-            await page.waitForSelector(addButtonSelector);
+    //         const addButtonSelector = '#addWebhookButton';
+    //         await page.waitForSelector(addButtonSelector);
 
-            for (let i = 0; i < 10; i++) {
-                await page.click(addButtonSelector);
-                await page.waitForSelector('#endpoint');
+    //         for (let i = 0; i < 10; i++) {
+    //             await page.click(addButtonSelector);
+    //             await page.waitForSelector('#endpoint');
 
-                await page.type('#endpoint', utils.generateRandomWebsite());
-                await init.selectByText('#endpointType', 'GET', page);
-                await page.evaluate(() => {
-                    document
-                        .querySelector('input[name=incidentCreated]')
-                        .click();
-                });
-                await page.click('#createWebhook');
-                await page.waitFor(1000);
-            }
+    //             await page.type('#endpoint', utils.generateRandomWebsite());
+    //             await init.selectByText('#endpointType', 'GET', page);
+    //             await page.evaluate(() => {
+    //                 document
+    //                     .querySelector('input[name=incidentCreated]')
+    //                     .click();
+    //             });
+    //             await page.click('#createWebhook');
+    //             await page.waitFor(1000);
+    //         }
 
-            await page.waitFor(2000);
+    //         await page.waitFor(2000);
 
-            const nextSelector = await page.$('#btnNextWebhook');
+    //         const nextSelector = await page.$('#btnNextWebhook');
 
-            const createdWebhookSelector =
-                '#webhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+    //         const createdWebhookSelector =
+    //             '#webhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
 
-            await nextSelector.click();
-            await page.waitFor(1000);
+    //         await nextSelector.click();
+    //         await page.waitFor(1000);
 
-            let webhookRows = await page.$$(createdWebhookSelector);
-            let countWebhooks = webhookRows.length;
+    //         let webhookRows = await page.$$(createdWebhookSelector);
+    //         let countWebhooks = webhookRows.length;
 
-            expect(countWebhooks).toEqual(1);
+    //         expect(countWebhooks).toEqual(1);
 
-            const prevSelector = await page.$('#btnPrevWebhook');
+    //         const prevSelector = await page.$('#btnPrevWebhook');
 
-            await prevSelector.click();
-            await page.waitFor(1000);
+    //         await prevSelector.click();
+    //         await page.waitFor(1000);
 
-            webhookRows = await page.$$(createdWebhookSelector);
-            countWebhooks = webhookRows.length;
+    //         webhookRows = await page.$$(createdWebhookSelector);
+    //         countWebhooks = webhookRows.length;
 
-            expect(countWebhooks).toEqual(10);
-        });
-    });
+    //         expect(countWebhooks).toEqual(10);
+    //     });
+    // });
 
-    test(
-        'Should navigate to monitor details and edit monitor',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
-                await page.setDefaultTimeout(utils.timeout);
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    monitorName,
-                    page
-                );
+    // test(
+    //     'Should navigate to monitor details and edit monitor',
+    //     async () => {
+    //         await cluster.execute(null, async ({ page }) => {
+    //             await page.setDefaultTimeout(utils.timeout);
+    //             // Navigate to Monitor details
+    //             await init.navigateToMonitorDetails(
+    //                 componentName,
+    //                 monitorName,
+    //                 page
+    //             );
 
-                const editButtonSelector = `#edit_${monitorName}`;
-                await page.click(editButtonSelector);
+    //             const editButtonSelector = `#edit_${monitorName}`;
+    //             await page.click(editButtonSelector);
 
-                await page.waitForSelector('#form-new-monitor');
-                await page.click('input[id=name]', { clickCount: 3 });
-                await page.keyboard.press('Backspace');
-                await page.type('input[id=name]', newMonitorName);
-                await page.click('button[type=submit]');
+    //             await page.waitForSelector('#form-new-monitor');
+    //             await page.click('input[id=name]', { clickCount: 3 });
+    //             await page.keyboard.press('Backspace');
+    //             await page.type('input[id=name]', newMonitorName);
+    //             await page.click('button[type=submit]');
 
-                const selector = `span#monitor-title-${newMonitorName}`;
+    //             const selector = `span#monitor-title-${newMonitorName}`;
 
-                let spanElement = await page.waitForSelector(selector);
-                spanElement = await spanElement.getProperty('innerText');
-                spanElement = await spanElement.jsonValue();
+    //             let spanElement = await page.waitForSelector(selector);
+    //             spanElement = await spanElement.getProperty('innerText');
+    //             spanElement = await spanElement.jsonValue();
 
-                spanElement.should.be.exactly(newMonitorName);
-            });
-        },
-        operationTimeOut
-    );
+    //             spanElement.should.be.exactly(newMonitorName);
+    //         });
+    //     },
+    //     operationTimeOut
+    // );
 
-    test(
-        'Should navigate to monitor details and delete monitor',
-        async () => {
-            expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
-                await page.setDefaultTimeout(utils.timeout);
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    newMonitorName,
-                    page
-                );
+    // test(
+    //     'Should navigate to monitor details and delete monitor',
+    //     async () => {
+    //         expect.assertions(1);
+    //         await cluster.execute(null, async ({ page }) => {
+    //             await page.setDefaultTimeout(utils.timeout);
+    //             // Navigate to Monitor details
+    //             await init.navigateToMonitorDetails(
+    //                 componentName,
+    //                 newMonitorName,
+    //                 page
+    //             );
 
-                const deleteButtonSelector = `#delete_${newMonitorName}`;
-                await page.click(deleteButtonSelector);
+    //             const deleteButtonSelector = `#delete_${newMonitorName}`;
+    //             await page.click(deleteButtonSelector);
 
-                const confirmDeleteButtonSelector = '#deleteMonitor';
-                await page.waitForSelector(confirmDeleteButtonSelector);
-                await page.click(confirmDeleteButtonSelector);
+    //             const confirmDeleteButtonSelector = '#deleteMonitor';
+    //             await page.waitForSelector(confirmDeleteButtonSelector);
+    //             await page.click(confirmDeleteButtonSelector);
 
-                const selector = `span#monitor-title-${newMonitorName}`;
+    //             const selector = `span#monitor-title-${newMonitorName}`;
 
-                const spanElement = await page.$(selector);
-                expect(spanElement).toEqual(null);
-            });
-        },
-        operationTimeOut
-    );
+    //             const spanElement = await page.$(selector);
+    //             expect(spanElement).toEqual(null);
+    //         });
+    //     },
+    //     operationTimeOut
+    // );
 });
