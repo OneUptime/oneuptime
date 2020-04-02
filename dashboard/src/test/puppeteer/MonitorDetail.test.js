@@ -210,40 +210,56 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            const addButtonSelector = '#addScheduledEventButton';
-            await page.waitForSelector(addButtonSelector);
+            for (let i = 0; i < 5; i++) {
+                const addButtonSelector = '#addScheduledEventButton';
+                await page.waitForSelector(addButtonSelector);
+                await page.click(addButtonSelector);
 
-            for (let i = 0; i < 6; i++) {
-                await init.addScheduledEvent(
-                    `${utils.generateRandomString()}${i}`,
-                    utils.scheduledEventDescription,
-                    page
+                await page.click('input[name=startDate]');
+                await page.click(
+                    'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
                 );
+                await page.waitFor(1000);
+                await page.click('input[name=endDate]');
+                await page.click(
+                    'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
+                );
+
+                await page.type(
+                    'input[name=name]',
+                    `${utils.scheduledEventName}${i}`
+                );
+                await page.type(
+                    'textarea[name=description]',
+                    utils.scheduledEventDescription
+                );
+
+                await page.click('#createScheduledEventButton');
                 await page.waitFor(10000);
             }
 
-            await page.waitFor(10000);
-
-            const nextSelector = await page.$('#btnNextSchedule');
-            await nextSelector.click();
-            await page.waitFor(5000);
+            // const nextSelector = await page.$('#btnNextSchedule');
+            // await nextSelector.click();
+            // await page.waitFor(5000);
 
             const createdScheduledEventSelector =
                 '#scheduledEventsList > div.scheduled-event-list-item';
 
-            let scheduledEventRows = await page.$$(
+            // let scheduledEventRows = await page.$$(
+            //     createdScheduledEventSelector
+            // );
+            // let countScheduledEvent = scheduledEventRows.length;
+
+            // expect(countScheduledEvent).toEqual(1);
+
+            // const prevSelector = await page.$('#btnPrevSchedule');
+            // await prevSelector.click();
+            // await page.waitFor(5000);
+
+            const scheduledEventRows = await page.$$(
                 createdScheduledEventSelector
             );
-            let countScheduledEvent = scheduledEventRows.length;
-
-            expect(countScheduledEvent).toEqual(1);
-
-            const prevSelector = await page.$('#btnPrevSchedule');
-            await prevSelector.click();
-            await page.waitFor(2000);
-
-            scheduledEventRows = await page.$$(createdScheduledEventSelector);
-            countScheduledEvent = scheduledEventRows.length;
+            const countScheduledEvent = scheduledEventRows.length;
 
             expect(countScheduledEvent).toEqual(5);
         });
