@@ -200,7 +200,7 @@ describe('Monitor Detail API', () => {
     );
 
     test('Should navigate to monitor details and get list of scheduled events and paginate scheduled events', async () => {
-        expect.assertions(2);
+        expect.assertions(1);
         await cluster.execute(null, async ({ page }) => {
             await page.setDefaultTimeout(utils.timeout);
             // Navigate to Monitor details
@@ -210,7 +210,6 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // for (let i = 0; i < 5; i++) {
             const addButtonSelector = '#addScheduledEventButton';
             await page.waitForSelector(addButtonSelector);
             await page.click(addButtonSelector);
@@ -233,25 +232,9 @@ describe('Monitor Detail API', () => {
 
             await page.click('#createScheduledEventButton');
             await page.waitFor(10000);
-            // }
-
-            // const nextSelector = await page.$('#btnNextSchedule');
-            // await nextSelector.click();
-            // await page.waitFor(5000);
 
             const createdScheduledEventSelector =
                 '#scheduledEventsList > div.scheduled-event-list-item';
-
-            // let scheduledEventRows = await page.$$(
-            //     createdScheduledEventSelector
-            // );
-            // let countScheduledEvent = scheduledEventRows.length;
-
-            // expect(countScheduledEvent).toEqual(1);
-
-            // const prevSelector = await page.$('#btnPrevSchedule');
-            // await prevSelector.click();
-            // await page.waitFor(5000);
 
             const scheduledEventRows = await page.$$(
                 createdScheduledEventSelector
