@@ -112,7 +112,7 @@ export class TeamMember extends Component {
                     className="bs-ObjectList-cell bs-u-v-middle"
                     style={{ cursor: 'pointer' }}
                     onClick={() => {
-                        history.push('/profile/' + this.props.userId);
+                        history.push('/dashboard/profile/' + this.props.userId);
                     }}
                 >
                     <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
