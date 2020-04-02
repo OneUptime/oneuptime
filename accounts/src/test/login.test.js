@@ -29,9 +29,13 @@ describe('Login API', () => {
     });
 
     it('Users cannot login with incorrect credentials', async () => {
-        await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle2',
-        });
+        try {
+            await page.goto(utils.ACCOUNTS_URL + '/login', {
+                waitUntil: 'networkidle2',
+            });
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
         await page.type('input[name=email]', user.email);
@@ -49,6 +53,8 @@ describe('Login API', () => {
         await init.registerUser(user, page);
         await init.loginUser(user, page);
 
+        await page.waitFor(10000);
+
         const localStorageData = await page.evaluate(() => {
             const json = {};
             for (let i = 0; i < localStorage.length; i++) {
@@ -62,5 +68,5 @@ describe('Login API', () => {
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.DASHBOARD_URL);
-    }, 160000);
+    }, 300000);
 });

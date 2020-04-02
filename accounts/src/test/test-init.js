@@ -18,9 +18,13 @@ module.exports = {
     registerUser: async function(user, page) {
         const { email } = user;
         let frame, elementHandle;
-        await page.goto(utils.ACCOUNTS_URL + '/register', {
-            waitUntil: 'networkidle2',
-        });
+        try {
+            await page.goto(utils.ACCOUNTS_URL + '/register', {
+                waitUntil: 'networkidle2',
+            });
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
@@ -85,9 +89,13 @@ module.exports = {
     },
     loginUser: async function(user, page) {
         const { email, password } = user;
-        await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle2',
-        });
+        try {
+            await page.goto(utils.ACCOUNTS_URL + '/login', {
+                waitUntil: 'networkidle2',
+            });
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
@@ -98,9 +106,13 @@ module.exports = {
     },
     registerEnterpriseUser: async function(user, page) {
         const { email } = user;
-        await page.goto(utils.ACCOUNTS_URL + '/register', {
-            waitUntil: 'networkidle2',
-        });
+        try {
+            await page.goto(utils.ACCOUNTS_URL + '/register', {
+                waitUntil: 'networkidle2',
+            });
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
