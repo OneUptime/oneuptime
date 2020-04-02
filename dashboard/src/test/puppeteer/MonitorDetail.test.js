@@ -407,7 +407,7 @@ describe('Monitor Detail API', () => {
                 await page.waitFor(1000);
             }
 
-            await page.waitFor(2000);
+            await page.waitFor(10000);
 
             const nextSelector = await page.$('#btnNextWebhook');
 
