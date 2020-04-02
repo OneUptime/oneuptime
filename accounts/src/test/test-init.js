@@ -115,6 +115,6 @@ module.exports = {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', '1234567890');
         await page.click('button[type=submit]');
-        await page.waitFor(5000);
+        await page.waitFor(20000);
     },
 };
