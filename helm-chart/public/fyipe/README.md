@@ -41,7 +41,7 @@ This chart bootstraps a [Fyipe](https://fyipe.com) deployment on a [Kubernetes](
 To install the chart with the release name `fi`:
 
 ```console
-helm repo add fyipe https://fyipe.com/charts
+helm repo add fyipe https://fyipe.com/chart
 helm install fi fyipe
 ```
 

@@ -6,27 +6,27 @@ IMPORTANT: After Installation Steps
 ** Please be patient while the chart is being deployed **
 ** This usually takes few minutes or more **
 
-To access your Fyipe app from outside the cluster follow the steps below:
+To access your Fyipe app from steps below:
 
 ============================================ 
-STEP 1: Make sure ALL external IP's are assigned. 
+STEP 1: Make sure external IP's are assigned. 
 ============================================ 
 
 Please run these commands to get Fyipe URL
 
-$ kubectl get svc
+$ kubectl get svc {{ .Release.Name }}-nginx-ingress-controller
 
 NOTE: It may take a few minutes for the LoadBalancer IP to be available. 
-If the load balancer did not assign an external IP yet (if the IP is in pending). 
+If the load balancer did not assign an external IP yet (if the IP is still pending). 
 Retry this command after few mins. 
-
-Make sure external IP's of all services are available (and not in "pending" state).
 
 ============================================ 
 STEP 2: Sign Up
 ============================================
 
-When your external IP URL is available, run the following commands. 
+Go to the External IP (generated from step 1) from your browser and sign up a new admin account. 
+This is your master admin account (and not a user account). 
+To create a user account. Please follow steps below.
 
 ============================================ 
 STEP 3: Setup Email
@@ -48,9 +48,8 @@ Add your Twilio Settings here to enable call and SMS alert.
 STEP 4: Create User
 ============================================
 
-When you're done signing up the admin account. Head over to "Settings" -> "Call and SMS"
-
-Add your Twilio Settings here to enable call and SMS alert.
+On the Admin Dahboard, go to the "Users" menu and add a new user. 
+Log out of the admin account, and log in with a user account to access User's Fyipe Dashboard.
 
 ============================================ 
 STEP 5: Buy License
@@ -77,3 +76,5 @@ Please email us at support@fyipe.com and we'll get back to you in less than 1 bu
 
 Licensing and Sales: 
 Please contact sales@fyipe.com
+
+Thank you for installing Fyipe. :)
