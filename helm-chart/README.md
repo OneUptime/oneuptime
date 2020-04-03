@@ -30,11 +30,11 @@ helm uninstall fi
 
 ### Docker build and push to docker repo with `:test` tag
 
-Build and deploy all: 
+Build and deploy all (with master tag, you can use any other tag): 
 
 ```
-chmod +x ./ci/scripts/docker-build-all.sh
-sudo ./ci/scripts/docker-build-all.sh
+chmod +x ./ci/scripts/docker-build-all.sh 
+sudo ./ci/scripts/docker-build-all.sh master
 ```
 
 Build and deploy one: 
