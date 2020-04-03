@@ -218,7 +218,7 @@ describe('Monitor Detail API', () => {
             await page.click(
                 'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
             );
-            await page.waitFor(1000);
+            await page.waitFor(2000);
             await page.click('input[name=endDate]');
             await page.click(
                 'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
@@ -231,8 +231,15 @@ describe('Monitor Detail API', () => {
             );
 
             await page.click('#createScheduledEventButton');
-            await page.waitFor(10000);
+            await page.waitFor(20000);
 
+            try {
+                await page.reload({ waitUntil: 'domcontentloaded' });
+            } catch (e) {
+                //
+            }
+
+            await page.waitFor(20000);
             const createdScheduledEventSelector =
                 '#scheduledEventsList > div.scheduled-event-list-item';
 
@@ -407,7 +414,7 @@ describe('Monitor Detail API', () => {
                 await page.waitFor(1000);
             }
 
-            await page.waitFor(2000);
+            await page.waitFor(10000);
 
             const nextSelector = await page.$('#btnNextWebhook');
 

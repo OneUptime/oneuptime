@@ -731,6 +731,7 @@ build_n_test_licensing:
 e2e_minikube_test:
   stage: E2E
   script:
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - chmod +x ./ci/scripts/setup-machine.sh
     - ./ci/scripts/setup-machine.sh
     - chmod +x ./ci/scripts/setup.sh
@@ -746,13 +747,11 @@ e2e_minikube_test:
     - ./ci/scripts/hosts-setup.sh
     - cd smoke-test
     - npm ci
-    # try building, if there are warnings then this will fail
-    - npm run build
     - npm run test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+  # only:
+  #   refs:
+  #     - release
+  #     - master
 
 ##E2E Stage.
 e2e_docker_compose_test:
