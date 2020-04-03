@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+    namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "status-page"  }}
 spec:
@@ -40,6 +41,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "status-page"  }}
     name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.statusPageServicePort }}

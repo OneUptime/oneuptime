@@ -10,22 +10,22 @@ helm lint ./helm-chart/public/fyipe
 
 ### Install as an Enterprise Cluster with default values
 ```
-helm install fi ./helm-chart/public/fyipe 
+helm install fi ./helm-chart/public/fyipe --namespace default
 ```
 
 ### Install on staging
 ```
-helm install -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe 
+helm install -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe --namespace default
 ```
 
 ### Install on production
 ```
-helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe 
+helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe- -namespace default 
 ```
 
 ### Uninstall
 ```
-helm uninstall fi
+helm uninstall fi --namespace default
 ```
 
 ### Docker build and push to docker repo with `:test` tag

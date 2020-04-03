@@ -5,6 +5,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" .Release.Name "backend"  }}
+    namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "backend"  }}
 spec:
@@ -78,6 +79,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "backend"  }}
     name: {{ printf "%s-%s" .Release.Name "backend"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.backendServicePort }}

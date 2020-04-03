@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+    namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
 spec:
@@ -41,6 +42,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
     name: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.adminDashboardServicePort }}

@@ -5,6 +5,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" $.Release.Name $key  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" $.Release.Name $key  }}
 spec:
@@ -54,6 +55,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" $.Release.Name $key  }}
     name: {{ printf "%s-%s" $.Release.Name $key  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
         - port: {{ $value.servicePort }}

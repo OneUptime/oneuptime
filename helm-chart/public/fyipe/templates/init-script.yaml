@@ -3,6 +3,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
     name: {{ printf "%s-%s" .Release.Name "init-script"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     template:
         spec:
