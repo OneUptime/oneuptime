@@ -2,7 +2,7 @@ apiVersion: v1
 entries:
   Fyipe:
   - apiVersion: v2
-    created: "2020-04-03T21:16:24.802245+02:00"
+    created: "2020-04-03T21:21:32.395818+02:00"
     dependencies:
     - name: nginx-ingress-controller
       repository: https://charts.bitnami.com/bitnami
@@ -38,4 +38,4 @@ entries:
     urls:
     - Fyipe-3.0.0.tgz
     version: 3.0.0
-generated: "2020-04-03T21:16:24.791863+02:00"
+generated: "2020-04-03T21:21:32.384383+02:00"
