@@ -37,7 +37,7 @@ fyipe:
 image:
   registry: docker.io
   repository: fyipeproject
-  tag: test
+  tag: master
   pullPolicy: Always
   restartPolicy: Always
 
