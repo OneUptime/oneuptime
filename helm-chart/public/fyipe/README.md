@@ -19,8 +19,9 @@ Fyipe lets you do:
 ## TL;DR;
 
 ```console
-helm repo add bitnami https://charts.fyipe.com/fyipe
-helm install fi fyipe
+helm repo add fyipe https://fyipe.com/chart
+helm repo update
+helm install fi fyipe/fyipe
 ```
 
 Note: `fi` is your release name. 
@@ -42,7 +43,8 @@ To install the chart with the release name `fi`:
 
 ```console
 helm repo add fyipe https://fyipe.com/chart
-helm install fi fyipe
+helm repo update
+helm install fi fyipe/fyipe
 ```
 
 The command deploys Fyipe on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
