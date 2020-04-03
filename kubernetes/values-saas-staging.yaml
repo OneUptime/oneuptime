@@ -32,12 +32,6 @@ fyipe:
         enabled: false
         crt: 
         key: 
-    host2:
-      host: staging.fyipe.com
-      tls:
-        enabled: false
-        crt: 
-        key: 
   licensingUrl: https://fyipe.com/license
 
 image:
