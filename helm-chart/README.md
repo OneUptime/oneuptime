@@ -41,7 +41,7 @@ Build and deploy one:
 
 ```
 chmod +x ./ci/scripts/docker-build.sh
-sudo ./ci/scripts/docker-build.sh status-page
+sudo ./ci/scripts/docker-build.sh $repo $tag
 ```
 
 ### Package and deploy helm chart
