@@ -39,3 +39,12 @@ fyipe:
         crt: 
         key: 
   licensingUrl: https://fyipe.com/license
+
+image:
+  registry: docker.io
+  repository: fyipeproject
+  tag: test
+  pullPolicy: Always
+  restartPolicy: Always
+
+replicaCount: 1

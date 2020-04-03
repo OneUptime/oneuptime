@@ -76,7 +76,7 @@ rateLimitter:
 image:
   registry: docker.io
   repository: fyipeproject
-  tag: test
+  tag: latest
   pullPolicy: Always
   restartPolicy: Always
 
