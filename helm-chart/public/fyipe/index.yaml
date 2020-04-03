@@ -3,7 +3,7 @@ entries:
   mongodb:
   - apiVersion: v1
     appVersion: 4.2.4
-    created: "2020-04-03T15:04:34.658793+02:00"
+    created: "2020-04-03T17:07:33.745074+02:00"
     description: NoSQL document-oriented database that stores JSON-like documents
       with dynamic schemas, simplifying the integration of data in content-driven
       applications.
@@ -29,7 +29,7 @@ entries:
   nginx-ingress-controller:
   - apiVersion: v1
     appVersion: 0.30.0
-    created: "2020-04-03T15:04:34.662423+02:00"
+    created: "2020-04-03T17:07:33.752259+02:00"
     description: Chart for the nginx Ingress controller
     digest: 46529208c77b4f9532ff6e95fb8734feeb4139b0d6bdee1820318ab59172e21d
     home: https://github.com/kubernetes/ingress-nginx
@@ -53,7 +53,7 @@ entries:
   redis:
   - apiVersion: v1
     appVersion: 5.0.8
-    created: "2020-04-03T15:04:34.667154+02:00"
+    created: "2020-04-03T17:07:33.75623+02:00"
     description: Open source, advanced key-value store. It is often referred to as
       a data structure server since keys can contain strings, hashes, lists, sets
       and sorted sets.
@@ -75,4 +75,4 @@ entries:
     urls:
     - charts/redis-10.5.11.tgz
     version: 10.5.11
-generated: "2020-04-03T15:04:34.652575+02:00"
+generated: "2020-04-03T17:07:33.738212+02:00"
