@@ -167,9 +167,10 @@ module.exports = {
             await page.click('input[name=confirmPassword]');
             await page.type('input[name=confirmPassword]', '1234567890');
             await page.click('button[type=submit]');
-            await page.waitFor(5000);
+        } else {
+            await this.loginUser(masterAdmin, page);
         }
-        await this.loginUser(masterAdmin, page);
+        await page.waitFor(20000);
         // create the user from admin dashboard
         const { email } = user;
         await page.waitForSelector('#add_user');
@@ -385,7 +386,7 @@ module.exports = {
         await page.click(
             'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
         );
-        await page.waitFor(1000);
+        await page.waitFor(5000);
         await page.click('input[name=endDate]');
         await page.click(
             'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'

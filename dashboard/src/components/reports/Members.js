@@ -211,7 +211,7 @@ class MembersList extends Component {
                                         style={{ cursor: 'pointer' }}
                                         onClick={() => {
                                             history.push(
-                                                '/profile/' + memberId
+                                                '/dashboard/profile/' + memberId
                                             );
                                         }}
                                     >
