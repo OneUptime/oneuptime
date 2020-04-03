@@ -850,7 +850,7 @@ deploy_staging_backend:
     - sudo docker tag fyipeproject/backend:master fyipeproject/backend:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/backend:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/backend:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-backend backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-backend fi-backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -883,7 +883,7 @@ deploy_staging_helm-chart:
     - sudo docker tag fyipeproject/helm-chart:master fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/helm-chart:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-helm-chart helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-helm-chart fi-helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -914,7 +914,7 @@ deploy_production_helm-chart:
     - sudo docker tag fyipeproject/helm-chart:latest fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/helm-chart:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-helm-chart helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-helm-chart fi-helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -937,7 +937,7 @@ deploy_production_backend:
     - sudo docker tag fyipeproject/backend:latest fyipeproject/backend:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/backend:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/backend:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-backend backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-backend fi-backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -963,7 +963,7 @@ deploy_staging_licensing:
     - sudo docker tag fyipeproject/licensing:master fyipeproject/licensing:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/licensing:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-licensing licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -986,7 +986,7 @@ deploy_production_licensing:
     - sudo docker tag fyipeproject/licensing:latest fyipeproject/licensing:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/licensing:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-licensing licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1012,7 +1012,7 @@ deploy_staging_api-docs:
     - sudo docker tag fyipeproject/api-docs:master fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/api-docs:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-api-docs api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1035,7 +1035,7 @@ deploy_production_api-docs:
     - sudo docker tag fyipeproject/api-docs:latest fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/api-docs:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-api-docs api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1061,7 +1061,7 @@ deploy_staging_home:
     - sudo docker tag fyipeproject/home:master fyipeproject/home:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/home:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/home:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-home home=fyipeproject/home:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-home fi-home=fyipeproject/home:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1084,7 +1084,7 @@ deploy_production_home:
     - sudo docker tag fyipeproject/home:latest fyipeproject/home:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/home:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/home:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-home home=fyipeproject/home:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-home fi-home=fyipeproject/home:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1110,7 +1110,7 @@ deploy_staging_slack:
     - sudo docker tag fyipeproject/slack:master fyipeproject/slack:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/slack:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/slack:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-slack slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-slack fi-slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1133,7 +1133,7 @@ deploy_production_slack:
     - sudo docker tag fyipeproject/slack:latest fyipeproject/slack:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/slack:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/slack:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-slack slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-slack fi-slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1159,9 +1159,9 @@ deploy_staging_probe:
     - sudo docker tag fyipeproject/probe:master fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-1 probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-1 fi-probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Additionally update probe1 deployment as well.
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-2 probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-2 fi-probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1184,8 +1184,8 @@ deploy_production_probe:
     - sudo docker tag fyipeproject/probe:latest fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-1 probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-2 probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-1 fi-probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-2 fi-probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1211,7 +1211,7 @@ deploy_staging_status-page:
     - sudo docker tag fyipeproject/status-page:master fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status-page status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status-page fi-status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1234,7 +1234,7 @@ deploy_production_status-page:
     - sudo docker tag fyipeproject/status-page:latest fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status-page status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status-page fi-status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1260,7 +1260,7 @@ deploy_staging_admin-dashboard:
     - sudo docker tag fyipeproject/admin-dashboard:master fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin-dashboard admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin-dashboard fi-admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1283,7 +1283,7 @@ deploy_production_admin-dashboard:
     - sudo docker tag fyipeproject/admin-dashboard:latest fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin-dashboard admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin-dashboard fi-admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1309,7 +1309,7 @@ deploy_staging_accounts:
     - sudo docker tag fyipeproject/accounts:master fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/accounts:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-accounts accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-accounts fi-accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1332,7 +1332,7 @@ deploy_production_accounts:
     - sudo docker tag fyipeproject/accounts:latest fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/accounts:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-accounts accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-accounts fi-accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1358,7 +1358,7 @@ deploy_staging_dashboard:
     - sudo docker tag fyipeproject/dashboard:master fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/dashboard:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-dashboard dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-dashboard fi-dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1381,7 +1381,7 @@ deploy_production_dashboard:
     - sudo docker tag fyipeproject/dashboard:latest fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/dashboard:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-dashboard dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-dashboard fi-dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
