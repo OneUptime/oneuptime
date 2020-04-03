@@ -2,23 +2,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+    name: {{ printf "%s-%s" .Release.Name "admin"  }}
     namespace: {{ .Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+        app: {{ printf "%s-%s" .Release.Name "admin"  }}
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+            app: {{ printf "%s-%s" .Release.Name "admin"  }}
     replicas: {{ .Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+                app: {{ printf "%s-%s" .Release.Name "admin"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "admin-dashboard" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+                  name: {{ printf "%s-%s" .Release.Name "admin"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                     {{- if .Values.saas.isSaasService }}
@@ -33,22 +33,22 @@ spec:
                   ports:
                       - containerPort: {{ .Values.host.adminDashboardPort }}
                         hostPort: {{ .Values.host.adminDashboardPort }}
-                        name: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+                        name: {{ printf "%s-%s" .Release.Name "admin"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
-    name: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+        app: {{ printf "%s-%s" .Release.Name "admin"  }}
+    name: {{ printf "%s-%s" .Release.Name "admin"  }}
     namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.adminDashboardServicePort }}
           targetPort: {{ .Values.host.adminDashboardPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "admin-dash"  }}
+        app: {{ printf "%s-%s" .Release.Name "admin"  }}
     type: {{ .Values.service.type }}
 ---
 ##################################

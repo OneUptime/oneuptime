@@ -33,7 +33,7 @@ spec:
               servicePort: 80
           - path: /admin
             backend:
-              serviceName: {{ printf "%s-%s" $.Release.Name "admin-dash"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "admin"  }}
               servicePort: 80
           - path: /api
             backend:
@@ -41,7 +41,7 @@ spec:
               servicePort: 80
           - path: /status-page
             backend:
-              serviceName: {{ printf "%s-%s" $.Release.Name "status-page"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "status"  }}
               servicePort: 80
           {{- if $.Values.saas.isSaasService }}
           - path: /slack
