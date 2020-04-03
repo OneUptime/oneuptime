@@ -78,3 +78,8 @@ Syntax:
 Example: 
 
 `kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://root:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://root:Q5YzzJTZ6Vdfu0yEtz06@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive
+
+## Misc commands
+
+Get into a MongoDB container with mongo shell: 
+`kubectl exec -it fi-mongodb-primary-0 mongo`

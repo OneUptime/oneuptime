@@ -1451,7 +1451,7 @@ deploy_staging_init-script:
     - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/init-script:master
     ## You cannot update a Kubernetes job. They are immutable. Delete it and then create one again. 
-    - sudo $HOME/google-cloud-sdk/bin/kubectl delete job init-script
+    - sudo $HOME/google-cloud-sdk/bin/kubectl delete job fi-init-script
     - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./ci/init-script/staging.yaml
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
@@ -1476,7 +1476,7 @@ deploy_production_init-script:
     - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/init-script:latest
     ## You cannot update a Kubernetes job. They are immutable. Delete it and then create one again. 
-    - sudo $HOME/google-cloud-sdk/bin/kubectl delete job init-script
+    - sudo $HOME/google-cloud-sdk/bin/kubectl delete job fi-init-script
     - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./ci/init-script/production.yaml
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
