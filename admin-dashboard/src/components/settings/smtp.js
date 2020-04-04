@@ -2,11 +2,14 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, Field } from 'redux-form';
+import uuid from 'uuid';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
-import { fetchSettings, saveSettings } from '../../actions/settings';
+import { fetchSettings, saveSettings, testSmtp } from '../../actions/settings';
+import { openModal, closeModal } from '../../actions/modal';
+import SmtpTestModal from './smtpTestModal';
 
 // Client side validation
 function validate(values) {
@@ -107,9 +110,54 @@ const fields = [
 ];
 
 export class Component extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { testModalId: uuid.v4(), testEmail: '' }
+    }
+
     async componentDidMount() {
         await this.props.fetchSettings(settingsType);
     }
+
+    handleTestSmtp = (e) => {
+        e.preventDefault();
+        const thisObj = this;
+        const { testSmtp, smtpForm } = this.props;
+        const { testModalId } = this.state;
+
+        this.props.openModal({
+            id: testModalId,
+            onConfirm: (testForm) => {
+                const { 'test-email': email } = testForm;
+                const {
+                    email: user,
+                    password: pass,
+                    'smtp-server': host,
+                    'smtp-port': port,
+                    'smtp-secure': secure,
+                    'from-name':from
+                } = smtpForm.values;
+
+                let payload = { user, pass, host, port, secure, from, email }
+
+                return testSmtp(payload).then(() => {
+                    if (window.location.href.indexOf('localhost') <= -1) {
+                        thisObj.context.mixpanel.track('Sent SMTP settings');
+                    }
+                });
+            },
+            content: SmtpTestModal,
+        });
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({ id: this.state.testModalId });
+            default:
+                return false;
+        }
+    };
 
     submitForm = values => {
         this.props.saveSettings(settingsType, values);
@@ -118,7 +166,7 @@ export class Component extends React.Component {
     render() {
         const { settings, handleSubmit } = this.props;
         return (
-            <div className="bs-ContentSection Card-root Card-shadow--medium">
+            <div onKeyDown={this.handleKeyBoard} className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
@@ -182,13 +230,24 @@ export class Component extends React.Component {
                                 <button
                                     className="bs-Button bs-Button--blue"
                                     disabled={settings && settings.requesting}
+                                    onClick={this.handleTestSmtp}
+                                >
+                                    {settings.requesting ? (
+                                        <FormLoader />
+                                    ) : (
+                                            <span>Test</span>
+                                        )}
+                                </button>
+                                <button
+                                    className="bs-Button bs-Button--blue"
+                                    disabled={settings && settings.requesting}
                                     type="submit"
                                 >
                                     {settings.requesting ? (
                                         <FormLoader />
                                     ) : (
-                                        <span>Save Settings</span>
-                                    )}
+                                            <span>Save Settings</span>
+                                        )}
                                 </button>
                             </div>
                         </div>
@@ -213,6 +272,9 @@ const mapDispatchToProps = dispatch => {
         {
             saveSettings,
             fetchSettings,
+            testSmtp,
+            openModal,
+            closeModal
         },
         dispatch
     );
@@ -222,6 +284,7 @@ function mapStateToProps(state) {
     return {
         settings: state.settings,
         initialValues: state.settings[settingsType],
+        smtpForm: state.form['smtp-form'],
     };
 }
 
