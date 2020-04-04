@@ -18,7 +18,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const data = req.body;
         data.projectId = req.params.projectId;
-        data.email = req.user.email;
+        // data.email = req.user.email;
         if (!data.user) {
             return sendErrorResponse(req, res, {
                 code: 400,
