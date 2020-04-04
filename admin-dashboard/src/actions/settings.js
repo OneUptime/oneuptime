@@ -23,11 +23,50 @@ export const requestingSettingsFailed = payload => {
     };
 };
 
+export const testSmtpRequest = () => ({
+    type: types.TEST_SMTP_REQUEST
+});
+
+export const testSmtpSuccess = (payload) => ({
+    type: types.TEST_SMTP_SUCCESS,
+    payload
+});
+
+export const testSmtpFailure = (error) => ({
+    type: types.TEST_SMTP_FAILURE,
+    payload: error
+});
+
+export const testSmtp = payload => async dispatch => {
+    dispatch(testSmtpRequest());
+
+    try {
+        let projectId = '5e811909292446001244cf05';
+        const response = await postApi(`emailSmtp/${projectId}`, payload);
+        dispatch(testSmtpSuccess(response));
+    } catch (error) {
+        let errorMsg;
+        if (error && error.response && error.response.data)
+            errorMsg = error.response.data;
+        if (error && error.data) {
+            errorMsg = error.data;
+        }
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else {
+            errorMsg = 'Network Error';
+        }
+
+        dispatch(testSmtpFailure(errorMsg));
+    }
+}
+
 export const fetchSettings = type => async dispatch => {
     dispatch(requestingSettings());
     try {
         const response = await getApi(`globalConfig/${type}`);
         const data = response.data || { value: {} };
+        data.value = { 'smtp-secure': false, ...data.value };
         dispatch(requestingSettingsSucceeded(data.value, type));
         return response;
     } catch (error) {
