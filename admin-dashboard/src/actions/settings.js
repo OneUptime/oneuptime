@@ -45,7 +45,7 @@ export const testSmtp = payload => async dispatch => {
         dispatch(testSmtpSuccess(response));
         return response;
     } catch (error) {
-        error =
+        let errorMsg =
             error.response && error.response.data
                 ? error.response.data
                 : error.data
@@ -54,8 +54,8 @@ export const testSmtp = payload => async dispatch => {
                         ? error.message
                         : 'Network Error';
 
-        dispatch(testSmtpFailure(error));
-        return error;
+        dispatch(testSmtpFailure(errorMsg));
+        return errorMsg;
     }
 }
 
