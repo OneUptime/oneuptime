@@ -69,12 +69,12 @@ module.exports = {
             } else {
                 // if monitorIds is array
                 if (data.monitorIds.length !== undefined) {
-                    statusPageModel.monitorId = [];
+                    statusPageModel.monitorIds = [];
                     for (const monitorId of data.monitorIds) {
-                        statusPageModel.monitorId.push(monitorId);
+                        statusPageModel.monitorIds.push(monitorId);
                     }
                 } else {
-                    statusPageModel.monitorId = data.monitorIds;
+                    statusPageModel.monitorIds = data.monitorIds;
                 }
             }
             const statusPage = await statusPageModel.save();
@@ -361,7 +361,8 @@ module.exports = {
                 statusPage => statusPage.monitorIds.length
             );
             const statuspage = withMonitors[0];
-            const monitorIds = statuspage.monitorIds.map(m => m._id);
+            const monitorIds =
+                statuspage && statuspage.monitorIds.map(m => m._id);
             if (monitorIds && monitorIds.length) {
                 const incidents = await IncidentService.findBy({
                     monitorId: { $in: monitorIds },
