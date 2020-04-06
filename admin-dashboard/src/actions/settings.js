@@ -41,23 +41,21 @@ export const testSmtp = payload => async dispatch => {
     dispatch(testSmtpRequest());
 
     try {
-        let projectId = '5e811909292446001244cf05';
-        const response = await postApi(`emailSmtp/${projectId}`, payload);
+        const response = await postApi('emailSmtp', payload);
         dispatch(testSmtpSuccess(response));
+        return response;
     } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
-        }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
+        error =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                    ? error.data
+                    : error.message
+                        ? error.message
+                        : 'Network Error';
 
-        dispatch(testSmtpFailure(errorMsg));
+        dispatch(testSmtpFailure(error));
+        return error;
     }
 }
 
