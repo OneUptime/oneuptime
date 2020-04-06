@@ -2,7 +2,11 @@
 
 Since we do not do automated builds in Docker. There's no way for Docker to read our README. Upload this readme manually to Docker repository.
 
-# Production Use
+# Installation
+
+Install Fyipe on your cluster with Helm. [Please check our helm chart here.](https://hub.helm.sh/charts/fyipe/Fyipe)
+
+# Commercial Use
 
 You may not use this Fyipe Docker Image or any other Docker Images by Fyipe in production unless you have an active Enterprise Subscription. To request or buy an enterprise subscription or license - please contact our sales team at sales@fyipe.com
 
