@@ -18,7 +18,7 @@ module.exports = {
     display: {
         label: 'Resolve All Incidents',
         description: 'Resolves all incidents.',
-        important: true,
+        important: false,
     },
 
     operation: {

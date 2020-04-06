@@ -18,7 +18,7 @@ module.exports = {
     display: {
         label: 'Acknowledge All Incidents',
         description: 'Acknowledges all incidents.',
-        important: true,
+        important: false,
     },
 
     operation: {
