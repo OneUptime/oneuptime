@@ -106,7 +106,8 @@ class AuditLogs extends React.Component {
                                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             placeholder="Search Logs"
                                                                             onChange={
-                                                                                this.onChange
+                                                                                this
+                                                                                    .onChange
                                                                             }
                                                                         />
                                                                     </div>

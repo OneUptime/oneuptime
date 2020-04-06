@@ -4,7 +4,7 @@ import {
     REQUESTING_SETTINGS_FAILED,
     TEST_SMTP_REQUEST,
     TEST_SMTP_SUCCESS,
-    TEST_SMTP_FAILURE
+    TEST_SMTP_FAILURE,
 } from '../constants/settings';
 
 const INITIAL_STATE = {
@@ -13,7 +13,7 @@ const INITIAL_STATE = {
     errored: false,
     smtp: {},
     twilio: {},
-    error: null
+    error: null,
 };
 
 export default function profileSettings(state = INITIAL_STATE, action) {
@@ -56,7 +56,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 ...state,
                 errored: false,
                 testing: false,
-                error: null
+                error: null,
             };
 
         case TEST_SMTP_FAILURE:

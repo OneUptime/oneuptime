@@ -275,7 +275,10 @@ export class AuditLogsList extends Component {
                         </tbody>
                     </table>
                 </div>
-                <div id="logsStatus" style={{ textAlign: 'center', marginTop: '10px' }}>
+                <div
+                    id="logsStatus"
+                    style={{ textAlign: 'center', marginTop: '10px' }}
+                >
                     {this.props.auditLogs &&
                     (!this.props.auditLogs.auditLogs ||
                         !this.props.auditLogs.auditLogs.length) &&

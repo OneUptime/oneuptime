@@ -112,14 +112,14 @@ const fields = [
 export class Component extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { testModalId: uuid.v4(), testEmail: '' }
+        this.state = { testModalId: uuid.v4() };
     }
 
     async componentDidMount() {
         await this.props.fetchSettings(settingsType);
     }
 
-    handleTestSmtp = (e) => {
+    handleTestSmtp = e => {
         e.preventDefault();
         const thisObj = this;
         const { testSmtp, smtpForm } = this.props;
@@ -127,7 +127,7 @@ export class Component extends React.Component {
 
         this.props.openModal({
             id: testModalId,
-            onConfirm: (testForm) => {
+            onConfirm: testForm => {
                 const { 'test-email': email } = testForm;
                 const {
                     email: user,
@@ -135,10 +135,10 @@ export class Component extends React.Component {
                     'smtp-server': host,
                     'smtp-port': port,
                     'smtp-secure': secure,
-                    'from-name': from
+                    'from-name': from,
                 } = smtpForm.values;
 
-                let payload = { user, pass, host, port, secure, from, email }
+                const payload = { user, pass, host, port, secure, from, email };
 
                 return testSmtp(payload).then(res => {
                     if (res && typeof res === 'string') {
@@ -154,7 +154,7 @@ export class Component extends React.Component {
             },
             content: SmtpTestModal,
         });
-    }
+    };
 
     handleKeyBoard = e => {
         switch (e.key) {
@@ -172,7 +172,10 @@ export class Component extends React.Component {
     render() {
         const { settings, handleSubmit } = this.props;
         return (
-            <div onKeyDown={this.handleKeyBoard} className="bs-ContentSection Card-root Card-shadow--medium">
+            <div
+                onKeyDown={this.handleKeyBoard}
+                className="bs-ContentSection Card-root Card-shadow--medium"
+            >
                 <div className="Box-root">
                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
@@ -250,8 +253,8 @@ export class Component extends React.Component {
                                     {settings.requesting ? (
                                         <FormLoader />
                                     ) : (
-                                            <span>Test</span>
-                                        )}
+                                        <span>Test</span>
+                                    )}
                                 </button>
                                 <button
                                     className="bs-Button bs-Button--blue"
@@ -261,8 +264,8 @@ export class Component extends React.Component {
                                     {settings.requesting ? (
                                         <FormLoader />
                                     ) : (
-                                            <span>Save Settings</span>
-                                        )}
+                                        <span>Save Settings</span>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -275,6 +278,7 @@ export class Component extends React.Component {
 
 Component.displayName = 'SettingsForm';
 
+/* eslint-disable */
 Component.propTypes = {
     settings: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
@@ -284,7 +288,7 @@ Component.propTypes = {
     smtpForm: PropTypes.object,
     closeModal: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
-    testSmtp: PropTypes.func
+    testSmtp: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -294,7 +298,7 @@ const mapDispatchToProps = dispatch => {
             fetchSettings,
             testSmtp,
             openModal,
-            closeModal
+            closeModal,
         },
         dispatch
     );
