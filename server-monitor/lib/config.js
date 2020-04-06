@@ -11,6 +11,6 @@ const API_URL =
     process.env.API_URL ||
     (process.env.NODE_ENV === 'development'
         ? 'http://localhost:3002'
-        : 'https://api.fyipe.com');
+        : 'https://fyipe.com/api');
 
 module.exports = { API_URL };

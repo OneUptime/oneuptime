@@ -8,7 +8,7 @@ const testAuth = (z, bundle) => {
     if (bundle.cleanedRequest) return bundle.cleanedRequest;
     return z
         .request({
-            url: 'https://api.fyipe.com/zapier/test',
+            url: 'https://fyipe.com/api/zapier/test',
         })
         .then(response => {
             if (response.status === 400) {

@@ -5,7 +5,7 @@ const acknowledgeLastIncident = (z, bundle) => {
     };
     const responsePromise = z.request({
         method: 'POST',
-        url: 'https://api.fyipe.com/zapier/incident/acknowledgeLastIncident',
+        url: 'https://fyipe.com/api/zapier/incident/acknowledgeLastIncident',
         body: data,
     });
     return responsePromise.then(response => JSON.parse(response.content));
@@ -18,7 +18,7 @@ module.exports = {
     display: {
         label: 'Acknowledge Last Incident',
         description: 'Acknowledges last incident.',
-        important: true,
+        important: false,
     },
 
     operation: {

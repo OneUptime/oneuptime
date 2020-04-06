@@ -5,7 +5,7 @@ const resolveLastIncident = (z, bundle) => {
     };
     const responsePromise = z.request({
         method: 'POST',
-        url: 'https://api.fyipe.com/zapier/incident/resolveLastIncident',
+        url: 'https://fyipe.com/api/zapier/incident/resolveLastIncident',
         body: data,
     });
     return responsePromise.then(response => JSON.parse(response.content));
@@ -18,7 +18,7 @@ module.exports = {
     display: {
         label: 'Resolve Last Incident',
         description: 'Resolves last incident.',
-        important: true,
+        important: false,
     },
 
     operation: {

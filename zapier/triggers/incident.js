@@ -5,7 +5,7 @@ const triggerIncident = (z, bundle) => {
 const fallbackHook = z => {
     // For the test poll, you should get some real data, to aid the setup process.
     const options = {
-        url: 'https://api.fyipe.com/zapier/incidents',
+        url: 'https://fyipe.com/api/zapier/incidents',
     };
 
     return z.request(options).then(response => JSON.parse(response.content));
@@ -20,7 +20,7 @@ const subscribeHook = (z, bundle) => {
     };
 
     const options = {
-        url: 'https://api.fyipe.com/zapier/subscribe',
+        url: 'https://fyipe.com/api/zapier/subscribe',
         method: 'POST',
         body: data,
     };
@@ -37,7 +37,7 @@ const unSubscribeHook = (z, bundle) => {
     // You can build requests and our client will helpfully inject all the variables
     // you need to complete. You can also register middleware to control this.
     const options = {
-        url: `https://api.fyipe.com/zapier/unSubscribe/${hookId}`,
+        url: `https://fyipe.com/api/zapier/unSubscribe/${hookId}`,
         method: 'DELETE',
     };
 

@@ -21,10 +21,6 @@ const includeApiKey = (request, z, bundle) => {
         request.params = request.params || {};
         request.params.apiKey = bundle.authData.apiKey;
         request.params.projectId = bundle.authData.projectId;
-        //
-        // request.headers.Authorization = bundle.authData.apiKey;
-        // (If you want to include the key as a header instead)
-        //
     }
     return request;
 };
