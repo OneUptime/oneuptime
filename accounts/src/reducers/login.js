@@ -177,7 +177,7 @@ export default function register(state = initialState, action) {
 
         case SAVE_STATUS_PAGE:
             return Object.assign({}, state, {
-                statusPageLogin: action.payload.statusPageLogin,
+                statusPageLogin: action.payload.isStatusPageLogin,
                 statusPageURL: action.payload.statusPageURL,
             });
 
