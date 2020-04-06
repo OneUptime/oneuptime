@@ -1535,7 +1535,7 @@ smoke_test_production:
     - export HOME_URL=https://www.fyipe.com
     - export ACCOUNTS_URL=https://accounts.fyipe.com
     - export DASHBOARD_URL=https://dashboard.fyipe.com
-    - export BACKEND_URL=https://api.fyipe.com
+    - export BACKEND_URL=https://fyipe.com/api
     - export STATUSPAGE_URL=https://statuspage.fyipe.com
     - export APIDOCS_URL=https://docs.fyipe.com
     - export LICENSING_URL=https://licensing.fyipe.com
@@ -1558,7 +1558,7 @@ smoke_test_staging:
     - export HOME_URL=https://staging.fyipe.com
     - export ACCOUNTS_URL=https://staging-accounts.fyipe.com
     - export DASHBOARD_URL=https://staging-dashboard.fyipe.com
-    - export BACKEND_URL=https://staging-api.fyipe.com
+    - export BACKEND_URL=https://staging-fyipe.com/api
     - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
     - export APIDOCS_URL=https://staging-docs.fyipe.com
     - export LICENSING_URL=https://staging-licensing.fyipe.com

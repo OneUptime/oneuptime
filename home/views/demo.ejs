@@ -59,7 +59,7 @@
                 <div class="container-lg" >
                     <div class="form-column">
                         <div class="form-container">
-                            <form action="http://api.fyipe.com/lead/" onsubmit="this.action=formUrl();" id='demoform'
+                            <form action="http://fyipe.com/api/lead/" onsubmit="this.action=formUrl();" id='demoform'
                                 method="post" novalidate="">
                                 <input type="hidden" name="csrf-token" value="1">
                                 <input type="hidden" name="type" value="demo">
@@ -987,9 +987,9 @@
             if (window.location.href.indexOf('localhost') > -1) {
                 apiURL = 'http://localhost:3002';
             } else if (window.location.href.indexOf('staging') > -1) {
-                apiURL = 'https://staging-api.fyipe.com';
+                apiURL = 'https://staging-fyipe.com/api';
             } else {
-                apiURL = 'https://api.fyipe.com';
+                apiURL = 'https://fyipe.com/api';
             }
             document.getElementById('demoform').action = `${apiURL}/lead/add/demo`;
         }
