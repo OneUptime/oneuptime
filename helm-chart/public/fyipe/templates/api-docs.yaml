@@ -11,6 +11,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" .Release.Name "api-docs"  }}
+    namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "api-docs"  }}
 spec:
@@ -46,6 +47,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "api-docs"  }}
     name: {{ printf "%s-%s" .Release.Name "api-docs"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.apiDocsServicePort }}

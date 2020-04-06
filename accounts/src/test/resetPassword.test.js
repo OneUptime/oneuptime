@@ -31,9 +31,13 @@ describe('Reset Password API', () => {
 
     it('Should reset password successfully', async () => {
         await init.registerUser(user, page);
-        await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
-            waitUntil: 'networkidle2',
-        });
+        try {
+            await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
+                waitUntil: 'networkidle2',
+            });
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
@@ -49,9 +53,13 @@ describe('Reset Password API', () => {
     }, 160000);
 
     it('User cannot reset password with non-existing email', async () => {
-        await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
-            waitUntil: 'networkidle2',
-        });
+        try {
+            await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
+                waitUntil: 'networkidle2',
+            });
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', utils.generateWrongEmail());

@@ -18,8 +18,8 @@ On the destination cluster:
 
 ```
 kubectl exec -it fi-mongodb-primary-0 bash
-mongodump --uri="mongodb://fyipe:password@34.67.53.212:27017/fyipedb" --archive="/bitnami/mongodb/fyipebackup.archive"
-mongorestore --uri="mongodb://root:root@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipebackup.archive"
+mongodump --uri="mongodb://fyipe:password@34.67.53.212:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
+mongorestore --uri="mongodb://root:root@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
 ```
 
 **Step 4:** Block the exposed Mongodb from the internet
@@ -42,7 +42,7 @@ Syntax:
 
 Example: 
 
-`kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipebackup.archive"`
+`kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
 
 **Step 2**: Copy file from conatiner to local machine. 
 
@@ -52,7 +52,7 @@ Syntax:
 
 Example:
 
-`kubectl cp fi-mongodb-primary-0:/bitnami/mongodb/fyipebackup.archive /Volumes/DataDrive/Projects/Fyipe/app/backup.archive`
+`kubectl cp fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive /Volumes/DataDrive/Projects/Fyipe/app/backup.archive`
 
 
 ## Restore
@@ -77,4 +77,9 @@ Syntax:
 
 Example: 
 
-`kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipebackup.archive"`
+`kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://root:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://root:Q5YzzJTZ6Vdfu0yEtz06@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive
+
+## Misc commands
+
+Get into a MongoDB container with mongo shell: 
+`kubectl exec -it fi-mongodb-primary-0 mongo`

@@ -34,7 +34,7 @@ class RegisterPage extends React.Component {
             !this.props.register.success &&
             !IS_SAAS_SERVICE
         ) {
-            window.location.href = '/login';
+            window.location.href = '/accounts/login';
         }
     }
 

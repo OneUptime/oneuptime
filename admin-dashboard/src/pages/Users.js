@@ -134,8 +134,9 @@ class Users extends Component {
                                                                         Here is
                                                                         a list
                                                                         of all
-                                                                        fyipe
-                                                                        users
+                                                                        the
+                                                                        users on
+                                                                        Fyipe.
                                                                     </span>
                                                                 </span>
                                                             </div>
@@ -145,7 +146,7 @@ class Users extends Component {
                                                                         <div>
                                                                             <input
                                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                                placeholder="search username or email"
+                                                                                placeholder="Search Users"
                                                                                 onChange={
                                                                                     this
                                                                                         .onChange

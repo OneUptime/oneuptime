@@ -2,13 +2,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-    name: init-script
+    name: {{ printf "%s-%s" .Release.Name "init-script"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     template:
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "init-script" .Values.image.tag }}
-                  name: init-script
+                  name: {{ printf "%s-%s" .Release.Name "init-script"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: MONGO_URL

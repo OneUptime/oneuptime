@@ -27,10 +27,14 @@ describe('Change Password API', () => {
     });
 
     it('Should not allow change of password if password and confirm password do not math', async () => {
-        await page.goto(
-            utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
-            { waitUntil: 'networkidle2' }
-        );
+        try {
+            await page.goto(
+                utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
+                { waitUntil: 'networkidle2' }
+            );
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#password');
         await page.click('input[name=password]');
         await page.type('input[name=password]', user.password);
@@ -52,10 +56,14 @@ describe('Change Password API', () => {
     }, 160000);
 
     it('Should submit if password is less than 8 characters', async () => {
-        await page.goto(
-            utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
-            { waitUntil: 'networkidle2' }
-        );
+        try {
+            await page.goto(
+                utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
+                { waitUntil: 'networkidle2' }
+            );
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#password');
         await page.click('input[name=password]');
         await page.type('input[name=password]', '123456');
@@ -75,10 +83,14 @@ describe('Change Password API', () => {
     }, 160000);
 
     it('Should submit if password is missing', async () => {
-        await page.goto(
-            utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
-            { waitUntil: 'networkidle2' }
-        );
+        try {
+            await page.goto(
+                utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
+                { waitUntil: 'networkidle2' }
+            );
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#password');
         await page.click('input[name=password]');
         await page.type('input[name=password]', '');

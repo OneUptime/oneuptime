@@ -6,22 +6,22 @@
 
 
 saas: 
-    isSaasService: true
-    stripe: 
-      publicKey: pk_live_j4tvMzviY2MUsRdWvDI8vN8B
-      privateKey: sk_live_ADLzzMrOCz0kyYTsxWatAqxh
+  isSaasService: true
+  stripe: 
+    publicKey: pk_live_j4tvMzviY2MUsRdWvDI8vN8B
+    privateKey: sk_live_ADLzzMrOCz0kyYTsxWatAqxh
+  airtable: 
+    key: keyenXfDDP4Dutazt
+    baseId: appff3DtEBUNxGN9W
+  amplitude: 
+    key: 802d95003af23aad17ed068b6cfdeb2b
+  licensing:
     airtable: 
-      key: keyenXfDDP4Dutazt
-      baseId: appff3DtEBUNxGN9W
-    amplitude: 
-      key: 802d95003af23aad17ed068b6cfdeb2b
-    licensing:
-      airtable: 
-        key: key9VuqGqj1Pp07Q8
-        baseId: apppFO00165oOmdXQ
-      tokenSecret: Zg6e7Xp4WUHQvvALuG
-    support: 
-      slackToken: xoxp-369430749728-370026359715-370129302482-08f43c6a1306d2e8f4be4b0d8abbdb80
+      key: key9VuqGqj1Pp07Q8
+      baseId: apppFO00165oOmdXQ
+    tokenSecret: Zg6e7Xp4WUHQvvALuG
+  support: 
+    slackToken: xoxp-369430749728-370026359715-370129302482-08f43c6a1306d2e8f4be4b0d8abbdb80
 
 fyipe:
   hosts:
@@ -32,9 +32,45 @@ fyipe:
         crt: 
         key: 
     host2:
-      host: www.flowappplatform.com
+      host: www.fyipe.com
       tls:
         enabled: false
         crt: 
         key: 
   licensingUrl: https://fyipe.com/license
+
+
+mongodb: 
+  image:
+    registry: docker.io
+    repository: bitnami/mongodb
+    tag: latest
+    pullPolicy: Always
+  mongodbRootPassword: Q5YzzJTZ6Vdfu0yEtz06
+  mongodbUsername: 8aKfamHvEqOjFVTZNNXN
+  mongodbPassword: 5ojKi7gKK0PcgQmNxSpC
+  mongodbDatabase: fyipedb
+  replicaSet:
+    enabled: true
+    name: rs0
+    useHostnames: true
+    key: mongodbfyipe
+    secondary: 1
+    arbiter: 1
+  persistence:
+    enabled: true
+    mountPath: /bitnami/mongodb
+    size: 1000Gi
+  useStatefulSet: true
+
+probes:
+  probe1: 
+    port: 3024
+    name: US
+    key: b6ETg5EdrIEtdjgit7r3
+    servicePort: 80
+  probe2: 
+    name: EU
+    port: 3025
+    key: s9KOOlCVyly0XykZVjDe
+    servicePort: 80

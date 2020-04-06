@@ -76,7 +76,7 @@ rateLimitter:
 image:
   registry: docker.io
   repository: fyipeproject
-  tag: test
+  tag: latest
   pullPolicy: Always
   restartPolicy: Always
 
@@ -158,3 +158,5 @@ host:
   adminDashboardNodePort: 80
   licensingServicePort: 80
   helmChartServicePort: 80
+
+

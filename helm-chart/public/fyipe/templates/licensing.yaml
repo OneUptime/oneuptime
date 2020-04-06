@@ -10,6 +10,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" .Release.Name "licensing"  }}
+    namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "licensing"  }}
 spec:

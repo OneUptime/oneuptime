@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "accounts"  }}
 spec:
@@ -44,6 +45,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "accounts"  }}
     name: {{ printf "%s-%s" .Release.Name "accounts"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.accountsServicePort }}
