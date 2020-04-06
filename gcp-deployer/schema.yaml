@@ -16,7 +16,11 @@ properties:
       type: NAMESPACE
   imageUbbagent:
     type: string
+<<<<<<< HEAD
     default: gcr.io/cloud-marketplace-tools/metering/ubbagent
+=======
+    default: gcr.io/ubbagent:latest
+>>>>>>> 5a3307b09e7c8d9f5ea924725906f968bb6db339
     x-google-marketplace:
       type: IMAGE
   reportingSecret:
