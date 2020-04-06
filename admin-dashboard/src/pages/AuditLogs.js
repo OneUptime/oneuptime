@@ -102,11 +102,11 @@ class AuditLogs extends React.Component {
                                                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                                                     <div>
                                                                         <input
+                                                                            id="searchAuditLog"
                                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             placeholder="Search Logs"
                                                                             onChange={
-                                                                                this
-                                                                                    .onChange
+                                                                                this.onChange
                                                                             }
                                                                         />
                                                                     </div>

@@ -1376,6 +1376,7 @@ const _this = {
                 template: 'smtp_test',
                 context: {
                     homeURL: global.homeHost,
+                    ...data,
                 },
             };
             if (!privateMailer) {
