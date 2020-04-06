@@ -1,7 +1,7 @@
 // fetches a list of records from the endpoint
 const fetchList = z => {
     const options = {
-        url: 'https://api.fyipe.com/zapier/incidents',
+        url: 'https://fyipe.com/api/zapier/incidents',
     };
     return z.request(options).then(response => JSON.parse(response.content));
 };
