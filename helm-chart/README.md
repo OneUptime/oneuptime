@@ -25,7 +25,7 @@ helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/
 
 ### Uninstall
 ```
-helm uninstall fi --namespace default
+helm uninstall fi --namespace=default
 ```
 
 ### Docker build and push to docker repo with `:test` tag
