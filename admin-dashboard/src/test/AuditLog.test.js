@@ -57,10 +57,13 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#confirmDelete');
                 await page.click('#confirmDelete');
 
-                let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
+                const rowNum = await page.$$eval(
+                    'tbody tr.Table-row',
+                    rows => rows.length
+                );
 
                 expect(rowNum).toEqual(0);
-            })
+            });
         },
         operationTimeOut
     );
@@ -79,10 +82,13 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#cancelAuditDelete');
                 await page.click('#cancelAuditDelete');
 
-                let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
+                const rowNum = await page.$$eval(
+                    'tbody tr.Table-row',
+                    rows => rows.length
+                );
 
                 expect(rowNum).toBeGreaterThan(0);
-            })
+            });
         },
         operationTimeOut
     );
@@ -105,10 +111,13 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
-                let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
+                const rowNum = await page.$$eval(
+                    'tbody tr.Table-row',
+                    rows => rows.length
+                );
 
                 expect(rowNum).toBeGreaterThanOrEqual(0);
-            })
+            });
         },
         operationTimeOut
     );
@@ -126,10 +135,13 @@ describe('Audit Logs', () => {
                 await page.click('#searchAuditLog');
                 await page.type('#searchAuditLog', 'probe');
 
-                let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
+                const rowNum = await page.$$eval(
+                    'tbody tr.Table-row',
+                    rows => rows.length
+                );
 
                 expect(rowNum).toBeGreaterThanOrEqual(0);
-            })
+            });
         },
         operationTimeOut
     );
@@ -147,11 +159,14 @@ describe('Audit Logs', () => {
                 await page.click('#searchAuditLog');
                 await page.type('#searchAuditLog', 'somerandom');
 
-                let rowNum = await page.$$eval('tbody tr.Table-row', rows => rows.length);
+                const rowNum = await page.$$eval(
+                    'tbody tr.Table-row',
+                    rows => rows.length
+                );
 
                 expect(rowNum).toEqual(0);
-            })
+            });
         },
         operationTimeOut
-    )
-})
+    );
+});

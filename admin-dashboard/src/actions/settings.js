@@ -24,17 +24,17 @@ export const requestingSettingsFailed = payload => {
 };
 
 export const testSmtpRequest = () => ({
-    type: types.TEST_SMTP_REQUEST
+    type: types.TEST_SMTP_REQUEST,
 });
 
-export const testSmtpSuccess = (payload) => ({
+export const testSmtpSuccess = payload => ({
     type: types.TEST_SMTP_SUCCESS,
-    payload
+    payload,
 });
 
-export const testSmtpFailure = (error) => ({
+export const testSmtpFailure = error => ({
     type: types.TEST_SMTP_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const testSmtp = payload => async dispatch => {
@@ -45,19 +45,19 @@ export const testSmtp = payload => async dispatch => {
         dispatch(testSmtpSuccess(response));
         return response;
     } catch (error) {
-        let errorMsg =
+        const errorMsg =
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                    ? error.data
-                    : error.message
-                        ? error.message
-                        : 'Network Error';
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
 
         dispatch(testSmtpFailure(errorMsg));
         return errorMsg;
     }
-}
+};
 
 export const fetchSettings = type => async dispatch => {
     dispatch(requestingSettings());

@@ -11,7 +11,7 @@ const SmtpTestModal = ({
     closeThisDialog,
     testing,
     testError,
-    smtp
+    smtp,
 }) => {
     return (
         <div
@@ -33,7 +33,8 @@ const SmtpTestModal = ({
                             </div>
                             <div className="bs-Modal-header-copy Margin-top--8">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    If your SMTP settings are correct, a test email will be sent to this email address.
+                                    If your SMTP settings are correct, a test
+                                    email will be sent to this email address.
                                 </span>
                             </div>
                         </div>
@@ -55,9 +56,7 @@ const SmtpTestModal = ({
                                                         name="test-email"
                                                         id="testEmail"
                                                         placeholder="Enter an email"
-                                                        component={
-                                                            RenderField
-                                                        }
+                                                        component={RenderField}
                                                         disabled={testing}
                                                     />
                                                 </div>
@@ -107,9 +106,13 @@ const SmtpTestModal = ({
                                         onClick={() => {
                                             // prevent form submission if form field is empty or invalid
                                             if (!smtp.values) return;
-                                            if (smtp.syncErrors && smtp.syncErrors['test-email']) return;
+                                            if (
+                                                smtp.syncErrors &&
+                                                smtp.syncErrors['test-email']
+                                            )
+                                                return;
 
-                                            confirmThisDialog(smtp.values)
+                                            confirmThisDialog(smtp.values);
                                         }}
                                         disabled={testing}
                                     >
@@ -141,7 +144,7 @@ SmtpTestModal.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
-    smtp: PropTypes.object
+    smtp: PropTypes.object,
 };
 
 // Client side validation
