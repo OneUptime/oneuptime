@@ -1,7 +1,7 @@
 applicationApiVersion: v1beta1
 
+# IMPORTANT: These IDs must match your listing ID in Marketplace.
 x-google-marketplace:
-  # IMPORTANT: These IDs must match your listing ID in Marketplace.
   partnerId: fyipe-public
   solutionId: fyipe
 
@@ -16,7 +16,7 @@ properties:
       type: NAMESPACE
   imageUbbagent:
     type: string
-    default: gcr.io/ubbagent:latest
+    default: gcr.io/cloud-marketplace-tools/metering/ubbagent
     x-google-marketplace:
       type: IMAGE
   reportingSecret:
