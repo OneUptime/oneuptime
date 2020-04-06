@@ -8,8 +8,10 @@ metadata:
     namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "backend"  }}
+        {{- if $.Values.saas.isRunningOnGCPMarketplace }}
         app.kubernetes.io/name: "$name"
         app.kubernetes.io/component:  {{ printf "%s-%s" .Release.Name "backend"  }}
+        {{- end }}
 spec:
     selector:
         matchLabels:
