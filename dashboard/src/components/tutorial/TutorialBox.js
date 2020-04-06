@@ -12,7 +12,7 @@ const Tutorials = ({ type, closeTutorial }) => (
                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root">
                         <span className="ContentHeader-title Text-color--dark Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28">
-                            <span>Quick tips</span>
+                            <span>Quick Tips</span>
                         </span>
                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"></span>
                     </div>

@@ -389,6 +389,7 @@ describe('Incident API', function() {
                     .send(incidentData);
                 alert = await AlertModel.findOne({
                     incidentId: createdIncident.body._id,
+                    alertVia: 'sms',
                 });
             }
         }

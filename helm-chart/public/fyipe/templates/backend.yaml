@@ -5,8 +5,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" .Release.Name "backend"  }}
+    namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "backend"  }}
+        {{- if $.Values.saas.isRunningOnGCPMarketplace }}
+        app.kubernetes.io/name: "$name"
+        app.kubernetes.io/component:  {{ printf "%s-%s" .Release.Name "backend"  }}
+        {{- end }}
 spec:
     selector:
         matchLabels:
@@ -68,8 +73,33 @@ spec:
                       - containerPort: {{ .Values.host.backendPort }}
                         hostPort: {{ .Values.host.backendPort }}
                         name: {{ printf "%s-%s" .Release.Name "backend"  }}
+                {{- if $.Values.saas.isRunningOnGCPMarketplace }}
+                - name: ubbagent
+                  image: $imageUbbagent
+                  env:
+                  - name: AGENT_CONFIG_FILE
+                    value: "/etc/ubbagent/config.yaml"
+                  - name: AGENT_LOCAL_PORT
+                    value: "4567"
+                  - name: AGENT_ENCODED_KEY
+                    valueFrom:
+                      secretKeyRef:
+                        name: $reportingSecret
+                        key: reporting-key
+                  - name: AGENT_CONSUMER_ID
+                    valueFrom:
+                      secretKeyRef:
+                        name: $reportingSecret
+                        key: consumer-id
+                  volumeMounts:
+                  - name: ubbagent-config
+                    mountPath: /etc/ubbagent
+                volumes:
+                - name: ubbagent-config
+                  configMap:
+                    name: ubbagent-config
+                {{- end }}
             restartPolicy: {{ .Values.image.restartPolicy }}
-
 ---
 # Fyipe Backend Deployment
 apiVersion: v1
@@ -78,6 +108,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "backend"  }}
     name: {{ printf "%s-%s" .Release.Name "backend"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.backendServicePort }}

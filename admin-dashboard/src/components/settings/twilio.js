@@ -121,11 +121,19 @@ export class Component extends React.Component {
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
-                    <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                    <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
-                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                <span>Twilio Settings</span>
-                            </span>
+                            <div className="Flex-flex Flex-alignItems-center Flex-justifyContent--spaceBetween">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span>Twilio Settings</span>
+                                </span>
+                            </div>
+                            <p>
+                                <span>
+                                    Your Twilio account will be used to send all
+                                    the SMS and Call alerts from Fyipe.
+                                </span>
+                            </p>
                         </div>
                     </div>
                     <form

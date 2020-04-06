@@ -2,22 +2,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+    name: {{ printf "%s-%s" .Release.Name "status"  }}
+    namespace: {{ .Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+        app: {{ printf "%s-%s" .Release.Name "status"  }}
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+            app: {{ printf "%s-%s" .Release.Name "status"  }}
     replicas: {{ .Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+                app: {{ printf "%s-%s" .Release.Name "status"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "status-page" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+                  name: {{ printf "%s-%s" .Release.Name "status"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                     - name: FYIPE_HOST
@@ -31,21 +32,22 @@ spec:
                   ports:
                       - containerPort: {{ .Values.host.statusPagePort }}
                         hostPort: {{ .Values.host.statusPagePort }}
-                        name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+                        name: {{ printf "%s-%s" .Release.Name "status"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "status-page"  }}
-    name: {{ printf "%s-%s" .Release.Name "status-page"  }}
+        app: {{ printf "%s-%s" .Release.Name "status"  }}
+    name: {{ printf "%s-%s" .Release.Name "status"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.statusPageServicePort }}
           targetPort: {{ .Values.host.statusPagePort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "status-page"  }}
+        app: {{ printf "%s-%s" .Release.Name "status"  }}
     type: {{ .Values.service.type }}
 ---
 ########################################

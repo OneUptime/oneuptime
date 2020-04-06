@@ -165,7 +165,7 @@ const IncidentTimelineList = props => {
                                                             }}
                                                             onClick={() => {
                                                                 history.push(
-                                                                    '/profile/' +
+                                                                    '/dashboard/profile/' +
                                                                         log
                                                                             .createdById
                                                                             ._id

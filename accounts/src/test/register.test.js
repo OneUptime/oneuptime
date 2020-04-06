@@ -30,9 +30,13 @@ describe('Registration API', () => {
 
     it('User cannot register with invalid email', async () => {
         const invalidEmail = 'invalidEmail';
-        await page.goto(utils.ACCOUNTS_URL + '/register', {
-            waitUntil: 'networkidle2',
-        });
+        try {
+            await page.goto(utils.ACCOUNTS_URL + '/register', {
+                waitUntil: 'networkidle2',
+            });
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', invalidEmail);
@@ -57,9 +61,13 @@ describe('Registration API', () => {
 
     it('User cannot register with personal email', async () => {
         const personalEmail = 'personalEmail@gmail.com';
-        await page.goto(utils.ACCOUNTS_URL + '/register', {
-            waitUntil: 'networkidle2',
-        });
+        try {
+            await page.goto(utils.ACCOUNTS_URL + '/register', {
+                waitUntil: 'networkidle2',
+            });
+        } catch (e) {
+            //
+        }
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', personalEmail);
@@ -79,7 +87,7 @@ describe('Registration API', () => {
             return e.innerHTML;
         });
         html.should.containEql('Please enter a business email address.');
-    }, 16000);
+    }, 160000);
 
     it('Should register User with valid details', async () => {
         await init.registerUser(user, page);

@@ -91,10 +91,9 @@ class AuditLogs extends React.Component {
                                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                 <span>
                                                                     Here is a
-                                                                    list of logs
-                                                                    for all
-                                                                    fyipe
-                                                                    projects
+                                                                    complete
+                                                                    list of
+                                                                    Fyipe logs.
                                                                 </span>
                                                             </span>
                                                         </div>

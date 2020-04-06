@@ -116,7 +116,9 @@ export class SidebarNavItem extends Component {
                                                 : ' Text-color--dark')
                                         }
                                     >
-                                        <span>{route.title}</span>
+                                        <span style={route.textStyle}>
+                                            {route.title}
+                                        </span>
                                     </span>
                                 </div>
                             </div>

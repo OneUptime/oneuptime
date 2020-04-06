@@ -34,7 +34,6 @@ describe('Enterprise License API', () => {
             };
             // user
             await init.registerEnterpriseUser(user, page);
-            await init.loginUser(user, page);
         });
 
         await cluster.queue({ email, password });

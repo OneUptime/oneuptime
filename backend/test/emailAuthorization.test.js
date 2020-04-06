@@ -14,6 +14,8 @@ const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const AirtableService = require('../backend/services/airtableService');
+const sleep = waitTimeInMs =>
+    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 let userId, airtableId, projectId;
 
@@ -49,6 +51,7 @@ describe('Email verification API', function() {
     });
 
     it('should send email verification', async function() {
+        await sleep(10000);
         const emailStatuses = await EmailStatusService.findBy({});
         expect(emailStatuses[0].subject).to.equal('Welcome to Fyipe.');
         expect(emailStatuses[0].status).to.equal('Email not enabled.');

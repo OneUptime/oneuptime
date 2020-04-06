@@ -1,8 +1,8 @@
 const faker = require('faker');
 
-const ACCOUNTS_URL = 'http://localhost:3003';
-const DASHBOARD_URL = 'http://localhost:3000';
-const ADMIN_DASHBOARD_URL = 'http://localhost:3100';
+const ACCOUNTS_URL = 'http://localhost:3003/accounts';
+const DASHBOARD_URL = 'http://localhost:3000/dashboard';
+const ADMIN_DASHBOARD_URL = 'http://localhost:3100/admin';
 
 const puppeteerLaunchConfig = {
     args: [

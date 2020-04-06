@@ -10,6 +10,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+    namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
 spec:
@@ -44,6 +45,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
     name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.helmChartServicePort }}

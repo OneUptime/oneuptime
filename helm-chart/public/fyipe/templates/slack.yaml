@@ -10,6 +10,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ printf "%s-%s" .Release.Name "slack"  }}
+    namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "slack"  }}
 spec:
@@ -44,6 +45,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "slack"  }}
     name: {{ printf "%s-%s" .Release.Name "slack"  }}
+    namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.slackServicePort }}

@@ -29,8 +29,8 @@ class UserProject extends React.Component {
                                     </span>
                                     <p>
                                         <span>
-                                            Here is a list of this user&apos;s
-                                            projects.
+                                            Here is a list of all the projects
+                                            which belongs to this user.
                                         </span>
                                     </p>
                                 </div>
