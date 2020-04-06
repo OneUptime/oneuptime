@@ -135,12 +135,18 @@ export class Component extends React.Component {
                     'smtp-server': host,
                     'smtp-port': port,
                     'smtp-secure': secure,
-                    'from-name':from
+                    'from-name': from
                 } = smtpForm.values;
 
                 let payload = { user, pass, host, port, secure, from, email }
 
-                return testSmtp(payload).then(() => {
+                return testSmtp(payload).then(res => {
+                    if (res && typeof res === 'string') {
+                        // prevent dismissal of modal if errored
+                        // res will only be a string if errored
+                        return this.handleTestSmtp();
+                    }
+
                     if (window.location.href.indexOf('localhost') <= -1) {
                         thisObj.context.mixpanel.track('Sent SMTP settings');
                     }
@@ -228,7 +234,7 @@ export class Component extends React.Component {
                             <span className="db-SettingsForm-footerMessage"></span>
                             <div>
                                 <button
-                                    className="bs-Button bs-Button--blue"
+                                    className="bs-Button"
                                     disabled={settings && settings.requesting}
                                     onClick={this.handleTestSmtp}
                                 >
@@ -265,6 +271,11 @@ Component.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     saveSettings: PropTypes.func.isRequired,
     fetchSettings: PropTypes.func.isRequired,
+    initialValues: PropTypes.object,
+    smtpForm: PropTypes.object,
+    closeModal: PropTypes.func.isRequired,
+    openModal: PropTypes.func.isRequired,
+    testSmtp: PropTypes.func
 };
 
 const mapDispatchToProps = dispatch => {
