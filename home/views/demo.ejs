@@ -1002,7 +1002,7 @@
                     try {
                         var queryString = $('#demoform').serialize();
                         var formData = Object.fromEntries(new URLSearchParams(queryString));
-                        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+                        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
                         if (IS_SAAS_SERVICE) {
                             amplitude.getInstance().logEvent('Filling demo form', { data: formData });
                         }
@@ -1022,7 +1022,7 @@
             document.getElementById('demoform').addEventListener('click', function () {
                 var queryString = $('#demoform').serialize();
                 var formData = Object.fromEntries(new URLSearchParams(queryString));
-                var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+                var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
                 if (IS_SAAS_SERVICE) {
                     amplitude.getInstance().logEvent('Filling demo form', { data: formData });
                 }
