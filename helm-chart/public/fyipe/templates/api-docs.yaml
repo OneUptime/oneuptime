@@ -55,7 +55,7 @@ spec:
           targetPort: {{ .Values.host.apiDocsPort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "api-docs"  }}
-    type: {{ .Values.service.type }}
+    type: ClusterIP
 ---
 ###########################################
 {{- end }}

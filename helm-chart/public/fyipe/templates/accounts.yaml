@@ -52,6 +52,6 @@ spec:
           targetPort: {{ .Values.host.accountsPort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "accounts"  }}
-    type: {{ .Values.service.type }}
+    type: ClusterIP
 ---
 ###########################################

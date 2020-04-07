@@ -728,7 +728,7 @@ build_n_test_licensing:
       - hotfix-release
 
 #E2E Stage.
-e2e_minikube_test:
+e2e_microk8s_test:
   stage: E2E
   script:
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
@@ -894,19 +894,6 @@ deploy_staging_helm-chart:
   environment:
     name: staging
 
-deploy_production_helm-chart:
-  stage: Deploy
-  script:
-    - cd gcp-deployer
-    - sudo docker build --tag $REGISTRY/fyipe/deployer .
-    - sudo docker push $REGISTRY/fyipe/deployer
-    
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
 
 deploy_production_helm-chart:
   stage: Deploy

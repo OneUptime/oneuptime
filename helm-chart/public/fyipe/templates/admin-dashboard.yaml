@@ -49,6 +49,6 @@ spec:
           targetPort: {{ .Values.host.adminDashboardPort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "admin"  }}
-    type: {{ .Values.service.type }}
+    type: ClusterIP
 ---
 ##################################

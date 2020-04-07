@@ -21,10 +21,10 @@ Fyipe lets you do:
 ```console
 helm repo add fyipe https://fyipe.com/chart
 helm repo update
-helm install fi fyipe/Fyipe
+helm install fyipe fyipe/Fyipe
 ```
 
-Note: `fi` is your release name. 
+Note: `fyipe` is your release name. 
 
 ## Introduction
 
@@ -39,12 +39,12 @@ This chart bootstraps a [Fyipe](https://fyipe.com) deployment on a [Kubernetes](
 
 ## Installing the Chart
 
-To install the chart with the release name `fi`:
+To install the chart with the release name `fyipe`:
 
 ```console
 helm repo add fyipe https://fyipe.com/chart
 helm repo update
-helm install fi fyipe/Fyipe
+helm install fyipe fyipe/Fyipe
 ```
 
 The command deploys Fyipe on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
@@ -52,10 +52,10 @@ The command deploys Fyipe on the Kubernetes cluster in the default configuration
 
 ## Uninstalling the Chart
 
-To uninstall/delete the `fi` deployment:
+To uninstall/delete the `fyipe` deployment:
 
 ```console
-helm delete fi
+helm uninstall fyipe
 ```
 
 The command removes all the Kubernetes components associated with the chart and deletes the release.
@@ -225,7 +225,7 @@ For minikube, set this to NodePort, elsewhere use ClusterIP
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
 
 ```console
-helm install fi \
+helm install fyipe \
   --set global.imageRegistry=docker.io \
     fyipe
 ```

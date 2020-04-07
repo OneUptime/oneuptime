@@ -54,6 +54,6 @@ spec:
           targetPort: {{ .Values.host.dashboardPort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
-    type: {{ .Values.service.type }}
+    type: ClusterIP
 ---
 ##########################################################

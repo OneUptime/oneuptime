@@ -1,6 +1,3 @@
-# Create the entire cluster.
-echo "RUNNING COMMAND: helm install -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe"
-sudo helm install -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
 # Wait for all the services to come online.
 echo "RUNNING COMMAND: echo 'Wait for 5 mins....'"
 echo 'Wait for 5 mins....'
