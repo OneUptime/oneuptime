@@ -5,6 +5,9 @@ import {
     TEST_SMTP_REQUEST,
     TEST_SMTP_SUCCESS,
     TEST_SMTP_FAILURE,
+    TEST_TWILIO_REQUEST,
+    TEST_TWILIO_SUCCESS,
+    TEST_TWILIO_FAILURE
 } from '../constants/settings';
 
 const INITIAL_STATE = {
@@ -46,12 +49,14 @@ export default function profileSettings(state = INITIAL_STATE, action) {
             };
 
         case TEST_SMTP_REQUEST:
+        case TEST_TWILIO_REQUEST:
             return {
                 ...state,
                 testing: true,
             };
 
         case TEST_SMTP_SUCCESS:
+        case TEST_TWILIO_SUCCESS:
             return {
                 ...state,
                 errored: false,
@@ -60,6 +65,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
             };
 
         case TEST_SMTP_FAILURE:
+        case TEST_TWILIO_FAILURE:
             return {
                 ...state,
                 errored: true,
