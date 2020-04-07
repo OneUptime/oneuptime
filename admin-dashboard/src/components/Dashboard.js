@@ -30,7 +30,12 @@ export class DashboardApp extends Component {
             this.props.ready && this.props.ready();
         }
 
-        if (!license.data && !license.requesting && !license.error) {
+        if (
+            !IS_THIRD_PARTY_BILLING &&
+            !license.data &&
+            !license.requesting &&
+            !license.error
+        ) {
             fetchLicense();
         }
     }
