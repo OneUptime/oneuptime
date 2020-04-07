@@ -2,11 +2,15 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, Field } from 'redux-form';
+import uuid from 'uuid';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
-import { fetchSettings, saveSettings } from '../../actions/settings';
+import { fetchSettings, saveSettings, testTwilio } from '../../actions/settings';
+import { openModal, closeModal } from '../../actions/modal';
+
+import TwilioTestModal from './twilioTestModal';
 
 // Client side validation
 function validate(values) {
@@ -108,9 +112,55 @@ const fields = [
 ];
 
 export class Component extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { testModalId: uuid.v4() };
+    }
+
     async componentDidMount() {
         await this.props.fetchSettings(settingsType);
     }
+
+    handleTwilioTest = e => {
+        e.preventDefault();
+        const thisObj = this;
+        const { testModalId } = this.state;
+        const { twilio, testTwilio } = this.props;
+
+        this.props.openModal({
+            id: testModalId,
+            onConfirm: (testPhone) => {
+                let {'test-number': testphoneNumber} = testPhone;
+                let {
+                    'account-sid': accountSid, 
+                    'authentication-token': authToken, 
+                    phone: phoneNumber
+                } = twilio;
+
+                return testTwilio({accountSid, authToken, phoneNumber, testphoneNumber}).then(res => {
+                    if (res && typeof res === 'string') {
+                        // prevent dismissal of modal if errored
+                        // res will only be a string if errored
+                        return this.handleTwilioTest();
+                    }
+
+                    if (window.location.href.indexOf('localhost') <= -1) {
+                        thisObj.context.mixpanel.track('Sent SMTP settings');
+                    }
+                });
+            },
+            content: TwilioTestModal,
+        });
+    };
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({ id: this.state.testModalId });
+            default:
+                return false;
+        }
+    };
 
     submitForm = values => {
         this.props.saveSettings(settingsType, values);
@@ -119,7 +169,10 @@ export class Component extends React.Component {
     render() {
         const { settings, handleSubmit } = this.props;
         return (
-            <div className="bs-ContentSection Card-root Card-shadow--medium">
+            <div
+                onKeyDown={this.handleKeyBoard}
+                className="bs-ContentSection Card-root Card-shadow--medium"
+            >
                 <div className="Box-root">
                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
@@ -189,6 +242,17 @@ export class Component extends React.Component {
                             <span className="db-SettingsForm-footerMessage"></span>
                             <div>
                                 <button
+                                    className="bs-Button"
+                                    disabled={settings && settings.requesting}
+                                    onClick={this.handleTwilioTest}
+                                >
+                                    {settings.requesting ? (
+                                        <FormLoader />
+                                    ) : (
+                                            <span>Test</span>
+                                        )}
+                                </button>
+                                <button
                                     className="bs-Button bs-Button--blue"
                                     disabled={settings && settings.requesting}
                                     type="submit"
@@ -196,8 +260,8 @@ export class Component extends React.Component {
                                     {settings.requesting ? (
                                         <FormLoader />
                                     ) : (
-                                        <span>Save Settings</span>
-                                    )}
+                                            <span>Save Settings</span>
+                                        )}
                                 </button>
                             </div>
                         </div>
@@ -215,6 +279,11 @@ Component.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     saveSettings: PropTypes.func.isRequired,
     fetchSettings: PropTypes.func.isRequired,
+    testTwilio: PropTypes.func.isRequired,
+    openModal: PropTypes.func,
+    closeModal: PropTypes.func,
+    twilio: PropTypes.object,
+    twilioForm: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -222,6 +291,9 @@ const mapDispatchToProps = dispatch => {
         {
             saveSettings,
             fetchSettings,
+            testTwilio,
+            openModal,
+            closeModal,
         },
         dispatch
     );
@@ -231,6 +303,8 @@ function mapStateToProps(state) {
     return {
         settings: state.settings,
         initialValues: state.settings[settingsType],
+        twilio: state.settings.twilio,
+        twilioForm: state.form['twilio-test-form'],
     };
 }
 
