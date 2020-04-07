@@ -115,12 +115,6 @@ describe('Status page monitors check', function() {
         });
     });
 
-    after(async function() {
-        if (browser) {
-            await browser.close();
-        }
-    });
-
     it('Status page should have one monitor with a category', async function() {
         const monitorName = await page.$eval(
             '#monitor0 > div.uptime-graph-header.clearfix > span.uptime-stat-name',
@@ -244,6 +238,9 @@ describe('Private status page check', function() {
     });
 
     after(async function() {
+        if (browser) {
+            await browser.close();
+        }
         if (newBrowser) {
             await newBrowser.close();
         }
@@ -255,6 +252,46 @@ describe('Private status page check', function() {
             waitUntil: 'networkidle0',
         });
         expect(newPage.url()).to.be.equal(ACCOUNTS_URL + '/login');
+    });
+
+    it('should not login user with invalid details', async function() {
+        await page.goto(privateStatusPageURL, {
+            waitUntil: 'networkidle0',
+        });
+
+        await page.waitForSelector('#login-button');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', 'wrongemail@hackerbay.io');
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', 'wrongpassword');
+        await Promise.all([
+            page.click('button[type=submit]'),
+            page.waitFor(5000),
+        ]);
+
+        expect(page.url()).to.be.equal(ACCOUNTS_URL + '/login');
+    });
+
+    it('should redirect and login user with valid details', async function() {
+        await page.goto(privateStatusPageURL, {
+            waitUntil: 'networkidle0',
+        });
+
+        await page.waitForSelector('#login-button');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', testData.user.email);
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', testData.user.password);
+        await Promise.all([
+            page.click('button[type=submit]'),
+            page.waitFor(10000),
+        ]);
+
+        const monitorName = await page.$eval(
+            '#monitor0 > div.uptime-graph-header.clearfix > span.uptime-stat-name',
+            el => el.textContent
+        );
+        expect(monitorName).to.be.equal(monitor.name);
     });
 
     it('should login and display monitor for user with valid `userId` and `accessToken`', async function() {
