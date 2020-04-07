@@ -254,6 +254,7 @@ describe('Private status page check', function() {
         await newPage.goto(privateStatusPageURL, {
             waitUntil: 'networkidle0',
         });
+        await newPage.waitFor(10000);
         expect(newPage.url()).to.be.equal(ACCOUNTS_URL + '/login');
     });
 
