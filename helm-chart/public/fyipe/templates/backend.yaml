@@ -68,6 +68,8 @@ spec:
                         value: {{ .Values.saas.airtable.key }}
                       - name: AIRTABLE_BASE_ID
                         value: {{ .Values.saas.airtable.baseId }}
+                      - name: IS_THIRD_PARTY_BILLING
+                        value: {{ .Values.isThirdPartyBilling }}
                       {{- end }}
                   ports:
                       - containerPort: {{ .Values.host.backendPort }}
