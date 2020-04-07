@@ -366,7 +366,9 @@ build_n_test_statuspage:
     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
+    - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/status-page:3.0.$CI_PIPELINE_IID ./status-page
     - sudo docker run -p 3006:3006 -d fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker ps

@@ -23,6 +23,7 @@ let token,
     monitorId,
     monitorCategoryId,
     statusPageId,
+    privateStatusPageId,
     userId,
     airtableId;
 
@@ -97,7 +98,7 @@ describe('Status API', function() {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should not add status if monitor ids is missing', function(done) {
+    it('should not add status page if monitor ids is missing', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(`/statusPage/${projectId}`)
@@ -115,7 +116,7 @@ describe('Status API', function() {
             });
     });
 
-    it('should not add status if monitor is not an array', function(done) {
+    it('should not add status page if monitor is not an array', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(`/statusPage/${projectId}`)
@@ -134,16 +135,17 @@ describe('Status API', function() {
             });
     });
 
-    it('should add status', function(done) {
+    it('should add status page', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(`/statusPage/${projectId}`)
             .set('Authorization', authorization)
             .send({
+                name: 'Status Page',
                 links: [],
-                title: 'Status title',
-                description: 'status description',
-                copyright: 'status copyright',
+                title: 'Status Page title',
+                description: 'status page description',
+                copyright: 'status page copyright',
                 projectId,
                 monitorIds: [monitorId],
             })
@@ -155,7 +157,64 @@ describe('Status API', function() {
             });
     });
 
-    it('should not update status settings when domain is not string', function(done) {
+    it('should add private status page', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/statusPage/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'Private Status Page',
+                isPrivate: true,
+                links: [],
+                title: 'Private Status Page title',
+                description: 'private status page description',
+                copyright: 'private status page copyright',
+                projectId,
+                monitorIds: [monitorId],
+            })
+            .end(function(err, res) {
+                privateStatusPageId = res.body._id;
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('isPrivate');
+                expect(res.body.isPrivate).to.equal(true);
+                done();
+            });
+    });
+
+    it('should get private status page for authorized user', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(`/statusPage/${privateStatusPageId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                done();
+            });
+    });
+
+    it('should get valid private status page rss for authorized user', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(`/statusPage/${privateStatusPageId}/rss`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                done();
+            });
+    });
+
+    it('should not get private status page for unauthorized user', function(done) {
+        request
+            .get(`/statusPage/${privateStatusPageId}`)
+            .end(function(err, res) {
+                expect(res).to.have.status(401);
+                done();
+            });
+    });
+
+    it('should not update status page settings when domain is not string', function(done) {
         const authorization = `Basic ${token}`;
         request
             .put(`/statusPage/${projectId}`)
@@ -175,7 +234,7 @@ describe('Status API', function() {
             });
     });
 
-    it('should not update status settings when domain is not valid', function(done) {
+    it('should not update status page settings when domain is not valid', function(done) {
         const authorization = `Basic ${token}`;
         request
             .put(`/statusPage/${projectId}`)
@@ -195,7 +254,7 @@ describe('Status API', function() {
             });
     });
 
-    it('should update status settings', function(done) {
+    it('should update status page settings', function(done) {
         const authorization = `Basic ${token}`;
         request
             .put(`/statusPage/${projectId}`)
@@ -368,6 +427,17 @@ describe('StatusPage API with Sub-Projects', function() {
                     });
             });
         });
+    });
+
+    it('should not get private status page for authorized user that is not in project', function(done) {
+        const authorization = `Basic ${newUserToken}`;
+        request
+            .get(`/statusPage/${privateStatusPageId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
     });
 
     it('should not create a statusPage for user that is not `admin` in sub-project.', function(done) {

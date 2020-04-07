@@ -328,7 +328,15 @@ router.get('/:statusPageId', checkUser, async function(req, res) {
                 message: 'StatusPage Id or Url required',
             });
         }
-        return sendItemResponse(req, res, statusPage);
+
+        if (statusPage.isPrivate && !req.user) {
+            return sendErrorResponse(req, res, {
+                code: 401,
+                message: 'You are unauthorized to access the page.',
+            });
+        } else {
+            return sendItemResponse(req, res, statusPage);
+        }
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -357,57 +365,65 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 message: 'StatusPage Id or Url required',
             });
         }
-        const { incidents } = await StatusPageService.getIncidents({
-            _id: statusPageId,
-        });
-        const refinedIncidents = [];
-        for (const incident of incidents) {
-            refinedIncidents.push({
-                Incident: {
-                    IncidentType: incident.incidentType,
-                    IncidentId: incident._id.toString(),
-                    MonitorName: incident.monitorId.name,
-                    MonitorId: incident.monitorId._id.toString(),
-                    ManuallyCreated: incident.manuallyCreated,
-                    InvestigationNote: incident.investigationNote,
-                },
-            });
-        }
-        const xmlOptions = {
-            indent: '  ',
-            header: true,
-        };
 
-        const feedObj = {
-            _name: 'rss',
-            _attrs: {
-                version: '2.0',
-            },
-            _content: [
-                {
-                    Title: `Incidents for status page ${statusPage.title}`,
+        if (statusPage.isPrivate && !req.user) {
+            return sendErrorResponse(req, res, {
+                code: 401,
+                message: 'You are unauthorized to access the page.',
+            });
+        } else {
+            const { incidents } = await StatusPageService.getIncidents({
+                _id: statusPageId,
+            });
+            const refinedIncidents = [];
+            for (const incident of incidents) {
+                refinedIncidents.push({
+                    Incident: {
+                        IncidentType: incident.incidentType,
+                        IncidentId: incident._id.toString(),
+                        MonitorName: incident.monitorId.name,
+                        MonitorId: incident.monitorId._id.toString(),
+                        ManuallyCreated: incident.manuallyCreated,
+                        InvestigationNote: incident.investigationNote,
+                    },
+                });
+            }
+            const xmlOptions = {
+                indent: '  ',
+                header: true,
+            };
+
+            const feedObj = {
+                _name: 'rss',
+                _attrs: {
+                    version: '2.0',
                 },
-                {
-                    Description:
-                        'RSS feed for all incidents related to monitors attached to status page',
-                },
-                {
-                    Link: `${global.host}/statusPage/rss`,
-                },
-                {
-                    LastBuildDate: () => new Date(),
-                },
-                {
-                    Language: 'en',
-                },
-                {
-                    Incidents: refinedIncidents,
-                },
-            ],
-        };
-        const finalFeed = toXML(feedObj, xmlOptions);
-        res.contentType('application/rss');
-        return sendItemResponse(req, res, finalFeed);
+                _content: [
+                    {
+                        Title: `Incidents for status page ${statusPage.title}`,
+                    },
+                    {
+                        Description:
+                            'RSS feed for all incidents related to monitors attached to status page',
+                    },
+                    {
+                        Link: `${global.host}/statusPage/rss`,
+                    },
+                    {
+                        LastBuildDate: () => new Date(),
+                    },
+                    {
+                        Language: 'en',
+                    },
+                    {
+                        Incidents: refinedIncidents,
+                    },
+                ],
+            };
+            const finalFeed = toXML(feedObj, xmlOptions);
+            res.contentType('application/rss');
+            return sendItemResponse(req, res, finalFeed);
+        }
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
