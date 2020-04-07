@@ -8,9 +8,9 @@ import Twilio from '../components/settings/twilio';
 // eslint-disable-next-line react/display-name
 const getChild = key => {
     switch (key) {
-        case '/settings/smtp':
+        case '/admin/settings/smtp':
             return <SMTP />; // eslint-disable-line react/jsx-pascal-case
-        case '/settings/twilio':
+        case '/admin/settings/twilio':
             return <Twilio />;
         default:
             return null;

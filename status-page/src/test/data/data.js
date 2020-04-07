@@ -35,6 +35,15 @@ module.exports = {
         monitorCategoryName: 'New Monitor category',
     },
     statusPage: {
+        name: 'Status Page',
+        links: [],
+        title: 'Status title',
+        description: 'status description',
+        copyright: 'status copyright',
+    },
+    privateStatusPage: {
+        name: 'Private Status Page',
+        isPrivate: true,
         links: [],
         title: 'Status title',
         description: 'status description',

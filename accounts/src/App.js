@@ -21,13 +21,20 @@ if (!isServer) {
     });
 }
 
-const statusPageLogin = queryString.parse(window.location.search).statusPage;
+const isStatusPageLogin =
+    queryString.parse(window.location.search).statusPage === 'true';
 const statusPageURL = queryString.parse(window.location.search).statusPageURL;
 const userIsLoggedIn = cookies.get('data') || cookies.get('admin-data');
 
 if (userIsLoggedIn) {
+    const {
+        userId,
+        tokens: { jwtAccessToken },
+    } = userIsLoggedIn;
     window.location = cookies.get('admin-data')
         ? ADMIN_DASHBOARD_URL
+        : isStatusPageLogin
+        ? `${statusPageURL}?userId=${userId}&accessToken=${jwtAccessToken}`
         : DASHBOARD_URL;
 }
 
@@ -42,9 +49,9 @@ const App = ({
         }
     }, [exists, checkIfMasterAdminExists]);
 
-    if (statusPageLogin && statusPageURL) {
+    if (isStatusPageLogin && statusPageURL) {
         saveStatusPage({
-            statusPageLogin,
+            isStatusPageLogin,
             statusPageURL,
         });
     }

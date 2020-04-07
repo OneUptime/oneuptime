@@ -11,12 +11,15 @@ chai.use(require('chai-http'));
 const app = 'http://localhost:3002';
 const request = chai.request(app);
 
+const ACCOUNTS_URL = 'http://localhost:3003/accounts';
+
 let token,
     authorization,
     projectId,
     monitorCategoryId,
     monitorId,
     statusPageId,
+    privateStatusPageId,
     userId;
 const testData = require('./data/data');
 const VerificationTokenModel = require('../../../backend/backend/models/verificationToken');
@@ -26,6 +29,7 @@ const stripe = require('stripe')(payment.paymentPrivateKey);
 const monitor = testData.monitor;
 const monitorCategory = testData.monitorCategory;
 const statusPage = testData.statusPage;
+const privateStatusPage = testData.privateStatusPage;
 
 let browser, page, statusPageURL;
 
@@ -109,13 +113,6 @@ describe('Status page monitors check', function() {
         await page.goto(statusPageURL, {
             waitUntil: 'networkidle0',
         });
-    });
-
-    after(async function() {
-        if (browser) {
-            await browser.close();
-        }
-        await UserService.hardDeleteBy({ _id: userId });
     });
 
     it('Status page should have one monitor with a category', async function() {
@@ -215,5 +212,99 @@ describe('Status page monitors check', function() {
             el => el.textContent
         );
         expect(monitorCategoryName).to.be.equal('UNCATEGORIZED');
+    });
+});
+
+let newBrowser, newPage, privateStatusPageURL;
+
+describe('Private status page check', function() {
+    this.timeout(30000);
+    before(async function() {
+        this.enableTimeouts(false);
+
+        privateStatusPage.projectId = projectId;
+        privateStatusPage.monitorIds = [monitorId];
+
+        const statusPageRequest = await request
+            .post(`/statusPage/${projectId}`)
+            .set('Authorization', authorization)
+            .send(privateStatusPage);
+        privateStatusPageId = statusPageRequest.body._id;
+
+        privateStatusPageURL = `http://${privateStatusPageId}.localhost:3006/`;
+
+        newBrowser = await puppeteer.launch({ headless: true });
+        newPage = await newBrowser.newPage();
+    });
+
+    after(async function() {
+        if (browser) {
+            await browser.close();
+        }
+        if (newBrowser) {
+            await newBrowser.close();
+        }
+        await UserService.hardDeleteBy({ _id: userId });
+    });
+
+    it('should redirect to login for unauthorized user', async function() {
+        await newPage.goto(privateStatusPageURL, {
+            waitUntil: 'networkidle0',
+        });
+        expect(newPage.url()).to.be.equal(ACCOUNTS_URL + '/login');
+    });
+
+    it('should not login user with invalid details', async function() {
+        await page.goto(privateStatusPageURL, {
+            waitUntil: 'networkidle0',
+        });
+
+        await page.waitForSelector('#login-button');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', 'wrongemail@hackerbay.io');
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', 'wrongpassword');
+        await Promise.all([
+            page.click('button[type=submit]'),
+            page.waitFor(5000),
+        ]);
+
+        expect(page.url()).to.be.equal(ACCOUNTS_URL + '/login');
+    });
+
+    it('should redirect and login user with valid details', async function() {
+        await page.goto(privateStatusPageURL, {
+            waitUntil: 'networkidle0',
+        });
+
+        await page.waitForSelector('#login-button');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', testData.user.email);
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', testData.user.password);
+        await Promise.all([
+            page.click('button[type=submit]'),
+            page.waitFor(10000),
+        ]);
+
+        const monitorName = await page.$eval(
+            '#monitor0 > div.uptime-graph-header.clearfix > span.uptime-stat-name',
+            el => el.textContent
+        );
+        expect(monitorName).to.be.equal(monitor.name);
+    });
+
+    it('should login and display monitor for user with valid `userId` and `accessToken`', async function() {
+        await newPage.goto(
+            `${privateStatusPageURL}?userId=${userId}&accessToken=${token}`,
+            {
+                waitUntil: 'networkidle0',
+            }
+        );
+        const monitorName = await newPage.$eval(
+            '#monitor0 > div.uptime-graph-header.clearfix > span.uptime-stat-name',
+            el => el.textContent
+        );
+        expect(monitorName).to.be.equal(monitor.name);
     });
 });

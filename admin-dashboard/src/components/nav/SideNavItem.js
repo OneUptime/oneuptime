@@ -80,7 +80,10 @@ export class SidebarNavItem extends Component {
                             }
                         >
                             <ul style={{ marginBottom: '8px' }}>
-                                <RenderListItems active={match.url} />
+                                <RenderListItems
+                                    active={match.url}
+                                    onLoad={title => loadPage(title)}
+                                />
                             </ul>
                         </ShouldRender>
                     </span>
@@ -89,7 +92,7 @@ export class SidebarNavItem extends Component {
         );
     }
 
-    RenderListItems({ active }) {
+    RenderListItems({ active, onLoad }) {
         return this.props.route.subRoutes.map((child, index) => {
             const removedLinks = ['User', 'Project'];
             if (removedLinks.some(link => link === child.title)) return null;
@@ -102,7 +105,7 @@ export class SidebarNavItem extends Component {
                 return (
                     <li id={this.camalize(child.title)} key={`nav ${index}`}>
                         <div style={{ position: 'relative' }}>
-                            <Link to={link}>
+                            <Link to={link} onClick={() => onLoad(child.title)}>
                                 <div style={{ outline: 'none' }}>
                                     <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
                                         <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32">
