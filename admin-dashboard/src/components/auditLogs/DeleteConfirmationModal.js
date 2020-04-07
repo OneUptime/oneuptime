@@ -56,6 +56,7 @@ const DeleteConfirmationModal = ({
                                     </div>
                                 </ShouldRender>
                                 <button
+                                    id="cancelAuditDelete"
                                     className={`bs-Button ${deleteRequest &&
                                         'bs-is-disabled'}`}
                                     type="button"

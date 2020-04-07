@@ -10,6 +10,7 @@ const MailService = require('../services/mailService');
 const router = express.Router();
 const { isAuthorized } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
+const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -57,6 +58,53 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
         if (!testResult.failed) {
             const emailSmtp = await EmailSmtpService.create(data);
             return sendItemResponse(req, res, emailSmtp);
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
+    try {
+        const data = req.body;
+        if (!data.user) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'User Name is required.',
+            });
+        }
+
+        if (!data.pass) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Password is required.',
+            });
+        }
+
+        if (!data.host) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'host is required.',
+            });
+        }
+
+        if (!data.port) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'port is required.',
+            });
+        }
+
+        if (!data.from) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'from is required.',
+            });
+        }
+        let response = await MailService.testSmtpConfig(data);
+        if (!response.failed) {
+            response = 'Email sent successfully';
+            return sendItemResponse(req, res, response);
         }
     } catch (error) {
         return sendErrorResponse(req, res, error);

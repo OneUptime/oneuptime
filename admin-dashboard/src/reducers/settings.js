@@ -2,13 +2,18 @@ import {
     REQUESTING_SETTINGS,
     REQUESTING_SETTINGS_SUCCEEDED,
     REQUESTING_SETTINGS_FAILED,
+    TEST_SMTP_REQUEST,
+    TEST_SMTP_SUCCESS,
+    TEST_SMTP_FAILURE,
 } from '../constants/settings';
 
 const INITIAL_STATE = {
     requesting: false,
+    testing: false,
     errored: false,
     smtp: {},
     twilio: {},
+    error: null,
 };
 
 export default function profileSettings(state = INITIAL_STATE, action) {
@@ -38,6 +43,28 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 ...state,
                 requesting: false,
                 errored: true,
+            };
+
+        case TEST_SMTP_REQUEST:
+            return {
+                ...state,
+                testing: true,
+            };
+
+        case TEST_SMTP_SUCCESS:
+            return {
+                ...state,
+                errored: false,
+                testing: false,
+                error: null,
+            };
+
+        case TEST_SMTP_FAILURE:
+            return {
+                ...state,
+                errored: true,
+                testing: false,
+                error: action.payload,
             };
 
         default:
