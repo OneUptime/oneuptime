@@ -38,7 +38,7 @@ export const testSmtpFailure = error => ({
 });
 
 export const testTwilioRequest = () => ({
-    type: types.TEST_TWILIO_REQUEST
+    type: types.TEST_TWILIO_REQUEST,
 });
 
 export const testTwilioSuccess = payload => ({
@@ -63,10 +63,10 @@ export const testSmtp = payload => async dispatch => {
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                    ? error.data
-                    : error.message
-                        ? error.message
-                        : 'Network Error';
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
 
         dispatch(testSmtpFailure(errorMsg));
         return errorMsg;
@@ -85,10 +85,10 @@ export const testTwilio = payload => async dispatch => {
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                    ? error.data
-                    : error.message
-                        ? error.message
-                        : 'Network Error';
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
 
         dispatch(testTwilioFailure(errorMsg));
         return errorMsg;

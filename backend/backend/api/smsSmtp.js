@@ -67,7 +67,7 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
                 message: 'Phone Number is required.',
             });
         }
-        
+
         const testResult = await TwilioService.test(data);
         if (testResult && !testResult.errorCode) {
             return sendItemResponse(req, res, testResult);

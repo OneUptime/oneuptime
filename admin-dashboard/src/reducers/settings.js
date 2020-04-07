@@ -7,7 +7,7 @@ import {
     TEST_SMTP_FAILURE,
     TEST_TWILIO_REQUEST,
     TEST_TWILIO_SUCCESS,
-    TEST_TWILIO_FAILURE
+    TEST_TWILIO_FAILURE,
 } from '../constants/settings';
 
 const INITIAL_STATE = {

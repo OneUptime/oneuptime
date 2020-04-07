@@ -7,7 +7,11 @@ import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
-import { fetchSettings, saveSettings, testTwilio } from '../../actions/settings';
+import {
+    fetchSettings,
+    saveSettings,
+    testTwilio,
+} from '../../actions/settings';
 import { openModal, closeModal } from '../../actions/modal';
 
 import TwilioTestModal from './twilioTestModal';
@@ -129,15 +133,20 @@ export class Component extends React.Component {
 
         this.props.openModal({
             id: testModalId,
-            onConfirm: (testPhone) => {
-                let {'test-number': testphoneNumber} = testPhone;
-                let {
-                    'account-sid': accountSid, 
-                    'authentication-token': authToken, 
-                    phone: phoneNumber
+            onConfirm: testPhone => {
+                const { 'test-number': testphoneNumber } = testPhone;
+                const {
+                    'account-sid': accountSid,
+                    'authentication-token': authToken,
+                    phone: phoneNumber,
                 } = twilio;
 
-                return testTwilio({accountSid, authToken, phoneNumber, testphoneNumber}).then(res => {
+                return testTwilio({
+                    accountSid,
+                    authToken,
+                    phoneNumber,
+                    testphoneNumber,
+                }).then(res => {
                     if (res && typeof res === 'string') {
                         // prevent dismissal of modal if errored
                         // res will only be a string if errored
@@ -249,8 +258,8 @@ export class Component extends React.Component {
                                     {settings.requesting ? (
                                         <FormLoader />
                                     ) : (
-                                            <span>Test</span>
-                                        )}
+                                        <span>Test</span>
+                                    )}
                                 </button>
                                 <button
                                     className="bs-Button bs-Button--blue"
@@ -260,8 +269,8 @@ export class Component extends React.Component {
                                     {settings.requesting ? (
                                         <FormLoader />
                                     ) : (
-                                            <span>Save Settings</span>
-                                        )}
+                                        <span>Save Settings</span>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -283,7 +292,6 @@ Component.propTypes = {
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
     twilio: PropTypes.object,
-    twilioForm: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -304,7 +312,6 @@ function mapStateToProps(state) {
         settings: state.settings,
         initialValues: state.settings[settingsType],
         twilio: state.settings.twilio,
-        twilioForm: state.form['twilio-test-form'],
     };
 }
 
