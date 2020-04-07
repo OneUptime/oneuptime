@@ -159,4 +159,4 @@ host:
   licensingServicePort: 80
   helmChartServicePort: 80
 
-
+isThirdPartyBilling: false
