@@ -1,5 +1,5 @@
 import pages from './pages';
-import { IS_SAAS_SERVICE } from './config';
+import { IS_SAAS_SERVICE, IS_THIRD_PARTY_BILLING } from './config';
 
 const {
     Users,
@@ -81,9 +81,11 @@ export const groups = [
         routes: [
             {
                 title: 'Settings',
-                path: '/admin/settings/license',
+                path: IS_THIRD_PARTY_BILLING
+                    ? '/admin/settings/smtp'
+                    : '/admin/settings/license',
                 icon: 'businessSettings',
-                component: License,
+                component: IS_THIRD_PARTY_BILLING ? Settings : License,
                 exact: true,
                 visible: true,
                 subRoutes: [
@@ -92,13 +94,13 @@ export const groups = [
                         path: '/admin/settings/license',
                         icon: 'activate',
                         component: License,
-                        visible: true,
+                        visible: !IS_THIRD_PARTY_BILLING,
                         subRoutes: [],
                         index: 1,
                     },
                     {
                         title: 'SMTP',
-                        path: '/settings/smtp',
+                        path: '/admin/settings/smtp',
                         icon: 'settings',
                         component: Settings,
                         visible: true,
@@ -107,7 +109,7 @@ export const groups = [
                     },
                     {
                         title: 'Twilio',
-                        path: '/settings/twilio',
+                        path: '/admin/settings/twilio',
                         icon: 'settings',
                         component: Settings,
                         visible: true,

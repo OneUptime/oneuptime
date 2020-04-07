@@ -14,7 +14,7 @@ import { closeNotificationMenu } from '../actions/notification';
 import { fetchUsers } from '../actions/user';
 import UnLicensedAlert from './license/UnLicensedAlert';
 import { fetchLicense } from '../actions/license';
-import { IS_SAAS_SERVICE } from '../config';
+import { IS_SAAS_SERVICE, IS_THIRD_PARTY_BILLING } from '../config';
 
 export class DashboardApp extends Component {
     componentDidMount() {
@@ -92,6 +92,7 @@ export class DashboardApp extends Component {
                                     <div className="db-World-contentPane Box-root Padding-bottom--48">
                                         <ShouldRender
                                             if={
+                                                !IS_THIRD_PARTY_BILLING &&
                                                 !IS_SAAS_SERVICE &&
                                                 !license.requesting &&
                                                 !license.data

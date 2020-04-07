@@ -43,6 +43,9 @@ export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
 export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
+export const IS_THIRD_PARTY_BILLING =
+    env('IS_THIRD_PARTY_BILLING') === 'true' ? true : false;
+
 export const LICENSING_URL = licensingUrl;
 
 export const User = {
