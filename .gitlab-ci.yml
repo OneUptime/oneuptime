@@ -872,10 +872,11 @@ deploy_staging_helm-chart:
     - ./ci/scripts/deployment-staging-setup.sh
     # Install Helm.
     - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
-    - cd helm-chart
-    - helm repo index ./fyipe
-    - helm package ./fyipe
-    - helm repo index .
+    - cd ./helm-chart/public
+    - sudo helm repo index ./fyipe
+    - sudo helm package ./fyipe
+    - sudo helm repo index .
+    - cd ..
     - cd ..
     # Build and deploy helm-chart.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
