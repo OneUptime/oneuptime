@@ -46,9 +46,12 @@ sudo ./ci/scripts/docker-build.sh $repo $tag
 
 ### Package and deploy helm chart
 ```
-helm repo index ./helm-chart/public/fyipe
-helm package ./helm-chart/public/fyipe
-helm repo index ./helm-chart/public
+cd ./helm-chart/public
+helm repo index ./fyipe
+helm package ./fyipe
+helm repo index .
+cd ..
+cd ..
 ```
 
 ### Docker Images
