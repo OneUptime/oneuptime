@@ -83,6 +83,8 @@ then
     sudo microk8s.enable registry
     echo "RUNNING COMMAND: sudo microk8s.enable dns"
     sudo microk8s.enable dns
+    echo "RUNNING COMMAND: sudo microk8s.enable storage"
+    sudo microk8s.enable storage
     echo "RUNNING COMMAND: sudo microk8s.inspect"
     sudo sudo microk8s.inspect
     echo "Sleeping for 30 seconds"
@@ -135,7 +137,7 @@ fi
 
 
 function updateinstallation {
-    sudo k delete job fyipe-init-script || "init-script already deleted"
+    sudo k delete job fyipe-init-script || echo "init-script already deleted"
     sudo helm upgrade --reuse-values fyipe fyipe/Fyipe \
         --set image.tag=$AVAILABLE_VERSION
 }
@@ -149,10 +151,7 @@ then
         sudo helm install fyipe fyipe/Fyipe \
         --set isThirdPartyBilling=true \
         --set nginx-ingress-controller.service.type=NodePort \
-        --set mongodb.persistence.enabled=false \
-        --set redis.master.persistence.enabled=false \
         --set nginx-ingress-controller.hostNetwork=true \
-        --set redis.slave.persistence.enabled=false \
         --set image.tag=$AVAILABLE_VERSION
     else
         updateinstallation
@@ -164,10 +163,7 @@ then
         # set service of type nodeport for VM's. 
         sudo helm install -f ./kubernetes/values-saas-staging.yaml fyipe ./helm-chart/public/fyipe \
         --set nginx-ingress-controller.service.type=NodePort \
-        --set mongodb.persistence.enabled=false \
-        --set redis.master.persistence.enabled=false \
-        --set nginx-ingress-controller.hostNetwork=true \
-        --set redis.slave.persistence.enabled=false \
+        --set nginx-ingress-controller.hostNetwork=true 
     else
         updateinstallation
     fi
@@ -177,10 +173,7 @@ else
         # set service of type nodeport for VM's. 
         sudo helm install fyipe fyipe/Fyipe \
         --set nginx-ingress-controller.service.type=NodePort \
-        --set mongodb.persistence.enabled=false \
-        --set redis.master.persistence.enabled=false \
         --set nginx-ingress-controller.hostNetwork=true \
-        --set redis.slave.persistence.enabled=false \
         --set image.tag=$AVAILABLE_VERSION
     else
         updateinstallation

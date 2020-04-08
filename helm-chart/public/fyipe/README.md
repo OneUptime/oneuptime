@@ -242,6 +242,19 @@ Bitnami MongoDB, Redis charts are used as dependencies which takes care of persi
 
 Persistent Volume Claims are used to keep the data across deployments. This is known to work in GCE, AWS, Azure, and minikube. 
 
+## Update
+
+To update cluster with new version of Fyipe. Please run: 
+
+```
+VERSION=$(curl https://fyipe.com/api/version | jq '.server' | tr -d '"')
+kubectl delete job fyipe-init-script || echo "init-script already deleted"
+helm upgrade --reuse-values fyipe fyipe/Fyipe \
+        --set image.tag=$VERSION
+```
+
+Fyipe automatically takes care of data migration. 
+
 ## Things to note
 
  - If you do not specify TLS config, we will self-sign a certificate for you.
