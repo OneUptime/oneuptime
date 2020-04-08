@@ -10,7 +10,7 @@ const {
     sendIncidentCreatedCall,
     sendVerificationSMS,
     verifySMSCode,
-    test
+    test,
 } = require('../services/twilioService');
 const { isAuthorized } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
@@ -158,7 +158,7 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
+router.post('/sms/test', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const data = req.body;
 

@@ -77,7 +77,7 @@ export const testTwilio = payload => async dispatch => {
     dispatch(testTwilioRequest());
 
     try {
-        const response = await postApi('smsSmtp/test', payload);
+        const response = await postApi('twilio/sms/test', payload);
         dispatch(testTwilioSuccess(response));
         return response;
     } catch (error) {
