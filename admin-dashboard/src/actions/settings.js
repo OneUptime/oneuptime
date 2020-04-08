@@ -55,7 +55,7 @@ export const testSmtp = payload => async dispatch => {
     dispatch(testSmtpRequest());
 
     try {
-        const response = await postApi('emailSmtp', payload);
+        const response = await postApi('emailSmtp/test', payload);
         dispatch(testSmtpSuccess(response));
         return response;
     } catch (error) {
@@ -77,7 +77,7 @@ export const testTwilio = payload => async dispatch => {
     dispatch(testTwilioRequest());
 
     try {
-        const response = await postApi('smsSmtp', payload);
+        const response = await postApi('smsSmtp/test', payload);
         dispatch(testTwilioSuccess(response));
         return response;
     } catch (error) {

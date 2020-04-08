@@ -129,7 +129,7 @@ export class Component extends React.Component {
         e.preventDefault();
         const thisObj = this;
         const { testModalId } = this.state;
-        const { twilio, testTwilio } = this.props;
+        const { twilioForm, testTwilio } = this.props;
 
         this.props.openModal({
             id: testModalId,
@@ -139,7 +139,7 @@ export class Component extends React.Component {
                     'account-sid': accountSid,
                     'authentication-token': authToken,
                     phone: phoneNumber,
-                } = twilio;
+                } = twilioForm.values;
 
                 return testTwilio({
                     accountSid,
@@ -291,7 +291,7 @@ Component.propTypes = {
     testTwilio: PropTypes.func.isRequired,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
-    twilio: PropTypes.object,
+    twilioForm: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -311,7 +311,7 @@ function mapStateToProps(state) {
     return {
         settings: state.settings,
         initialValues: state.settings[settingsType],
-        twilio: state.settings.twilio,
+        twilioForm: state.form['twilio-form'],
     };
 }
 

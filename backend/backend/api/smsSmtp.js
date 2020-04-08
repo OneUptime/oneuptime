@@ -9,6 +9,38 @@ const isUserOwner = require('../middlewares/project').isUserOwner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
+router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
+    try {
+        const data = req.body;
+
+        if (!data.accountSid) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Account Sid is required.',
+            });
+        }
+
+        if (!data.authToken) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Auth Token is required.',
+            });
+        }
+
+        if (!data.phoneNumber) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Phone Number is required.',
+            });
+        }
+
+        const testResult = await TwilioService.test(data);
+        return sendItemResponse(req, res, testResult);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const data = req.body;
@@ -37,40 +69,6 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
         if (testResult && !testResult.errorCode) {
             const smsSmtp = await SmsSmtpService.create(data);
             return sendItemResponse(req, res, smsSmtp);
-        }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
-    try {
-        const data = req.body;
-
-        if (!data.accountSid) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Account Sid is required.',
-            });
-        }
-
-        if (!data.authToken) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Auth Token is required.',
-            });
-        }
-
-        if (!data.phoneNumber) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Phone Number is required.',
-            });
-        }
-
-        const testResult = await TwilioService.test(data);
-        if (testResult && !testResult.errorCode) {
-            return sendItemResponse(req, res, testResult);
         }
     } catch (error) {
         return sendErrorResponse(req, res, error);
