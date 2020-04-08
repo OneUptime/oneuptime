@@ -339,12 +339,12 @@ module.exports = {
                     };
                     await ProjectService.create(projectData);
 
-                    if(record && record.id){
+                    if (record && record.id) {
                         user.airtableId = record.id;
-                    }else{
+                    } else {
                         user.airtableId = null;
-                    }   
-                    
+                    }
+
                     return user;
                 }
             } else {

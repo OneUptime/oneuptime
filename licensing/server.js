@@ -61,7 +61,7 @@ const server = http.listen(app.get('port'), function() {
     console.log('Server Started on port ' + app.get('port'));
 });
 
-app.get(['/','/license'], function(req, res) {
+app.get(['/', '/license'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
