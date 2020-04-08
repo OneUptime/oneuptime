@@ -34,7 +34,7 @@ Build and deploy all (with master tag, you can use any other tag):
 
 ```
 chmod +x ./ci/scripts/docker-build-all.sh 
-sudo ./ci/scripts/docker-build-all.sh master
+sudo ./ci/scripts/docker-build-all.sh latest
 ```
 
 Build and deploy one: 

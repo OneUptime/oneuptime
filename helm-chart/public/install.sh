@@ -131,34 +131,56 @@ then
     exit 0
 fi
 
+
+function updateinstallation {
+    sudo k delete job fyipe-init-script || "init-script already deleted"
+    sudo helm upgrade --reuse-values fyipe fyipe/Fyipe \
+        --set image.tag=$AVAILABLE_VERSION
+}
+
+
 if [[ $1 -eq thirdPartyBillingEnabled ]] #If thirdPartyBillingIsEnabled (for ex for Marketplace VM's)
 then
-    # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
-    sudo helm install fyipe fyipe/Fyipe \
-    --set isThirdPartyBilling=true \
-    --set nginx-ingress-controller.service.type=NodePort \
-    --set mongodb.persistence.enabled=false \
-    --set redis.master.persistence.enabled=false \
-    --set nginx-ingress-controller.hostNetwork=true \
-    --set redis.slave.persistence.enabled=false \
-    --set image.tag=$AVAILABLE_VERSION
+    if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
+    then
+        # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
+        sudo helm install fyipe fyipe/Fyipe \
+        --set isThirdPartyBilling=true \
+        --set nginx-ingress-controller.service.type=NodePort \
+        --set mongodb.persistence.enabled=false \
+        --set redis.master.persistence.enabled=false \
+        --set nginx-ingress-controller.hostNetwork=true \
+        --set redis.slave.persistence.enabled=false \
+        --set image.tag=$AVAILABLE_VERSION
+    else
+        updateinstallation
+    fi
 elif [[ $1 -eq localInstall ]] # If its a local install, take local scripts. 
 then
-    # set service of type nodeport for VM's. 
-    sudo helm install -f ./kubernetes/values-saas-staging.yaml fyipe ./helm-chart/public/fyipe \
-    --set nginx-ingress-controller.service.type=NodePort \
-    --set mongodb.persistence.enabled=false \
-    --set redis.master.persistence.enabled=false \
-    --set nginx-ingress-controller.hostNetwork=true \
-    --set redis.slave.persistence.enabled=false \
-    --set image.tag=$AVAILABLE_VERSION
+    if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
+    then
+        # set service of type nodeport for VM's. 
+        sudo helm install -f ./kubernetes/values-saas-staging.yaml fyipe ./helm-chart/public/fyipe \
+        --set nginx-ingress-controller.service.type=NodePort \
+        --set mongodb.persistence.enabled=false \
+        --set redis.master.persistence.enabled=false \
+        --set nginx-ingress-controller.hostNetwork=true \
+        --set redis.slave.persistence.enabled=false \
+    else
+        updateinstallation
+    fi
 else
-    # set service of type nodeport for VM's. 
-    sudo helm install fyipe fyipe/Fyipe \
-    --set nginx-ingress-controller.service.type=NodePort \
-    --set mongodb.persistence.enabled=false \
-    --set redis.master.persistence.enabled=false \
-    --set nginx-ingress-controller.hostNetwork=true \
-    --set redis.slave.persistence.enabled=false \
-    --set image.tag=$AVAILABLE_VERSION
+    if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
+    then
+        # set service of type nodeport for VM's. 
+        sudo helm install fyipe fyipe/Fyipe \
+        --set nginx-ingress-controller.service.type=NodePort \
+        --set mongodb.persistence.enabled=false \
+        --set redis.master.persistence.enabled=false \
+        --set nginx-ingress-controller.hostNetwork=true \
+        --set redis.slave.persistence.enabled=false \
+        --set image.tag=$AVAILABLE_VERSION
+    else
+        updateinstallation
+    fi
 fi
