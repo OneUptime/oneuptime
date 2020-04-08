@@ -141,7 +141,7 @@ then
     --set redis.master.persistence.enabled=false \
     --set nginx-ingress-controller.hostNetwork=true \
     --set redis.slave.persistence.enabled=false \
-    --set image.tag=$VERSION
+    --set image.tag=$AVAILABLE_VERSION
 elif [[ $1 -eq localInstall ]] # If its a local install, take local scripts. 
 then
     # set service of type nodeport for VM's. 
@@ -151,7 +151,7 @@ then
     --set redis.master.persistence.enabled=false \
     --set nginx-ingress-controller.hostNetwork=true \
     --set redis.slave.persistence.enabled=false \
-    --set image.tag=$VERSION
+    --set image.tag=$AVAILABLE_VERSION
 else
     # set service of type nodeport for VM's. 
     sudo helm install fyipe fyipe/Fyipe \
@@ -160,5 +160,5 @@ else
     --set redis.master.persistence.enabled=false \
     --set nginx-ingress-controller.hostNetwork=true \
     --set redis.slave.persistence.enabled=false \
-    --set image.tag=$VERSION
+    --set image.tag=$AVAILABLE_VERSION
 fi
