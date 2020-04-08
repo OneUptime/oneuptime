@@ -30,6 +30,7 @@ class BlockChart extends Component {
                     this.props.monitorId,
                     this.props.time.emptytime,
                     this.props.monitorName,
+                    'No data available for this date',
                     'No data available for this date'
                 );
             } else {
@@ -37,7 +38,8 @@ class BlockChart extends Component {
                     this.props.monitorId,
                     date,
                     this.props.monitorName,
-                    'No incidents yet'
+                    'No incidents yet',
+                    'No scheduled events yet'
                 );
             }
         }

@@ -3,27 +3,24 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
-import Notes from './Notes';
+import Events from './Events';
 import ShouldRender from './ShouldRender';
-import SubscribeBox from './Subscribe/SubscribeBox';
 import {
-    getStatusPageNote,
-    getStatusPageIndividualNote,
-    getMoreNote,
+    getScheduledEvent,
+    getIndividualEvent,
+    getMoreEvent,
 } from '../actions/status';
-import { openSubscribeMenu } from '../actions/subscribe';
 
-class NotesMain extends Component {
+class EventsMain extends Component {
     constructor(props) {
         super(props);
 
         this.getAll = this.getAll.bind(this);
         this.more = this.more.bind(this);
-        this.subscribebutton = this.subscribebutton.bind(this);
     }
 
     componentDidMount() {
-        this.props.getStatusPageNote(
+        this.props.getScheduledEvent(
             this.props.projectId,
             this.props.statusPageId,
             0
@@ -32,16 +29,16 @@ class NotesMain extends Component {
 
     componentDidUpdate(prevProps) {
         if (prevProps.statusPage !== this.props.statusPage) {
-            if (this.props.individualnote) {
-                this.props.getStatusPageIndividualNote(
+            if (this.props.individualevent) {
+                this.props.getIndividualEvent(
                     this.props.projectId,
-                    this.props.individualnote._id,
-                    this.props.individualnote.date,
-                    this.props.individualnote.name,
+                    this.props.individualevent._id,
+                    this.props.individualevent.date,
+                    this.props.individualevent.name,
                     true
                 );
             } else {
-                this.props.getStatusPageNote(
+                this.props.getScheduledEvent(
                     this.props.projectId,
                     this.props.statusPageId,
                     0
@@ -51,7 +48,7 @@ class NotesMain extends Component {
     }
 
     getAll = () => {
-        this.props.getStatusPageNote(
+        this.props.getScheduledEvent(
             this.props.projectId,
             this.props.statusPageId,
             0
@@ -59,25 +56,18 @@ class NotesMain extends Component {
     };
 
     more = () => {
-        this.props.getMoreNote(
+        this.props.getMoreEvent(
             this.props.projectId,
             this.props.statusPageId,
             this.props.skip + 5
         );
     };
 
-    subscribebutton = () => {
-        this.props.openSubscribeMenu();
-    };
-
     render() {
-        let note = '';
+        let event = '';
         let contentBackground,
             primaryTextColor,
             secondaryTextColor,
-            downtimeColor,
-            uptimeColor,
-            degradedColor,
             noteBackgroundColor;
         const subheading = {};
         if (this.props.statusPage) {
@@ -92,43 +82,20 @@ class NotesMain extends Component {
             secondaryTextColor = {
                 color: `rgba(${colors.secondaryText.r}, ${colors.secondaryText.g}, ${colors.secondaryText.b}, ${colors.secondaryText.a})`,
             };
-            downtimeColor = {
-                backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`,
-            };
-            uptimeColor = {
-                backgroundColor: `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`,
-            };
-            degradedColor = {
-                backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`,
-            };
             noteBackgroundColor = {
                 background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b})`,
             };
         }
-        if (this.props.noteData && this.props.noteData.notes) {
-            note = (
-                <Notes
-                    notes={this.props.noteData.notes}
+        if (this.props.eventData && this.props.eventData.events) {
+            event = (
+                <Events
+                    events={this.props.eventData.events}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
-                    downtimeColor={downtimeColor}
-                    uptimeColor={uptimeColor}
-                    degradedColor={degradedColor}
                     noteBackgroundColor={noteBackgroundColor}
                 />
             );
         }
-        const {
-            enableRSSFeed,
-            smsNotification,
-            webhookNotification,
-            emailNotification,
-        } = this.props.statusPage;
-        const showSubscriberOption =
-            enableRSSFeed ||
-            smsNotification ||
-            webhookNotification ||
-            emailNotification;
 
         return (
             <div
@@ -137,7 +104,7 @@ class NotesMain extends Component {
             >
                 <div className="messages" style={{ position: 'relative' }}>
                     <ShouldRender
-                        if={this.props.noteData && !this.props.noteData.error}
+                        if={this.props.eventData && !this.props.eventData.error}
                     >
                         <div className="box-inner">
                             <div
@@ -148,76 +115,50 @@ class NotesMain extends Component {
                                     flexWrap: 'nowrap',
                                 }}
                             >
-                                <ShouldRender if={!this.props.individualnote}>
+                                <ShouldRender if={!this.props.individualevent}>
                                     <span
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Past Incidents
+                                        Scheduled Events
                                     </span>
                                 </ShouldRender>
-                                <ShouldRender if={this.props.individualnote}>
+                                <ShouldRender if={this.props.individualevent}>
                                     <span
                                         className="feed-title"
                                         style={primaryTextColor}
                                     >
-                                        Incidents for{' '}
-                                        {this.props.individualnote
-                                            ? this.props.individualnote.name
+                                        Scheduled Events for{' '}
+                                        {this.props.individualevent
+                                            ? this.props.individualevent.name
                                             : ''}{' '}
                                         on{' '}
-                                        {this.props.individualnote
+                                        {this.props.individualevent
                                             ? moment(
-                                                  this.props.individualnote.date
+                                                  this.props.individualevent
+                                                      .date
                                               ).format('LL')
                                             : ''}
                                     </span>
                                 </ShouldRender>
-                                <ShouldRender
-                                    if={
-                                        this.props.isSubscriberEnabled ===
-                                            true && showSubscriberOption
-                                    }
-                                >
-                                    <button
-                                        className="bs-Button-subscribe"
-                                        type="submit"
-                                        onClick={() => this.subscribebutton()}
-                                        style={{
-                                            marginLeft: 'auto',
-                                            marginRight: '18px',
-                                            marginTop: '-8px',
-                                        }}
-                                    >
-                                        <span>Subscribe</span>
-                                    </button>
-                                </ShouldRender>
                             </div>
                             <ShouldRender
                                 if={
-                                    this.props.subscribed &&
-                                    showSubscriberOption
+                                    this.props.eventData &&
+                                    !this.props.eventData.requesting &&
+                                    this.props.eventData.events &&
+                                    this.props.eventData.events.length
                                 }
                             >
-                                <SubscribeBox />
-                            </ShouldRender>
-                            <ShouldRender
-                                if={
-                                    this.props.noteData &&
-                                    !this.props.noteData.requesting &&
-                                    this.props.noteData.notes &&
-                                    this.props.noteData.notes.length
-                                }
-                            >
-                                <ul className="feed-contents plain">{note}</ul>
+                                <ul className="feed-contents plain">{event}</ul>
                             </ShouldRender>
 
                             <ShouldRender
                                 if={
-                                    this.props.noteData &&
-                                    !this.props.noteData.requesting &&
-                                    this.props.noteData.notes &&
-                                    !this.props.noteData.notes.length
+                                    this.props.eventData &&
+                                    !this.props.eventData.requesting &&
+                                    this.props.eventData.events &&
+                                    !this.props.eventData.events.length
                                 }
                             >
                                 <ul className="feed-contents plain">
@@ -240,9 +181,9 @@ class NotesMain extends Component {
                                                 ...secondaryTextColor,
                                             }}
                                         >
-                                            {this.props.notesmessage
-                                                ? this.props.notesmessage
-                                                : 'No incidents yet'}
+                                            {this.props.eventsmessage
+                                                ? this.props.eventsmessage
+                                                : 'No scheduled events yet'}
                                             .
                                         </span>
                                     </li>
@@ -252,14 +193,14 @@ class NotesMain extends Component {
 
                         <ShouldRender
                             if={
-                                this.props.noteData &&
-                                this.props.noteData.notes &&
-                                this.props.noteData.notes.length &&
+                                this.props.eventData &&
+                                this.props.eventData.events &&
+                                this.props.eventData.events.length &&
                                 this.props.count > this.props.skip + 5 &&
-                                !this.props.noteData.requesting &&
-                                !this.props.requestingmore &&
-                                !this.props.noteData.error &&
-                                !this.props.individualnote
+                                !this.props.eventData.requesting &&
+                                !this.props.requestingmoreevents &&
+                                !this.props.eventData.error &&
+                                !this.props.individualevent
                             }
                         >
                             <button
@@ -272,24 +213,24 @@ class NotesMain extends Component {
 
                         <ShouldRender
                             if={
-                                this.props.noteData &&
-                                !this.props.noteData.error &&
-                                !this.props.noteData.requesting &&
-                                this.props.individualnote
+                                this.props.eventData &&
+                                !this.props.eventData.error &&
+                                !this.props.eventData.requesting &&
+                                this.props.individualevent
                             }
                         >
                             <button
                                 className="more button-as-anchor anchor-centered"
                                 onClick={() => this.getAll()}
                             >
-                                Get all incidents
+                                Get all scheduled events
                             </button>
                         </ShouldRender>
 
                         <ShouldRender
                             if={
-                                this.props.noteData &&
-                                this.props.noteData.requesting
+                                this.props.eventData &&
+                                this.props.eventData.requesting
                             }
                         >
                             <div className="ball-beat" id="notes-loader">
@@ -307,7 +248,8 @@ class NotesMain extends Component {
 
                         <ShouldRender
                             if={
-                                this.props.noteData && this.props.requestingmore
+                                this.props.eventData &&
+                                this.props.requestingmoreevents
                             }
                         >
                             <div className="ball-beat" id="more-loader">
@@ -329,16 +271,16 @@ class NotesMain extends Component {
     }
 }
 
-NotesMain.displayName = 'NotesMain';
+EventsMain.displayName = 'EventsMain';
 
 const mapStateToProps = state => {
     let skip =
-        state.status.notes && state.status.notes.skip
-            ? state.status.notes.skip
+        state.status.events && state.status.events.skip
+            ? state.status.events.skip
             : 0;
     let count =
-        state.status.notes && state.status.notes.count
-            ? state.status.notes.count
+        state.status.events && state.status.events.count
+            ? state.status.events.count
             : 0;
     if (typeof skip === 'string') {
         skip = parseInt(skip, 10);
@@ -348,14 +290,12 @@ const mapStateToProps = state => {
     }
 
     return {
-        noteData: state.status.notes,
-        requestingmore: state.status.requestingmore,
-        individualnote: state.status.individualnote,
-        notesmessage: state.status.notesmessage,
-        subscribed: state.subscribe.subscribeMenu,
+        eventData: state.status.events,
+        requestingmoreevents: state.status.requestingmoreevents,
+        individualevent: state.status.individualevent,
+        eventsmessage: state.status.eventsmessage,
         skip,
         count,
-        isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
         statusPage: state.status.statusPage,
     };
 };
@@ -363,30 +303,26 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            getStatusPageNote,
-            getStatusPageIndividualNote,
-            getMoreNote,
-            openSubscribeMenu,
+            getScheduledEvent,
+            getIndividualEvent,
+            getMoreEvent,
         },
         dispatch
     );
 
-NotesMain.propTypes = {
-    noteData: PropTypes.object,
-    notesmessage: PropTypes.string,
-    individualnote: PropTypes.object,
-    getStatusPageNote: PropTypes.func,
-    getStatusPageIndividualNote: PropTypes.func,
-    getMoreNote: PropTypes.func,
-    requestingmore: PropTypes.bool,
+EventsMain.propTypes = {
+    eventData: PropTypes.object,
+    eventsmessage: PropTypes.string,
+    individualevent: PropTypes.object,
+    getScheduledEvent: PropTypes.func,
+    getIndividualEvent: PropTypes.func,
+    getMoreEvent: PropTypes.func,
+    requestingmoreevents: PropTypes.bool,
     projectId: PropTypes.string,
-    openSubscribeMenu: PropTypes.func,
-    subscribed: PropTypes.bool,
     skip: PropTypes.number,
     count: PropTypes.number,
     statusPageId: PropTypes.string,
-    isSubscriberEnabled: PropTypes.bool.isRequired,
     statusPage: PropTypes.object,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(NotesMain);
+export default connect(mapStateToProps, mapDispatchToProps)(EventsMain);

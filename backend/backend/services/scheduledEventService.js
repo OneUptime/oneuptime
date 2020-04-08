@@ -131,6 +131,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
+                .populate('monitorId', 'name')
                 .lean();
 
             await Promise.all(

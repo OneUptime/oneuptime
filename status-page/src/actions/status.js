@@ -1,27 +1,24 @@
 import { getApi, postApi } from '../api';
+import * as types from '../constants/status';
 import errors from '../errors';
 import { loginRequired, loginError } from '../actions/login';
 
-export const STATUSPAGE_REQUEST = 'STATUSPAGE_REQUEST';
-export const STATUSPAGE_SUCCESS = 'STATUSPAGE_SUCCESS';
-export const STATUSPAGE_FAILURE = 'STATUSPAGE_FAILURE';
-
 export const statusPageSuccess = data => {
     return {
-        type: STATUSPAGE_SUCCESS,
+        type: types.STATUSPAGE_SUCCESS,
         payload: data,
     };
 };
 
 export const statusPageRequest = () => {
     return {
-        type: STATUSPAGE_REQUEST,
+        type: types.STATUSPAGE_REQUEST,
     };
 };
 
 export const statusPageFailure = error => {
     return {
-        type: STATUSPAGE_FAILURE,
+        type: types.STATUSPAGE_FAILURE,
         payload: error,
     };
 };
@@ -65,52 +62,45 @@ export const getStatusPage = (statusPageId, url) => {
     };
 };
 
-export const STATUSPAGE_NOTES_REQUEST = 'STATUSPAGE_NOTES_REQUEST';
-export const STATUSPAGE_NOTES_SUCCESS = 'STATUSPAGE_NOTES_SUCCESS';
-export const STATUSPAGE_NOTES_FAILURE = 'STATUSPAGE_NOTES_FAILURE';
-export const STATUSPAGE_NOTES_RESET = 'STATUSPAGE_NOTES_RESET';
-export const INDIVIDUAL_NOTES_ENABLE = 'INDIVIDUAL_NOTES_ENABLE';
-export const INDIVIDUAL_NOTES_DISABLE = 'INDIVIDUAL_NOTES_DISABLE';
-
 export const statusPageNoteSuccess = data => {
     return {
-        type: STATUSPAGE_NOTES_SUCCESS,
+        type: types.STATUSPAGE_NOTES_SUCCESS,
         payload: data,
     };
 };
 
 export const statusPageNoteRequest = () => {
     return {
-        type: STATUSPAGE_NOTES_REQUEST,
+        type: types.STATUSPAGE_NOTES_REQUEST,
     };
 };
 
 export const statusPageNoteFailure = error => {
     return {
-        type: STATUSPAGE_NOTES_FAILURE,
+        type: types.STATUSPAGE_NOTES_FAILURE,
         payload: error,
     };
 };
 
 export const statusPageNoteReset = () => {
     return {
-        type: STATUSPAGE_NOTES_RESET,
+        type: types.STATUSPAGE_NOTES_RESET,
     };
 };
 
 export const individualNoteEnable = message => {
     return {
-        type: INDIVIDUAL_NOTES_ENABLE,
+        type: types.INDIVIDUAL_NOTES_ENABLE,
         payload: message,
     };
 };
 export const individualNoteDisable = () => {
     return {
-        type: INDIVIDUAL_NOTES_DISABLE,
+        type: types.INDIVIDUAL_NOTES_DISABLE,
     };
 };
 
-// Calls the API to get status
+// Calls the API to get notes
 export const getStatusPageNote = (projectId, statusPageId, skip) => {
     return function(dispatch) {
         const promise = getApi(
@@ -188,12 +178,139 @@ export const getStatusPageIndividualNote = (
     };
 };
 
-export const notmonitoredDays = (monitorId, date, name, message) => {
+export const scheduledEventSuccess = data => {
+    return {
+        type: types.SCHEDULED_EVENTS_SUCCESS,
+        payload: data,
+    };
+};
+
+export const scheduledEventRequest = () => {
+    return {
+        type: types.SCHEDULED_EVENTS_REQUEST,
+    };
+};
+
+export const scheduledEventFailure = error => {
+    return {
+        type: types.SCHEDULED_EVENTS_FAILURE,
+        payload: error,
+    };
+};
+
+export const scheduledEventReset = () => {
+    return {
+        type: types.SCHEDULED_EVENTS_RESET,
+    };
+};
+
+export const individualEventEnable = message => {
+    return {
+        type: types.INDIVIDUAL_EVENTS_ENABLE,
+        payload: message,
+    };
+};
+export const individualEventDisable = () => {
+    return {
+        type: types.INDIVIDUAL_EVENTS_DISABLE,
+    };
+};
+
+// Calls the API to get events
+export const getScheduledEvent = (projectId, statusPageId, skip) => {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/${statusPageId}/events?skip=${skip}`
+        );
+
+        dispatch(scheduledEventRequest());
+
+        promise.then(
+            Data => {
+                dispatch(scheduledEventSuccess(Data.data));
+                dispatch(individualEventDisable());
+            },
+            error => {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                }
+                if (error.length > 100) {
+                    error = 'Network Error';
+                }
+                dispatch(scheduledEventFailure(errors(error)));
+            }
+        );
+    };
+};
+
+export const getIndividualEvent = (projectId, monitorId, date, name, need) => {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/${monitorId}/individualevents?date=${date}&need=${need}`
+        );
+
+        dispatch(scheduledEventRequest());
+
+        promise.then(
+            Data => {
+                dispatch(scheduledEventSuccess(Data.data));
+                dispatch(
+                    individualEventEnable({
+                        message: Data.data.message,
+                        name: {
+                            _id: monitorId,
+                            name,
+                            date,
+                        },
+                    })
+                );
+            },
+            error => {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                }
+                if (error.length > 100) {
+                    error = 'Network Error';
+                }
+                dispatch(scheduledEventFailure(errors(error)));
+            }
+        );
+    };
+};
+
+export const notmonitoredDays = (
+    monitorId,
+    date,
+    name,
+    notemessage,
+    eventmessage
+) => {
     return function(dispatch) {
         dispatch(statusPageNoteReset());
+        dispatch(scheduledEventReset());
         dispatch(
             individualNoteEnable({
-                message: message,
+                message: notemessage,
+                name: {
+                    _id: monitorId,
+                    name,
+                    date,
+                },
+            })
+        );
+        dispatch(
+            individualEventEnable({
+                message: eventmessage,
                 name: {
                     _id: monitorId,
                     name,
@@ -204,26 +321,22 @@ export const notmonitoredDays = (monitorId, date, name, message) => {
     };
 };
 
-export const MORE_NOTES_REQUEST = 'MORE_NOTES_REQUEST';
-export const MORE_NOTES_SUCCESS = 'MORE_NOTES_SUCCESS';
-export const MORE_NOTES_FAILURE = 'MORE_NOTES_FAILURE';
-
 export const moreNoteSuccess = data => {
     return {
-        type: MORE_NOTES_SUCCESS,
+        type: types.MORE_NOTES_SUCCESS,
         payload: data,
     };
 };
 
 export const moreNoteRequest = () => {
     return {
-        type: MORE_NOTES_REQUEST,
+        type: types.MORE_NOTES_REQUEST,
     };
 };
 
 export const moreNoteFailure = error => {
     return {
-        type: MORE_NOTES_FAILURE,
+        type: types.MORE_NOTES_FAILURE,
         payload: error,
     };
 };
@@ -257,21 +370,63 @@ export const getMoreNote = (projectId, statusPageId, skip) => {
     };
 };
 
-export const SELECT_PROBE = 'SELECT_PROBE';
+export const moreEventSuccess = data => {
+    return {
+        type: types.MORE_EVENTS_SUCCESS,
+        payload: data,
+    };
+};
+
+export const moreEventRequest = () => {
+    return {
+        type: types.MORE_EVENTS_REQUEST,
+    };
+};
+
+export const moreEventFailure = error => {
+    return {
+        type: types.MORE_EVENTS_FAILURE,
+        payload: error,
+    };
+};
+
+export const getMoreEvent = (projectId, statusPageId, skip) => {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/${statusPageId}/events?skip=${skip}`
+        );
+
+        dispatch(moreEventRequest());
+        promise.then(
+            Data => {
+                dispatch(moreEventSuccess(Data.data));
+            },
+            error => {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                }
+                if (error.length > 100) {
+                    error = 'Network Error';
+                }
+                dispatch(moreEventFailure(errors(error)));
+            }
+        );
+    };
+};
 
 export function selectedProbe(val) {
     return function(dispatch) {
         dispatch({
-            type: SELECT_PROBE,
+            type: types.SELECT_PROBE,
             payload: val,
         });
     };
 }
-
-// Fetch Monitor Statuses
-export const FETCH_MONITOR_STATUSES_REQUEST = 'FETCH_MONITOR_STATUSES_REQUEST';
-export const FETCH_MONITOR_STATUSES_SUCCESS = 'FETCH_MONITOR_STATUSES_SUCCESS';
-export const FETCH_MONITOR_STATUSES_FAILURE = 'FETCH_MONITOR_STATUSES_FAILURE';
 
 // Fetch Monitor Statuses list
 export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
@@ -314,20 +469,20 @@ export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
 
 export function fetchMonitorStatusesRequest() {
     return {
-        type: FETCH_MONITOR_STATUSES_REQUEST,
+        type: types.FETCH_MONITOR_STATUSES_REQUEST,
     };
 }
 
 export function fetchMonitorStatusesSuccess(monitorStatuses) {
     return {
-        type: FETCH_MONITOR_STATUSES_SUCCESS,
+        type: types.FETCH_MONITOR_STATUSES_SUCCESS,
         payload: monitorStatuses,
     };
 }
 
 export function fetchMonitorStatusesFailure(error) {
     return {
-        type: FETCH_MONITOR_STATUSES_FAILURE,
+        type: types.FETCH_MONITOR_STATUSES_FAILURE,
         payload: error,
     };
 }

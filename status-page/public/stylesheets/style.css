@@ -998,3 +998,9 @@ margin-left:10px;
   background-color: inherit;
   font-size: 0.8em;
 }
+.anchor-centered {
+  display: block !important;
+  margin: 0 auto;
+  left: 0;
+  padding-bottom: 10px;
+}
