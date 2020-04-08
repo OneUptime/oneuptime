@@ -37,11 +37,25 @@ export const testSmtpFailure = error => ({
     payload: error,
 });
 
+export const testTwilioRequest = () => ({
+    type: types.TEST_TWILIO_REQUEST,
+});
+
+export const testTwilioSuccess = payload => ({
+    type: types.TEST_TWILIO_SUCCESS,
+    payload,
+});
+
+export const testTwilioFailure = error => ({
+    type: types.TEST_TWILIO_FAILURE,
+    payload: error,
+});
+
 export const testSmtp = payload => async dispatch => {
     dispatch(testSmtpRequest());
 
     try {
-        const response = await postApi('emailSmtp', payload);
+        const response = await postApi('emailSmtp/test', payload);
         dispatch(testSmtpSuccess(response));
         return response;
     } catch (error) {
@@ -59,12 +73,41 @@ export const testSmtp = payload => async dispatch => {
     }
 };
 
+export const testTwilio = payload => async dispatch => {
+    dispatch(testTwilioRequest());
+
+    try {
+        const response = await postApi('twilio/sms/test', payload);
+        dispatch(testTwilioSuccess(response));
+        return response;
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+
+        dispatch(testTwilioFailure(errorMsg));
+        return errorMsg;
+    }
+};
+
 export const fetchSettings = type => async dispatch => {
     dispatch(requestingSettings());
     try {
         const response = await getApi(`globalConfig/${type}`);
         const data = response.data || { value: {} };
-        data.value = { 'smtp-secure': false, ...data.value };
+        if (type === 'smtp') {
+            data.value = { 'smtp-secure': false, ...data.value };
+        }
+
+        if (type === 'twilio') {
+            data.value = { 'call-enable': false, ...data.value };
+        }
+
         dispatch(requestingSettingsSucceeded(data.value, type));
         return response;
     } catch (error) {
