@@ -15,7 +15,8 @@ import {
 } from '../../actions/socket';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io(API_URL, { path: '/api/socket.io' });
+// '/api' is set as socket io namespace, so remove
+const socket = io(API_URL.replace('/api', ''), { path: '/api/socket.io' });
 
 class SocketApp extends Component {
     shouldComponentUpdate(nextProps) {
