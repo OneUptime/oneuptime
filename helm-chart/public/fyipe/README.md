@@ -214,10 +214,10 @@ mongodb:
 
 If you want to expose MongoDB out to the internet, run `install` or `upgrade` with --set mongodb.ingress.enabled=true. You'll see an ingress service for mongodb created with which you can access mongodb data on your cluster.
 
-## Minikube
+## Minikube / Microk8s
 
 `service.type` 
-For minikube, set this to NodePort, elsewhere use ClusterIP
+For minikube, set this to NodePort, elsewhere use LoadBalancer
 
 
 ## Modifying default params
