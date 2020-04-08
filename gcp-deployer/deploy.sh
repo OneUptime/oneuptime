@@ -6,7 +6,17 @@ mkdir ./gcp-deployer/chart
 cp -R ./helm-chart/public/fyipe ./gcp-deployer/chart
 cp ./gcp-deployer/application.yaml ./gcp-deployer/chart/fyipe/templates
 cp ./gcp-deployer/billing-agent.yaml ./gcp-deployer/chart/fyipe/templates
-sudo cat ./gcp-deployer/values.yaml >> ./gcp-deployer/chart/fyipe/values.yaml
+
+# Find and replace.
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # Mac OSX
+    sed -i '' 's/isThirdPartyBilling: false/isThirdPartyBilling: true/g' gcp-deployer/chart/fyipe/values.yaml
+    sed -i '' 's/isRunningOnGCPMarketplace: false/isRunningOnGCPMarketplace: true/g' gcp-deployer/chart/fyipe/values.yaml
+else
+    # Linux
+    sed -i '' 's/isThirdPartyBilling: false/isThirdPartyBilling: true/g' gcp-deployer/chart/fyipe/values.yaml
+    sed -i '' 's/isRunningOnGCPMarketplace: false/isRunningOnGCPMarketplace: true/g' gcp-deployer/chart/fyipe/values.yaml
+fi
 
 # Get latest Universal Billing Agent from Google Marketplace and push it to our Fyipe repo.
 sudo docker pull gcr.io/cloud-marketplace-tools/metering/ubbagent

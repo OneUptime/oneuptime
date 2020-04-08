@@ -53,6 +53,6 @@ spec:
           targetPort: {{ .Values.host.slackPort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "slack"  }}
-    type: {{ .Values.service.type }}
+    type: ClusterIP
 ---
 {{- end }}

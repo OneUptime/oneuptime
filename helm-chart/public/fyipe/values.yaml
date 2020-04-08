@@ -82,12 +82,6 @@ image:
 
 replicaCount: 1
 
-## Service Configuration
-## For minikube, set this to NodePort, elsewhere use ClusterIP
-##
-service:
-  type: ClusterIP
-
 ##################################################################################
 ## IMPORTANT: 
 ## Values for Subcharts
@@ -130,6 +124,13 @@ mongodb:
     size: 20Gi
   useStatefulSet: true
 
+## Service Configuration
+## For minikube, set this to NodePort, elsewhere use LoadBalancer
+##
+nginx-ingress-controller:
+  service:
+    type: LoadBalancer
+
   ##################################################################################
 
 host: 
@@ -160,3 +161,4 @@ host:
   helmChartServicePort: 80
 
 isThirdPartyBilling: false
+isRunningOnGCPMarketplace: false

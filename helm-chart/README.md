@@ -34,7 +34,7 @@ Build and deploy all (with master tag, you can use any other tag):
 
 ```
 chmod +x ./ci/scripts/docker-build-all.sh 
-sudo ./ci/scripts/docker-build-all.sh master
+sudo ./ci/scripts/docker-build-all.sh latest
 ```
 
 Build and deploy one: 
@@ -46,9 +46,12 @@ sudo ./ci/scripts/docker-build.sh $repo $tag
 
 ### Package and deploy helm chart
 ```
-helm repo index ./helm-chart/public/fyipe
-helm package ./helm-chart/public/fyipe
-helm repo index ./helm-chart/public
+cd ./helm-chart/public
+helm repo index ./fyipe
+helm package ./fyipe
+helm repo index .
+cd ..
+cd ..
 ```
 
 ### Docker Images

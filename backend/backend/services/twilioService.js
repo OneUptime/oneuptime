@@ -297,8 +297,7 @@ const _this = {
     test: async function(data) {
         try {
             const options = {
-                body:
-                    'This is a test message from Fyipe to check your Twilio credentials.',
+                body: 'This is a test SMS from Fyipe',
                 from: data.phoneNumber,
                 to: data.testphoneNumber,
             };

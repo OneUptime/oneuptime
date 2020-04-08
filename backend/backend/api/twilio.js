@@ -10,9 +10,11 @@ const {
     sendIncidentCreatedCall,
     sendVerificationSMS,
     verifySMSCode,
+    test,
 } = require('../services/twilioService');
 const { isAuthorized } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
+const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const router = express.Router();
@@ -153,6 +155,38 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
             code: 400,
             message: error.message,
         });
+    }
+});
+
+router.post('/sms/test', getUser, isUserMasterAdmin, async function(req, res) {
+    try {
+        const data = req.body;
+
+        if (!data.accountSid) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Account Sid is required.',
+            });
+        }
+
+        if (!data.authToken) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Auth Token is required.',
+            });
+        }
+
+        if (!data.phoneNumber) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Phone Number is required.',
+            });
+        }
+
+        const testResult = await test(data);
+        return sendItemResponse(req, res, testResult);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
 });
 

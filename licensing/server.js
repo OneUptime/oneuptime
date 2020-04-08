@@ -53,7 +53,7 @@ app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'views')));
 
 // Routes(API)
-app.use('/license', require('./src/api/license'));
+app.use('/license/validate', require('./src/api/license'));
 app.set('port', process.env.PORT || 3004);
 
 const server = http.listen(app.get('port'), function() {
@@ -61,7 +61,7 @@ const server = http.listen(app.get('port'), function() {
     console.log('Server Started on port ' + app.get('port'));
 });
 
-app.get('/', function(req, res) {
+app.get(['/', '/license'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

@@ -730,7 +730,7 @@ build_n_test_licensing:
       - hotfix-release
 
 #E2E Stage.
-e2e_minikube_test:
+e2e_microk8s_test:
   stage: E2E
   script:
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
@@ -874,10 +874,11 @@ deploy_staging_helm-chart:
     - ./ci/scripts/deployment-staging-setup.sh
     # Install Helm.
     - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
-    - cd helm-chart
-    - helm repo index ./fyipe
-    - helm package ./fyipe
-    - helm repo index .
+    - cd ./helm-chart/public
+    - sudo helm repo index ./fyipe
+    - sudo helm package ./fyipe
+    - sudo helm repo index .
+    - cd ..
     - cd ..
     # Build and deploy helm-chart.
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
@@ -896,19 +897,6 @@ deploy_staging_helm-chart:
   environment:
     name: staging
 
-deploy_production_helm-chart:
-  stage: Deploy
-  script:
-    - cd gcp-deployer
-    - sudo docker build --tag $REGISTRY/fyipe/deployer .
-    - sudo docker push $REGISTRY/fyipe/deployer
-    
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
 
 deploy_production_helm-chart:
   stage: Deploy

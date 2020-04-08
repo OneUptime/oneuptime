@@ -27,7 +27,7 @@ saas:
 fyipe:
   hosts:
     host1: 
-      host: test.fyipe.com
+      host: staging.fyipe.com
       tls:
         enabled: false
         crt: 

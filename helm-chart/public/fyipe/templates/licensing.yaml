@@ -58,6 +58,6 @@ spec:
           targetPort: {{ .Values.host.licensingPort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "licensing"  }}
-    type: {{ .Values.service.type }}
+    type: ClusterIP
 ---
 {{- end }}

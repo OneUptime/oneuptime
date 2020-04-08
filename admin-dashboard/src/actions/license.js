@@ -96,7 +96,7 @@ export const confirmLicense = values => async dispatch => {
     dispatch(confirmLicenseRequest());
 
     try {
-        const response = await postApi('license/', values, true);
+        const response = await postApi('license/validate/', values, true);
         let data = response.data;
         if (data.token) {
             const response = await postApi('globalConfig/', [

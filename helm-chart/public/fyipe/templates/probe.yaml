@@ -62,7 +62,7 @@ spec:
           targetPort: {{ $value.port }}
     selector:
         app: {{ printf "%s-%s" $.Release.Name $key }}
-    type: {{ $.Values.service.type }}
+    type: ClusterIP
 ---
 ###########################
 {{- end }}

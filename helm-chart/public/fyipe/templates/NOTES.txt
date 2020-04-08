@@ -8,8 +8,9 @@ IMPORTANT: After Installation Steps
 
 To access your Fyipe app from steps below:
 
+{{- if eq (index .Values "nginx-ingress-controller" "service" "type") "LoadBalancer" }}
 ============================================ 
-STEP 1: Make sure external IP's are assigned. 
+Make sure external IP's are assigned. 
 ============================================ 
 
 Please run these commands to get Fyipe URL
@@ -19,9 +20,9 @@ $ kubectl get svc {{ .Release.Name }}-nginx-ingress-controller --namespace={{ .R
 NOTE: It may take a few minutes for the LoadBalancer IP to be available. 
 If the load balancer did not assign an external IP yet (if the IP is still pending). 
 Retry this command after few mins. 
-
+{{- end}}
 ============================================ 
-STEP 2: Sign Up
+Sign Up
 ============================================
 
 Go to the External IP (generated from step 1) from your browser and sign up a new admin account. 
@@ -29,7 +30,7 @@ This is your master admin account (and not a user account).
 To create a user account. Please follow steps below.
 
 ============================================ 
-STEP 3: Setup Email
+Setup Email
 ============================================
 
 When you're done signing up the admin account. Head over to "Settings" -> "Email"
@@ -37,7 +38,7 @@ When you're done signing up the admin account. Head over to "Settings" -> "Email
 Add your SMTP server details here to enable email alerts. 
 
 ============================================ 
-STEP 4: Setup Twilio
+Setup Twilio
 ============================================
 
 When you're done signing up the admin account. Head over to "Settings" -> "Call and SMS"
@@ -45,12 +46,13 @@ When you're done signing up the admin account. Head over to "Settings" -> "Call 
 Add your Twilio Settings here to enable call and SMS alert.
 
 ============================================ 
-STEP 4: Create User
+Create User
 ============================================
 
 On the Admin Dahboard, go to the "Users" menu and add a new user. 
 Log out of the admin account, and log in with a user account to access User's Fyipe Dashboard.
 
+{{- if not $.Values.isThirdPartyBilling }}
 ============================================ 
 STEP 5: Buy License
 ============================================
@@ -61,6 +63,7 @@ We support companies of all sizes.
 
 Once you buy the commercial license, 
 you can enter that license key on your admin dashboard.
+{{- end }}
 
 ============================================ 
 Support and Demo
@@ -73,8 +76,5 @@ Please email us at demo@fyipe.com to schedule one.
 Support and Help:
 If you're looking for help with anything,
 Please email us at support@fyipe.com and we'll get back to you in less than 1 business day. 
-
-Licensing and Sales: 
-Please contact sales@fyipe.com
 
 Thank you for installing Fyipe. :)

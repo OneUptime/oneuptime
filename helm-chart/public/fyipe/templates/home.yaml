@@ -53,7 +53,7 @@ spec:
           targetPort: {{ .Values.host.homePort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "home"  }}
-    type: {{ .Values.service.type }}
+    type: ClusterIP
 ---
 ###########################################
 {{- end }}
