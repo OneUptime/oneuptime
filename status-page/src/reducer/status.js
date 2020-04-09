@@ -25,6 +25,7 @@ import {
     FETCH_MONITOR_STATUSES_SUCCESS,
     FETCH_MONITOR_STATUSES_FAILURE,
 } from '../constants/status';
+import moment from 'moment';
 
 const INITIAL_STATE = {
     error: null,
@@ -352,14 +353,29 @@ export default (state = INITIAL_STATE, action) => {
                 },
             });
 
-        case 'ADD_SCHEDULED_EVENT':
+        case 'ADD_SCHEDULED_EVENT': {
+            let dayStart, dayEnd;
+            if (state.individualevent) {
+                dayStart = moment(state.individualevent.date).startOf('day');
+                dayEnd = moment(state.individualevent.date).endOf('day');
+            }
+
             return Object.assign({}, state, {
                 events: {
                     ...state.events,
 
-                    events: [action.payload, ...state.events.events],
+                    events:
+                        !state.individualevent ||
+                        (state.individualevent &&
+                            moment(action.payload.startDate).isBefore(dayEnd) &&
+                            moment(action.payload.endDate).isAfter(dayStart) &&
+                            state.individualevent._id ===
+                                action.payload.monitorId._id)
+                            ? [action.payload, ...state.events.events]
+                            : state.events.events,
                 },
             });
+        }
 
         case 'UPDATE_SCHEDULED_EVENT':
             return Object.assign({}, state, {
