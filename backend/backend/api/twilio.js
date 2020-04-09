@@ -183,7 +183,8 @@ router.post('/sms/test', getUser, isUserMasterAdmin, async function(req, res) {
             });
         }
 
-        const testResult = await test(data);
+        let testResult = await test(data);
+        testResult = { message: 'SMS sent successfully' };
         return sendItemResponse(req, res, testResult);
     } catch (error) {
         return sendErrorResponse(req, res, error);
