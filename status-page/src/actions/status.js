@@ -248,10 +248,10 @@ export const getScheduledEvent = (projectId, statusPageId, skip) => {
     };
 };
 
-export const getIndividualEvent = (projectId, monitorId, date, name, need) => {
+export const getIndividualEvent = (projectId, monitorId, date, name) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${monitorId}/individualevents?date=${date}&need=${need}`
+            `statusPage/${projectId}/${monitorId}/individualevents?date=${date}`
         );
 
         dispatch(scheduledEventRequest());
@@ -288,29 +288,12 @@ export const getIndividualEvent = (projectId, monitorId, date, name, need) => {
     };
 };
 
-export const notmonitoredDays = (
-    monitorId,
-    date,
-    name,
-    notemessage,
-    eventmessage
-) => {
+export const notmonitoredDays = (monitorId, date, name, message) => {
     return function(dispatch) {
         dispatch(statusPageNoteReset());
-        dispatch(scheduledEventReset());
         dispatch(
             individualNoteEnable({
-                message: notemessage,
-                name: {
-                    _id: monitorId,
-                    name,
-                    date,
-                },
-            })
-        );
-        dispatch(
-            individualEventEnable({
-                message: eventmessage,
+                message: message,
                 name: {
                     _id: monitorId,
                     name,

@@ -5,6 +5,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
     getStatusPageIndividualNote,
+    getIndividualEvent,
     notmonitoredDays,
 } from '../actions/status';
 
@@ -12,10 +13,10 @@ class BlockChart extends Component {
     constructor(props) {
         super(props);
 
-        this.requestnotes = this.requestnotes.bind(this);
+        this.requestday = this.requestday.bind(this);
     }
 
-    requestnotes = (need, date) => {
+    requestday = (need, date) => {
         if (need) {
             this.props.getStatusPageIndividualNote(
                 this.props.statusData.projectId._id,
@@ -30,7 +31,6 @@ class BlockChart extends Component {
                     this.props.monitorId,
                     this.props.time.emptytime,
                     this.props.monitorName,
-                    'No data available for this date',
                     'No data available for this date'
                 );
             } else {
@@ -38,11 +38,16 @@ class BlockChart extends Component {
                     this.props.monitorId,
                     date,
                     this.props.monitorName,
-                    'No incidents yet',
-                    'No scheduled events yet'
+                    'No incidents yet'
                 );
             }
         }
+        this.props.getIndividualEvent(
+            this.props.statusData.projectId._id,
+            this.props.monitorId,
+            date,
+            this.props.monitorName
+        );
     };
 
     render() {
@@ -116,7 +121,7 @@ class BlockChart extends Component {
                 style={{ outline: 'none', backgroundColor: backgroundColor }}
                 title={`${title}
                 ${title1}`}
-                onClick={() => this.requestnotes(need, this.props.time.date)}
+                onClick={() => this.requestday(need, this.props.time.date)}
             ></div>
         );
     }
@@ -130,6 +135,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             getStatusPageIndividualNote,
+            getIndividualEvent,
             notmonitoredDays,
         },
         dispatch
@@ -139,6 +145,7 @@ BlockChart.propTypes = {
     time: PropTypes.oneOfType([PropTypes.object, PropTypes.bool]),
     statusData: PropTypes.object,
     getStatusPageIndividualNote: PropTypes.func,
+    getIndividualEvent: PropTypes.func,
     notmonitoredDays: PropTypes.func,
     monitorName: PropTypes.any,
     monitorId: PropTypes.any,
