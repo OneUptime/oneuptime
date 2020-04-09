@@ -169,9 +169,9 @@ module.exports = {
             }
 
             query.deleted = false;
-            const scheduledEvent = await ScheduledEventModel.findOne(
-                query
-            ).lean();
+            const scheduledEvent = await ScheduledEventModel.findOne(query)
+                .populate('monitorId', 'name')
+                .lean();
 
             if (scheduledEvent) {
                 if (scheduledEvent.createdById === 'API') {

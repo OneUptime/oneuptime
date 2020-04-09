@@ -352,6 +352,15 @@ export default (state = INITIAL_STATE, action) => {
                 },
             });
 
+        case 'ADD_SCHEDULED_EVENT':
+            return Object.assign({}, state, {
+                events: {
+                    ...state.events,
+
+                    events: [action.payload, ...state.events.events],
+                },
+            });
+
         case 'UPDATE_SCHEDULED_EVENT':
             return Object.assign({}, state, {
                 events: {
