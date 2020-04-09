@@ -279,6 +279,7 @@ module.exports = {
                     investigationNote: incident.investigationNote
                         ? incident.investigationNote
                         : '',
+                    incidentType: incident.incidentType,
                     createdAt: incident.createdAt,
                     monitorId: incident.monitorId,
                     resolved: incident.resolved,

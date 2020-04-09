@@ -60,46 +60,52 @@ class BlockChart extends Component {
                 this.props.time.upTime)
         ) {
             if (this.props.time.downTime > 1) {
-                let downtime = `${this.props.time.downTime} minutes`;
+                const downTimeInMinutes = Math.floor(
+                    this.props.time.downTime / 60
+                );
+                let downtime = `${downTimeInMinutes} minutes`;
 
-                if (this.props.time.downTime > 60) {
+                if (downTimeInMinutes > 60) {
                     downtime = `${Math.floor(
-                        this.props.time.downTime / 60
-                    )} hrs ${this.props.time.downTime % 60} minutes`;
+                        downTimeInMinutes / 60
+                    )} hrs ${downTimeInMinutes % 60} minutes`;
                 }
 
                 bar = 'bar down';
                 title = moment(this.props.time.date).format('LL');
-                title1 = `<br>Down for ${downtime}`;
+                title1 = `Down for ${downtime}`;
                 need = true;
                 if (colors)
                     backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`;
             } else if (this.props.time.degradedTime > 1) {
-                let degradedtime = `${this.props.time.degradedTime} minutes`;
+                const degradedTimeInMinutes = Math.floor(
+                    this.props.time.degradedTime / 60
+                );
+                let degradedtime = `${degradedTimeInMinutes} minutes`;
 
-                if (this.props.time.degradedTime > 60) {
+                if (degradedTimeInMinutes > 60) {
                     degradedtime = `${Math.floor(
-                        this.props.time.degradedTime / 60
-                    )} hrs ${this.props.time.degradedTime % 60} minutes`;
+                        degradedTimeInMinutes / 60
+                    )} hrs ${degradedTimeInMinutes % 60} minutes`;
                 }
 
                 bar = 'bar mid';
                 title = moment(this.props.time.date).format('LL');
-                title1 = `<br>Degraded for ${degradedtime}`;
+                title1 = `Degraded for ${degradedtime}`;
                 need = true;
                 if (colors)
                     backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`;
             } else {
                 bar = 'bar';
                 title = moment(this.props.time.date).format('LL');
-                title1 = '<br>No downtime';
+                title1 = 'No downtime';
                 if (colors)
                     backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
             }
         } else {
             bar = 'bar empty';
             title = moment(this.props.time.date).format('LL');
-            title1 = '<br>No data available';
+            title1 = 'No data available';
             if (colors)
                 backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
         }
@@ -108,7 +114,8 @@ class BlockChart extends Component {
             <div
                 className={bar}
                 style={{ outline: 'none', backgroundColor: backgroundColor }}
-                title={title + title1}
+                title={`${title}
+                ${title1}`}
                 onClick={() => this.requestnotes(need, this.props.time.date)}
             ></div>
         );

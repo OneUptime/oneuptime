@@ -6,7 +6,7 @@ const {
     validLicense,
     invalidLicense,
     expiredLicense,
-} = require('./data/license/validate');
+} = require('./data/license');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
