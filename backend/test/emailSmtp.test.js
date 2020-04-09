@@ -18,17 +18,15 @@ const GlobalConfigService = require('../backend/services/globalConfigService');
 let projectId, airtableId, jwtToken;
 
 describe('Email SMTP Api Test', function() {
-    this.timeout(20000);
+    this.timeout(200000);
 
     before(function(done) {
-        this.timeout(40000);
+        this.timeout(400000);
         GlobalConfig.initTestConfig().then(() => {
             createEnterpriseUser(request, data.user, async (err, res) => {
-                // have access to the tokens and user on creation of account
                 const project = res.body.project;
                 projectId = project._id;
                 airtableId = res.body.airtableId;
-                jwtToken = res.body.tokens.jwtAccessToken;
 
                 // make created user master admin
                 await UserService.updateBy(
@@ -36,7 +34,16 @@ describe('Email SMTP Api Test', function() {
                     { role: 'master-admin' }
                 );
 
-                done();
+                request
+                    .post('/user/login')
+                    .send({
+                        email: data.user.email,
+                        password: data.user.password,
+                    })
+                    .end((err, res) => {
+                        jwtToken = res.body.tokens.jwtAccessToken;
+                        done();
+                    });
             });
         });
     });
