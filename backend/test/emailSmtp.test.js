@@ -15,13 +15,12 @@ const AirtableService = require('../backend/services/airtableService');
 const { testemail } = require('./utils/config');
 const GlobalConfigService = require('../backend/services/globalConfigService');
 
+let projectId, airtableId, jwtToken;
 
-let projectId, airtableId, jwtToken, refreshToken, user;
-
-describe('Email SMTP Api Test', function () {
+describe('Email SMTP Api Test', function() {
     this.timeout(20000);
 
-    before(function (done) {
+    before(function(done) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(() => {
             createEnterpriseUser(request, data.user, async (err, res) => {
@@ -30,10 +29,9 @@ describe('Email SMTP Api Test', function () {
                 projectId = project._id;
                 airtableId = res.body.airtableId;
                 jwtToken = res.body.tokens.jwtAccessToken;
-                refreshToken = res.body.tokens.jwtRefreshToken;
 
                 // make created user master admin
-                user = await UserService.updateBy(
+                await UserService.updateBy(
                     { email: data.user.email },
                     { role: 'master-admin' }
                 );
@@ -66,9 +64,8 @@ describe('Email SMTP Api Test', function () {
     });
 
     it('should send test smtp email to the provided email address', done => {
-        let authorization = `Basic ${jwtToken}`;
+        const authorization = `Basic ${jwtToken}`;
         GlobalConfigService.findOneBy({ name: 'smtp' }).then(({ value }) => {
-
             const payload = {
                 user: value.email,
                 pass: value.password,
@@ -76,22 +73,23 @@ describe('Email SMTP Api Test', function () {
                 port: value['smtp-port'],
                 from: value['from-name'],
                 secure: value['smtp-secure'],
-                email: testemail
-            }
+                email: testemail,
+            };
 
-            request.post('/emailSmtp/test')
+            request
+                .post('/emailSmtp/test')
                 .set('Authorization', authorization)
                 .send(payload)
-                .end(function (err, res) {
+                .end(function(err, res) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     done();
                 });
-        })
+        });
     });
 
     it('should not send test smtp email when user or pass is not valid', done => {
-        let authorization = `Basic ${jwtToken}`;
+        const authorization = `Basic ${jwtToken}`;
         GlobalConfigService.findOneBy({ name: 'smtp' }).then(({ value }) => {
             value.email = 'randomemail@gmail.com';
             const payload = {
@@ -101,21 +99,22 @@ describe('Email SMTP Api Test', function () {
                 port: value['smtp-port'],
                 from: value['from-name'],
                 secure: value['smtp-secure'],
-                email: testemail
-            }
+                email: testemail,
+            };
 
-            request.post('/emailSmtp/test')
+            request
+                .post('/emailSmtp/test')
                 .set('Authorization', authorization)
                 .send(payload)
-                .end(function (err, res) {
+                .end(function(err, res) {
                     expect(res).to.have.status(400);
                     done();
                 });
-        })
+        });
     });
 
     it('should not send test smtp email when host or port is invalid', done => {
-        let authorization = `Basic ${jwtToken}`;
+        const authorization = `Basic ${jwtToken}`;
         GlobalConfigService.findOneBy({ name: 'smtp' }).then(({ value }) => {
             value['smtp-server'] = 'random.host';
             const payload = {
@@ -125,16 +124,17 @@ describe('Email SMTP Api Test', function () {
                 port: value['smtp-port'],
                 from: value['from-name'],
                 secure: value['smtp-secure'],
-                email: testemail
-            }
+                email: testemail,
+            };
 
-            request.post('/emailSmtp/test')
+            request
+                .post('/emailSmtp/test')
                 .set('Authorization', authorization)
                 .send(payload)
-                .end(function (err, res) {
+                .end(function(err, res) {
                     expect(res).to.have.status(400);
                     done();
                 });
-        })
-    })
+        });
+    });
 });
