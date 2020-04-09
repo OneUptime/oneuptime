@@ -2337,6 +2337,467 @@
   </section>
 </article>
 
+<article id="get-status-page-scheduled-events" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Status Page Scheduled Events<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get Status Page Scheduled Events by Project ID and Status Page ID. Return by skipping and limiting the number of results.
+      </p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://fyipe.com/api/statusPage/:projectId/:statusPageId/events</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>skip</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to skip in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>limit</span>
+                <span class="item-type">integer</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The number of results to return in the response body.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>statusPageId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The status page id of the project status page.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://fyipe.com/api/statusPage/5e8cda4eac92233bf1e4645a/5e8cdb19ac92233bf1e464d6/events?skip=0&limit=5</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e8f7cff373fe04be53f6435",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-04-09T19:52:31.296Z",
+      "projectId": "5e8cda4eac92233bf1e4645a",
+      "monitorId": {
+        "_id": "5e8e37756699ef07cef3cc94",
+        "name": "Google Home"
+      },
+      "name": "Zenith111",
+      "createdById": {
+        "_id": "5e8cda48ac92233bf1e46458",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-04-09T19:52:16.000Z",
+      "endDate": "2020-04-09T19:52:16.000Z",
+      "description": "sdfg"
+    },
+    {
+      "_id": "5e8f7cde373fe04be53f6417",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-04-09T19:51:58.844Z",
+      "projectId": "5e8cda4eac92233bf1e4645a",
+      "monitorId": {
+        "_id": "5e8cdaebac92233bf1e4649a",
+        "name": "Mello"
+      },
+      "name": "MMM11",
+      "createdById": {
+        "_id": "5e8cda48ac92233bf1e46458",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-04-09T19:51:42.000Z",
+      "endDate": "2020-04-09T19:51:42.000Z",
+      "description": "er"
+    },
+    {
+      "_id": "5e8f7cbc373fe04be53f6412",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-04-09T19:51:24.172Z",
+      "projectId": "5e8cda4eac92233bf1e4645a",
+      "monitorId": {
+        "_id": "5e8cdaebac92233bf1e4649a",
+        "name": "Mello"
+      },
+      "name": "Taicho 111",
+      "createdById": {
+        "_id": "5e8cda48ac92233bf1e46458",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-04-09T19:51:07.000Z",
+      "endDate": "2020-04-09T19:51:07.000Z",
+      "description": "sgdgfgh"
+    },
+    {
+      "_id": "5e8f7c98373fe04be53f63f4",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-04-09T19:50:48.156Z",
+      "projectId": "5e8cda4eac92233bf1e4645a",
+      "monitorId": {
+        "_id": "5e8e37756699ef07cef3cc94",
+        "name": "Google Home"
+      },
+      "name": "Taicho 11",
+      "createdById": {
+        "_id": "5e8cda48ac92233bf1e46458",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-04-09T19:50:32.000Z",
+      "endDate": "2020-04-09T19:50:32.000Z",
+      "description": "er"
+    },
+    {
+      "_id": "5e8f7b75373fe04be53f63e5",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-04-09T19:45:57.012Z",
+      "projectId": "5e8cda4eac92233bf1e4645a",
+      "monitorId": {
+        "_id": "5e8e37756699ef07cef3cc94",
+        "name": "Google Home"
+      },
+      "name": "Taicho 1",
+      "createdById": {
+        "_id": "5e8cda48ac92233bf1e46458",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-04-09T19:45:37.000Z",
+      "endDate": "2020-04-09T19:45:37.000Z",
+      "description": "sd"
+    }
+  ],
+  "count": 25,
+  "skip": 0,
+  "limit": 5
+}                             
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<article id="get-status-page-monitor-scheduled-events" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get Status Page Monitor Scheduled Events<span class="requestType">GET</span></h3>
+    <p>
+      <p>Get Status Page Monitor Scheduled Events by Project ID and Monitor ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://fyipe.com/api/statusPage/:projectId/:monitorId/individualevents</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Query Params</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>date</span>
+                <span class="item-type">Date</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The current date.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>monitorId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The monitor id of the project monitor.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">
+            https://fyipe.com/api/statusPage/5e8cda4eac92233bf1e4645a/5e8cdaebac92233bf1e4649a/individualevents?date=2020-04-09T21:22:08.845Z
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+{
+  "data": [
+    {
+      "_id": "5e8f7cde373fe04be53f6417",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-04-09T19:51:58.844Z",
+      "projectId": "5e8cda4eac92233bf1e4645a",
+      "monitorId": {
+        "_id": "5e8cdaebac92233bf1e4649a",
+        "name": "Mello"
+      },
+      "name": "MMM11",
+      "createdById": {
+        "_id": "5e8cda48ac92233bf1e46458",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-04-09T19:51:42.000Z",
+      "endDate": "2020-04-09T19:51:42.000Z",
+      "description": "er"
+    },
+    {
+      "_id": "5e8f7cbc373fe04be53f6412",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-04-09T19:51:24.172Z",
+      "projectId": "5e8cda4eac92233bf1e4645a",
+      "monitorId": {
+        "_id": "5e8cdaebac92233bf1e4649a",
+        "name": "Mello"
+      },
+      "name": "Taicho 111",
+      "createdById": {
+        "_id": "5e8cda48ac92233bf1e46458",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-04-09T19:51:07.000Z",
+      "endDate": "2020-04-09T19:51:07.000Z",
+      "description": "sgdgfgh"
+    },
+    {
+      "_id": "5e8f7b4c373fe04be53f63c7",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-04-09T19:45:16.903Z",
+      "projectId": "5e8cda4eac92233bf1e4645a",
+      "monitorId": {
+        "_id": "5e8cdaebac92233bf1e4649a",
+        "name": "Mello"
+      },
+      "name": "Springan 14",
+      "createdById": {
+        "_id": "5e8cda48ac92233bf1e46458",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-04-09T19:44:41.000Z",
+      "endDate": "2020-04-09T19:44:41.000Z",
+      "description": "klsd"
+    },
+    {
+      "_id": "5e8f7aff373fe04be53f63c1",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-04-09T19:43:59.715Z",
+      "projectId": "5e8cda4eac92233bf1e4645a",
+      "monitorId": {
+        "_id": "5e8cdaebac92233bf1e4649a",
+        "name": "Mello"
+      },
+      "name": "Springan 12",
+      "createdById": {
+        "_id": "5e8cda48ac92233bf1e46458",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-04-09T19:43:36.000Z",
+      "endDate": "2020-04-09T19:43:36.000Z",
+      "description": "sd"
+    },
+    {
+      "_id": "5e8f7aad373fe04be53f63b9",
+      "showEventOnStatusPage": true,
+      "callScheduleOnEvent": true,
+      "monitorDuringEvent": false,
+      "alertSubscriber": true,
+      "createdAt": "2020-04-09T19:42:37.893Z",
+      "projectId": "5e8cda4eac92233bf1e4645a",
+      "monitorId": {
+        "_id": "5e8cdaebac92233bf1e4649a",
+        "name": "Mello"
+      },
+      "name": "Sprigan 16",
+      "createdById": {
+        "_id": "5e8cda48ac92233bf1e46458",
+        "name": "Nawaz Dhandala"
+      },
+      "startDate": "2020-04-09T19:42:16.000Z",
+      "endDate": "2020-04-09T19:42:16.000Z",
+      "description": "sd"
+    }
+  ],
+  "count": 10
+}           
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
 <article id="get-all-monitor-statuses" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get All Monitor Statuses<span class="requestType">GET</span></h3>
