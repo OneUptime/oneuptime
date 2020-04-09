@@ -6,8 +6,8 @@ module.exports = {
             name: 'smtp',
             value: {
                 'email-enabled': false,
-                email: 'jude@hackerbay.io' || 'fyipedevtest1@gmail.com',
-                password: '47199600JUDOC' || 'H2Q2ALqEpknLKsPdRgDmkQfpFsiG8KgEq',
+                email: 'fyipedevtest1@gmail.com',
+                password: 'H2Q2ALqEpknLKsPdRgDmkQfpFsiG8KgEq',
                 'from-name': 'Fyipe',
                 'smtp-server': 'smtp.gmail.com',
                 'smtp-port': '465',
