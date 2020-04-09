@@ -26,7 +26,9 @@ import {
 import DataPathHoC from '../DataPathHoC';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL, { path: '/api/socket.io' });
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 
 class SocketApp extends Component {
     shouldComponentUpdate(nextProps) {
