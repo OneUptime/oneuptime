@@ -6,7 +6,7 @@ const {
     validLicense,
     invalidLicense,
     expiredLicense,
-} = require('./data/license/validate');
+} = require('./data/license');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
@@ -39,7 +39,7 @@ describe('License API', function() {
 
     it('should confirm valid license', done => {
         request
-            .post('/license/validate/validate')
+            .post('/license/validate')
             .send({
                 license: validLicense['License Key'],
                 email,
