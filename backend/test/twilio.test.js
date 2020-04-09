@@ -28,13 +28,13 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-describe('Twilio API', function () {
+describe('Twilio API', function() {
     this.timeout(20000);
 
-    before(function (done) {
+    before(function(done) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-            createUser(request, userData.user, async function (err, res) {
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, async function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
                 airtableId = res.body.airtableId;
@@ -45,28 +45,28 @@ describe('Twilio API', function () {
                     { role: 'master-admin' }
                 );
 
-                VerificationTokenModel.findOne({ userId }, function (
+                VerificationTokenModel.findOne({ userId }, function(
                     err,
                     verificationToken
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function () {
+                        .end(function() {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err, res) {
+                                .end(function(err, res) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
                                         .post(`/monitor/${projectId}`)
                                         .set('Authorization', authorization)
                                         .send(monitor)
-                                        .end(function (err, res) {
+                                        .end(function(err, res) {
                                             monitorId = res.body._id;
                                             request
                                                 .post(
@@ -94,7 +94,7 @@ describe('Twilio API', function () {
         });
     });
 
-    after(async function () {
+    after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -112,7 +112,7 @@ describe('Twilio API', function () {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should send verification sms code for adding alert phone number', function (done) {
+    it('should send verification sms code for adding alert phone number', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(`/twilio/sms/sendVerificationToken?projectId=${projectId}`)
@@ -120,7 +120,7 @@ describe('Twilio API', function () {
             .send({
                 to: testphoneNumber,
             })
-            .end(function (err, res) {
+            .end(function(err, res) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -130,13 +130,12 @@ describe('Twilio API', function () {
         const authorization = `Basic ${token}`;
 
         GlobalConfigService.findOneBy({ name: 'twilio' }).then(({ value }) => {
-
             const payload = {
                 accountSid: value['account-sid'],
                 authToken: value['authentication-token'],
                 phoneNumber: value.phone,
-                testphoneNumber
-            }
+                testphoneNumber,
+            };
 
             request
                 .post('/twilio/sms/test')
@@ -151,18 +150,16 @@ describe('Twilio API', function () {
         });
     });
 
-
     it('should return status code 400 when any of the payload field is missing', done => {
         const authorization = `Basic ${token}`;
 
         GlobalConfigService.findOneBy({ name: 'twilio' }).then(({ value }) => {
-
             const payload = {
                 accountSid: value['account-sid'],
                 authToken: value['authentication-token'],
                 phoneNumber: value.phone,
-                testphoneNumber: ''
-            }
+                testphoneNumber: '',
+            };
 
             request
                 .post('/twilio/sms/test')
@@ -171,7 +168,7 @@ describe('Twilio API', function () {
                 .end((err, res) => {
                     expect(res).to.have.status(400);
                     done();
-                })
+                });
         });
     });
 
@@ -184,8 +181,8 @@ describe('Twilio API', function () {
                 accountSid: value['account-sid'],
                 authToken: value['authentication-token'],
                 phoneNumber: value.phone,
-                testphoneNumber
-            }
+                testphoneNumber,
+            };
 
             request
                 .post('/twilio/sms/test')
@@ -194,7 +191,7 @@ describe('Twilio API', function () {
                 .end((err, res) => {
                     expect(res).to.have.status(500);
                     done();
-                })
+                });
         });
     });
 
@@ -207,8 +204,8 @@ describe('Twilio API', function () {
                 accountSid: value['account-sid'],
                 authToken: value['authentication-token'],
                 phoneNumber: value.phone,
-                testphoneNumber
-            }
+                testphoneNumber,
+            };
 
             request
                 .post('/twilio/sms/test')
@@ -217,7 +214,7 @@ describe('Twilio API', function () {
                 .end((err, res) => {
                     expect(res).to.have.status(400);
                     done();
-                })
+                });
         });
     });
 });
