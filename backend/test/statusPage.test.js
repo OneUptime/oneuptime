@@ -12,6 +12,7 @@ const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const StatusService = require('../backend/services/statusPageService');
 const MonitorService = require('../backend/services/monitorService');
+const ScheduledEventService = require('../backend/services/scheduledEventService');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 
@@ -22,6 +23,7 @@ let token,
     projectId,
     monitorId,
     monitorCategoryId,
+    scheduledEventId,
     statusPageId,
     privateStatusPageId,
     userId,
@@ -35,6 +37,18 @@ const monitor = {
 
 const monitorCategory = {
     monitorCategoryName: 'New Monitor Category',
+};
+
+const today = new Date().toISOString();
+const scheduledEvent = {
+    name: 'New scheduled Event',
+    startDate: today,
+    endDate: today,
+    description: 'New scheduled Event description',
+    showEventOnStatusPage: true,
+    alertSubscriber: true,
+    callScheduleOnEvent: true,
+    monitorDuringEvent: false,
 };
 
 describe('Status API', function() {
@@ -81,7 +95,23 @@ describe('Status API', function() {
                                                 .send(monitor)
                                                 .end(function(err, res) {
                                                     monitorId = res.body._id;
-                                                    done();
+                                                    request
+                                                        .post(
+                                                            `/scheduledEvent/${projectId}/${monitorId}`
+                                                        )
+                                                        .set(
+                                                            'Authorization',
+                                                            authorization
+                                                        )
+                                                        .send(scheduledEvent)
+                                                        .end(function(
+                                                            err,
+                                                            res
+                                                        ) {
+                                                            scheduledEventId =
+                                                                res.body._id;
+                                                            done();
+                                                        });
                                                 });
                                         });
                                 });
@@ -94,6 +124,7 @@ describe('Status API', function() {
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
+        await ScheduledEventService.hardDeleteBy({ _id: scheduledEventId });
         await StatusService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
     });
@@ -294,6 +325,44 @@ describe('Status API', function() {
                 expect(res.body.monitorsData[0]).to.have.property(
                     'monitorCategoryId'
                 );
+                done();
+            });
+    });
+
+    it('should get list of scheduled events', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(`/statusPage/${projectId}/${statusPageId}/events`)
+            .set('Authorization', authorization)
+            .send()
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body.data)
+                    .to.be.an('array')
+                    .with.length.greaterThan(0);
+                expect(res.body.data[0]).to.have.property('name');
+                done();
+            });
+    });
+
+    it('should get list of scheduled events for monitor', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(
+                `/statusPage/${projectId}/${monitorId}/individualevents?date=${today}`
+            )
+            .set('Authorization', authorization)
+            .send()
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body.data)
+                    .to.be.an('array')
+                    .with.length.greaterThan(0);
+                expect(res.body.data[0]).to.have.property('name');
                 done();
             });
     });
