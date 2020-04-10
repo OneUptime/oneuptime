@@ -54,6 +54,12 @@ const INITIAL_STATE = {
 };
 
 export default (state = INITIAL_STATE, action) => {
+    let dayStart, dayEnd;
+    if (state.individualevent) {
+        dayStart = moment(state.individualevent.date).startOf('day');
+        dayEnd = moment(state.individualevent.date).endOf('day');
+    }
+
     switch (action.type) {
         case STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
@@ -353,13 +359,7 @@ export default (state = INITIAL_STATE, action) => {
                 },
             });
 
-        case 'ADD_SCHEDULED_EVENT': {
-            let dayStart, dayEnd;
-            if (state.individualevent) {
-                dayStart = moment(state.individualevent.date).startOf('day');
-                dayEnd = moment(state.individualevent.date).endOf('day');
-            }
-
+        case 'ADD_SCHEDULED_EVENT':
             return Object.assign({}, state, {
                 events: {
                     ...state.events,
@@ -375,25 +375,55 @@ export default (state = INITIAL_STATE, action) => {
                             : state.events.events,
                 },
             });
-        }
 
-        case 'UPDATE_SCHEDULED_EVENT':
+        case 'UPDATE_SCHEDULED_EVENT': {
+            const events = Object.assign([], state.events.events);
+            const index = events.findIndex(
+                event => event._id === action.payload._id
+            );
+
+            if (
+                index < 0 &&
+                action.payload.showEventOnStatusPage &&
+                (!state.individualevent ||
+                    (state.individualevent &&
+                        moment(action.payload.startDate).isBefore(dayEnd) &&
+                        moment(action.payload.endDate).isAfter(dayStart) &&
+                        state.individualevent._id ===
+                            action.payload.monitorId._id))
+            ) {
+                // add event
+                events.unshift(action.payload);
+            } else {
+                if (
+                    index > -1 &&
+                    (!action.payload.showEventOnStatusPage ||
+                        (state.individualevent &&
+                            !(
+                                moment(action.payload.startDate).isBefore(
+                                    dayEnd
+                                ) &&
+                                moment(action.payload.endDate).isAfter(dayStart)
+                            ) &&
+                            state.individualevent._id ===
+                                action.payload.monitorId._id))
+                ) {
+                    // remove event
+                    events.splice(index, 1);
+                } else {
+                    // update event
+                    if (index > -1) events[index] = action.payload;
+                }
+            }
+
             return Object.assign({}, state, {
                 events: {
                     ...state.events,
 
-                    events:
-                        state.events.events && state.events.events.length > 0
-                            ? state.events.events.map(event => {
-                                  if (event._id === action.payload._id) {
-                                      return action.payload;
-                                  } else {
-                                      return event;
-                                  }
-                              })
-                            : [],
+                    events,
                 },
             });
+        }
 
         case MORE_EVENTS_SUCCESS:
             return Object.assign({}, state, {

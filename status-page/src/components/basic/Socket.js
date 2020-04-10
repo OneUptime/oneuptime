@@ -90,7 +90,9 @@ class SocketApp extends Component {
             socket.on(`addScheduledEvent-${this.props.project._id}`, function(
                 data
             ) {
-                thisObj.props.addscheduledeventbysocket(data);
+                if (data.showEventOnStatusPage) {
+                    thisObj.props.addscheduledeventbysocket(data);
+                }
             });
             socket.on(
                 `updateScheduledEvent-${this.props.project._id}`,
