@@ -4,7 +4,7 @@
  * @returns Boolean true or false
  */
 
-export default (val) => {
-    let falsy = /^(?:f(?:alse)?|no?|0+)$/i;
+export default val => {
+    const falsy = /^(?:f(?:alse)?|no?|0+)$/i;
     return !falsy.test(val) && !!val;
-}
+};

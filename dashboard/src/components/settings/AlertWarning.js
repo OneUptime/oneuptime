@@ -19,30 +19,32 @@ class AlertWarning extends Component {
                             <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                     <span>
-                                        Alert is currently disabled for this project.
-                                </span>
+                                        Alert is currently disabled for this
+                                        project.
+                                    </span>
                                 </span>
                             </div>
                         </div>
                     </div>
                 </div>
             </ShouldRender>
-        )
+        );
     }
 }
 
 AlertWarning.displayName = 'AlertWarning';
 
 AlertWarning.propTypes = {
-    alertEnable: PropTypes.bool
-}
+    alertEnable: PropTypes.bool,
+};
 
 const mapStateToProps = state => {
     return {
-        alertEnable: state.project
-            && state.project.currentProject
-            && state.project.currentProject.alertEnable
-    }
-}
+        alertEnable:
+            state.project &&
+            state.project.currentProject &&
+            state.project.currentProject.alertEnable,
+    };
+};
 
 export default connect(mapStateToProps)(AlertWarning);
