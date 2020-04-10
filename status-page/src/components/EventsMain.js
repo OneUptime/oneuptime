@@ -99,6 +99,7 @@ class EventsMain extends Component {
 
         return (
             <div
+                id="scheduledEvents"
                 className="twitter-feed white box"
                 style={{ overflow: 'visible', ...contentBackground }}
             >

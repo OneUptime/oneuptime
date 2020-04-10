@@ -10,7 +10,10 @@ class Events extends Component {
                 {this.props.events.map((event, i) => {
                     if (!event) return <div>No event</div>;
                     return (
-                        <li className="feed-item clearfix" key={i}>
+                        <li
+                            className="scheduledEvent feed-item clearfix"
+                            key={i}
+                        >
                             <div
                                 className="message"
                                 style={{

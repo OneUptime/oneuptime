@@ -115,8 +115,11 @@ class BlockChart extends Component {
                 backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
         }
 
+        const dateId = title.replace(/, | /g, '');
+
         return (
             <div
+                id={`block${this.props.monitorId}${dateId}`}
                 className={bar}
                 style={{ outline: 'none', backgroundColor: backgroundColor }}
                 title={`${title}
