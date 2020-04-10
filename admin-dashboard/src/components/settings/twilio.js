@@ -36,7 +36,7 @@ function validate(values) {
         errors['verification-sid'] = 'Verification SID is not valid.';
     }
 
-    if (!Validate.text(values['alert-limit'])) {
+    if (!Validate.number(values['alert-limit'])) {
         errors['alert-limit'] = 'Alert limit is not valid.';
     }
 
