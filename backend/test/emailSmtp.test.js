@@ -8,12 +8,13 @@ chai.use(require('chai-http'));
 const app = require('../server');
 const GlobalConfig = require('./utils/globalConfig');
 const request = chai.request.agent(app);
-const { createEnterpriseUser } = require('./utils/userSignUp');
+const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 const { testemail } = require('./utils/config');
 const GlobalConfigService = require('../backend/services/globalConfigService');
+const VerificationTokenModel = require('../backend/models/verificationToken');
 
 let projectId, airtableId, jwtToken;
 
@@ -22,28 +23,39 @@ describe('Email SMTP Api Test', function() {
 
     before(function(done) {
         this.timeout(400000);
-        GlobalConfig.initTestConfig().then(() => {
-            createEnterpriseUser(request, data.user, async (err, res) => {
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, data.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
+                userId = res.body.id;
                 airtableId = res.body.airtableId;
 
-                // make created user master admin
-                await UserService.updateBy(
-                    { email: data.user.email },
-                    { role: 'master-admin' }
-                );
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(async () => {
+                            // make created user master admin
+                            await UserService.updateBy(
+                                { _id: userId },
+                                { role: 'master-admin' }
+                            );
 
-                request
-                    .post('/user/login')
-                    .send({
-                        email: data.user.email,
-                        password: data.user.password,
-                    })
-                    .end((err, res) => {
-                        jwtToken = res.body.tokens.jwtAccessToken;
-                        done();
-                    });
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: data.user.email,
+                                    password: data.user.password,
+                                })
+                                .end(function(err, res) {
+                                    jwtToken = res.body.tokens.jwtAccessToken;
+                                    done();
+                                });
+                        });
+                });
             });
         });
     });
