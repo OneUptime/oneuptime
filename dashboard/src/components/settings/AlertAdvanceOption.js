@@ -114,7 +114,10 @@ export class AlertAdvanceOption extends Component {
                                 >
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                                         <div>
-                                            <div id="alertOptionRow" className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                            <div
+                                                id="alertOptionRow"
+                                                className="bs-Fieldset-wrapper Box-root Margin-bottom--2"
+                                            >
                                                 <div className="bs-Fieldset-row">
                                                     <label
                                                         className="bs-Fieldset-label"

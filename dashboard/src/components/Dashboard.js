@@ -125,7 +125,7 @@ export class DashboardApp extends Component {
                                 <ShouldRender
                                     if={
                                         project.projects.projects !==
-                                        undefined &&
+                                            undefined &&
                                         project.projects.projects[0]
                                     }
                                 >
@@ -149,14 +149,14 @@ export class DashboardApp extends Component {
                                 !project.projects.requesting &&
                                 project.projects.success &&
                                 location.pathname !==
-                                '/dashboard/profile/settings'
+                                    '/dashboard/profile/settings'
                             }
                         >
                             <div className="db-World-scrollWrapper">
                                 <ShouldRender
                                     if={
                                         project.projects.projects !==
-                                        undefined &&
+                                            undefined &&
                                         project.projects.projects[0]
                                     }
                                 >
@@ -251,7 +251,7 @@ export class DashboardApp extends Component {
                                 project.projects.success &&
                                 project.projects.projects.length === 0 &&
                                 location.pathname !==
-                                '/dashboard/profile/settings'
+                                    '/dashboard/profile/settings'
                             }
                         >
                             <div>

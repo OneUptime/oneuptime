@@ -19,7 +19,9 @@ class AlertWarning extends Component {
                             <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                     <span>
-                                        SMS and Call Alerts are disabled for this project.  Please go to Settings -> Billings and enable it.
+                                        SMS and Call Alerts are disabled for
+                                        this project. Please go to Settings
+                                        -&gt; Billings and enable it.
                                     </span>
                                 </span>
                             </div>

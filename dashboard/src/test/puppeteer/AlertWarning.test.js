@@ -14,7 +14,7 @@ describe('Audit Logs', () => {
 
     let cluster;
 
-    beforeAll(async (done) => {
+    beforeAll(async done => {
         jest.setTimeout(2000000);
 
         cluster = await Cluster.launch({
@@ -23,8 +23,8 @@ describe('Audit Logs', () => {
             puppeteer,
             timeout: 1200000,
             env: {
-                REACT_APP_IS_SAAS_SERVICE: true
-            }
+                REACT_APP_IS_SAAS_SERVICE: true,
+            },
         });
 
         cluster.on('taskerror', err => {
@@ -42,7 +42,7 @@ describe('Audit Logs', () => {
         });
     });
 
-    afterAll(async (done) => {
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
         done();
@@ -68,9 +68,9 @@ describe('Audit Logs', () => {
                     await page.evaluate(() => {
                         document.querySelector('#alertEnable').click();
                         document.querySelector('#alertOptionSave').click();
-                    })
+                    });
                 }
-                let element = await page.waitForSelector('#alertWarning');
+                const element = await page.waitForSelector('#alertWarning');
                 expect(element).not.toBe(null);
             });
         },
@@ -98,7 +98,7 @@ describe('Audit Logs', () => {
                     await page.evaluate(() => {
                         document.querySelector('#alertEnable').click();
                         document.querySelector('#alertOptionSave').click();
-                    })
+                    });
                 }
 
                 const newRowLength = await page.$$eval(
@@ -111,10 +111,10 @@ describe('Audit Logs', () => {
                     await page.evaluate(() => {
                         document.querySelector('#alertEnable').click();
                         document.querySelector('#alertOptionSave').click();
-                    })
+                    });
                 }
 
-                let element = await page.$('#alertWarning');
+                const element = await page.$('#alertWarning');
                 expect(element).toBeNull();
             });
         },
