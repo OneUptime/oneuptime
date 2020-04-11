@@ -1,6 +1,6 @@
 {
     "name": "fyipe-server-monitor",
-    "version": "3.0.2365",
+    "version": "3.0.2367",
     "description": "A fyipe shell package that monitor's server resources - disk, memory and CPU percentage - used.",
     "bin": {
         "fyipe-server-monitor": "./bin/server-monitor.js"
