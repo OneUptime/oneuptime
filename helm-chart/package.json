@@ -1,6 +1,6 @@
 {
   "name": "helm-chart",
-  "version": "1.0.0",
+  "version": "3.0.2361",
   "description": "Helm Chart Server for Fyipe",
   "main": "server.js",
   "scripts": {
