@@ -1523,12 +1523,12 @@ smoke_test_production:
   stage: SmokeTest
   script:
     - export HOME_URL=https://www.fyipe.com
-    - export ACCOUNTS_URL=https://accounts.fyipe.com
-    - export DASHBOARD_URL=https://dashboard.fyipe.com
+    - export ACCOUNTS_URL=https://fyipe.com/accounts
+    - export DASHBOARD_URL=https://fyipe.com/dashboard
     - export BACKEND_URL=https://fyipe.com/api
     - export STATUSPAGE_URL=https://statuspage.fyipe.com
-    - export APIDOCS_URL=https://docs.fyipe.com
-    - export LICENSING_URL=https://licensing.fyipe.com
+    - export APIDOCS_URL=https://fyipe.com/docs
+    - export LICENSING_URL=https://fyipe.com/license
     - cd smoke-test
     - npm ci
     - npm run test
@@ -1546,12 +1546,12 @@ smoke_test_staging:
   allow_failure: true
   script:
     - export HOME_URL=https://staging.fyipe.com
-    - export ACCOUNTS_URL=https://staging-accounts.fyipe.com
-    - export DASHBOARD_URL=https://staging-dashboard.fyipe.com
-    - export BACKEND_URL=https://staging-fyipe.com/api
+    - export ACCOUNTS_URL=https://staging.fyipe.com/accounts
+    - export DASHBOARD_URL=https://staging.fyipe.com/dashboard
+    - export BACKEND_URL=https://staging.fyipe.com/api
     - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
-    - export APIDOCS_URL=https://staging-docs.fyipe.com
-    - export LICENSING_URL=https://staging-licensing.fyipe.com
+    - export APIDOCS_URL=https://staging.fyipe.com/docs
+    - export LICENSING_URL=https://staging.fyipe.com/license
     - cd smoke-test
     - npm ci
     - npm run test
