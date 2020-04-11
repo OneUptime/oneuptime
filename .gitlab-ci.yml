@@ -907,10 +907,11 @@ deploy_production_helm-chart:
     - ./ci/scripts/deployment-production-setup.sh
     # Install Helm.
     - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
-    - cd helm-chart
+    - cd ./helm-chart/public
     - sudo helm repo index ./fyipe
     - sudo helm package ./fyipe
     - sudo helm repo index .
+    - cd ..
     - cd ..
     # Deploy to production
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
