@@ -1,6 +1,6 @@
 {
     "name": "fyipe-licensing",
-    "version": "3.0.2374",
+    "version": "3.0.2376",
     "private": true,
     "dependencies": {
         "airtable": "^0.8.1",
