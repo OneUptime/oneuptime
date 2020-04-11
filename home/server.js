@@ -343,6 +343,7 @@ app.get('/enterprise/download-resource/:resourceName', function(req, res) {
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 2592000 }));
 
 app.get('/*', function(req, res) {
+    res.status(404);
     res.render('notFound.ejs', {
         footerCards: false,
         support: false,
