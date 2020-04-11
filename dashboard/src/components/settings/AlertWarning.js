@@ -13,14 +13,13 @@ class AlertWarning extends Component {
 
         return (
             <ShouldRender if={!alertEnable && IS_SAAS_SERVICE}>
-                <div className="Box-root Margin-vertical--12">
+                <div id="alertWarning" className="Box-root Margin-vertical--12">
                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
                         <div className="Box-root Box-background--red4">
                             <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                     <span>
-                                        Alert is currently disabled for this
-                                        project.
+                                        SMS and Call Alerts are disabled for this project.  Please go to Settings -> Billings and enable it.
                                     </span>
                                 </span>
                             </div>
