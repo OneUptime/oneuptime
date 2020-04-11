@@ -214,10 +214,19 @@ mongodb:
 
 If you want to expose MongoDB out to the internet, run `install` or `upgrade` with --set mongodb.ingress.enabled=true. You'll see an ingress service for mongodb created with which you can access mongodb data on your cluster.
 
-## Minikube / Microk8s
+## Microk8s
 
-`service.type` 
-For minikube, set this to NodePort, elsewhere use LoadBalancer
+If you want to install Fyipe on a VM. Add these lines to `sudo crontab -e`
+
+```
+# Run this on Reboot. 
+@reboot sudo curl https://fyipe.com/chart/install.sh | sudo bash
+
+# Run this once every 24 hours. 
+0 0 * * * sudo curl https://fyipe.com/chart/install.sh | sudo bash
+```
+
+Reboot the machine and wait for 15 mins.
 
 
 ## Modifying default params

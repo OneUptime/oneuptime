@@ -83,8 +83,12 @@ then
     sudo microk8s.enable registry
     echo "RUNNING COMMAND: sudo microk8s.enable dns"
     sudo microk8s.enable dns
-    echo "RUNNING COMMAND: sudo microk8s.enable storage"
-    sudo microk8s.enable storage
+    # If its a CI install, then do not enable storage. 
+    if [[ $1 -ne ci-install ]]
+    then
+        echo "RUNNING COMMAND: sudo microk8s.enable storage"
+        sudo microk8s.enable storage
+    fi
     echo "RUNNING COMMAND: sudo microk8s.inspect"
     sudo sudo microk8s.inspect
     echo "Sleeping for 30 seconds"
@@ -156,7 +160,7 @@ then
     else
         updateinstallation
     fi
-elif [[ $1 -eq localInstall ]] # If its a local install, take local scripts. 
+elif [[ $1 -eq ci-install ]] # If its a local install, take local scripts. 
 then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
