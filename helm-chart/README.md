@@ -20,7 +20,13 @@ helm install -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyi
 
 ### Install on production
 ```
-helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe- -namespace default 
+helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe --namespace default 
+```
+
+### Update Cluster
+```
+kubectl delete job fi-init-script
+helm upgrade --reuse-values fi ./helm-chart/public/fyipe
 ```
 
 ### Uninstall

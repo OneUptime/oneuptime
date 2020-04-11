@@ -1163,9 +1163,9 @@ deploy_staging_probe:
     - sudo docker tag fyipeproject/probe:master fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-1 fi-probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe1 fi-probe1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Additionally update probe1 deployment as well.
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-2 fi-probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe2 fi-probe2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1188,8 +1188,8 @@ deploy_production_probe:
     - sudo docker tag fyipeproject/probe:latest fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/probe:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-1 fi-probe-1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe-2 fi-probe-2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe1 fi-probe1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe2 fi-probe2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1215,7 +1215,7 @@ deploy_staging_status-page:
     - sudo docker tag fyipeproject/status-page:master fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status-page fi-status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status fi-status=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1238,7 +1238,7 @@ deploy_production_status-page:
     - sudo docker tag fyipeproject/status-page:latest fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/status-page:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status-page fi-status-page=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status fi-status=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1264,7 +1264,7 @@ deploy_staging_admin-dashboard:
     - sudo docker tag fyipeproject/admin-dashboard:master fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin-dashboard fi-admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1287,7 +1287,7 @@ deploy_production_admin-dashboard:
     - sudo docker tag fyipeproject/admin-dashboard:latest fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker push fyipeproject/admin-dashboard:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin-dashboard fi-admin-dashboard=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     # Cleanup
     - chmod +x ./ci/scripts/deployment-cleanup.sh
     - ./ci/scripts/deployment-cleanup.sh
@@ -1682,7 +1682,7 @@ staging_rollback_status-page:
     - chmod +x ./ci/scripts/job-status.sh
     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-status-page
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-status
   only:
     refs:
       - master
@@ -1718,7 +1718,7 @@ staging_rollback_admin-dashboard:
     - chmod +x ./ci/scripts/job-status.sh
     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-admin-dashboard
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-admin
   only:
     refs:
       - master
@@ -1853,7 +1853,7 @@ production_rollback_status-page:
     - chmod +x ./ci/scripts/job-status.sh
     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-status-page
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-status
   only:
     refs:
       - release
@@ -1885,7 +1885,7 @@ production_rollback_admin-dashboard:
     - chmod +x ./ci/scripts/job-status.sh
     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-admin-dashboard
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-admin
   only:
     refs:
       - release
