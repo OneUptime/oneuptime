@@ -7,7 +7,6 @@ import AlertCharges from '../components/alert/AlertCharges';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 import ChangePlan from '../components/settings/ChangePlan';
 import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
-import AlertWarning from '../components/settings/AlertWarning';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 
@@ -27,7 +26,6 @@ class Billing extends Component {
         return (
             <Dashboard>
                 <div className="Margin-vertical--12">
-                    <AlertWarning />
                     <CustomerBalance />
                     <AlertCharges />
 

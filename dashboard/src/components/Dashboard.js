@@ -19,6 +19,7 @@ import { closeNotificationMenu } from '../actions/notification';
 import UnVerifiedEmailBox from '../components/auth/UnVerifiedEmail';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import AlertWarning from './settings/AlertWarning';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
@@ -124,7 +125,7 @@ export class DashboardApp extends Component {
                                 <ShouldRender
                                     if={
                                         project.projects.projects !==
-                                            undefined &&
+                                        undefined &&
                                         project.projects.projects[0]
                                     }
                                 >
@@ -135,6 +136,7 @@ export class DashboardApp extends Component {
                                 </ShouldRender>
 
                                 <div className="db-World-mainPane Box-root Padding-right--20">
+                                    <AlertWarning />
                                     {children}
                                 </div>
 
@@ -147,14 +149,14 @@ export class DashboardApp extends Component {
                                 !project.projects.requesting &&
                                 project.projects.success &&
                                 location.pathname !==
-                                    '/dashboard/profile/settings'
+                                '/dashboard/profile/settings'
                             }
                         >
                             <div className="db-World-scrollWrapper">
                                 <ShouldRender
                                     if={
                                         project.projects.projects !==
-                                            undefined &&
+                                        undefined &&
                                         project.projects.projects[0]
                                     }
                                 >
@@ -179,6 +181,7 @@ export class DashboardApp extends Component {
                                             >
                                                 <UnVerifiedEmailBox />
                                             </ShouldRender>
+                                            <AlertWarning />
                                             {children}
                                         </div>
                                     </div>
@@ -248,7 +251,7 @@ export class DashboardApp extends Component {
                                 project.projects.success &&
                                 project.projects.projects.length === 0 &&
                                 location.pathname !==
-                                    '/dashboard/profile/settings'
+                                '/dashboard/profile/settings'
                             }
                         >
                             <div>
