@@ -3,6 +3,8 @@ const app = express();
 const bodyParser = require('body-parser');
 const path = require('path');
 const compression = require('compression');
+const minify = require('minify');
+const tryToCatch = require('try-to-catch');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -338,6 +340,13 @@ app.get('/enterprise/download-resource/:resourceName', function(req, res) {
         blackLogo: true,
         requestDemoCta: false,
     });
+});
+
+// minify default.js
+app.get('/js/default.js', async function(req, res) {
+    //eslint-disable-next-line
+    const [error, data] = await tryToCatch(minify, './public/js/default.js');
+    res.send(data);
 });
 
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 2592000 }));
