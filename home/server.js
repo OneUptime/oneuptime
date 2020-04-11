@@ -344,8 +344,31 @@ app.get('/enterprise/download-resource/:resourceName', function(req, res) {
 
 // minify default.js
 app.get('/js/default.js', async function(req, res) {
+    
+    res.setHeader("Content-Type", "text/javascript");
     //eslint-disable-next-line
     const [error, data] = await tryToCatch(minify, './public/js/default.js');
+    res.send(data);
+});
+
+// minify
+app.get('/css/home.css', async function(req, res) {
+    
+    res.setHeader("Content-Type", "text/css");
+    //eslint-disable-next-line
+    const [error, data] = await tryToCatch(minify, './public/css/home.css');
+    res.send(data);
+});
+
+// minify
+app.get('/css/comparision.css', async function(req, res) {
+    
+    res.setHeader("Content-Type", "text/css");
+    //eslint-disable-next-line
+    const [error, data] = await tryToCatch(
+        minify,
+        './public/css/comparision.css'
+    );
     res.send(data);
 });
 
