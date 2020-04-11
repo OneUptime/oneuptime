@@ -52,7 +52,8 @@ router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
                 message: 'from is required.',
             });
         }
-        const response = await MailService.testSmtpConfig(data);
+        let response = await MailService.testSmtpConfig(data);
+        response = { message: 'Email sent successfully' };
         return sendItemResponse(req, res, response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
