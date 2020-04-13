@@ -49,7 +49,7 @@ describe('Alert Warning', () => {
     });
 
     test(
-        'Should show a warning alert if call and sms alerts are disabled',
+        'Should not show any warning alert if call and sms alerts are enabled',
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -79,7 +79,7 @@ describe('Alert Warning', () => {
     );
 
     test(
-        'Should not show any warning alert if call and sms alerts are enabled',
+        'Should show a warning alert if call and sms alerts are disabled',
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
