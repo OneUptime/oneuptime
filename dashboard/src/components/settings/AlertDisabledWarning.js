@@ -2,17 +2,15 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import { env } from '../../config';
+import { IS_SAAS_SERVICE } from '../../config';
 import booleanParser from '../../utils/booleanParser';
 
-class AlertWarning extends Component {
+class AlertDisabledWarning extends Component {
     render() {
         const { alertEnable } = this.props;
-        let IS_SAAS_SERVICE = env('IS_SAAS_SERVICE');
-        IS_SAAS_SERVICE = booleanParser(IS_SAAS_SERVICE);
 
         return (
-            <ShouldRender if={!alertEnable && IS_SAAS_SERVICE}>
+            <ShouldRender if={!alertEnable && booleanParser(IS_SAAS_SERVICE)}>
                 <div id="alertWarning" className="Box-root Margin-vertical--12">
                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
                         <div className="Box-root Box-background--red4">
@@ -33,9 +31,9 @@ class AlertWarning extends Component {
     }
 }
 
-AlertWarning.displayName = 'AlertWarning';
+AlertDisabledWarning.displayName = 'AlertDisabledWarning';
 
-AlertWarning.propTypes = {
+AlertDisabledWarning.propTypes = {
     alertEnable: PropTypes.bool,
 };
 
@@ -48,4 +46,4 @@ const mapStateToProps = state => {
     };
 };
 
-export default connect(mapStateToProps)(AlertWarning);
+export default connect(mapStateToProps)(AlertDisabledWarning);

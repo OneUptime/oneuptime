@@ -9,7 +9,7 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-describe('Audit Logs', () => {
+describe('Alert Warning', () => {
     const operationTimeOut = 1000000;
 
     let cluster;
@@ -65,6 +65,7 @@ describe('Audit Logs', () => {
                 );
                 if (rowLength === 1) {
                     // enable sms and call alerts
+                    // check the box
                     await page.evaluate(() => {
                         document.querySelector('#alertEnable').click();
                         document.querySelector('#alertOptionSave').click();
@@ -95,6 +96,7 @@ describe('Audit Logs', () => {
 
                 if (rowLength === 1) {
                     // enable sms and call alerts
+                    // check the box
                     await page.evaluate(() => {
                         document.querySelector('#alertEnable').click();
                         document.querySelector('#alertOptionSave').click();
@@ -108,6 +110,7 @@ describe('Audit Logs', () => {
 
                 if (newRowLength > 1) {
                     // disable sms and call alerts
+                    // uncheck the box
                     await page.evaluate(() => {
                         document.querySelector('#alertEnable').click();
                         document.querySelector('#alertOptionSave').click();
