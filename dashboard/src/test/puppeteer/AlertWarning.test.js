@@ -114,7 +114,9 @@ describe('Audit Logs', () => {
                     });
                 }
 
-                const element = await page.$('#alertWarning');
+                const element = await page.waitForSelector('#alertWarning', {
+                    hidden: true,
+                });
                 expect(element).toBeNull();
             });
         },
