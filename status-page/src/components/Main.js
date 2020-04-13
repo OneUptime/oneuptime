@@ -245,15 +245,15 @@ class Main extends Component {
             if (serviceStatus === 'all') {
                 status = 'status-bubble status-up';
                 statusMessage = 'All Services are Online';
-                faviconurl = '/greenfavicon.ico';
+                faviconurl = '/status-page/greenfavicon.ico';
             } else if (serviceStatus === 'none') {
                 status = 'status-bubble status-down';
                 statusMessage = 'All Services are Offline';
-                faviconurl = '/redfavicon.ico';
+                faviconurl = '/status-page/redfavicon.ico';
             } else if (serviceStatus === 'some') {
                 status = 'status-bubble status-paused';
                 statusMessage = 'Some Services are Offline';
-                faviconurl = '/yellowfavicon.ico';
+                faviconurl = '/status-page/yellowfavicon.ico';
             }
             view = true;
 
@@ -366,7 +366,12 @@ class Main extends Component {
                                             onClick={() =>
                                                 this.selectbutton(index)
                                             }
-                                            style={contentBackground}
+                                            style={{
+                                                background:
+                                                    backgroundMain.background,
+                                                borderColor:
+                                                    contentBackground.background,
+                                            }}
                                             key={`probes-btn${index}`}
                                             id={`probes-btn${index}`}
                                             className={
