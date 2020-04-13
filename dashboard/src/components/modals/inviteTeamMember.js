@@ -239,7 +239,7 @@ export class FormModal extends Component {
                                                             <span>
                                                                 Best for
                                                                 developers,
-                                                                devops, and
+                                                                SRE, and
                                                                 people might be
                                                                 concerned about
                                                                 the downtime.

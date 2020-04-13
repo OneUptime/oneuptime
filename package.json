@@ -1,7 +1,7 @@
 {
     "name": "app",
     "version": "1.0.0",
-    "description": "One Complete DevOps and IT Ops platform.",
+    "description": "One Complete SRE and IT Ops platform.",
     "main": "index.js",
     "dependencies": {},
     "devDependencies": {

@@ -15,6 +15,7 @@ keywords:
   - API Test
   - Website Monitoring
   - Website Test
+  - SRE
 home: https://fyipe.com
 dependencies:
 - name: nginx-ingress-controller
