@@ -39,6 +39,42 @@ module.exports = {
         }
     },
 
+    addScheduledEvent: async event => {
+        try {
+            const project = await ProjectService.findOneBy({
+                _id: event.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : event.projectId;
+
+            global.io.emit(`addScheduledEvent-${projectId}`, event);
+        } catch (error) {
+            ErrorService.log('realTimeService.addScheduledEvent', error);
+            throw error;
+        }
+    },
+
+    updateScheduledEvent: async event => {
+        try {
+            const project = await ProjectService.findOneBy({
+                _id: event.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : event.projectId;
+
+            global.io.emit(`updateScheduledEvent-${projectId}`, event);
+        } catch (error) {
+            ErrorService.log('realTimeService.updateScheduledEvent', error);
+            throw error;
+        }
+    },
+
     sendComponentCreated: async component => {
         try {
             if (!global || !global.io) {

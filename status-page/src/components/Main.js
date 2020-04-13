@@ -6,6 +6,7 @@ import UptimeGraphs from './UptimeGraphs';
 import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
+import EventsMain from './EventsMain';
 import { API_URL, ACCOUNTS_URL, getServiceStatus } from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
@@ -487,6 +488,17 @@ class Main extends Component {
                                 projectId={this.props.statusData.projectId._id}
                                 statusPageId={this.props.statusData._id}
                             />
+
+                            <ShouldRender
+                                if={this.props.statusData.showScheduledEvents}
+                            >
+                                <EventsMain
+                                    projectId={
+                                        this.props.statusData.projectId._id
+                                    }
+                                    statusPageId={this.props.statusData._id}
+                                />
+                            </ShouldRender>
                         </ShouldRender>
                         <div id="footer">
                             <ul>
