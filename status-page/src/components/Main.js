@@ -365,7 +365,12 @@ class Main extends Component {
                                             onClick={() =>
                                                 this.selectbutton(index)
                                             }
-                                            style={contentBackground}
+                                            style={{
+                                                background:
+                                                    backgroundMain.background,
+                                                borderColor:
+                                                    contentBackground.background,
+                                            }}
                                             key={`probes-btn${index}`}
                                             id={`probes-btn${index}`}
                                             className={

@@ -752,6 +752,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   width:100%;
   font-size: 14px;
   line-height: 20px;
+  border: 2px solid #fff;
 }
 
 .btn-group .icon-container.selected{
