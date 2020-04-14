@@ -116,7 +116,6 @@ fi
 # Install cluster with Helm.
 sudo helm repo add fyipe https://fyipe.com/chart || echo "Fyipe already added"
 sudo helm repo update
-sudo helm uninstall fyipe || echo "Fyipe already uninstalled"
 
 AVAILABLE_VERSION=$(curl https://fyipe.com/api/version | jq '.server' | tr -d '"')
 AVAILABLE_VERSION_BUILD=$(echo $AVAILABLE_VERSION | tr "." "0")
