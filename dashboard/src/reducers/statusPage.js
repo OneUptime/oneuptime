@@ -56,6 +56,7 @@ import {
     UPDATE_SUBSCRIBER_OPTION_SUCCESS,
     UPDATE_SUBSCRIBER_OPTION_FAILURE,
     UPDATE_SUBSCRIBER_OPTION_RESET,
+    ADD_MORE_DOMAIN
 } from '../constants/statusPage';
 
 import {
@@ -65,6 +66,7 @@ import {
 } from '../constants/statusPage';
 
 const INITIAL_STATE = {
+    addMoreDomain: false,
     setting: {
         error: null,
         requesting: false,
@@ -164,39 +166,39 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 subProjectStatusPages: isExistingStatusPage
                     ? state.subProjectStatusPages.length > 0
                         ? state.subProjectStatusPages.map(statusPage => {
-                              return statusPage._id === action.payload.projectId
-                                  ? {
-                                        _id: action.payload.projectId,
-                                        statusPages: [
-                                            action.payload,
-                                            ...statusPage.statusPages.filter(
-                                                (status, index) => index < 9
-                                            ),
-                                        ],
-                                        count: statusPage.count + 1,
-                                        skip: statusPage.skip,
-                                        limit: statusPage.limit,
-                                    }
-                                  : statusPage;
-                          })
+                            return statusPage._id === action.payload.projectId
+                                ? {
+                                    _id: action.payload.projectId,
+                                    statusPages: [
+                                        action.payload,
+                                        ...statusPage.statusPages.filter(
+                                            (status, index) => index < 9
+                                        ),
+                                    ],
+                                    count: statusPage.count + 1,
+                                    skip: statusPage.skip,
+                                    limit: statusPage.limit,
+                                }
+                                : statusPage;
+                        })
                         : [
-                              {
-                                  _id: action.payload.projectId,
-                                  statusPages: [action.payload],
-                                  count: 1,
-                                  skip: 0,
-                                  limit: 0,
-                              },
-                          ]
+                            {
+                                _id: action.payload.projectId,
+                                statusPages: [action.payload],
+                                count: 1,
+                                skip: 0,
+                                limit: 0,
+                            },
+                        ]
                     : state.subProjectStatusPages.concat([
-                          {
-                              _id: action.payload.projectId,
-                              statusPages: [action.payload],
-                              count: 1,
-                              skip: 0,
-                              limit: 0,
-                          },
-                      ]),
+                        {
+                            _id: action.payload.projectId,
+                            statusPages: [action.payload],
+                            count: 1,
+                            skip: 0,
+                            limit: 0,
+                        },
+                    ]),
             });
 
         case CREATE_STATUSPAGE_FAILURE:
@@ -213,6 +215,10 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 ...INITIAL_STATE,
             });
 
+        //show domain input field
+        case ADD_MORE_DOMAIN:
+            return { ...state, addMoreDomain: true };
+
         //update setting
         case UPDATE_STATUSPAGE_SETTING_REQUEST:
             return Object.assign({}, state, {
@@ -226,6 +232,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case UPDATE_STATUSPAGE_SETTING_SUCCESS:
             status = action.payload;
             return Object.assign({}, state, {
+                addMoreDomain: false,
                 setting: {
                     requesting: false,
                     error: null,
@@ -546,12 +553,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     statusPage => {
                         return statusPage._id === action.payload.projectId
                             ? {
-                                  _id: action.payload.projectId,
-                                  statusPages: [...action.payload.data],
-                                  count: action.payload.count,
-                                  skip: action.payload.skip,
-                                  limit: action.payload.limit,
-                              }
+                                _id: action.payload.projectId,
+                                statusPages: [...action.payload.data],
+                                count: action.payload.count,
+                                skip: action.payload.skip,
+                                limit: action.payload.limit,
+                            }
                             : statusPage;
                     }
                 ),
