@@ -34,8 +34,17 @@ module.exports = {
     monitorCategory: {
         monitorCategoryName: 'New Monitor category',
     },
+    scheduledEvent: {
+        name: 'New Scheduled Event',
+        description: 'New Scheduled Event description',
+        showEventOnStatusPage: true,
+        alertSubscriber: true,
+        callScheduleOnEvent: true,
+        monitorDuringEvent: false,
+    },
     statusPage: {
         name: 'Status Page',
+        showScheduledEvents: true,
         links: [],
         title: 'Status title',
         description: 'status description',

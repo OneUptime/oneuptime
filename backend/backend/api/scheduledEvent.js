@@ -6,6 +6,7 @@ const { isAuthorized } = require('../middlewares/authorization');
 const { getUser, checkUserBelongToProject } = require('../middlewares/user');
 const { isUserAdmin } = require('../middlewares/project');
 
+const RealTimeService = require('../services/realTimeService');
 const ScheduledEventService = require('../services/scheduledEventService');
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -111,10 +112,17 @@ router.post(
                 });
             }
 
-            const scheduledEvent = await ScheduledEventService.create(
+            let scheduledEvent = await ScheduledEventService.create(
                 { projectId, monitorId },
                 data
             );
+
+            scheduledEvent = await ScheduledEventService.findOneBy({
+                _id: scheduledEvent._id,
+                projectId: scheduledEvent.projectId,
+            });
+            await RealTimeService.addScheduledEvent(scheduledEvent);
+
             return sendItemResponse(req, res, scheduledEvent);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -145,11 +153,17 @@ router.put(
                 });
             }
 
-            const scheduledEvent = await ScheduledEventService.updateOneBy(
+            let scheduledEvent = await ScheduledEventService.updateOneBy(
                 { _id: eventId },
                 data
             );
             if (scheduledEvent) {
+                scheduledEvent = await ScheduledEventService.findOneBy({
+                    _id: scheduledEvent._id,
+                    projectId: scheduledEvent.projectId,
+                });
+                await RealTimeService.updateScheduledEvent(scheduledEvent);
+
                 return sendItemResponse(req, res, scheduledEvent);
             } else {
                 return sendErrorResponse(req, res, {

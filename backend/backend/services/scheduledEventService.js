@@ -131,6 +131,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
+                .populate('monitorId', 'name')
                 .lean();
 
             await Promise.all(
@@ -168,9 +169,9 @@ module.exports = {
             }
 
             query.deleted = false;
-            const scheduledEvent = await ScheduledEventModel.findOne(
-                query
-            ).lean();
+            const scheduledEvent = await ScheduledEventModel.findOne(query)
+                .populate('monitorId', 'name')
+                .lean();
 
             if (scheduledEvent) {
                 if (scheduledEvent.createdById === 'API') {

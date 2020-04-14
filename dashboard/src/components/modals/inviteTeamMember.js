@@ -238,11 +238,11 @@ export class FormModal extends Component {
                                                         <div className="db-RoleRadioListLabel-description">
                                                             <span>
                                                                 Best for
-                                                                developers,
-                                                                devops, and
-                                                                people might be
-                                                                concerned about
-                                                                the downtime.
+                                                                developers, SRE,
+                                                                and people might
+                                                                be concerned
+                                                                about the
+                                                                downtime.
                                                             </span>
                                                         </div>
                                                         <div className="db-RoleRadioListLabel-info">

@@ -29,7 +29,7 @@ Fyipe is a Status Page, Monitoring and On-call software all combined into one. T
 
 ### More detailed description
 
-Fyipe is one complete DevOps and IT Ops platform. 
+Fyipe is one complete SRE and IT Ops platform. 
 
 Fyipe lets you do: 
 

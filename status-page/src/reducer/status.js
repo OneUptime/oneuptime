@@ -11,11 +11,21 @@ import {
     STATUSPAGE_NOTES_RESET,
     INDIVIDUAL_NOTES_ENABLE,
     INDIVIDUAL_NOTES_DISABLE,
+    SCHEDULED_EVENTS_REQUEST,
+    SCHEDULED_EVENTS_SUCCESS,
+    SCHEDULED_EVENTS_FAILURE,
+    MORE_EVENTS_REQUEST,
+    MORE_EVENTS_SUCCESS,
+    MORE_EVENTS_FAILURE,
+    SCHEDULED_EVENTS_RESET,
+    INDIVIDUAL_EVENTS_ENABLE,
+    INDIVIDUAL_EVENTS_DISABLE,
     SELECT_PROBE,
     FETCH_MONITOR_STATUSES_REQUEST,
     FETCH_MONITOR_STATUSES_SUCCESS,
     FETCH_MONITOR_STATUSES_FAILURE,
-} from '../actions/status';
+} from '../constants/status';
+import moment from 'moment';
 
 const INITIAL_STATE = {
     error: null,
@@ -27,14 +37,29 @@ const INITIAL_STATE = {
         requesting: false,
         skip: 0,
     },
+    events: {
+        error: null,
+        events: [],
+        requesting: false,
+        skip: 0,
+    },
     requestingmore: false,
+    requestingmoreevents: false,
     requestingstatuses: false,
     individualnote: null,
+    individualevent: null,
     notesmessage: null,
+    eventsmessage: null,
     activeProbe: 0,
 };
 
 export default (state = INITIAL_STATE, action) => {
+    let dayStart, dayEnd;
+    if (state.individualevent) {
+        dayStart = moment(state.individualevent.date).startOf('day');
+        dayEnd = moment(state.individualevent.date).endOf('day');
+    }
+
     switch (action.type) {
         case STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
@@ -279,6 +304,166 @@ export default (state = INITIAL_STATE, action) => {
             return Object.assign({}, state, {
                 individualnote: null,
                 notesmessage: null,
+            });
+
+        case SCHEDULED_EVENTS_SUCCESS:
+            return Object.assign({}, state, {
+                events: {
+                    error: null,
+                    events:
+                        action.payload && action.payload.data
+                            ? action.payload.data
+                            : [],
+                    requesting: false,
+                    skip:
+                        action.payload && action.payload.skip
+                            ? action.payload.skip
+                            : 0,
+                    count:
+                        action.payload && action.payload.count
+                            ? action.payload.count
+                            : 0,
+                },
+            });
+
+        case SCHEDULED_EVENTS_FAILURE:
+            return Object.assign({}, state, {
+                events: {
+                    error: action.payload,
+                    events: state.events.events,
+                    requesting: false,
+                    skip: state.events.skip,
+                    count: state.events.count,
+                },
+            });
+
+        case SCHEDULED_EVENTS_REQUEST:
+            return Object.assign({}, state, {
+                events: {
+                    error: null,
+                    events: [],
+                    requesting: true,
+                    skip: 0,
+                    count: 0,
+                },
+            });
+
+        case SCHEDULED_EVENTS_RESET:
+            return Object.assign({}, state, {
+                events: {
+                    error: null,
+                    events: [],
+                    requesting: false,
+                    skip: 0,
+                    count: 0,
+                },
+            });
+
+        case 'ADD_SCHEDULED_EVENT':
+            return Object.assign({}, state, {
+                events: {
+                    ...state.events,
+
+                    events:
+                        !state.individualevent ||
+                        (state.individualevent &&
+                            moment(action.payload.startDate).isBefore(dayEnd) &&
+                            moment(action.payload.endDate).isAfter(dayStart) &&
+                            state.individualevent._id ===
+                                action.payload.monitorId._id)
+                            ? [action.payload, ...state.events.events]
+                            : state.events.events,
+                },
+            });
+
+        case 'UPDATE_SCHEDULED_EVENT': {
+            const events = Object.assign([], state.events.events);
+            const index = events.findIndex(
+                event => event._id === action.payload._id
+            );
+
+            if (
+                index < 0 &&
+                action.payload.showEventOnStatusPage &&
+                (!state.individualevent ||
+                    (state.individualevent &&
+                        moment(action.payload.startDate).isBefore(dayEnd) &&
+                        moment(action.payload.endDate).isAfter(dayStart) &&
+                        state.individualevent._id ===
+                            action.payload.monitorId._id))
+            ) {
+                // add event
+                events.unshift(action.payload);
+            } else {
+                if (
+                    index > -1 &&
+                    (!action.payload.showEventOnStatusPage ||
+                        (state.individualevent &&
+                            !(
+                                moment(action.payload.startDate).isBefore(
+                                    dayEnd
+                                ) &&
+                                moment(action.payload.endDate).isAfter(dayStart)
+                            ) &&
+                            state.individualevent._id ===
+                                action.payload.monitorId._id))
+                ) {
+                    // remove event
+                    events.splice(index, 1);
+                } else {
+                    // update event
+                    if (index > -1) events[index] = action.payload;
+                }
+            }
+
+            return Object.assign({}, state, {
+                events: {
+                    ...state.events,
+
+                    events,
+                },
+            });
+        }
+
+        case MORE_EVENTS_SUCCESS:
+            return Object.assign({}, state, {
+                events: {
+                    error: null,
+                    events: state.events.events.concat(action.payload.data),
+                    requesting: false,
+                    skip: action.payload.skip,
+                    count: action.payload.count
+                        ? action.payload.count
+                        : state.events.count,
+                },
+                requestingmoreevents: false,
+            });
+
+        case MORE_EVENTS_FAILURE:
+            return Object.assign({}, state, {
+                events: {
+                    error: action.payload,
+                    events: state.events.events,
+                    requesting: false,
+                    skip: state.events.skip,
+                    count: state.events.count,
+                },
+                requestingmoreevents: false,
+            });
+
+        case MORE_EVENTS_REQUEST:
+            return Object.assign({}, state, { requestingmoreevents: true });
+
+        case INDIVIDUAL_EVENTS_ENABLE:
+            return Object.assign({}, state, {
+                individualevent: action.payload.name,
+                eventsmessage: action.payload.message,
+            });
+
+        case INDIVIDUAL_EVENTS_DISABLE:
+            return Object.assign({}, state, {
+                individualevent: null,
+                eventsmessage: null,
             });
 
         case SELECT_PROBE:

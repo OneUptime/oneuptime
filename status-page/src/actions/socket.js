@@ -43,6 +43,24 @@ export function updateincidentnotebysocket(incident) {
     };
 }
 
+export function addscheduledeventbysocket(event) {
+    return function(dispatch) {
+        dispatch({
+            type: 'ADD_SCHEDULED_EVENT',
+            payload: event,
+        });
+    };
+}
+
+export function updatescheduledeventbysocket(event) {
+    return function(dispatch) {
+        dispatch({
+            type: 'UPDATE_SCHEDULED_EVENT',
+            payload: event,
+        });
+    };
+}
+
 export function updateprobebysocket(probe) {
     return function(dispatch) {
         dispatch({

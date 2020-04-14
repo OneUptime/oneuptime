@@ -1,6 +1,6 @@
 # Introduction
 
-Fyipe is one complete DevOps and IT Ops platform. 
+Fyipe is one complete SRE and IT Ops platform. 
 
 Fyipe lets you do: 
 
