@@ -7,7 +7,13 @@ const statusSchema = new Schema({
         ref: 'Project',
         alias: 'project',
     }, //which project this statuspage belongs to.
-    domain: String,
+    domains: [
+        {
+            domain: String,
+            verified: { type: Boolean, default: false },
+            verificationToken: String,
+        },
+    ],
     monitorIds: [{ type: String, ref: 'Monitor' }],
     links: Array,
     title: String,
