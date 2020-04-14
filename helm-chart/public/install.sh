@@ -113,9 +113,6 @@ then
     sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
 fi
 
-# Install cluster with Helm.
-sudo helm repo add fyipe https://fyipe.com/chart || echo "Fyipe already added"
-sudo helm repo update
 
 AVAILABLE_VERSION=$(curl https://fyipe.com/api/version | jq '.server' | tr -d '"')
 AVAILABLE_VERSION_BUILD=$(echo $AVAILABLE_VERSION | tr "." "0")
@@ -137,6 +134,10 @@ then
     echo "No Updates found"
     exit 0
 fi
+
+# Install cluster with Helm.
+sudo helm repo add fyipe https://fyipe.com/chart || echo "Fyipe already added"
+sudo helm repo update
 
 
 function updateinstallation {
