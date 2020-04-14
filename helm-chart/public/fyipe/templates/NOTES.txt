@@ -26,9 +26,9 @@ Sign Up
 ============================================
 
 {{- if eq (index .Values "nginx-ingress-controller" "service" "type") "LoadBalancer" }}
-Go to the External IP (generated from step 1) from your browser and sign up a new admin account. 
+Go to the External IP of your server from your browser and sign up a new admin account.
 {{- else}}
-Go to the External IP of your server from your browser and sign up a new admin account. 
+Go to the External IP (generated from step 1) from your browser and sign up a new admin account.  
 {{- end}}
 This is your master admin account (and not a user account). 
 To create a user account. Please follow steps below.
