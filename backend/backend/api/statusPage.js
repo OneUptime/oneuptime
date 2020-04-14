@@ -30,7 +30,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 // req.params->{projectId}; req.body -> {[monitorIds]}
 // Returns: response status page, error message
 
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
+router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
     req,
     res
 ) {
@@ -65,7 +65,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 // Params:
 // Param1:
 // Returns: response status, error message
-router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
+router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
     req,
     res
 ) {
@@ -101,6 +101,28 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 message: 'Domain is not valid.',
             });
         }
+
+        let status = await StatusPageService.findOneBy({
+            _id: data._id,
+        });
+
+        let domainExists = false;
+        // check if domain already exist for a status page
+        status.domains.forEach(eachDomain => {
+            if (eachDomain.domain === data.domain) {
+                domainExists = true;
+            }
+        });
+
+        if (domainExists) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain already exists'
+            })
+        }
+
+        data.domains = [...status.domains, { domain: data.domain }];
+        delete data.domain;
     }
 
     if (data.links) {
@@ -171,7 +193,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         }
     }
 
-    upload(req, res, async function(error) {
+    upload(req, res, async function (error) {
         const files = req.files || {};
         const data = req.body;
         data.projectId = req.params.projectId;
@@ -181,14 +203,15 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             return sendErrorResponse(req, res, error);
         }
 
+        let status;
         if (data._id) {
-            const statusPage = await StatusPageService.findOneBy({
+            status = await StatusPageService.findOneBy({
                 _id: data._id,
             });
             const imagesPath = {
-                faviconPath: statusPage.faviconPath,
-                logoPath: statusPage.logoPath,
-                bannerPath: statusPage.bannerPath,
+                faviconPath: status.faviconPath,
+                logoPath: status.logoPath,
+                bannerPath: status.bannerPath,
             };
             if (
                 Object.keys(files).length === 0 &&
@@ -247,7 +270,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 // Param1: req.params-> {projectId};
 // Returns: response status, error message
 
-router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
+router.get('/:projectId/dashboard', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -271,7 +294,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req, res) {
+    async function (req, res) {
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map(project => project._id)
             : null;
@@ -286,7 +309,7 @@ router.get(
     }
 );
 
-router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
+router.get('/:projectId/statuspage', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -305,7 +328,7 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
 });
 
 // External status page api - get the data to show on status page
-router.get('/:statusPageId', checkUser, async function(req, res) {
+router.get('/:statusPageId', checkUser, async function (req, res) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
     const user = req.user;
@@ -342,7 +365,7 @@ router.get('/:statusPageId', checkUser, async function(req, res) {
     }
 });
 
-router.get('/:statusPageId/rss', checkUser, async function(req, res) {
+router.get('/:statusPageId/rss', checkUser, async function (req, res) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
     const user = req.user;
@@ -428,7 +451,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
-router.get('/:projectId/:statusPageId/notes', checkUser, async function(
+router.get('/:projectId/:statusPageId/notes', checkUser, async function (
     req,
     res
 ) {
@@ -450,7 +473,7 @@ router.get('/:projectId/:statusPageId/notes', checkUser, async function(
     }
 });
 
-router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
+router.get('/:projectId/:monitorId/individualnotes', checkUser, async function (
     req,
     res
 ) {
@@ -498,7 +521,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
 
 // Route
 // Description: Get all Monitor Statuses by monitorId
-router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
+router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function (
     req,
     res
 ) {
@@ -516,7 +539,7 @@ router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
     }
 });
 
-router.get('/:projectId/probes', checkUser, async function(req, res) {
+router.get('/:projectId/probes', checkUser, async function (req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
@@ -533,7 +556,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function (req, res) {
         const statusPageId = req.params.statusPageId;
         const userId = req.user ? req.user.id : null;
         try {
