@@ -49,6 +49,23 @@ describe('Alert Warning', () => {
     });
 
     test(
+        'Should show a warning alert if call and sms alerts are disabled',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#billing');
+                await page.click('#billing a');
+
+                const element = await page.waitForSelector('#alertWarning');
+                expect(element).not.toBe(null);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should not show any warning alert if call and sms alerts are enabled',
         async () => {
             await cluster.execute(null, async ({ page }) => {
@@ -63,36 +80,6 @@ describe('Alert Warning', () => {
                     '#alertOptionRow > div.bs-Fieldset-row',
                     rows => rows.length
                 );
-                if (rowLength === 1) {
-                    // enable sms and call alerts
-                    // check the box
-                    await page.evaluate(() => {
-                        document.querySelector('#alertEnable').click();
-                        document.querySelector('#alertOptionSave').click();
-                    });
-                }
-                const element = await page.waitForSelector('#alertWarning');
-                expect(element).not.toBe(null);
-            });
-        },
-        operationTimeOut
-    );
-
-    test(
-        'Should show a warning alert if call and sms alerts are disabled',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#projectSettings');
-                await page.click('#projectSettings');
-                await page.waitForSelector('#billing');
-                await page.click('#billing a');
-                await page.waitForSelector('#alertEnable');
-
-                const rowLength = await page.$$eval(
-                    '#alertOptionRow > div.bs-Fieldset-row',
-                    rows => rows.length
-                );
 
                 if (rowLength === 1) {
                     // enable sms and call alerts
@@ -102,21 +89,6 @@ describe('Alert Warning', () => {
                         document.querySelector('#alertOptionSave').click();
                     });
                 }
-
-                const newRowLength = await page.$$eval(
-                    '#alertOptionRow > div.bs-Fieldset-row',
-                    rows => rows.length
-                );
-
-                if (newRowLength > 1) {
-                    // disable sms and call alerts
-                    // uncheck the box
-                    await page.evaluate(() => {
-                        document.querySelector('#alertEnable').click();
-                        document.querySelector('#alertOptionSave').click();
-                    });
-                }
-
                 const element = await page.waitForSelector('#alertWarning', {
                     hidden: true,
                 });
