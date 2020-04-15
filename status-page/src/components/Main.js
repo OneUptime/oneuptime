@@ -478,7 +478,7 @@ class Main extends Component {
                                     : 'Status page'}
                             </title>
                             <script
-                                src="/js/landing.base.js"
+                                src="/status-page/js/landing.base.js"
                                 type="text/javascript"
                             ></script>
                         </Helmet>
