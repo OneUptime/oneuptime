@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+import { history } from '../../store';
 
 function HTD1() {
     return (
@@ -128,7 +129,7 @@ function HTD8() {
     );
 }
 
-function TD1({ text }) {
+function TD1({ text, alertId }) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
@@ -136,9 +137,35 @@ function TD1({ text }) {
         >
             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                 <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                    <div className="Box-root Margin-right--16">
-                        <span>{text}</span>
-                    </div>
+                    {alertId ? (
+                        <div
+                            className="Box-root Margin-right--16"
+                            style={{
+                                cursor: 'pointer',
+                            }}
+                            onClick={e => {
+                                e.stopPropagation();
+                                history.push('/dashboard/profile/' + alertId);
+                            }}
+                        >
+                            <img
+                                src="/dashboard/assets/img/profile-user.svg"
+                                className="userIcon"
+                                alt=""
+                                style={{ marginBottom: '-5px' }}
+                            />
+                            <span>{text}</span>
+                        </div>
+                    ) : (
+                        <div className="Box-root Margin-right--16">
+                            <img
+                                src="/dashboard/assets/img/profile-user.svg"
+                                className="userIcon"
+                                alt=""
+                            />
+                            <span>{text}</span>
+                        </div>
+                    )}
                 </span>
             </div>
         </td>
@@ -147,6 +174,7 @@ function TD1({ text }) {
 
 TD1.propTypes = {
     text: PropTypes.any,
+    alertId: PropTypes.any,
 };
 
 function TD2({ text }) {
@@ -357,7 +385,14 @@ function AlertTableRows({ alerts }) {
                   key={`alert ${index}`}
                   className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
               >
-                  <TD1 text={alert.userId ? alert.userId.name : null} />
+                  <TD1
+                      text={alert.userId ? alert.userId.name : null}
+                      alertId={
+                          alert.userId && alert.userId._id
+                              ? alert.userId._id
+                              : null
+                      }
+                  />
                   <TD2 text={alert.monitorId ? alert.monitorId.name : null} />
                   <TD3 />
                   <TD4 text={alert.alertVia} />
