@@ -56,7 +56,8 @@ import {
     UPDATE_SUBSCRIBER_OPTION_SUCCESS,
     UPDATE_SUBSCRIBER_OPTION_FAILURE,
     UPDATE_SUBSCRIBER_OPTION_RESET,
-    ADD_MORE_DOMAIN
+    ADD_MORE_DOMAIN,
+    CANCEL_ADD_MORE_DOMAIN
 } from '../constants/statusPage';
 
 import {
@@ -215,9 +216,18 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 ...INITIAL_STATE,
             });
 
-        //show domain input field
+        //handle domain input field
         case ADD_MORE_DOMAIN:
-            return { ...state, addMoreDomain: true };
+            return { 
+                ...state, 
+                addMoreDomain: true 
+            };
+
+        case CANCEL_ADD_MORE_DOMAIN:
+            return {
+                ...state,
+                addMoreDomain: false
+            }
 
         //update setting
         case UPDATE_STATUSPAGE_SETTING_REQUEST:

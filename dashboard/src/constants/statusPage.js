@@ -122,3 +122,4 @@ export const PAGINATE_RESET = 'PAGINATE_RESET';
 
 // whether to show input field to add more domain
 export const ADD_MORE_DOMAIN = 'ADD_MORE_DOMAIN';
+export const CANCEL_ADD_MORE_DOMAIN = 'CANCEL_ADD_MORE_DOMAIN';
