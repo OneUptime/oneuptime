@@ -176,6 +176,10 @@ const IncidentTimelineList = props => {
                                                                 src="/dashboard/assets/img/profile-user.svg"
                                                                 className="userIcon"
                                                                 alt=""
+                                                                style={{
+                                                                    marginBottom:
+                                                                        '-5px',
+                                                                }}
                                                             />
                                                             <span>
                                                                 {log.createdById
