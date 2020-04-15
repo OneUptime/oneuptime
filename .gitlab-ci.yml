@@ -1,8 +1,8 @@
-# IMPORTANT:
-#
-# This CI/CD will run on an Ubuntu VM. After this script runs, the VM will retain the state.
-# It's your responsibility to clean the VM up in the cleanup stage after job finishes executing.
-# This script runs on Microk8s. Since our deployments are on Kubernetes, our aim is to create EXACT same replica for test, staging and production.
+# # IMPORTANT:
+# #
+# # This CI/CD will run on an Ubuntu VM. After this script runs, the VM will retain the state.
+# # It's your responsibility to clean the VM up in the cleanup stage after job finishes executing.
+# # This script runs on Microk8s. Since our deployments are on Kubernetes, our aim is to create EXACT same replica for test, staging and production.
 
 # Define stages
 stages:
@@ -16,776 +16,776 @@ stages:
   - CleanUp
   - Misc
 
-# Run lint all projects
-lint-projects:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - npm ci
-    - npm run lint
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# # Run lint all projects
+# lint-projects:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - npm ci
+#     - npm run lint
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-# BACKEND
-audit_backend:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd backend
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# # BACKEND
+# audit_backend:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd backend
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-# Helm Chart Repo
-audit_helm-chart:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    # Lint helm chart - helm lint needs a kubeconfig file and this is why we do staging deployment setup.
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    - cd helm-chart
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    # Install Helm.
-    - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
-    - sudo helm lint ./public/fyipe
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# # Helm Chart Repo
+# audit_helm-chart:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     # Lint helm chart - helm lint needs a kubeconfig file and this is why we do staging deployment setup.
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     - cd helm-chart
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     # Install Helm.
+#     - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
+#     - sudo helm lint ./public/fyipe
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_backend:
-  stage: BuildAndTest
-  script:
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/init-script:3.0.$CI_PIPELINE_IID ./init-script
-    - sudo docker run -e NODE_ENV=development --net=host -d fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker build -t fyipeproject/probe:3.0.$CI_PIPELINE_IID ./probe
-    - sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e SERVER_URL=http://localhost:3020 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e SERVER_URL=http://localhost:3020 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
-    - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - sudo docker run --name fyipe --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_backend:
+#   stage: BuildAndTest
+#   script:
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/init-script:3.0.$CI_PIPELINE_IID ./init-script
+#     - sudo docker run -e NODE_ENV=development --net=host -d fyipeproject/init-script:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker build -t fyipeproject/probe:3.0.$CI_PIPELINE_IID ./probe
+#     - sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e SERVER_URL=http://localhost:3020 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     - sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e SERVER_URL=http://localhost:3020 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
+#     - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - sudo docker run --name fyipe --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_enterprise_backend:
-  stage: BuildAndTest
-  script:
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker ps
-    - sudo docker run --name fyipe --env-file ./backend/.env --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm run enterprise-test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_enterprise_backend:
+#   stage: BuildAndTest
+#   script:
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker ps
+#     - sudo docker run --name fyipe --env-file ./backend/.env --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm run enterprise-test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-##DASHBOARD
-audit_dashboard:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd dashboard
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ##DASHBOARD
+# audit_dashboard:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd dashboard
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_dashboard:
-  stage: BuildAndTest
-  script:
-    - sudo apt-get update
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
-    - echo "Setup machine for running puppeteer tests"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/init-script:3.0.$CI_PIPELINE_IID ./init-script
-    - sudo docker run -e NODE_ENV=development --net=host -d fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/probe:3.0.$CI_PIPELINE_IID ./probe
-    - sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
-    - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
-    - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-    - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd dashboard
-    - npm ci
-    # try building, if there are warnings then this will fail
-    - npm run build
-    - npm run test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_dashboard:
+#   stage: BuildAndTest
+#   script:
+#     - sudo apt-get update
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+#     - echo "Setup machine for running puppeteer tests"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/init-script:3.0.$CI_PIPELINE_IID ./init-script
+#     - sudo docker run -e NODE_ENV=development --net=host -d fyipeproject/init-script:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/probe:3.0.$CI_PIPELINE_IID ./probe
+#     - sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     - sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
+#     - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
+#     - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+#     - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd dashboard
+#     - npm ci
+#     # try building, if there are warnings then this will fail
+#     - npm run build
+#     - npm run test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_enterprise_dashboard:
-  stage: BuildAndTest
-  script:
-    - sudo apt-get update
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
-    - echo "Setup machine for running puppeteer tests"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
-    - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID ./admin-dashboard
-    - sudo docker run --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-    - sudo docker run --env-file ./dashboard/.env -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd dashboard
-    - npm ci
-    # try building, if there are warnings then this will fail
-    - npm run build
-    - npm run enterprise-test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_enterprise_dashboard:
+#   stage: BuildAndTest
+#   script:
+#     - sudo apt-get update
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+#     - echo "Setup machine for running puppeteer tests"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
+#     - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID ./admin-dashboard
+#     - sudo docker run --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+#     - sudo docker run --env-file ./dashboard/.env -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd dashboard
+#     - npm ci
+#     # try building, if there are warnings then this will fail
+#     - npm run build
+#     - npm run enterprise-test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-##HTTP_TEST_SERVER
-audit_http_test_server:
-  stage: BuildAndTest
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd http-test-server
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ##HTTP_TEST_SERVER
+# audit_http_test_server:
+#   stage: BuildAndTest
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd http-test-server
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_http_test_server:
-  stage: BuildAndTest
-  script:
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
-    - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd http-test-server
-    - npm ci
-    - npm test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_http_test_server:
+#   stage: BuildAndTest
+#   script:
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
+#     - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd http-test-server
+#     - npm ci
+#     - npm test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-##ADMINDASHBOARD
-audit_admin-dashboard:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd admin-dashboard
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ##ADMINDASHBOARD
+# audit_admin-dashboard:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd admin-dashboard
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_admin-dashboard:
-  stage: BuildAndTest
-  script:
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - cd admin-dashboard
-    - npm ci
-      # try building, if there are warnings then this will fail
-    - npm run build
-    - echo "No test implemented"
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_admin-dashboard:
+#   stage: BuildAndTest
+#   script:
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - cd admin-dashboard
+#     - npm ci
+#       # try building, if there are warnings then this will fail
+#     - npm run build
+#     - echo "No test implemented"
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_enterprise_admin-dashboard:
-  stage: BuildAndTest
-  script:
-    - sudo apt-get update
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
-    - echo "Setup machine for running puppeteer tests"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/licensing:3.0.$CI_PIPELINE_IID ./licensing
-    - sudo docker run --env-file ./licensing/.env -p 3004:3004 -d fyipeproject/licensing:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
-    - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID ./admin-dashboard
-    - sudo docker run --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID    
-    - sudo docker ps
-    - cd admin-dashboard
-    - npm ci
-    # try building, if there are warnings then this will fail
-    - npm run build
-    - npm run enterprise-test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_enterprise_admin-dashboard:
+#   stage: BuildAndTest
+#   script:
+#     - sudo apt-get update
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+#     - echo "Setup machine for running puppeteer tests"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/licensing:3.0.$CI_PIPELINE_IID ./licensing
+#     - sudo docker run --env-file ./licensing/.env -p 3004:3004 -d fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
+#     - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID ./admin-dashboard
+#     - sudo docker run --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID    
+#     - sudo docker ps
+#     - cd admin-dashboard
+#     - npm ci
+#     # try building, if there are warnings then this will fail
+#     - npm run build
+#     - npm run enterprise-test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-##ZAPIER
-audit_zapier:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd zapier
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ##ZAPIER
+# audit_zapier:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd zapier
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_zapier:
-  stage: BuildAndTest
-  script:
-    - echo "No test implemented"
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_zapier:
+#   stage: BuildAndTest
+#   script:
+#     - echo "No test implemented"
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-## STATUS PAGE
-audit_statuspage:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd status-page
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ## STATUS PAGE
+# audit_statuspage:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd status-page
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_statuspage:
-  stage: BuildAndTest
-  script:
-    - curl -sSL https://get.docker.com/ | sh # Install docker.
-    - sudo apt-get update
-    - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
-    - echo "Setup machine for running puppeteer tests"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
-    - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/status-page:3.0.$CI_PIPELINE_IID ./status-page
-    - sudo docker run -p 3006:3006 -d fyipeproject/status-page:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd backend
-    - npm ci
-    - cd ..
-    - cd status-page
-    - npm ci
-    - sleep 1m
-    - curl localhost:3006
-    # try building, if there are warnings then this will fail
-    - npm run build
-    - npm run test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_statuspage:
+#   stage: BuildAndTest
+#   script:
+#     - curl -sSL https://get.docker.com/ | sh # Install docker.
+#     - sudo apt-get update
+#     - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+#     - echo "Setup machine for running puppeteer tests"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
+#     - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/status-page:3.0.$CI_PIPELINE_IID ./status-page
+#     - sudo docker run -p 3006:3006 -d fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd backend
+#     - npm ci
+#     - cd ..
+#     - cd status-page
+#     - npm ci
+#     - sleep 1m
+#     - curl localhost:3006
+#     # try building, if there are warnings then this will fail
+#     - npm run build
+#     - npm run test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-## ACCOUNTS
-audit_accounts:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd accounts
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ## ACCOUNTS
+# audit_accounts:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd accounts
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-desktop_lighthouse_accounts:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/setup-docker.sh
-    - ./ci/scripts/setup-docker.sh
-    - echo "Setup machine for running lighthouse on accounts pages"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
-    - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-    - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd accounts
-    - npm ci
-    - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-674921/chrome-linux/chrome"
-    # try building, if there are warnings then this will fail
-    - npm run build
-    - npm run light-house
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# desktop_lighthouse_accounts:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/setup-docker.sh
+#     - ./ci/scripts/setup-docker.sh
+#     - echo "Setup machine for running lighthouse on accounts pages"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
+#     - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+#     - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd accounts
+#     - npm ci
+#     - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-674921/chrome-linux/chrome"
+#     # try building, if there are warnings then this will fail
+#     - npm run build
+#     - npm run light-house
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-## Lighouse for the mobile version of the accounts pages
-mobile_lighthouse_accounts:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/setup-docker.sh
-    - ./ci/scripts/setup-docker.sh
-    - echo "Setup machine for running lighthouse on accounts pages"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
-    - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-    - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd accounts
-    - npm ci
-    - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-674921/chrome-linux/chrome"
-    # try building, if there are warnings then this will fail
-    - npm run build
-    - npm run light-house-mobile
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ## Lighouse for the mobile version of the accounts pages
+# mobile_lighthouse_accounts:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/setup-docker.sh
+#     - ./ci/scripts/setup-docker.sh
+#     - echo "Setup machine for running lighthouse on accounts pages"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
+#     - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+#     - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd accounts
+#     - npm ci
+#     - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-674921/chrome-linux/chrome"
+#     # try building, if there are warnings then this will fail
+#     - npm run build
+#     - npm run light-house-mobile
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_accounts:
-  stage: BuildAndTest
-  script:
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo apt-get update
-    - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
-    - echo "Setup machine for running puppeteer tests"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
-    - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-    - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd accounts
-    - npm ci
-    # try building, if there are warnings then this will fail
-    - npm run build
-    - npm run test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_accounts:
+#   stage: BuildAndTest
+#   script:
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - sudo apt-get update
+#     - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+#     - echo "Setup machine for running puppeteer tests"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
+#     - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+#     - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd accounts
+#     - npm ci
+#     # try building, if there are warnings then this will fail
+#     - npm run build
+#     - npm run test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_enterprise_accounts:
-  stage: BuildAndTest
-  script:
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo apt-get update
-    - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
-    - echo "Setup machine for running puppeteer tests"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
-    - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID ./admin-dashboard
-    - sudo docker run --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
-    - sudo docker run --env-file ./dashboard/.env -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd accounts
-    - npm ci
-    # try building, if there are warnings then this will fail
-    - npm run build
-    - npm run enterprise-test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_enterprise_accounts:
+#   stage: BuildAndTest
+#   script:
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - sudo apt-get update
+#     - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+#     - echo "Setup machine for running puppeteer tests"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
+#     - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID ./admin-dashboard
+#     - sudo docker run --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+#     - sudo docker run --env-file ./dashboard/.env -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd accounts
+#     - npm ci
+#     # try building, if there are warnings then this will fail
+#     - npm run build
+#     - npm run enterprise-test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-## HOME
-audit_home:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd home
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ## HOME
+# audit_home:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd home
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-desktop_lighthouse_home:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/setup-docker.sh
-    - ./ci/scripts/setup-docker.sh
-    - echo "Setup machine for running lighthouse on home page"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker build -t fyipeproject/home:3.0.$CI_PIPELINE_IID ./home
-    - sudo docker run -p 1444:1444 -d fyipeproject/home:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd home
-    - npm ci
-    - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-686378/chrome-linux/chrome"
-    - npm run light-house
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# desktop_lighthouse_home:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/setup-docker.sh
+#     - ./ci/scripts/setup-docker.sh
+#     - echo "Setup machine for running lighthouse on home page"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker build -t fyipeproject/home:3.0.$CI_PIPELINE_IID ./home
+#     - sudo docker run -p 1444:1444 -d fyipeproject/home:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd home
+#     - npm ci
+#     - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-686378/chrome-linux/chrome"
+#     - npm run light-house
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-## Lighouse for the mobile version of the home pages.
-mobile_lighthouse_home:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/setup-docker.sh
-    - ./ci/scripts/setup-docker.sh
-    - echo "Setup machine for running lighthouse on home page"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker build -t fyipeproject/home:3.0.$CI_PIPELINE_IID ./home
-    - sudo docker run -p 1444:1444 -d fyipeproject/home:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd home
-    - npm ci
-    - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-686378/chrome-linux/chrome"
-    - npm run light-house-mobile
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ## Lighouse for the mobile version of the home pages.
+# mobile_lighthouse_home:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/setup-docker.sh
+#     - ./ci/scripts/setup-docker.sh
+#     - echo "Setup machine for running lighthouse on home page"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker build -t fyipeproject/home:3.0.$CI_PIPELINE_IID ./home
+#     - sudo docker run -p 1444:1444 -d fyipeproject/home:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd home
+#     - npm ci
+#     - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-686378/chrome-linux/chrome"
+#     - npm run light-house-mobile
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_home:
-  stage: BuildAndTest
-  script:
-    - echo "No test implemented"
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_home:
+#   stage: BuildAndTest
+#   script:
+#     - echo "No test implemented"
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-## SLACK
-audit_slack:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd slack
-    - npm ci
-    - npm run audit
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ## SLACK
+# audit_slack:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd slack
+#     - npm ci
+#     - npm run audit
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_slack:
-  stage: BuildAndTest
-  script:
-    - echo "No test implemented"
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_slack:
+#   stage: BuildAndTest
+#   script:
+#     - echo "No test implemented"
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-## PROBE
-audit_probe:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd probe
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ## PROBE
+# audit_probe:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd probe
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_probe:
-  stage: BuildAndTest
-  script:
-    - echo "No test implemented"
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_probe:
+#   stage: BuildAndTest
+#   script:
+#     - echo "No test implemented"
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-## SERVER MONITOR
-audit_server-monitor:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd server-monitor
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# ## SERVER MONITOR
+# audit_server-monitor:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd server-monitor
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_server-monitor:
-  stage: BuildAndTest
-  script:
-    - sudo apt-get update
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
-    - echo "Setup machine for running server monitor tests"
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd server-monitor
-    - npm ci
-    - npm run test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_server-monitor:
+#   stage: BuildAndTest
+#   script:
+#     - sudo apt-get update
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+#     - echo "Setup machine for running server monitor tests"
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+#     - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+#     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+#     - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker ps
+#     - cd server-monitor
+#     - npm ci
+#     - npm run test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-# LICENSING
-audit_licensing:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd licensing
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# # LICENSING
+# audit_licensing:
+#   stage: BuildAndTest
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd licensing
+#     - npm ci
+#     - npm run audit
+#     - npm run dep-check
+#     - cd ..
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-build_n_test_licensing:
-  stage: BuildAndTest
-  script:
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker build -t fyipeproject/licensing:3.0.$CI_PIPELINE_IID ./licensing
-    - sudo docker ps
-    - sudo docker run --env-file ./licensing/.env --net=host fyipeproject/licensing:3.0.$CI_PIPELINE_IID npm test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+# build_n_test_licensing:
+#   stage: BuildAndTest
+#   script:
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+#     - sudo docker build -t fyipeproject/licensing:3.0.$CI_PIPELINE_IID ./licensing
+#     - sudo docker ps
+#     - sudo docker run --env-file ./licensing/.env --net=host fyipeproject/licensing:3.0.$CI_PIPELINE_IID npm test
+#   except:
+#     refs:
+#       - hotfix-master
+#       - hotfix-release
 
-#E2E Stage.
-e2e_microk8s_test:
-  stage: E2E
-  script:
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - chmod +x ./ci/scripts/setup-machine.sh
-    - ./ci/scripts/setup-machine.sh
-    - chmod +x ./ci/scripts/setup.sh
-    - ./ci/scripts/setup.sh
-    - export HOME_URL=http://home.app.local:1444
-    - export ACCOUNTS_URL=http://accounts.app.local:3003
-    - export DASHBOARD_URL=http://dashboard.app.local:3000
-    - export BACKEND_URL=http://backend.app.local:3002
-    - export STATUSPAGE_URL=http://status-page.app.local:3006
-    - export APIDOCS_URL=http://api-docs.app.local:1445
-    - export LICENSING_URL=http://licensing.app.local:3004
-    - chmod +x ./ci/scripts/hosts-setup.sh
-    - ./ci/scripts/hosts-setup.sh
-    - cd smoke-test
-    - npm ci
-    - npm run test
-    - chmod +x ./ci/scripts/uninstall-helm.sh
-    - ./ci/scripts/uninstall-helm.sh
-  only:
-    refs:
-      - release
-      - master
+# #E2E Stage.
+# e2e_microk8s_test:
+#   stage: E2E
+#   script:
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - chmod +x ./ci/scripts/setup-machine.sh
+#     - ./ci/scripts/setup-machine.sh
+#     - chmod +x ./ci/scripts/setup.sh
+#     - ./ci/scripts/setup.sh
+#     - export HOME_URL=http://home.app.local:1444
+#     - export ACCOUNTS_URL=http://accounts.app.local:3003
+#     - export DASHBOARD_URL=http://dashboard.app.local:3000
+#     - export BACKEND_URL=http://backend.app.local:3002
+#     - export STATUSPAGE_URL=http://status-page.app.local:3006
+#     - export APIDOCS_URL=http://api-docs.app.local:1445
+#     - export LICENSING_URL=http://licensing.app.local:3004
+#     - chmod +x ./ci/scripts/hosts-setup.sh
+#     - ./ci/scripts/hosts-setup.sh
+#     - cd smoke-test
+#     - npm ci
+#     - npm run test
+#     - chmod +x ./ci/scripts/uninstall-helm.sh
+#     - ./ci/scripts/uninstall-helm.sh
+#   only:
+#     refs:
+#       - release
+#       - master
 
-##E2E Stage.
-e2e_docker_compose_test:
-  stage: E2E
-  script:
-    - sudo apt-get update
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    # Install Docker Compose.
-    - sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    - sudo chmod +x /usr/local/bin/docker-compose
-    - sudo docker-compose down -v
-    - export IS_SAAS_SERVICE=true
-    # Install the cluster.
-    - chmod +x ./install.sh
-    - ./install.sh
-    # Set env var
-    - export HOME_URL=http://localhost:1444
-    - export ACCOUNTS_URL=http://localhost:3003
-    - export DASHBOARD_URL=http://localhost:3000
-    - export BACKEND_URL=http://localhost:3002
-    - export STATUSPAGE_URL=http://localhost:3006
-    - export APIDOCS_URL=http://localhost:1445
-    - export LICENSING_URL=http://localhost:3004
-    - cd smoke-test
-    - npm ci
-    - npm run test
-  only:
-    refs:
-      - release
-      - master
+# ##E2E Stage.
+# e2e_docker_compose_test:
+#   stage: E2E
+#   script:
+#     - sudo apt-get update
+#     - curl -sSL https://get.docker.com/ | sh #Install docker.
+#     # Install Docker Compose.
+#     - sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+#     - sudo chmod +x /usr/local/bin/docker-compose
+#     - sudo docker-compose down -v
+#     - export IS_SAAS_SERVICE=true
+#     # Install the cluster.
+#     - chmod +x ./install.sh
+#     - ./install.sh
+#     # Set env var
+#     - export HOME_URL=http://localhost:1444
+#     - export ACCOUNTS_URL=http://localhost:3003
+#     - export DASHBOARD_URL=http://localhost:3000
+#     - export BACKEND_URL=http://localhost:3002
+#     - export STATUSPAGE_URL=http://localhost:3006
+#     - export APIDOCS_URL=http://localhost:1445
+#     - export LICENSING_URL=http://localhost:3004
+#     - cd smoke-test
+#     - npm ci
+#     - npm run test
+#   only:
+#     refs:
+#       - release
+#       - master
 
 e2e_docker_compose_enterprise_test:
   stage: E2E
@@ -812,1105 +812,1105 @@ e2e_docker_compose_enterprise_test:
       - release
       - master
 
-# VERSION UPDATE
-version_update:
-  before_script:
-    - cd ..
-    - rm -rf app
-    - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
-    - cd app
-    - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
-  stage: VersionUpdate
-  script:
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - git checkout $CI_COMMIT_REF_NAME
-    - chmod +x ./ci/scripts/version-setup.sh
-    - ./ci/scripts/version-setup.sh
-    - git add .
-    - git commit -m "Version Update 3.0.$CI_PIPELINE_IID [skip ci]"
-    - git push origin $CI_COMMIT_REF_NAME
-  only:
-    refs:
-      - master
-      - release
-      - hotfix-master
-      - hotfix-release
+# # VERSION UPDATE
+# version_update:
+#   before_script:
+#     - cd ..
+#     - rm -rf app
+#     - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
+#     - cd app
+#     - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
+#   stage: VersionUpdate
+#   script:
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - git checkout $CI_COMMIT_REF_NAME
+#     - chmod +x ./ci/scripts/version-setup.sh
+#     - ./ci/scripts/version-setup.sh
+#     - git add .
+#     - git commit -m "Version Update 3.0.$CI_PIPELINE_IID [skip ci]"
+#     - git push origin $CI_COMMIT_REF_NAME
+#   only:
+#     refs:
+#       - master
+#       - release
+#       - hotfix-master
+#       - hotfix-release
 
-# DEPLOYMENT STAGE - BACKEND
-deploy_staging_backend:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Build and deploy backend.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/backend:master ./backend
-    - sudo docker tag fyipeproject/backend:master fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/backend:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-backend fi-backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - BACKEND
+# deploy_staging_backend:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Build and deploy backend.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/backend:master ./backend
+#     - sudo docker tag fyipeproject/backend:master fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/backend:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-backend fi-backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-# DEPLOYMENT STAGE - HELM CHART
-deploy_staging_helm-chart:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Install Helm.
-    - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
-    - cd ./helm-chart/public
-    - sudo helm repo index ./fyipe
-    - sudo helm package ./fyipe
-    - sudo helm repo index .
-    - cd ..
-    - cd ..
-    # Build and deploy helm-chart.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/helm-chart:master ./helm-chart
-    - sudo docker tag fyipeproject/helm-chart:master fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/helm-chart:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-helm-chart fi-helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - HELM CHART
+# deploy_staging_helm-chart:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Install Helm.
+#     - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
+#     - cd ./helm-chart/public
+#     - sudo helm repo index ./fyipe
+#     - sudo helm package ./fyipe
+#     - sudo helm repo index .
+#     - cd ..
+#     - cd ..
+#     # Build and deploy helm-chart.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/helm-chart:master ./helm-chart
+#     - sudo docker tag fyipeproject/helm-chart:master fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/helm-chart:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-helm-chart fi-helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
 
-deploy_production_helm-chart:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Install Helm.
-    - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
-    - cd ./helm-chart/public
-    - sudo helm repo index ./fyipe
-    - sudo helm package ./fyipe
-    - sudo helm repo index .
-    - cd ..
-    - cd ..
-    # Deploy to production
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/helm-chart:latest ./helm-chart
-    - sudo docker tag fyipeproject/helm-chart:latest fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/helm-chart:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-helm-chart fi-helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_helm-chart:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Install Helm.
+#     - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
+#     - cd ./helm-chart/public
+#     - sudo helm repo index ./fyipe
+#     - sudo helm package ./fyipe
+#     - sudo helm repo index .
+#     - cd ..
+#     - cd ..
+#     # Deploy to production
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/helm-chart:latest ./helm-chart
+#     - sudo docker tag fyipeproject/helm-chart:latest fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/helm-chart:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-helm-chart fi-helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-deploy_production_backend:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/backend:latest ./backend
-    - sudo docker tag fyipeproject/backend:latest fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/backend:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-backend fi-backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_backend:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/backend:latest ./backend
+#     - sudo docker tag fyipeproject/backend:latest fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/backend:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-backend fi-backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-# DEPLOYMENT STAGE - LICENSING
-deploy_staging_licensing:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Build and deploy licensing.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/licensing:master ./licensing
-    - sudo docker tag fyipeproject/licensing:master fyipeproject/licensing:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/licensing:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - LICENSING
+# deploy_staging_licensing:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Build and deploy licensing.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/licensing:master ./licensing
+#     - sudo docker tag fyipeproject/licensing:master fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/licensing:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_licensing:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/licensing:latest ./licensing
-    - sudo docker tag fyipeproject/licensing:latest fyipeproject/licensing:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/licensing:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_licensing:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/licensing:latest ./licensing
+#     - sudo docker tag fyipeproject/licensing:latest fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/licensing:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-# DEPLOYMENT STAGE - Api docs
-deploy_staging_api-docs:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Build and deploy api-docs.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/api-docs:master ./api-docs
-    - sudo docker tag fyipeproject/api-docs:master fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/api-docs:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - Api docs
+# deploy_staging_api-docs:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Build and deploy api-docs.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/api-docs:master ./api-docs
+#     - sudo docker tag fyipeproject/api-docs:master fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/api-docs:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_api-docs:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/api-docs:latest ./api-docs
-    - sudo docker tag fyipeproject/api-docs:latest fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/api-docs:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_api-docs:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/api-docs:latest ./api-docs
+#     - sudo docker tag fyipeproject/api-docs:latest fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/api-docs:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-# DEPLOYMENT STAGE - Home
-deploy_staging_home:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Build and deploy home.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/home:master ./home
-    - sudo docker tag fyipeproject/home:master fyipeproject/home:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/home:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/home:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-home fi-home=fyipeproject/home:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - Home
+# deploy_staging_home:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Build and deploy home.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/home:master ./home
+#     - sudo docker tag fyipeproject/home:master fyipeproject/home:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/home:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/home:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-home fi-home=fyipeproject/home:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_home:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/home:latest ./home
-    - sudo docker tag fyipeproject/home:latest fyipeproject/home:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/home:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/home:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-home fi-home=fyipeproject/home:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_home:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/home:latest ./home
+#     - sudo docker tag fyipeproject/home:latest fyipeproject/home:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/home:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/home:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-home fi-home=fyipeproject/home:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-# DEPLOYMENT STAGE - slack
-deploy_staging_slack:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Build and deploy slack.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/slack:master ./slack
-    - sudo docker tag fyipeproject/slack:master fyipeproject/slack:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/slack:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/slack:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-slack fi-slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - slack
+# deploy_staging_slack:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Build and deploy slack.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/slack:master ./slack
+#     - sudo docker tag fyipeproject/slack:master fyipeproject/slack:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/slack:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/slack:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-slack fi-slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_slack:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/slack:latest ./slack
-    - sudo docker tag fyipeproject/slack:latest fyipeproject/slack:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/slack:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/slack:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-slack fi-slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_slack:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/slack:latest ./slack
+#     - sudo docker tag fyipeproject/slack:latest fyipeproject/slack:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/slack:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/slack:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-slack fi-slack=fyipeproject/slack:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-# DEPLOYMENT STAGE - Probe
-deploy_staging_probe:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Build and deploy probe.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/probe:master ./probe
-    - sudo docker tag fyipeproject/probe:master fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/probe:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe1 fi-probe1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    # Additionally update probe1 deployment as well.
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe2 fi-probe2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - Probe
+# deploy_staging_probe:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Build and deploy probe.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/probe:master ./probe
+#     - sudo docker tag fyipeproject/probe:master fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/probe:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe1 fi-probe1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     # Additionally update probe1 deployment as well.
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe2 fi-probe2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_probe:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/probe:latest ./probe
-    - sudo docker tag fyipeproject/probe:latest fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/probe:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe1 fi-probe1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe2 fi-probe2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_probe:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/probe:latest ./probe
+#     - sudo docker tag fyipeproject/probe:latest fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/probe:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe1 fi-probe1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe2 fi-probe2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-# DEPLOYMENT STAGE - status-page
-deploy_staging_status-page:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Build and deploy status-page.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/status-page:master ./status-page
-    - sudo docker tag fyipeproject/status-page:master fyipeproject/status-page:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/status-page:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status fi-status=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - status-page
+# deploy_staging_status-page:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Build and deploy status-page.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/status-page:master ./status-page
+#     - sudo docker tag fyipeproject/status-page:master fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/status-page:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status fi-status=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_status-page:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/status-page:latest ./status-page
-    - sudo docker tag fyipeproject/status-page:latest fyipeproject/status-page:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/status-page:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status fi-status=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_status-page:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/status-page:latest ./status-page
+#     - sudo docker tag fyipeproject/status-page:latest fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/status-page:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-status fi-status=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-# DEPLOYMENT STAGE - Admin Dashboard
-deploy_staging_admin-dashboard:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Build and deploy admin-dashboard.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/admin-dashboard:master ./admin-dashboard
-    - sudo docker tag fyipeproject/admin-dashboard:master fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/admin-dashboard:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - Admin Dashboard
+# deploy_staging_admin-dashboard:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Build and deploy admin-dashboard.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/admin-dashboard:master ./admin-dashboard
+#     - sudo docker tag fyipeproject/admin-dashboard:master fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/admin-dashboard:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_admin-dashboard:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/admin-dashboard:latest ./admin-dashboard
-    - sudo docker tag fyipeproject/admin-dashboard:latest fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/admin-dashboard:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_admin-dashboard:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/admin-dashboard:latest ./admin-dashboard
+#     - sudo docker tag fyipeproject/admin-dashboard:latest fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/admin-dashboard:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-# DEPLOYMENT STAGE - Accounts
-deploy_staging_accounts:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Build and deploy accounts.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/accounts:master ./accounts
-    - sudo docker tag fyipeproject/accounts:master fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/accounts:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-accounts fi-accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - Accounts
+# deploy_staging_accounts:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Build and deploy accounts.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/accounts:master ./accounts
+#     - sudo docker tag fyipeproject/accounts:master fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/accounts:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-accounts fi-accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_accounts:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/accounts:latest ./accounts
-    - sudo docker tag fyipeproject/accounts:latest fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/accounts:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-accounts fi-accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_accounts:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/accounts:latest ./accounts
+#     - sudo docker tag fyipeproject/accounts:latest fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/accounts:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-accounts fi-accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-# DEPLOYMENT STAGE - Dashboard
-deploy_staging_dashboard:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Build and deploy dashboard.
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/dashboard:master ./dashboard
-    - sudo docker tag fyipeproject/dashboard:master fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/dashboard:master
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-dashboard fi-dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - Dashboard
+# deploy_staging_dashboard:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Build and deploy dashboard.
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/dashboard:master ./dashboard
+#     - sudo docker tag fyipeproject/dashboard:master fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/dashboard:master
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-dashboard fi-dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_dashboard:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/dashboard:latest ./dashboard
-    - sudo docker tag fyipeproject/dashboard:latest fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/dashboard:latest
-    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-dashboard fi-dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_dashboard:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/dashboard:latest ./dashboard
+#     - sudo docker tag fyipeproject/dashboard:latest fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/dashboard:latest
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-dashboard fi-dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-## DEPLOYMENT STAGE - Server Monitor
-deploy_staging_server-monitor:
-  stage: Deploy
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd server-monitor
-    - sudo npm install -g json
-    - git checkout $CI_COMMIT_REF_NAME
-    - git pull https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
-    - json -I -f package.json -e 'this.name="fyipe-server-monitor-staging"'
-    - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
-    - npm publish
-    - cd ..
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# ## DEPLOYMENT STAGE - Server Monitor
+# deploy_staging_server-monitor:
+#   stage: Deploy
+#   allow_failure: true
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd server-monitor
+#     - sudo npm install -g json
+#     - git checkout $CI_COMMIT_REF_NAME
+#     - git pull https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
+#     - json -I -f package.json -e 'this.name="fyipe-server-monitor-staging"'
+#     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+#     - npm publish
+#     - cd ..
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_server-monitor:
-  stage: Deploy
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd server-monitor
-    - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
-    # - git checkout server-monitor-staging
-    - npm publish
-    - cd ..
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_server-monitor:
+#   stage: Deploy
+#   script:
+#     - sudo apt-get update
+#     - sudo apt-get install -y curl gcc
+#     - sudo apt-get install -y build-essential
+#     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+#     - sudo apt-get install -y nodejs
+#     - cd server-monitor
+#     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+#     # - git checkout server-monitor-staging
+#     - npm publish
+#     - cd ..
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-# DEPLOYMENT STAGE - Init Script
-deploy_staging_init-script:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/init-script:master ./init-script
-    - sudo docker tag fyipeproject/init-script:master fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/init-script:master
-    ## You cannot update a Kubernetes job. They are immutable. Delete it and then create one again. 
-    - sudo $HOME/google-cloud-sdk/bin/kubectl delete job fi-init-script
-    - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./ci/init-script/staging.yaml
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - master
-      - hotfix-master
-  environment:
-    name: staging
+# # DEPLOYMENT STAGE - Init Script
+# deploy_staging_init-script:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/init-script:master ./init-script
+#     - sudo docker tag fyipeproject/init-script:master fyipeproject/init-script:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/init-script:master
+#     ## You cannot update a Kubernetes job. They are immutable. Delete it and then create one again. 
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl delete job fi-init-script
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./ci/init-script/staging.yaml
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
+#   environment:
+#     name: staging
 
-deploy_production_init-script:
-  stage: Deploy
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - sudo docker build -t fyipeproject/init-script:latest ./init-script
-    - sudo docker tag fyipeproject/init-script:latest fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-    - sudo docker push fyipeproject/init-script:latest
-    ## You cannot update a Kubernetes job. They are immutable. Delete it and then create one again. 
-    - sudo $HOME/google-cloud-sdk/bin/kubectl delete job fi-init-script
-    - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./ci/init-script/production.yaml
-    # Cleanup
-    - chmod +x ./ci/scripts/deployment-cleanup.sh
-    - ./ci/scripts/deployment-cleanup.sh
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# deploy_production_init-script:
+#   stage: Deploy
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - sudo docker build -t fyipeproject/init-script:latest ./init-script
+#     - sudo docker tag fyipeproject/init-script:latest fyipeproject/init-script:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
+#     - sudo docker push fyipeproject/init-script:latest
+#     ## You cannot update a Kubernetes job. They are immutable. Delete it and then create one again. 
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl delete job fi-init-script
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl create -f ./ci/init-script/production.yaml
+#     # Cleanup
+#     - chmod +x ./ci/scripts/deployment-cleanup.sh
+#     - ./ci/scripts/deployment-cleanup.sh
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-rollback_if_staging_deployment_fails:
-  stage: RollbackIfDeploymentFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    - chmod +x ./ci/scripts/staging-rollback.sh
-    - ./ci/scripts/staging-rollback.sh
-  only:
-    refs:
-      - master
+# rollback_if_staging_deployment_fails:
+#   stage: RollbackIfDeploymentFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     - chmod +x ./ci/scripts/staging-rollback.sh
+#     - ./ci/scripts/staging-rollback.sh
+#   only:
+#     refs:
+#       - master
 
-rollback_if_production_deployment_fails:
-  stage: RollbackIfDeploymentFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    - chmod +x ./ci/scripts/production-rollback.sh
-    - ./ci/scripts/production-rollback.sh
-  only:
-    refs:
-      - release
+# rollback_if_production_deployment_fails:
+#   stage: RollbackIfDeploymentFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     - chmod +x ./ci/scripts/production-rollback.sh
+#     - ./ci/scripts/production-rollback.sh
+#   only:
+#     refs:
+#       - release
 
-## SMOKE TEST STAGE
-smoke_test_production:
-  stage: SmokeTest
-  script:
-    - export HOME_URL=https://www.fyipe.com
-    - export ACCOUNTS_URL=https://fyipe.com/accounts
-    - export DASHBOARD_URL=https://fyipe.com/dashboard
-    - export BACKEND_URL=https://fyipe.com/api
-    - export STATUSPAGE_URL=https://statuspage.fyipe.com
-    - export APIDOCS_URL=https://fyipe.com/docs
-    - export LICENSING_URL=https://fyipe.com/license
-    - cd smoke-test
-    - npm ci
-    - npm run test
-      # if job is successs, cancel the next jobs in pipeline.
-    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
-  only:
-    refs:
-      - release
-      - hotfix-release
-  environment:
-    name: production
+# ## SMOKE TEST STAGE
+# smoke_test_production:
+#   stage: SmokeTest
+#   script:
+#     - export HOME_URL=https://www.fyipe.com
+#     - export ACCOUNTS_URL=https://fyipe.com/accounts
+#     - export DASHBOARD_URL=https://fyipe.com/dashboard
+#     - export BACKEND_URL=https://fyipe.com/api
+#     - export STATUSPAGE_URL=https://statuspage.fyipe.com
+#     - export APIDOCS_URL=https://fyipe.com/docs
+#     - export LICENSING_URL=https://fyipe.com/license
+#     - cd smoke-test
+#     - npm ci
+#     - npm run test
+#       # if job is successs, cancel the next jobs in pipeline.
+#     - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
+#   only:
+#     refs:
+#       - release
+#       - hotfix-release
+#   environment:
+#     name: production
 
-smoke_test_staging:
-  stage: SmokeTest
-  allow_failure: true
-  script:
-    - export HOME_URL=https://staging.fyipe.com
-    - export ACCOUNTS_URL=https://staging.fyipe.com/accounts
-    - export DASHBOARD_URL=https://staging.fyipe.com/dashboard
-    - export BACKEND_URL=https://staging.fyipe.com/api
-    - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
-    - export APIDOCS_URL=https://staging.fyipe.com/docs
-    - export LICENSING_URL=https://staging.fyipe.com/license
-    - cd smoke-test
-    - npm ci
-    - npm run test
-    # if job is successs, create smoke test status variable
-    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=STAGING_SMOKE_TEST_STATUS" --form "value=success"
-  only:
-    refs:
-      - master
-      - hotfix-master
+# smoke_test_staging:
+#   stage: SmokeTest
+#   allow_failure: true
+#   script:
+#     - export HOME_URL=https://staging.fyipe.com
+#     - export ACCOUNTS_URL=https://staging.fyipe.com/accounts
+#     - export DASHBOARD_URL=https://staging.fyipe.com/dashboard
+#     - export BACKEND_URL=https://staging.fyipe.com/api
+#     - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
+#     - export APIDOCS_URL=https://staging.fyipe.com/docs
+#     - export LICENSING_URL=https://staging.fyipe.com/license
+#     - cd smoke-test
+#     - npm ci
+#     - npm run test
+#     # if job is successs, create smoke test status variable
+#     - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=STAGING_SMOKE_TEST_STATUS" --form "value=success"
+#   only:
+#     refs:
+#       - master
+#       - hotfix-master
 
-## STAGING ROLLBACK
-staging_rollback_dashboard:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Rollback dashboard
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-dashboard
-  only:
-    refs:
-      - master
-  except:
-    - $STAGING_SMOKE_TEST_STATUS
+# ## STAGING ROLLBACK
+# staging_rollback_dashboard:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Rollback dashboard
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+#     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-dashboard
+#   only:
+#     refs:
+#       - master
+#   except:
+#     - $STAGING_SMOKE_TEST_STATUS
 
-staging_rollback_accounts:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Rollback accounts
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-accounts
-  only:
-    refs:
-      - master
-  except:
-    - $STAGING_SMOKE_TEST_STATUS
+# staging_rollback_accounts:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Rollback accounts
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+#     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-accounts
+#   only:
+#     refs:
+#       - master
+#   except:
+#     - $STAGING_SMOKE_TEST_STATUS
 
-staging_rollback_backend:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Rollback backend
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-backend
-  only:
-    refs:
-      - master
-  except:
-    - $SMOKE_TEST_STATUS == "success"
+# staging_rollback_backend:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Rollback backend
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+#     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-backend
+#   only:
+#     refs:
+#       - master
+#   except:
+#     - $SMOKE_TEST_STATUS == "success"
 
-staging_rollback_licensing:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Rollback licensing
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-licensing
-  only:
-    refs:
-      - master
-  except:
-    - $SMOKE_TEST_STATUS == "success"
+# staging_rollback_licensing:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Rollback licensing
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+#     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-licensing
+#   only:
+#     refs:
+#       - master
+#   except:
+#     - $SMOKE_TEST_STATUS == "success"
 
-staging_rollback_home:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Rollback home
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-home
-  only:
-    refs:
-      - master
-  except:
-    - $STAGING_SMOKE_TEST_STATUS
+# staging_rollback_home:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Rollback home
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+#     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-home
+#   only:
+#     refs:
+#       - master
+#   except:
+#     - $STAGING_SMOKE_TEST_STATUS
 
-staging_rollback_slack:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Rollback slack
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-slack
-  only:
-    refs:
-      - master
-  except:
-    - $STAGING_SMOKE_TEST_STATUS
+# staging_rollback_slack:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Rollback slack
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+#     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-slack
+#   only:
+#     refs:
+#       - master
+#   except:
+#     - $STAGING_SMOKE_TEST_STATUS
 
-staging_rollback_status-page:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Rollback status-page
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-status
-  only:
-    refs:
-      - master
-  except:
-    - $STAGING_SMOKE_TEST_STATUS
+# staging_rollback_status-page:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Rollback status-page
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+#     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-status
+#   only:
+#     refs:
+#       - master
+#   except:
+#     - $STAGING_SMOKE_TEST_STATUS
 
-staging_rollback_api-docs:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Rollback api-docs
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-api-docs
-  only:
-    refs:
-      - master
-  except:
-    - $STAGING_SMOKE_TEST_STATUS
+# staging_rollback_api-docs:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Rollback api-docs
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+#     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-api-docs
+#   only:
+#     refs:
+#       - master
+#   except:
+#     - $STAGING_SMOKE_TEST_STATUS
 
-staging_rollback_admin-dashboard:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Rollback admin-dashboard
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-admin
-  only:
-    refs:
-      - master
-  except:
-    - $STAGING_SMOKE_TEST_STATUS
+# staging_rollback_admin-dashboard:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Rollback admin-dashboard
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+#     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-admin
+#   only:
+#     refs:
+#       - master
+#   except:
+#     - $STAGING_SMOKE_TEST_STATUS
 
-staging_rollback_probe:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-staging-setup.sh
-    - ./ci/scripts/deployment-staging-setup.sh
-    # Rollback probe
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
-    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe
-    # Additionally rollback probe1 deployment
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe1
-  only:
-    refs:
-      - master
-  except:
-    - $STAGING_SMOKE_TEST_STATUS
+# staging_rollback_probe:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-staging-setup.sh
+#     - ./ci/scripts/deployment-staging-setup.sh
+#     # Rollback probe
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+#     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe
+#     # Additionally rollback probe1 deployment
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe1
+#   only:
+#     refs:
+#       - master
+#   except:
+#     - $STAGING_SMOKE_TEST_STATUS
 
-## PRODUCTION ROLLBACK
-production_rollback_dashboard:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Rollback dashboard
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
-    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-dashboard
-  only:
-    refs:
-      - release
+# ## PRODUCTION ROLLBACK
+# production_rollback_dashboard:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Rollback dashboard
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
+#     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-dashboard
+#   only:
+#     refs:
+#       - release
 
-production_rollback_accounts:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Rollback accounts
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
-    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-accounts
-  only:
-    refs:
-      - release
+# production_rollback_accounts:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Rollback accounts
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
+#     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-accounts
+#   only:
+#     refs:
+#       - release
 
-production_rollback_backend:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Rollback backend
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
-    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-backend
-  only:
-    refs:
-      - release
+# production_rollback_backend:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Rollback backend
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
+#     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-backend
+#   only:
+#     refs:
+#       - release
 
-production_rollback_licensing:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Rollback licensing
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
-    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-licensing
-  only:
-    refs:
-      - release
+# production_rollback_licensing:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Rollback licensing
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
+#     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-licensing
+#   only:
+#     refs:
+#       - release
 
-production_rollback_home:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Rollback home
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
-    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-home
-  only:
-    refs:
-      - release
+# production_rollback_home:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Rollback home
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
+#     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-home
+#   only:
+#     refs:
+#       - release
 
-production_rollback_slack:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Rollback slack
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
-    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-slack
-  only:
-    refs:
-      - release
+# production_rollback_slack:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Rollback slack
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
+#     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-slack
+#   only:
+#     refs:
+#       - release
 
-production_rollback_status-page:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Rollback status-page
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
-    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-status
-  only:
-    refs:
-      - release
+# production_rollback_status-page:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Rollback status-page
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
+#     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-status
+#   only:
+#     refs:
+#       - release
 
-production_rollback_api-docs:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Rollback api-docs
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
-    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-api-docs
-  only:
-    refs:
-      - release
+# production_rollback_api-docs:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Rollback api-docs
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
+#     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-api-docs
+#   only:
+#     refs:
+#       - release
 
-production_rollback_admin-dashboard:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Rollback admin-dashboard
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
-    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-admin
-  only:
-    refs:
-      - release
+# production_rollback_admin-dashboard:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Rollback admin-dashboard
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
+#     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-admin
+#   only:
+#     refs:
+#       - release
 
-production_rollback_probe:
-  stage: RollbackIfSmokeTestFail
-  script:
-    - chmod +x ./ci/scripts/deployment-setup.sh
-    - ./ci/scripts/deployment-setup.sh
-    - chmod +x ./ci/scripts/deployment-production-setup.sh
-    - ./ci/scripts/deployment-production-setup.sh
-    # Rollback probe
-    - chmod +x ./ci/scripts/job-status.sh
-    - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
-    - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe
-  only:
-    refs:
-      - release
+# production_rollback_probe:
+#   stage: RollbackIfSmokeTestFail
+#   script:
+#     - chmod +x ./ci/scripts/deployment-setup.sh
+#     - ./ci/scripts/deployment-setup.sh
+#     - chmod +x ./ci/scripts/deployment-production-setup.sh
+#     - ./ci/scripts/deployment-production-setup.sh
+#     # Rollback probe
+#     - chmod +x ./ci/scripts/job-status.sh
+#     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
+#     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
+#     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe
+#   only:
+#     refs:
+#       - release
 
-cleanup:
-  stage: CleanUp
-  script:
-    - sudo docker system prune -a --force
-  only:
-    refs:
-      - master
+# cleanup:
+#   stage: CleanUp
+#   script:
+#     - sudo docker system prune -a --force
+#   only:
+#     refs:
+#       - master
