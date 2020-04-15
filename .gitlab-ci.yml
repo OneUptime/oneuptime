@@ -730,62 +730,62 @@ stages:
 #       - hotfix-release
 
 # #E2E Stage.
-# e2e_microk8s_test:
-#   stage: E2E
-#   script:
-#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-#     - chmod +x ./ci/scripts/setup-machine.sh
-#     - ./ci/scripts/setup-machine.sh
-#     - chmod +x ./ci/scripts/setup.sh
-#     - ./ci/scripts/setup.sh
-#     - export HOME_URL=http://home.app.local:1444
-#     - export ACCOUNTS_URL=http://accounts.app.local:3003
-#     - export DASHBOARD_URL=http://dashboard.app.local:3000
-#     - export BACKEND_URL=http://backend.app.local:3002
-#     - export STATUSPAGE_URL=http://status-page.app.local:3006
-#     - export APIDOCS_URL=http://api-docs.app.local:1445
-#     - export LICENSING_URL=http://licensing.app.local:3004
-#     - chmod +x ./ci/scripts/hosts-setup.sh
-#     - ./ci/scripts/hosts-setup.sh
-#     - cd smoke-test
-#     - npm ci
-#     - npm run test
-#     - chmod +x ./ci/scripts/uninstall-helm.sh
-#     - ./ci/scripts/uninstall-helm.sh
-#   only:
-#     refs:
-#       - release
-#       - master
+e2e_microk8s_test:
+  stage: E2E
+  script:
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - chmod +x ./ci/scripts/setup-machine.sh
+    - ./ci/scripts/setup-machine.sh
+    - chmod +x ./ci/scripts/setup.sh
+    - ./ci/scripts/setup.sh
+    - export HOME_URL=http://home.app.local:1444
+    - export ACCOUNTS_URL=http://accounts.app.local:3003
+    - export DASHBOARD_URL=http://dashboard.app.local:3000
+    - export BACKEND_URL=http://backend.app.local:3002
+    - export STATUSPAGE_URL=http://status-page.app.local:3006
+    - export APIDOCS_URL=http://api-docs.app.local:1445
+    - export LICENSING_URL=http://licensing.app.local:3004
+    - chmod +x ./ci/scripts/hosts-setup.sh
+    - ./ci/scripts/hosts-setup.sh
+    - cd smoke-test
+    - npm ci
+    - npm run test
+    - chmod +x ./ci/scripts/uninstall-helm.sh
+    - ./ci/scripts/uninstall-helm.sh
+  # only:
+  #   refs:
+  #     - release
+  #     - master
 
-# ##E2E Stage.
-# e2e_docker_compose_test:
-#   stage: E2E
-#   script:
-#     - sudo apt-get update
-#     - curl -sSL https://get.docker.com/ | sh #Install docker.
-#     # Install Docker Compose.
-#     - sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-#     - sudo chmod +x /usr/local/bin/docker-compose
-#     - sudo docker-compose down -v
-#     - export IS_SAAS_SERVICE=true
-#     # Install the cluster.
-#     - chmod +x ./install.sh
-#     - ./install.sh
-#     # Set env var
-#     - export HOME_URL=http://localhost:1444
-#     - export ACCOUNTS_URL=http://localhost:3003
-#     - export DASHBOARD_URL=http://localhost:3000
-#     - export BACKEND_URL=http://localhost:3002
-#     - export STATUSPAGE_URL=http://localhost:3006
-#     - export APIDOCS_URL=http://localhost:1445
-#     - export LICENSING_URL=http://localhost:3004
-#     - cd smoke-test
-#     - npm ci
-#     - npm run test
-#   only:
-#     refs:
-#       - release
-#       - master
+##E2E Stage.
+e2e_docker_compose_test:
+  stage: E2E
+  script:
+    - sudo apt-get update
+    - curl -sSL https://get.docker.com/ | sh #Install docker.
+    # Install Docker Compose.
+    - sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    - sudo chmod +x /usr/local/bin/docker-compose
+    - sudo docker-compose down -v
+    - export IS_SAAS_SERVICE=true
+    # Install the cluster.
+    - chmod +x ./install.sh
+    - ./install.sh
+    # Set env var
+    - export HOME_URL=http://localhost:1444
+    - export ACCOUNTS_URL=http://localhost:3003
+    - export DASHBOARD_URL=http://localhost:3000
+    - export BACKEND_URL=http://localhost:3002
+    - export STATUSPAGE_URL=http://localhost:3006
+    - export APIDOCS_URL=http://localhost:1445
+    - export LICENSING_URL=http://localhost:3004
+    - cd smoke-test
+    - npm ci
+    - npm run test
+  # only:
+  #   refs:
+  #     - release
+  #     - master
 
 e2e_docker_compose_enterprise_test:
   stage: E2E
@@ -807,10 +807,10 @@ e2e_docker_compose_enterprise_test:
     - cd smoke-test
     - npm ci
     - npm run enterprise-test
-  only:
-    refs:
-      - release
-      - master
+  # only:
+  #   refs:
+  #     - release
+  #     - master
 
 # # VERSION UPDATE
 # version_update:
