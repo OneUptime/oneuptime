@@ -51,7 +51,7 @@ router.post(
                     return sendItemResponse(req, res, response);
                 } else {
                     return sendErrorResponse(req, res, {
-                        message: 'domain not verified',
+                        message: 'TXT record not found',
                         code: 400,
                     });
                 }
