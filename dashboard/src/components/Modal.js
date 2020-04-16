@@ -66,6 +66,11 @@ const composableComponent = ComposedComponent => {
                                 confirmThisDialog={this.onConfirm}
                                 title={this.props.title}
                                 body={this.props.body}
+                                propArr={
+                                    this.props.item.propArr
+                                        ? this.props.item.propArr
+                                        : []
+                                }
                             />
                         </div>
                     </div>
