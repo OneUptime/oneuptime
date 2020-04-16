@@ -146,9 +146,11 @@ function updateinstallation {
         --set image.tag=$AVAILABLE_VERSION
 }
 
+echo $1
 
 if [[ $1 -eq thirdPartyBillingEnabled ]] #If thirdPartyBillingIsEnabled (for ex for Marketplace VM's)
 then
+    echo "Third Party Billing Enabled Install"
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
         # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
@@ -169,6 +171,7 @@ then
     --set nginx-ingress-controller.service.type=NodePort \
     --set nginx-ingress-controller.hostNetwork=true
 else
+    echo "Default Install"
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
         # set service of type nodeport for VM's. 
