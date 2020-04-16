@@ -8,13 +8,17 @@ const VerifyDomainModal = ({
     confirmThisDialog,
     closeThisDialog,
     domainField,
-    domains,
     requesting,
     propArr,
 }) => {
+    const handleCloseModal = () => {
+        domainField.error = null;
+        closeThisDialog();
+    };
+
     return (
         <div
-            onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
+            onKeyDown={e => e.key === 'Escape' && handleCloseModal()}
             className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
         >
             <div
@@ -193,10 +197,7 @@ const VerifyDomainModal = ({
                                             'bs-is-disabled'}`}
                                         type="button"
                                         disabled={domainField.requesting}
-                                        onClick={() => {
-                                            domainField.error = null;
-                                            closeThisDialog()
-                                        }}
+                                        onClick={handleCloseModal}
                                     >
                                         <span>Cancel</span>
                                     </button>
@@ -223,7 +224,6 @@ const VerifyDomainModal = ({
 
 const mapStateToProps = state => ({
     domainField: state.statusPage.verifyDomain,
-    domains: state.statusPage.status.domains,
     requesting: state.statusPage.requesting,
 });
 
@@ -233,7 +233,6 @@ VerifyDomainModal.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func,
     domainField: PropTypes.object,
-    domains: PropTypes.array,
     requesting: PropTypes.bool,
     propArr: PropTypes.array,
 };

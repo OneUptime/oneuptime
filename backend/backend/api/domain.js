@@ -9,7 +9,7 @@ const StatusPageService = require('../services/statusPageService');
 
 const router = express.Router();
 
-router.post(
+router.put(
     '/:projectId/:statusPageId/verify/:domainId',
     getUser,
     isAuthorized,

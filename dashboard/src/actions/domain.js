@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import {  putApi } from '../api';
 import * as types from '../constants/domain';
 
 export function verifyDomainRequest() {
@@ -26,12 +26,11 @@ export function verifyDomain({projectId, domainId, statusPageId, payload }) {
         dispatch(verifyDomainRequest());
 
         try {
-            const response = await postApi(
+            const response = await putApi(
                 `domain/${projectId}/${statusPageId}/verify/${domainId}`,
                 payload
             );
             dispatch(verifyDomainSuccess(response.data));
-            return response.data;
         } catch (error) {
             const errorMsg =
                 error.response && error.response.data
@@ -42,7 +41,6 @@ export function verifyDomain({projectId, domainId, statusPageId, payload }) {
                     ? error.message
                     : 'Network Error';
             dispatch(verifyDomainFailure(errorMsg));
-            return errorMsg;
         }
     };
 }

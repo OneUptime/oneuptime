@@ -69,7 +69,7 @@ export class Setting extends Component {
         let thisObj = this;
 
         let data = {
-            projectId: projectId._id,
+            projectId: projectId._id || projectId,
             statusPageId: this.props.statusPage.status._id,
             domainId: _id,
             payload: {
@@ -613,7 +613,8 @@ export class Setting extends Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={
                                             this.props.statusPage.setting
-                                                .requesting
+                                                .requesting ||
+                                            !this.props.showDomainField
                                         }
                                         type="submit"
                                     >
