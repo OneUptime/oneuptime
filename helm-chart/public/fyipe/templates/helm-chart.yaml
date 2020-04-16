@@ -35,7 +35,7 @@ spec:
                   ports:
                       - containerPort: {{ .Values.host.helmChartPort }}
                         hostPort: {{ .Values.host.helmChartPort }}
-                        name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+                        name: {{ printf "%s-%s" .Release.Name "helmchart"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 
 ---

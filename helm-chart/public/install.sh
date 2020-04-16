@@ -118,7 +118,6 @@ AVAILABLE_VERSION=$(curl https://fyipe.com/api/version | jq '.server' | tr -d '"
 AVAILABLE_VERSION_BUILD=$(echo $AVAILABLE_VERSION | tr "." "0")
 
 IMAGE_VERSION=$(sudo k get deployment fyipe-accounts -o=jsonpath='{$.spec.template.spec.containers[:1].image}' || echo 0) 
-echo $IMAGE_VERSION
 
 if [[ $IMAGE_VERSION -eq 0 ]]
 then
@@ -147,11 +146,9 @@ function updateinstallation {
         --set image.tag=$AVAILABLE_VERSION
 }
 
-echo $1
 
 if [[ "$1" == "thirdPartyBillingEnabled" ]] #If thirdPartyBillingIsEnabled (for ex for Marketplace VM's)
 then
-    echo "Third Party Billing Enabled Install"
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
         # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
@@ -165,14 +162,12 @@ then
     fi
 elif [[ "$1" == "ci-install" ]] # If its a local install, take local scripts. 
 then
-    echo "CI Install"
     # set service of type nodeport for VM's. 
     sudo helm uninstall fyipe || echo "fyipe not installed"
     sudo helm install -f ./kubernetes/values-saas-staging.yaml fyipe ./helm-chart/public/fyipe \
     --set nginx-ingress-controller.service.type=NodePort \
     --set nginx-ingress-controller.hostNetwork=true
 else
-    echo "Default Install"
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
         # set service of type nodeport for VM's. 
