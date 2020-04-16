@@ -162,6 +162,7 @@ then
     fi
 elif [[ $1 -eq ci-install ]] # If its a local install, take local scripts. 
 then
+    echo "CI Install"
     # set service of type nodeport for VM's. 
     sudo helm uninstall fyipe || echo "fyipe not installed"
     sudo helm install -f ./kubernetes/values-saas-staging.yaml fyipe ./helm-chart/public/fyipe \
