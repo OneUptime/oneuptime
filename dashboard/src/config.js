@@ -16,11 +16,9 @@ if (
     window.location.host &&
     window.location.host.includes('app.local')
 ) {
-    apiUrl = window.location.protocol + '//backend.app.local:3002/api';
-    dashboardUrl =
-        window.location.protocol + '//dashboard.app.local:3000/dashboard';
-    accountsUrl =
-        window.location.protocol + '//accounts.app.local:3003/accounts';
+    apiUrl = 'http://backend.app.local:3002';
+    dashboardUrl = 'http://dashboard.app.local:3000';
+    accountsUrl = 'http://accounts.app.local:3003';
 }
 
 const isLocalhost =
@@ -55,7 +53,7 @@ export const DOMAIN_URL = window.location.origin;
 
 export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 
-export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
+export const IS_SAAS_SERVICE = true;
 
 export const IS_LOCALHOST = isLocalhost;
 
