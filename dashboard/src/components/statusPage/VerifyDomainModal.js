@@ -193,7 +193,10 @@ const VerifyDomainModal = ({
                                             'bs-is-disabled'}`}
                                         type="button"
                                         disabled={domainField.requesting}
-                                        onClick={closeThisDialog}
+                                        onClick={() => {
+                                            domainField.error = null;
+                                            closeThisDialog()
+                                        }}
                                     >
                                         <span>Cancel</span>
                                     </button>
