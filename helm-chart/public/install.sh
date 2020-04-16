@@ -162,15 +162,11 @@ then
     fi
 elif [[ $1 -eq ci-install ]] # If its a local install, take local scripts. 
 then
-    if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
-    then
-        # set service of type nodeport for VM's. 
-        sudo helm install -f ./kubernetes/values-saas-staging.yaml fyipe ./helm-chart/public/fyipe \
-        --set nginx-ingress-controller.service.type=NodePort \
-        --set nginx-ingress-controller.hostNetwork=true 
-    else
-        updateinstallation
-    fi
+    # set service of type nodeport for VM's. 
+    sudo helm uninstall fyipe || echo "fyipe not installed"
+    sudo helm install -f ./kubernetes/values-saas-staging.yaml fyipe ./helm-chart/public/fyipe \
+    --set nginx-ingress-controller.service.type=NodePort \
+    --set nginx-ingress-controller.hostNetwork=true
 else
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
