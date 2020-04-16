@@ -30,6 +30,8 @@ spec:
                         value: {{ .Values.saas.stripe.publicKey }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
+                      - name: REACT_APP_IS_SAAS_SERVICE
+                        value: 'true'
                       - name: AMPLITUDE_PUBLIC_KEY
                         value: {{ .Values.saas.amplitude.key }}
                       {{- end }}

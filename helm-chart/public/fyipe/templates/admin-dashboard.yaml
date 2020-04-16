@@ -24,6 +24,8 @@ spec:
                     {{- if .Values.saas.isSaasService }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'
+                    - name: REACT_APP_IS_SAAS_SERVICE
+                      value: 'true'
                     {{- else }}
                     - name: LICENSE_URL
                       value: {{ .Values.fyipe.licensingUrl }}
