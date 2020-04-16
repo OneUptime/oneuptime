@@ -57,7 +57,7 @@ import {
     UPDATE_SUBSCRIBER_OPTION_FAILURE,
     UPDATE_SUBSCRIBER_OPTION_RESET,
     ADD_MORE_DOMAIN,
-    CANCEL_ADD_MORE_DOMAIN
+    CANCEL_ADD_MORE_DOMAIN,
 } from '../constants/statusPage';
 
 import {
@@ -65,6 +65,12 @@ import {
     PAGINATE_PREV,
     PAGINATE_RESET,
 } from '../constants/statusPage';
+
+import {
+    VERIFY_DOMAIN_FAILURE,
+    VERIFY_DOMAIN_REQUEST,
+    VERIFY_DOMAIN_SUCCESS,
+} from '../constants/domain';
 
 const INITIAL_STATE = {
     addMoreDomain: false,
@@ -124,6 +130,11 @@ const INITIAL_STATE = {
         requesting: false,
         error: null,
     },
+    verifyDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
     //this is for main status page object.
     error: null,
     requesting: false,
@@ -167,39 +178,39 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 subProjectStatusPages: isExistingStatusPage
                     ? state.subProjectStatusPages.length > 0
                         ? state.subProjectStatusPages.map(statusPage => {
-                            return statusPage._id === action.payload.projectId
-                                ? {
-                                    _id: action.payload.projectId,
-                                    statusPages: [
-                                        action.payload,
-                                        ...statusPage.statusPages.filter(
-                                            (status, index) => index < 9
-                                        ),
-                                    ],
-                                    count: statusPage.count + 1,
-                                    skip: statusPage.skip,
-                                    limit: statusPage.limit,
-                                }
-                                : statusPage;
-                        })
+                              return statusPage._id === action.payload.projectId
+                                  ? {
+                                        _id: action.payload.projectId,
+                                        statusPages: [
+                                            action.payload,
+                                            ...statusPage.statusPages.filter(
+                                                (status, index) => index < 9
+                                            ),
+                                        ],
+                                        count: statusPage.count + 1,
+                                        skip: statusPage.skip,
+                                        limit: statusPage.limit,
+                                    }
+                                  : statusPage;
+                          })
                         : [
-                            {
-                                _id: action.payload.projectId,
-                                statusPages: [action.payload],
-                                count: 1,
-                                skip: 0,
-                                limit: 0,
-                            },
-                        ]
+                              {
+                                  _id: action.payload.projectId,
+                                  statusPages: [action.payload],
+                                  count: 1,
+                                  skip: 0,
+                                  limit: 0,
+                              },
+                          ]
                     : state.subProjectStatusPages.concat([
-                        {
-                            _id: action.payload.projectId,
-                            statusPages: [action.payload],
-                            count: 1,
-                            skip: 0,
-                            limit: 0,
-                        },
-                    ]),
+                          {
+                              _id: action.payload.projectId,
+                              statusPages: [action.payload],
+                              count: 1,
+                              skip: 0,
+                              limit: 0,
+                          },
+                      ]),
             });
 
         case CREATE_STATUSPAGE_FAILURE:
@@ -218,16 +229,48 @@ export default function statusPage(state = INITIAL_STATE, action) {
 
         //handle domain input field
         case ADD_MORE_DOMAIN:
-            return { 
-                ...state, 
-                addMoreDomain: true 
+            return {
+                ...state,
+                addMoreDomain: true,
             };
 
         case CANCEL_ADD_MORE_DOMAIN:
             return {
                 ...state,
-                addMoreDomain: false
-            }
+                addMoreDomain: false,
+            };
+
+        case VERIFY_DOMAIN_REQUEST:
+            return {
+                ...state,
+                verifyDomain: {
+                    ...state.verifyDomain,
+                    requesting: true,
+                },
+            };
+
+        case VERIFY_DOMAIN_SUCCESS:
+            
+            return {
+                ...state,
+                status: action.payload,
+                verifyDomain: {
+                    ...state.verifyDomain,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+
+        case VERIFY_DOMAIN_FAILURE:
+            return {
+                ...state,
+                verifyDomain: {
+                    ...state.verifyDomain,
+                    requesting: false,
+                    error: action.payload,
+                },
+            };
 
         //update setting
         case UPDATE_STATUSPAGE_SETTING_REQUEST:
@@ -563,12 +606,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     statusPage => {
                         return statusPage._id === action.payload.projectId
                             ? {
-                                _id: action.payload.projectId,
-                                statusPages: [...action.payload.data],
-                                count: action.payload.count,
-                                skip: action.payload.skip,
-                                limit: action.payload.limit,
-                            }
+                                  _id: action.payload.projectId,
+                                  statusPages: [...action.payload.data],
+                                  count: action.payload.count,
+                                  skip: action.payload.skip,
+                                  limit: action.payload.limit,
+                              }
                             : statusPage;
                     }
                 ),
