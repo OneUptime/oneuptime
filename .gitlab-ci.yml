@@ -740,6 +740,7 @@ e2e_microk8s_test:
     - ./ci/scripts/setup.sh
     - export HOME_URL=http://home.app.local:1444
     - export ACCOUNTS_URL=http://accounts.app.local:3003
+    - export ADMIN_DASHBOARD_URL=http://admin.app.local:3100
     - export DASHBOARD_URL=http://dashboard.app.local:3000
     - export BACKEND_URL=http://backend.app.local:3002
     - export STATUSPAGE_URL=http://status.app.local:3006

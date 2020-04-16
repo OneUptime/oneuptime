@@ -13,6 +13,19 @@ if (
     window &&
     window.location &&
     window.location.host &&
+    window.location.host.includes('app.local')
+) {
+    apiUrl = window.location.protocol + '//backend.app.local:3002/api';
+    dashboardUrl =
+        window.location.protocol + '//dashboard.app.local:3000/dashboard';
+    adminDashboardUrl =
+        window.location.protocol + '//admin.app.local:3100/admin';
+}
+
+if (
+    window &&
+    window.location &&
+    window.location.host &&
     (window.location.host.includes('localhost:') ||
         window.location.host.includes('0.0.0.0:') ||
         window.location.host.includes('127.0.0.1:'))
