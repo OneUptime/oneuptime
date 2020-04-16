@@ -20,7 +20,11 @@ router.post(
         try {
             dns.resolveTxt(domain, async (err, records) => {
                 if (err) {
-                    throw err;
+                    let errorMsg = `error looking up TXT record: ${err.message}`;
+                    return sendErrorResponse(req, res, {
+                        message: errorMsg,
+                        code: 400,
+                    });
                 }
                 // records is an array of arrays
                 // flatten the array to a single array
@@ -46,14 +50,14 @@ router.post(
                     );
                     return sendItemResponse(req, res, response);
                 } else {
-                    sendErrorResponse(req, res, {
+                    return sendErrorResponse(req, res, {
                         message: 'domain not verified',
                         code: 400,
                     });
                 }
             });
         } catch (error) {
-            sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error);
         }
     }
 );
