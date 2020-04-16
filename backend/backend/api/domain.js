@@ -14,13 +14,13 @@ router.put(
     getUser,
     isAuthorized,
     (req, res) => {
-        let { domain, verificationToken } = req.body;
+        const { domain, verificationToken } = req.body;
         const { statusPageId, domainId } = req.params;
 
         try {
             dns.resolveTxt(domain, async (err, records) => {
                 if (err) {
-                    let errorMsg = `error looking up TXT record: ${err.message}`;
+                    const errorMsg = `error looking up TXT record: ${err.message}`;
                     return sendErrorResponse(req, res, {
                         message: errorMsg,
                         code: 400,
@@ -28,13 +28,13 @@ router.put(
                 }
                 // records is an array of arrays
                 // flatten the array to a single array
-                let txtRecords = flat(records);
-                let txtFound = txtRecords.some(
+                const txtRecords = flat(records);
+                const txtFound = txtRecords.some(
                     txtRecord => verificationToken === txtRecord
                 );
 
                 if (txtFound) {
-                    let status = await StatusPageService.findOneBy({
+                    const status = await StatusPageService.findOneBy({
                         _id: statusPageId,
                     });
 
@@ -44,7 +44,7 @@ router.put(
                         }
                     });
 
-                    let response = await StatusPageService.updateOneBy(
+                    const response = await StatusPageService.updateOneBy(
                         { _id: statusPageId },
                         { domains: status.domains }
                     );

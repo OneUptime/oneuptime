@@ -45,7 +45,7 @@ export class Setting extends Component {
 
     submitForm = values => {
         const { reset } = this.props;
-        let { domain } = values;
+        const { domain } = values;
         const domainObj = { domain };
         const { _id, projectId } = this.props.statusPage.status;
         if (_id) domainObj._id = _id;
@@ -64,11 +64,11 @@ export class Setting extends Component {
 
     handleVerifyDomain = (e, { domain, verificationToken, _id }) => {
         e.preventDefault();
-        let { verifyDomain } = this.props;
+        const { verifyDomain } = this.props;
         const { projectId } = this.props.statusPage.status;
-        let thisObj = this;
+        const thisObj = this;
 
-        let data = {
+        const data = {
             projectId: projectId._id || projectId,
             statusPageId: this.props.statusPage.status._id,
             domainId: _id,
@@ -654,6 +654,7 @@ Setting.propTypes = {
     openModal: PropTypes.func.isRequired,
     verifyDomain: PropTypes.func,
     closeModal: PropTypes.func,
+    verifyError: PropTypes.bool,
 };
 
 const SettingForm = reduxForm({
@@ -680,7 +681,7 @@ const mapDispatchToProps = dispatch => {
 };
 
 function mapStateToProps(state) {
-    let domainsContainer =
+    const domainsContainer =
         state.statusPage &&
         state.statusPage.status &&
         state.statusPage.status.domains
@@ -688,7 +689,7 @@ function mapStateToProps(state) {
             : [];
 
     let obj = {};
-    domainsContainer = domainsContainer.map((d, i) => {
+    domainsContainer.forEach(d => {
         obj = { ...obj, [d._id]: d.domain };
     });
 

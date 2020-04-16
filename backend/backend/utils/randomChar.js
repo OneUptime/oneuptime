@@ -5,10 +5,10 @@
  */
 
 module.exports = (num = 15) => {
-    var input =
+    const input =
         'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    var output = '';
-    for (var i = 0; i < num; i++) {
+    let output = '';
+    for (let i = 0; i < num; i++) {
         output += input.charAt(Math.floor(Math.random() * input.length));
     }
     return output;

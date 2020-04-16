@@ -5,9 +5,9 @@
  */
 
 module.exports = function flat(arr) {
-    let flattened = [];
+    const flattened = [];
     (function flatten(arr) {
-        for (let val of arr) {
+        for (const val of arr) {
             if (Array.isArray(val)) {
                 flatten(val);
             } else {

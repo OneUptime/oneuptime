@@ -250,7 +250,6 @@ export default function statusPage(state = INITIAL_STATE, action) {
             };
 
         case VERIFY_DOMAIN_SUCCESS:
-            
             return {
                 ...state,
                 status: action.payload,

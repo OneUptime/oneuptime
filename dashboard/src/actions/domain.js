@@ -1,4 +1,4 @@
-import {  putApi } from '../api';
+import { putApi } from '../api';
 import * as types from '../constants/domain';
 
 export function verifyDomainRequest() {
@@ -21,7 +21,7 @@ export function verifyDomainFailure(error) {
     };
 }
 
-export function verifyDomain({projectId, domainId, statusPageId, payload }) {
+export function verifyDomain({ projectId, domainId, statusPageId, payload }) {
     return async function(dispatch) {
         dispatch(verifyDomainRequest());
 
