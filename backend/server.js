@@ -159,6 +159,7 @@ app.use(
     ['/globalConfig', '/api/globalConfig'],
     require('./backend/api/globalConfig')
 );
+app.use(['/domain', '/api/domain'], require('./backend/api/domain'));
 
 app.set('port', process.env.PORT || 3002);
 

@@ -25,6 +25,7 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const randomChar = require('../utils/randomChar');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -106,22 +107,9 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
             _id: data._id,
         });
 
-        let domainExists = false;
-        // check if domain already exist for a status page
-        status.domains.forEach(eachDomain => {
-            if (eachDomain.domain === data.domain) {
-                domainExists = true;
-            }
-        });
+        let verificationToken = randomChar();
 
-        if (domainExists) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain already exists'
-            })
-        }
-
-        data.domains = [...status.domains, { domain: data.domain }];
+        data.domains = [...status.domains, { domain: data.domain, verificationToken }];
         delete data.domain;
     }
 
