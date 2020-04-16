@@ -1,14 +1,15 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { reduxForm, Field, FieldArray } from 'redux-form';
+import { reduxForm, Field } from 'redux-form';
+import uuid from 'uuid';
 import {
     updateStatusPageSetting,
     updateStatusPageSettingRequest,
     updateStatusPageSettingSuccess,
     updateStatusPageSettingError,
     addMoreDomain,
-    cancelAddMoreDomain
+    cancelAddMoreDomain,
 } from '../../actions/statusPage';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
@@ -24,6 +25,9 @@ import {
     IS_LOCALHOST,
     IS_SAAS_SERVICE,
 } from '../../config';
+import { verifyDomain } from '../../actions/domain';
+import { openModal, closeModal } from '../../actions/modal';
+import VerifyDomainModal from './VerifyDomainModal';
 
 //Client side validation
 function validate(values) {
@@ -37,12 +41,13 @@ function validate(values) {
 }
 
 export class Setting extends Component {
+    state = { verifyModalId: uuid.v4() };
+
     submitForm = values => {
         const { reset } = this.props;
         let { domain } = values;
         const domainObj = { domain };
         const { _id, projectId } = this.props.statusPage.status;
-        // if (_id) values._id = _id;
         if (_id) domainObj._id = _id;
         this.props
             .updateStatusPageSetting(projectId._id || projectId, domainObj)
@@ -50,31 +55,69 @@ export class Setting extends Component {
                 () => {
                     reset();
                 },
-                function () { }
+                function() {}
             );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Domain Updated', values);
         }
     };
 
+    handleVerifyDomain = (e, { domain, verificationToken, _id }) => {
+        e.preventDefault();
+        let { verifyDomain } = this.props;
+        const { projectId } = this.props.statusPage.status;
+        let thisObj = this;
+
+        let data = {
+            projectId: projectId._id,
+            statusPageId: this.props.statusPage.status._id,
+            domainId: _id,
+            payload: {
+                domain,
+                verificationToken,
+            },
+        };
+
+        this.props.openModal({
+            id: this.state.verifyModalId,
+            onConfirm: () => {
+                //Todo: handle the dispatch to domain verification
+                return verifyDomain(data).then(() => {
+                    if (this.props.verifyError) {
+                        // prevent dismissal of modal if errored
+                        return this.handleVerifyDomain();
+                    }
+
+                    if (window.location.href.indexOf('localhost') <= -1) {
+                        thisObj.context.mixpanel.track('Domain verification');
+                    }
+                });
+            },
+            content: VerifyDomainModal,
+            propArr: [{ domain, verificationToken, _id }],
+        });
+    };
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({ id: this.state.verifyModalId });
+            default:
+                return false;
+        }
+    };
+
     render() {
         let statusPageId = '';
-        let hosted = [];
+        let hosted = '';
         let publicStatusPageUrl = '';
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
         if (
             this.props.statusPage &&
             this.props.statusPage.status &&
-            this.props.statusPage.status.domains
-        ) {
-            hosted = this.props.statusPage.status.domains;
-        } else if (
-            this.props.statusPage &&
-            this.props.statusPage.status &&
             this.props.statusPage.status._id
         ) {
-            //todo: handle the status id
             hosted = `${this.props.statusPage.status._id}.fyipeapp.com`;
         }
         if (
@@ -85,7 +128,6 @@ export class Setting extends Component {
             statusPageId = this.props.statusPage.status._id;
         }
 
-        // todo: loop over the domains and reset this
         if (IS_LOCALHOST) {
             publicStatusPageUrl = `http://${statusPageId}.localhost:3006`;
         } else if (IS_SAAS_SERVICE) {
@@ -104,7 +146,10 @@ export class Setting extends Component {
                 subProject => subProject._id === projectId
             );
         return (
-            <div className="bs-ContentSection Card-root Card-shadow--medium">
+            <div
+                onKeyDown={this.handleKeyBoard}
+                className="bs-ContentSection Card-root Card-shadow--medium"
+            >
                 <div className="Box-root">
                     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
@@ -160,39 +205,70 @@ export class Setting extends Component {
                                                         {IsAdminSubProject(
                                                             subProject
                                                         ) ||
-                                                            IsOwnerSubProject(
-                                                                subProject
-                                                            ) ? (
-                                                                <div className="bs-Fieldset-row">
-                                                                    <label className="bs-Fieldset-label">
-                                                                        Your Status
-                                                                        Page is
-                                                                        hosted at
+                                                        IsOwnerSubProject(
+                                                            subProject
+                                                        ) ? (
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Your Status
+                                                                    Page is
+                                                                    hosted at
                                                                 </label>
 
-                                                                    <div className="bs-Fieldset-fields">
-                                                                        <Field
-                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                            component={
-                                                                                RenderField
-                                                                            }
-                                                                            type="text"
-                                                                            name={
-                                                                                domain._id
-                                                                            }
-                                                                            id="domain"
-                                                                            disabled={
-                                                                                this
-                                                                                    .props
-                                                                                    .statusPage
-                                                                                    .setting
-                                                                                    .requesting
-                                                                            }
-                                                                            placeholder="domain"
-                                                                        />
-                                                                        <p className="bs-Fieldset-explanation">
-                                                                            {IS_LOCALHOST && (
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                        component={
+                                                                            RenderField
+                                                                        }
+                                                                        type="text"
+                                                                        name={
+                                                                            domain._id
+                                                                        }
+                                                                        id="domain"
+                                                                        disabled={
+                                                                            this
+                                                                                .props
+                                                                                .statusPage
+                                                                                .setting
+                                                                                .requesting
+                                                                        }
+                                                                        placeholder="domain"
+                                                                    />
+                                                                    <p className="bs-Fieldset-explanation">
+                                                                        {IS_LOCALHOST && (
+                                                                            <span>
+                                                                                If
+                                                                                you
+                                                                                want
+                                                                                to
+                                                                                preview
+                                                                                your
+                                                                                status
+                                                                                page.
+                                                                                Please
+                                                                                check{' '}
+                                                                                <a
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    href={
+                                                                                        publicStatusPageUrl
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        publicStatusPageUrl
+                                                                                    }{' '}
+                                                                                </a>
+                                                                            </span>
+                                                                        )}
+                                                                        {IS_SAAS_SERVICE &&
+                                                                            !IS_LOCALHOST && (
                                                                                 <span>
+                                                                                    Add
+                                                                                    statuspage.fyipeapp.com
+                                                                                    to
+                                                                                    your
+                                                                                    CNAME.
                                                                                     If
                                                                                     you
                                                                                     want
@@ -202,7 +278,7 @@ export class Setting extends Component {
                                                                                     status
                                                                                     page.
                                                                                     Please
-                                                                                check{' '}
+                                                                                    check{' '}
                                                                                     <a
                                                                                         target="_blank"
                                                                                         rel="noopener noreferrer"
@@ -216,138 +292,110 @@ export class Setting extends Component {
                                                                                     </a>
                                                                                 </span>
                                                                             )}
-                                                                            {IS_SAAS_SERVICE &&
-                                                                                !IS_LOCALHOST && (
-                                                                                    <span>
-                                                                                        Add
-                                                                                        statuspage.fyipeapp.com
-                                                                                        to
-                                                                                        your
-                                                                                        CNAME.
-                                                                                        If
-                                                                                        you
-                                                                                        want
-                                                                                        to
-                                                                                        preview
-                                                                                        your
-                                                                                        status
-                                                                                        page.
-                                                                                        Please
+                                                                        {!IS_SAAS_SERVICE &&
+                                                                            !IS_LOCALHOST && (
+                                                                                <span>
+                                                                                    If
+                                                                                    you
+                                                                                    want
+                                                                                    to
+                                                                                    preview
+                                                                                    your
+                                                                                    status
+                                                                                    page.
+                                                                                    Please
                                                                                     check{' '}
-                                                                                        <a
-                                                                                            target="_blank"
-                                                                                            rel="noopener noreferrer"
-                                                                                            href={
-                                                                                                publicStatusPageUrl
-                                                                                            }
-                                                                                        >
-                                                                                            {
-                                                                                                publicStatusPageUrl
-                                                                                            }{' '}
-                                                                                        </a>
-                                                                                    </span>
-                                                                                )}
-                                                                            {!IS_SAAS_SERVICE &&
-                                                                                !IS_LOCALHOST && (
-                                                                                    <span>
-                                                                                        If
-                                                                                        you
-                                                                                        want
-                                                                                        to
-                                                                                        preview
-                                                                                        your
-                                                                                        status
-                                                                                        page.
-                                                                                        Please
-                                                                                    check{' '}
-                                                                                        <a
-                                                                                            target="_blank"
-                                                                                            rel="noopener noreferrer"
-                                                                                            href={
-                                                                                                publicStatusPageUrl
-                                                                                            }
-                                                                                        >
-                                                                                            {
-                                                                                                publicStatusPageUrl
-                                                                                            }{' '}
-                                                                                        </a>
-                                                                                    </span>
-                                                                                )}
-                                                                        </p>
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                !domain.verified
-                                                                            }
-                                                                        >
-                                                                            <div
-                                                                                className="bs-Fieldset-row"
-                                                                                style={{
-                                                                                    marginBottom: -5,
-                                                                                    marginTop: -5,
-                                                                                    paddingLeft: 0,
-                                                                                    paddingRight: 0,
-                                                                                }}
-                                                                            >
-                                                                                <button
-                                                                                    className="bs-Button"
-                                                                                    onClick={e => {
-                                                                                        e.preventDefault();
-                                                                                    }}
-                                                                                >
-                                                                                    <span>
-                                                                                        Verify
-                                                                                        domain
+                                                                                    <a
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        href={
+                                                                                            publicStatusPageUrl
+                                                                                        }
+                                                                                    >
+                                                                                        {
+                                                                                            publicStatusPageUrl
+                                                                                        }{' '}
+                                                                                    </a>
                                                                                 </span>
-                                                                                </button>
-                                                                            </div>
-                                                                        </ShouldRender>
-                                                                    </div>
+                                                                            )}
+                                                                    </p>
                                                                     <ShouldRender
-                                                                        if={domain}
+                                                                        if={
+                                                                            !domain.verified
+                                                                        }
                                                                     >
                                                                         <div
-                                                                            className="bs-Fieldset-fields"
+                                                                            className="bs-Fieldset-row"
                                                                             style={{
-                                                                                marginTop: 5,
+                                                                                marginBottom: -5,
+                                                                                marginTop: -5,
+                                                                                paddingLeft: 0,
+                                                                                paddingRight: 0,
                                                                             }}
                                                                         >
-                                                                            {!domain.verified ? (
-                                                                                <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                        Not
-                                                                                        verified
+                                                                            <button
+                                                                                className="bs-Button"
+                                                                                onClick={e => {
+                                                                                    this.handleVerifyDomain(
+                                                                                        e,
+                                                                                        domain
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <span>
+                                                                                    Verify
+                                                                                    domain
                                                                                 </span>
-                                                                                </div>
-                                                                            ) : (
-                                                                                    <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                            Verified
-                                                                                </span>
-                                                                                    </div>
-                                                                                )}
+                                                                            </button>
                                                                         </div>
                                                                     </ShouldRender>
                                                                 </div>
-                                                            ) : (
-                                                                <div className="bs-Fieldset-row">
-                                                                    <label className="bs-Fieldset-label">
-                                                                        Your Status
-                                                                        Page is
-                                                                        hosted at
-                                                                </label>
-                                                                    <div className="bs-Fieldset-fields">
-                                                                        <span
-                                                                            className="value"
-                                                                            style={{
-                                                                                marginTop:
-                                                                                    '6px',
-                                                                            }}
-                                                                        >
-                                                                            {hosted}
-                                                                        </span>
+                                                                <ShouldRender
+                                                                    if={domain}
+                                                                >
+                                                                    <div
+                                                                        className="bs-Fieldset-fields"
+                                                                        style={{
+                                                                            marginTop: 5,
+                                                                        }}
+                                                                    >
+                                                                        {!domain.verified ? (
+                                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                    Not
+                                                                                    verified
+                                                                                </span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                    Verified
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
+                                                                </ShouldRender>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Your Status
+                                                                    Page is
+                                                                    hosted at
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <span
+                                                                        className="value"
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '6px',
+                                                                        }}
+                                                                    >
+                                                                        {hosted}
+                                                                    </span>
                                                                 </div>
-                                                            )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </fieldset>
                                             );
@@ -359,44 +407,75 @@ export class Setting extends Component {
                                                 {IsAdminSubProject(
                                                     subProject
                                                 ) ||
-                                                    IsOwnerSubProject(
-                                                        subProject
-                                                    ) ? (
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
-                                                                {' '}
+                                                IsOwnerSubProject(
+                                                    subProject
+                                                ) ? (
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            {' '}
                                                             Your Status Page is
                                                             hosted at{' '}
-                                                            </label>
+                                                        </label>
 
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderField
-                                                                    }
-                                                                    type="text"
-                                                                    name="domain"
-                                                                    id="domain"
-                                                                    disabled={
-                                                                        this.props
-                                                                            .statusPage
-                                                                            .setting
-                                                                            .requesting
-                                                                    }
-                                                                    placeholder="domain"
-                                                                />
-                                                                <p className="bs-Fieldset-explanation">
-                                                                    {IS_LOCALHOST && (
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name="domain"
+                                                                id="domain"
+                                                                disabled={
+                                                                    this.props
+                                                                        .statusPage
+                                                                        .setting
+                                                                        .requesting
+                                                                }
+                                                                placeholder="domain"
+                                                            />
+                                                            <p className="bs-Fieldset-explanation">
+                                                                {IS_LOCALHOST && (
+                                                                    <span>
+                                                                        If you
+                                                                        want to
+                                                                        preview
+                                                                        your
+                                                                        status
+                                                                        page.
+                                                                        Please
+                                                                        check{' '}
+                                                                        <a
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            href={
+                                                                                publicStatusPageUrl
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                publicStatusPageUrl
+                                                                            }{' '}
+                                                                        </a>
+                                                                    </span>
+                                                                )}
+                                                                {IS_SAAS_SERVICE &&
+                                                                    !IS_LOCALHOST && (
                                                                         <span>
-                                                                            If you
-                                                                            want to
+                                                                            Add
+                                                                            statuspage.fyipeapp.com
+                                                                            to
+                                                                            your
+                                                                            CNAME.
+                                                                            If
+                                                                            you
+                                                                            want
+                                                                            to
                                                                             preview
                                                                             your
                                                                             status
                                                                             page.
                                                                             Please
-                                                                        check{' '}
+                                                                            check{' '}
                                                                             <a
                                                                                 target="_blank"
                                                                                 rel="noopener noreferrer"
@@ -410,85 +489,54 @@ export class Setting extends Component {
                                                                             </a>
                                                                         </span>
                                                                     )}
-                                                                    {IS_SAAS_SERVICE &&
-                                                                        !IS_LOCALHOST && (
-                                                                            <span>
-                                                                                Add
-                                                                                statuspage.fyipeapp.com
-                                                                                to
-                                                                                your
-                                                                                CNAME.
-                                                                                If
-                                                                                you
-                                                                                want
-                                                                                to
-                                                                                preview
-                                                                                your
-                                                                                status
-                                                                                page.
-                                                                                Please
+                                                                {!IS_SAAS_SERVICE &&
+                                                                    !IS_LOCALHOST && (
+                                                                        <span>
+                                                                            If
+                                                                            you
+                                                                            want
+                                                                            to
+                                                                            preview
+                                                                            your
+                                                                            status
+                                                                            page.
+                                                                            Please
                                                                             check{' '}
-                                                                                <a
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    href={
-                                                                                        publicStatusPageUrl
-                                                                                    }
-                                                                                >
-                                                                                    {
-                                                                                        publicStatusPageUrl
-                                                                                    }{' '}
-                                                                                </a>
-                                                                            </span>
-                                                                        )}
-                                                                    {!IS_SAAS_SERVICE &&
-                                                                        !IS_LOCALHOST && (
-                                                                            <span>
-                                                                                If
-                                                                                you
-                                                                                want
-                                                                                to
-                                                                                preview
-                                                                                your
-                                                                                status
-                                                                                page.
-                                                                                Please
-                                                                            check{' '}
-                                                                                <a
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    href={
-                                                                                        publicStatusPageUrl
-                                                                                    }
-                                                                                >
-                                                                                    {
-                                                                                        publicStatusPageUrl
-                                                                                    }{' '}
-                                                                                </a>
-                                                                            </span>
-                                                                        )}
-                                                                </p>
-                                                            </div>
+                                                                            <a
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                href={
+                                                                                    publicStatusPageUrl
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    publicStatusPageUrl
+                                                                                }{' '}
+                                                                            </a>
+                                                                        </span>
+                                                                    )}
+                                                            </p>
                                                         </div>
-                                                    ) : (
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
-                                                                Your Status Page is
+                                                    </div>
+                                                ) : (
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Your Status Page is
                                                             hosted at{' '}
-                                                            </label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <span
-                                                                    className="value"
-                                                                    style={{
-                                                                        marginTop:
-                                                                            '6px',
-                                                                    }}
-                                                                >
-                                                                    {hosted}
-                                                                </span>
-                                                            </div>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span
+                                                                className="value"
+                                                                style={{
+                                                                    marginTop:
+                                                                        '6px',
+                                                                }}
+                                                            >
+                                                                {hosted}
+                                                            </span>
                                                         </div>
-                                                    )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </fieldset>
                                     )}
@@ -536,7 +584,9 @@ export class Setting extends Component {
                                 <RenderIfSubProjectAdmin
                                     subProjectId={projectId}
                                 >
-                                    <ShouldRender if={this.props.showDomainField}>
+                                    <ShouldRender
+                                        if={this.props.showDomainField}
+                                    >
                                         <button
                                             id="btnCancelAddDomain"
                                             className="bs-Button bs-DeprecatedButton"
@@ -551,8 +601,8 @@ export class Setting extends Component {
                                         >
                                             {!this.props.statusPage.setting
                                                 .requesting && (
-                                                    <span>Cancel</span>
-                                                )}
+                                                <span>Cancel</span>
+                                            )}
                                             {this.props.statusPage.setting
                                                 .requesting && <FormLoader />}
                                         </button>
@@ -569,8 +619,8 @@ export class Setting extends Component {
                                     >
                                         {!this.props.statusPage.setting
                                             .requesting && (
-                                                <span>Save Domain Settings </span>
-                                            )}
+                                            <span>Save Domain Settings </span>
+                                        )}
                                         {this.props.statusPage.setting
                                             .requesting && <FormLoader />}
                                     </button>
@@ -600,6 +650,9 @@ Setting.propTypes = {
     cancelAddMoreDomain: PropTypes.func,
     domains: PropTypes.array,
     showDomainField: PropTypes.bool,
+    openModal: PropTypes.func.isRequired,
+    verifyDomain: PropTypes.func,
+    closeModal: PropTypes.func,
 };
 
 const SettingForm = reduxForm({
@@ -616,7 +669,10 @@ const mapDispatchToProps = dispatch => {
             updateStatusPageSettingSuccess,
             updateStatusPageSettingError,
             addMoreDomain,
-            cancelAddMoreDomain
+            cancelAddMoreDomain,
+            verifyDomain,
+            openModal,
+            closeModal,
         },
         dispatch
     );
@@ -625,8 +681,8 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     let domainsContainer =
         state.statusPage &&
-            state.statusPage.status &&
-            state.statusPage.status.domains
+        state.statusPage.status &&
+        state.statusPage.status.domains
             ? state.statusPage.status.domains
             : [];
 
@@ -640,8 +696,8 @@ function mapStateToProps(state) {
         currentProject: state.project.currentProject,
         domains:
             state.statusPage &&
-                state.statusPage.status &&
-                state.statusPage.status.domains
+            state.statusPage.status &&
+            state.statusPage.status.domains
                 ? state.statusPage.status.domains
                 : [],
         initialValues: {
@@ -649,6 +705,9 @@ function mapStateToProps(state) {
         },
         subProjects: state.subProject.subProjects.subProjects,
         showDomainField: state.statusPage.addMoreDomain,
+        verifyError:
+            state.statusPage.verifyDomain &&
+            state.statusPage.verifyDomain.error,
     };
 }
 
