@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
+import copyToClipboard from '../../utils/copyToClipboard';
 
 const VerifyDomainModal = ({
     confirmThisDialog,
@@ -150,6 +151,19 @@ const VerifyDomainModal = ({
                                                                                 {
                                                                                     verificationToken
                                                                                 }
+                                                                            </span>
+                                                                            <span
+                                                                                style={{
+                                                                                    cursor:
+                                                                                        'pointer',
+                                                                                }}
+                                                                                onClick={() => {
+                                                                                    copyToClipboard(
+                                                                                        verificationToken
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAdklEQVRIie2UUQqAIBBEH9Hhkm5dnUS9h31UUBG1bkYZDoh+6DzYwYE/qQU8EBSrlwCc0jwAnQSwXE6qKrVhDECbiQPMkeF+RHcysRKANpPNu1czKIAC+AigXp0HHii7M+X/k/28xxYdTEV5KYOuUS3QSAB5aAQmVWhZEk7XSQAAAABJRU5ErkJggg==" />
                                                                             </span>
                                                                         </div>
                                                                     </span>
