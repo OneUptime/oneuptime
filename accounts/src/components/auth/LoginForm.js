@@ -9,6 +9,7 @@ import {
     loginSuccess,
     loginUser,
     resetLogin,
+    changeLogin,
 } from '../../actions/login';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -36,6 +37,9 @@ export class LoginForm extends Component {
             serverResponse,
         });
         removeQuery('status');
+    }
+    handleClick(data) {
+        this.props.changeLogin(data);
     }
     render() {
         const { handleSubmit } = this.props;
@@ -73,22 +77,25 @@ export class LoginForm extends Component {
                                         />
                                     </span>
                                 </p>
-                                <p className="text">
-                                    <span>
-                                        <label htmlFor="password">
-                                            <span>Password</span>
-                                        </label>
-                                        <Field
-                                            component={RenderField}
-                                            type="password"
-                                            name="password"
-                                            id="password"
-                                            placeholder="Your Password"
-                                            required="required"
-                                        />
-                                    </span>
-                                </p>
-
+                                {this.props.loginMethod === 'standard' ? (
+                                    <p className="text">
+                                        <span>
+                                            <label htmlFor="password">
+                                                <span>Password</span>
+                                            </label>
+                                            <Field
+                                                component={RenderField}
+                                                type="password"
+                                                name="password"
+                                                id="password"
+                                                placeholder="Your Password"
+                                                required="required"
+                                            />
+                                        </span>
+                                    </p>
+                                ) : (
+                                    ''
+                                )}
                                 <p className="submit">
                                     <button
                                         type="submit"
@@ -103,6 +110,36 @@ export class LoginForm extends Component {
                                             <ButtonSpinner />
                                         )}
                                     </button>
+                                </p>
+
+                                <p className="text">
+                                    {this.props.loginMethod === 'standard' ? (
+                                        <span
+                                            style={{
+                                                textAlign: 'center',
+                                                color: 'blue',
+                                                cursor: 'pointer',
+                                            }}
+                                            onClick={() => {
+                                                this.handleClick('sso');
+                                            }}
+                                        >
+                                            Log in with SSO
+                                        </span>
+                                    ) : (
+                                        <span
+                                            style={{
+                                                textAlign: 'center',
+                                                color: 'blue',
+                                                cursor: 'pointer',
+                                            }}
+                                            onClick={() => {
+                                                this.handleClick('standard');
+                                            }}
+                                        >
+                                            Log in with password
+                                        </span>
+                                    )}
                                 </p>
                             </div>
                         </form>
@@ -145,6 +182,7 @@ const mapDispatchToProps = dispatch => {
             loginSuccess,
             loginUser,
             resetLogin,
+            changeLogin,
         },
         dispatch
     );
@@ -153,6 +191,7 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         login: state.login,
+        loginMethod: state.login.loginMethod,
     };
 }
 
@@ -161,6 +200,8 @@ LoginForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     login: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
+    loginMethod: PropTypes.string,
+    changeLogin: PropTypes.func.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(loginForm);

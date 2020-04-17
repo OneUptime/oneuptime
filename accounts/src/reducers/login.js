@@ -4,6 +4,7 @@ import {
     LOGIN_FAILED,
     RESET_LOGIN,
     SAVE_STATUS_PAGE,
+    CHANGE_LOGIN,
     AUTH_VERIFICATION_FAILED,
     AUTH_VERIFICATION_REQUEST,
     AUTH_VERIFICATION_SUCCESS,
@@ -45,10 +46,15 @@ const initialState = {
         error: null,
         success: false,
     },
+    loginMethod: 'standard',
 };
 
 export default function register(state = initialState, action) {
     switch (action.type) {
+        case CHANGE_LOGIN:
+            return Object.assign({}, state, {
+                loginMethod: action.payload,
+            });
         case LOGIN_REQUEST:
             return Object.assign({}, state, {
                 requesting: true,

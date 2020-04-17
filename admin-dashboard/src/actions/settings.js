@@ -108,6 +108,9 @@ export const fetchSettings = type => async dispatch => {
             data.value = { 'call-enable': false, ...data.value };
         }
 
+        if (type === 'sso') {
+            data.value = { 'sso-enable': false, ...data.value };
+        }
         dispatch(requestingSettingsSucceeded(data.value, type));
         return response;
     } catch (error) {
