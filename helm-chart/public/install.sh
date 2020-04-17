@@ -84,7 +84,7 @@ then
     echo "RUNNING COMMAND: sudo microk8s.enable dns"
     sudo microk8s.enable dns
     # If its a CI install, then do not enable storage. 
-    if [[ "$1" == "ci-install" ]]
+    if [[ "$1" != "ci-install" ]]
     then
         echo "RUNNING COMMAND: sudo microk8s.enable storage"
         sudo microk8s.enable storage
@@ -139,6 +139,9 @@ fi
 sudo helm repo add fyipe https://fyipe.com/chart || echo "Fyipe already added"
 sudo helm repo update
 
+# Remove existing resources
+sudo k delete clusterrole fyipe-nginx-ingress-controller || echo "nginx-ingress-controller already deleted"
+sudo k delete clusterrolebinding fyipe-nginx-ingress-controller || echo "nginx-ingress-controller already deleted"
 
 function updateinstallation {
     sudo k delete job fyipe-init-script || echo "init-script already deleted"

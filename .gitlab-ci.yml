@@ -750,6 +750,7 @@ e2e_microk8s_test:
     - cd smoke-test
     - npm ci
     - npm run test
+    - cd ..
     - chmod +x ./ci/scripts/uninstall-helm.sh
     - ./ci/scripts/uninstall-helm.sh
   # only:
