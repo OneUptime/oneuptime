@@ -57,6 +57,8 @@ const fields = [
     {
         key: 'samlSsoUrl',
         label: 'SAML SSO URL',
+        placeholder:
+            'https://login.microsoftonline.com/a4e1d-1s4f-965f-ert452136',
         description:
             'This is the Url that fyipe will invoke to redirect users to your identity provider.',
         type: 'text',
@@ -65,6 +67,7 @@ const fields = [
     {
         key: 'certificateFingerprint',
         label: 'Certificate Fingerprint',
+        placeholder: 'ASFD254689CSVDS45DS5S4DGV6SD4V',
         description:
             'The SHA256 or SHA1 fingerprint of the SAML certificate obtain this from your Saml service provider.',
         type: 'text',
@@ -73,6 +76,8 @@ const fields = [
     {
         key: 'remoteLogoutUrl',
         label: 'Remote Logout URL',
+        placeholder:
+            'https://login.microsoftonline.com/common/wsfederation?wa=wsignout1.0',
         description:
             'This is the Url that fyipe will direct your users to after they sign out.',
         type: 'text',
@@ -81,6 +86,7 @@ const fields = [
     {
         key: 'ipRanges',
         label: 'IP Ranges',
+        placeholder: '10.0. 0.0 – 10.255. 255.255.',
         description:
             'Request from these IP ranges will always be routed via remote authentication. Requests from IP adresses outside these range will be routed to the normal sign in form.',
         type: 'text',

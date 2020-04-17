@@ -115,11 +115,7 @@ export class LoginForm extends Component {
                                 <p className="text">
                                     {this.props.loginMethod === 'standard' ? (
                                         <span
-                                            style={{
-                                                textAlign: 'center',
-                                                color: 'blue',
-                                                cursor: 'pointer',
-                                            }}
+                                            className="loginoption"
                                             onClick={() => {
                                                 this.handleClick('sso');
                                             }}
@@ -128,11 +124,7 @@ export class LoginForm extends Component {
                                         </span>
                                     ) : (
                                         <span
-                                            style={{
-                                                textAlign: 'center',
-                                                color: 'blue',
-                                                cursor: 'pointer',
-                                            }}
+                                            className="loginoption"
                                             onClick={() => {
                                                 this.handleClick('standard');
                                             }}
