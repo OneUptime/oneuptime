@@ -84,7 +84,7 @@ then
     echo "RUNNING COMMAND: sudo microk8s.enable dns"
     sudo microk8s.enable dns
     # If its a CI install, then do not enable storage. 
-    if [[ $1 -ne ci-install ]]
+    if [[ "$1" == "ci-install" ]]
     then
         echo "RUNNING COMMAND: sudo microk8s.enable storage"
         sudo microk8s.enable storage

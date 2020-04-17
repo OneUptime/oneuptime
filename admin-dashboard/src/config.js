@@ -25,10 +25,13 @@ if (
     window.location.host &&
     window.location.host.includes('app.local')
 ) {
-    apiUrl = 'http://backend.app.local:3002';
-    dashboardUrl = 'http://dashboard.app.local:3000';
-    adminDashboardUrl = 'http://admin.app.local:3100';
-    accountsUrl = 'http://accounts.app.local:3003';
+    apiUrl = window.location.protocol + '//backend.app.local:3002/api';
+    dashboardUrl =
+        window.location.protocol + '//dashboard.app.local:3000/dashboard';
+    adminDashboardUrl =
+        window.location.protocol + '//admin.app.local:3100/admin';
+    accountsUrl =
+        window.location.protocol + '//accounts.app.local:3003/accounts';
 }
 
 if (
@@ -53,7 +56,7 @@ export const ACCOUNTS_URL = accountsUrl;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
-export const IS_SAAS_SERVICE = true;
+export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
 export const IS_THIRD_PARTY_BILLING =
     env('IS_THIRD_PARTY_BILLING') === 'true' ? true : false;

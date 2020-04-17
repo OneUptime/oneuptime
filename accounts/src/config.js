@@ -15,9 +15,11 @@ if (
     window.location.host &&
     window.location.host.includes('app.local')
 ) {
-    apiUrl = 'http://backend.app.local:3002';
-    dashboardUrl = 'http://dashboard.app.local:3000';
-    adminDashboardUrl = 'http://admin.app.local:3100';
+    apiUrl = window.location.protocol + '//backend.app.local:3002/api';
+    dashboardUrl =
+        window.location.protocol + '//dashboard.app.local:3000/dashboard';
+    adminDashboardUrl =
+        window.location.protocol + '//admin.app.local:3100/admin';
 }
 
 if (
@@ -49,7 +51,7 @@ export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
 export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 
-export const IS_SAAS_SERVICE = true;
+export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
 export const User = {
     getAccessToken() {

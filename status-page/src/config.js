@@ -12,9 +12,11 @@ if (
     window.location.host &&
     window.location.host.includes('app.local')
 ) {
-    apiUrl = 'http://backend.app.local:3002';
-    dashboardUrl = 'http://dashboard.app.local:3000';
-    accountsUrl = 'http://accounts.app.local:3003';
+    apiUrl = window.location.protocol + '//backend.app.local:3002/api';
+    dashboardUrl =
+        window.location.protocol + '//dashboard.app.local:3000/dashboard';
+    accountsUrl =
+        window.location.protocol + '//accounts.app.local:3003/accounts';
 }
 
 if (
