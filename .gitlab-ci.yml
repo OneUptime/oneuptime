@@ -734,8 +734,6 @@ e2e_microk8s_test:
   stage: E2E
   script:
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - chmod +x ./ci/scripts/uninstall-helm.sh
-    - ./ci/scripts/uninstall-helm.sh
     - chmod +x ./ci/scripts/setup-machine.sh
     - ./ci/scripts/setup-machine.sh
     - chmod +x ./ci/scripts/setup.sh
