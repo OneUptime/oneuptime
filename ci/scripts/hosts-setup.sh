@@ -25,3 +25,7 @@ echo $STATUSPAGE_IP'      status.app.local' | sudo tee -a /etc/hosts
 sudo sed -i '/api-docs/c\' /etc/hosts
 APIDOCS_IP=`sudo k describe svc fyipe-api-docs | grep Endpoints | cut -d ":" -f 2`
 echo $APIDOCS_IP'      api-docs.app.local' | sudo tee -a /etc/hosts
+
+sudo sed -i '/licensing/c\' /etc/hosts
+LICENSING_IP=`sudo k describe svc fyipe-licensing | grep Endpoints | cut -d ":" -f 2`
+echo $LICENSING_IP'      licensing.app.local' | sudo tee -a /etc/hosts

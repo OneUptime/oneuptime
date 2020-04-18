@@ -745,6 +745,7 @@ e2e_microk8s_test:
     - export BACKEND_URL=http://backend.app.local:3002
     - export STATUSPAGE_URL=http://status.app.local:3006
     - export APIDOCS_URL=http://api-docs.app.local:1445
+    - export LICENSING_URL=http://licensing.app.local:3004
     - chmod +x ./ci/scripts/hosts-setup.sh
     - ./ci/scripts/hosts-setup.sh
     - cd smoke-test

@@ -139,9 +139,6 @@ fi
 sudo helm repo add fyipe https://fyipe.com/chart || echo "Fyipe already added"
 sudo helm repo update
 
-# Remove existing resources
-sudo k delete clusterrole fyipe-nginx-ingress-controller || echo "nginx-ingress-controller already deleted"
-sudo k delete clusterrolebinding fyipe-nginx-ingress-controller || echo "nginx-ingress-controller already deleted"
 
 function updateinstallation {
     sudo k delete job fyipe-init-script || echo "init-script already deleted"
@@ -167,7 +164,7 @@ elif [[ "$1" == "ci-install" ]] # If its a local install, take local scripts.
 then
     # set service of type nodeport for VM's. 
     sudo helm uninstall fyipe || echo "fyipe not installed"
-    sudo helm install -f ./kubernetes/values-saas-staging.yaml fyipe ./helm-chart/public/fyipe \
+    sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe \
     --set nginx-ingress-controller.service.type=NodePort \
     --set nginx-ingress-controller.hostNetwork=true
 else
