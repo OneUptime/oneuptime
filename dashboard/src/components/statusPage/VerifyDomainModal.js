@@ -94,7 +94,6 @@ const VerifyDomainModal = ({
                                                 propArr.map(
                                                     ({
                                                         _id,
-                                                        domain,
                                                         verificationToken,
                                                     }) => (
                                                         <tr
@@ -129,9 +128,7 @@ const VerifyDomainModal = ({
                                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                         <div className="Box-root Margin-right--16">
                                                                             <span>
-                                                                                {
-                                                                                    domain
-                                                                                }
+                                                                                fyipe
                                                                             </span>
                                                                         </div>
                                                                     </span>
@@ -163,7 +160,10 @@ const VerifyDomainModal = ({
                                                                                     );
                                                                                 }}
                                                                             >
-                                                                                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAdklEQVRIie2UUQqAIBBEH9Hhkm5dnUS9h31UUBG1bkYZDoh+6DzYwYE/qQU8EBSrlwCc0jwAnQSwXE6qKrVhDECbiQPMkeF+RHcysRKANpPNu1czKIAC+AigXp0HHii7M+X/k/28xxYdTEV5KYOuUS3QSAB5aAQmVWhZEk7XSQAAAABJRU5ErkJggg==" />
+                                                                                <img
+                                                                                    alt="copy icon"
+                                                                                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAdklEQVRIie2UUQqAIBBEH9Hhkm5dnUS9h31UUBG1bkYZDoh+6DzYwYE/qQU8EBSrlwCc0jwAnQSwXE6qKrVhDECbiQPMkeF+RHcysRKANpPNu1czKIAC+AigXp0HHii7M+X/k/28xxYdTEV5KYOuUS3QSAB5aAQmVWhZEk7XSQAAAABJRU5ErkJggg=="
+                                                                                />
                                                                             </span>
                                                                         </div>
                                                                     </span>

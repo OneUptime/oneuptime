@@ -25,7 +25,7 @@ import {
     IS_LOCALHOST,
     IS_SAAS_SERVICE,
 } from '../../config';
-import { verifyDomain } from '../../actions/domain';
+import { verifyDomain, createDomain } from '../../actions/domain';
 import { openModal, closeModal } from '../../actions/modal';
 import VerifyDomainModal from './VerifyDomainModal';
 
@@ -46,38 +46,40 @@ export class Setting extends Component {
     submitForm = values => {
         const { reset } = this.props;
         const { domain } = values;
-        const domainObj = { domain };
         const { _id, projectId } = this.props.statusPage.status;
-        if (_id) domainObj._id = _id;
-        this.props
-            .updateStatusPageSetting(projectId._id || projectId, domainObj)
-            .then(
-                () => {
-                    reset();
-                },
-                function() {}
-            );
+
+        const data = {
+            domain,
+            projectId: projectId._id || projectId,
+            statusPageId: _id,
+        };
+        this.props.createDomain(data).then(
+            () => {
+                reset();
+            },
+            function() {}
+        );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('StatusPage Domain Updated', values);
         }
     };
 
-    handleVerifyDomain = (e, { domain, verificationToken, _id }) => {
+    handleVerifyDomain = (e, { domain, domainVerificationToken }) => {
         e.preventDefault();
         const { verifyDomain } = this.props;
         const { projectId } = this.props.statusPage.status;
         const thisObj = this;
+        const token = domainVerificationToken.verificationToken; // get the verification token
 
         const data = {
             projectId: projectId._id || projectId,
             statusPageId: this.props.statusPage.status._id,
-            domainId: _id,
+            domainId: domainVerificationToken._id,
             payload: {
                 domain,
-                verificationToken,
+                verificationToken: token,
             },
         };
-
         this.props.openModal({
             id: this.state.verifyModalId,
             onConfirm: () => {
@@ -94,7 +96,13 @@ export class Setting extends Component {
                 });
             },
             content: VerifyDomainModal,
-            propArr: [{ domain, verificationToken, _id }],
+            propArr: [
+                {
+                    domain,
+                    verificationToken: token,
+                    _id: domainVerificationToken._id,
+                },
+            ], // data to populate the modal
         });
     };
 
@@ -321,7 +329,9 @@ export class Setting extends Component {
                                                                     </p>
                                                                     <ShouldRender
                                                                         if={
-                                                                            !domain.verified
+                                                                            !domain
+                                                                                .domainVerificationToken
+                                                                                .verified
                                                                         }
                                                                     >
                                                                         <div
@@ -359,7 +369,9 @@ export class Setting extends Component {
                                                                             marginTop: 5,
                                                                         }}
                                                                     >
-                                                                        {!domain.verified ? (
+                                                                        {!domain
+                                                                            .domainVerificationToken
+                                                                            .verified ? (
                                                                             <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                 <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                                     Not
@@ -640,7 +652,6 @@ Setting.displayName = 'Setting';
 Setting.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     statusPage: PropTypes.object.isRequired,
-    updateStatusPageSetting: PropTypes.func.isRequired,
     currentProject: PropTypes.oneOfType([
         PropTypes.object.isRequired,
         PropTypes.oneOf([null, undefined]),
@@ -652,6 +663,7 @@ Setting.propTypes = {
     domains: PropTypes.array,
     showDomainField: PropTypes.bool,
     openModal: PropTypes.func.isRequired,
+    createDomain: PropTypes.func,
     verifyDomain: PropTypes.func,
     closeModal: PropTypes.func,
     verifyError: PropTypes.bool,
@@ -673,6 +685,7 @@ const mapDispatchToProps = dispatch => {
             addMoreDomain,
             cancelAddMoreDomain,
             verifyDomain,
+            createDomain,
             openModal,
             closeModal,
         },
