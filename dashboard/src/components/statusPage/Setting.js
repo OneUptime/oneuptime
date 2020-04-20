@@ -48,6 +48,8 @@ export class Setting extends Component {
         const { domain } = values;
         const { _id, projectId } = this.props.statusPage.status;
 
+        if (!domain) return;
+
         const data = {
             domain,
             projectId: projectId._id || projectId,
@@ -413,7 +415,8 @@ export class Setting extends Component {
                                             );
                                         })}
 
-                                    {this.props.showDomainField && (
+                                    {(this.props.domains.length < 1 ||
+                                        this.props.showDomainField) && (
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 {IsAdminSubProject(
@@ -597,7 +600,12 @@ export class Setting extends Component {
                                     subProjectId={projectId}
                                 >
                                     <ShouldRender
-                                        if={this.props.showDomainField}
+                                        if={
+                                            this.props.showDomainField ||
+                                            this.props.domains.length < 1
+                                                ? true
+                                                : false
+                                        }
                                     >
                                         <button
                                             id="btnCancelAddDomain"
@@ -625,8 +633,7 @@ export class Setting extends Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={
                                             this.props.statusPage.setting
-                                                .requesting ||
-                                            !this.props.showDomainField
+                                                .requesting
                                         }
                                         type="submit"
                                     >

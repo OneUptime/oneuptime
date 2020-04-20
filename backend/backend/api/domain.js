@@ -19,7 +19,7 @@ router.post(
     isAuthorized,
     async (req, res) => {
         const { statusPageId } = req.params;
-        const token = randomChar();
+        const token = 'fyipe=' + randomChar();
         const subDomain = req.body.domain;
         let createdDomain = {};
 
@@ -37,20 +37,20 @@ router.post(
             });
         }
 
-        const baseDomain = getDomain(subDomain);
+        const domain = getDomain(subDomain);
 
         try {
-            // check if baseDomain already exist
+            // check if domain already exist
             const existingBaseDomain = await DomainVerificationService.findOneBy(
                 {
-                    domain: baseDomain,
+                    domain,
                 }
             );
 
             if (!existingBaseDomain) {
                 // create the domain
                 createdDomain = await DomainVerificationService.create({
-                    domain: baseDomain,
+                    domain: domain,
                     verificationToken: token,
                 });
             }
@@ -83,30 +83,30 @@ router.put(
     getUser,
     isAuthorized,
     async (req, res) => {
+        const host = 'fyipe';
         const { domain: subDomain, verificationToken } = req.body;
         // id of the base domain
         const { domainId } = req.params;
-        const baseDomain = getDomain(subDomain);
+        const domain = getDomain(subDomain);
 
         try {
             const existingBaseDomain = await DomainVerificationService.findOneBy(
-                { domain: baseDomain }
+                { domain }
             );
             // check for case where the domain is not found
             if (!existingBaseDomain) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Base domain does not exist',
+                    message: 'Domain does not exist',
                 });
             }
-            // if verified return a response that a user is already verified
             if (existingBaseDomain.verified) {
                 return sendItemResponse(req, res, {
                     message: 'Domain already verified',
                 });
             }
-
-            dns.resolveTxt(baseDomain, async (err, records) => {
+            const resolveDomain = `${host}.${subDomain}`;
+            dns.resolveTxt(resolveDomain, async (err, records) => {
                 if (err) {
                     const errorMsg = `error looking up TXT record: ${err.message}`;
                     return sendErrorResponse(req, res, {

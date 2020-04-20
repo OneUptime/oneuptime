@@ -248,6 +248,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case CREATE_DOMAIN_SUCCESS:
             return {
                 ...state,
+                addMoreDomain: false,
                 addDomain: {
                     requesting: false,
                     success: true,
@@ -262,6 +263,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case CREATE_DOMAIN_FAILURE:
             return {
                 ...state,
+                addMoreDomain: false,
                 addDomain: {
                     requesting: false,
                     success: false,
