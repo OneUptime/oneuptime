@@ -738,16 +738,14 @@ e2e_microk8s_test:
     - ./ci/scripts/setup-machine.sh
     - chmod +x ./ci/scripts/setup.sh
     - ./ci/scripts/setup.sh
-    - export HOME_URL=http://home.app.local:1444
-    - export ACCOUNTS_URL=http://accounts.app.local:3003
-    - export ADMIN_DASHBOARD_URL=http://admin.app.local:3100
-    - export DASHBOARD_URL=http://dashboard.app.local:3000
-    - export BACKEND_URL=http://backend.app.local:3002
-    - export STATUSPAGE_URL=http://status.app.local:3006
-    - export APIDOCS_URL=http://api-docs.app.local:1445
-    - export LICENSING_URL=http://licensing.app.local:3004
-    - chmod +x ./ci/scripts/hosts-setup.sh
-    - ./ci/scripts/hosts-setup.sh
+    - export HOME_URL=http://localhost/
+    - export ACCOUNTS_URL=http://localhost/accounts
+    - export ADMIN_DASHBOARD_URL=http://localhost/admin
+    - export DASHBOARD_URL=http://localhost/dashboard
+    - export BACKEND_URL=http://localhost/api
+    - export STATUSPAGE_URL=http://localhost/status-page
+    - export APIDOCS_URL=http://localhost/docs
+    - export LICENSING_URL=http://localhost/license
     - cd smoke-test
     - npm ci
     - npm run test

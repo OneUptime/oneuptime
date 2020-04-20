@@ -25,18 +25,21 @@ saas:
 fyipe:
     hosts:
         host1:
-            host: app.local
+            host: localhost
             tls:
                 enabled: false
                 crt:
                 key:
-    licensingUrl: http://licensing.app.local:3004
+    licensingUrl: http://localhost/license
 
 image:
     registry: docker.io
     repository: fyipeproject
-    tag: ci
+    tag: test
     pullPolicy: Always
     restartPolicy: Always
 
-replicaCount: 1
+nginx-ingress-controller:
+    service:
+        type: NodePort
+    hostNetwork: true

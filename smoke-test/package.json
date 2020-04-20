@@ -4,7 +4,7 @@
     "description": "Smoke tests for fyipe",
     "main": "index.test.js",
     "scripts": {
-        "test": "jest --runInBand ./*.test.js",
+        "test": "jest --runInBand ./accounts.test.js",
         "enterprise-test": "jest --runInBand ./*.test.enterprise.js"
     },
     "keywords": [],

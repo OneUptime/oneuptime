@@ -88,15 +88,6 @@
                 g.o.observe({ entryTypes: ['longtask'] })
             }
             }();
-            if('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('service-workr.js', {scope: '.'})
-                    .then(function(registration) {
-                        console.log('Service-worker Registered');
-                    })
-                    .catch(function(err) {
-                        console.log('Error: Service-worker not registered: ', err);
-                    })
-            }
         </script>
         <!-- Google Tag Manager (noscript) -->
         <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH" height="0" width="0"

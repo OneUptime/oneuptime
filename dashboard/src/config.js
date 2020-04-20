@@ -10,19 +10,6 @@ let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
 
-if (
-    window &&
-    window.location &&
-    window.location.host &&
-    window.location.host.includes('app.local')
-) {
-    apiUrl = window.location.protocol + '//backend.app.local:3002/api';
-    dashboardUrl =
-        window.location.protocol + '//dashboard.app.local:3000/dashboard';
-    accountsUrl =
-        window.location.protocol + '//accounts.app.local:3003/accounts';
-}
-
 const isLocalhost =
     window &&
     window.location &&

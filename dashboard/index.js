@@ -39,6 +39,10 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
 
 app.use(express.static(path.join(__dirname, 'build')));
 app.use('/dashboard', express.static(path.join(__dirname, 'build')));
+app.use(
+    '/dashboard/static/js',
+    express.static(path.join(__dirname, 'build/static/js'))
+);
 
 app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
