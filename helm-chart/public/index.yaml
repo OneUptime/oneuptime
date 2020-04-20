@@ -13,7 +13,7 @@ entries:
     - name: redis
       repository: https://charts.bitnami.com/bitnami
       version: 10.5.11
-    description: One complete DevOps and IT Ops platform.
+    description: One complete SRE and IT Ops platform.
     digest: 5c154b61becf64c877080c8106539ddf28988f57361c8d96fc98d721df250899
     home: https://fyipe.com
     icon: https://fyipe.com/img/Fyipe.svg
@@ -30,6 +30,7 @@ entries:
     - API Test
     - Website Monitoring
     - Website Test
+    - SRE
     maintainers:
     - email: support@fyipe.com
       name: Fyipe Support

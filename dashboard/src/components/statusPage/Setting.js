@@ -140,8 +140,6 @@ export class Setting extends Component {
 
         if (IS_LOCALHOST) {
             publicStatusPageUrl = `http://${statusPageId}.localhost:3006`;
-        } else if (IS_SAAS_SERVICE) {
-            publicStatusPageUrl = `http://${statusPageId}.fyipeapp.com`;
         } else {
             publicStatusPageUrl =
                 window.location.origin + '/status-page/' + statusPageId;

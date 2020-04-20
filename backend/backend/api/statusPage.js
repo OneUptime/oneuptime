@@ -487,6 +487,75 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
     }
 });
 
+router.get('/:projectId/:statusPageId/events', checkUser, async function(
+    req,
+    res
+) {
+    const statusPageId = req.params.statusPageId;
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 5;
+    try {
+        // Call the StatusPageService.
+        const response = await StatusPageService.getEvents(
+            { _id: statusPageId },
+            skip,
+            limit
+        );
+        const events = response.events;
+        const count = response.count;
+        return sendListResponse(req, res, events, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
+    req,
+    res
+) {
+    let date = req.query.date;
+    date = new Date(date);
+    const start = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        0,
+        0,
+        0
+    );
+    const end = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        23,
+        59,
+        59
+    );
+
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 5;
+    const query = {
+        monitorId: req.params.monitorId,
+        showEventOnStatusPage: true,
+        deleted: false,
+        startDate: { $lt: end },
+        endDate: { $gte: start },
+    };
+
+    try {
+        // Call the StatusPageService.
+        const response = await StatusPageService.getEventsByDate(
+            query,
+            skip,
+            limit
+        );
+        const events = response.scheduledEvents;
+        const count = response.count;
+        return sendListResponse(req, res, events, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 // Route
 // Description: Get all Monitor Statuses by monitorId
 router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(

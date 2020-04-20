@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "0b6c66c9-c83b-44fb-8e1f-a270e65906ee",
+        "_postman_id": "9bab432a-42ec-470b-aee0-a80746065591",
         "name": "Fyipe",
         "description": "Fyipe backend",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -15935,6 +15935,282 @@
                             ],
                             "cookie": [],
                             "body": "{\n    \"data\": [\n        {\n            \"investigationNote\": \"\",\n            \"createdAt\": \"2020-01-31T19:53:10.599Z\",\n            \"monitorId\": {\n                \"_id\": \"5e321f87542c6f61d1292a83\",\n                \"name\": \"Google Home\"\n            },\n            \"resolved\": true,\n            \"_id\": \"5e3485a6f798176b8eceaa29\"\n        },\n        {\n            \"investigationNote\": \"\",\n            \"createdAt\": \"2020-01-31T19:48:06.493Z\",\n            \"monitorId\": {\n                \"_id\": \"5e321f87542c6f61d1292a83\",\n                \"name\": \"Google Home\"\n            },\n            \"resolved\": true,\n            \"_id\": \"5e348476f798176b8ecea8c7\"\n        },\n        {\n            \"investigationNote\": \"\",\n            \"createdAt\": \"2020-01-31T19:37:06.548Z\",\n            \"monitorId\": {\n                \"_id\": \"5e321f87542c6f61d1292a83\",\n                \"name\": \"Google Home\"\n            },\n            \"resolved\": true,\n            \"_id\": \"5e3481e2f798176b8ecea4ec\"\n        },\n        {\n            \"investigationNote\": \"\",\n            \"createdAt\": \"2020-01-31T19:28:06.788Z\",\n            \"monitorId\": {\n                \"_id\": \"5e321f87542c6f61d1292a83\",\n                \"name\": \"Google Home\"\n            },\n            \"resolved\": true,\n            \"_id\": \"5e347fc6f798176b8ecea2a1\"\n        },\n        {\n            \"investigationNote\": \"\",\n            \"createdAt\": \"2020-01-31T19:25:11.712Z\",\n            \"monitorId\": {\n                \"_id\": \"5e321f87542c6f61d1292a83\",\n                \"name\": \"Google Home\"\n            },\n            \"resolved\": true,\n            \"_id\": \"5e347f17f798176b8ecea1be\"\n        }\n    ],\n    \"count\": 16,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Status Page Scheduled Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "type": "text",
+                                "value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:3002/statusPage/:projectId/:statusPageId/events?skip=0&limit=5",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3002",
+                            "path": [
+                                "statusPage",
+                                ":projectId",
+                                ":statusPageId",
+                                "events"
+                            ],
+                            "query": [
+                                {
+                                    "key": "skip",
+                                    "value": "0"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "5"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "projectId",
+                                    "value": "5e8cda4eac92233bf1e4645a"
+                                },
+                                {
+                                    "key": "statusPageId",
+                                    "value": "5e8cdb19ac92233bf1e464d6"
+                                }
+                            ]
+                        },
+                        "description": "Get Status Page Scheduled Events"
+                    },
+                    "response": [
+                        {
+                            "name": "Get Status Page Scheduled Events",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "type": "text",
+                                        "value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "http://localhost:3002/statusPage/:projectId/:statusPageId/events?skip=0&limit=5",
+                                    "protocol": "http",
+                                    "host": ["localhost"],
+                                    "port": "3002",
+                                    "path": [
+                                        "statusPage",
+                                        ":projectId",
+                                        ":statusPageId",
+                                        "events"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "skip",
+                                            "value": "0"
+                                        },
+                                        {
+                                            "key": "limit",
+                                            "value": "5"
+                                        }
+                                    ],
+                                    "variable": [
+                                        {
+                                            "key": "projectId",
+                                            "value": "5e8cda4eac92233bf1e4645a"
+                                        },
+                                        {
+                                            "key": "statusPageId",
+                                            "value": "5e8cdb19ac92233bf1e464d6"
+                                        }
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "X-Powered-By",
+                                    "value": "Express"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Origin",
+                                    "value": "undefined"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Credentials",
+                                    "value": "true"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Methods",
+                                    "value": "GET,PUT,POST,DELETE,OPTIONS"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Headers",
+                                    "value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+                                },
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=utf-8"
+                                },
+                                {
+                                    "key": "Content-Length",
+                                    "value": "2431"
+                                },
+                                {
+                                    "key": "ETag",
+                                    "value": "W/\"97f-Rnzue0wxaOFRNy3KslJLxyvdJLo\""
+                                },
+                                {
+                                    "key": "Date",
+                                    "value": "Thu, 09 Apr 2020 21:41:36 GMT"
+                                },
+                                {
+                                    "key": "Connection",
+                                    "value": "keep-alive"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"data\": [\n        {\n            \"_id\": \"5e8f7cff373fe04be53f6435\",\n            \"showEventOnStatusPage\": true,\n            \"callScheduleOnEvent\": true,\n            \"monitorDuringEvent\": false,\n            \"alertSubscriber\": true,\n            \"createdAt\": \"2020-04-09T19:52:31.296Z\",\n            \"projectId\": \"5e8cda4eac92233bf1e4645a\",\n            \"monitorId\": {\n                \"_id\": \"5e8e37756699ef07cef3cc94\",\n                \"name\": \"Google Home\"\n            },\n            \"name\": \"Zenith111\",\n            \"createdById\": {\n                \"_id\": \"5e8cda48ac92233bf1e46458\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"startDate\": \"2020-04-09T19:52:16.000Z\",\n            \"endDate\": \"2020-04-09T19:52:16.000Z\",\n            \"description\": \"sdfg\"\n        },\n        {\n            \"_id\": \"5e8f7cde373fe04be53f6417\",\n            \"showEventOnStatusPage\": true,\n            \"callScheduleOnEvent\": true,\n            \"monitorDuringEvent\": false,\n            \"alertSubscriber\": true,\n            \"createdAt\": \"2020-04-09T19:51:58.844Z\",\n            \"projectId\": \"5e8cda4eac92233bf1e4645a\",\n            \"monitorId\": {\n                \"_id\": \"5e8cdaebac92233bf1e4649a\",\n                \"name\": \"Mello\"\n            },\n            \"name\": \"MMM11\",\n            \"createdById\": {\n                \"_id\": \"5e8cda48ac92233bf1e46458\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"startDate\": \"2020-04-09T19:51:42.000Z\",\n            \"endDate\": \"2020-04-09T19:51:42.000Z\",\n            \"description\": \"er\"\n        },\n        {\n            \"_id\": \"5e8f7cbc373fe04be53f6412\",\n            \"showEventOnStatusPage\": true,\n            \"callScheduleOnEvent\": true,\n            \"monitorDuringEvent\": false,\n            \"alertSubscriber\": true,\n            \"createdAt\": \"2020-04-09T19:51:24.172Z\",\n            \"projectId\": \"5e8cda4eac92233bf1e4645a\",\n            \"monitorId\": {\n                \"_id\": \"5e8cdaebac92233bf1e4649a\",\n                \"name\": \"Mello\"\n            },\n            \"name\": \"Taicho 111\",\n            \"createdById\": {\n                \"_id\": \"5e8cda48ac92233bf1e46458\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"startDate\": \"2020-04-09T19:51:07.000Z\",\n            \"endDate\": \"2020-04-09T19:51:07.000Z\",\n            \"description\": \"sgdgfgh\"\n        },\n        {\n            \"_id\": \"5e8f7c98373fe04be53f63f4\",\n            \"showEventOnStatusPage\": true,\n            \"callScheduleOnEvent\": true,\n            \"monitorDuringEvent\": false,\n            \"alertSubscriber\": true,\n            \"createdAt\": \"2020-04-09T19:50:48.156Z\",\n            \"projectId\": \"5e8cda4eac92233bf1e4645a\",\n            \"monitorId\": {\n                \"_id\": \"5e8e37756699ef07cef3cc94\",\n                \"name\": \"Google Home\"\n            },\n            \"name\": \"Taicho 11\",\n            \"createdById\": {\n                \"_id\": \"5e8cda48ac92233bf1e46458\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"startDate\": \"2020-04-09T19:50:32.000Z\",\n            \"endDate\": \"2020-04-09T19:50:32.000Z\",\n            \"description\": \"er\"\n        },\n        {\n            \"_id\": \"5e8f7b75373fe04be53f63e5\",\n            \"showEventOnStatusPage\": true,\n            \"callScheduleOnEvent\": true,\n            \"monitorDuringEvent\": false,\n            \"alertSubscriber\": true,\n            \"createdAt\": \"2020-04-09T19:45:57.012Z\",\n            \"projectId\": \"5e8cda4eac92233bf1e4645a\",\n            \"monitorId\": {\n                \"_id\": \"5e8e37756699ef07cef3cc94\",\n                \"name\": \"Google Home\"\n            },\n            \"name\": \"Taicho 1\",\n            \"createdById\": {\n                \"_id\": \"5e8cda48ac92233bf1e46458\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"startDate\": \"2020-04-09T19:45:37.000Z\",\n            \"endDate\": \"2020-04-09T19:45:37.000Z\",\n            \"description\": \"sd\"\n        }\n    ],\n    \"count\": 25,\n    \"skip\": 0,\n    \"limit\": 5\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Status Page Monitor Scheduled Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "type": "text",
+                                "value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:3002/statusPage/:projectId/:monitorId/individualevents?skip=0&limit=5",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3002",
+                            "path": [
+                                "statusPage",
+                                ":projectId",
+                                ":monitorId",
+                                "individualevents"
+                            ],
+                            "query": [
+                                {
+                                    "key": "skip",
+                                    "value": "0"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "5"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "projectId",
+                                    "value": "5e8cda4eac92233bf1e4645a"
+                                },
+                                {
+                                    "key": "monitorId",
+                                    "value": "5e8cdaebac92233bf1e4649a"
+                                }
+                            ]
+                        },
+                        "description": "Get Status Page Monitor Scheduled Events"
+                    },
+                    "response": [
+                        {
+                            "name": "Get Status Page Monitor Scheduled Events",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "type": "text",
+                                        "value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlMmVjZjNmNTE2YWFlMjZiMTMzZjM1MiIsImlhdCI6MTU4MDUwNDMwMywiZXhwIjoxNTg5MTQ0MzAzfQ.mPxC_KBe87Ezl7YklJcuCVn-qcy2mAMTB8Qs57Eu9oo"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "http://localhost:3002/statusPage/:projectId/:monitorId/individualevents?date=2020-04-09T21:22:08.845Z",
+                                    "protocol": "http",
+                                    "host": ["localhost"],
+                                    "port": "3002",
+                                    "path": [
+                                        "statusPage",
+                                        ":projectId",
+                                        ":monitorId",
+                                        "individualevents"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "date",
+                                            "value": "2020-04-09T21:22:08.845Z"
+                                        }
+                                    ],
+                                    "variable": [
+                                        {
+                                            "key": "projectId",
+                                            "value": "5e8cda4eac92233bf1e4645a"
+                                        },
+                                        {
+                                            "key": "monitorId",
+                                            "value": "5e8cdaebac92233bf1e4649a"
+                                        }
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "X-Powered-By",
+                                    "value": "Express"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Origin",
+                                    "value": "undefined"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Credentials",
+                                    "value": "true"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Methods",
+                                    "value": "GET,PUT,POST,DELETE,OPTIONS"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Headers",
+                                    "value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+                                },
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=utf-8"
+                                },
+                                {
+                                    "key": "Content-Length",
+                                    "value": "2400"
+                                },
+                                {
+                                    "key": "ETag",
+                                    "value": "W/\"960-iuMauIR6FDGHLDmEucZ1OBOhqnc\""
+                                },
+                                {
+                                    "key": "Date",
+                                    "value": "Thu, 09 Apr 2020 21:44:53 GMT"
+                                },
+                                {
+                                    "key": "Connection",
+                                    "value": "keep-alive"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"data\": [\n        {\n            \"_id\": \"5e8f7cde373fe04be53f6417\",\n            \"showEventOnStatusPage\": true,\n            \"callScheduleOnEvent\": true,\n            \"monitorDuringEvent\": false,\n            \"alertSubscriber\": true,\n            \"createdAt\": \"2020-04-09T19:51:58.844Z\",\n            \"projectId\": \"5e8cda4eac92233bf1e4645a\",\n            \"monitorId\": {\n                \"_id\": \"5e8cdaebac92233bf1e4649a\",\n                \"name\": \"Mello\"\n            },\n            \"name\": \"MMM11\",\n            \"createdById\": {\n                \"_id\": \"5e8cda48ac92233bf1e46458\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"startDate\": \"2020-04-09T19:51:42.000Z\",\n            \"endDate\": \"2020-04-09T19:51:42.000Z\",\n            \"description\": \"er\"\n        },\n        {\n            \"_id\": \"5e8f7cbc373fe04be53f6412\",\n            \"showEventOnStatusPage\": true,\n            \"callScheduleOnEvent\": true,\n            \"monitorDuringEvent\": false,\n            \"alertSubscriber\": true,\n            \"createdAt\": \"2020-04-09T19:51:24.172Z\",\n            \"projectId\": \"5e8cda4eac92233bf1e4645a\",\n            \"monitorId\": {\n                \"_id\": \"5e8cdaebac92233bf1e4649a\",\n                \"name\": \"Mello\"\n            },\n            \"name\": \"Taicho 111\",\n            \"createdById\": {\n                \"_id\": \"5e8cda48ac92233bf1e46458\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"startDate\": \"2020-04-09T19:51:07.000Z\",\n            \"endDate\": \"2020-04-09T19:51:07.000Z\",\n            \"description\": \"sgdgfgh\"\n        },\n        {\n            \"_id\": \"5e8f7b4c373fe04be53f63c7\",\n            \"showEventOnStatusPage\": true,\n            \"callScheduleOnEvent\": true,\n            \"monitorDuringEvent\": false,\n            \"alertSubscriber\": true,\n            \"createdAt\": \"2020-04-09T19:45:16.903Z\",\n            \"projectId\": \"5e8cda4eac92233bf1e4645a\",\n            \"monitorId\": {\n                \"_id\": \"5e8cdaebac92233bf1e4649a\",\n                \"name\": \"Mello\"\n            },\n            \"name\": \"Springan 14\",\n            \"createdById\": {\n                \"_id\": \"5e8cda48ac92233bf1e46458\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"startDate\": \"2020-04-09T19:44:41.000Z\",\n            \"endDate\": \"2020-04-09T19:44:41.000Z\",\n            \"description\": \"klsd\"\n        },\n        {\n            \"_id\": \"5e8f7aff373fe04be53f63c1\",\n            \"showEventOnStatusPage\": true,\n            \"callScheduleOnEvent\": true,\n            \"monitorDuringEvent\": false,\n            \"alertSubscriber\": true,\n            \"createdAt\": \"2020-04-09T19:43:59.715Z\",\n            \"projectId\": \"5e8cda4eac92233bf1e4645a\",\n            \"monitorId\": {\n                \"_id\": \"5e8cdaebac92233bf1e4649a\",\n                \"name\": \"Mello\"\n            },\n            \"name\": \"Springan 12\",\n            \"createdById\": {\n                \"_id\": \"5e8cda48ac92233bf1e46458\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"startDate\": \"2020-04-09T19:43:36.000Z\",\n            \"endDate\": \"2020-04-09T19:43:36.000Z\",\n            \"description\": \"sd\"\n        },\n        {\n            \"_id\": \"5e8f7aad373fe04be53f63b9\",\n            \"showEventOnStatusPage\": true,\n            \"callScheduleOnEvent\": true,\n            \"monitorDuringEvent\": false,\n            \"alertSubscriber\": true,\n            \"createdAt\": \"2020-04-09T19:42:37.893Z\",\n            \"projectId\": \"5e8cda4eac92233bf1e4645a\",\n            \"monitorId\": {\n                \"_id\": \"5e8cdaebac92233bf1e4649a\",\n                \"name\": \"Mello\"\n            },\n            \"name\": \"Sprigan 16\",\n            \"createdById\": {\n                \"_id\": \"5e8cda48ac92233bf1e46458\",\n                \"name\": \"Nawaz Dhandala\"\n            },\n            \"startDate\": \"2020-04-09T19:42:16.000Z\",\n            \"endDate\": \"2020-04-09T19:42:16.000Z\",\n            \"description\": \"sd\"\n        }\n    ],\n    \"count\": 10\n}"
                         }
                     ]
                 },

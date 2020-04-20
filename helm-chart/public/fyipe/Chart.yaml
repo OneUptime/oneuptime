@@ -1,4 +1,4 @@
-apiVersion: v2
+apiVersion: v1
 name: Fyipe
 version: 3.0.0
 description: One complete DevOps and IT Ops platform.
@@ -15,6 +15,7 @@ keywords:
   - API Test
   - Website Monitoring
   - Website Test
+  - SRE
 home: https://fyipe.com
 dependencies:
 - name: nginx-ingress-controller

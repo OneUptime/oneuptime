@@ -1,19 +1,19 @@
 apiVersion: app.k8s.io/v1beta1
 kind: Application
 metadata:
-  name: "{{ .Release.Name }}"
-  namespace: "{{ .Release.Namespace }}"
-  labels:
-    app.kubernetes.io/name: "{{ .Release.Name }}"
-  annotations:
-    marketplace.cloud.google.com/deploy-info: '{"partner_id": "fyipe-public", "product_id": "fyipe", "partner_name": "Fyipe"}'
+    name: { { .Release.Name } }
+    namespace: { { .Release.Namespace } }
+    labels:
+        app.kubernetes.io/name: { { .Release.Name } }
+    annotations:
+        marketplace.cloud.google.com/deploy-info: '{"partner_id": "fyipe-public", "product_id": "fyipe", "partner_name": "Fyipe"}'
 spec:
-  descriptor:
-    type: Fyipe
-    version: '3.0.0'
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: "{{ .Release.Name }}"
-  componentKinds:
-  - group: batch/v1
-    kind: Job
+    descriptor:
+        type: Fyipe
+        version: '3.0.0'
+    selector:
+        matchLabels:
+            app.kubernetes.io/name: { { .Release.Name } }
+    componentKinds:
+        - group: batch/v1
+          kind: Job

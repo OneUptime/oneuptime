@@ -35,10 +35,10 @@ function TeamMemberProfile({
     }, [projectId, memberId, getTeamMember]);
 
     const profilePic =
-        teamMember && teamMember.profilePic ? teamMember.profilePic : null;
-    const fileData = profilePic
-        ? `${API_URL}/file/${profilePic}`
-        : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+        teamMember && teamMember.profilePic && teamMember.profilePic !== 'null'
+            ? teamMember.profilePic
+            : null;
+    const fileData = profilePic ? `${API_URL}/file/${profilePic}` : null;
     let profileImage = <span />;
 
     if (fileData) {

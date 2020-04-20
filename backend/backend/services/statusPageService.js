@@ -296,6 +296,68 @@ module.exports = {
         }
     },
 
+    getEvents: async function(query, skip, limit) {
+        try {
+            const _this = this;
+
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 5;
+
+            if (typeof skip === 'string') skip = parseInt(skip);
+
+            if (typeof limit === 'string') limit = parseInt(limit);
+
+            if (!query) query = {};
+            const statuspages = await _this.findBy(query, 0, limit);
+
+            const withMonitors = statuspages.filter(
+                statusPage => statusPage.monitorIds.length
+            );
+            const statuspage = withMonitors[0];
+            const monitorIds = statuspage.monitorIds.map(m => m._id);
+            if (monitorIds && monitorIds.length) {
+                const events = await ScheduledEventsService.findBy(
+                    {
+                        monitorId: { $in: monitorIds },
+                        showEventOnStatusPage: true,
+                    },
+                    limit,
+                    skip
+                );
+                const count = await ScheduledEventsService.countBy({
+                    monitorId: { $in: monitorIds },
+                });
+
+                return { events, count };
+            } else {
+                const error = new Error('no monitor to check');
+                error.code = 400;
+                ErrorService.log('statusPage.getEvents', error);
+                throw error;
+            }
+        } catch (error) {
+            ErrorService.log('statusPageService.getEvents', error);
+            throw error;
+        }
+    },
+
+    getEventsByDate: async function(query, skip, limit) {
+        try {
+            const scheduledEvents = await ScheduledEventsService.findBy(
+                query,
+                limit,
+                skip
+            );
+            const count = await ScheduledEventsService.countBy(query);
+
+            return { scheduledEvents, count };
+        } catch (error) {
+            ErrorService.log('statusPageService.getEventsByDate', error);
+            throw error;
+        }
+    },
+
     getStatus: async function(query, userId) {
         try {
             const thisObj = this;
@@ -494,6 +556,7 @@ module.exports = {
 
 const StatusPageModel = require('../models/statusPage');
 const IncidentService = require('./incidentService');
+const ScheduledEventsService = require('./scheduledEventService');
 const MonitorService = require('./monitorService');
 const ErrorService = require('./errorService');
 const SubscriberService = require('./subscriberService');

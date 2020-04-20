@@ -31,8 +31,8 @@ body {
 .box {
   overflow: hidden;
   border-radius: 4px;
-  box-shadow: 0 15px 35px rgba(50, 50, 93, 0.1),
-              0 5px 15px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 7px 14px 0 rgba(50, 50, 93, 0.1),
+              0 3px 6px 0 rgba(0, 0, 0, 0.07);
 }
 .box-inner {
   padding: 35px;
@@ -140,16 +140,12 @@ div.block-chart {
   height: 8px;
 }
 
-.status-paused{}
-
 .status-down .status-time {
   color: #FFCEC7;
 }
 
-.status-down {}
-
 .status-loading {
-  background: url(/images/status_lights/loading.gif) center no-repeat;
+  background: url(/status-page/images/status_lights/loading.gif) center no-repeat;
 }
 
 .graph-up {
@@ -275,7 +271,7 @@ div.block-chart {
       left: 6px;
       width: 7px;
       height: 8px;
-      background: url(/images/screw.png);
+      background: url(/status-page/images/screw.png);
     }
 
       /* Bottom */
@@ -373,7 +369,7 @@ div.block-chart {
       position: relative;
       top: 1px;
       margin-left: 3px;
-      background: url(/images/warning_triangle.png);
+      background: url(/status-page/images/warning_triangle.png);
     }
 
 .uptime-graph-section:last-child {
@@ -488,7 +484,7 @@ div.feed-header {
     float: right;
     width: 27px;
     height: 15px;
-    background: url(/images/twitter/bird.svg) 100% 0 no-repeat;
+    background: url(/status-page/images/twitter/bird.svg) 100% 0 no-repeat;
   }
 
   .feed-item {
@@ -564,7 +560,7 @@ div.twitter-link {
     text-align: center;
     font-size: 16px;
     color: #000000;
-    background: url(/images/twitter/big_bird.svg) 50% 0 no-repeat;
+    background: url(/status-page/images/twitter/big_bird.svg) 50% 0 no-repeat;
     margin-top: 20px;
     padding-top: 75px;
     margin-bottom: 15px;
@@ -756,6 +752,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   width:100%;
   font-size: 14px;
   line-height: 20px;
+  border: 2px solid #fff;
 }
 
 .btn-group .icon-container.selected{
@@ -784,40 +781,40 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 */
 .icon-container .icon-message{
-  background-image: url(/images/email.svg);
+  background-image: url(/status-page/images/email.svg);
 }
 
 .icon-container.selected .icon-message{
-  background-image: url(/images/email.svg);
+  background-image: url(/status-page/images/email.svg);
 }
 
 .icon-container .icon-call{
-  background-image: url(/images/phone.svg);
+  background-image: url(/status-page/images/phone.svg);
 }
 
 .icon-container.selected .icon-call{
-  background-image: url(/images/phone.svg);
+  background-image: url(/status-page/images/phone.svg);
 }
 .icon-container .icon-webhook{
-  background-image: url(/images/code.svg);
+  background-image: url(/status-page/images/code.svg);
 }
 
 .icon-container.selected .icon-webhook{
-  background-image: url(/images/code.svg);
+  background-image: url(/status-page/images/code.svg);
 }
 .icon-container .icon-rss{
-  background-image: url(/images/rss.svg);
+  background-image: url(/status-page/images/rss.svg);
 }
 
 .icon-container.selected .icon-rss{
-  background-image: url(/images/rss.svg);
+  background-image: url(/status-page/images/rss.svg);
 }
 .icon-container .icon-close{
-  background-image: url(/images/close.svg);
+  background-image: url(/status-page/images/close.svg);
 }
 
 .icon-container.selected .icon-close{
-  background-image: url(/images/close.svg);
+  background-image: url(/status-page/images/close.svg);
 }
 
 .sub-icon{
@@ -997,4 +994,10 @@ margin-left:10px;
   text-align: inherit;
   background-color: inherit;
   font-size: 0.8em;
+}
+.anchor-centered {
+  display: block !important;
+  margin: 0 auto;
+  left: 0;
+  padding-bottom: 10px;
 }

@@ -1,81 +1,83 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: $name-ubbagent-config
+    name: { { printf "%s-%s" $.Release.Name "ubbagent-config" } }
+    namespace: { { .Release.Namespace } }
 data:
-  config.yaml: |
-    # The identity section contains authentication information used
-    # by the agent.
-    identities:
-    - name: gcp
-      gcp:
-        # This parameter accepts a base64-encoded JSON service
-        # account key. The value comes from the reporting secret.
-        encodedServiceAccountKey: $AGENT_ENCODED_KEY
+    config.yaml: |
+        # The identity section contains authentication information used
+        # by the agent.
+        identities:
+        - name: gcp
+          gcp:
+            # This parameter accepts a base64-encoded JSON service
+            # account key. The value comes from the reporting secret.
+            encodedServiceAccountKey: $AGENT_ENCODED_KEY
 
-    # The metrics section defines the metric that will be reported.
-    # Metric names should match verbatim the identifiers created
-    # during pricing setup.
-    metrics:
-    - name: requests
-      type: int
+        # The metrics section defines the metric that will be reported.
+        # Metric names should match verbatim the identifiers created
+        # during pricing setup.
+        metrics:
+        - name: requests
+          type: int
 
-      # The endpoints section of a metric defines which endpoints the
-      # metric data is sent to.
-      endpoints:
-      - name: on_disk
-      - name: servicecontrol
+          # The endpoints section of a metric defines which endpoints the
+          # metric data is sent to.
+          endpoints:
+          - name: on_disk
+          - name: servicecontrol
 
-      # The aggregation section indicates that reports that the agent
-      # receives for this metric should be aggregated for a specified
-      # period of time prior to being sent to the reporting endpoint.
-      aggregation:
-        bufferSeconds: 60
+          # The aggregation section indicates that reports that the agent
+          # receives for this metric should be aggregated for a specified
+          # period of time prior to being sent to the reporting endpoint.
+          aggregation:
+            bufferSeconds: 60
 
-    - name: instance_time
-      type: int
-      endpoints:
-      - name: on_disk
-      - name: servicecontrol
+        - name: instance_time
+          type: int
+          endpoints:
+          - name: on_disk
+          - name: servicecontrol
 
-      # The passthrough marker indicates that no aggregation should
-      # occur for this metric. Reports received are immediately sent
-      # to the reporting endpoint. We use passthrough for the
-      # instance_time metric since reports are generated
-      # automatically by a heartbeat source defined in a later
-      # section.
-      passthrough: {}
+          # The passthrough marker indicates that no aggregation should
+          # occur for this metric. Reports received are immediately sent
+          # to the reporting endpoint. We use passthrough for the
+          # instance_time metric since reports are generated
+          # automatically by a heartbeat source defined in a later
+          # section.
+          passthrough: {}
 
-    # The endpoints section defines where metering data is ultimately
-    # sent. Currently supported endpoints include:
-    # * disk - some directory on the local filesystem
-    # * servicecontrol - Google Service Control
-    endpoints:
-    - name: on_disk
-      # The disk endpoint is useful for debugging, but its inclusion
-      # is not necessary in a production deployment.
-      disk:
-        reportDir: /var/lib/ubbagent/reports
-        expireSeconds: 3600
-    - name: servicecontrol
-      servicecontrol:
-        identity: gcp
-        # The service name is unique to your application and will be
-        # provided during onboarding.
-        serviceName: my-application.mp-my-company.appspot.com
-        consumerId: $AGENT_CONSUMER_ID  # From the reporting secret.
-      
+        # The endpoints section defines where metering data is ultimately
+        # sent. Currently supported endpoints include:
+        # * disk - some directory on the local filesystem
+        # * servicecontrol - Google Service Control
+        endpoints:
+        - name: on_disk
+          # The disk endpoint is useful for debugging, but its inclusion
+          # is not necessary in a production deployment.
+          disk:
+            reportDir: /var/lib/ubbagent/reports
+            expireSeconds: 3600
+        - name: servicecontrol
+          servicecontrol:
+            identity: gcp
+            # The service name is unique to your application and will be
+            # provided during onboarding.
+            serviceName: my-application.mp-my-company.appspot.com
+            consumerId: $AGENT_CONSUMER_ID  # From the reporting secret.
+          
 
-    # The sources section lists metric data sources run by the agent
-    # itself. The currently-supported source is 'heartbeat', which
-    # sends a defined value to a metric at a defined interval. In
-    # this example, the heartbeat sends a 60-second value through the
-    # "instance_time" metric every minute.
-    sources:
-    - name: instance_time_heartbeat
-      heartbeat:
-        metric: instance_time
-        intervalSeconds: 60
-        value:
-          int64Value: 60
+        # The sources section lists metric data sources run by the agent
+        # itself. The currently-supported source is 'heartbeat', which
+        # sends a defined value to a metric at a defined interval. In
+        # this example, the heartbeat sends a 60-second value through the
+        # "instance_time" metric every minute.
+        sources:
+        - name: instance_time_heartbeat
+          heartbeat:
+            metric: instance_time
+            intervalSeconds: 60
+            value:
+              int64Value: 60
 ---
+

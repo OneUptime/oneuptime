@@ -6,6 +6,7 @@ import UptimeGraphs from './UptimeGraphs';
 import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
+import EventsMain from './EventsMain';
 import { API_URL, ACCOUNTS_URL, getServiceStatus } from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
@@ -244,15 +245,15 @@ class Main extends Component {
             if (serviceStatus === 'all') {
                 status = 'status-bubble status-up';
                 statusMessage = 'All Services are Online';
-                faviconurl = '/greenfavicon.ico';
+                faviconurl = '/status-page/greenfavicon.ico';
             } else if (serviceStatus === 'none') {
                 status = 'status-bubble status-down';
                 statusMessage = 'All Services are Offline';
-                faviconurl = '/redfavicon.ico';
+                faviconurl = '/status-page/redfavicon.ico';
             } else if (serviceStatus === 'some') {
                 status = 'status-bubble status-paused';
                 statusMessage = 'Some Services are Offline';
-                faviconurl = '/yellowfavicon.ico';
+                faviconurl = '/status-page/yellowfavicon.ico';
             }
             view = true;
 
@@ -365,7 +366,12 @@ class Main extends Component {
                                             onClick={() =>
                                                 this.selectbutton(index)
                                             }
-                                            style={contentBackground}
+                                            style={{
+                                                background:
+                                                    backgroundMain.background,
+                                                borderColor:
+                                                    contentBackground.background,
+                                            }}
                                             key={`probes-btn${index}`}
                                             id={`probes-btn${index}`}
                                             className={
@@ -472,7 +478,7 @@ class Main extends Component {
                                     : 'Status page'}
                             </title>
                             <script
-                                src="/js/landing.base.js"
+                                src="/status-page/js/landing.base.js"
                                 type="text/javascript"
                             ></script>
                         </Helmet>
@@ -487,6 +493,17 @@ class Main extends Component {
                                 projectId={this.props.statusData.projectId._id}
                                 statusPageId={this.props.statusData._id}
                             />
+
+                            <ShouldRender
+                                if={this.props.statusData.showScheduledEvents}
+                            >
+                                <EventsMain
+                                    projectId={
+                                        this.props.statusData.projectId._id
+                                    }
+                                    statusPageId={this.props.statusData._id}
+                                />
+                            </ShouldRender>
                         </ShouldRender>
                         <div id="footer">
                             <ul>
