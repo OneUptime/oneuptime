@@ -70,6 +70,9 @@ import {
     VERIFY_DOMAIN_FAILURE,
     VERIFY_DOMAIN_REQUEST,
     VERIFY_DOMAIN_SUCCESS,
+    CREATE_DOMAIN_REQUEST,
+    CREATE_DOMAIN_SUCCESS,
+    CREATE_DOMAIN_FAILURE,
 } from '../constants/domain';
 
 const INITIAL_STATE = {
@@ -131,6 +134,11 @@ const INITIAL_STATE = {
         error: null,
     },
     verifyDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    addDomain: {
         requesting: false,
         success: false,
         error: null,
@@ -227,7 +235,40 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 ...INITIAL_STATE,
             });
 
-        //handle domain input field
+        //handle domain
+        case CREATE_DOMAIN_REQUEST:
+            return {
+                ...state,
+                addDomain: {
+                    ...state.addDomain,
+                    requesting: true,
+                },
+            };
+
+        case CREATE_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                addDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                status: {
+                    ...state.status,
+                    domains: action.payload.domains,
+                },
+            };
+
+        case CREATE_DOMAIN_FAILURE:
+            return {
+                ...state,
+                addDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
         case ADD_MORE_DOMAIN:
             return {
                 ...state,
@@ -249,10 +290,24 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 },
             };
 
-        case VERIFY_DOMAIN_SUCCESS:
+        case VERIFY_DOMAIN_SUCCESS: {
+            const updateDomains = JSON.parse(
+                JSON.stringify(state.status.domains)
+            ); // deep clone to avoid mutation of state
+            updateDomains.forEach(({ domainVerificationToken }) => {
+                if (domainVerificationToken._id === action.payload._id) {
+                    domainVerificationToken.verified = action.payload.verified;
+                    domainVerificationToken.verifiedAt =
+                        action.payload.verifiedAt;
+                }
+            });
+
             return {
                 ...state,
-                status: action.payload,
+                status: {
+                    ...state.status,
+                    domains: updateDomains,
+                },
                 verifyDomain: {
                     ...state.verifyDomain,
                     requesting: false,
@@ -260,6 +315,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: null,
                 },
             };
+        }
 
         case VERIFY_DOMAIN_FAILURE:
             return {
