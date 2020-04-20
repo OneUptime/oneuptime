@@ -93,34 +93,6 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         },
     ]);
 
-    /* if (data.domain) {
-        if (typeof data.domain !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain is not of type string.',
-            });
-        }
-
-        if (!UtilService.isDomainValid(data.domain)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain is not valid.',
-            });
-        }
-
-        const status = await StatusPageService.findOneBy({
-            _id: data._id,
-        });
-
-        const verificationToken = randomChar();
-
-        data.domains = [
-            ...status.domains,
-            { domain: data.domain, verificationToken },
-        ];
-        delete data.domain;
-    } */
-
     if (data.links) {
         if (typeof data.links !== 'object') {
             return sendErrorResponse(req, res, {
