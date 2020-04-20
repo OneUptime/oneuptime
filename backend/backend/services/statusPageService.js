@@ -24,6 +24,7 @@ module.exports = {
                 .skip(skip)
                 .populate('projectId', 'name')
                 .populate('monitorIds', 'name')
+                .populate('domains.domainVerificationToken')
                 .lean();
             return statusPages;
         } catch (error) {
@@ -48,7 +49,7 @@ module.exports = {
             }
             const statusPageModel = new StatusPageModel();
             statusPageModel.projectId = data.projectId || null;
-            statusPageModel.domain = data.domain || null;
+            statusPageModel.domains = data.domains || [];
             statusPageModel.links = data.links || null;
             statusPageModel.title = data.title || null;
             statusPageModel.name = data.name || null;
@@ -166,7 +167,8 @@ module.exports = {
             const statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
-                .populate('monitorIds', 'name');
+                .populate('monitorIds', 'name')
+                .populate('domains.domainVerificationToken');
             return statusPage;
         } catch (error) {
             ErrorService.log('statusPageService.findOneBy', error);
@@ -201,7 +203,7 @@ module.exports = {
                 {
                     new: true,
                 }
-            );
+            ).populate('domains.domainVerificationToken');
             return updatedStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.updateOneBy', error);
@@ -218,7 +220,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             let updatedData = await StatusPageModel.updateMany(query, {
                 $set: data,
-            });
+            }).populate('domains.domainVerificationToken');
             updatedData = await this.findBy(query);
             return updatedData;
         } catch (error) {
@@ -306,6 +308,7 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('monitorIds', 'name')
+                .populate({ populate: { path: 'domainVerificationToken' } })
                 .lean();
             if (statusPage && (statusPage._id || statusPage.id)) {
                 const permitted = await thisObj.isPermitted(userId, statusPage);

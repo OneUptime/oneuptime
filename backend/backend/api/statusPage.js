@@ -11,7 +11,6 @@ const ProbeService = require('../services/probeService');
 const RealTimeService = require('../services/realTimeService');
 
 const router = express.Router();
-const UtilService = require('../services/utilService');
 const validUrl = require('valid-url');
 const multer = require('multer');
 const ErrorService = require('../services/errorService');
@@ -25,7 +24,6 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const randomChar = require('../utils/randomChar');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -51,6 +49,13 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Monitor IDs are not stored in an array.',
+            });
+        }
+
+        if (!data.name) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Status Page name is empty',
             });
         }
 
@@ -88,7 +93,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         },
     ]);
 
-    if (data.domain) {
+    /* if (data.domain) {
         if (typeof data.domain !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -114,7 +119,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             { domain: data.domain, verificationToken },
         ];
         delete data.domain;
-    }
+    } */
 
     if (data.links) {
         if (typeof data.links !== 'object') {
