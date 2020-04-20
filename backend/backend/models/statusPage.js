@@ -9,9 +9,11 @@ const statusSchema = new Schema({
     }, //which project this statuspage belongs to.
     domains: [
         {
-            domain: String,
-            verified: { type: Boolean, default: false },
-            verificationToken: String,
+            domain: String, // complete domain eg status.fyipe.com
+            domainVerificationToken: {
+                type: Schema.Types.ObjectId,
+                ref: 'DomainVerificationToken',
+            },
         },
     ],
     monitorIds: [{ type: String, ref: 'Monitor' }],
