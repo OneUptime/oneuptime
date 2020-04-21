@@ -80,11 +80,13 @@ module.exports = {
             if (signupResponse) {
                 const signupData = await signupResponse.text();
                 const parsedSignupData = JSON.parse(signupData);
-                await request
-                    .get(
-                        `/user/confirmation/${parsedSignupData.verificationToken}`
-                    )
-                    .redirects(0);
+                if (parsedSignupData.verificationToken) {
+                    await request
+                        .get(
+                            `/user/confirmation/${parsedSignupData.verificationToken}`
+                        )
+                        .redirects(0);
+                }
             }
         } catch (error) {
             //catch
