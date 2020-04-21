@@ -5,7 +5,7 @@ let page, browser;
 
 describe('Request demo', () => {
     beforeAll(async () => {
-        jest.setTimeout(15000);
+        jest.setTimeout(150000);
         browser = await puppeteer.launch(util.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -38,7 +38,7 @@ describe('Request demo', () => {
             () => document.querySelector('.submitted-email').innerText
         );
         expect(emailSubmitted).toBe(util.user.email);
-    }, 30000);
+    }, 100000);
     test('user can request for website monitoring resource', async () => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#website-monitoring');
@@ -63,7 +63,7 @@ describe('Request demo', () => {
             () => document.querySelector('.submitted-email').innerText
         );
         expect(emailSubmitted).toBe(util.user.email);
-    }, 30000);
+    }, 100000);
     test('user can request for speed equals revenue resource', async () => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#speed-revenue');
@@ -88,7 +88,7 @@ describe('Request demo', () => {
             () => document.querySelector('.submitted-email').innerText
         );
         expect(emailSubmitted).toBe(util.user.email);
-    }, 30000);
+    }, 100000);
     test('user can request for best practices resource', async () => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#best-practices');
@@ -113,7 +113,7 @@ describe('Request demo', () => {
             () => document.querySelector('.submitted-email').innerText
         );
         expect(emailSubmitted).toBe(util.user.email);
-    }, 30000);
+    }, 100000);
     test('user can request for peak performance resource', async () => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#peak-performance');
@@ -138,5 +138,5 @@ describe('Request demo', () => {
             () => document.querySelector('.submitted-email').innerText
         );
         expect(emailSubmitted).toBe(util.user.email);
-    }, 30000);
+    }, 100000);
 });
