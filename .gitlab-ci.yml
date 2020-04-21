@@ -738,7 +738,7 @@ e2e_microk8s_test:
     - ./ci/scripts/setup-machine.sh
     - chmod +x ./ci/scripts/setup.sh
     - ./ci/scripts/setup.sh
-    - export HOME_URL=http://localhost/
+    - export HOME_URL=http://localhost
     - export ACCOUNTS_URL=http://localhost/accounts
     - export ADMIN_DASHBOARD_URL=http://localhost/admin
     - export DASHBOARD_URL=http://localhost/dashboard
