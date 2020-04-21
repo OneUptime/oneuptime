@@ -9,7 +9,7 @@ module.exports = {
      * @returns { void }
      */
     registerUser: async function(user, page, checkCard = true) {
-        const { email } = user;
+        const { email, password } = user;
         let frame, elementHandle;
         await page.goto(utils.ACCOUNTS_URL + '/register', {
             waitUntil: 'networkidle2',
@@ -24,9 +24,9 @@ module.exports = {
         await page.click('input[name=companyPhoneNumber]');
         await page.type('input[name=companyPhoneNumber]', '99105688');
         await page.click('input[name=password]');
-        await page.type('input[name=password]', '1234567890');
+        await page.type('input[name=password]', password);
         await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', '1234567890');
+        await page.type('input[name=confirmPassword]', password);
 
         if (checkCard) {
             await Promise.all([
