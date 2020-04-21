@@ -9,6 +9,7 @@ import { emaildomains } from './constants/emaildomains';
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
+
 const isLocalhost =
     window &&
     window.location &&
