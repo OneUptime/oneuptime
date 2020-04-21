@@ -24,5 +24,3 @@ echo "RUNNING COMMAND: sudo k cluster-info"
 sudo k cluster-info
 echo "RUNNING COMMAND: sudo k get all --all-namespaces"
 sudo k get all --all-namespaces
-echo "RUNNING COMMAND: sudo cat /etc/hosts"
-sudo cat /etc/hosts
