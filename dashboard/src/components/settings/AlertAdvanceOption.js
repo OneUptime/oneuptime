@@ -114,7 +114,10 @@ export class AlertAdvanceOption extends Component {
                                 >
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                                         <div>
-                                            <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                            <div
+                                                id="alertOptionRow"
+                                                className="bs-Fieldset-wrapper Box-root Margin-bottom--2"
+                                            >
                                                 <div className="bs-Fieldset-row">
                                                     <label
                                                         className="bs-Fieldset-label"
@@ -621,6 +624,7 @@ export class AlertAdvanceOption extends Component {
                                         <span className="db-SettingsForm-footerMessage"></span>
                                         <div>
                                             <button
+                                                id="alertOptionSave"
                                                 className="bs-Button bs-Button--blue"
                                                 disabled={
                                                     this.props.isRequesting

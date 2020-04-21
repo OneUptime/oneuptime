@@ -50966,4 +50966,14 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
       list-style-type: disc;
       list-style-position: inside;
       }
-
+.loginoption{
+  text-align: center;
+  color: #6f757c;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.loginoption:hover{
+ color: black;
+}

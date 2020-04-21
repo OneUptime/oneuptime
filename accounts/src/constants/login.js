@@ -3,6 +3,7 @@ export const LOGIN_FAILED = 'auth/LOGIN_FAILED';
 export const LOGIN_REQUEST = 'auth/LOGIN_REQUEST';
 export const RESET_LOGIN = 'auth/RESET_LOGIN';
 export const SAVE_STATUS_PAGE = 'auth/SAVE_STATUS_PAGE';
+export const CHANGE_LOGIN = 'auth/CHANGE_LOGIN';
 
 // Use token for logging in a user
 export const AUTH_VERIFICATION_SUCCESS = 'auth/AUTH_VERIFICATION_SUCCESS';
