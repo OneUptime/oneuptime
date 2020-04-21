@@ -40,7 +40,7 @@ global.io = io;
 
 app.use(cors());
 
-app.use(function (req, res, next) {
+app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -54,13 +54,10 @@ app.use(function (req, res, next) {
 
     // Add this to global object, and this can be used anywhere where you need backend host.
     global.host = req.protocol + '://' + req.hostname + '/api';
-    global.accountsHost = req.protocol +
-        '://' + req.hostname + '/accounts';
-    global.homeHost = req.protocol +
-        '://' + req.hostname;
-    global.dashboardHost =
-        req.protocol + '://' + req.hostname + '/dashboard';
-        
+    global.accountsHost = req.protocol + '://' + req.hostname + '/accounts';
+    global.homeHost = req.protocol + '://' + req.hostname;
+    global.dashboardHost = req.protocol + '://' + req.hostname + '/dashboard';
+
     if (req.hostname.includes('localhost')) {
         global.host =
             req.protocol +
@@ -167,12 +164,12 @@ app.use(
 
 app.set('port', process.env.PORT || 3002);
 
-const server = http.listen(app.get('port'), function () {
+const server = http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('Server Started on port ' + app.get('port'));
 });
 
-app.get(['/', '/api'], function (req, res) {
+app.get(['/', '/api'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -183,7 +180,7 @@ app.get(['/', '/api'], function (req, res) {
     );
 });
 
-app.use('/*', function (req, res) {
+app.use('/*', function(req, res) {
     res.status(404).render('notFound.ejs', {});
 });
 
@@ -191,6 +188,6 @@ app.use('/*', function (req, res) {
 require('./backend/workers/main');
 
 module.exports = app;
-module.exports.close = function () {
+module.exports.close = function() {
     server.close();
 };

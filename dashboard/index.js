@@ -13,11 +13,7 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
     global.backendHost = req.protocol + '://' + req.host + '/api';
     if (req.host.includes('localhost')) {
         global.host =
-            req.protocol +
-            '://' +
-            req.host +
-            ':' +
-            (process.env.PORT || 3002);
+            req.protocol + '://' + req.host + ':' + (process.env.PORT || 3002);
         global.accountsHost = req.protocol + '://' + req.host + ':' + 3003;
         global.homeHost = req.protocol + '://' + req.host + ':' + 1444;
         global.backendHost = req.protocol + '://' + req.host + ':' + 3002;
