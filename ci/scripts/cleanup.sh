@@ -22,3 +22,5 @@ sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
 # Delete all locally built images. (Comment this out to reduce build times)
 # echo "RUNNING COMMAND: sudo docker rmi -f \$(sudo docker images -q) || echo 'No docker containers'"
 # sudo docker rmi -f $(sudo docker images -q) || echo 'No docker containers'
+echo "RUNNING COMMAND: sudo helm uninstall fyipe || echo 'fyipe not installed'"
+sudo helm uninstall fyipe || echo 'fyipe not installed'

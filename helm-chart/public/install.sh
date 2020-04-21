@@ -163,7 +163,6 @@ then
 elif [[ "$1" == "ci-install" ]] # If its a local install, take local scripts. 
 then
     # set service of type nodeport for VM's. 
-    sudo helm uninstall fyipe || echo "fyipe not installed"
     sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe
 else
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
