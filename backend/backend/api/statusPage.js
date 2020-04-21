@@ -95,7 +95,10 @@ router.post(
         }
 
         try {
-            let response = await DomainVerificationService.create(subDomain, statusPageId);
+            const response = await DomainVerificationService.create(
+                subDomain,
+                statusPageId
+            );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);

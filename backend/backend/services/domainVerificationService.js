@@ -33,7 +33,7 @@ module.exports = {
                     creationData
                 );
             }
-            let statusPage = await StatusPageService.findOneBy({
+            const statusPage = await StatusPageService.findOneBy({
                 _id: statusPageId,
             });
 
@@ -48,12 +48,12 @@ module.exports = {
                     },
                 ];
 
-                let result = await statusPage.save();
+                const result = await statusPage.save();
                 return result
                     .populate('domains.domainVerificationToken')
                     .execPopulate();
             } else {
-                let error = new Error(
+                const error = new Error(
                     'Status page not found or does not exist'
                 );
                 ErrorService.log('domainVerificationService.create', error);
@@ -113,7 +113,7 @@ module.exports = {
         const domainToLookup = `${host}.${domain}`;
 
         try {
-            let records = await dnsPromises.resolveTxt(domainToLookup);
+            const records = await dnsPromises.resolveTxt(domainToLookup);
             // records is an array of arrays
             // flatten the array to a single array
             const txtRecords = flatten(records);
