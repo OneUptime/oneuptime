@@ -8,7 +8,9 @@ const express = require('express');
 const StatusPageService = require('../services/statusPageService');
 const MonitorService = require('../services/monitorService');
 const ProbeService = require('../services/probeService');
+const UtilService = require('../services/utilService');
 const RealTimeService = require('../services/realTimeService');
+const DomainVerificationService = require('../services/domainVerificationService');
 
 const router = express.Router();
 const validUrl = require('valid-url');
@@ -66,6 +68,40 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+// Route Description: Creates a domain and domainVerificationToken
+// req.params -> {projectId, statusPageId}; req.body -> {domain}
+// Returns: response updated status page, error message
+router.post(
+    '/:projectId/:statusPageId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        const { statusPageId } = req.params;
+        const subDomain = req.body.domain;
+
+        if (typeof subDomain !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not of type string.',
+            });
+        }
+
+        if (!UtilService.isDomainValid(subDomain)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not valid.',
+            });
+        }
+
+        try {
+            let response = await DomainVerificationService.create(subDomain, statusPageId);
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 // Route Description: Updating Status Page.
 // Params:

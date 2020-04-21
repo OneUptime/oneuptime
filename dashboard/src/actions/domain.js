@@ -21,13 +21,13 @@ export function verifyDomainFailure(error) {
     };
 }
 
-export function verifyDomain({ projectId, domainId, statusPageId, payload }) {
+export function verifyDomain({ projectId, domainId, payload }) {
     return async function(dispatch) {
         dispatch(verifyDomainRequest());
 
         try {
             const response = await putApi(
-                `domain/${projectId}/${statusPageId}/verify/${domainId}`,
+                `domain/${projectId}/verify/${domainId}`,
                 payload
             );
             dispatch(verifyDomainSuccess(response.data));
@@ -71,7 +71,7 @@ export function createDomain({ projectId, statusPageId, domain }) {
 
         try {
             const response = await postApi(
-                `domain/${projectId}/${statusPageId}`,
+                `statusPage/${projectId}/${statusPageId}`,
                 { domain }
             );
             dispatch(createDomainSuccess(response.data));

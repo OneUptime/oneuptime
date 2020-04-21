@@ -1,18 +1,64 @@
+const dns = require('dns');
 const DomainVerificationTokenModel = require('../models/domainVerificationToken');
 const ErrorService = require('./errorService');
+const randomChar = require('../utils/randomChar');
+const getDomain = require('../utils/getDomain');
+const flatten = require('../utils/flattenArray');
+const StatusPageService = require('./statusPageService');
+
+const dnsPromises = dns.promises;
 
 module.exports = {
-    create: async function(data) {
+    create: async function(subDomain, statusPageId) {
+        const token = 'fyipe=' + randomChar();
+        const domain = getDomain(subDomain);
+        let createdDomain = {};
+
         try {
-            const creationData = {
-                domain: data.domain,
-                verificationToken: data.verificationToken,
-                verifiedAt: null,
-            };
-            const domainVerificationToken = await DomainVerificationTokenModel.create(
-                creationData
-            );
-            return domainVerificationToken;
+            // check if domain already exist
+            const existingBaseDomain = await this.findOneBy({
+                domain,
+            });
+
+            if (!existingBaseDomain) {
+                const creationData = {
+                    domain,
+                    verificationToken: token,
+                    createdAt: Date.now(),
+                    verifiedAt: null,
+                    deletedAt: null,
+                };
+                // create the domain
+                createdDomain = await DomainVerificationTokenModel.create(
+                    creationData
+                );
+            }
+            let statusPage = await StatusPageService.findOneBy({
+                _id: statusPageId,
+            });
+
+            if (statusPage) {
+                // attach the domain id to statuspage collection and update it
+                statusPage.domains = [
+                    ...statusPage.domains,
+                    {
+                        domain: subDomain,
+                        domainVerificationToken:
+                            createdDomain._id || existingBaseDomain._id,
+                    },
+                ];
+
+                let result = await statusPage.save();
+                return result
+                    .populate('domains.domainVerificationToken')
+                    .execPopulate();
+            } else {
+                let error = new Error(
+                    'Status page not found or does not exist'
+                );
+                ErrorService.log('domainVerificationService.create', error);
+                throw error;
+            }
         } catch (error) {
             ErrorService.log('domainVerificationService.create', error);
             throw error;
@@ -30,12 +76,23 @@ module.exports = {
             throw error;
         }
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query, data, subDomain) {
+        const domain = getDomain(subDomain);
         if (!query) {
             query = {};
         }
 
         try {
+            const existingBaseDomain = await this.findOneBy({ domain });
+
+            // check for case where the domain is not in the db
+            if (!existingBaseDomain) {
+                throw {
+                    code: 400,
+                    message: 'Domain does not exist',
+                };
+            }
+
             const updatedDomain = await DomainVerificationTokenModel.findOneAndUpdate(
                 query,
                 data,
@@ -47,6 +104,38 @@ module.exports = {
             return updatedDomain;
         } catch (error) {
             ErrorService.log('domainVerificationService.updateOneBy', error);
+            throw error;
+        }
+    },
+    txtRecordExist: async function(subDomain, verificationToken) {
+        const host = 'fyipe';
+        const domain = getDomain(subDomain);
+        const domainToLookup = `${host}.${domain}`;
+
+        try {
+            let records = await dnsPromises.resolveTxt(domainToLookup);
+            // records is an array of arrays
+            // flatten the array to a single array
+            const txtRecords = flatten(records);
+            return txtRecords.some(
+                txtRecord => verificationToken === txtRecord
+            );
+        } catch (error) {
+            if (error.code === 'ENODATA') {
+                throw {
+                    message: 'TXT record not found',
+                    code: 400,
+                };
+            }
+
+            if (error.code === 'ENOTFOUND') {
+                throw {
+                    message: 'Domain not found',
+                    code: 400,
+                };
+            }
+
+            ErrorService.log('domainVerificationService.txtRecordExist', error);
             throw error;
         }
     },

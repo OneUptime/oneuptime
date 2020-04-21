@@ -75,7 +75,6 @@ export class Setting extends Component {
 
         const data = {
             projectId: projectId._id || projectId,
-            statusPageId: this.props.statusPage.status._id,
             domainId: domainVerificationToken._id,
             payload: {
                 domain,
