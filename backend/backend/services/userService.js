@@ -240,7 +240,7 @@ module.exports = {
             });
             const verificationToken = await verificationTokenModel.save();
             if (verificationToken) {
-                const verificationTokenURL = `${global.host}/user/confirmation/${verificationToken.token}`;
+                const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
                 MailService.sendVerifyEmail(
                     verificationTokenURL,
                     user.name,
