@@ -1,4 +1,7 @@
 const utils = require('./test-utils');
+const chai = require('chai');
+chai.use(require('chai-http'));
+const request = chai.request(utils.BACKEND_URL);
 
 module.exports = {
     /**
@@ -68,7 +71,24 @@ module.exports = {
         await page.type('input[name=zipCode]', utils.user.address.zipcode);
         await page.select('#country', 'India');
         await page.click('button[type=submit]');
-        await page.waitFor(25000);
+        try {
+            const signupResponse = await page.waitForResponse(
+                response =>
+                    response.url().includes('/user/signup') &&
+                    response.status() === 200
+            );
+            if (signupResponse) {
+                const signupData = await signupResponse.text();
+                const parsedSignupData = JSON.parse(signupData);
+                await request
+                    .get(
+                        `/user/confirmation/${parsedSignupData.verificationToken}`
+                    )
+                    .redirects(0);
+            }
+        } catch (error) {
+            //catch
+        }
     },
     loginUser: async function(user, page) {
         const { email, password } = user;

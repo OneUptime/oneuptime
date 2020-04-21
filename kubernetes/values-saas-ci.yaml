@@ -43,3 +43,5 @@ nginx-ingress-controller:
     service:
         type: NodePort
     hostNetwork: true
+
+isTesting: true
