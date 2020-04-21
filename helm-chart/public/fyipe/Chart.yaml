@@ -1,4 +1,4 @@
-apiVersion: v2
+apiVersion: v1
 name: Fyipe
 version: 3.0.0
 description: One complete DevOps and IT Ops platform.
