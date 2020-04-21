@@ -2,7 +2,7 @@
 echo "RUNNING COMMAND: echo 'Wait for 5 mins....'"
 echo 'Wait for 5 mins....'
 echo "RUNNING COMMAND: sleep 5m"
-sleep 5m
+sleep 10m
 # Get the status of all the kubernetes resources for debugging purposes.
 echo "RUNNING COMMAND: sudo k get pods"
 sudo k get pods
