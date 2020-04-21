@@ -749,6 +749,9 @@ e2e_microk8s_test:
     - cd smoke-test
     - npm ci
     - npm run test
+    - cd ..
+    - chmod +x ./ci/scripts/cleanup.sh
+    - ./ci/scripts/cleanup.sh
   # only:
   #   refs:
   #     - release
