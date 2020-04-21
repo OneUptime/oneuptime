@@ -19,4 +19,13 @@ router.get('/is-saas-service', function(req, res) {
     }
 });
 
+router.get('/hosts', function(req, res) {
+    return sendItemResponse(req, res, {
+        api: global.apiHost,
+        home: global.homeHost,
+        accounts: global.accountsHost,
+        dashboard: global.dashboardHost,
+    });
+});
+
 module.exports = router;
