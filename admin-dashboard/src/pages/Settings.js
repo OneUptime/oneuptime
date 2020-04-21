@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import Dashboard from '../components/Dashboard';
 import SMTP from '../components/settings/smtp';
 import Twilio from '../components/settings/twilio';
+import Sso from '../components/settings/sso';
 
 // eslint-disable-next-line react/display-name
 const getChild = key => {
@@ -12,6 +13,8 @@ const getChild = key => {
             return <SMTP />; // eslint-disable-line react/jsx-pascal-case
         case '/admin/settings/twilio':
             return <Twilio />;
+        case '/admin/settings/sso':
+            return <Sso />;
         default:
             return null;
     }
