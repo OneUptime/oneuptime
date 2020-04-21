@@ -272,3 +272,12 @@ export function checkIfMasterAdminExists(values) {
         return promise;
     };
 }
+
+export function changeLogin(data) {
+    return function(dispatch) {
+        dispatch({
+            type: types.CHANGE_LOGIN,
+            payload: data,
+        });
+    };
+}

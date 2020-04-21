@@ -47,6 +47,8 @@ describe('Enterprise Dashboard API', () => {
         done();
     });
 
+    const componentName = utils.generateRandomString();
+
     it(
         'Should create new monitor with correct details',
         async done => {
@@ -71,10 +73,24 @@ describe('Enterprise Dashboard API', () => {
 
                 await init.loginUser(user, page);
 
-                await page.waitFor(10000);
-                await page.waitForSelector('#monitors');
-                await page.click('#monitors');
-                await page.waitForSelector('#frmNewMonitor');
+                // Navigate to Components page
+                await page.waitForSelector('#components');
+                await page.click('#components');
+
+                // Fill and submit New Component form
+                await page.waitForSelector('#form-new-component');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', data.componentName);
+                await page.click('button[type=submit]');
+
+                // Navigate to details page of component created
+                await page.waitForSelector(
+                    `#more-details-${data.componentName}`
+                );
+                await page.click(`#more-details-${data.componentName}`);
+                await page.waitForSelector('#form-new-monitor');
+
+                // Fill and submit New Monitor form
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', data.monitorName);
                 await init.selectByText('#type', 'url', page);
@@ -82,18 +98,17 @@ describe('Enterprise Dashboard API', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitFor(10000);
 
                 let spanElement;
-                spanElement = await page.$(
-                    `#monitor_title_${data.monitorName}`
+                spanElement = await page.waitForSelector(
+                    `#monitor-title-${data.monitorName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(data.monitorName);
             });
 
-            cluster.queue({ email, password, monitorName });
+            cluster.queue({ email, password, componentName, monitorName });
             await cluster.idle();
             await cluster.close();
             done();
@@ -123,13 +138,24 @@ describe('Enterprise Dashboard API', () => {
 
                 await init.loginUser(user, page);
 
-                await page.waitFor(10000);
-                await page.waitForSelector('#name');
+                // Navigate to Components page
+                await page.waitForSelector('#components');
+                await page.click('#components');
+
+                // Navigate to details page of component created in previous test
+                await page.waitForSelector(
+                    `#more-details-${data.componentName}`
+                );
+                await page.click(`#more-details-${data.componentName}`);
+                await page.waitForSelector('#form-new-monitor');
+
+                // Fill and submit New Monitor form
+                await page.click('input[id=name]');
                 await init.selectByText('#type', 'url', page);
                 await page.waitForSelector('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitFor(5000);
+
                 let spanElement;
                 spanElement = await page.$('#field-error');
                 spanElement = await spanElement.getProperty('innerText');
@@ -139,7 +165,7 @@ describe('Enterprise Dashboard API', () => {
                 );
             });
 
-            cluster.queue({ email, password });
+            cluster.queue({ email, password, componentName });
             await cluster.idle();
             await cluster.close();
             done();

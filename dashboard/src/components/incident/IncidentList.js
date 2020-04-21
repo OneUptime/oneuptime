@@ -74,16 +74,6 @@ export class IncidentList extends Component {
                                     </div>
                                 </td>
                                 <td
-                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Created</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
                                     id="placeholder-left"
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{
@@ -181,24 +171,134 @@ export class IncidentList extends Component {
                                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                                     style={{
                                                         height: '1px',
-                                                        minWidth: '210px',
+                                                        minWidth: '250px',
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Margin-right--16">
-                                                                <span>
-                                                                    {incident.createdById ===
-                                                                    null
-                                                                        ? incident.createdByZapier
-                                                                            ? 'Zapier'
-                                                                            : 'Fyipe'
-                                                                        : incident
-                                                                              .createdById
-                                                                              .name}
-                                                                </span>
-                                                            </div>
+                                                            {incident.createdById ===
+                                                            null ? (
+                                                                incident.createdByZapier ? (
+                                                                    <div className="Box-root Margin-right--16">
+                                                                        <img
+                                                                            src="/dashboard/assets/img/robotics.svg"
+                                                                            style={{
+                                                                                display:
+                                                                                    'inline-block',
+                                                                                height:
+                                                                                    '20px',
+                                                                                width:
+                                                                                    '20px',
+                                                                                borderRadius:
+                                                                                    '50%',
+                                                                                margin:
+                                                                                    '5px 10px -4px 0px',
+                                                                                backgroundColor:
+                                                                                    '#14AAD9',
+                                                                            }}
+                                                                            alt=""
+                                                                        />
+                                                                        <span>
+                                                                            Zapier
+                                                                        </span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="Box-root Margin-right--16">
+                                                                        <img
+                                                                            src="/dashboard/assets/img/robotics.svg"
+                                                                            style={{
+                                                                                display:
+                                                                                    'inline-block',
+                                                                                height:
+                                                                                    '20px',
+                                                                                width:
+                                                                                    '20px',
+                                                                                borderRadius:
+                                                                                    '50%',
+                                                                                margin:
+                                                                                    '5px 10px -4px 0px',
+                                                                                backgroundColor:
+                                                                                    '#14AAD9',
+                                                                            }}
+                                                                            alt=""
+                                                                        />
+                                                                        <span>
+                                                                            Fyipe
+                                                                        </span>
+                                                                    </div>
+                                                                )
+                                                            ) : (
+                                                                <div
+                                                                    className="Box-root Margin-right--16"
+                                                                    style={{
+                                                                        cursor:
+                                                                            'pointer',
+                                                                    }}
+                                                                    onClick={e => {
+                                                                        e.stopPropagation();
+                                                                        history.push(
+                                                                            '/dashboard/profile/' +
+                                                                                incident
+                                                                                    .createdById
+                                                                                    ._id
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <img
+                                                                        src="/dashboard/assets/img/profile-user.svg"
+                                                                        className="userIcon"
+                                                                        alt=""
+                                                                        style={{
+                                                                            marginBottom:
+                                                                                '-5px',
+                                                                        }}
+                                                                    />
+                                                                    <span>
+                                                                        {incident
+                                                                            .createdById
+                                                                            .name
+                                                                            ? incident
+                                                                                  .createdById
+                                                                                  .name
+                                                                            : 'Unknown User'}
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                         </span>
+                                                        {incident.createdAt ? (
+                                                            <div>
+                                                                <div
+                                                                    className="Box-root Flex Padding-horizontal--4"
+                                                                    style={{
+                                                                        paddingTop:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                        {moment(
+                                                                            incident.createdAt
+                                                                        ).fromNow()}{' '}
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="Box-root Flex Padding-horizontal--4"
+                                                                    style={{
+                                                                        paddingTop:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                        (
+                                                                        {moment(
+                                                                            incident.createdAt
+                                                                        ).format(
+                                                                            'MMMM Do YYYY, h:mm:ss a'
+                                                                        )}
+                                                                        )
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ) : null}
                                                     </div>
                                                 </td>
                                                 <td
@@ -261,52 +361,7 @@ export class IncidentList extends Component {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td
-                                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{ height: '1px' }}
-                                                >
-                                                    <div className="db-ListViewItem-link">
-                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <div className="Box-root Flex">
-                                                                    <div className="Box-root Flex-flex">
-                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                    <span>
-                                                                                        {moment(
-                                                                                            incident.createdAt
-                                                                                        ).fromNow()}{' '}
-                                                                                    </span>
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div
-                                                                            className="Box-root Flex Padding-horizontal--8"
-                                                                            style={{
-                                                                                paddingTop:
-                                                                                    '5px',
-                                                                            }}
-                                                                        >
-                                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                                (
-                                                                                {moment(
-                                                                                    incident.createdAt
-                                                                                ).format(
-                                                                                    'MMMM Do YYYY, h:mm:ss a'
-                                                                                )}
 
-                                                                                )
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
                                                 <td
                                                     aria-hidden="true"
                                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -345,16 +400,93 @@ export class IncidentList extends Component {
                                                                             ) : (
                                                                                 <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                     <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>
-                                                                                            {incident.acknowledgedBy ===
-                                                                                            null
-                                                                                                ? incident.acknowledgedByZapier
-                                                                                                    ? 'Zapier'
-                                                                                                    : 'fyipe'
-                                                                                                : incident
-                                                                                                      .acknowledgedBy
-                                                                                                      .name}
-                                                                                        </span>
+                                                                                        {incident.acknowledgedBy ===
+                                                                                        null ? (
+                                                                                            incident.acknowledgedByZapier ? (
+                                                                                                <span>
+                                                                                                    <img
+                                                                                                        src="/dashboard/assets/img/robotics.svg"
+                                                                                                        style={{
+                                                                                                            display:
+                                                                                                                'inline-block',
+                                                                                                            height:
+                                                                                                                '20px',
+                                                                                                            width:
+                                                                                                                '20px',
+                                                                                                            borderRadius:
+                                                                                                                '50%',
+                                                                                                            margin:
+                                                                                                                '-1px 5px -5px -7px',
+                                                                                                            backgroundColor:
+                                                                                                                '#14AAD9',
+                                                                                                        }}
+                                                                                                        alt=""
+                                                                                                    />
+                                                                                                    <span>
+                                                                                                        Zapier
+                                                                                                    </span>
+                                                                                                </span>
+                                                                                            ) : (
+                                                                                                <span>
+                                                                                                    <img
+                                                                                                        src="/dashboard/assets/img/robotics.svg"
+                                                                                                        style={{
+                                                                                                            display:
+                                                                                                                'inline-block',
+                                                                                                            height:
+                                                                                                                '20px',
+                                                                                                            width:
+                                                                                                                '20px',
+                                                                                                            borderRadius:
+                                                                                                                '50%',
+                                                                                                            margin:
+                                                                                                                '-1px 5px -5px -7px',
+                                                                                                            backgroundColor:
+                                                                                                                '#14AAD9',
+                                                                                                        }}
+                                                                                                        alt=""
+                                                                                                    />
+                                                                                                    <span>
+                                                                                                        Fyipe
+                                                                                                    </span>
+                                                                                                </span>
+                                                                                            )
+                                                                                        ) : (
+                                                                                            <span
+                                                                                                style={{
+                                                                                                    cursor:
+                                                                                                        'pointer',
+                                                                                                }}
+                                                                                                onClick={e => {
+                                                                                                    e.stopPropagation();
+                                                                                                    history.push(
+                                                                                                        '/dashboard/profile/' +
+                                                                                                            incident
+                                                                                                                .acknowledgedBy
+                                                                                                                ._id
+                                                                                                    );
+                                                                                                }}
+                                                                                            >
+                                                                                                <img
+                                                                                                    src="/dashboard/assets/img/profile-user.svg"
+                                                                                                    className="userIcon"
+                                                                                                    alt=""
+                                                                                                    style={{
+                                                                                                        margin:
+                                                                                                            '-1px 5px -5px -7px',
+                                                                                                    }}
+                                                                                                />
+                                                                                                <span>
+                                                                                                    {incident
+                                                                                                        .acknowledgedBy
+                                                                                                        .name
+                                                                                                        ? incident
+                                                                                                              .acknowledgedBy
+                                                                                                              .name
+                                                                                                        : 'Unknown User'}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        )}
                                                                                     </span>
                                                                                 </div>
                                                                             )}
@@ -444,16 +576,93 @@ export class IncidentList extends Component {
                                                                 <div>
                                                                     <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                            <span>
-                                                                                {incident.resolvedBy ===
-                                                                                null
-                                                                                    ? incident.resolvedByZapier
-                                                                                        ? 'Zapier'
-                                                                                        : 'fyipe'
-                                                                                    : incident
-                                                                                          .resolvedBy
-                                                                                          .name}
-                                                                            </span>
+                                                                            {incident.resolvedBy ===
+                                                                            null ? (
+                                                                                incident.resolvedByZapier ? (
+                                                                                    <span>
+                                                                                        <img
+                                                                                            src="/dashboard/assets/img/robotics.svg"
+                                                                                            style={{
+                                                                                                display:
+                                                                                                    'inline-block',
+                                                                                                height:
+                                                                                                    '20px',
+                                                                                                width:
+                                                                                                    '20px',
+                                                                                                borderRadius:
+                                                                                                    '50%',
+                                                                                                margin:
+                                                                                                    '-1px 5px -5px -7px',
+                                                                                                backgroundColor:
+                                                                                                    '#14AAD9',
+                                                                                            }}
+                                                                                            alt=""
+                                                                                        />
+                                                                                        <span>
+                                                                                            Zapier
+                                                                                        </span>
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span>
+                                                                                        <img
+                                                                                            src="/dashboard/assets/img/robotics.svg"
+                                                                                            style={{
+                                                                                                display:
+                                                                                                    'inline-block',
+                                                                                                height:
+                                                                                                    '20px',
+                                                                                                width:
+                                                                                                    '20px',
+                                                                                                borderRadius:
+                                                                                                    '50%',
+                                                                                                margin:
+                                                                                                    '-1px 5px -5px -7px',
+                                                                                                backgroundColor:
+                                                                                                    '#14AAD9',
+                                                                                            }}
+                                                                                            alt=""
+                                                                                        />
+                                                                                        <span>
+                                                                                            Fyipe
+                                                                                        </span>
+                                                                                    </span>
+                                                                                )
+                                                                            ) : (
+                                                                                <span
+                                                                                    style={{
+                                                                                        cursor:
+                                                                                            'pointer',
+                                                                                    }}
+                                                                                    onClick={e => {
+                                                                                        e.stopPropagation();
+                                                                                        history.push(
+                                                                                            '/dashboard/profile/' +
+                                                                                                incident
+                                                                                                    .resolvedBy
+                                                                                                    ._id
+                                                                                        );
+                                                                                    }}
+                                                                                >
+                                                                                    <img
+                                                                                        src="/dashboard/assets/img/profile-user.svg"
+                                                                                        className="userIcon"
+                                                                                        alt=""
+                                                                                        style={{
+                                                                                            margin:
+                                                                                                '-1px 5px -5px -7px',
+                                                                                        }}
+                                                                                    />
+                                                                                    <span>
+                                                                                        {incident
+                                                                                            .resolvedBy
+                                                                                            .name
+                                                                                            ? incident
+                                                                                                  .resolvedBy
+                                                                                                  .name
+                                                                                            : 'Unknown User'}
+                                                                                    </span>
+                                                                                </span>
+                                                                            )}
                                                                         </span>
                                                                     </div>
                                                                     {incident.resolvedAt ? (

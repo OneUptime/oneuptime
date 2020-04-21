@@ -170,7 +170,7 @@ export class SidebarNavItem extends Component {
                     ? active
                     : false;
                 return (
-                    <ul style={{ marginBottom: '8px' }}>
+                    <ul>
                         <li
                             id={this.camalize(child.title)}
                             key={`nav ${index}`}

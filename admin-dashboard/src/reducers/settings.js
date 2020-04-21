@@ -16,6 +16,7 @@ const INITIAL_STATE = {
     errored: false,
     smtp: {},
     twilio: {},
+    sso: {},
     error: null,
 };
 
@@ -33,6 +34,8 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 settings.smtp = action.payload;
             } else if (action.payloadType === 'twilio') {
                 settings.twilio = action.payload;
+            } else if (action.payloadType === 'sso') {
+                settings.sso = action.payload;
             }
             return {
                 ...state,

@@ -146,7 +146,7 @@ const _this = {
                 context: {
                     homeURL: global.homeHost,
                     name: name.split(' ')[0].toString(),
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
 
@@ -652,7 +652,7 @@ const _this = {
                     homeURL: global.homeHost,
                     projectName: project.name,
                     userName: addedByUser.name,
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
             const mailer = await _this.createMailer({});
@@ -765,7 +765,7 @@ const _this = {
                     homeURL: global.homeHost,
                     projectName: project.name,
                     userName: addedByUser.name,
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
             const mailer = await _this.createMailer({});
@@ -874,7 +874,7 @@ const _this = {
                     projectName: project.name,
                     userName: addedByUser.name,
                     role: role,
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
 
@@ -930,7 +930,7 @@ const _this = {
                     homeURL: global.homeHost,
                     projectName: project.name,
                     userName: removedByUser.name,
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
 
@@ -989,7 +989,7 @@ const _this = {
                     homeURL: global.homeHost,
                     subProjectName: subProject.name,
                     userName: removedByUser.name,
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
 
@@ -1074,7 +1074,7 @@ const _this = {
                     resolveUrl,
                     incidentType,
                     projectName,
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
             const mailer = await _this.createMailer({});
@@ -1438,7 +1438,7 @@ const _this = {
                     projectName: projectName,
                     oldPlan: oldPlan,
                     newPlan: newPlan,
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
 
@@ -1490,7 +1490,7 @@ const _this = {
                 context: {
                     homeURL: global.homeHost,
                     projectName: projectName,
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
 
@@ -1541,7 +1541,7 @@ const _this = {
                 context: {
                     homeURL: global.homeHost,
                     subProjectName: subProjectName,
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
             const mailer = await _this.createMailer({});
@@ -1654,7 +1654,7 @@ const _this = {
                     projectName,
                     name,
                     chargeAttemptStage,
-                    dashboardURL: global.dashboardHost + '/dashbord',
+                    dashboardURL: global.dashboardHost,
                 },
             };
             const mailer = await _this.createMailer({});

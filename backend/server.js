@@ -53,11 +53,13 @@ app.use(function(req, res, next) {
     );
 
     // Add this to global object, and this can be used anywhere where you need backend host.
-    global.host = req.hostname + '/api';
-    global.accountsHost = req.hostname + '/accounts';
-    global.homeHost = req.hostname;
+    global.apiHost = req.protocol + '://' + req.hostname + '/api';
+    global.accountsHost = req.protocol + '://' + req.hostname + '/accounts';
+    global.homeHost = req.protocol + '://' + req.hostname;
+    global.dashboardHost = req.protocol + '://' + req.hostname + '/dashboard';
+
     if (req.hostname.includes('localhost')) {
-        global.host =
+        global.apiHost =
             req.protocol +
             '://' +
             req.hostname +
