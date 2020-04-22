@@ -2566,6 +2566,9 @@ div.content{
         width:100%
     }
 }
+.noborders{
+    border-width: 0px !important;
+}
 hr{
     border:none;
     border-top:1px solid rgba(0,0,0,.07)
@@ -2573,6 +2576,13 @@ hr{
 aside p{
     font-size:16px!important;
     color:#797979
+}
+.font14{
+    font-size: 14px;
+}
+.pricing-font{
+    font-size: 2.5em !important;
+    font-weight: bold !important; 
 }
 ul.columns{
     zoom:1;
