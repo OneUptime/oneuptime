@@ -82,7 +82,7 @@ const StatusPageProjectBox = props => (
                         </td>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="statusPagesListContainer">
                     {props.statusPages.map((o, i) => {
                         return (
                             <StatusPage

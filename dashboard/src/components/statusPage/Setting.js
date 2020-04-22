@@ -207,6 +207,7 @@ export class Setting extends Component {
                                                     key={domain._id}
                                                     className="bs-Fieldset"
                                                     style={{ padding: 0 }}
+                                                    name="added-domain"
                                                 >
                                                     <div className="bs-Fieldset-rows">
                                                         {IsAdminSubProject(
@@ -232,7 +233,7 @@ export class Setting extends Component {
                                                                         name={
                                                                             domain._id
                                                                         }
-                                                                        id="domain"
+                                                                        id={domain._id}
                                                                         disabled={
                                                                             this
                                                                                 .props
@@ -343,6 +344,7 @@ export class Setting extends Component {
                                                                             }}
                                                                         >
                                                                             <button
+                                                                            id="btnVerifyDomain"
                                                                                 className="bs-Button"
                                                                                 onClick={e => {
                                                                                     this.handleVerifyDomain(
