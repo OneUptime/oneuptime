@@ -15,6 +15,7 @@ const MonitorService = require('../backend/services/monitorService');
 const ScheduledEventService = require('../backend/services/scheduledEventService');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
+const DomainVerificationService = require('../backend/services/domainVerificationService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
@@ -365,6 +366,80 @@ describe('Status API', function() {
                 expect(res.body.data[0]).to.have.property('name');
                 done();
             });
+    });
+
+    it('should create a domain', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: 'fyipeapp.com' };
+        request
+            .post(`/statusPage/${projectId}/${statusPageId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                done();
+            });
+    });
+    // The placement of this test case is very important
+    // a domain needs to be created before verifying it
+    it('should verify a domain', function(done) {
+        const authorization = `Basic ${token}`;
+        const domain = 'fyipeapp.com';
+        let verificationToken = 'm2ab5osUmz9Y7Ko';
+        // update the verification token to a live version
+        DomainVerificationService.updateOneBy(
+            { domain },
+            { verificationToken },
+            domain
+        ).then(function({ _id: domainId, verificationToken }) {
+            request
+                .put(`/domain/${projectId}/verify/${domainId}`)
+                .set('Authorization', authorization)
+                .send({ domain, verificationToken })
+                .end(function(err, res) {
+                    expect(res).to.have.status(200);
+                    expect(res.body.verified).to.be.true;
+                    done();
+                });
+        });
+    });
+
+    it('should not verify a domain if txt record is not found', function(done) {
+        const authorization = `Basic ${token}`;
+        const domain = 'fyipeapp.com';
+        let verificationToken = 'thistokenwillnotwork';
+        // update the verification token to a live version
+        DomainVerificationService.updateOneBy(
+            { domain },
+            { verificationToken, verified: false, verifiedAt: null },
+            domain
+        ).then(function({ _id: domainId, verificationToken }) {
+            request
+                .put(`/domain/${projectId}/verify/${domainId}`)
+                .set('Authorization', authorization)
+                .send({ domain, verificationToken })
+                .end(function(err, res) {
+                    expect(res).to.have.status(400);
+                    done();
+                });
+        });
+    });
+
+    it('should not verify a domain that does not exist on the web', function(done) {
+        const authorization = `Basic ${token}`;
+        const domain = 'binoehty1234hgyt.com';
+        DomainVerificationService.create(domain, statusPageId).then(function() {
+            DomainVerificationService.findOneBy({ domain }).then(function({domain, verificationToken, _id: domainId}) {
+                request
+                    .put(`/domain/${projectId}/verify/${domainId}`)
+                    .set('Authorization', authorization)
+                    .send({ domain, verificationToken })
+                    .end(function(err, res) {
+                        expect(res).to.have.status(400);
+                        done();
+                    });
+            });
+        });
     });
 });
 
