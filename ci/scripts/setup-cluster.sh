@@ -1,8 +1,8 @@
 # Wait for all the services to come online.
-echo "RUNNING COMMAND: echo 'Wait for 5 mins....'"
-echo 'Wait for 5 mins....'
-echo "RUNNING COMMAND: sleep 5m"
-sleep 5m
+echo "RUNNING COMMAND: echo 'Wait for 10 mins....'"
+echo 'Wait for 10 mins....'
+echo "RUNNING COMMAND: sleep 10m"
+sleep 10m
 # Get the status of all the kubernetes resources for debugging purposes.
 echo "RUNNING COMMAND: sudo k get pods"
 sudo k get pods
@@ -24,5 +24,3 @@ echo "RUNNING COMMAND: sudo k cluster-info"
 sudo k cluster-info
 echo "RUNNING COMMAND: sudo k get all --all-namespaces"
 sudo k get all --all-namespaces
-echo "RUNNING COMMAND: sudo cat /etc/hosts"
-sudo cat /etc/hosts

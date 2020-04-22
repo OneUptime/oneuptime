@@ -14,7 +14,7 @@ const user = {
 };
 
 describe('Monitor API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = 500000;
 
     beforeAll(async () => {
         jest.setTimeout(150000);

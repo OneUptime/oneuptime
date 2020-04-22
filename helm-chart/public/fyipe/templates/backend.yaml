@@ -46,6 +46,8 @@ spec:
                         value: {{ .Values.host.backend }}
                       - name: NODE_ENV
                         value: 'production'
+                      - name: IS_TESTING
+                        value: {{ .Values.isTesting | quote }}
                       - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
                         value: {{ .Values.rateLimitter.requestLimitTimePeriodInMS | quote }}
                       - name: RATE_LIMITTER_REQUEST_LIMIT
