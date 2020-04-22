@@ -116,6 +116,9 @@ app.use(['/twilio', '/api/twilio'], require('./backend/api/twilio'));
 app.use(['/zapier', '/api/zapier'], require('./backend/api/zapier'));
 app.use(['/slack', '/api/slack'], require('./backend/api/slack'));
 app.use(['/webhook', '/api/webhook'], require('./backend/api/webHook'));
+
+app.use(['/server', '/api/server'], require('./backend/api/server'));
+
 app.use(
     ['/notification', '/api/notification'],
     require('./backend/api/notification')
