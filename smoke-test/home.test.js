@@ -3,16 +3,20 @@ const util = require('./test-utils');
 
 let page, browser;
 
-beforeAll(async () => {
-    browser = await puppeteer.launch(util.puppeteerLaunchConfig);
-    page = await browser.newPage();
-});
-
-afterAll(async () => {
-    await browser.close();
-});
-
 describe('Request demo', () => {
+    beforeAll(async () => {
+        jest.setTimeout(15000);
+        browser = await puppeteer.launch(util.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+    });
+
+    afterAll(async () => {
+        await browser.close();
+    });
+
     test('user can submit request a demo form', async () => {
         await page.goto(`${util.HOME_URL}/enterprise/demo`);
         await page.waitForSelector('#form-section');

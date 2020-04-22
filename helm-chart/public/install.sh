@@ -84,7 +84,7 @@ then
     echo "RUNNING COMMAND: sudo microk8s.enable dns"
     sudo microk8s.enable dns
     # If its a CI install, then do not enable storage. 
-    if [[ $1 -ne ci-install ]]
+    if [[ "$1" != "ci-install" ]]
     then
         echo "RUNNING COMMAND: sudo microk8s.enable storage"
         sudo microk8s.enable storage
@@ -147,7 +147,7 @@ function updateinstallation {
 }
 
 
-if [[ $1 -eq thirdPartyBillingEnabled ]] #If thirdPartyBillingIsEnabled (for ex for Marketplace VM's)
+if [[ "$1" == "thirdPartyBillingEnabled" ]] #If thirdPartyBillingIsEnabled (for ex for Marketplace VM's)
 then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
@@ -160,16 +160,15 @@ then
     else
         updateinstallation
     fi
-elif [[ $1 -eq ci-install ]] # If its a local install, take local scripts. 
+elif [[ "$1" == "ci-install" ]] # If its a local install, take local scripts. 
 then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
         # set service of type nodeport for VM's. 
-        sudo helm install -f ./kubernetes/values-saas-staging.yaml fyipe ./helm-chart/public/fyipe \
-        --set nginx-ingress-controller.service.type=NodePort \
-        --set nginx-ingress-controller.hostNetwork=true 
+        sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe
     else
-        updateinstallation
+        sudo k delete job fyipe-init-script || echo "init-script already deleted"
+        sudo helm upgrade --reuse-values fyipe ./helm-chart/public/fyipe
     fi
 else
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
