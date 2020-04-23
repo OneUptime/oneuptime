@@ -27,7 +27,7 @@ export function verifyDomain({ projectId, domainId, payload }) {
 
         try {
             const response = await putApi(
-                `domain/${projectId}/verify/${domainId}`,
+                `domainVerificationToken/${projectId}/verify/${domainId}`,
                 payload
             );
             dispatch(verifyDomainSuccess(response.data));

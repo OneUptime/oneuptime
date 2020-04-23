@@ -380,7 +380,7 @@ describe('Status API', function() {
             domain
         ).then(function({ _id: domainId, verificationToken }) {
             request
-                .put(`/domain/${projectId}/verify/${domainId}`)
+                .put(`/domainVerificationToken/${projectId}/verify/${domainId}`)
                 .set('Authorization', authorization)
                 .send({ domain, verificationToken })
                 .end(function(err, res) {
@@ -402,7 +402,7 @@ describe('Status API', function() {
             domain
         ).then(function({ _id: domainId, verificationToken }) {
             request
-                .put(`/domain/${projectId}/verify/${domainId}`)
+                .put(`/domainVerificationToken/${projectId}/verify/${domainId}`)
                 .set('Authorization', authorization)
                 .send({ domain, verificationToken })
                 .end(function(err, res) {
@@ -422,7 +422,9 @@ describe('Status API', function() {
                 _id: domainId,
             }) {
                 request
-                    .put(`/domain/${projectId}/verify/${domainId}`)
+                    .put(
+                        `/domainVerificationToken/${projectId}/verify/${domainId}`
+                    )
                     .set('Authorization', authorization)
                     .send({ domain, verificationToken })
                     .end(function(err, res) {
@@ -431,6 +433,32 @@ describe('Status API', function() {
                     });
             });
         });
+    });
+
+    it('should not save domain if domain is invalid', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: 'status.fyipe.hackerbay' };
+        request
+            .post(`/statusPage/${projectId}/${statusPageId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('should save when domain is without subdomain', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: 'fyipe.com' };
+        request
+            .post(`/statusPage/${projectId}/${statusPageId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                done();
+            });
     });
 });
 

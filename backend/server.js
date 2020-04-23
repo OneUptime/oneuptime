@@ -160,7 +160,7 @@ app.use(
     require('./backend/api/globalConfig')
 );
 app.use(
-    ['/domain', '/api/domain'],
+    ['/domainVerificationToken', '/api/domainVerificationToken'],
     require('./backend/api/domainVerificationToken')
 );
 
