@@ -143,7 +143,7 @@ module.exports = {
     },
     domainExist: async function(projectId, subDomain) {
         const domain = getDomain(subDomain);
-        let result = await this.findOneBy({
+        const result = await this.findOneBy({
             domain,
         });
         // compare actual strings
@@ -153,7 +153,7 @@ module.exports = {
 
         return false;
     },
-    hardDeleteBy: async function(query){
+    hardDeleteBy: async function(query) {
         try {
             await DomainVerificationTokenModel.deleteMany(query);
             return 'Domain verification token(s) Removed Successfully!';
@@ -161,5 +161,5 @@ module.exports = {
             ErrorService.log('domainVerificationService.hardDeleteBy', error);
             throw error;
         }
-    }
+    },
 };
