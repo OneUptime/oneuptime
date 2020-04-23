@@ -16,7 +16,7 @@ const user = {
 
 describe('Login API', () => {
     beforeAll(async () => {
-        jest.setTimeout(15000);
+        jest.setTimeout(150000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -41,9 +41,9 @@ describe('Login API', () => {
             return json;
         });
 
-        await page.waitFor(10000);
+        await page.waitFor(20000);
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.DASHBOARD_URL);
-    }, 160000);
+    }, 200000);
 });

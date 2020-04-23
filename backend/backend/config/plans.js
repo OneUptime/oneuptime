@@ -57,6 +57,28 @@ module.exports = {
                     extraUserFee: 588,
                     extraUserPlanId: 'plan_GoWqMIaXq4ZGYU',
                 },
+                {
+                    category: 'Scale',
+                    planId: 'plan_H9Iox3l2YqLTDR',
+                    type: 'month',
+                    amount: 99,
+                    details: '$99 / Month / User',
+                    monitorLimit: 9999,
+                    userLimit: 1,
+                    extraUserFee: 99,
+                    extraUserPlanId: 'plan_H9Imj6AgWToUwp',
+                },
+                {
+                    category: 'Scale',
+                    planId: 'plan_H9IlBKhsFz4hV2',
+                    type: 'annual',
+                    amount: 1188,
+                    details: '$1188/ Year / User',
+                    monitorLimit: 10,
+                    userLimit: 1,
+                    extraUserFee: 588,
+                    extraUserPlanId: 'plan_H9Imd3AdGh4hFQ',
+                },
             ];
         } else {
             return [
@@ -103,6 +125,28 @@ module.exports = {
                     userLimit: 1,
                     extraUserFee: 588,
                     extraUserPlanId: 'plan_GoWv1li5eqRzAn',
+                },
+                {
+                    category: 'Scale',
+                    planId: 'plan_H9Ii6Qj3HLdtty',
+                    type: 'month',
+                    amount: 99,
+                    details: '$99 / Month / User',
+                    monitorLimit: 9999,
+                    userLimit: 1,
+                    extraUserFee: 99,
+                    extraUserPlanId: 'plan_H9InEBqd44BZF4',
+                },
+                {
+                    category: 'Scale',
+                    planId: 'plan_H9IjvX2Flsvlcg',
+                    type: 'annual',
+                    amount: 1188,
+                    details: '$1188/ Year / User',
+                    monitorLimit: 10,
+                    userLimit: 1,
+                    extraUserFee: 588,
+                    extraUserPlanId: 'plan_H9InyYK1lLzsY9',
                 },
             ];
         }

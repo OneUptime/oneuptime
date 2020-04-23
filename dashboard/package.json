@@ -1,6 +1,6 @@
 {
     "name": "fyipe-dashboard",
-    "version": "3.0.2404",
+    "version": "3.0.2469",
     "private": true,
     "dependencies": {
         "@beam-australia/react-env": "^2.1.2",
@@ -69,8 +69,7 @@
     "scripts": {
         "lint": "eslint .",
         "dev": "PORT=3000 react-scripts start",
-        "build": "react-scripts build && npm run build-sw && npm run clean-cra-sw",
-        "clean-cra-sw": "rm -f build/precache-manifest.*.js && rm -f build/service-worker.js",
+        "build": "react-scripts build && npm run build-sw",
         "build-sw": "node ./src/sw-build.js",
         "test": "jest --runInBand ./src/test/puppeteer/*.test.js",
         "enterprise-test": "jest --runInBand ./src/test/puppeteer/*.test.enterprise.js",

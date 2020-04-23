@@ -1,6 +1,6 @@
 {
     "name": "fyipe-accounts",
-    "version": "3.0.2404",
+    "version": "3.0.2469",
     "private": true,
     "homepage": "/",
     "dependencies": {
@@ -38,15 +38,14 @@
     },
     "scripts": {
         "dev": "PORT=3003 react-scripts start",
-        "build": "react-scripts build && npm run build-sw && npm run clean-cra-sw",
-        "clean-cra-sw": "rm -f build/precache-manifest.*.js && rm -f build/service-worker.js",
+        "build": "react-scripts build && npm run build-sw",
+        "build-sw": "node ./src/sw-build.js",
         "test": "jest --runInBand ./src/test/*.test.js",
         "enterprise-test": "jest --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "light-house": "node lighthouse.js --web",
         "light-house-mobile": "node lighthouse.js --mobile",
-        "build-sw": "node ./src/sw-build.js",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='browserslist,loadable-components,@beam-australia/react-env'"
     },
     "devDependencies": {

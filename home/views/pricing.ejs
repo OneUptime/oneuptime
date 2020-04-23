@@ -13,14 +13,159 @@
       amplitude.getInstance().logEvent('Pricing page viewed');
     }
   </script>
-    <link rel="stylesheet" href="/css/flexbox-grid.css">
-    <link rel="stylesheet" href="/css/flexbox-grid.css">
-    <link rel="stylesheet" href="/css/pricing.css"  >
-    <link rel="stylesheet" href="/css/pricing.css">
-    <link rel="stylesheet" href="/css/switch.css"  >
-    <link rel="stylesheet" href="/css/switch.css">
-    <link rel="stylesheet" href="/css/comparision.css"  >
-    <link rel="stylesheet" href="/css/comparision.css">
+  <link rel="stylesheet" href="/css/flexbox-grid.css">
+  <link rel="stylesheet" href="/css/flexbox-grid.css">
+  <link rel="stylesheet" href="/css/pricing.css">
+  <link rel="stylesheet" href="/css/pricing.css">
+  <link rel="stylesheet" href="/css/switch.css">
+  <link rel="stylesheet" href="/css/switch.css">
+  <link rel="stylesheet" href="/css/comparision.css">
+  <link rel="stylesheet" href="/css/comparision.css">
+
+  <style>
+    /* DIRTY Responsive pricing table CSS */
+
+    /* 
+- make mobile switch sticky
+*/
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+      outline: 0;
+    }
+
+    article.pricing-compare-table {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    ul.pricing-compare-table {
+      display: flex;
+      top: 0px;
+      z-index: 10;
+      padding-bottom: 14px;
+    }
+
+    li.pricing-compare-table {
+      list-style: none;
+      flex: 1;
+    }
+
+    li.pricing-compare-table:last-child {
+      border-right: 1px solid #DDD;
+    }
+
+    button.pricing-compare-table {
+      width: 100%;
+      border: 1px solid #DDD;
+      border-right: 0;
+      border-top: 0;
+      padding: 10px;
+      background: #FFF;
+      font-size: 14px;
+      font-weight: bold;
+      height: 60px;
+      color: #999
+    }
+
+    li.active.pricing-compare-table button.pricing-compare-table {
+      background: #F5F5F5;
+      color: #000;
+    }
+
+    table.pricing-compare-table {
+      border-collapse: collapse;
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    th.pricing-compare-table {
+      background: #F5F5F5;
+      display: none;
+    }
+
+    td.pricing-compare-table,
+    th.pricing-compare-table {
+      height: 53px
+    }
+
+    td.pricing-compare-table,
+    th.pricing-compare-table {
+      border: 1px solid #DDD;
+      padding: 10px;
+      empty-cells: show;
+    }
+
+    td.pricing-compare-table,
+    th.pricing-compare-table {
+      text-align: left;
+    }
+
+    td+td.pricing-compare-table,
+    th+th.pricing-compare-table {
+      text-align: center;
+      display: none;
+    }
+
+    td.default.pricing-compare-table {
+      display: table-cell;
+    }
+
+    .bg-black.pricing-compare-table {
+      border-top: 3px solid rgb(0, 0, 0);
+    }
+
+    .sep.pricing-compare-table {
+      background: #F5F5F5;
+      font-weight: bold;
+    }
+
+    .txt-l.pricing-compare-table {
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .txt-top.pricing-compare-table {
+      position: relative;
+      top: -9px;
+      left: -2px;
+    }
+
+    .tick.pricing-compare-table {
+      font-size: 18px;
+      color: #2CA01C;
+    }
+
+    .hide.pricing-compare-table {
+      border: 0;
+      background: none;
+    }
+
+    @media (min-width: 640px) {
+      ul.pricing-compare-table {
+        display: none;
+      }
+
+      td.pricing-compare-table,
+      th.pricing-compare-table {
+        display: table-cell !important;
+      }
+
+      td.pricing-compare-table,
+      th.pricing-compare-table {
+        width: 330px;
+
+      }
+
+      td+td.pricing-compare-table,
+      th+th.pricing-compare-table {
+        width: auto;
+      }
+    }
+  </style>
 
 </head>
 
@@ -74,7 +219,7 @@
               <div class="Plan-cardPricing">
                 <div class="Plan-cardRate">
 
-                  <div id="pro-plus-rate" class="Plan-cardRate-percent">
+                  <div id="startup-rate" class="Plan-cardRate-percent">
                     $22
                   </div>
 
@@ -85,7 +230,7 @@
 
                 </div>
 
-                <div id="pro-plus-description" class="Plan-cardRate-description">
+                <div id="startup-description" class="Plan-cardRate-description">
                   Per member billed annually or $25 month-to-month
                 </div>
 
@@ -111,7 +256,7 @@
 
                 <div class="Plan-cardRate-description" style="text-align: left;
                       padding: 20px;">
-                  Email Support, Alerts charged at $1/call, Subprojects, Assign monitors to team members
+                  Email Support, Alerts charged at $1/call, Assign monitors to team members
                   and more.
                 </div>
               </div>
@@ -187,55 +332,72 @@
             </div>
 
           </div>
-
           <div class="col-xs-11
-                          col-sm-4
-                          col-md-4
-                          col-lg-4">
+          col-sm-4
+          col-md-4
+          col-lg-4 extra-margin">
 
-            <div class="Plan Plan--enterprise enterprise-height">
-              <h2 class="Plan-title Plan-title--enterprise common-Uppercase">Enterprise</h2>
-              <div class="Plan-description">Fyipe is an enterprise-grade status page, monitoring, and on-call
-                management platform. Get in touch for details.</div>
-              <div class="Plan-tableContainer">
-                <table class="Plan-table">
-                  <tbody>
-                    <tr class="Plan-table-row">
-                      <td class="Plan-table-cell Plan-table-cell--alternating">Account Management</td>
-                      <td class="Plan-table-cell">Security and Audits</td>
-                    </tr>
-                    <tr>
-                      <td class="Plan-table-cell">Setup Assistance</td>
-                      <td class="Plan-table-cell Plan-table-cell--alternating">Dedicated Engineer</td>
-                    </tr>
-                  </tbody>
-                </table>
+            <div class="Plan Plan--standard">
+              <h2 class="Plan-title common-Uppercase">SCALE
+              </h2>
+
+              <div class="Plan-cardPricing">
+                <div class="Plan-cardRate">
+
+                  <div id="scale-rate" class="Plan-cardRate-percent">
+                    $99
+                  </div>
+
+
+                  <div class="Plan-cardRate-fixed">
+                    &nbsp;/mo
+                  </div>
+
+                </div>
+
+                <div id="scale-description" class="Plan-cardRate-description">
+                  Per member billed annually or $25 month-to-month
+                </div>
+
               </div>
+
+              <ul class="Plan-list">
+                <li class="Plan-listItem">
+                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon">Unlimited
+                  monitors
+                </li>
+                <li class="Plan-listItem">
+                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> 3 Years data
+                  retention
+                </li>
+                <li class="Plan-listItem">
+                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> Advanced
+                  On-Call Scheduling.
+                </li>
+              </ul>
+
               <div class="Plan-cardPricing">
 
 
-                <div class="Plan-cardRate-description text-whitegrey" style="
-                      text-align: left;
-                      padding: 20px;
-                      padding-top: 1px;
-                      ">
-                  Unlimited monitors, 1000+ Enterprise Integrations, On-premise Install, Invoicing, Custom HTML, CSS
-                  and JS, Enterprise SLA, Dedicated Operations Engineer,
-                  and more.
+                <div class="Plan-cardRate-description" style="text-align: left;
+      padding: 20px;">
+                  Priority Email and Phone Support, Advanced on-cal features, Subprojects, Private Status Pages and
+                  more.
                 </div>
               </div>
-              <a href="/enterprise/demo" class="Plan-button Plan-Button--enterprise common-Uppercase common-Link--arrow"
-                style="
-                  margin-top: -3px;
-  ">Request Demo</a>
-            </div>
 
+              <a id="scale-plan-link" href="#" onclick="registerUrl()"
+                class="Plan-button common-Uppercase common-Link--arrow">
+                Try Free for 14 days
+              </a>
+
+            </div>
 
           </div>
 
+
+
         </div>
-
-
 
       </div>
 
@@ -249,7 +411,7 @@
               <img src="/img/v3/pricing/header/transfers.svg" width="48" height="53" alt="transfers logo">
               <p class="common-BodyText TransfersAside-body">
                 <strong class="TransfersAside-title">14 Day Free Trial.</strong>
-                All Fyipe plans come with a 14-day free trial. Yearly plans come with a 17% discount. You can also
+                All Fyipe plans come with a 14-day free trial. Annual plans come with a 17% discount. You can also
                 cancel anytime you like.
               </p>
 
@@ -258,11 +420,607 @@
         </div>
       </aside>
 
+      <div>
+        <div style="margin-top:60px; margin-bottom: 60px">
+
+          <div class="Plan Plan--enterprise enterprise-height">
+            <h2 class="Plan-title Plan-title--enterprise common-Uppercase">Enterprise</h2>
+            <div class="Plan-description">Fyipe is an enterprise-grade status page, monitoring, and on-call
+              management platform. Get in touch for details.</div>
+            <div class="Plan-tableContainer">
+              <table class="Plan-table">
+                <tbody>
+                  <tr class="Plan-table-row">
+                    <td class="Plan-table-cell Plan-table-cell--alternating">Account Management</td>
+                    <td class="Plan-table-cell">Security and Audits</td>
+                  </tr>
+                  <tr>
+                    <td class="Plan-table-cell">Setup Assistance</td>
+                    <td class="Plan-table-cell Plan-table-cell--alternating">Dedicated Engineer</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="Plan-cardPricing">
+
+
+              <div class="Plan-description">
+                Unlimited monitors, 1000+ Enterprise Integrations, On-premise Install, Invoicing, Custom HTML, CSS
+                and JS, Enterprise SLA, Dedicated Operations Engineer,
+                and more.
+              </div>
+            </div>
+            <a href="/enterprise/demo" class="Plan-button Plan-Button--enterprise common-Uppercase common-Link--arrow"
+              style="
+                  margin-top: -3px;
+  ">Request Demo</a>
+          </div>
+
+
+        </div>
+      </div>
+
+      
+
 
     </header>
 
 
     <% include ./comparision-chart %>
+
+    </article>
+
+    <!-- DIRTY Responsive pricing table HTML -->
+    <div class="comparision-heading">
+      <h3 class="black">Compare different pricing plans.</h3>
+      <h4 class="common-BodyText">We have different pricing plans to suit your needs. If you feel you need a customized
+        plan, please come talk to us.</h4>
+    </div>
+    <article class="pricing-compare-table">
+
+      <ul class="pricing-compare-table">
+        <li class="bg-black pricing-compare-table">
+          <button class="pricing-compare-table">Startup</button>
+        </li>
+        <li class="bg-black pricing-compare-table">
+          <button class="pricing-compare-table">Growth</button>
+        </li>
+        <li class="bg-black active pricing-compare-table">
+          <button class="pricing-compare-table">Scale</button>
+        </li>
+        <li class="bg-black pricing-compare-table">
+          <button class="pricing-compare-table">Enterprise</button>
+        </li>
+      </ul>
+
+      <table class="pricing-compare-table">
+        <thead class="pricing-compare-table">
+          <tr class="pricing-compare-table">
+            <th class="hide pricing-compare-table"></th>
+            <th class="bg-black pricing-compare-table">
+              <h2 class="Plan-title common-Uppercase noborders">
+                Startup
+              </h2>
+            </th>
+            <th class="bg-black pricing-compare-table ">
+              <h2 class="Plan-title common-Uppercase noborders">
+                Growth
+              </h2>
+            </th>
+            <th class="bg-black default pricing-compare-table ">
+              <h2 class="Plan-title common-Uppercase noborders">
+                Scale
+              </h2>
+            </th>
+            <th class="bg-black pricing-compare-table ">
+              <h2 class="Plan-title common-Uppercase noborders">
+                Enterprise
+              </h2>
+            </th>
+          </tr>
+        </thead class="pricing-compare-table">
+        <tbody class="pricing-compare-table">
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Price
+              </span>
+            </td>
+            <td class="pricing-compare-table">
+              <div class="Plan-cardRate-percent pricing-font">
+                $22/mo
+              </div>
+            </td>
+            <td class="pricing-compare-table">
+              <div class="Plan-cardRate-percent pricing-font">
+                $49/mo
+              </div>
+            </td>
+            <td class="default pricing-compare-table">
+              <div class="Plan-cardRate-percent pricing-font">
+                $99/mo
+              </div>
+            </td>
+            <td class="pricing-compare-table">
+              <div class="Plan-cardRate-percent pricing-font">
+                Contact us
+              </div>
+            </td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td colspan="5" class="sep pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Monitoring
+              </span>
+            </td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Monitor anything <br /> <i>Server, Containers, API's, Websites, IoT and more.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Monitors <br />
+                <i>This is per member, if you need more monitors you basically add a seat.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 5 monitors/member </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 10 monitors/member </span>
+            </td>
+            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> Unlimited </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Unlimited </span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Uptime Check
+                <br />
+                <i> How often we check uptime of your resources. </i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Every 1 mins </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Every 30 seconds </span></td>
+            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> Every 5 seconds
+              </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Every 1 second </span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Probe Locations <br /> <i>We check your uptime from different locations around the world.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> US </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> US &amp; EU </span></td>
+            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> US, Canada, EU &amp;
+                Australia. </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> US, Canada, EU Australia,
+                India, South America, &amp; China. Custom locations also supported. </span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td colspan="5" class="sep pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Status Page
+              </span>
+            </td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Public Status Pages <br />
+                <i>Public Status Page for your customers.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Unlimited Subscribers <br />
+                <i>You can have unlimited customer subscribers and have them alerted by Email, SMS, RSS or more.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Scheduled Events <br />
+                <i>You can show scheduled maintenance window on your status page.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Private Status Page <br />
+                <i>Private status pages for your internal team.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+
+          <tr class="pricing-compare-table">
+            <td colspan="5" class="sep pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Incident Management
+              </span>
+            </td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Alerts by Email, SMS, Call and Push Notifications
+                <br />
+                <i>Have your team alerted by any of the channels including Slack and Microsoft Teams</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Call schedules for multiple team members
+                <br />
+                <i>Have multiple members alerted when an incident happens.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                On Call Rotations <br />
+                <i>Rotate your on-call team daily, weekly or monthly. We also support custom rotations.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Vacation Policy <br />
+                <i>Have vacation policy built into your company's on-call schedule. </i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Sick Policy<br />
+                <i>Have sick policy built into your company's on-call schedule. </i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                On-call for Geo-distributed teams<br />
+                <i>Support on-call schedules for teams in multiple timezones who are geo-distributed.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td colspan="5" class="sep pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Data
+              </span>
+            </td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14"> Data Retention <br />
+                <i>How long do we retain your data. (You can always take a copy of your data)</i> </span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 180 Day </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 1 Year </span></td>
+            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> 3 Years </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Unlimited </span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14"> Data Residency <br />
+                <i>Choose in which geographical region your data resides, or have it reside on-premise.</i></span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
+            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
+            <td class="pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14"> On Premise Install <br />
+                <i>Install Fyipe in your data center.</i></span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
+            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
+            <td class="pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td colspan="5" class="sep pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Support
+              </span>
+            </td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Support <br />
+                <i>Friendly folks standing by. One of the best in biz.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Email </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Email </span></td>
+            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> Email and Phone
+              </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Email and Phone </span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Support SLA <br />
+                <i>How soon do we reply to your support requests?</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 2 business day </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 1 business day </span></td>
+            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> 6 hour priority</span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 24/7 1 hour priority </span>
+            </td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Service SLA <br />
+                <i>We guarantee this uptime of Fyipe service.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 99% </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 99.50% </span></td>
+            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> 99.90% </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 99.995% </span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Dedicated Account Executive <br />
+                <i>An account executive which will take care of your buisness needs.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Dedicated Engineer <br />
+                <i>A dedicated engineer which help you integrate Fyipe with your workflow. </i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td colspan="5" class="sep pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Project &amp; Misc
+              </span>
+            </td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Fyipe API <br />
+                <i>Build custom integrations on Fyipe API. </i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Sub Projects <br />
+                <i>Subprojects help you organize your team members.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td colspan="5" class="sep pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Advanced
+              </span>
+            </td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Security &amp; Compliance <br />
+                <i>SOC, ISO, HIPAA, PCI, GDPR, CCPA and more.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Single Sign-On <br />
+                <i>We support SAML based SSO.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
+                  width="20" src="/img/tick.svg" /></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Audit Logs <br />
+                <i>Have a complete log of how your team members are using Fyipe.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Integrations <br />
+                <i>Integrate Fyipe with more than 2000+ apps.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Integrates with 2000+ apps
+              </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Integrates with 2000+ apps
+              </span></td>
+            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> Integrates with 2000+
+                apps
+              </span></td>
+            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Integrates with 2000+ apps,
+                custom
+                integration. </span></td>
+          </tr>
+
+          <tr class="pricing-compare-table">
+            <td colspan="5" class="sep pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Billing
+              </span>
+            </td>
+          </tr>
+
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Multi Year Enterprise Contracts <br />
+                <i>Multi year enterprise contracts and invoicing.</i>
+              </span>
+            </td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
+            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
+                  src="/img/tick.svg" /></span></td>
+          </tr>
+        </tbody>
+      </table>
 
     </article>
 
@@ -413,9 +1171,11 @@
       if (annualSelected) {
         $("#growth-rate").text("$49");
 
-        $("#pro-plus-rate").text("$22");
+        $("#startup-rate").text("$22");
+        $("#scale-rate").text("$99");
         $("#growth-description").text("per-user billed annually.");
-        $("#pro-plus-description").text("per-user billed annually.");
+        $("#startup-description").text("per-user billed annually.");
+        $("#scale-description").text("per-user billed annually.");
 
 
         $("#annual-text").css("font-weight", 600);
@@ -425,9 +1185,12 @@
         $("#growth-rate").text("$59");
         $("#growth-description").text("per-user billed monthly.");
 
-        $("#pro-plus-rate").text("$25");
+        $("#startup-rate").text("$25");
+        $("#startup-description").text("per-user billed monthly.");
 
-        $("#pro-plus-description").text("per-user billed monthly.");
+        $("#scale-rate").text("$120");
+        $("#scale-description").text("per-user billed monthly.");
+
         $("#monthly-text").css("font-weight", 600);
         $("#annual-text").css("font-weight", 500);
       }
@@ -436,20 +1199,55 @@
         if (annualSelected) {
           $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWIqpBpStiqQp')")
           $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWKiTdQ6NiQFw')")
+          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9IlBKhsFz4hV2')")
         } else {
           $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWIYiX2L8hwzx')")
           $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWKgxRnPPBJWy')")
+          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9Iox3l2YqLTDR')")
         }
       } else {
         if (annualSelected) {
           $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVgJu5PKMLRJU')")
           $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoViZshjqzZ0vv')")
+          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9IjvX2Flsvlcg')")
         } else {
           $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVgVbvNdbWwlm')")
           $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVi9EIa6MU0fG')")
+          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9Ii6Qj3HLdtty')")
         }
       }
     }
+  </script>
+
+  <script>
+    // DIRTY Responsive pricing table JS
+
+    $("ul").on("click", "li", function () {
+      var pos = $(this).index() + 2;
+      $("tr").find('td:not(:eq(0))').hide();
+      $('td:nth-child(' + pos + ')').css('display', 'table-cell');
+      $("tr").find('th:not(:eq(0))').hide();
+      $('li').removeClass('active');
+      $(this).addClass('active');
+    });
+
+    // Initialize the media query
+    var mediaQuery = window.matchMedia('(min-width: 640px)');
+
+    // Add a listen event
+    mediaQuery.addListener(doSomething);
+
+    // Function to do something with the media query
+    function doSomething(mediaQuery) {
+      if (mediaQuery.matches) {
+        $('.sep').attr('colspan', 5);
+      } else {
+        $('.sep').attr('colspan', 2);
+      }
+    }
+
+    // On load
+    doSomething(mediaQuery);
   </script>
 
   <!-- Defer loading of style sheets -->
@@ -485,6 +1283,8 @@
 
   <img height="1" width="1" style="display:none;" alt=""
     src="https://dc.ads.linkedin.com/collect/?pid=706292&fmt=gif" />
+
+
 </body>
 
 

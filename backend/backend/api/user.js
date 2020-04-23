@@ -195,6 +195,7 @@ router.post('/signup', async function(req, res) {
                     jwtRefreshToken: user.jwtRefreshToken,
                 },
                 role: user.role || null,
+                verificationToken: user.verificationToken || null,
             };
             winston.info('A User just signed up');
             const project = await ProjectService.findOneBy({

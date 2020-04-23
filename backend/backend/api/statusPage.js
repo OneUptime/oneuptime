@@ -450,7 +450,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                             'RSS feed for all incidents related to monitors attached to status page',
                     },
                     {
-                        Link: `${global.host}/statusPage/rss`,
+                        Link: `${global.apiHost}/statusPage/rss`,
                     },
                     {
                         LastBuildDate: () => new Date(),

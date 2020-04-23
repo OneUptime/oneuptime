@@ -240,7 +240,7 @@ module.exports = {
             });
             const verificationToken = await verificationTokenModel.save();
             if (verificationToken) {
-                const verificationTokenURL = `${global.host}/user/confirmation/${verificationToken.token}`;
+                const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
                 MailService.sendVerifyEmail(
                     verificationTokenURL,
                     user.name,
@@ -311,8 +311,12 @@ module.exports = {
                         createdAt,
                     });
 
+                    let verificationToken;
                     if (user.role !== 'master-admin') {
-                        await _this.sendToken(user, user.email);
+                        verificationToken = await _this.sendToken(
+                            user,
+                            user.email
+                        );
                     }
 
                     if (IS_SAAS_SERVICE) {
@@ -343,6 +347,10 @@ module.exports = {
                         user.airtableId = record.id;
                     } else {
                         user.airtableId = null;
+                    }
+
+                    if (IS_TESTING === 'true') {
+                        user.verificationToken = verificationToken;
                     }
 
                     return user;
@@ -876,7 +884,7 @@ const jwt = require('jsonwebtoken');
 const iplocation = require('iplocation').default;
 const jwtSecretKey = process.env['JWT_SECRET'];
 const { IS_SAAS_SERVICE } = require('../config/server');
-const { NODE_ENV } = process.env;
+const { NODE_ENV, IS_TESTING } = process.env;
 const VerificationTokenModel = require('../models/verificationToken');
 const MailService = require('../services/mailService');
 const AirtableService = require('./airtableService');

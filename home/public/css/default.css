@@ -2566,13 +2566,23 @@ div.content{
         width:100%
     }
 }
+.noborders{
+    border-width: 0px !important;
+}
 hr{
     border:none;
     border-top:1px solid rgba(0,0,0,.07)
 }
 aside p{
-    font-size:12px!important;
+    font-size:16px!important;
     color:#797979
+}
+.font14{
+    font-size: 14px;
+}
+.pricing-font{
+    font-size: 2.5em !important;
+    font-weight: bold !important; 
 }
 ul.columns{
     zoom:1;
@@ -3215,16 +3225,6 @@ section.basics .columns .iso:before{
     width: 120px;
     margin-left: 60px;
 }
-
-section.basics .columns .hipaa:before{
-    background-image: url(/img/hipaa-black.png);
-    height: 200px;
-    margin-left: 40px;
-    margin-top: -50px;
-    margin-bottom: -19px;
-    width:unset;
-}
-
 
 @media (min--moz-device-pixel-ratio:1.5),(min-device-pixel-ratio:1.5),(min-resolution:1.5dppx),(min-resolution:138dpi),all and (-webkit-min-device-pixel-ratio:1.5){
     section.basics .columns .billing:before{

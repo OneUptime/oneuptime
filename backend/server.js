@@ -53,22 +53,23 @@ app.use(function(req, res, next) {
     );
 
     // Add this to global object, and this can be used anywhere where you need backend host.
-    global.host = req.hostname + '/api';
-    global.accountsHost = req.hostname + '/accounts';
-    global.homeHost = req.hostname;
+    global.apiHost = 'https://' + req.hostname + '/api';
+    global.accountsHost = 'https://' + req.hostname + '/accounts';
+    global.homeHost = 'https://' + req.hostname;
+    global.dashboardHost = 'https://' + req.hostname + '/dashboard';
+
     if (req.hostname.includes('localhost')) {
-        global.host =
-            req.protocol +
-            '://' +
+        global.apiHost =
+            'http://' +
             req.hostname +
             ':' +
             (process.env.PORT || 3002) +
             '/api';
         global.accountsHost =
-            req.protocol + '://' + req.hostname + ':' + 3003 + '/accounts';
-        global.homeHost = req.protocol + '://' + req.hostname + ':' + 1444;
+            'http://' + req.hostname + ':' + 3003 + '/accounts';
+        global.homeHost = 'http://' + req.hostname + ':' + 1444;
         global.dashboardHost =
-            req.protocol + '://' + req.hostname + ':' + 3000 + '/dashboard';
+            'http://' + req.hostname + ':' + 3000 + '/dashboard';
     }
 
     next();
@@ -115,6 +116,9 @@ app.use(['/twilio', '/api/twilio'], require('./backend/api/twilio'));
 app.use(['/zapier', '/api/zapier'], require('./backend/api/zapier'));
 app.use(['/slack', '/api/slack'], require('./backend/api/slack'));
 app.use(['/webhook', '/api/webhook'], require('./backend/api/webHook'));
+
+app.use(['/server', '/api/server'], require('./backend/api/server'));
+
 app.use(
     ['/notification', '/api/notification'],
     require('./backend/api/notification')
