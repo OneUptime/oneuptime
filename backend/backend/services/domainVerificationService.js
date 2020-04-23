@@ -9,7 +9,7 @@ const StatusPageService = require('./statusPageService');
 const dnsPromises = dns.promises;
 
 module.exports = {
-    create: async function(subDomain, statusPageId) {
+    create: async function(subDomain, projectId, statusPageId) {
         const token = 'fyipe=' + randomChar();
         const domain = getDomain(subDomain);
         let createdDomain = {};
@@ -26,6 +26,7 @@ module.exports = {
                     verificationToken: token,
                     verifiedAt: null,
                     deletedAt: null,
+                    projectId,
                 };
                 // create the domain
                 createdDomain = await DomainVerificationTokenModel.create(
@@ -69,7 +70,9 @@ module.exports = {
                 query = {};
             }
 
-            return await DomainVerificationTokenModel.findOne(query);
+            return await DomainVerificationTokenModel.findOne(query).populate(
+                'projectId'
+            );
         } catch (error) {
             ErrorService.log('domainVerificationService.findOneBy', error);
             throw error;
@@ -138,4 +141,25 @@ module.exports = {
             throw error;
         }
     },
+    domainExist: async function(projectId, subDomain) {
+        const domain = getDomain(subDomain);
+        let result = await this.findOneBy({
+            domain,
+        });
+        // compare actual strings
+        if (result && String(result.projectId._id) !== String(projectId)) {
+            return true;
+        }
+
+        return false;
+    },
+    hardDeleteBy: async function(query){
+        try {
+            await DomainVerificationTokenModel.deleteMany(query);
+            return 'Domain verification token(s) Removed Successfully!';
+        } catch (error) {
+            ErrorService.log('domainVerificationService.hardDeleteBy', error);
+            throw error;
+        }
+    }
 };

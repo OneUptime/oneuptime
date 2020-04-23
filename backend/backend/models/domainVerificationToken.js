@@ -15,6 +15,10 @@ const domainVerificationTokenSchema = new Schema({
         default: false,
     },
     deletedAt: Date,
+    projectId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Project'
+    }
 });
 
 module.exports = mongoose.model(

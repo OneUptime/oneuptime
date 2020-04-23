@@ -77,7 +77,7 @@ router.post(
     getUser,
     isAuthorized,
     async (req, res) => {
-        const { statusPageId } = req.params;
+        const { projectId, statusPageId } = req.params;
         const subDomain = req.body.domain;
 
         if (typeof subDomain !== 'string') {
@@ -95,8 +95,21 @@ router.post(
         }
 
         try {
+            const domainExist = await DomainVerificationService.domainExist(
+                projectId,
+                subDomain
+            );
+
+            if (domainExist) {
+                return sendErrorResponse(req, res, {
+                    message:
+                        'This domain is already associated with another project',
+                    code: 400,
+                });
+            }
             const response = await DomainVerificationService.create(
                 subDomain,
+                projectId,
                 statusPageId
             );
             return sendItemResponse(req, res, response);
