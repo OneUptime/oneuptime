@@ -18,11 +18,11 @@ async function run() {
         const { ops = [{}] } = await save(domainVerificationTokenCollection, [
             {
                 domain: getDomain(statusPage.domain),
-                verified: false,
+                verified: true,
                 deleted: false,
                 verificationToken: token,
                 createdAt: now,
-                verifiedAt: null,
+                verifiedAt: now,
                 deletedAt: null,
             },
         ]);
