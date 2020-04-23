@@ -450,6 +450,47 @@ export class Setting extends Component {
                                                                 }
                                                                 placeholder="domain"
                                                             />
+                                                            <ShouldRender
+                                                                if={
+                                                                    !this.props.addDomain.requesting &&
+                                                                    this.props.addDomain.error
+                                                                }
+                                                            >
+                                                                <div
+                                                                    id="verifyDomainError"
+                                                                    className="bs-Tail-copy"
+                                                                >
+                                                                    <div
+                                                                        className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '10px',
+                                                                        }}
+                                                                    >
+                                                                        <div className="Box-root Margin-right--8">
+                                                                            <div
+                                                                                className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
+                                                                                style={{
+                                                                                    marginTop:
+                                                                                        '2px',
+                                                                                }}
+                                                                            ></div>
+                                                                        </div>
+                                                                        <div className="Box-root">
+                                                                            <span
+                                                                                style={{
+                                                                                    color:
+                                                                                        'red',
+                                                                                }}
+                                                                            >
+                                                                                {
+                                                                                    this.props.addDomain.error
+                                                                                }
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </ShouldRender>
                                                             <p className="bs-Fieldset-explanation">
                                                                 {IS_LOCALHOST && (
                                                                     <span>
@@ -675,6 +716,7 @@ Setting.propTypes = {
     verifyDomain: PropTypes.func,
     closeModal: PropTypes.func,
     verifyError: PropTypes.bool,
+    addDomain: PropTypes.object,
 };
 
 const SettingForm = reduxForm({
@@ -731,6 +773,7 @@ function mapStateToProps(state) {
         verifyError:
             state.statusPage.verifyDomain &&
             state.statusPage.verifyDomain.error,
+        addDomain: state.statusPage.addDomain,
     };
 }
 
