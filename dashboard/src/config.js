@@ -290,6 +290,20 @@ export const PricingPlan = {
                     amount: 588,
                     details: '$588 / Year / User',
                 },
+                {
+                    category: 'Scale',
+                    planId: 'plan_H9Iox3l2YqLTDR',
+                    type: 'month',
+                    amount: 99,
+                    details: '$99 / Month / User',
+                },
+                {
+                    category: 'Scale',
+                    planId: 'plan_H9IlBKhsFz4hV2',
+                    type: 'annual',
+                    amount: 1188,
+                    details: '$1188/ Year / User',
+                },
             ];
         } else {
             return [
@@ -320,6 +334,20 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 588,
                     details: '$588 / Year / User',
+                },
+                {
+                    category: 'Scale',
+                    planId: 'plan_H9Ii6Qj3HLdtty',
+                    type: 'month',
+                    amount: 99,
+                    details: '$99 / Month / User',
+                },
+                {
+                    category: 'Scale',
+                    planId: 'plan_H9IjvX2Flsvlcg',
+                    type: 'annual',
+                    amount: 1188,
+                    details: '$1188/ Year / User',
                 },
             ];
         }
