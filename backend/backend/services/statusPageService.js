@@ -370,7 +370,7 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('monitorIds', 'name')
-                .populate({ populate: { path: 'domainVerificationToken' } })
+                .populate('domains.domainVerificationToken')
                 .lean();
             if (statusPage && (statusPage._id || statusPage.id)) {
                 const permitted = await thisObj.isPermitted(userId, statusPage);

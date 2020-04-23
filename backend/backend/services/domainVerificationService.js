@@ -24,7 +24,6 @@ module.exports = {
                 const creationData = {
                     domain,
                     verificationToken: token,
-                    createdAt: Date.now(),
                     verifiedAt: null,
                     deletedAt: null,
                 };

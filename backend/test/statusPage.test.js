@@ -249,16 +249,10 @@ describe('Status API', function() {
     it('should not update status page settings when domain is not string', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .put(`/statusPage/${projectId}`)
+            .post(`/statusPage/${projectId}/${statusPageId}`)
             .set('Authorization', authorization)
             .send({
-                links: [],
-                title: 'Status title',
-                description: 'status description',
-                copyright: 'status copyright',
-                projectId,
                 domain: 5,
-                monitorIds: [monitorId],
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -269,16 +263,10 @@ describe('Status API', function() {
     it('should not update status page settings when domain is not valid', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .put(`/statusPage/${projectId}`)
+            .post(`/statusPage/${projectId}/${statusPageId}`)
             .set('Authorization', authorization)
             .send({
-                links: [],
-                title: 'Status title',
-                description: 'status description',
-                copyright: 'status copyright',
-                projectId,
                 domain: 'wwwtest',
-                monitorIds: [monitorId],
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -298,7 +286,6 @@ describe('Status API', function() {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                domain: 'http://www.test.com',
                 monitorIds: [monitorId],
             })
             .end(function(err, res) {
@@ -429,7 +416,11 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const domain = 'binoehty1234hgyt.com';
         DomainVerificationService.create(domain, statusPageId).then(function() {
-            DomainVerificationService.findOneBy({ domain }).then(function({domain, verificationToken, _id: domainId}) {
+            DomainVerificationService.findOneBy({ domain }).then(function({
+                domain,
+                verificationToken,
+                _id: domainId,
+            }) {
                 request
                     .put(`/domain/${projectId}/verify/${domainId}`)
                     .set('Authorization', authorization)
@@ -614,15 +605,17 @@ describe('StatusPage API with Sub-Projects', function() {
             .send({
                 links: [],
                 title: 'Status title',
+                name: 'status name',
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
                 monitorIds: [monitorId],
+                domains: [],
             })
             .end(function(err, res) {
                 statusPageId = res.body._id;
                 expect(res).to.have.status(200);
-                expect(res.body.title).to.be.equal('Status title');
+                expect(res.body.title).to.equal('Status title');
                 done();
             });
     });
