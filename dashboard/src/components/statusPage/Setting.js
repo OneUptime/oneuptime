@@ -452,8 +452,12 @@ export class Setting extends Component {
                                                             />
                                                             <ShouldRender
                                                                 if={
-                                                                    !this.props.addDomain.requesting &&
-                                                                    this.props.addDomain.error
+                                                                    !this.props
+                                                                        .addDomain
+                                                                        .requesting &&
+                                                                    this.props
+                                                                        .addDomain
+                                                                        .error
                                                                 }
                                                             >
                                                                 <div
@@ -484,7 +488,10 @@ export class Setting extends Component {
                                                                                 }}
                                                                             >
                                                                                 {
-                                                                                    this.props.addDomain.error
+                                                                                    this
+                                                                                        .props
+                                                                                        .addDomain
+                                                                                        .error
                                                                                 }
                                                                             </span>
                                                                         </div>
