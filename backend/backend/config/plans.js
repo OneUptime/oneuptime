@@ -78,7 +78,7 @@ module.exports = {
                     userLimit: 1,
                     extraUserFee: 588,
                     extraUserPlanId: 'plan_H9Imd3AdGh4hFQ',
-                }
+                },
             ];
         } else {
             return [
@@ -147,7 +147,7 @@ module.exports = {
                     userLimit: 1,
                     extraUserFee: 588,
                     extraUserPlanId: 'plan_H9InyYK1lLzsY9',
-                }
+                },
             ];
         }
     },
