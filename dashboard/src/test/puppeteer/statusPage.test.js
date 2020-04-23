@@ -72,7 +72,7 @@ describe('Status Page', () => {
                 await page.type('#name', 'test');
                 await page.click('#btnCreateStatusPage');
                 // select the first item from the table row
-                let rowItem = await page.waitForSelector(
+                const rowItem = await page.waitForSelector(
                     '#statusPagesListContainer > tr',
                     { visible: true }
                 );
@@ -83,7 +83,7 @@ describe('Status Page', () => {
                 await page.click('#btnAddDomain');
                 // if domain was not added sucessfully, list will be undefined
                 // it will timeout
-                let list = await page.waitForSelector(
+                const list = await page.waitForSelector(
                     'fieldset[name="added-domain"]',
                     { visible: true }
                 );
@@ -100,7 +100,7 @@ describe('Status Page', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval('#statusPages > a', elem => elem.click());
                 // select the first item from the table row
-                let rowItem = await page.waitForSelector(
+                const rowItem = await page.waitForSelector(
                     '#statusPagesListContainer > tr',
                     { visible: true }
                 );
@@ -112,7 +112,9 @@ describe('Status Page', () => {
                 await page.waitForSelector('#confirmVerifyDomain');
                 await page.click('#confirmVerifyDomain');
                 // element will be visible once the domain was not verified
-                let elem = await page.waitForSelector('#verifyDomainError', {visible: true});
+                const elem = await page.waitForSelector('#verifyDomainError', {
+                    visible: true,
+                });
                 expect(elem).toBeTruthy();
             });
         },

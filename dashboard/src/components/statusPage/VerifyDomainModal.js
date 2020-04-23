@@ -185,7 +185,10 @@ const VerifyDomainModal = ({
                                         domainField.error
                                     }
                                 >
-                                    <div id="verifyDomainError" className="bs-Tail-copy">
+                                    <div
+                                        id="verifyDomainError"
+                                        className="bs-Tail-copy"
+                                    >
                                         <div
                                             className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
                                             style={{ marginTop: '10px' }}

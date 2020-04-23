@@ -229,7 +229,7 @@ class _ProjectForm extends React.Component {
                                 <span>Cancel</span>
                             </button>
                             <button
-                            id="btnCreateProject"
+                                id="btnCreateProject"
                                 className={`bs-Button bs-DeprecatedButton bs-Button--blue ${requesting &&
                                     'bs-is-disabled'}`}
                                 type="submit"

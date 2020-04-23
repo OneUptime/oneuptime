@@ -372,7 +372,7 @@ describe('Status API', function() {
     it('should verify a domain', function(done) {
         const authorization = `Basic ${token}`;
         const domain = 'fyipeapp.com';
-        let verificationToken = 'm2ab5osUmz9Y7Ko';
+        const verificationToken = 'm2ab5osUmz9Y7Ko';
         // update the verification token to a live version
         DomainVerificationService.updateOneBy(
             { domain },
@@ -394,7 +394,7 @@ describe('Status API', function() {
     it('should not verify a domain if txt record is not found', function(done) {
         const authorization = `Basic ${token}`;
         const domain = 'fyipeapp.com';
-        let verificationToken = 'thistokenwillnotwork';
+        const verificationToken = 'thistokenwillnotwork';
         // update the verification token to a live version
         DomainVerificationService.updateOneBy(
             { domain },

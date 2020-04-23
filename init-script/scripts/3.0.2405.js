@@ -11,7 +11,7 @@ async function run() {
     });
 
     for (let i = 0; i < statusPages.length; i++) {
-        let statusPage = statusPages[i];
+        const statusPage = statusPages[i];
         const token = `fyipe=${randomChar()}`;
         const now = new Date().toISOString();
 
@@ -26,7 +26,7 @@ async function run() {
                 deletedAt: null,
             },
         ]);
-        let domains = [
+        const domains = [
             {
                 domain: statusPage.domain,
                 domainVerificationToken: ops[0]._id,

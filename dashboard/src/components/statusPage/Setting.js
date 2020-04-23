@@ -233,7 +233,9 @@ export class Setting extends Component {
                                                                         name={
                                                                             domain._id
                                                                         }
-                                                                        id={domain._id}
+                                                                        id={
+                                                                            domain._id
+                                                                        }
                                                                         disabled={
                                                                             this
                                                                                 .props
@@ -344,7 +346,7 @@ export class Setting extends Component {
                                                                             }}
                                                                         >
                                                                             <button
-                                                                            id="btnVerifyDomain"
+                                                                                id="btnVerifyDomain"
                                                                                 className="bs-Button"
                                                                                 onClick={e => {
                                                                                     this.handleVerifyDomain(
