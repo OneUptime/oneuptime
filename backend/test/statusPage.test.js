@@ -16,6 +16,7 @@ const ScheduledEventService = require('../backend/services/scheduledEventService
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 const DomainVerificationService = require('../backend/services/domainVerificationService');
+const project = require('./data/project');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
@@ -127,6 +128,7 @@ describe('Status API', function() {
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await ScheduledEventService.hardDeleteBy({ _id: scheduledEventId });
         await StatusService.hardDeleteBy({ projectId: projectId });
+        await DomainVerificationService.hardDeleteBy({ projectId });
         await AirtableService.deleteUser(airtableId);
     });
 
@@ -415,24 +417,26 @@ describe('Status API', function() {
     it('should not verify a domain that does not exist on the web', function(done) {
         const authorization = `Basic ${token}`;
         const domain = 'binoehty1234hgyt.com';
-        DomainVerificationService.create(domain, statusPageId).then(function() {
-            DomainVerificationService.findOneBy({ domain }).then(function({
-                domain,
-                verificationToken,
-                _id: domainId,
-            }) {
-                request
-                    .put(
-                        `/domainVerificationToken/${projectId}/verify/${domainId}`
-                    )
-                    .set('Authorization', authorization)
-                    .send({ domain, verificationToken })
-                    .end(function(err, res) {
-                        expect(res).to.have.status(400);
-                        done();
-                    });
-            });
-        });
+        DomainVerificationService.create(domain, projectId, statusPageId).then(
+            function() {
+                DomainVerificationService.findOneBy({ domain }).then(function({
+                    domain,
+                    verificationToken,
+                    _id: domainId,
+                }) {
+                    request
+                        .put(
+                            `/domainVerificationToken/${projectId}/verify/${domainId}`
+                        )
+                        .set('Authorization', authorization)
+                        .send({ domain, verificationToken })
+                        .end(function(err, res) {
+                            expect(res).to.have.status(400);
+                            done();
+                        });
+                });
+            }
+        );
     });
 
     it('should not save domain if domain is invalid', function(done) {
@@ -458,6 +462,45 @@ describe('Status API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 done();
+            });
+    });
+
+    // This test will work base on the fact that a domain was previously created in another project
+    // This test will try to create another domain with the same domain on another project
+    it('should not add domain if it exist in another project', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: 'fyipeapp.com' };
+        request
+            .post(`/project/create`)
+            .set('Authorization', authorization)
+            .send(project.newProject)
+            .end(function(err, res) {
+                const newProjectId = res.body._id;
+                request
+                    .post(`/statusPage/${newProjectId}`)
+                    .set('Authorization', authorization)
+                    .send({
+                        name: 'Status Page name',
+                        links: [],
+                        title: 'Status Page title',
+                        description: 'status page description',
+                        copyright: 'status page copyright',
+                        projectId,
+                        monitorIds: [monitorId],
+                    })
+                    .end(function(err, res) {
+                        const newStatusPageId = res.body._id;
+                        request
+                            .post(
+                                `/statusPage/${newProjectId}/${newStatusPageId}`
+                            )
+                            .set('Authorization', authorization)
+                            .send(data)
+                            .end(function(err, res) {
+                                expect(res).to.have.status(400);
+                                done();
+                            });
+                    });
             });
     });
 });
