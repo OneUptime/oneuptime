@@ -20,7 +20,7 @@
         "mixpanel-browser": "^2.22.3",
         "moment": "^2.22.2",
         "prop-types": "^15.6.1",
-        "puppeteer": "^2.1.1",
+        "puppeteer": "^3.0.1",
         "puppeteer-cluster": "^0.19.0",
         "react": "^16.5.2",
         "react-click-outside": "github:tj/react-click-outside",
@@ -45,7 +45,7 @@
     "scripts": {
         "dev": "PORT=3100 react-scripts start",
         "build": "react-scripts build",
-        "test": "jest --runInBand ./src/test/*.test.js",
+        "test": "jest --runInBand ./src/test/AuditLog.test.js",
         "enterprise-test": "jest --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",
