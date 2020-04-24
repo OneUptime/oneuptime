@@ -729,29 +729,29 @@ stages:
 #       - hotfix-master
 #       - hotfix-release
 
-#E2E Stage.
-e2e_microk8s_test:
-  stage: E2E
-  script:
-    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-    - chmod +x ./ci/scripts/setup-machine.sh
-    - ./ci/scripts/setup-machine.sh
-    - chmod +x ./ci/scripts/setup.sh
-    - ./ci/scripts/setup.sh
-    - export HOME_URL=http://localhost
-    - export ACCOUNTS_URL=http://localhost/accounts
-    - export ADMIN_DASHBOARD_URL=http://localhost/admin
-    - export DASHBOARD_URL=http://localhost/dashboard
-    - export BACKEND_URL=http://localhost/api
-    - export STATUSPAGE_URL=http://localhost/status-page
-    - export APIDOCS_URL=http://localhost/docs
-    - export LICENSING_URL=http://localhost/license
-    - cd smoke-test
-    - npm ci
-    - npm run test
-    - cd ..
-    - chmod +x ./ci/scripts/cleanup.sh
-    - ./ci/scripts/cleanup.sh
+# #E2E Stage.
+# e2e_microk8s_test:
+#   stage: E2E
+#   script:
+#     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+#     - chmod +x ./ci/scripts/setup-machine.sh
+#     - ./ci/scripts/setup-machine.sh
+#     - chmod +x ./ci/scripts/setup.sh
+#     - ./ci/scripts/setup.sh
+#     - export HOME_URL=http://localhost
+#     - export ACCOUNTS_URL=http://localhost/accounts
+#     - export ADMIN_DASHBOARD_URL=http://localhost/admin
+#     - export DASHBOARD_URL=http://localhost/dashboard
+#     - export BACKEND_URL=http://localhost/api
+#     - export STATUSPAGE_URL=http://localhost/status-page
+#     - export APIDOCS_URL=http://localhost/docs
+#     - export LICENSING_URL=http://localhost/license
+#     - cd smoke-test
+#     - npm ci
+#     - npm run test
+#     - cd ..
+#     - chmod +x ./ci/scripts/cleanup.sh
+#     - ./ci/scripts/cleanup.sh
 #   only:
 #     refs:
 #       - release
@@ -1518,49 +1518,49 @@ e2e_microk8s_test:
 #     refs:
 #       - release
 
-# ## SMOKE TEST STAGE
-# smoke_test_production:
-#   stage: SmokeTest
-#   script:
-#     - export HOME_URL=https://www.fyipe.com
-#     - export ACCOUNTS_URL=https://fyipe.com/accounts
-#     - export DASHBOARD_URL=https://fyipe.com/dashboard
-#     - export BACKEND_URL=https://fyipe.com/api
-#     - export STATUSPAGE_URL=https://statuspage.fyipe.com
-#     - export APIDOCS_URL=https://fyipe.com/docs
-#     - export LICENSING_URL=https://fyipe.com/license
-#     - cd smoke-test
-#     - npm ci
-#     - npm run test
-#       # if job is successs, cancel the next jobs in pipeline.
-#     - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
-#   only:
-#     refs:
-#       - release
-#       - hotfix-release
-#   environment:
-#     name: production
+## SMOKE TEST STAGE
+smoke_test_production:
+  stage: SmokeTest
+  script:
+    - export HOME_URL=https://www.fyipe.com
+    - export ACCOUNTS_URL=https://fyipe.com/accounts
+    - export DASHBOARD_URL=https://fyipe.com/dashboard
+    - export BACKEND_URL=https://fyipe.com/api
+    - export STATUSPAGE_URL=https://statuspage.fyipe.com
+    - export APIDOCS_URL=https://fyipe.com/docs
+    - export LICENSING_URL=https://fyipe.com/license
+    - cd smoke-test
+    - npm ci
+    - npm run test
+      # if job is successs, cancel the next jobs in pipeline.
+    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
+  only:
+    refs:
+      - release
+      - hotfix-release
+  environment:
+    name: production
 
-# smoke_test_staging:
-#   stage: SmokeTest
-#   allow_failure: true
-#   script:
-#     - export HOME_URL=https://staging.fyipe.com
-#     - export ACCOUNTS_URL=https://staging.fyipe.com/accounts
-#     - export DASHBOARD_URL=https://staging.fyipe.com/dashboard
-#     - export BACKEND_URL=https://staging.fyipe.com/api
-#     - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
-#     - export APIDOCS_URL=https://staging.fyipe.com/docs
-#     - export LICENSING_URL=https://staging.fyipe.com/license
-#     - cd smoke-test
-#     - npm ci
-#     - npm run test
-#     # if job is successs, create smoke test status variable
-#     - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=STAGING_SMOKE_TEST_STATUS" --form "value=success"
-#   only:
-#     refs:
-#       - master
-#       - hotfix-master
+smoke_test_staging:
+  stage: SmokeTest
+  allow_failure: true
+  script:
+    - export HOME_URL=https://staging.fyipe.com
+    - export ACCOUNTS_URL=https://staging.fyipe.com/accounts
+    - export DASHBOARD_URL=https://staging.fyipe.com/dashboard
+    - export BACKEND_URL=https://staging.fyipe.com/api
+    - export STATUSPAGE_URL=https://staging.fyipe.com/status-page
+    - export APIDOCS_URL=https://staging.fyipe.com/docs
+    - export LICENSING_URL=https://staging.fyipe.com/license
+    - cd smoke-test
+    - npm ci
+    - npm run test
+    # if job is successs, create smoke test status variable
+    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=STAGING_SMOKE_TEST_STATUS" --form "value=success"
+  # only:
+  #   refs:
+  #     - master
+  #     - hotfix-master
 
 # ## STAGING ROLLBACK
 # staging_rollback_dashboard:

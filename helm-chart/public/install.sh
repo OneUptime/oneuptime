@@ -65,7 +65,7 @@ fi
 if [[ ! $(which microk8s) ]]
 then
     # Iptables
-    echo "RUNNING COMMAND:  sudo iptables -P FORWARD ACCEPT"
+    echo "RUNNING COMMAND: sudo iptables -P FORWARD ACCEPT"
     sudo iptables -P FORWARD ACCEPT
     # Install microK8s
     echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
