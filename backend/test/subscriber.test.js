@@ -74,6 +74,7 @@ describe('Subscriber API', function() {
                                                 .send({
                                                     links: [],
                                                     title: 'Status title',
+                                                    name: 'Status name',
                                                     description:
                                                         'status description',
                                                     copyright:

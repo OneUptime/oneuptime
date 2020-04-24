@@ -58,7 +58,7 @@ describe('Status API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
+        GlobalConfig.initTestConfig().then(async function() {
             createUser(request, userData.user, function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
@@ -120,6 +120,9 @@ describe('Status API', function() {
                         });
                 });
             });
+            // remove any domain to make sure we don't encounter
+            // domain used in another project error
+            await DomainVerificationService.hardDeleteBy({});
         });
     });
 

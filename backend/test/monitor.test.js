@@ -1,5 +1,6 @@
 /* eslint-disable */
 process.env.PORT = 3020;
+process.env.IS_SAAS_SERVICE = true;
 let expect = require('chai').expect;
 let userData = require('./data/user');
 let chai = require('chai');
