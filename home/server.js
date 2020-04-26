@@ -12,7 +12,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(compression());
 
-app.use('*', function (req, res, next) {
+app.use('*', function(req, res, next) {
     if (process.env && process.env.PRODUCTION) {
         res.set('Cache-Control', 'public, max-age=86400');
     } else res.set('Cache-Control', 'no-cache');
@@ -24,7 +24,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 //Routes
-app.get('/', function (req, res) {
+app.get('/', function(req, res) {
     res.render('index', {
         support: false,
         footerCards: true,
@@ -34,7 +34,7 @@ app.get('/', function (req, res) {
     });
 });
 
-app.get('/support', function (req, res) {
+app.get('/support', function(req, res) {
     res.render('support', {
         support: true,
         footerCards: true,
@@ -44,7 +44,7 @@ app.get('/support', function (req, res) {
     });
 });
 
-app.get('/pricing', function (req, res) {
+app.get('/pricing', function(req, res) {
     res.render('pricing', {
         support: false,
         footerCards: true,
@@ -54,7 +54,7 @@ app.get('/pricing', function (req, res) {
     });
 });
 
-app.get('/enterprise/demo', function (req, res) {
+app.get('/enterprise/demo', function(req, res) {
     res.render('demo', {
         support: false,
         footerCards: false,
@@ -64,7 +64,7 @@ app.get('/enterprise/demo', function (req, res) {
     });
 });
 
-app.get('/product/status-page', function (req, res) {
+app.get('/product/status-page', function(req, res) {
     res.render('status-page', {
         support: false,
         footerCards: true,
@@ -74,7 +74,7 @@ app.get('/product/status-page', function (req, res) {
     });
 });
 
-app.get('/product/uptime-monitoring', function (req, res) {
+app.get('/product/uptime-monitoring', function(req, res) {
     res.render('uptime-monitoring', {
         support: false,
         footerCards: true,
@@ -84,7 +84,7 @@ app.get('/product/uptime-monitoring', function (req, res) {
     });
 });
 
-app.get('/product/oncall-management', function (req, res) {
+app.get('/product/oncall-management', function(req, res) {
     res.render('oncall-management', {
         support: false,
         footerCards: true,
@@ -94,7 +94,7 @@ app.get('/product/oncall-management', function (req, res) {
     });
 });
 
-app.get('/customers', function (req, res) {
+app.get('/customers', function(req, res) {
     res.render('customers', {
         support: false,
         footerCards: true,
@@ -104,7 +104,7 @@ app.get('/customers', function (req, res) {
     });
 });
 
-app.get('/enterprise/resources', function (req, res) {
+app.get('/enterprise/resources', function(req, res) {
     res.render('resources', {
         support: false,
         footerCards: false,
@@ -114,7 +114,7 @@ app.get('/enterprise/resources', function (req, res) {
     });
 });
 
-app.get('/enterprise/overview', function (req, res) {
+app.get('/enterprise/overview', function(req, res) {
     res.render('enterprise-overview.ejs', {
         support: false,
         footerCards: true,
@@ -124,7 +124,7 @@ app.get('/enterprise/overview', function (req, res) {
     });
 });
 
-app.get('/legal', function (req, res) {
+app.get('/legal', function(req, res) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -135,7 +135,7 @@ app.get('/legal', function (req, res) {
     });
 });
 
-app.get('/legal/terms', function (req, res) {
+app.get('/legal/terms', function(req, res) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -146,7 +146,7 @@ app.get('/legal/terms', function (req, res) {
     });
 });
 
-app.get('/legal/privacy', function (req, res) {
+app.get('/legal/privacy', function(req, res) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -157,7 +157,7 @@ app.get('/legal/privacy', function (req, res) {
     });
 });
 
-app.get('/legal/contact', function (req, res) {
+app.get('/legal/contact', function(req, res) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -168,7 +168,7 @@ app.get('/legal/contact', function (req, res) {
     });
 });
 
-app.get('/legal/subprocessors', function (req, res) {
+app.get('/legal/subprocessors', function(req, res) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -179,7 +179,7 @@ app.get('/legal/subprocessors', function (req, res) {
     });
 });
 
-app.get('/legal/ccpa', function (req, res) {
+app.get('/legal/ccpa', function(req, res) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -190,7 +190,7 @@ app.get('/legal/ccpa', function (req, res) {
     });
 });
 
-app.get('/legal/hipaa', function (req, res) {
+app.get('/legal/hipaa', function(req, res) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -201,7 +201,7 @@ app.get('/legal/hipaa', function (req, res) {
     });
 });
 
-app.get('/legal/dmca', function (req, res) {
+app.get('/legal/dmca', function(req, res) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -212,7 +212,7 @@ app.get('/legal/dmca', function (req, res) {
     });
 });
 
-app.get('/legal/pci', function (req, res) {
+app.get('/legal/pci', function(req, res) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -223,7 +223,7 @@ app.get('/legal/pci', function (req, res) {
     });
 });
 
-app.get('/legal/iso-27001', function (req, res) {
+app.get('/legal/iso-27001', function(req, res) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -234,7 +234,7 @@ app.get('/legal/iso-27001', function (req, res) {
     });
 });
 
-app.get('/legal/iso-27017', function (req, res) {
+app.get('/legal/iso-27017', function(req, res) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -245,7 +245,7 @@ app.get('/legal/iso-27017', function (req, res) {
     });
 });
 
-app.get('/legal/iso-27018', function (req, res) {
+app.get('/legal/iso-27018', function(req, res) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -256,7 +256,7 @@ app.get('/legal/iso-27018', function (req, res) {
     });
 });
 
-app.get('/legal/iso-27017', function (req, res) {
+app.get('/legal/iso-27017', function(req, res) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -267,7 +267,7 @@ app.get('/legal/iso-27017', function (req, res) {
     });
 });
 
-app.get('/legal/iso-27018', function (req, res) {
+app.get('/legal/iso-27018', function(req, res) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -278,7 +278,7 @@ app.get('/legal/iso-27018', function (req, res) {
     });
 });
 
-app.get('/legal/soc-2', function (req, res) {
+app.get('/legal/soc-2', function(req, res) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -289,7 +289,7 @@ app.get('/legal/soc-2', function (req, res) {
     });
 });
 
-app.get('/legal/soc-3', function (req, res) {
+app.get('/legal/soc-3', function(req, res) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -300,7 +300,7 @@ app.get('/legal/soc-3', function (req, res) {
     });
 });
 
-app.get('/legal/data-residency', function (req, res) {
+app.get('/legal/data-residency', function(req, res) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -311,7 +311,7 @@ app.get('/legal/data-residency', function (req, res) {
     });
 });
 
-app.get('/legal/gdpr', function (req, res) {
+app.get('/legal/gdpr', function(req, res) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -322,7 +322,7 @@ app.get('/legal/gdpr', function (req, res) {
     });
 });
 
-app.get('/legal/sla', function (req, res) {
+app.get('/legal/sla', function(req, res) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -333,7 +333,7 @@ app.get('/legal/sla', function (req, res) {
     });
 });
 
-app.get('/enterprise/download-resource/:resourceName', function (req, res) {
+app.get('/enterprise/download-resource/:resourceName', function(req, res) {
     res.render('download-resource.ejs', {
         footerCards: false,
         support: false,
@@ -343,9 +343,8 @@ app.get('/enterprise/download-resource/:resourceName', function (req, res) {
     });
 });
 
-app.get('/compare/:product', function (req, res) {
-
-    var productConfig = productCompare(req.params.product);
+app.get('/compare/:product', function(req, res) {
+    const productConfig = productCompare(req.params.product);
 
     if (!productConfig) {
         res.status(404);
@@ -364,12 +363,12 @@ app.get('/compare/:product', function (req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        productConfig
+        productConfig,
     });
 });
 
 // minify default.js
-app.get('/js/default.js', async function (req, res) {
+app.get('/js/default.js', async function(req, res) {
     res.setHeader('Content-Type', 'text/javascript');
     //eslint-disable-next-line
     const [error, data] = await tryToCatch(minify, './public/js/default.js');
@@ -377,7 +376,7 @@ app.get('/js/default.js', async function (req, res) {
 });
 
 // minify
-app.get('/css/home.css', async function (req, res) {
+app.get('/css/home.css', async function(req, res) {
     res.setHeader('Content-Type', 'text/css');
     //eslint-disable-next-line
     const [error, data] = await tryToCatch(minify, './public/css/home.css');
@@ -385,7 +384,7 @@ app.get('/css/home.css', async function (req, res) {
 });
 
 // minify
-app.get('/css/comparision.css', async function (req, res) {
+app.get('/css/comparision.css', async function(req, res) {
     res.setHeader('Content-Type', 'text/css');
     //eslint-disable-next-line
     const [error, data] = await tryToCatch(
@@ -397,7 +396,7 @@ app.get('/css/comparision.css', async function (req, res) {
 
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 2592000 }));
 
-app.get('/*', function (req, res) {
+app.get('/*', function(req, res) {
     res.status(404);
     res.render('notFound.ejs', {
         footerCards: false,
@@ -410,7 +409,7 @@ app.get('/*', function (req, res) {
 
 app.set('port', process.env.PORT || 1444);
 
-app.listen(app.get('port'), function () {
+app.listen(app.get('port'), function() {
     //eslint-disable-next-line
     console.log('Server running on port : ' + app.get('port'));
 });
