@@ -98,8 +98,8 @@ module.exports = {
         const { email, password } = utils.BACKEND_URL.includes('localhost')
             ? user
             : {
-                  email: 'noreply@hackerbay.io',
-                  password: '1234567890',
+                  email: 'user@fyipe.com',
+                  password: 'mVzkm{LAP)mNC8t23ehqifb2p',
               };
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',

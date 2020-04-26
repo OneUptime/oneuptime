@@ -45,9 +45,7 @@ describe('Login API', () => {
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property(
             'email',
-            utils.BACKEND_URL.includes('localhost')
-                ? email
-                : 'noreply@hackerbay.io'
+            utils.BACKEND_URL.includes('localhost') ? email : 'user@fyipe.com'
         );
         page.url().should.containEql(utils.DASHBOARD_URL);
     }, 200000);
