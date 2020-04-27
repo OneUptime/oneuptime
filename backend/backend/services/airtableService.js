@@ -73,13 +73,21 @@ module.exports = {
         return base('Feedback').destroy(airtableId);
     },
 
-    deleteAll: async function({ tableName, view }) {
+    deleteAll: async function({ tableName, view, limit }) {
         if (!view) {
             view = 'Grid view';
         }
 
+        if (!limit) {
+            limit = 10;
+        }
+
+        if (limit > 10) {
+            throw new Error('Pagesize cannot be greater than 10');
+        }
+
         const records = await base(tableName)
-            .select({ view, pageSize: 999 })
+            .select({ view, pageSize: limit })
             .firstPage();
 
         if (records && records.length > 0) {
