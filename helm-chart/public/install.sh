@@ -47,9 +47,9 @@ fi
 
 if [[ "$2" == "aws-ec2" ]]
 then
-    sudo wget http://s3.amazonaws.com/ec2metadata/ec2-metadata 
-    sudo chmod u+x ec2-metadata
-    INSTANCEID=$ec2-metadata -i
+    # 169.254.169.254 is a static AWS service which amazon uses to get instance id
+    # https://forums.aws.amazon.com/thread.jspa?threadID=100982
+    INSTANCEID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`
 fi
 
 #Install Docker and setup registry and insecure access to it.
