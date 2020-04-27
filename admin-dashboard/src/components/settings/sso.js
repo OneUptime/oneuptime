@@ -9,6 +9,8 @@ import PropTypes from 'prop-types';
 import { fetchSettings, saveSettings } from '../../actions/settings';
 import { fetchSsos, deleteSso } from '../../actions/sso';
 import moment from 'moment';
+import { openModal, closeModal } from '../../actions/modal';
+import SsoDeleteModal from './sso/SsoDeleteModal';
 
 // Client side validation
 function validate(values) {
@@ -107,8 +109,14 @@ export class Component extends React.Component {
     };
 
     deleteSso = async  ssoId => {
-        await this.props.deleteSso(ssoId);
-        await this.props.fetchSsos();
+        this.props.openModal({
+            id: ssoId,
+            onConfirm: async e => {
+                await this.props.deleteSso(ssoId);
+                return this.props.fetchSsos()
+            },
+            content: SsoDeleteModal,
+        })
     }
     render() {
         const { settings, handleSubmit, ssos } = this.props;
@@ -373,6 +381,8 @@ const mapDispatchToProps = dispatch => {
             fetchSettings,
             fetchSsos,
             deleteSso,
+            openModal,
+            closeModal,
         },
         dispatch
     );
