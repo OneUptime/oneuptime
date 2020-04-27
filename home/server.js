@@ -5,6 +5,7 @@ const path = require('path');
 const compression = require('compression');
 const minify = require('minify');
 const tryToCatch = require('try-to-catch');
+const productCompare = require('./config/product-compare');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -340,6 +341,30 @@ app.get('/enterprise/download-resource/:resourceName', function(req, res) {
         blackLogo: true,
         requestDemoCta: false,
     });
+});
+
+app.get('/compare/:product', function(req, res) {
+    const productConfig = productCompare(req.params.product);
+
+    if (!productConfig) {
+        res.status(404);
+        res.render('notFound.ejs', {
+            footerCards: false,
+            support: false,
+            cta: false,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    } else {
+        res.render('product-compare.ejs', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+            productConfig,
+        });
+    }
 });
 
 // minify default.js

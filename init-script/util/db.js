@@ -22,6 +22,12 @@ async function update(collection, query, value) {
     return global.db.collection(collection).updateOne(query, { $set: value });
 }
 
+async function removeField(collection, query, field) {
+    return global.db
+        .collection(collection)
+        .updateOne(query, { $unset: field }, { multi: true });
+}
+
 async function getVersion() {
     const docs = await global.db
         .collection('globalconfigs')
@@ -41,4 +47,5 @@ module.exports = {
     save,
     update,
     getVersion,
+    removeField,
 };

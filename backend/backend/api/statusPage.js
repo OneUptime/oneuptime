@@ -8,10 +8,11 @@ const express = require('express');
 const StatusPageService = require('../services/statusPageService');
 const MonitorService = require('../services/monitorService');
 const ProbeService = require('../services/probeService');
+const UtilService = require('../services/utilService');
 const RealTimeService = require('../services/realTimeService');
+const DomainVerificationService = require('../services/domainVerificationService');
 
 const router = express.Router();
-const UtilService = require('../services/utilService');
 const validUrl = require('valid-url');
 const multer = require('multer');
 const ErrorService = require('../services/errorService');
@@ -53,6 +54,13 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             });
         }
 
+        if (!data.name) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Status Page name is empty',
+            });
+        }
+
         // Call the StatusPageService.
         const statusPage = await StatusPageService.create(data);
         return sendItemResponse(req, res, statusPage);
@@ -60,6 +68,56 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+// Route Description: Creates a domain and domainVerificationToken
+// req.params -> {projectId, statusPageId}; req.body -> {domain}
+// Returns: response updated status page, error message
+router.put(
+    '/:projectId/:statusPageId/domain',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        const { projectId, statusPageId } = req.params;
+        const subDomain = req.body.domain;
+
+        if (typeof subDomain !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not of type string.',
+            });
+        }
+
+        if (!UtilService.isDomainValid(subDomain)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not valid.',
+            });
+        }
+
+        try {
+            const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
+                projectId,
+                subDomain
+            );
+
+            if (doesDomainBelongToProject) {
+                return sendErrorResponse(req, res, {
+                    message:
+                        'This domain is already associated with another project',
+                    code: 400,
+                });
+            }
+            const response = await StatusPageService.createDomain(
+                subDomain,
+                projectId,
+                statusPageId
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 // Route Description: Updating Status Page.
 // Params:
@@ -86,22 +144,6 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             maxCount: 1,
         },
     ]);
-
-    if (data.domain) {
-        if (typeof data.domain !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain is not of type string.',
-            });
-        }
-
-        if (!UtilService.isDomainValid(data.domain)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain is not valid.',
-            });
-        }
-    }
 
     if (data.links) {
         if (typeof data.links !== 'object') {
@@ -181,8 +223,9 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             return sendErrorResponse(req, res, error);
         }
 
+        let statusPage;
         if (data._id) {
-            const statusPage = await StatusPageService.findOneBy({
+            statusPage = await StatusPageService.findOneBy({
                 _id: data._id,
             });
             const imagesPath = {

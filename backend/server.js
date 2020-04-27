@@ -163,6 +163,10 @@ app.use(
     ['/globalConfig', '/api/globalConfig'],
     require('./backend/api/globalConfig')
 );
+app.use(
+    ['/domainVerificationToken', '/api/domainVerificationToken'],
+    require('./backend/api/domainVerificationToken')
+);
 
 app.set('port', process.env.PORT || 3002);
 

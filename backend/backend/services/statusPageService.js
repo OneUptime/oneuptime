@@ -24,6 +24,7 @@ module.exports = {
                 .skip(skip)
                 .populate('projectId', 'name')
                 .populate('monitorIds', 'name')
+                .populate('domains.domainVerificationToken')
                 .lean();
             return statusPages;
         } catch (error) {
@@ -48,7 +49,7 @@ module.exports = {
             }
             const statusPageModel = new StatusPageModel();
             statusPageModel.projectId = data.projectId || null;
-            statusPageModel.domain = data.domain || null;
+            statusPageModel.domains = data.domains || [];
             statusPageModel.links = data.links || null;
             statusPageModel.title = data.title || null;
             statusPageModel.name = data.name || null;
@@ -81,6 +82,65 @@ module.exports = {
             return statusPage;
         } catch (error) {
             ErrorService.log('statusPageService.create', error);
+            throw error;
+        }
+    },
+
+    createDomain: async function(subDomain, projectId, statusPageId) {
+        const token = 'fyipe=' + randomChar();
+        const domain = getDomain(subDomain);
+        let createdDomain = {};
+
+        try {
+            // check if domain already exist
+            const existingBaseDomain = await DomainVerificationService.findOneBy(
+                {
+                    domain,
+                }
+            );
+
+            if (!existingBaseDomain) {
+                const creationData = {
+                    domain,
+                    verificationToken: token,
+                    verifiedAt: null,
+                    deletedAt: null,
+                    projectId,
+                };
+                // create the domain
+                createdDomain = await DomainVerificationTokenModel.create(
+                    creationData
+                );
+            }
+            const statusPage = await this.findOneBy({
+                _id: statusPageId,
+            });
+
+            if (statusPage) {
+                // attach the domain id to statuspage collection and update it
+                statusPage.domains = [
+                    ...statusPage.domains,
+                    {
+                        domain: subDomain,
+                        domainVerificationToken:
+                            createdDomain._id || existingBaseDomain._id,
+                    },
+                ];
+
+                const result = await statusPage.save();
+                return result
+                    .populate('domains.domainVerificationToken')
+                    .execPopulate();
+            } else {
+                const error = new Error(
+                    'Status page not found or does not exist'
+                );
+                error.code = 400;
+                ErrorService.log('statusPageService.createDomain', error);
+                throw error;
+            }
+        } catch (error) {
+            ErrorService.log('statusPageService.createDomain', error);
             throw error;
         }
     },
@@ -166,7 +226,8 @@ module.exports = {
             const statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
-                .populate('monitorIds', 'name');
+                .populate('monitorIds', 'name')
+                .populate('domains.domainVerificationToken');
             return statusPage;
         } catch (error) {
             ErrorService.log('statusPageService.findOneBy', error);
@@ -201,7 +262,7 @@ module.exports = {
                 {
                     new: true,
                 }
-            );
+            ).populate('domains.domainVerificationToken');
             return updatedStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.updateOneBy', error);
@@ -218,7 +279,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             let updatedData = await StatusPageModel.updateMany(query, {
                 $set: data,
-            });
+            }).populate('domains.domainVerificationToken');
             updatedData = await this.findBy(query);
             return updatedData;
         } catch (error) {
@@ -368,6 +429,7 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('monitorIds', 'name')
+                .populate('domains.domainVerificationToken')
                 .lean();
             if (statusPage && (statusPage._id || statusPage.id)) {
                 const permitted = await thisObj.isPermitted(userId, statusPage);
@@ -560,3 +622,7 @@ const SubscriberService = require('./subscriberService');
 const ProjectService = require('./projectService');
 const _ = require('lodash');
 const defaultStatusPageColors = require('../config/statusPageColors');
+const DomainVerificationService = require('./domainVerificationService');
+const DomainVerificationTokenModel = require('../models/domainVerificationToken');
+const randomChar = require('../utils/randomChar');
+const getDomain = require('../utils/getDomain');

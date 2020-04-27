@@ -15,7 +15,7 @@ const AuditLogsService = require('../backend/services/auditLogsService');
 const UserService = require('../backend/services/userService');
 const AirtableService = require('../backend/services/airtableService');
 
-let token, airtableId;
+let token;
 
 describe('Admin process.env login API', function() {
     this.timeout(30000);
@@ -28,7 +28,7 @@ describe('Admin process.env login API', function() {
 
     after(async function() {
         await UserService.hardDeleteBy({});
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
         await GlobalConfig.removeTestConfig();
         await AuditLogsService.hardDeleteBy({});
     });
