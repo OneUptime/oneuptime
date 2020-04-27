@@ -108,7 +108,6 @@ export class Component extends React.Component {
 
     deleteSso = async  ssoId => {
         await this.props.deleteSso(ssoId);
-        //Should we fetch the list of all the SSOs every time a SSO is removed ?  
         await this.props.fetchSsos();
     }
     render() {

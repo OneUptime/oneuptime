@@ -59,7 +59,6 @@ export default function sso(state = INITIAL_STATE, action) {
                 }
             })
         case DELETE_SSO_SUCCESS:
-            //Should I save the success message ?
             return Object.assign({}, state, {
                 deleteSso: {
                     requesting: false,

@@ -43,20 +43,19 @@ export const fetchSsos = () => async dispatch => {
   }
 }
 
-export const deleteSsoRequest = () => async dispatch => {
+export const deleteSsoRequest = () => {
   return {
     type: types.DELETE_SSO_REQUEST,
   };
 }
 
-export const deleteSsoSuccess = payload => async dispatch => {
+export const deleteSsoSuccess = () => {
   return {
     type: types.DELETE_SSO_SUCCESS,
-    payload
   };
 }
 
-export const deleteSsoError = payload => async dispatch => {
+export const deleteSsoError = payload => {
   return {
     type: types.DELETE_SSO_FAILED,
     payload,
