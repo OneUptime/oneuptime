@@ -324,6 +324,161 @@ module.exports = product => {
                 },
             ],
         },
+        pingdom: {
+            productName: 'Pingdom',
+            iconUrl: '/img/pingdom.svg',
+            price: '$43/mo',
+            fyipePrice: '$22/mo',
+            description:
+                'Check out how we compare with Pingdom. We do most of what Pingdom does and a whole lot more.',
+            descriptionLine2:
+                "If you're a startup, we're a lot cheaper than Pingdom which saves you a hundreds today, thousands as you grow.",
+            faq: [
+                {
+                    question: 'How does Fyipe compare with Pingdom?',
+                    answer:
+                        'Pingdom is an monitoring tool whereas Fyipe is a complete SRE and IT Ops platform. Fyipe offers mostly everything that Pingdom offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                },
+                {
+                    question:
+                        'Do I need to buy an incident managemnrt and on-call solution for alerts?',
+                    answer:
+                        'Pingdom is a monitoring solution and you need to buy an on-call solution and incident management solution which Pingdom sends data to. Fyipe has a built in monitoring, on-cal and incident management. You use one product, your team has one dashboard, save time, simplify ops.',
+                },
+                {
+                    question:
+                        'I have already bought an external on-call and incident management solution. Will Fyipe work with it?',
+                    answer:
+                        'Yes! We integrate with every single on-call and incident management solution in the market - like PagerDuty, OpsGenie and more.',
+                },
+            ],
+            items: [
+                {
+                    type: 'category',
+                    title: 'Incident Management and On Call Scheduling',
+                },
+                {
+                    type: 'item',
+                    title: 'Alerts by Email, SMS, Call and Push Notifications',
+                    description:
+                        'Have your team alerted by any of the channels including Slack and Microsoft Teams',
+                    productColumn: '',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'item',
+                    title: 'On Call Rotations',
+                    description:
+                        'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
+                    productColumn: '',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'item',
+                    title: 'Vacation Policy',
+                    description:
+                        "Have vacation policy built into your company's on-call schedule.",
+                    productColumn: '',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'item',
+                    title: 'Sick Policy',
+                    description:
+                        "Have sick policy built into your company's on-call schedule.",
+                    productColumn: '',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'item',
+                    title: 'On-call for Geo-distributed teams',
+                    description:
+                        'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
+                    productColumn: '',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'category',
+                    title: 'Monitoring',
+                },
+                {
+                    type: 'item',
+                    title: 'Monitor anything',
+                    description:
+                        "Server, Containers, API's, Websites, IoT and more.",
+                    productColumn: 'Monitors only API and Websites.',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'item',
+                    title: 'Uptime Check',
+                    description: 'How often we check uptime of your resources.',
+                    productColumn: 'tick',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'item',
+                    title: 'Probe Locations',
+                    description:
+                        'We check your uptime from different locations around the world.',
+                    productColumn: 'tick',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'category',
+                    title: 'Status Page',
+                },
+                {
+                    type: 'item',
+                    title: 'Public Status Pages',
+                    description: 'Public Status Page for your customers.',
+                    productColumn: 'tick',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'item',
+                    title: 'Unlimited Subscribers',
+                    description:
+                        'You can have unlimited customer subscribers and have them alerted by Email, SMS, RSS or more.',
+                    productColumn: '',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'item',
+                    title: 'Scheduled Events',
+                    description:
+                        'You can show scheduled maintenance window on your status page.',
+                    productColumn: '',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'item',
+                    title: 'Private Status Page',
+                    description: 'Private status pages for your internal team.',
+                    productColumn: '',
+                    fyipeColumn: 'tick',
+                },
+                {
+                    type: 'category',
+                    title: 'Misc',
+                },
+                {
+                    type: 'item',
+                    title: 'Integrations',
+                    description: 'Integrate Fyipe with more than 2000+ apps.',
+                    productColumn: 'Integrates with 100+ apps',
+                    fyipeColumn: 'Integrates with 2000+ apps',
+                },
+                {
+                    type: 'item',
+                    title: 'API Access',
+                    description:
+                        'Build custom integrations with unlimited API access.',
+                    productColumn: 'tick',
+                    fyipeColumn: 'tick',
+                },
+            ],
+        },
     };
 
     return products[product];

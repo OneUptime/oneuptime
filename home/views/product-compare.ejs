@@ -2,7 +2,9 @@
 <html lang="en">
 
 <head>
+  <% if (productConfig && productConfig.productName) { %>
   <title>Fyipe | Compare <%= productConfig.productName %> with Fyipe </title>
+  <% } %>
   <meta name="description"
     content="Les tarifs de fyipe sont simple et transparents et facturés à l'utilisation. Il n'y a pas de frais d'installation, pas de frais mensuels, et pas non plus de frais cachés. Vous n'êtes liés par aucun engagement.">
   <% include ./head %>
@@ -192,6 +194,7 @@
       <div class="Header-container container-wide">
 
         <div class="row center-xs">
+          <% if (productConfig && productConfig.productName) { %>
           <div class="col-xs-12">
             <h1 class="Header-title common-PageTitle header-font header-size"
               style="margin-top: 50px; padding-bottom:20px">
@@ -202,6 +205,7 @@
             <p style="margin-bottom:40px; margin" class="Header-subTitle common-IntroText black">
               <%= productConfig.descriptionLine2 %></p>
           </div>
+          <% } %>
         </div>
 
       </div>
@@ -217,7 +221,7 @@
     <div class="sectionBorderTop">
       <% include ./comparision-chart %>
     </div>
-
+    <% if (productConfig && productConfig.productName) { %>
     <div class="comparision-heading">
       <h3 class="black">Here's a more detailed comparision.</h3>
       <h4 class="common-BodyText"><%= productConfig.description %></h4>
@@ -328,7 +332,7 @@
 
       </div>
     </div>
-
+    <% } %>
 
 
 
