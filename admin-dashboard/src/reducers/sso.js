@@ -30,7 +30,7 @@ export default function sso(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    soss: action.payload.data,
+                    ssos: action.payload.data,
                     count: action.payload.count,
                 },
             });
