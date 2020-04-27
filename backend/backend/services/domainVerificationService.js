@@ -1,69 +1,12 @@
 const dns = require('dns');
 const DomainVerificationTokenModel = require('../models/domainVerificationToken');
 const ErrorService = require('./errorService');
-const randomChar = require('../utils/randomChar');
 const getDomain = require('../utils/getDomain');
 const flatten = require('../utils/flattenArray');
-const StatusPageService = require('./statusPageService');
 
 const dnsPromises = dns.promises;
 
 module.exports = {
-    create: async function(subDomain, projectId, statusPageId) {
-        const token = 'fyipe=' + randomChar();
-        const domain = getDomain(subDomain);
-        let createdDomain = {};
-
-        try {
-            // check if domain already exist
-            const existingBaseDomain = await this.findOneBy({
-                domain,
-            });
-
-            if (!existingBaseDomain) {
-                const creationData = {
-                    domain,
-                    verificationToken: token,
-                    verifiedAt: null,
-                    deletedAt: null,
-                    projectId,
-                };
-                // create the domain
-                createdDomain = await DomainVerificationTokenModel.create(
-                    creationData
-                );
-            }
-            const statusPage = await StatusPageService.findOneBy({
-                _id: statusPageId,
-            });
-
-            if (statusPage) {
-                // attach the domain id to statuspage collection and update it
-                statusPage.domains = [
-                    ...statusPage.domains,
-                    {
-                        domain: subDomain,
-                        domainVerificationToken:
-                            createdDomain._id || existingBaseDomain._id,
-                    },
-                ];
-
-                const result = await statusPage.save();
-                return result
-                    .populate('domains.domainVerificationToken')
-                    .execPopulate();
-            } else {
-                const error = new Error(
-                    'Status page not found or does not exist'
-                );
-                ErrorService.log('domainVerificationService.create', error);
-                throw error;
-            }
-        } catch (error) {
-            ErrorService.log('domainVerificationService.create', error);
-            throw error;
-        }
-    },
     findOneBy: async function(query) {
         try {
             if (!query) {
@@ -109,7 +52,7 @@ module.exports = {
             throw error;
         }
     },
-    txtRecordExist: async function(subDomain, verificationToken) {
+    doesTxtRecordExist: async function(subDomain, verificationToken) {
         const host = 'fyipe';
         const domain = getDomain(subDomain);
         const domainToLookup = `${host}.${domain}`;
@@ -137,11 +80,11 @@ module.exports = {
                 };
             }
 
-            ErrorService.log('domainVerificationService.txtRecordExist', error);
+            ErrorService.log('domainVerificationService.doesTxtRecordExist', error);
             throw error;
         }
     },
-    domainExist: async function(projectId, subDomain) {
+    doesDomainBelongToProject: async function(projectId, subDomain) {
         const domain = getDomain(subDomain);
         const result = await this.findOneBy({
             domain,

@@ -72,8 +72,8 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 // Route Description: Creates a domain and domainVerificationToken
 // req.params -> {projectId, statusPageId}; req.body -> {domain}
 // Returns: response updated status page, error message
-router.post(
-    '/:projectId/:statusPageId',
+router.put(
+    '/:projectId/:statusPageId/domain',
     getUser,
     isAuthorized,
     async (req, res) => {
@@ -95,19 +95,19 @@ router.post(
         }
 
         try {
-            const domainExist = await DomainVerificationService.domainExist(
+            const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
                 projectId,
                 subDomain
             );
 
-            if (domainExist) {
+            if (doesDomainBelongToProject) {
                 return sendErrorResponse(req, res, {
                     message:
                         'This domain is already associated with another project',
                     code: 400,
                 });
             }
-            const response = await DomainVerificationService.create(
+            const response = await StatusPageService.createDomain(
                 subDomain,
                 projectId,
                 statusPageId
@@ -223,15 +223,15 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             return sendErrorResponse(req, res, error);
         }
 
-        let status;
+        let statusPage;
         if (data._id) {
-            status = await StatusPageService.findOneBy({
+            statusPage = await StatusPageService.findOneBy({
                 _id: data._id,
             });
             const imagesPath = {
-                faviconPath: status.faviconPath,
-                logoPath: status.logoPath,
-                bannerPath: status.bannerPath,
+                faviconPath: statusPage.faviconPath,
+                logoPath: statusPage.logoPath,
+                bannerPath: statusPage.bannerPath,
             };
             if (
                 Object.keys(files).length === 0 &&

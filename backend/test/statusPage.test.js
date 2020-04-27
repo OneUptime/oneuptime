@@ -254,7 +254,7 @@ describe('Status API', function() {
     it('should not update status page settings when domain is not string', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/statusPage/${projectId}/${statusPageId}`)
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send({
                 domain: 5,
@@ -268,7 +268,7 @@ describe('Status API', function() {
     it('should not update status page settings when domain is not valid', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/statusPage/${projectId}/${statusPageId}`)
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send({
                 domain: 'wwwtest',
@@ -364,7 +364,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = { domain: 'fyipeapp.com' };
         request
-            .post(`/statusPage/${projectId}/${statusPageId}`)
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -420,7 +420,7 @@ describe('Status API', function() {
     it('should not verify a domain that does not exist on the web', function(done) {
         const authorization = `Basic ${token}`;
         const domain = 'binoehty1234hgyt.com';
-        DomainVerificationService.create(domain, projectId, statusPageId).then(
+        StatusService.createDomain(domain, projectId, statusPageId).then(
             function() {
                 DomainVerificationService.findOneBy({ domain }).then(function({
                     domain,
@@ -446,7 +446,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.fyipe.hackerbay' };
         request
-            .post(`/statusPage/${projectId}/${statusPageId}`)
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -459,7 +459,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = { domain: 'fyipe.com' };
         request
-            .post(`/statusPage/${projectId}/${statusPageId}`)
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -467,6 +467,19 @@ describe('Status API', function() {
                 done();
             });
     });
+
+    it('should add status.fyipeapp.com without errors', function(done){
+        const authorization = `Basic ${token}`;
+        const data = { domain: 'status.fyipeapp.com' };
+        request
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                done();
+            });
+    })
 
     // This test will work base on the fact that a domain was previously created in another project
     // This test will try to create another domain with the same domain on another project
@@ -494,8 +507,8 @@ describe('Status API', function() {
                     .end(function(err, res) {
                         const newStatusPageId = res.body._id;
                         request
-                            .post(
-                                `/statusPage/${newProjectId}/${newStatusPageId}`
+                            .put(
+                                `/statusPage/${newProjectId}/${newStatusPageId}/domain`
                             )
                             .set('Authorization', authorization)
                             .send(data)

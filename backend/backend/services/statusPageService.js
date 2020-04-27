@@ -86,6 +86,63 @@ module.exports = {
         }
     },
 
+    createDomain: async function(subDomain, projectId, statusPageId) {
+        const token = 'fyipe=' + randomChar();
+        const domain = getDomain(subDomain);
+        let createdDomain = {};
+
+        try {
+            // check if domain already exist
+            const existingBaseDomain = await DomainVerificationService.findOneBy({
+                domain,
+            });
+
+            if (!existingBaseDomain) {
+                const creationData = {
+                    domain,
+                    verificationToken: token,
+                    verifiedAt: null,
+                    deletedAt: null,
+                    projectId,
+                };
+                // create the domain
+                createdDomain = await DomainVerificationTokenModel.create(
+                    creationData
+                );
+            }
+            const statusPage = await this.findOneBy({
+                _id: statusPageId,
+            });
+
+            if (statusPage) {
+                // attach the domain id to statuspage collection and update it
+                statusPage.domains = [
+                    ...statusPage.domains,
+                    {
+                        domain: subDomain,
+                        domainVerificationToken:
+                            createdDomain._id || existingBaseDomain._id,
+                    },
+                ];
+
+                const result = await statusPage.save();
+                return result
+                    .populate('domains.domainVerificationToken')
+                    .execPopulate();
+            } else {
+                const error = new Error(
+                    'Status page not found or does not exist'
+                );
+                error.code = 400;
+                ErrorService.log('statusPageService.createDomain', error);
+                throw error;
+            }
+        } catch (error) {
+            ErrorService.log('statusPageService.createDomain', error);
+            throw error;
+        }
+    },
+
     countBy: async function(query) {
         try {
             if (!query) {
@@ -563,3 +620,7 @@ const SubscriberService = require('./subscriberService');
 const ProjectService = require('./projectService');
 const _ = require('lodash');
 const defaultStatusPageColors = require('../config/statusPageColors');
+const DomainVerificationService = require('./domainVerificationService');
+const DomainVerificationTokenModel = require('../models/domainVerificationToken');
+const randomChar = require('../utils/randomChar');
+const getDomain = require('../utils/getDomain');

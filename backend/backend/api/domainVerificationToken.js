@@ -20,14 +20,14 @@ router.put(
         const { domainId } = req.params;
 
         try {
-            const txtFound = await DomainVerificationService.txtRecordExist(
+            const doesTxtRecordExist = await DomainVerificationService.doesTxtRecordExist(
                 subDomain,
                 verificationToken
             );
 
-            if (!txtFound) {
+            if (!doesTxtRecordExist) {
                 return sendErrorResponse(req, res, {
-                    message: 'Txt record not found',
+                    message: 'TXT record not found',
                     code: 400,
                 });
             }
