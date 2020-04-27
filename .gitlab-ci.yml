@@ -1522,7 +1522,7 @@ stages:
 smoke_test_production:
   stage: SmokeTest
   script:
-    - export HOME_URL=https://www.fyipe.com
+    - export HOME_URL=https://fyipe.com
     - export ACCOUNTS_URL=https://fyipe.com/accounts
     - export DASHBOARD_URL=https://fyipe.com/dashboard
     - export BACKEND_URL=https://fyipe.com/api
