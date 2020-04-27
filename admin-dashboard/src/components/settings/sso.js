@@ -123,6 +123,134 @@ export class Component extends React.Component {
                             </p>
                         </div>
                     </div>
+                    <div style={{ overflow: "auto hidden" }}>
+                        <table className="Table">
+                            <thead className="Table-body">
+                                <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: "1px", minWidth: "270px" }}>
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span
+                                            className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>
+                                                domain
+                                            </span>
+                                        </span>
+                                        </div>
+                                    </td>
+                                    <td id="placeholder-left"
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: "1px", maxWidth: "48px", minWidth: "48px", width: "48px" }}>
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span
+                                                className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: "1px" }}>
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span
+                                                className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>
+                                                    actions
+                                                 </span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td id="placeholder-right"
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: "1px", maxWidth: "48px", minWidth: "48px", width: "48px" }}>
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span
+                                                className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: "1px" }}>
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8"><span
+                                            className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>
+                                                Created At
+                                            </span>
+                                        </span>
+                                        </div>
+                                    </td>
+                                    <td id="overflow" type="action"
+                                        className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: "1px" }}>
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span
+                                                className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </thead>
+                            <tbody className="Table-body">
+                                <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                        style={{ height: "1px", minWidth: "270px" }}>
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span
+                                                className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <div className="Box-root Margin-right--16">
+                                                    <span>
+                                                        Domain
+                                                    </span>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td aria-hidden="true"
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: "1px", maxWidth: "48px", minWidth: "48px", width: "48px" }}>
+                                        <div className="db-ListViewItem-link">
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: "1px" }}
+                                    >
+                                        <div className="db-ListViewItem-link">
+                                            <button className="bs-Button bs-Button--blue Box-background--blue">
+                                                Edit
+                                            </button>
+                                            <button className="bs-Button bs-Button--red Box-background--red">
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td aria-hidden="true"
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: "1px", maxWidth: "48px", minWidth: "48px", width: "48px" }}>
+                                        <div className="db-ListViewItem-link">
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">⁣
+                                           </div>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: "1px" }}>
+                                        <div className="db-ListViewItem-link">
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                Creation time
+                                              </div>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     <form
                         id="sso-form"
                         onSubmit={handleSubmit(this.submitForm)}
@@ -194,8 +322,8 @@ export class Component extends React.Component {
                                     {settings.requesting ? (
                                         <FormLoader />
                                     ) : (
-                                        <span>Save Settings</span>
-                                    )}
+                                            <span>Save Settings</span>
+                                        )}
                                 </button>
                             </div>
                         </div>
