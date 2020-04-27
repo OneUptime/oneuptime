@@ -2,7 +2,9 @@
 <html lang="en">
 
 <head>
+  <% if (productConfig && productConfig.productName) { %>
   <title>Fyipe | Compare <%= productConfig.productName %> with Fyipe </title>
+  <% } %>
   <meta name="description"
     content="Les tarifs de fyipe sont simple et transparents et facturés à l'utilisation. Il n'y a pas de frais d'installation, pas de frais mensuels, et pas non plus de frais cachés. Vous n'êtes liés par aucun engagement.">
   <% include ./head %>
@@ -192,6 +194,7 @@
       <div class="Header-container container-wide">
 
         <div class="row center-xs">
+          <% if (productConfig && productConfig.productName) { %>
           <div class="col-xs-12">
             <h1 class="Header-title common-PageTitle header-font header-size"
               style="margin-top: 50px; padding-bottom:20px">
@@ -202,6 +205,7 @@
             <p style="margin-bottom:40px; margin" class="Header-subTitle common-IntroText black">
               <%= productConfig.descriptionLine2 %></p>
           </div>
+          <% } %>
         </div>
 
       </div>
@@ -217,7 +221,7 @@
     <div class="sectionBorderTop">
       <% include ./comparision-chart %>
     </div>
-
+    <% if (productConfig && productConfig.productName) { %>
     <div class="comparision-heading">
       <h3 class="black">Here's a more detailed comparision.</h3>
       <h4 class="common-BodyText"><%= productConfig.description %></h4>
@@ -240,13 +244,13 @@
           <tr class="pricing-compare-table">
             <th class="hide pricing-compare-table"></th>
             <th class="bg-black pricing-compare-table">
-              <img src="<%= productConfig.iconUrl %>" height="50" style="margin-top:10px" />
+              <img src="<%= productConfig.iconUrl %>" alt="<%= productConfig.productName %>" height="50" style="margin-top:10px" />
               <h2 class="Plan-title noborders" style="padding-top:10px">
                 <%= productConfig.productName %>
               </h2>
             </th>
             <th class="bg-black pricing-compare-table">
-              <img src="/img/Fyipe.svg" height="50" style="margin-top:10px" />
+              <img src="/img/Fyipe.svg" height="50" alt="Fyipe" style="margin-top:10px" />
               <h2 class="Plan-title noborders" style="padding-top:10px">
                 Fyipe
               </h2>
@@ -287,13 +291,13 @@
             </td>
             <td class="pricing-compare-table">
               <% if (productConfig.items[i].productColumn === "tick") { %>
-              <span class="tick pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" /></span>
+              <span class="tick pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" alt="yes" /></span>
               <%} else { %>
               <span class="pricing-compare-table font14"> <%=productConfig.items[i].productColumn %> </span>
               <% } %>
             </td>
             <td class="pricing-compare-table"> <% if (productConfig.items[i].fyipeColumn === "tick") { %>
-              <span class="tick pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" /></span>
+              <span class="tick pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" alt="yes" /></span>
               <%} else { %>
               <span class="pricing-compare-table font14"> <%=productConfig.items[i].fyipeColumn %> </span>
               <% } %>
@@ -328,7 +332,7 @@
 
       </div>
     </div>
-
+    <% } %>
 
 
 

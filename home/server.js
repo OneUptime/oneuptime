@@ -355,16 +355,16 @@ app.get('/compare/:product', function(req, res) {
             blackLogo: false,
             requestDemoCta: false,
         });
+    } else {
+        res.render('product-compare.ejs', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+            productConfig,
+        });
     }
-
-    res.render('product-compare.ejs', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-        productConfig,
-    });
 });
 
 // minify default.js
