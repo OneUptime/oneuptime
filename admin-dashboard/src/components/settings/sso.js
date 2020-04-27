@@ -7,7 +7,7 @@ import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import { fetchSettings, saveSettings } from '../../actions/settings';
-import { fetchSsos } from '../../actions/sso';
+import { fetchSsos, deleteSso } from '../../actions/sso';
 import moment from 'moment';
 
 // Client side validation
@@ -106,6 +106,10 @@ export class Component extends React.Component {
         this.props.saveSettings(settingsType, values);
     };
 
+    deleteSso = async  ssoId => {
+        await this.props.deleteSso(ssoId);
+        // await this.props.fetchSsos();
+    }
     render() {
         const { settings, handleSubmit, ssos } = this.props;
         return (
@@ -229,7 +233,10 @@ export class Component extends React.Component {
                                                 <button className="bs-Button bs-Button--blue Box-background--blue">
                                                     Edit
                                             </button>
-                                                <button className="bs-Button bs-Button--red Box-background--red">
+                                                <button
+                                                    className="bs-Button bs-Button--red Box-background--red"
+                                                    onClick={() => this.deleteSso(sso._id)}
+                                                >
                                                     Delete
                                             </button>
                                             </div>
@@ -365,6 +372,7 @@ const mapDispatchToProps = dispatch => {
             saveSettings,
             fetchSettings,
             fetchSsos,
+            deleteSso,
         },
         dispatch
     );
