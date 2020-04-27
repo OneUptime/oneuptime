@@ -72,6 +72,10 @@ spec:
                         value: {{ .Values.saas.airtable.baseId }}
                       - name: IS_THIRD_PARTY_BILLING
                         value: {{ .Values.isThirdPartyBilling | quote }}
+                      - name: ADMIN_EMAIL
+                        value: {{ .Values.fyipe.admin.email }}
+                      - name: ADMIN_PASSWORD
+                        value: {{ .Values.fyipe.admin.password }}
                       {{- end }}
                   ports:
                       - containerPort: {{ .Values.host.backendPort }}

@@ -41,6 +41,13 @@ then
     sudo apt-get install -y python-jsonpath-rw
 fi
 
+if [[ "$2" == "aws-ec2" ]]
+then
+    sudo wget http://s3.amazonaws.com/ec2metadata/ec2-metadata 
+    sudo chmod u+x ec2-metadata
+    INSTANCEID=$ec2-metadata -i
+fi
+
 #Install Docker and setup registry and insecure access to it.
 if [[ ! $(which docker) ]]
 then
@@ -149,13 +156,26 @@ function updateinstallation {
 if [[ "$1" == "thirdPartyBillingEnabled" ]] #If thirdPartyBillingIsEnabled (for ex for Marketplace VM's)
 then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
-    then
-        # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
-        sudo helm install fyipe fyipe/Fyipe \
-        --set isThirdPartyBilling=true \
-        --set nginx-ingress-controller.service.type=NodePort \
-        --set nginx-ingress-controller.hostNetwork=true \
-        --set image.tag=$AVAILABLE_VERSION
+    then   
+        if [[ "$2" == "aws-ec2" ]]
+        then
+            # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
+            # Add Admin Email and Password on AWS.
+            sudo helm install fyipe fyipe/Fyipe \
+            --set isThirdPartyBilling=true \
+            --set nginx-ingress-controller.service.type=NodePort \
+            --set nginx-ingress-controller.hostNetwork=true \
+            --set image.tag=$AVAILABLE_VERSION
+            --set fyipe.admin.email=admin@admin.com
+            --set fyipe.admin.password=$INSTANCEID
+        else
+            # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
+            sudo helm install fyipe fyipe/Fyipe \
+            --set isThirdPartyBilling=true \
+            --set nginx-ingress-controller.service.type=NodePort \
+            --set nginx-ingress-controller.hostNetwork=true \
+            --set image.tag=$AVAILABLE_VERSION
+        fi
     else
         updateinstallation
     fi

@@ -35,6 +35,9 @@ statusPage:
 ## Important: Fyipe Values. More information in the Readme.md 
 ################################################################################## 
 fyipe:
+  admin: 
+    email: 
+    password: 
   hosts:
     host1: 
       host: 

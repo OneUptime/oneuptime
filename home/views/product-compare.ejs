@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Fyipe | Compare <%= productConfig.productName %> with Fyipe </title>
+  <meta name="description"
+    content="Les tarifs de fyipe sont simple et transparents et facturés à l'utilisation. Il n'y a pas de frais d'installation, pas de frais mensuels, et pas non plus de frais cachés. Vous n'êtes liés par aucun engagement.">
+  <% include ./head %>
+  <script src="/js/amplitude.js"></script>
+  <script async>
+    var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+    if (IS_SAAS_SERVICE) {
+      amplitude.getInstance().logEvent('Pricing page viewed');
+    }
+  </script>
+  <link rel="stylesheet" href="/css/flexbox-grid.css">
+  <link rel="stylesheet" href="/css/flexbox-grid.css">
+  <link rel="stylesheet" href="/css/pricing.css">
+  <link rel="stylesheet" href="/css/pricing.css">
+  <link rel="stylesheet" href="/css/switch.css">
+  <link rel="stylesheet" href="/css/switch.css">
+  <link rel="stylesheet" href="/css/comparision.css">
+  <link rel="stylesheet" href="/css/comparision.css">
+  <link rel="stylesheet" href="/css/crm.css">
+  <link rel="stylesheet" href="/css/sdlc.css">
+  <link rel="stylesheet" href="/css/comparision.css">
+
+  <style>
+    /* DIRTY Responsive pricing table CSS */
+
+    /* 
+- make mobile switch sticky
+*/
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+      outline: 0;
+    }
+
+    article.pricing-compare-table {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    ul.pricing-compare-table {
+      display: flex;
+      top: 0px;
+      z-index: 10;
+      padding-bottom: 14px;
+    }
+
+    li.pricing-compare-table {
+      list-style: none;
+      flex: 1;
+    }
+
+    li.pricing-compare-table:last-child {
+      border-right: 1px solid #DDD;
+    }
+
+    button.pricing-compare-table {
+      width: 100%;
+      border: 1px solid #DDD;
+      border-right: 0;
+      border-top: 0;
+      padding: 10px;
+      background: #FFF;
+      font-size: 14px;
+      font-weight: bold;
+      height: 60px;
+      color: #999
+    }
+
+    li.active.pricing-compare-table button.pricing-compare-table {
+      background: #F5F5F5;
+      color: #000;
+    }
+
+    table.pricing-compare-table {
+      border-collapse: collapse;
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    th.pricing-compare-table {
+      background: #F5F5F5;
+      display: none;
+    }
+
+    td.pricing-compare-table,
+    th.pricing-compare-table {
+      height: 53px
+    }
+
+    td.pricing-compare-table,
+    th.pricing-compare-table {
+      border: 1px solid #DDD;
+      padding: 10px;
+      empty-cells: show;
+    }
+
+    td.pricing-compare-table,
+    th.pricing-compare-table {
+      text-align: left;
+    }
+
+    td+td.pricing-compare-table,
+    th+th.pricing-compare-table {
+      text-align: center;
+      display: none;
+    }
+
+    td.default.pricing-compare-table {
+      display: table-cell;
+    }
+
+    .bg-black.pricing-compare-table {
+      border-top: 3px solid rgb(0, 0, 0);
+    }
+
+    .sep.pricing-compare-table {
+      background: #F5F5F5;
+      font-weight: bold;
+    }
+
+    .txt-l.pricing-compare-table {
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .txt-top.pricing-compare-table {
+      position: relative;
+      top: -9px;
+      left: -2px;
+    }
+
+    .tick.pricing-compare-table {
+      font-size: 18px;
+      color: #2CA01C;
+    }
+
+    .hide.pricing-compare-table {
+      border: 0;
+      background: none;
+    }
+
+    @media (min-width: 640px) {
+      ul.pricing-compare-table {
+        display: none;
+      }
+
+      td.pricing-compare-table,
+      th.pricing-compare-table {
+        display: table-cell !important;
+      }
+
+      td.pricing-compare-table,
+      th.pricing-compare-table {
+        width: 330px;
+
+      }
+
+      td+td.pricing-compare-table,
+      th+th.pricing-compare-table {
+        width: auto;
+      }
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <% include ./nav %>
+
+
+  <div class="globalContent">
+
+    <header class="Header">
+
+      <div class="fyipeBackground">
+
+      </div>
+
+      <div class="fyipeBackground accelerated">
+
+      </div>
+
+      <div class="Header-container container-wide">
+
+        <div class="row center-xs">
+          <div class="col-xs-12">
+            <h1 class="Header-title common-PageTitle header-font header-size"
+              style="margin-top: 50px; padding-bottom:20px">
+              Compare <%= productConfig.productName %> with Fyipe
+            </h1>
+            <p style="padding-top:15px;margin-bottom:0px" class="Header-subTitle common-IntroText black">
+              <%= productConfig.description %></p>
+            <p style="margin-bottom:40px; margin" class="Header-subTitle common-IntroText black">
+              <%= productConfig.descriptionLine2 %></p>
+          </div>
+        </div>
+
+      </div>
+
+    </header>
+
+
+
+
+    </article>
+
+    <% include ./sdlc %>
+    <div class="sectionBorderTop">
+      <% include ./comparision-chart %>
+    </div>
+
+    <div class="comparision-heading">
+      <h3 class="black">Here's a more detailed comparision.</h3>
+      <h4 class="common-BodyText"><%= productConfig.description %></h4>
+    </div>
+
+    <!-- DIRTY Responsive pricing table HTML -->
+    <article class="pricing-compare-table">
+
+      <ul class="pricing-compare-table">
+        <li class="bg-black pricing-compare-table">
+          <button class="pricing-compare-table"><%= productConfig.productName %></button>
+        </li>
+        <li class="bg-black pricing-compare-table">
+          <button class="pricing-compare-table">Fyipe</button>
+        </li>
+      </ul>
+
+      <table class="pricing-compare-table">
+        <thead class="pricing-compare-table">
+          <tr class="pricing-compare-table">
+            <th class="hide pricing-compare-table"></th>
+            <th class="bg-black pricing-compare-table">
+              <img src="<%= productConfig.iconUrl %>" height="50" style="margin-top:10px" />
+              <h2 class="Plan-title noborders" style="padding-top:10px">
+                <%= productConfig.productName %>
+              </h2>
+            </th>
+            <th class="bg-black pricing-compare-table">
+              <img src="/img/Fyipe.svg" height="50" style="margin-top:10px" />
+              <h2 class="Plan-title noborders" style="padding-top:10px">
+                Fyipe
+              </h2>
+            </th>
+          </tr>
+        </thead class="pricing-compare-table">
+        <tbody class="pricing-compare-table">
+          <tr class="pricing-compare-table">
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                Price
+              </span>
+            </td>
+            <td class="pricing-compare-table">
+              <div class="Plan-cardRate-percent pricing-font">
+                <%= productConfig.price %>
+              </div>
+            </td>
+            <td class="pricing-compare-table">
+              <div class="Plan-cardRate-percent pricing-font">
+                <%= productConfig.fyipePrice %>
+              </div>
+            </td>
+          </tr>
+          <% for(var i=0; i < productConfig.items.length; i++) { %>
+          <tr class="pricing-compare-table">
+            <% if (productConfig.items[i].type === "category") { %>
+            <td colspan="3" class="sep pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                <%= productConfig.items[i].title %>
+              </span>
+            </td>
+            <%} else { %>
+            <td class="pricing-compare-table">
+              <span class="pricing-compare-table font14">
+                <%= productConfig.items[i].title %> <br /> <i><%= productConfig.items[i].description %></i>
+              </span>
+            </td>
+            <td class="pricing-compare-table">
+              <% if (productConfig.items[i].productColumn === "tick") { %>
+              <span class="tick pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" /></span>
+              <%} else { %>
+              <span class="pricing-compare-table font14"> <%=productConfig.items[i].productColumn %> </span>
+              <% } %>
+            </td>
+            <td class="pricing-compare-table"> <% if (productConfig.items[i].fyipeColumn === "tick") { %>
+              <span class="tick pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" /></span>
+              <%} else { %>
+              <span class="pricing-compare-table font14"> <%=productConfig.items[i].fyipeColumn %> </span>
+              <% } %>
+            </td>
+            <% } %>
+          </tr>
+          <% } %>
+
+
+        </tbody>
+      </table>
+
+    </article>
+
+    <div class="PricingFAQ">
+      <div class="container">
+
+        <div class="row PricingFAQ-row">
+          <% for(var i=0; i < productConfig.faq.length; i++) { %>
+          <div class="col-xs-12
+                          col-sm-6">
+            <h5 class="common-BodyTitle PricingFAQ-title">
+              <%= productConfig.faq[i].question %>
+            </h5>
+            <p class="common-BodyText PricingFAQ-body font16">
+              <%= productConfig.faq[i].answer %>
+            </p>
+          </div>
+          <% } %>
+
+        </div>
+
+      </div>
+    </div>
+
+
+
+
+  </div>
+
+  <%include ./footer%>
+  <script src="/js/switch.js"></script>
+  <script>
+    var el = document.querySelector('.checkbox-switch');
+
+    var annualSelected = false;
+
+    var mySwitch = new Switch(el, {
+      onSwitchColor: '#78bf7d',
+      offSwitchColor: '#78bf7d',
+      onJackColor: '#FFFFFF',
+      offJackColor: '#FFFFFF',
+      onChange: switchPlanCheckBox
+    });
+
+    $(document).ready(function () {
+      switchPlanCheckBox();
+    })
+
+    function switchPlanCheckBox() {
+      annualSelected = !annualSelected;
+
+      if (annualSelected) {
+        $("#growth-rate").text("$49");
+
+        $("#startup-rate").text("$22");
+        $("#scale-rate").text("$99");
+        $("#growth-description").text("per-user billed annually.");
+        $("#startup-description").text("per-user billed annually.");
+        $("#scale-description").text("per-user billed annually.");
+
+
+        $("#annual-text").css("font-weight", 600);
+        $("#monthly-text").css("font-weight", 500);
+      } else {
+
+        $("#growth-rate").text("$59");
+        $("#growth-description").text("per-user billed monthly.");
+
+        $("#startup-rate").text("$25");
+        $("#startup-description").text("per-user billed monthly.");
+
+        $("#scale-rate").text("$120");
+        $("#scale-description").text("per-user billed monthly.");
+
+        $("#monthly-text").css("font-weight", 600);
+        $("#annual-text").css("font-weight", 500);
+      }
+
+      if (window.location.href.indexOf("localhost") > -1) {
+        if (annualSelected) {
+          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWIqpBpStiqQp')")
+          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWKiTdQ6NiQFw')")
+          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9IlBKhsFz4hV2')")
+        } else {
+          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWIYiX2L8hwzx')")
+          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWKgxRnPPBJWy')")
+          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9Iox3l2YqLTDR')")
+        }
+      } else {
+        if (annualSelected) {
+          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVgJu5PKMLRJU')")
+          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoViZshjqzZ0vv')")
+          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9IjvX2Flsvlcg')")
+        } else {
+          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVgVbvNdbWwlm')")
+          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVi9EIa6MU0fG')")
+          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9Ii6Qj3HLdtty')")
+        }
+      }
+    }
+  </script>
+
+  <script>
+    // DIRTY Responsive pricing table JS
+
+    $("ul").on("click", "li", function () {
+      var pos = $(this).index() + 2;
+      $("tr").find('td:not(:eq(0))').hide();
+      $('td:nth-child(' + pos + ')').css('display', 'table-cell');
+      $("tr").find('th:not(:eq(0))').hide();
+      $('li').removeClass('active');
+      $(this).addClass('active');
+    });
+
+    // Initialize the media query
+    var mediaQuery = window.matchMedia('(min-width: 640px)');
+
+    // Add a listen event
+    mediaQuery.addListener(doSomething);
+
+    // Function to do something with the media query
+    function doSomething(mediaQuery) {
+      if (mediaQuery.matches) {
+        $('.sep').attr('colspan', 3);
+      } else {
+        $('.sep').attr('colspan', 2);
+      }
+    }
+
+    // On load
+    doSomething(mediaQuery);
+  </script>
+
+  <!-- Defer loading of style sheets -->
+  <script>
+    var loadDeferredStyles = function () {
+      var addStylesNode = document.getElementById("deferred-styles");
+      var replacement = document.createElement("div");
+      replacement = document.createElement("div");
+      replacement.innerHTML = addStylesNode.textContent;
+      document.body.appendChild(replacement)
+      addStylesNode.parentElement.removeChild(addStylesNode);
+    };
+    var raf = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+      window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+    if (raf) raf(function () { window.setTimeout(loadDeferredStyles, 0); });
+    else window.addEventListener('load', loadDeferredStyles);
+  </script>
+
+  <script type="text/javascript" async>
+    _linkedin_partner_id = "706292";
+    window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
+    window._linkedin_data_partner_ids.push(_linkedin_partner_id);
+  </script>
+  <script type="text/javascript" async>
+    (function () {
+      var s = document.getElementsByTagName("script")[0];
+      var b = document.createElement("script");
+      b.type = "text/javascript"; b.async = true;
+      b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
+      s.parentNode.insertBefore(b, s);
+    })();
+  </script>
+
+  <img height="1" width="1" style="display:none;" alt=""
+    src="https://dc.ads.linkedin.com/collect/?pid=706292&fmt=gif" />
+
+
+</body>
+
+
+
+</html>
