@@ -8,10 +8,10 @@ export const fetchSsosRequest = () => {
   }
 }
 
-export const fetchSsosSuccess = (ssos) => {
+export const fetchSsosSuccess = (payload) => {
   return {
     type: types.FETCH_SSOS_SUCCESS,
-    payload:ssos,
+    payload,
   }
 }
 
