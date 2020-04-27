@@ -24,6 +24,7 @@ async function run() {
                 createdAt: now,
                 verifiedAt: now,
                 deletedAt: null,
+                projectId: statusPage.projectId,
             },
         ]);
         const domains = [
