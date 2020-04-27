@@ -12,7 +12,6 @@ module.exports = {
                     code: 400,
                     message: 'Failed to remove the sso.'
                 }
-            return 'Sso remove successfully!';
         } catch (error) {
             ErrorService.log('ssoService.deleteSso', error);
             throw error;

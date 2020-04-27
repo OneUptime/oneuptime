@@ -23,8 +23,8 @@ router.delete('/:ssoId', async function (req, res) {
     })
   }
   try {
-    const message = await SsoService.deleteSso(ssoId);
-    return sendItemResponse(req, res, message);
+    await SsoService.deleteSso(ssoId);
+    return sendItemResponse(req, res);
   } catch (error) {
     return sendErrorResponse(req, res, error)
   }
