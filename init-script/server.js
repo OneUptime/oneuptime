@@ -41,6 +41,7 @@ async function run() {
     // Switched to for loop, forEach does not await the callback
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
+
         if (
             currentVersion &&
             parseInt(currentVersion) < parseInt(file.split('.')[2])

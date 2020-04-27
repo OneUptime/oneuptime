@@ -13,7 +13,7 @@
         "mocha": "^6.1.4",
         "moment": "^2.22.1",
         "prop-types": "^15.6.2",
-        "puppeteer": "^1.20.0",
+        "puppeteer": "^2.1.1",
         "query-string": "^6.10.1",
         "react": "^16.3.2",
         "react-dom": "^16.3.2",

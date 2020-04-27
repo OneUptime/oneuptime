@@ -17,6 +17,7 @@ const puppeteerLaunchConfig = {
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
         '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process', // fix issue with cross origin policy
     ],
 };
 

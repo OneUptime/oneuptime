@@ -54,6 +54,19 @@ export function createStatusPage(projectId, data) {
     };
 }
 
+// handle whether to show domain input field
+export function addMoreDomain() {
+    return {
+        type: types.ADD_MORE_DOMAIN,
+    };
+}
+
+export function cancelAddMoreDomain() {
+    return {
+        type: types.CANCEL_ADD_MORE_DOMAIN,
+    };
+}
+
 //Update status page setting
 
 export function updateStatusPageSettingRequest() {
