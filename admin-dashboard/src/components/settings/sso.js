@@ -7,6 +7,7 @@ import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import { fetchSettings, saveSettings } from '../../actions/settings';
+import {fetchSsos} from '../../actions/sso';
 
 // Client side validation
 function validate(values) {
@@ -97,6 +98,7 @@ const fields = [
 export class Component extends React.Component {
     async componentDidMount() {
         await this.props.fetchSettings(settingsType);
+        await this.props.fetchSsos()
     }
 
     submitForm = values => {
@@ -351,6 +353,7 @@ const mapDispatchToProps = dispatch => {
         {
             saveSettings,
             fetchSettings,
+            fetchSsos,
         },
         dispatch
     );
