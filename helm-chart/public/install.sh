@@ -28,10 +28,6 @@ then
     echo "RUNNING COMMAND:  sudo apt-add-repository restricted"
     sudo apt-add-repository restricted
 
-    # Iptables
-    echo "RUNNING COMMAND:  sudo iptables -P FORWARD ACCEPT"
-    sudo iptables -P FORWARD ACCEPT
-
     # Install Basic packages
     echo "RUNNING COMMAND:  sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget"
     sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget
@@ -75,6 +71,9 @@ fi
 
 if [[ ! $(which microk8s) ]]
 then
+    # Iptables
+    echo "RUNNING COMMAND: sudo iptables -P FORWARD ACCEPT"
+    sudo iptables -P FORWARD ACCEPT
     # Install microK8s
     echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
     sudo snap set system refresh.retain=2

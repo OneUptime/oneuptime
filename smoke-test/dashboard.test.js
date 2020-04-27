@@ -16,6 +16,9 @@ const user = {
 describe('Monitor API', () => {
     const operationTimeOut = 500000;
 
+    const componentName = utils.generateRandomString();
+    const monitorName = utils.generateRandomString();
+
     beforeAll(async () => {
         jest.setTimeout(150000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -28,11 +31,27 @@ describe('Monitor API', () => {
     });
 
     afterAll(async () => {
+        // delete monitor
+        await page.waitForSelector(`#more-details-${monitorName}`);
+        await page.click(`#more-details-${monitorName}`);
+        await page.waitForSelector(`#delete_${monitorName}`);
+        await page.click(`#delete_${monitorName}`);
+        await page.waitForSelector('#deleteMonitor');
+        await page.click('#deleteMonitor');
+        await page.waitFor(2000);
+
+        // delete component
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
+        await page.waitForSelector(`#delete-component-${componentName}`);
+        await page.click(`#delete-component-${componentName}`);
+        await page.waitForSelector('#deleteComponent');
+        await page.click('#deleteComponent');
+        await page.waitFor(2000);
+
         await browser.close();
     });
-
-    const componentName = utils.generateRandomString();
-    const monitorName = utils.generateRandomString();
 
     it(
         'Should create new component',

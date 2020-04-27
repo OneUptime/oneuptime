@@ -1522,7 +1522,7 @@ rollback_if_production_deployment_fails:
 smoke_test_production:
   stage: SmokeTest
   script:
-    - export HOME_URL=https://www.fyipe.com
+    - export HOME_URL=https://fyipe.com
     - export ACCOUNTS_URL=https://fyipe.com/accounts
     - export DASHBOARD_URL=https://fyipe.com/dashboard
     - export BACKEND_URL=https://fyipe.com/api
@@ -1549,7 +1549,7 @@ smoke_test_staging:
     - export ACCOUNTS_URL=https://staging.fyipe.com/accounts
     - export DASHBOARD_URL=https://staging.fyipe.com/dashboard
     - export BACKEND_URL=https://staging.fyipe.com/api
-    - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
+    - export STATUSPAGE_URL=https://staging.fyipe.com/status-page
     - export APIDOCS_URL=https://staging.fyipe.com/docs
     - export LICENSING_URL=https://staging.fyipe.com/license
     - cd smoke-test
