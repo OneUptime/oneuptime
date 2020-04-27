@@ -45,7 +45,7 @@
     "scripts": {
         "dev": "PORT=3100 react-scripts start",
         "build": "react-scripts build",
-        "test": "jest --runInBand ./src/test/AuditLog.test.js",
+        "test": "jest --runInBand ./src/test/*.test.js",
         "enterprise-test": "jest --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",

@@ -1,4 +1,4 @@
-import { putApi, postApi } from '../api';
+import { putApi } from '../api';
 import * as types from '../constants/domain';
 
 export function verifyDomainRequest() {
@@ -70,8 +70,8 @@ export function createDomain({ projectId, statusPageId, domain }) {
         dispatch(createDomainRequest());
 
         try {
-            const response = await postApi(
-                `statusPage/${projectId}/${statusPageId}`,
+            const response = await putApi(
+                `statusPage/${projectId}/${statusPageId}/domain`,
                 { domain }
             );
             dispatch(createDomainSuccess(response.data));
