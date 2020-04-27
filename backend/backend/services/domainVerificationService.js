@@ -80,7 +80,10 @@ module.exports = {
                 };
             }
 
-            ErrorService.log('domainVerificationService.doesTxtRecordExist', error);
+            ErrorService.log(
+                'domainVerificationService.doesTxtRecordExist',
+                error
+            );
             throw error;
         }
     },

@@ -93,9 +93,11 @@ module.exports = {
 
         try {
             // check if domain already exist
-            const existingBaseDomain = await DomainVerificationService.findOneBy({
-                domain,
-            });
+            const existingBaseDomain = await DomainVerificationService.findOneBy(
+                {
+                    domain,
+                }
+            );
 
             if (!existingBaseDomain) {
                 const creationData = {

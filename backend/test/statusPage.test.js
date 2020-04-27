@@ -468,7 +468,7 @@ describe('Status API', function() {
             });
     });
 
-    it('should add status.fyipeapp.com without errors', function(done){
+    it('should add status.fyipeapp.com without errors', function(done) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.fyipeapp.com' };
         request
@@ -479,7 +479,7 @@ describe('Status API', function() {
                 expect(res).to.have.status(200);
                 done();
             });
-    })
+    });
 
     // This test will work base on the fact that a domain was previously created in another project
     // This test will try to create another domain with the same domain on another project
