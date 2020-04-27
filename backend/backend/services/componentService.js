@@ -269,25 +269,16 @@ module.exports = {
                         { seats: projectSeats.toString() }
                     );
                 }
-                const incidents = await IncidentService.findBy({
+                const monitors = await MonitorService.findBy({
                     componentId: component._id,
                 });
 
                 await Promise.all(
-                    incidents.map(async incident => {
-                        await IncidentService.deleteBy(
-                            { _id: incident._id },
+                    monitors.map(async monitor => {
+                        await MonitorService.deleteBy(
+                            { _id: monitor._id },
                             userId
                         );
-                    })
-                );
-                const alerts = await AlertService.findBy({
-                    query: { componentId: component._id },
-                });
-
-                await Promise.all(
-                    alerts.map(async alert => {
-                        await AlertService.deleteBy({ _id: alert._id }, userId);
                     })
                 );
                 await NotificationService.create(
@@ -384,11 +375,7 @@ module.exports = {
                             deleteBy: null,
                         }
                     );
-                    await IncidentService.restoreBy({
-                        componentId,
-                        deleted: true,
-                    });
-                    await AlertService.restoreBy({
+                    await MonitorService.restoreBy({
                         componentId,
                         deleted: true,
                     });
@@ -408,8 +395,7 @@ module.exports = {
                         deleteBy: null,
                     }
                 );
-                await IncidentService.restoreBy({ componentId, deleted: true });
-                await AlertService.restoreBy({ componentId, deleted: true });
+                await MonitorService.restoreBy({ componentId, deleted: true });
             }
             return component;
         }
@@ -431,8 +417,7 @@ const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
 const ProjectService = require('./projectService');
 const PaymentService = require('./paymentService');
-const IncidentService = require('./incidentService');
-const AlertService = require('./alertService');
+const MonitorService = require('./monitorService');
 // const StatusPageService = require('./statusPageService');
 // const ScheduleService = require('./scheduleService');
 // const IntegrationService = require('./integrationService');
