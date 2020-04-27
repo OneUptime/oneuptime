@@ -46,7 +46,7 @@ describe('Admin process.env login API', function() {
             });
     });
 
-    it('should log in the admin user', async function() {
+    it('should log in the admin user', function(done) {
         request
             .post('/user/login')
             .send({
