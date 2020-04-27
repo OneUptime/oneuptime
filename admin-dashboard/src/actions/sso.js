@@ -23,12 +23,10 @@ export const fetchSsosError = payload => {
 };
 
 
-const fetchSsos = () => async dispatch => {
+export const fetchSsos = () => async dispatch => {
   dispatch(fetchSsosRequest);
   try {
-    const response = await getApi(
-      `/sso/ssos`
-    );
+    const response = await getApi(`sso/ssos`);
     dispatch(fetchSsosSuccess(response.data))
   } catch (error) {
     let errorMsg;
