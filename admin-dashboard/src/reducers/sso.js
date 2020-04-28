@@ -23,6 +23,8 @@ const INITIAL_STATE = {
         error: null,
         ssos: [],
         count: null,
+        skip: null,
+        limit: null,
     },
     addSso: {
         requesting: false,
@@ -56,7 +58,6 @@ export default function sso(state = INITIAL_STATE, action) {
                     success: false,
                     error: null,
                     ssos: [],
-                    count: 0,
                 },
             });
         case FETCH_SSOS_SUCCESS:
@@ -67,6 +68,8 @@ export default function sso(state = INITIAL_STATE, action) {
                     error: null,
                     ssos: action.payload.data,
                     count: action.payload.count,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
                 },
             });
         case FETCH_SSOS_FAILURE:
