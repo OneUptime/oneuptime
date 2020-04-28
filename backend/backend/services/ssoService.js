@@ -45,7 +45,27 @@ module.exports = {
             ErrorService.log('ssoService.getSso', error);
             throw error;
         }
-    }
+    },
+    updateSso: async function (ssoId, data) {
+        try {
+            const sso = await SsoModel.findOne({ _id: ssoId });
+            if (!sso)
+                throw {
+                    code: 404,
+                    message: 'SSO not found.'
+                }
+            sso["saml-enabled"] = data["saml-enabled"] || false
+            sso.samlSsoUrl = data.samlSsoUrl
+            sso.certificateFingerprint = data.certificateFingerprint
+            sso.remoteLogoutUrl = data.remoteLogoutUrl
+            sso.ipRanges = data.ipRanges
+            sso.createdAt = new Date()
+            await sso.save();
+        } catch (error) {
+            ErrorService.log('ssoService.getSso', error);
+            throw error;
+        }
+    },
 }
 
 const SsoModel = require('../models/sso');
