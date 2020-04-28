@@ -188,7 +188,7 @@ export class Setting extends Component {
                                                 <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                             </div>
                                             <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                <span>Add Domain(s)</span>
+                                                <span>Add Domain</span>
                                             </span>
                                         </div>
                                     </button>
