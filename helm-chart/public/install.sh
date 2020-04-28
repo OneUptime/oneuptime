@@ -28,10 +28,6 @@ then
     echo "RUNNING COMMAND:  sudo apt-add-repository restricted"
     sudo apt-add-repository restricted
 
-    # Iptables
-    echo "RUNNING COMMAND:  sudo iptables -P FORWARD ACCEPT"
-    sudo iptables -P FORWARD ACCEPT
-
     # Install Basic packages
     echo "RUNNING COMMAND:  sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget"
     sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget
@@ -47,9 +43,9 @@ fi
 
 if [[ "$2" == "aws-ec2" ]]
 then
-    sudo wget http://s3.amazonaws.com/ec2metadata/ec2-metadata 
-    sudo chmod u+x ec2-metadata
-    INSTANCEID=$ec2-metadata -i
+    # 169.254.169.254 is a static AWS service which amazon uses to get instance id
+    # https://forums.aws.amazon.com/thread.jspa?threadID=100982
+    INSTANCEID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`
 fi
 
 #Install Docker and setup registry and insecure access to it.
@@ -75,6 +71,9 @@ fi
 
 if [[ ! $(which microk8s) ]]
 then
+    # Iptables
+    echo "RUNNING COMMAND: sudo iptables -P FORWARD ACCEPT"
+    sudo iptables -P FORWARD ACCEPT
     # Install microK8s
     echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
     sudo snap set system refresh.retain=2

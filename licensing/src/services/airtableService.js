@@ -26,6 +26,4 @@ module.exports = {
     delete: async function({ tableName, id }) {
         return base(tableName).destroy(id);
     },
-
-    base,
 };

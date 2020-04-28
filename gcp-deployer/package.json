@@ -10,10 +10,8 @@
     },
     "author": "",
     "license": "ISC",
-    "dependencies": {
-        
-    },
+    "dependencies": {},
     "devDependencies": {
-        "npm-audit-ci-wrapper": "^2.4.3"
+        "npm-audit-ci-wrapper": "^2.5.1"
     }
 }

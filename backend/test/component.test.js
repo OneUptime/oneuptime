@@ -17,7 +17,7 @@ let AirtableService = require('../backend/services/airtableService');
 
 let VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, airtableId, projectId, componentId;
+let token, userId, airtableId, projectId, componentId, monitorId;
 
 describe('Component API', function() {
     this.timeout(30000);
@@ -139,14 +139,40 @@ describe('Component API', function() {
             });
     });
 
-    it('should delete a component when componentId is valid', function(done) {
+    it('should create a new monitor when `componentId` is given`', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Monitor',
+                type: 'url',
+                data: { url: 'http://www.tests.org' },
+                componentId,
+            })
+            .end(function(err, res) {
+                monitorId = res.body._id;
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal('New Monitor');
+                done();
+            });
+    });
+
+    it('should delete a component and its monitor when componentId is valid', function(done) {
         let authorization = `Basic ${token}`;
         request
             .delete(`/component/${projectId}/${componentId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                expect(res).to.have.status(200);
-                done();
+                expect(res).to.have.status(200);;
+                request
+                    .get(`/monitor/${projectId}/monitor/${monitorId}`)
+                    .set('Authorization', authorization)
+                    .end(function(err, res) {
+                        expect(res.body).to.be.an('object');
+                        expect(res.body).to.not.have.property('_id');
+                        done();
+                    });
             });
     });
 });

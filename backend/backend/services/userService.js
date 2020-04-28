@@ -460,6 +460,7 @@ module.exports = {
     login: async function(email, password, clientIP) {
         try {
             const _this = this;
+            let user = null;
             if (util.isEmailValid(email)) {
                 // find user if present in db.
 
@@ -483,7 +484,7 @@ module.exports = {
                     }
                 }
 
-                let user = await _this.findOneBy({ email: email });
+                user = await _this.findOneBy({ email: email });
 
                 if (!user) {
                     const error = new Error('User does not exist.');

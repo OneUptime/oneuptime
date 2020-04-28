@@ -9,6 +9,25 @@ module.exports = {
     //Params:
     //Param 1: data: User data (name, email, phone, company, jobRole, createdAt).
     //Returns: promise
+
+    find: async function({ tableName, view, limit }) {
+        return base(tableName)
+            .select({ view, pageSize: limit })
+            .firstPage();
+    },
+
+    update: async function({ tableName, id, fields }) {
+        return base(tableName).update(id, fields);
+    },
+
+    create: async function({ tableName, fields }) {
+        return base(tableName).create(fields);
+    },
+
+    delete: async function({ tableName, id }) {
+        return base(tableName).destroy(id);
+    },
+
     logUser: function({ name, email, phone, company, jobRole, createdAt }) {
         if (!base) return;
 
@@ -52,6 +71,32 @@ module.exports = {
         }
 
         return base('Feedback').destroy(airtableId);
+    },
+
+    deleteAll: async function({ tableName, view, limit }) {
+        if (!view) {
+            view = 'Grid view';
+        }
+
+        if (!limit) {
+            limit = 10;
+        }
+
+        if (limit > 10) {
+            throw new Error('Pagesize cannot be greater than 10');
+        }
+
+        const records = await base(tableName)
+            .select({ view, pageSize: limit })
+            .firstPage();
+
+        if (records && records.length > 0) {
+            const recordIds = records.map(function(record) {
+                return record.id;
+            });
+
+            return await base(tableName).destroy(recordIds);
+        }
     },
 };
 

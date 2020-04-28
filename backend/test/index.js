@@ -1,5 +1,6 @@
 try {
     require('./alert.test');
+    require('./adminCredentials.test');
     require('./auditLogs.test');
     require('./emailSmtp.test');
     require('./emailAuthorization.test');

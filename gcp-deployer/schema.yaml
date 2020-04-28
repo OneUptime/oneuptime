@@ -6,6 +6,27 @@ x-google-marketplace:
   solutionId: fyipe
 
 properties:
+  operatorServiceAccount: # https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools/blob/master/docs/schema.md#type-service_account
+    type: string
+    x-google-marketplace:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+        - type: ClusterRole        # This is a cluster-wide ClusterRole
+          rulesType: PREDEFINED
+          rulesFromRoleName: edit  # Use predefined role named "edit"
+        - type: Role               # This is a namespaced Role
+          rulesType: CUSTOM        # We specify our own custom RBAC rules
+          rules:
+          - apiGroups: ['apps.kubernetes.io/v1alpha1']
+            resources: ['applications']
+            verbs: ['*']
+        - type: ClusterRole
+          rulesType: CUSTOM
+          rules:
+          - apiGroups: ['etcd.database.coreos.com/v1beta2']
+            resources: ['etcdclusters']
+            verbs: ['*']
   name:
     type: string
     x-google-marketplace:
