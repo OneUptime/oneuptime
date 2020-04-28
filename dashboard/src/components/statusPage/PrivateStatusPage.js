@@ -18,6 +18,7 @@ import DataPathHoC from '../DataPathHoC';
 import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import PricingPlan from '../basic/PricingPlan';
 
 export class PrivateStatusPage extends Component {
     constructor(props) {
@@ -152,6 +153,7 @@ export class PrivateStatusPage extends Component {
                                                             height: '5px',
                                                         }}
                                                     ></div>
+                                                    <PricingPlan plan="Enterprise" hideChildren={false}>
                                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
                                                         <label className="Checkbox">
                                                             <Field
@@ -202,6 +204,7 @@ export class PrivateStatusPage extends Component {
                                                             </div>
                                                         </label>
                                                     </div>
+                                                    </PricingPlan>
                                                 </div>
                                             </div>
                                             <div className="bs-Fieldset-row">
