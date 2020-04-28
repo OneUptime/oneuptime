@@ -22,10 +22,12 @@ export const fetchSsosError = payload => {
   };
 };
 
-export const fetchSsos = () => async dispatch => {
+export const fetchSsos = (skip, limit) => async dispatch => {
+  skip = skip ? parseInt(skip) : 0;
+  limit = limit ? parseInt(limit) : 10;
   dispatch(fetchSsosRequest());
   try {
-    const response = await getApi(`sso/ssos`);
+    const response = await getApi(`sso/ssos?skip=${skip}&limit=${limit}`);
     dispatch(fetchSsosSuccess(response.data))
   } catch (error) {
     let errorMsg;
