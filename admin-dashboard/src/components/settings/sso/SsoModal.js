@@ -100,19 +100,30 @@ class Component extends React.Component {
     };
 
     render() {
-        const { handleSubmit, closeThisDialog, sso } = this.props;
+        const { handleSubmit, closeThisDialog, sso, formTitle } = this.props;
         return (
             <div
                 onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
             >
-
                 <div
                     className="ModalLayer-contents"
                     tabIndex="-1"
                     style={{ marginTop: '40px' }}
                 >
-
+                    <div className="bs-Modal-header">
+                        <div
+                            className="bs-Modal-header-copy"
+                            style={{
+                                marginBottom: '10px',
+                                marginTop: '10px',
+                            }}
+                        >
+                            <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                <span>{formTitle}</span>
+                            </span>
+                        </div>
+                    </div>
                     <form
                         id="sso-form"
                         onSubmit={handleSubmit(this.submitForm)}
@@ -221,7 +232,11 @@ const ReduxFormComponent = reduxForm({
 })(Component);
 
 export const SsoAddModal = connect(
-    null,
+    state => {
+        return {
+            formTitle: "Create SSO",
+        }
+    },
     dispatch => {
         return bindActionCreators(
             {
@@ -236,6 +251,7 @@ export const SsoAddModal = connect(
 export const SsoUpdateModal = connect(
     state => {
         return {
+            formTitle: "Update SSO",
             sso: state.sso.sso,
             initialValues: state.sso.sso.sso,
         }
