@@ -1760,9 +1760,9 @@ staging_rollback_probe:
     - chmod +x ./ci/scripts/job-status.sh
     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe
-    # Additionally rollback probe1 deployment
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe1
+    # Additionally rollback probe1 deployment
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe2
   only:
     refs:
       - master
@@ -1925,7 +1925,8 @@ production_rollback_probe:
     - chmod +x ./ci/scripts/job-status.sh
     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe1
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe2
   only:
     refs:
       - release

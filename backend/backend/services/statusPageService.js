@@ -417,7 +417,7 @@ module.exports = {
         }
     },
 
-    getStatus: async function(query, userId) {
+    getStatusPage: async function(query, userId) {
         try {
             const thisObj = this;
             if (!query) {
@@ -425,6 +425,7 @@ module.exports = {
             }
 
             query.deleted = false;
+
             const statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
@@ -438,7 +439,7 @@ module.exports = {
                         'You are unauthorized to access the page please login to continue.'
                     );
                     error.code = 401;
-                    ErrorService.log('statusPageService.getStatus', error);
+                    ErrorService.log('statusPageService.getStatusPage', error);
                     throw error;
                 }
                 const monitorIds = statusPage.monitorIds.map(monitorId =>
@@ -465,12 +466,12 @@ module.exports = {
             } else {
                 const error = new Error('Page Not Found');
                 error.code = 400;
-                ErrorService.log('statusPageService.getStatus', error);
+                ErrorService.log('statusPageService.getStatusPage', error);
                 throw error;
             }
             return statusPage;
         } catch (error) {
-            ErrorService.log('statusPageService.getStatus', error);
+            ErrorService.log('statusPageService.getStatusPage', error);
             throw error;
         }
     },

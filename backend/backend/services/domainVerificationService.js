@@ -68,14 +68,14 @@ module.exports = {
         } catch (error) {
             if (error.code === 'ENODATA') {
                 throw {
-                    message: 'TXT record not found',
+                    message: 'TXT record not found.',
                     code: 400,
                 };
             }
 
             if (error.code === 'ENOTFOUND') {
                 throw {
-                    message: 'Domain not found',
+                    message: 'TXT record not found.',
                     code: 400,
                 };
             }
