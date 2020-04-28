@@ -8,6 +8,9 @@ import {
     FETCH_SSO_REQUEST,
     FETCH_SSO_SUCCESS,
     FETCH_SSO_FAILURE,
+    UPDATE_SSO_REQUEST,
+    UPDATE_SSO_SUCCESS,
+    UPDATE_SSO_FAILURE,
 } from '../constants/sso'
 
 const INITIAL_STATE = {
@@ -28,6 +31,11 @@ const INITIAL_STATE = {
         success: false,
         error: null,
         sso: null,
+    },
+    updateSso: {
+        requesting: false,
+        success: false,
+        error: null,
     }
 }
 
@@ -39,8 +47,8 @@ export default function sso(state = INITIAL_STATE, action) {
                     requesting: true,
                     success: false,
                     error: null,
-                    ssos:[],
-                    count:0,
+                    ssos: [],
+                    count: 0,
                 },
             });
         case FETCH_SSOS_SUCCESS:
@@ -105,6 +113,30 @@ export default function sso(state = INITIAL_STATE, action) {
         case FETCH_SSO_FAILURE:
             return Object.assign({}, state, {
                 sso: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            })
+        case UPDATE_SSO_REQUEST:
+            return Object.assign({}, state, {
+                updateSso: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                }
+            })
+        case UPDATE_SSO_SUCCESS:
+            return Object.assign({}, state, {
+                updateSso: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                }
+            })
+        case UPDATE_SSO_FAILURE:
+            return Object.assign({}, state, {
+                updateSso: {
                     requesting: false,
                     success: false,
                     error: action.payload,
