@@ -6,9 +6,12 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const SsoService = require('../services/ssoService')
 
 router.get('/ssos', async function (req, res) {
+  const skip = req.query.skip || 0;
+  const limit = req.query.limit || 10;
   try {
-    const ssos = await SsoService.getAllSsos()
-    return sendListResponse(req, res, ssos)
+    const ssos = await SsoService.getAllSsos(skip, limit)
+    const count= await SsoService.getCount()
+    return sendListResponse(req, res, ssos,count)
   } catch (error) {
     return sendErrorResponse(req, res, error)
   }
@@ -57,7 +60,7 @@ router.get('/:ssoId', async function (req, res) {
 })
 
 router.put('/update', async function (req, res) {
-  const data= req.body
+  const data = req.body
   const { _id: ssoId } = data
   if (!ssoId) {
     return sendErrorResponse(req, res, {
@@ -66,7 +69,7 @@ router.put('/update', async function (req, res) {
     })
   }
   try {
-    await SsoService.updateSso(ssoId,data);
+    await SsoService.updateSso(ssoId, data);
     return sendItemResponse(req, res);
   } catch (error) {
     return sendErrorResponse(req, res, error)
