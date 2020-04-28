@@ -15,7 +15,7 @@ export class Component extends React.Component {
     }
 
     addSso = async () => {
-        openModal({
+        this.props.openModal({
             id: uuid.v4(),
             onConfirm: () => { },
             content: SsoAddModal,
@@ -23,7 +23,7 @@ export class Component extends React.Component {
     }
 
     deleteSso = async  ssoId => {
-        openModal({
+        this.props.openModal({
             id: ssoId,
             onConfirm: async e => {
                 await this.props.deleteSso(ssoId);
@@ -53,7 +53,7 @@ export class Component extends React.Component {
                             </p>
                             <button
                                 className="bs-Button bs-Button--blue Box-background--blue"
-                                onClick={() => this.addSso()}
+                                onClick={this.addSso}
                             >
                                 Add
                             </button>
@@ -213,6 +213,7 @@ Component.propTypes = {
     ssos: PropTypes.object.isRequired,
     fetchSsos: PropTypes.func.isRequired,
     deleteSso: PropTypes.func.isRequired,
+    openModal: PropTypes.func.isRequired,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -220,6 +221,7 @@ const mapDispatchToProps = dispatch => {
         {
             fetchSsos,
             deleteSso,
+            openModal,
         },
         dispatch
     );
