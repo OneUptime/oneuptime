@@ -183,6 +183,9 @@ elif [[ "$1" == "ci-install" ]] # If its a local install, take local scripts.
 then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
+        # Remove fyipe
+        echo "RUNNING COMMAND: sudo helm uninstall fyipe || echo 'fyipe not installed'"
+        sudo helm uninstall fyipe || echo 'fyipe not installed'
         # install services.
         if [[ "$2" == "enterprise" ]]
         then
