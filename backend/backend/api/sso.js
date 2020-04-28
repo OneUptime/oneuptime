@@ -28,7 +28,6 @@ router.delete('/:ssoId', async function (req, res) {
   } catch (error) {
     return sendErrorResponse(req, res, error)
   }
-
 })
 
 router.post('/create', async function (req, res) {
@@ -36,6 +35,22 @@ router.post('/create', async function (req, res) {
   try {
     await SsoService.createSso(data)
     return sendItemResponse(req, res);
+  } catch (error) {
+    return sendErrorResponse(req, res, error)
+  }
+})
+
+router.get('/:ssoId', async function (req, res) {
+  const ssoId = req.params.ssoId
+  if (!ssoId) {
+    return sendErrorResponse(req, res, {
+      code: 400,
+      message: 'SsoId must be present.'
+    })
+  }
+  try {
+    const sso = await SsoService.getSso(ssoId);
+    return sendItemResponse(req, res, sso);
   } catch (error) {
     return sendErrorResponse(req, res, error)
   }
