@@ -12,10 +12,12 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     # Mac OSX
     sed -i '' 's/isThirdPartyBilling: false/isThirdPartyBilling: true/g' gcp-deployer/chart/fyipe/values.yaml
     sed -i '' 's/isRunningOnGCPMarketplace: false/isRunningOnGCPMarketplace: true/g' gcp-deployer/chart/fyipe/values.yaml
+    sed -i '' 's/apiVersion: v2/apiVersion: v1/g' gcp-deployer/chart/fyipe/Chart.yaml
 else
     # Linux
     sed -i '' 's/isThirdPartyBilling: false/isThirdPartyBilling: true/g' gcp-deployer/chart/fyipe/values.yaml
     sed -i '' 's/isRunningOnGCPMarketplace: false/isRunningOnGCPMarketplace: true/g' gcp-deployer/chart/fyipe/values.yaml
+    sed -i '' 's/apiVersion: v2/apiVersion: v1/g' gcp-deployer/chart/fyipe/Chart.yaml
 fi
 
 # Get latest Universal Billing Agent from Google Marketplace and push it to our Fyipe repo.
