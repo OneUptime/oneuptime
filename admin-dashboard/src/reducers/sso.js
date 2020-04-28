@@ -5,6 +5,9 @@ import {
     DELETE_SSO_REQUEST,
     DELETE_SSO_SUCCESS,
     DELETE_SSO_FAILED,
+    ADD_SSO_REQUEST,
+    ADD_SSO_SUCCESS,
+    ADD_SSO_FAILED,
     FETCH_SSO_REQUEST,
     FETCH_SSO_SUCCESS,
     FETCH_SSO_FAILURE,
@@ -20,6 +23,11 @@ const INITIAL_STATE = {
         error: null,
         ssos: [],
         count: null,
+    },
+    addSso: {
+        requesting: false,
+        success: false,
+        error: null,
     },
     deleteSso: {
         requesting: false,
@@ -88,6 +96,30 @@ export default function sso(state = INITIAL_STATE, action) {
         case DELETE_SSO_FAILED:
             return Object.assign({}, state, {
                 deleteSso: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                }
+            })
+        case ADD_SSO_REQUEST:
+            return Object.assign({}, state, {
+                addSso: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                }
+            })
+        case ADD_SSO_SUCCESS:
+            return Object.assign({}, state, {
+                addSso: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                }
+            })
+        case ADD_SSO_FAILED:
+            return Object.assign({}, state, {
+                addSso: {
                     requesting: false,
                     success: false,
                     error: action.payload,
