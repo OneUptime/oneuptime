@@ -357,7 +357,7 @@ router.get('/:statusPageId', checkUser, async function(req, res) {
         // Call the StatusPageService.
         if (url && url !== 'null') {
             statusPage = await StatusPageService.getStatusPage(
-                { domains: { $in: { domain: url } } },
+                { domains: { $elemMatch: { domain: url } } },
                 user
             );
         } else if ((!url || url === 'null') && statusPageId) {
@@ -394,7 +394,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
         // Call the StatusPageService.
         if (url && url !== 'null') {
             statusPage = await StatusPageService.getStatusPage(
-                { domain: url },
+                { domains: { $elemMatch: { domain: url } } },
                 user
             );
         } else if ((!url || url === 'null') && statusPageId) {
