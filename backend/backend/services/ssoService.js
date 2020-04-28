@@ -20,15 +20,29 @@ module.exports = {
     createSso: async function (data) {
         const sso = new SsoModel();
         sso["saml-enabled"] = data["saml-enabled"] || false
-        sso.samlSsoUrl=data.samlSsoUrl
-        sso.certificateFingerprint=data.certificateFingerprint
-        sso.remoteLogoutUrl=data.remoteLogoutUrl
-        sso.ipRanges=data.ipRanges
-        sso.createdAt=new Date()
-        try{
-            await sso.save() 
-        }catch(error){
+        sso.samlSsoUrl = data.samlSsoUrl
+        sso.certificateFingerprint = data.certificateFingerprint
+        sso.remoteLogoutUrl = data.remoteLogoutUrl
+        sso.ipRanges = data.ipRanges
+        sso.createdAt = new Date()
+        try {
+            await sso.save()
+        } catch (error) {
             ErrorService.log('ssoService.deleteCreate', error);
+            throw error;
+        }
+    },
+    getSso: async function (ssoId) {
+        try {
+            const sso = await SsoModel.findOne({ _id: ssoId });
+            if (!sso)
+                throw {
+                    code: 404,
+                    message: 'SSO not found.'
+                }
+            return sso;
+        } catch (error) {
+            ErrorService.log('ssoService.getSso', error);
             throw error;
         }
     }
