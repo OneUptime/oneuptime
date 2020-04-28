@@ -7,7 +7,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const SsoService = require('../services/ssoService')
 
-router.get('/ssos', getUser, isUserMasterAdmin, async function (req, res) {
+router.get('/', getUser, isUserMasterAdmin, async function (req, res) {
   const skip = req.query.skip || 0;
   const limit = req.query.limit || 10;
   try {
