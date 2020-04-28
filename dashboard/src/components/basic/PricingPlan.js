@@ -1,4 +1,4 @@
-import React, { Component, Fragment, useState } from 'react';
+import React, { Fragment, useState } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -16,12 +16,12 @@ const PricingPlanComponent = ({
 }) => {
     const [pricingPlanModalId] = useState(uuid.v4());
 
-    let { category } = PricingPlan.getPlanById(currentProject.stripeId);
+    const { category } = PricingPlan.getPlanById(currentProject.stripeId);
 
     const createAllowedPlans = plan => {
         const plans = ['Startup', 'Growth', 'Scale', 'Enterprise'];
         const planIndex = plans.indexOf(plan);
-        let allowedPlans = [];
+        const allowedPlans = [];
         for (let i = planIndex; i < plans.length; i++) {
             allowedPlans.push(plans[i]);
         }
@@ -53,7 +53,9 @@ const PricingPlanComponent = ({
             {isAllowed(plan, category) ? (
                 children
             ) : !hideChildren ? (
-                <div id="pricingPlan" onClick={handleModal}>{children}</div>
+                <div id="pricingPlan" onClick={handleModal}>
+                    {children}
+                </div>
             ) : null}
         </Fragment>
     );

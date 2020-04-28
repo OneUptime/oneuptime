@@ -1,5 +1,4 @@
 import React from 'react';
-import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
 const PricingPlanModal = ({ closeThisDialog, propArr }) => {
@@ -56,8 +55,6 @@ const PricingPlanModal = ({ closeThisDialog, propArr }) => {
     );
 };
 
-const mapStateToProps = state => ({});
-
 PricingPlanModal.displayName = 'Pricing Plan Modal';
 
 PricingPlanModal.propTypes = {
@@ -66,4 +63,4 @@ PricingPlanModal.propTypes = {
     // confirmThisDialog: PropTypes.func,
 };
 
-export default connect(mapStateToProps)(PricingPlanModal);
+export default PricingPlanModal;

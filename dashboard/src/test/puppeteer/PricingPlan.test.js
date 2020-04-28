@@ -18,10 +18,7 @@ describe('Status Page', () => {
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: {
-                ...utils.puppeteerLaunchConfig,
-                headless: false,
-            },
+            puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
             timeout: 500000,
         });
@@ -48,7 +45,7 @@ describe('Status Page', () => {
     });
 
     test(
-        'should show modal if child element is not available in a particular plan',
+        'should show upgrade modal if project is not available in a particular plan',
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -81,10 +78,45 @@ describe('Status Page', () => {
                 await page.waitForSelector('#pricingPlan');
                 await page.click('#pricingPlan');
 
-                let modal = await page.waitForSelector('#pricingPlanModal', {
+                const modal = await page.waitForSelector('#pricingPlanModal', {
                     visible: true,
                 });
                 expect(modal).toBeTruthy();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not show upgrade modal if project is subscribed to a particular plan',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#billing');
+                await page.click('#billing a');
+                await page.waitForSelector('#alertEnable');
+
+                const rowLength = await page.$$eval(
+                    '#alertOptionRow > div.bs-Fieldset-row',
+                    rows => rows.length
+                );
+
+                if (rowLength === 1) {
+                    // check the box
+                    await page.evaluate(() => {
+                        document.querySelector('#alertEnable').click();
+                    });
+                }
+
+                await page.evaluate(() => {
+                    document.querySelector('#billingRiskCountries').click();
+                });
+                const elem = await page.waitForSelector('#pricingPlanModal', {
+                    hidden: true,
+                });
+                expect(elem).toBeNull();
             });
         },
         operationTimeOut
