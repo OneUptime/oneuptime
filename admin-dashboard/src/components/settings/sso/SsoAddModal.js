@@ -1,9 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
 import { RenderField } from '../../basic/RenderField';
 import { Validate } from '../../../config';
-import { FormLoader } from '../../basic/Loader';
 import { reduxForm, Field } from 'redux-form';
+import { addSso } from '../../../actions/sso';
 
 // Client side validation
 function validate(values) {
@@ -90,13 +92,12 @@ const fields = [
 ];
 
 class Component extends React.Component {
-    submitForm = e => {
-        e.preventDefault();
+    submitForm = values => {
+        this.props.addSso(values)
     };
 
     render() {
-
-        const { confirmThisDialog, closeThisDialog } = this.props;
+        const { handleSubmit, closeThisDialog } = this.props;
         return (
             <div
                 onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
@@ -104,7 +105,6 @@ class Component extends React.Component {
             >
 
                 <div
-                    // onKeyDown={this.handleKeyBoard}
                     className="ModalLayer-contents"
                     tabIndex="-1"
                     style={{ marginTop: '40px' }}
@@ -112,7 +112,7 @@ class Component extends React.Component {
 
                     <form
                         id="sso-form"
-                        onSubmit={this.submitForm}
+                        onSubmit={handleSubmit(this.submitForm)}
                     >
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                             <div>
@@ -195,10 +195,24 @@ class Component extends React.Component {
 
 }
 
+Component.propTypes = {
+    handleSubmit: PropTypes.func.isRequired,
+    addSso: PropTypes.func.isRequired,
+};
+
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            addSso,
+        },
+        dispatch
+    );
+};
+
 const ReduxFormComponent = reduxForm({
     form: 'sso-form',
     enableReinitialize: true,
     validate,
 })(Component);
 
-export default ReduxFormComponent;
+export default connect(null, mapDispatchToProps)(ReduxFormComponent);
