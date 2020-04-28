@@ -1,6 +1,6 @@
 import * as types from "../constants/sso"
 import errors from '../errors';
-import { getApi, deleteApi } from "../api";
+import { getApi, deleteApi, postApi } from "../api";
 
 export const fetchSsosRequest = () => {
   return {
@@ -65,9 +65,8 @@ export const deleteSsoError = payload => {
 export const deleteSso = ssoId => async dispatch => {
   dispatch(deleteSsoRequest());
   try {
-    const response = await deleteApi(`sso/${ssoId}`)
-    const { data } = response
-    dispatch(deleteSsoSuccess(data))
+    await deleteApi(`sso/${ssoId}`)
+    dispatch(deleteSsoSuccess())
   } catch (error) {
     let errorMsg;
     if (error && error.response && error.response.data)
@@ -81,5 +80,45 @@ export const deleteSso = ssoId => async dispatch => {
       errorMsg = 'Network Error';
     }
     dispatch(deleteSsoError(errorMsg));
+  }
+}
+
+export const addSsoRequest = () => {
+  return {
+    type: types.ADD_SSO_REQUEST,
+  };
+}
+
+export const addSsoSuccess = () => {
+  return {
+    type: types.ADD_SSO_SUCCESS,
+  };
+}
+
+export const addSsoError = payload => {
+  return {
+    type: types.ADD_SSO_FAILED,
+    payload,
+  };
+}
+
+export const addSso = (values) => async dispatch => {
+  dispatch(addSsoRequest());
+  try {
+    await postApi(`sso`, { values })
+    dispatch(addSsoSuccess())
+  } catch (error) {
+    let errorMsg;
+    if (error && error.response && error.response.data)
+      errorMsg = error.response.data;
+    if (error && error.data) {
+      errorMsg = error.data;
+    }
+    if (error && error.message) {
+      errorMsg = error.message;
+    } else {
+      errorMsg = 'Network Error';
+    }
+    dispatch(addSsoError(errorMsg));
   }
 }
