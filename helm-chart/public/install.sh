@@ -185,6 +185,7 @@ then
     then
         # Remove fyipe
         sudo k delete clusterrole fyipe-nginx-ingress-controller || echo "init-script already deleted"
+        sudo k delete clusterrolebinding fyipe-nginx-ingress-controller || echo "init-script already deleted"
         # install services.
         if [[ "$2" == "enterprise" ]]
         then
