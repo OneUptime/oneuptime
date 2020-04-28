@@ -180,6 +180,13 @@ class Component extends React.Component {
                             </span>
                             <div>
                                 <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    type="button"
+                                    onClick={closeThisDialog}
+                                >
+                                    <span>Cancel</span>
+                                </button>
+                                <button
                                     className="bs-Button bs-Button--blue"
                                     disabled={
                                         sso &&
@@ -187,14 +194,7 @@ class Component extends React.Component {
                                     }
                                     type="submit"
                                 >
-                                    <span>Add</span>
-                                </button>
-                                <button
-                                    className="bs-Button bs-Button--red"
-                                    type="button"
-                                    onClick={closeThisDialog}
-                                >
-                                    <span>Cancel</span>
+                                    <span>Save</span>
                                 </button>
                             </div>
                         </div>
