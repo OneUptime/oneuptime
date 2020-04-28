@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { RenderField } from '../../basic/RenderField';
 import { Validate } from '../../../config';
 import { reduxForm, Field } from 'redux-form';
-import { addSso } from '../../../actions/sso';
+import { addSso, fetchSsos } from '../../../actions/sso';
 
 // Client side validation
 function validate(values) {
@@ -92,8 +92,11 @@ const fields = [
 ];
 
 class Component extends React.Component {
-    submitForm = values => {
-        this.props.addSso(values)
+    submitForm = async values => {
+        const { closeThisDialog } = this.props;
+        await this.props.addSso(values);
+        await this.props.fetchSsos();
+        closeThisDialog();
     };
 
     render() {
@@ -198,12 +201,14 @@ class Component extends React.Component {
 Component.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     addSso: PropTypes.func.isRequired,
+    fetchSsos: PropTypes.func.isRequired,
 };
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             addSso,
+            fetchSsos,
         },
         dispatch
     );
