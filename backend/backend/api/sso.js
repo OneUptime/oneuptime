@@ -31,4 +31,14 @@ router.delete('/:ssoId', async function (req, res) {
 
 })
 
+router.post('/create', async function (req, res) {
+  const data = req.body
+  try {
+    await SsoService.createSso(data)
+    return sendItemResponse(req, res);
+  } catch (error) {
+    return sendErrorResponse(req, res, error)
+  }
+})
+
 module.exports = router;
