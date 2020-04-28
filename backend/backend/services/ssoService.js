@@ -23,6 +23,7 @@ module.exports = {
     createSso: async function (data) {
         const sso = new SsoModel();
         sso["saml-enabled"] = data["saml-enabled"] || false
+        sso.domain = data.domain
         sso.samlSsoUrl = data.samlSsoUrl
         sso.certificateFingerprint = data.certificateFingerprint
         sso.remoteLogoutUrl = data.remoteLogoutUrl
@@ -58,6 +59,7 @@ module.exports = {
                     message: 'SSO not found.'
                 }
             sso["saml-enabled"] = data["saml-enabled"] || false
+            sso.domain = data.domain
             sso.samlSsoUrl = data.samlSsoUrl
             sso.certificateFingerprint = data.certificateFingerprint
             sso.remoteLogoutUrl = data.remoteLogoutUrl
