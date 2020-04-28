@@ -27,7 +27,7 @@ export const fetchSsos = (skip, limit) => async dispatch => {
   limit = limit ? parseInt(limit) : 10;
   dispatch(fetchSsosRequest());
   try {
-    const response = await getApi(`sso/ssos?skip=${skip}&limit=${limit}`);
+    const response = await getApi(`sso/?skip=${skip}&limit=${limit}`);
     dispatch(fetchSsosSuccess(response.data))
   } catch (error) {
     let errorMsg;
