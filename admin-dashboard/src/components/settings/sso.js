@@ -49,7 +49,7 @@ export class Component extends React.Component {
         const { skip, limit } = ssos
         await this.props.fetchSsos((skip - limit) >= 0 ? skip - limit : 0, limit)
     }
-    
+
     nextClicked = async () => {
         const { ssos } = this.props;
         const { skip, limit } = ssos
@@ -179,6 +179,32 @@ export class Component extends React.Component {
                                 </tr>
                             </thead>
                             <tbody className="Table-body">
+                                {ssos.count === 0 &&
+                                    <tr
+                                        className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
+                                    >
+                                        <td
+                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                            style={{ height: "1px", minWidth: "270px" }}
+                                            colSpan="5"
+                                        >
+
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span
+                                                    className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <div
+                                                        style={{ textAlign: "center", marginTop: "10px" }}
+                                                        className="Box-root Margin-right--16"
+                                                    >
+                                                        <span>
+                                                            No SOOs created yet
+                                                        </span>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
                                 {ssos.ssos.map(sso =>
                                     <tr
                                         key={sso._id}
@@ -323,7 +349,7 @@ export class Component extends React.Component {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
         );
     }
 }
