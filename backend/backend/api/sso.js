@@ -56,4 +56,22 @@ router.get('/:ssoId', async function (req, res) {
   }
 })
 
+router.put('/update', async function (req, res) {
+  const data= req.body
+  const { _id: ssoId } = data
+  if (!ssoId) {
+    return sendErrorResponse(req, res, {
+      code: 400,
+      message: 'SsoId must be present.'
+    })
+  }
+  try {
+    await SsoService.updateSso(ssoId,data);
+    return sendItemResponse(req, res);
+  } catch (error) {
+    return sendErrorResponse(req, res, error)
+  }
+
+})
+
 module.exports = router;
