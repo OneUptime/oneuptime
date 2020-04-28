@@ -184,8 +184,7 @@ then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
         # Remove fyipe
-        echo "RUNNING COMMAND: sudo helm uninstall fyipe || echo 'fyipe not installed'"
-        sudo helm uninstall fyipe || echo 'fyipe not installed'
+        sudo k delete clusterrole fyipe-nginx-ingress-controller || echo "init-script already deleted"
         # install services.
         if [[ "$2" == "enterprise" ]]
         then
