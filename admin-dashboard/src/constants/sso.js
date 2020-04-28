@@ -13,7 +13,7 @@ export const ADD_SSO_REQUEST = 'ADD_SSO_REQUEST';
 export const ADD_SSO_SUCCESS = 'ADD_SSO_SUCCESS';
 export const ADD_SSO_FAILED = 'ADD_SSO_FAILED';
 
-//Fetch Ssos 
+//Fetch Sso 
 export const FETCH_SSO_REQUEST = 'FETCH_SSO_REQUEST';
 export const FETCH_SSO_SUCCESS = 'FETCH_SSO_SUCCESS';
 export const FETCH_SSO_FAILURE = 'FETCH_SSO_FAILURE';

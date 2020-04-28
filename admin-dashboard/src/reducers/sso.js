@@ -5,6 +5,9 @@ import {
     DELETE_SSO_REQUEST,
     DELETE_SSO_SUCCESS,
     DELETE_SSO_FAILED,
+    FETCH_SSO_REQUEST,
+    FETCH_SSO_SUCCESS,
+    FETCH_SSO_FAILURE,
 } from '../constants/sso'
 
 const INITIAL_STATE = {
@@ -19,6 +22,12 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         error: null,
+    },
+    sso: {
+        requesting: false,
+        success: false,
+        error: null,
+        sso: null,
     }
 }
 
@@ -30,6 +39,8 @@ export default function sso(state = INITIAL_STATE, action) {
                     requesting: true,
                     success: false,
                     error: null,
+                    ssos:[],
+                    count:0,
                 },
             });
         case FETCH_SSOS_SUCCESS:
@@ -62,7 +73,7 @@ export default function sso(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 deleteSso: {
                     requesting: false,
-                    success: true,            
+                    success: true,
                     error: null,
                 }
             })
@@ -70,7 +81,32 @@ export default function sso(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 deleteSso: {
                     requesting: false,
-                    success: false,            
+                    success: false,
+                    error: action.payload,
+                }
+            })
+        case FETCH_SSO_REQUEST:
+            return Object.assign({}, state, {
+                sso: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                }
+            })
+        case FETCH_SSO_SUCCESS:
+            return Object.assign({}, state, {
+                sso: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    sso: action.payload
+                }
+            })
+        case FETCH_SSO_FAILURE:
+            return Object.assign({}, state, {
+                sso: {
+                    requesting: false,
+                    success: false,
                     error: action.payload,
                 }
             })
