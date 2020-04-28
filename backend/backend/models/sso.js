@@ -6,6 +6,10 @@ const ssoSchema = new Schema({
         type: Boolean,
         required: true,
     },
+    domain:{
+        type:String,
+        required:true,
+    },
     samlSsoUrl: {
         type: String,
         required: true,
