@@ -11,8 +11,9 @@ router.get('/', getUser, isUserMasterAdmin, async function (req, res) {
   const skip = req.query.skip || 0;
   const limit = req.query.limit || 10;
   try {
-    const ssos = await SsoService.getAllSsos(skip, limit)
+    const ssos = await SsoService.findBy({}, limit, skip)
     const count = await SsoService.countBy()
+
     return sendListResponse(req, res, ssos, count)
   } catch (error) {
     return sendErrorResponse(req, res, error)
