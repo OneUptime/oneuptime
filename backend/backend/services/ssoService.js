@@ -1,10 +1,25 @@
 module.exports = {
-    getAllSsos: async function () {
-        const ssos = await SsoModel.find(
-            {},
-            { _id: 1, domain: 1, createdAt: 1 }
-        );
-        return ssos;
+    getAllSsos: async function (skip, limit) {
+        if (!skip) skip = 0;
+
+        if (!limit) limit = 0;
+
+        if (typeof skip === 'string') skip = parseInt(skip);
+
+        if (typeof limit === 'string') limit = parseInt(limit);
+
+        try {
+            const ssos = await SsoModel.find(
+                {},
+                { _id: 1, domain: 1, createdAt: 1 })
+                .sort([['createdAt', -1]])
+                .skip(skip)
+                .limit(limit);
+            return ssos;
+        } catch (error) {
+            ErrorService.log('ssoService.deleteSso', error);
+            throw error;
+        }
     },
     deleteSso: async function (ssoId) {
         try {
