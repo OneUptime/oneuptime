@@ -6,6 +6,13 @@ module.exports = {
         stripeSubscriptionId: 'sub_DTPEEgmb66JrIq',
         stripeMeteredSubscriptionId: 'sub_DTPEqrho4jCdEh',
     },
+    newSecondProject: {
+        projectName: 'Test Project 2',
+        apiKey: '071793c0-a72e-11e8-95da-4d5dc22b5dsfdfd',
+        stripePlanId: 'plan_CpIbtqozj1UVGs',
+        stripeSubscriptionId: 'sub_DTPEEgmb66JrIq',
+        stripeMeteredSubscriptionId: 'sub_DTPEqrho4jCdEh',
+    },
     firstProject: {
         _id: '5b7f461c4de1150607fdc272',
         users: [
