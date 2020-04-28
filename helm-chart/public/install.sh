@@ -183,8 +183,13 @@ elif [[ "$1" == "ci-install" ]] # If its a local install, take local scripts.
 then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
-        # set service of type nodeport for VM's. 
-        sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe
+        # install services.
+        if [[ "$2" == "enterprise" ]]
+        then
+            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fyipe ./helm-chart/public/fyipe
+        else
+            sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe
+        fi
     else
         sudo k delete job fyipe-init-script || echo "init-script already deleted"
         sudo helm upgrade --reuse-values fyipe ./helm-chart/public/fyipe
