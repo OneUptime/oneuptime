@@ -86,6 +86,10 @@ module.exports = {
             throw error;
         }
     },
+    getCount: async function () {
+        const count = await SsoModel.countDocuments({});
+        return count;
+    }
 }
 
 const SsoModel = require('../models/sso');
