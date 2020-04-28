@@ -1,6 +1,9 @@
 module.exports = {
     getAllSsos: async function () {
-        const ssos = await SsoModel.find({});
+        const ssos = await SsoModel.find(
+            {},
+            { _id: 1, samlSsoUrl: 1, createdAt: 1 }
+        );
         return ssos;
     },
     deleteSso: async function (ssoId) {
