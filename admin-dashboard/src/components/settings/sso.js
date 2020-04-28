@@ -8,6 +8,9 @@ import moment from 'moment';
 import { openModal } from '../../actions/modal';
 import SsoDeleteModal from './sso/SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal, } from './sso/SsoModal';
+import ShouldRender from '../basic/ShouldRender';
+import { FormLoader } from '../basic/Loader';
+import { IS_SAAS_SERVICE } from '../../config';
 
 export class Component extends React.Component {
     async componentDidMount() {
@@ -49,25 +52,51 @@ export class Component extends React.Component {
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
-                    <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root">
-                            <div className="Flex-flex Flex-alignItems-center Flex-justifyContent--spaceBetween">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Single sign-on (SSO)</span>
+                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                    <span
+                                        style={{
+                                            textTransform:
+                                                'capitalize',
+                                        }}
+                                    >
+                                        Single sign-on (SSO)
+                                    </span>
+                                </span>
+                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                    <span>
+                                        Admins and agents use your SSO service to
+                                        sign in to Fyipe. Requires configuration.
+                                    </span>
                                 </span>
                             </div>
-                            <p>
-                                <span>
-                                    Admins and agents use your SSO service to
-                                    sign in to Fyipe. Requires configuration.
-                                </span>
-                            </p>
-                            <button
-                                className="bs-Button bs-Button--blue Box-background--blue"
-                                onClick={this.addSso}
-                            >
-                                Add
-                            </button>
+                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                <div className="Box-root">
+                                    <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                        <div>
+                                            <button
+                                                className="bs-Button bs-ButtonLegacy ActionIconParent"
+                                                type="button"
+                                                onClick={
+                                                    this.addSso
+                                                }
+                                                style={{
+                                                    marginLeft:
+                                                        '8px',
+                                                }}
+                                            >
+                                                <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                    <span>
+                                                        Add SSO
+                                                    </span>
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div style={{ overflow: "auto hidden" }}>
