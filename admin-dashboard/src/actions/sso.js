@@ -23,7 +23,7 @@ export const fetchSsosError = payload => {
 };
 
 export const fetchSsos = () => async dispatch => {
-  dispatch(fetchSsosRequest);
+  dispatch(fetchSsosRequest());
   try {
     const response = await getApi(`sso/ssos`);
     dispatch(fetchSsosSuccess(response.data))
@@ -40,6 +40,47 @@ export const fetchSsos = () => async dispatch => {
       errorMsg = 'Network Error';
     }
     dispatch(fetchSsosError(errors(errorMsg)));
+  }
+}
+
+export const fetchSsoRequest = () => {
+  return {
+    type: types.FETCH_SSO_REQUEST,
+  }
+}
+
+export const fetchSsoSuccess = (payload) => {
+  return {
+    type: types.FETCH_SSO_SUCCESS,
+    payload,
+  }
+}
+
+export const fetchSsoError = payload => {
+  return {
+    type: types.FETCH_SSO_FAILURE,
+    payload,
+  };
+};
+
+export const fetchSso = (ssoId) => async dispatch => {
+  dispatch(fetchSsoRequest());
+  try {
+    const response = await getApi(`sso/${ssoId}`);
+    dispatch(fetchSsoSuccess(response.data))
+  } catch (error) {
+    let errorMsg;
+    if (error && error.response && error.response.data)
+      errorMsg = error.response.data;
+    if (error && error.data) {
+      errorMsg = error.data;
+    }
+    if (error && error.message) {
+      errorMsg = error.message;
+    } else {
+      errorMsg = 'Network Error';
+    }
+    dispatch(fetchSsoError(errors(errorMsg)));
   }
 }
 
