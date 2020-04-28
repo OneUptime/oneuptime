@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { RenderField } from '../../basic/RenderField';
 import { Validate } from '../../../config';
 import { reduxForm, Field } from 'redux-form';
-import { addSso, fetchSsos } from '../../../actions/sso';
+import { addSso, fetchSsos, updateSso } from '../../../actions/sso';
 
 // Client side validation
 function validate(values) {
@@ -92,15 +92,15 @@ const fields = [
 ];
 
 class Component extends React.Component {
-    submitForm = async values => {
+    submitForm = async data => {
         const { closeThisDialog } = this.props;
-        await this.props.addSso(values);
+        await this.props.onSubmit(data);
         await this.props.fetchSsos();
         closeThisDialog();
     };
 
     render() {
-        const { handleSubmit, closeThisDialog } = this.props;
+        const { handleSubmit, closeThisDialog, sso } = this.props;
         return (
             <div
                 onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
@@ -148,6 +148,10 @@ class Component extends React.Component {
                                                             component={
                                                                 field.component
                                                             }
+                                                            disabled={
+                                                                sso &&
+                                                                sso.requesting
+                                                            }
                                                             style={{
                                                                 width: '350px',
                                                             }}
@@ -170,12 +174,17 @@ class Component extends React.Component {
                         </div>
 
                         <div
-                            className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                            className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12"
+                        >
                             <span className="db-SettingsForm-footerMessage">
                             </span>
                             <div>
                                 <button
                                     className="bs-Button bs-Button--blue"
+                                    disabled={
+                                        sso &&
+                                        sso.requesting
+                                    }
                                     type="submit"
                                 >
                                     <span>Add</span>
@@ -202,16 +211,7 @@ Component.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     addSso: PropTypes.func.isRequired,
     fetchSsos: PropTypes.func.isRequired,
-};
-
-const mapDispatchToProps = dispatch => {
-    return bindActionCreators(
-        {
-            addSso,
-            fetchSsos,
-        },
-        dispatch
-    );
+    initialValues: PropTypes.object,
 };
 
 const ReduxFormComponent = reduxForm({
@@ -220,4 +220,33 @@ const ReduxFormComponent = reduxForm({
     validate,
 })(Component);
 
-export default connect(null, mapDispatchToProps)(ReduxFormComponent);
+export const SsoAddModal = connect(
+    null,
+    dispatch => {
+        return bindActionCreators(
+            {
+                onSubmit: addSso,
+                fetchSsos,
+            },
+            dispatch
+        )
+    }
+)(ReduxFormComponent)
+
+export const SsoUpdateModal = connect(
+    state => {
+        return {
+            sso: state.sso.sso,
+            initialValues: state.sso.sso.sso,
+        }
+    },
+    dispatch => {
+        return bindActionCreators(
+            {
+                onSubmit: updateSso,
+                fetchSsos,
+            },
+            dispatch
+        )
+    }
+)(ReduxFormComponent)
