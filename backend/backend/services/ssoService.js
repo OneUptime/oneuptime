@@ -85,8 +85,13 @@ module.exports = {
             throw error;
         }
     },
-    getCount: async function () {
-        const count = await SsoModel.countDocuments({});
+    countBy: async function (query) {
+        if (!query) {
+            query = {};
+        }
+        // if (!query.deleted) query.deleted = false;
+
+        const count = await SsoModel.countDocuments(query);
         return count;
     }
 }
