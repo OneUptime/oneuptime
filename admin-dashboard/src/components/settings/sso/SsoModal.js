@@ -11,6 +11,10 @@ import { addSso, fetchSsos, updateSso } from '../../../actions/sso';
 function validate(values) {
     const errors = {};
 
+    if (!Validate.text(values.domain)) {
+        errors.domain = 'Domain is not valid.';
+    }
+
     if (!Validate.text(values.samlSsoUrl)) {
         errors.samlSsoUrl = 'SSO URL is not valid.';
     }
@@ -50,6 +54,16 @@ const fields = [
                 <span className="TogglerBtn-slider round"></span>
             </label>
         ),
+    },
+    {
+        key: 'domain',
+        label: 'Domain',
+        placeholder:
+            'microsoftonline.com',
+        description:
+            'This is the domain that will be use in the SSO.',
+        type: 'text',
+        component: RenderField,
     },
     {
         key: 'samlSsoUrl',
