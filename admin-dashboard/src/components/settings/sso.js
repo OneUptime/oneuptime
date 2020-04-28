@@ -3,42 +3,33 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
-import { fetchSettings, saveSettings } from '../../actions/settings';
 import { fetchSsos, deleteSso } from '../../actions/sso';
 import moment from 'moment';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 import SsoDeleteModal from './sso/SsoDeleteModal';
 import SsoAddModal from './sso/SsoAddModal';
 
-
-const settingsType = 'sso';
-
 export class Component extends React.Component {
     async componentDidMount() {
-        await this.props.fetchSettings(settingsType);
         await this.props.fetchSsos()
     }
 
-    submitForm = values => {
-        this.props.saveSettings(settingsType, values);
-    };
+    addSso = async () => {
+        openModal({
+            id: uuid.v4(),
+            onConfirm: () => { },
+            content: SsoAddModal,
+        })
+    }
 
     deleteSso = async  ssoId => {
-        this.props.openModal({
+        openModal({
             id: ssoId,
             onConfirm: async e => {
                 await this.props.deleteSso(ssoId);
                 return this.props.fetchSsos()
             },
             content: SsoDeleteModal,
-        })
-    }
-
-    addSso = async () => {
-        this.props.openModal({
-            id: uuid.v4(),
-            onConfirm: (e) => {e.preventDefault() },
-            content: SsoAddModal,
         })
     }
 
@@ -61,6 +52,7 @@ export class Component extends React.Component {
                                 </span>
                             </p>
                             <button
+                                className="bs-Button bs-Button--blue Box-background--blue"
                                 onClick={() => this.addSso()}
                             >
                                 Add
@@ -169,13 +161,13 @@ export class Component extends React.Component {
                                             <div className="db-ListViewItem-link">
                                                 <button className="bs-Button bs-Button--blue Box-background--blue">
                                                     Edit
-                                            </button>
+                                                </button>
                                                 <button
                                                     className="bs-Button bs-Button--red Box-background--red"
                                                     onClick={() => this.deleteSso(sso._id)}
                                                 >
                                                     Delete
-                                            </button>
+                                                </button>
                                             </div>
                                         </td>
                                         <td aria-hidden="true"
@@ -218,22 +210,16 @@ Component.displayName = 'SettingsForm';
 
 /* eslint-disable */
 Component.propTypes = {
-    settings: PropTypes.object.isRequired,
-    handleSubmit: PropTypes.func.isRequired,
-    saveSettings: PropTypes.func.isRequired,
-    fetchSettings: PropTypes.func.isRequired,
-    initialValues: PropTypes.object,
+    ssos: PropTypes.object.isRequired,
+    fetchSsos: PropTypes.func.isRequired,
+    deleteSso: PropTypes.func.isRequired,
 };
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
-            saveSettings,
-            fetchSettings,
             fetchSsos,
             deleteSso,
-            openModal,
-            closeModal,
         },
         dispatch
     );
@@ -241,9 +227,6 @@ const mapDispatchToProps = dispatch => {
 
 function mapStateToProps(state) {
     return {
-        settings: state.settings,
-        initialValues: state.settings[settingsType],
-        ssoForm: state.form['sso-form'],
         ssos: state.sso.ssos,
     };
 }
