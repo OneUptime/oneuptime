@@ -3,11 +3,11 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
-import { fetchSsos, deleteSso } from '../../actions/sso';
+import { fetchSsos, deleteSso, fetchSso } from '../../actions/sso';
 import moment from 'moment';
 import { openModal } from '../../actions/modal';
 import SsoDeleteModal from './sso/SsoDeleteModal';
-import SsoAddModal from './sso/SsoAddModal';
+import { SsoAddModal, SsoUpdateModal, } from './sso/SsoModal';
 
 export class Component extends React.Component {
     async componentDidMount() {
@@ -30,6 +30,17 @@ export class Component extends React.Component {
                 return this.props.fetchSsos()
             },
             content: SsoDeleteModal,
+        })
+    }
+
+    editSso = async ssoId => {
+        this.props.fetchSso(ssoId)
+        this.props.openModal({
+            id: ssoId,
+            onConfirm: async e => {
+                return this.props.fetchSsos()
+            },
+            content: SsoUpdateModal,
         })
     }
 
@@ -159,7 +170,10 @@ export class Component extends React.Component {
                                             style={{ height: "1px" }}
                                         >
                                             <div className="db-ListViewItem-link">
-                                                <button className="bs-Button bs-Button--blue Box-background--blue">
+                                                <button
+                                                    className="bs-Button bs-Button--blue Box-background--blue"
+                                                    onClick={() => this.editSso(sso._id)}
+                                                >
                                                     Edit
                                                 </button>
                                                 <button
@@ -212,6 +226,7 @@ Component.displayName = 'SettingsForm';
 Component.propTypes = {
     ssos: PropTypes.object.isRequired,
     fetchSsos: PropTypes.func.isRequired,
+    fetchSso: PropTypes.func.isRequired,
     deleteSso: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
 };
@@ -220,6 +235,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             fetchSsos,
+            fetchSso,
             deleteSso,
             openModal,
         },
