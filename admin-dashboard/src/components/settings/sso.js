@@ -44,8 +44,23 @@ export class Component extends React.Component {
         })
     }
 
+    previousClicked = async () => {
+        const { ssos } = this.props;
+        const { skip, limit } = ssos
+        await this.props.fetchSsos((skip - limit) >= 0 ? skip - limit : 0, limit)
+    }
+    
+    nextClicked = async () => {
+        const { ssos } = this.props;
+        const { skip, limit } = ssos
+        await this.props.fetchSsos(skip + limit, limit)
+    }
+
     render() {
         const { ssos } = this.props;
+        const { count, skip, limit } = ssos
+        const canPrev = skip > 0;
+        const canNext = skip + limit < count;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -256,29 +271,16 @@ export class Component extends React.Component {
                                     <div className="Box-root Margin-right--8">
                                         <button
                                             id="btnPrev"
-                                            onClick={() => {
-                                                // this.prevClicked(
-                                                //     this
-                                                //         .props
-                                                //         .user
-                                                //         .users
-                                                //         .skip,
-                                                //     this
-                                                //         .props
-                                                //         .user
-                                                //         .users
-                                                //         .limit
-                                                // );
-                                            }}
+                                            onClick={this.previousClicked}
                                             className={
-                                                'Button bs-ButtonLegacy' //+
-                                                // (canPrev
-                                                //     ? ''
-                                                //     : 'Is--disabled')
+                                                'Button bs-ButtonLegacy' +
+                                                (canPrev
+                                                    ? ''
+                                                    : 'Is--disabled')
                                             }
-                                            // disabled={
-                                            //     // !canPrev
-                                            // }
+                                            disabled={
+                                                !canPrev
+                                            }
                                             data-db-analytics-name="list_view.pagination.previous"
                                             type="button"
                                         >
@@ -294,29 +296,16 @@ export class Component extends React.Component {
                                     <div className="Box-root">
                                         <button
                                             id="btnNext"
-                                            onClick={() => {
-                                                // this.nextClicked(
-                                                //     this
-                                                //         .props
-                                                //         .user
-                                                //         .users
-                                                //         .skip,
-                                                //     this
-                                                //         .props
-                                                //         .user
-                                                //         .users
-                                                //         .limit
-                                                // );
-                                            }}
+                                            onClick={this.nextClicked}
                                             className={
-                                                'Button bs-ButtonLegacy' //+
-                                                // (canNext
-                                                //     ? ''
-                                                //     : 'Is--disabled')
+                                                'Button bs-ButtonLegacy' +
+                                                (canNext
+                                                    ? ''
+                                                    : 'Is--disabled')
                                             }
-                                            // disabled={
-                                            // !canNext
-                                            // }
+                                            disabled={
+                                                !canNext
+                                            }
                                             data-db-analytics-name="list_view.pagination.next"
                                             type="button"
                                         >
