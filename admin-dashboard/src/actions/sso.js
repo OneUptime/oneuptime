@@ -1,6 +1,6 @@
 import * as types from "../constants/sso"
 import errors from '../errors';
-import { getApi, deleteApi, postApi } from "../api";
+import { getApi, deleteApi, postApi, putApi } from "../api";
 
 export const fetchSsosRequest = () => {
   return {
@@ -161,5 +161,45 @@ export const addSso = (data) => async dispatch => {
       errorMsg = 'Network Error';
     }
     dispatch(addSsoError(errorMsg));
+  }
+}
+
+export const updateSsoRequest = () => {
+  return {
+    type: types.UPDATE_SSO_REQUEST,
+  };
+}
+
+export const updateSsoSuccess = () => {
+  return {
+    type: types.UPDATE_SSO_SUCCESS,
+  };
+}
+
+export const updateSsoError = payload => {
+  return {
+    type: types.UPDATE_SSO_FAILURE,
+    payload,
+  };
+}
+
+export const updateSso = (data) => async dispatch => {
+  dispatch(updateSsoRequest());
+  try {
+    await putApi(`sso/update`, data)
+    dispatch(updateSsoSuccess())
+  } catch (error) {
+    let errorMsg;
+    if (error && error.response && error.response.data)
+      errorMsg = error.response.data;
+    if (error && error.data) {
+      errorMsg = error.data;
+    }
+    if (error && error.message) {
+      errorMsg = error.message;
+    } else {
+      errorMsg = 'Network Error';
+    }
+    dispatch(updateSsoError(errorMsg));
   }
 }
