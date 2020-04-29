@@ -148,7 +148,7 @@ export const addSsoError = payload => {
 export const addSso = (data) => async dispatch => {
   dispatch(addSsoRequest());
   try {
-    await postApi(`sso/create`, data)
+    await postApi(`sso/`, data)
     dispatch(addSsoSuccess())
   } catch (error) {
     let errorMsg;
