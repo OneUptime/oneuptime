@@ -9,12 +9,19 @@ const app = require('../server');
 
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
-const plans = require('../backend/config/plans').getPlans();
-const log = require('./data/log');
 const UserService = require('../backend/services/userService');
 const AirtableService = require('../backend/services/airtableService');
 const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
+
+const newSSOPayload = {
+    "saml-enable": true,
+    domain: "hackerbay.com",
+    samlSsoUrl: "hackerbat.com/login",
+    certificateFingerprint: "azertyuiop",
+    remoteLogoutUrl: "hackerbay.com/logout",
+    ipRanges: "127.0.0.1",
+};
 
 let token, userId, airtableId;
 
@@ -136,71 +143,74 @@ describe('SSO API', function () {
             const authorization = `Basic ${token}`;
             request.post('/sso')
                 .set('Authorization', authorization)
-                .send({
-                    "saml-enable":true,
-                    domain:"hackerbay.com",
-                    samlSsoUrl:"hackerbat.com/login",
-                    certificateFingerprint:"azertyuiop",
-                    remoteLogoutUrl:"hackerbay.com/logout",
-                    ipRanges:"127.0.0.1",
-                })
+                .send(newSSOPayload)
                 .end(function (err, res) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     done();
                 })
-        })
+        });
 
         it('should not create a new SSO if domaine is not defined', function (done) {
             const authorization = `Basic ${token}`;
+            const payload = { ...newSSOPayload };
+            delete payload.domain;
+
             request.post('/sso')
                 .set('Authorization', authorization)
-                .send({
-                    "saml-enable":true,
-                    samlSsoUrl:"hackerbat.com/login",
-                    certificateFingerprint:"azertyuiop",
-                    remoteLogoutUrl:"hackerbay.com/logout",
-                    ipRanges:"127.0.0.1",
-                })
+                .send(payload)
                 .end(function (err, res) {
                     expect(res).to.have.status(400);
                     done();
                 })
-        })
+        });
 
         it('should not create a new SSO if Saml SSO url is not defined', function (done) {
             const authorization = `Basic ${token}`;
+            const payload = { ...newSSOPayload };
+            delete payload.samlSsoUrl;
+
             request.post('/sso')
                 .set('Authorization', authorization)
-                .send({
-                    "saml-enable":true,
-                    domain:"hackerbay.com",
-                    certificateFingerprint:"azertyuiop",
-                    remoteLogoutUrl:"hackerbay.com/logout",
-                    ipRanges:"127.0.0.1",
-                })
+                .send(payload)
                 .end(function (err, res) {
                     expect(res).to.have.status(400);
                     done();
-                })
-        })
+                });
+        });
 
         it('should not create a new SSO if remote logout url is not defined', function (done) {
             const authorization = `Basic ${token}`;
+            const payload = { ...newSSOPayload };
+            delete payload.remoteLogoutUrl;
+
             request.post('/sso')
                 .set('Authorization', authorization)
-                .send({
-                    "saml-enable":true,
-                    domain:"hackerbay.com",
-                    samlSsoUrl:"hackerbat.com/login",
-                    certificateFingerprint:"azertyuiop",
-                    ipRanges:"127.0.0.1",
-                })
+                .send(payload)
                 .end(function (err, res) {
                     expect(res).to.have.status(400);
                     done();
-                })
-        })
+                });
+        });
+    });
 
+    describe('DELETE /sso', function () {
+        it('should delete sso', function (done) {
+            const authorization = `Basic ${token}`;
+            request.post('/sso')
+                .set('Authorization', authorization)
+                .send(newSSOPayload)
+                .end(function (err, res) {
+                    expect(res).to.have.status(200);
+                    const { _id: ssoId } = res.body
+                    request.delete(`/sso/${ssoId}`)
+                        .set('Authorization', authorization)
+                        .end(function (err, res) {
+                            expect(res).to.have.status(200);
+                            done();
+                        });
+                });
+
+        });
     });
 });
