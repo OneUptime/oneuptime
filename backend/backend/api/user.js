@@ -25,6 +25,8 @@ const DISABLE_SIGNUP = process.env.DISABLE_SIGNUP === 'true';
 
 router.post('/signup', async function(req, res) {
     try {
+        console.log("DISABLE SIGNUP")
+        console.log(process.env.DISABLE_SIGNUP);
         if (DISABLE_SIGNUP) {
             return sendErrorResponse(req, res, {
                 code: 400,
