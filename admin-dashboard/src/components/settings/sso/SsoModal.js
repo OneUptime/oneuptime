@@ -213,6 +213,7 @@ class Component extends React.Component {
                                     <span>Cancel</span>
                                 </button>
                                 <button
+                                    id='save-button'
                                     className="bs-Button bs-Button--blue"
                                     disabled={
                                         sso &&
