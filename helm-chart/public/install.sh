@@ -187,6 +187,7 @@ elif [[ "$1" == "ci-install" ]] # If its a local install, take local scripts.
 then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
+        echo $2
         # install services.
         if [[ "$2" == "enterprise" ]]
         then

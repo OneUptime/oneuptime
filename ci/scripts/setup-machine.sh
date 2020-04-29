@@ -3,6 +3,8 @@
 # This script sets the CI/CD machine up to run a build job. It's usually the first script that runs
 ##############
 
+echo $1
+
 # Cleanup
 echo "RUNNING COMMAND:  chmod +x ./ci/cleanup.sh"
 chmod +x ./ci/scripts/cleanup.sh
