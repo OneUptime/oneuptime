@@ -106,6 +106,10 @@ then
     # Making 'k' as an alias to microk8s.kubectl
     echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl k"
     sudo snap alias microk8s.kubectl k
+    echo "RUNNING COMMAND: sudo chown -R $USER $HOME/.kube"
+    sudo chown -R $USER $HOME/.kube
+    echo "RUNNING COMMAND: sudo chmod 777 $HOME/.kube"
+    sudo chmod 777 $HOME/.kube
     echo "RUNNING COMMAND: microk8s.kubectl config view --raw > $HOME/.kube/config"
     sudo microk8s.kubectl config view --raw > $HOME/.kube/config
     #Kubectl version.
