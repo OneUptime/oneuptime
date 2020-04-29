@@ -47,13 +47,14 @@ module.exports = {
     create: async function (data) {
         const sso = new SsoModel();
         sso["saml-enabled"] = data["saml-enabled"] || false
-        sso.domain = data.domain
-        sso.samlSsoUrl = data.samlSsoUrl
-        sso.certificateFingerprint = data.certificateFingerprint
-        sso.remoteLogoutUrl = data.remoteLogoutUrl
-        sso.ipRanges = data.ipRanges
+        sso.domain = data.domain;
+        sso.samlSsoUrl = data.samlSsoUrl;
+        sso.certificateFingerprint = data.certificateFingerprint;
+        sso.remoteLogoutUrl = data.remoteLogoutUrl;
+        sso.ipRanges = data.ipRanges;
         try {
-            await sso.save()
+            const savedSso=await sso.save();
+            return savedSso;
         } catch (error) {
             ErrorService.log('ssoService.create', error);
             throw error;
