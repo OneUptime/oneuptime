@@ -21,7 +21,7 @@ module.exports = {
                 .limit(limit);
             return ssos;
         } catch (error) {
-            ErrorService.log('ssoService.deleteSso', error);
+            ErrorService.log('ssoService.findBy', error);
             throw error;
         }
     },
@@ -39,12 +39,12 @@ module.exports = {
             );
             return sso;
         } catch (error) {
-            ErrorService.log('ssoService.deleteSso', error);
+            ErrorService.log('ssoService.deleteBy', error);
             throw error;
         }
     },
 
-    createSso: async function (data) {
+    create: async function (data) {
         const sso = new SsoModel();
         sso["saml-enabled"] = data["saml-enabled"] || false
         sso.domain = data.domain
@@ -52,14 +52,14 @@ module.exports = {
         sso.certificateFingerprint = data.certificateFingerprint
         sso.remoteLogoutUrl = data.remoteLogoutUrl
         sso.ipRanges = data.ipRanges
-        sso.createdAt = new Date()
         try {
             await sso.save()
         } catch (error) {
-            ErrorService.log('ssoService.deleteCreate', error);
+            ErrorService.log('ssoService.create', error);
             throw error;
         }
     },
+
     getSso: async function (ssoId) {
         try {
             const sso = await SsoModel.findOne({ _id: ssoId });
