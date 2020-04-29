@@ -108,7 +108,8 @@ const fields = [
 class Component extends React.Component {
     submitForm = async data => {
         const { closeThisDialog } = this.props;
-        await this.props.onSubmit(data);
+        const { _id: id } = data;
+        await this.props.onSubmit({ id, data });
         await this.props.fetchSsos();
         closeThisDialog();
     };
