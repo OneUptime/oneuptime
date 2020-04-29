@@ -47,13 +47,36 @@ module.exports = {
     create: async function (data) {
         const sso = new SsoModel();
         sso["saml-enabled"] = data["saml-enabled"] || false
+
+        if (!data.domain) {
+            const error = new Error('Domain must be defined.');
+            error.code = 400;
+            ErrorService.log('ssoService.create', error);
+            throw error;
+        }
         sso.domain = data.domain;
+
+        if (!data.samlSsoUrl) {
+            const error = new Error('Saml SSO Url must be defined.');
+            error.code = 400;
+            ErrorService.log('ssoService.create', error);
+            throw error;
+        }
         sso.samlSsoUrl = data.samlSsoUrl;
+
         sso.certificateFingerprint = data.certificateFingerprint;
+
+        if (!data.remoteLogoutUrl) {
+            const error = new Error('Remote Logout URL must be defined.');
+            error.code = 400;
+            ErrorService.log('ssoService.create', error);
+            throw error;
+        }
         sso.remoteLogoutUrl = data.remoteLogoutUrl;
+
         sso.ipRanges = data.ipRanges;
         try {
-            const savedSso=await sso.save();
+            const savedSso = await sso.save();
             return savedSso;
         } catch (error) {
             ErrorService.log('ssoService.create', error);
@@ -82,7 +105,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            
+
             query.deleted = false;
 
             await SsoModel.updateMany(query, {
@@ -107,7 +130,7 @@ module.exports = {
         return count;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         try {
             await SsoModel.deleteMany(query);
             return 'SSO(s) removed successfully!';
