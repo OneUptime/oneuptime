@@ -145,7 +145,7 @@ export const addSsoError = payload => {
   };
 }
 
-export const addSso = (data) => async dispatch => {
+export const addSso = ({data}) => async dispatch => {
   dispatch(addSsoRequest());
   try {
     await postApi(`sso/`, data)
@@ -185,10 +185,10 @@ export const updateSsoError = payload => {
   };
 }
 
-export const updateSso = (data) => async dispatch => {
+export const updateSso = ({id, data}) => async dispatch => {
   dispatch(updateSsoRequest());
   try {
-    await putApi(`sso/update`, data)
+    await putApi(`sso/${id}`, data)
     dispatch(updateSsoSuccess())
   } catch (error) {
     let errorMsg;
