@@ -4,13 +4,9 @@ const app = express();
 const { NODE_ENV } = process.env;
 
 function setupEnv() {
-    console.log(process.env.DISABLE_SIGNUP);
-    console.log(typeof process.env.DISABLE_SIGNUP);
-    if (typeof process.env.DISABLE_SIGNUP === 'string') {
-        process.env.DISABLE_SIGNUP = process.env.DISABLE_SIGNUP === 'true';
+    if (typeof process.env.DISABLE_SIGNUP === 'string' && process.env.DISABLE_SIGNUP === 'true') {
+        global.disableSignup = true; 
     }
-    console.log(typeof process.env.DISABLE_SIGNUP);
-    console.log(process.env.DISABLE_SIGNUP);
 }
 
 setupEnv();
