@@ -11,7 +11,8 @@ module.exports = {
 
             if (!query) query = {};
 
-            // if (!query.deleted) query.deleted = false;
+            if (!query.deleted) query.deleted = false;
+
             const ssos = await SsoModel.find(
                 query,
                 { _id: 1, domain: 1, createdAt: 1 })
@@ -25,20 +26,24 @@ module.exports = {
         }
     },
 
-    deleteSso: async function (ssoId) {
+    deleteBy: async function (query) {
         try {
-            const result = await SsoModel.deleteOne({ _id: ssoId });
-            const { ok, deletedCount } = result;
-            if (!ok || !deletedCount)
-                throw {
-                    code: 400,
-                    message: 'Failed to remove the sso.'
-                }
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const sso = await SsoModel.findOneAndUpdate(
+                query,
+                { $set: { deleted: true, deletedAt: Date.now() } },
+                { new: true }
+            );
+            return sso;
         } catch (error) {
             ErrorService.log('ssoService.deleteSso', error);
             throw error;
         }
     },
+
     createSso: async function (data) {
         const sso = new SsoModel();
         sso["saml-enabled"] = data["saml-enabled"] || false
@@ -93,7 +98,8 @@ module.exports = {
         if (!query) {
             query = {};
         }
-        // if (!query.deleted) query.deleted = false;
+
+        if (!query.deleted) query.deleted = false;
 
         const count = await SsoModel.countDocuments(query);
         return count;
