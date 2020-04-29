@@ -102,4 +102,18 @@ describe('SSO API', function () {
         })
     })
 
+    describe('should return the list of the create SSO', function () {
+        it('should return SSOs list with count', function (done) {
+            const authorization = `Basic ${token}`;
+            request.get('/sso')
+                .set('Authorization', authorization)
+                .end(function (err, res) {
+                    expect(res).to.have.status(200);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('data');
+                    expect(res.body).to.have.property('count');
+                    done();
+                })
+        })
+    })
 });
