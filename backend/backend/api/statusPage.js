@@ -119,6 +119,29 @@ router.put(
     }
 );
 
+/**
+ * @description deletes a particular domain from statuspage collection
+ * @param {string} projectId id of the project
+ * @param {string} statusPageId id of the status page
+ * @param {string} domainId id of the domain
+ * @returns response body
+ */
+router.delete(
+    '/:projectId/:statusPageId/:domainId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        const { statusPageId, domainId } = req.params;
+
+        try {
+            const response = await StatusPageService.deleteDomain(statusPageId, domainId);
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 // Route Description: Updating Status Page.
 // Params:
 // Param1:
