@@ -16,7 +16,6 @@ const ssoSchema = new Schema({
     },
     certificateFingerprint: {
         type: String,
-        required: true,
     },
     remoteLogoutUrl: {
         type: String,
@@ -24,7 +23,6 @@ const ssoSchema = new Schema({
     },
     ipRanges: {
         type: String,
-        required: true,
     },
     createdAt: {
         type: Date,
