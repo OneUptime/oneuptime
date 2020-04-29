@@ -29,10 +29,10 @@ router.delete('/:id', getUser, isUserMasterAdmin, async function (req, res) {
   }
 })
 
-router.post('/create', getUser, isUserMasterAdmin, async function (req, res) {
+router.post('/', getUser, isUserMasterAdmin, async function (req, res) {
   const data = req.body
   try {
-    await SsoService.createSso(data)
+    await SsoService.create(data)
     return sendItemResponse(req, res);
   } catch (error) {
     return sendErrorResponse(req, res, error)
