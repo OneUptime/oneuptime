@@ -39,16 +39,9 @@ router.post('/', getUser, isUserMasterAdmin, async function (req, res) {
   }
 })
 
-router.get('/:ssoId', getUser, isUserMasterAdmin, async function (req, res) {
-  const ssoId = req.params.ssoId
-  if (!ssoId) {
-    return sendErrorResponse(req, res, {
-      code: 400,
-      message: 'SsoId must be present.'
-    })
-  }
+router.get('/:id', getUser, isUserMasterAdmin, async function (req, res) {
   try {
-    const sso = await SsoService.getSso(ssoId);
+    const sso = await SsoService.findOneBy({ _id: req.params.id });
     return sendItemResponse(req, res, sso);
   } catch (error) {
     return sendErrorResponse(req, res, error)
