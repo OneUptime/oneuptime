@@ -164,7 +164,6 @@ describe('SSO API', function () {
                 })
                 .end(function (err, res) {
                     expect(res).to.have.status(400);
-                    expect(res.body).to.be.an('object');
                     done();
                 })
         })
@@ -182,7 +181,23 @@ describe('SSO API', function () {
                 })
                 .end(function (err, res) {
                     expect(res).to.have.status(400);
-                    expect(res.body).to.be.an('object');
+                    done();
+                })
+        })
+
+        it('should not create a new SSO if remote logout url is not defined', function (done) {
+            const authorization = `Basic ${token}`;
+            request.post('/sso')
+                .set('Authorization', authorization)
+                .send({
+                    "saml-enable":true,
+                    domain:"hackerbay.com",
+                    samlSsoUrl:"hackerbat.com/login",
+                    certificateFingerprint:"azertyuiop",
+                    ipRanges:"127.0.0.1",
+                })
+                .end(function (err, res) {
+                    expect(res).to.have.status(400);
                     done();
                 })
         })
