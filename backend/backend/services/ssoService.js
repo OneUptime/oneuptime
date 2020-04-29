@@ -90,8 +90,9 @@ module.exports = {
                 query = {}
             }
 
-            query.deleted = false;
-
+            if (!query.deleted) {
+                query.deleted = false;
+            }
             const sso = await SsoModel.findOne(query);
             return sso;
         } catch (error) {
