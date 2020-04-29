@@ -71,31 +71,30 @@ module.exports = {
             const sso = await SsoModel.findOne(query);
             return sso;
         } catch (error) {
-            ErrorService.log('ssoService.getSso', error);
+            ErrorService.log('ssoService.findOneBy', error);
             throw error;
         }
     },
-    
-    updateSso: async function (ssoId, data) {
+
+    updateBy: async function (query, data) {
         try {
-            const sso = await SsoModel.findOne({ _id: ssoId });
-            if (!sso)
-                throw {
-                    code: 404,
-                    message: 'SSO not found.'
-                }
-            sso["saml-enabled"] = data["saml-enabled"] || false
-            sso.domain = data.domain
-            sso.samlSsoUrl = data.samlSsoUrl
-            sso.certificateFingerprint = data.certificateFingerprint
-            sso.remoteLogoutUrl = data.remoteLogoutUrl
-            sso.ipRanges = data.ipRanges
-            await sso.save();
+            if (!query) {
+                query = {};
+            }
+            
+            query.deleted = false;
+
+            await SsoModel.updateMany(query, {
+                $set: data,
+            });
+            const sso = this.findBy(query);
+            return sso;
         } catch (error) {
-            ErrorService.log('ssoService.getSso', error);
+            ErrorService.log('ssoService.updateBy', error);
             throw error;
         }
     },
+
     countBy: async function (query) {
         if (!query) {
             query = {};
