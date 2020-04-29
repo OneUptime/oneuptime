@@ -519,6 +519,38 @@ describe('Status API', function() {
                     });
             });
     });
+
+    it('should delete a domain from a status page', function(done) {
+        const authorization = `Basic ${token}`;
+        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
+            // select the first domain
+            const { _id: domainId } = statusPage.domains[0];
+            request
+                .delete(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .set('Authorization', authorization)
+                .end((err, res) => {
+                    expect(res).to.have.status(200);
+                    done();
+                });
+        });
+    });
+
+    it('should not delete any domain if status page does not exist or not found', function(done) {
+        const authorization = `Basic ${token}`;
+        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
+            // select the first domain
+            const { _id: domainId } = statusPage.domains[0];
+            // create random status page id
+            const statusPageId = '5ea70eb4be9f4b177a1719ad';
+            request
+                .delete(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .set('Authorization', authorization)
+                .end((err, res) => {
+                    expect(res).to.have.status(400);
+                    done();
+                });
+        });
+    });
 });
 
 // eslint-disable-next-line no-unused-vars
