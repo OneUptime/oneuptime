@@ -4,6 +4,9 @@ kind: ConfigMap
 metadata:
   name: {{ printf "%s-%s" $.Release.Name "mongo-external"  }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: fyipe
+    app.kubernetes.io/managed-by: helm
 data:
   27017: {{ printf "%s/$s" $.Release.Namespace "fi-mongodb:27017" }}
 ---
@@ -12,6 +15,9 @@ kind: Service
 metadata:
   name: {{ printf "%s-%s" $.Release.Name "mongo-ingress"  }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: fyipe
+    app.kubernetes.io/managed-by: helm
 spec:
   type: LoadBalancer
   ports:

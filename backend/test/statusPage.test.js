@@ -1,6 +1,7 @@
 /* eslint-disable quotes, no-undef */
 
 process.env.PORT = 3020;
+process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
 const userData = require('./data/user');
 const chai = require('chai');
@@ -131,7 +132,7 @@ describe('Status API', function() {
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await ScheduledEventService.hardDeleteBy({ _id: scheduledEventId });
         await StatusService.hardDeleteBy({ projectId: projectId });
-        await DomainVerificationService.hardDeleteBy({ projectId });
+        await DomainVerificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
     });
 
@@ -372,6 +373,20 @@ describe('Status API', function() {
                 done();
             });
     });
+
+    it('should create a domain with subdomain', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: 'status.fyipeapp.com' };
+        request
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                done();
+            });
+    });
+
     // The placement of this test case is very important
     // a domain needs to be created before verifying it
     it('should verify a domain', function(done) {
@@ -381,8 +396,7 @@ describe('Status API', function() {
         // update the verification token to a live version
         DomainVerificationService.updateOneBy(
             { domain },
-            { verificationToken },
-            domain
+            { verificationToken }
         ).then(function({ _id: domainId, verificationToken }) {
             request
                 .put(`/domainVerificationToken/${projectId}/verify/${domainId}`)
@@ -396,6 +410,56 @@ describe('Status API', function() {
         });
     });
 
+    it('should verify a domain and fetch a status page', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: 'status.x.com' };
+        request
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                const domain = 'status.x.com';
+                // update the verification token to a live version
+                DomainVerificationService.updateOneBy(
+                    { domain },
+                    { verified: true }
+                ).then(function() {
+                    request
+                        .get(`/statusPage/null?url=${domain}`)
+                        .send()
+                        .end(function(err, res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body._id).to.be.equal(statusPageId);
+                            done();
+                        });
+                });
+            });
+    });
+
+    it('should NOT fetch status page of unverfied domain', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: 'status.y.com' };
+        request
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                const domain = 'status.y.com';
+                request
+                    .get(`/statusPage/null?url=${domain}`)
+                    .send()
+                    .end(function(err, res) {
+                        expect(res).to.have.status(400);
+                        expect(res.body.message).to.be.equal(
+                            'Domain not verified'
+                        );
+                        done();
+                    });
+            });
+    });
+
     it('should not verify a domain if txt record is not found', function(done) {
         const authorization = `Basic ${token}`;
         const domain = 'fyipeapp.com';
@@ -403,8 +467,7 @@ describe('Status API', function() {
         // update the verification token to a live version
         DomainVerificationService.updateOneBy(
             { domain },
-            { verificationToken, verified: false, verifiedAt: null },
-            domain
+            { verificationToken, verified: false, verifiedAt: null }
         ).then(function({ _id: domainId, verificationToken }) {
             request
                 .put(`/domainVerificationToken/${projectId}/verify/${domainId}`)
@@ -483,7 +546,7 @@ describe('Status API', function() {
 
     // This test will work base on the fact that a domain was previously created in another project
     // This test will try to create another domain with the same domain on another project
-    it('should not add domain if it exist in another project', function(done) {
+    it('should add domain if it exist in another project and if the domain in other project is NOT verified.', function(done) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'fyipeapp.com' };
         request
@@ -513,7 +576,53 @@ describe('Status API', function() {
                             .set('Authorization', authorization)
                             .send(data)
                             .end(function(err, res) {
+                                expect(res).to.have.status(200);
+                                expect(
+                                    res.body.domains.length
+                                ).to.be.greaterThan(0);
+                                expect(res.body.domains[0].domain).to.be.equal(
+                                    'fyipeapp.com'
+                                );
+                                done();
+                            });
+                    });
+            });
+    });
+
+    it('should NOT add domain if it exist in another project and domain in other project is verified', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: 'status.x.com' };
+        request
+            .post(`/project/create`)
+            .set('Authorization', authorization)
+            .send(project.newSecondProject)
+            .end(function(err, res) {
+                const newProjectId = res.body._id;
+                request
+                    .post(`/statusPage/${newProjectId}`)
+                    .set('Authorization', authorization)
+                    .send({
+                        name: 'Status Page name',
+                        links: [],
+                        title: 'Status Page title',
+                        description: 'status page description',
+                        copyright: 'status page copyright',
+                        projectId,
+                        monitorIds: [monitorId],
+                    })
+                    .end(function(err, res) {
+                        const newStatusPageId = res.body._id;
+                        request
+                            .put(
+                                `/statusPage/${newProjectId}/${newStatusPageId}/domain`
+                            )
+                            .set('Authorization', authorization)
+                            .send(data)
+                            .end(function(err, res) {
                                 expect(res).to.have.status(400);
+                                expect(res.body.message).to.be.equals(
+                                    'This domain is already associated with another project'
+                                );
                                 done();
                             });
                     });
@@ -596,6 +705,7 @@ describe('StatusPage API with Sub-Projects', function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
         });
+        await DomainVerificationService.hardDeleteBy({ projectId });
         await UserService.hardDeleteBy({
             email: {
                 $in: [

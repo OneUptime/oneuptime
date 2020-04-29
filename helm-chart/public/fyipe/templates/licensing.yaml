@@ -13,6 +13,8 @@ metadata:
     namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: helm
 spec:
     selector:
         matchLabels:
@@ -50,6 +52,8 @@ kind: Service
 metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: helm
     name: {{ printf "%s-%s" .Release.Name "licensing"  }}
 spec:
     ports:
