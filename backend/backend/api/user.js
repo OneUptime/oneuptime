@@ -21,15 +21,10 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-const DISABLE_SIGNUP = process.env.DISABLE_SIGNUP === 'true';
+const DISABLE_SIGNUP = process.env.DISABLE_SIGNUP;
 
 router.post('/signup', async function(req, res) {
     try {
-        console.log("DISABLE SIGNUP")
-        console.log(process.env.DISABLE_SIGNUP);
-        console.log(typeof process.env.DISABLE_SIGNUP);
-        console.log(DISABLE_SIGNUP);
-        
         if (DISABLE_SIGNUP) {
             return sendErrorResponse(req, res, {
                 code: 400,
