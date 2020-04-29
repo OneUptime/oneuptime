@@ -169,5 +169,23 @@ describe('SSO API', function () {
                 })
         })
 
+        it('should not create a new SSO if Saml SSO url is not defined', function (done) {
+            const authorization = `Basic ${token}`;
+            request.post('/sso')
+                .set('Authorization', authorization)
+                .send({
+                    "saml-enable":true,
+                    domain:"hackerbay.com",
+                    certificateFingerprint:"azertyuiop",
+                    remoteLogoutUrl:"hackerbay.com/logout",
+                    ipRanges:"127.0.0.1",
+                })
+                .end(function (err, res) {
+                    expect(res).to.have.status(400);
+                    expect(res.body).to.be.an('object');
+                    done();
+                })
+        })
+
     });
 });
