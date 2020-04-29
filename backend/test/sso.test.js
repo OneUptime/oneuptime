@@ -199,21 +199,23 @@ describe('SSO API', function () {
     describe('DELETE /sso', function () {
         it('should delete sso', function (done) {
             const authorization = `Basic ${token}`;
-            request.post('/sso')
-                .set('Authorization', authorization)
-                .send(newSSOPayload)
-                .end(function (err, res) {
-                    expect(res).to.have.status(200);
-                    const { _id: ssoId } = res.body
+            SsoService.create(newSSOPayload)
+                .then(sso => {
+                    const { _id: ssoId } = sso;
                     request.delete(`/sso/${ssoId}`)
                         .set('Authorization', authorization)
-                        .end(function (err, res) {
+                        .end(async function (err, res) {
                             expect(res).to.have.status(200);
                             expect(res.body).to.be.an('object');
                             expect(res.body).to.have.property('_id');
                             expect(res.body).to.have.property('domain');
                             expect(res.body).to.have.property('samlSsoUrl');
                             expect(res.body).to.have.property('remoteLogoutUrl');
+                            const deletedSso = await SsoService.findOneBy({ _id: res.body._id, deleted: true });
+
+                            expect(deletedSso).to.be.an('object');
+                            expect(deletedSso.deleted).to.equal(true);
+
                             SsoService.hardDeleteBy({ _id: res.body._id });
                             done();
                         });
