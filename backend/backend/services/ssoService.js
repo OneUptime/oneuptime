@@ -104,7 +104,18 @@ module.exports = {
 
         const count = await SsoModel.countDocuments(query);
         return count;
-    }
+    },
+
+    hardDeleteBy: async function(query) {
+        try {
+            await SsoModel.deleteMany(query);
+            return 'SSO(s) removed successfully!';
+        } catch (error) {
+            ErrorService.log('ssoService.hardDeleteBy', error);
+            throw error;
+        }
+    },
+
 }
 
 const SsoModel = require('../models/sso');
