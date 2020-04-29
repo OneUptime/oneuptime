@@ -3,14 +3,30 @@ const DomainVerificationTokenModel = require('../models/domainVerificationToken'
 const ErrorService = require('./errorService');
 const getDomain = require('../utils/getDomain');
 const flatten = require('../utils/flattenArray');
-
+const randomChar = require('../utils/randomChar');
 const dnsPromises = dns.promises;
 
 module.exports = {
+    create: async function({ domain, projectId }) {
+        const token = 'fyipe=' + randomChar();
+        const creationData = {
+            domain: getDomain(domain),
+            verificationToken: token,
+            verifiedAt: null,
+            deletedAt: null,
+            projectId,
+        };
+
+        return await DomainVerificationTokenModel.create(creationData);
+    },
     findOneBy: async function(query) {
         try {
             if (!query) {
                 query = {};
+            }
+
+            if (query.domain) {
+                query.domain = getDomain(query.domain);
             }
 
             return await DomainVerificationTokenModel.findOne(query).populate(
@@ -21,23 +37,34 @@ module.exports = {
             throw error;
         }
     },
-    updateOneBy: async function(query, data, subDomain) {
-        const domain = getDomain(subDomain);
+    findBy: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (query.domain) {
+                query.domain = getDomain(query.domain);
+            }
+
+            return await DomainVerificationTokenModel.find(query).populate(
+                'projectId'
+            );
+        } catch (error) {
+            ErrorService.log('domainVerificationService.findOneBy', error);
+            throw error;
+        }
+    },
+    updateOneBy: async function(query, data) {
+        if (query && query.domain) {
+            query.domain = getDomain(query.domain);
+        }
+
         if (!query) {
             query = {};
         }
 
         try {
-            const existingBaseDomain = await this.findOneBy({ domain });
-
-            // check for case where the domain is not in the db
-            if (!existingBaseDomain) {
-                throw {
-                    code: 400,
-                    message: 'Domain does not exist',
-                };
-            }
-
             const updatedDomain = await DomainVerificationTokenModel.findOneAndUpdate(
                 query,
                 data,
@@ -89,11 +116,13 @@ module.exports = {
     },
     doesDomainBelongToProject: async function(projectId, subDomain) {
         const domain = getDomain(subDomain);
-        const result = await this.findOneBy({
+        const result = await this.findBy({
             domain,
+            verified: true,
+            projectId: { $ne: projectId },
         });
-        // compare actual strings
-        if (result && String(result.projectId._id) !== String(projectId)) {
+
+        if (result && result.length > 0) {
             return true;
         }
 
