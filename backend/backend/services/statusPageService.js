@@ -147,12 +147,9 @@ module.exports = {
 
     deleteDomain: async function(statusPageId, domainId) {
         try {
-            let statusPage = await StatusPageModel.findOne({
+            let statusPage = await this.findOneBy({
                 _id: statusPageId,
-            })
-                .populate('projectId', 'name')
-                .populate('monitorIds', 'name')
-                .populate('domains.domainVerificationToken');
+            });
 
             if (!statusPage) {
                 let error = new Error(
