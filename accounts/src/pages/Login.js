@@ -76,14 +76,16 @@ class LoginPage extends React.Component {
                 )}
 
                 {/* FOOTER */}
-                {!masterAdminExists && !requestingMasterAdmin && !DISABLE_SIGNUP && (
-                    <div id="signUpLink" className="below-box">
-                        <p>
-                            Don&#39;t have an account?{' '}
-                            <Link to="/accounts/register">Sign up</Link>.
-                        </p>
-                    </div>
-                )}
+                {!masterAdminExists &&
+                    !requestingMasterAdmin &&
+                    !DISABLE_SIGNUP && (
+                        <div id="signUpLink" className="below-box">
+                            <p>
+                                Don&#39;t have an account?{' '}
+                                <Link to="/accounts/register">Sign up</Link>.
+                            </p>
+                        </div>
+                    )}
 
                 {/* END FOOTER */}
                 <div id="footer_spacer" />
