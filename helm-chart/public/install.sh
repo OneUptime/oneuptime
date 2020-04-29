@@ -183,9 +183,6 @@ elif [[ "$1" == "ci-install" ]] # If its a local install, take local scripts.
 then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
-        # Remove fyipe
-        sudo k delete clusterrole fyipe-nginx-ingress-controller || echo "init-script already deleted"
-        sudo k delete clusterrolebinding fyipe-nginx-ingress-controller || echo "init-script already deleted"
         # install services.
         if [[ "$2" == "enterprise" ]]
         then
