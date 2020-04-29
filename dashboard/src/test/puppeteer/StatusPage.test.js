@@ -18,7 +18,7 @@ describe('Status Page', () => {
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteerOptions: {...utils.puppeteerLaunchConfig, headless: false},
             puppeteer,
             timeout: 500000,
         });
@@ -48,36 +48,7 @@ describe('Status Page', () => {
         'should create a domain',
         async () => {
             await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#AccountSwitcherId');
-                await page.click('#AccountSwitcherId');
-                await page.waitForSelector('#create-project');
-                await page.click('#create-project');
-                await page.waitForSelector('#name');
-                await page.type('#name', 'test');
-                await page.$$eval(
-                    'input[name="planId"]',
-                    inputs => inputs[0].click() // select the first plan
-                );
-                await page.click('#btnCreateProject');
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.$eval('#statusPages > a', elem => elem.click());
-                await page.waitForSelector('#btnCreateStatusPage_test');
-                await page.click('#btnCreateStatusPage_test');
-                await page.waitForSelector('#name');
-                await page.click('#name');
-                await page.type('#name', 'test');
-                await page.click('#btnCreateStatusPage');
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#domain', { visible: true });
-                await page.type('#domain', 'fyipeapp.com');
-                await page.click('#btnAddDomain');
+                await init.addDomainToStatusPage(page);
                 // if domain was not added sucessfully, list will be undefined
                 // it will timeout
                 const list = await page.waitForSelector(
