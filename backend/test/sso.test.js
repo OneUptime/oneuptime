@@ -13,6 +13,7 @@ const UserService = require('../backend/services/userService');
 const AirtableService = require('../backend/services/airtableService');
 const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
+const SsoService = require('../backend/services/ssoService');
 
 const newSSOPayload = {
     "saml-enable": true,
@@ -147,6 +148,7 @@ describe('SSO API', function () {
                 .end(function (err, res) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
+                    SsoService.hardDeleteBy({ _id: res.body._id });
                     done();
                 })
         });
@@ -207,10 +209,15 @@ describe('SSO API', function () {
                         .set('Authorization', authorization)
                         .end(function (err, res) {
                             expect(res).to.have.status(200);
+                            expect(res.body).to.be.an('object');
+                            expect(res.body).to.have.property('_id');
+                            expect(res.body).to.have.property('domain');
+                            expect(res.body).to.have.property('samlSsoUrl');
+                            expect(res.body).to.have.property('remoteLogoutUrl');
+                            SsoService.hardDeleteBy({ _id: res.body._id });
                             done();
                         });
                 });
-
         });
     });
 });
