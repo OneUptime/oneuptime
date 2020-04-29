@@ -145,10 +145,22 @@ describe('SSO API', function () {
             request.post('/sso')
                 .set('Authorization', authorization)
                 .send(newSSOPayload)
-                .end(function (err, res) {
+                .end(async function (err, res) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
-                    SsoService.hardDeleteBy({ _id: res.body._id });
+                    expect(res.body).to.have.property('_id');
+                    expect(res.body).to.have.property('domain');
+                    expect(res.body).to.have.property('samlSsoUrl');
+                    expect(res.body).to.have.property('remoteLogoutUrl');
+
+                    const sso = await SsoService.findOneBy({ _id: res.body._id })
+                    expect(sso).to.be.an('object');
+                    expect(sso).to.have.property('_id');
+                    expect(sso).to.have.property('domain');
+                    expect(sso).to.have.property('samlSsoUrl');
+                    expect(sso).to.have.property('remoteLogoutUrl');
+
+                    await SsoService.hardDeleteBy({ _id: res.body._id });
                     done();
                 })
         });
