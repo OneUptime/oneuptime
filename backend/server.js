@@ -10,6 +10,7 @@ function setupEnv() {
         process.env.DISABLE_SIGNUP = process.env.DISABLE_SIGNUP === 'true';
     }
     console.log(typeof process.env.DISABLE_SIGNUP);
+    console.log(process.env.DISABLE_SIGNUP);
 }
 
 setupEnv();
