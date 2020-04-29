@@ -60,20 +60,22 @@ module.exports = {
         }
     },
 
-    getSso: async function (ssoId) {
+    findOneBy: async function (query) {
         try {
-            const sso = await SsoModel.findOne({ _id: ssoId });
-            if (!sso)
-                throw {
-                    code: 404,
-                    message: 'SSO not found.'
-                }
+            if (!query) {
+                query = {}
+            }
+
+            query.deleted = false;
+
+            const sso = await SsoModel.findOne(query);
             return sso;
         } catch (error) {
             ErrorService.log('ssoService.getSso', error);
             throw error;
         }
     },
+    
     updateSso: async function (ssoId, data) {
         try {
             const sso = await SsoModel.findOne({ _id: ssoId });
