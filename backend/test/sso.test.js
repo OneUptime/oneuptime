@@ -71,4 +71,35 @@ describe('SSO API', function () {
         await AirtableService.deleteUser(airtableId);
     });
 
+    describe('should reject request of an unauthenticated user', function () {
+        it('should reject GET requests', function (done) {
+            request.get('/sso')
+                .end(function (err, res) {
+                    expect(res).to.have.status(401);
+                    done();
+                })
+        })
+        it('should reject POST requests', function (done) {
+            request.post('/sso')
+                .end(function (err, res) {
+                    expect(res).to.have.status(401);
+                    done();
+                })
+        })
+        it('should reject PUT requests', function (done) {
+            request.put('/sso/ssoId')
+                .end(function (err, res) {
+                    expect(res).to.have.status(401);
+                    done();
+                })
+        })
+        it('should reject DELETE requests', function (done) {
+            request.delete('/sso/ssoId')
+                .end(function (err, res) {
+                    expect(res).to.have.status(401);
+                    done();
+                })
+        })
+    })
+
 });
