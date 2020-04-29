@@ -15,10 +15,10 @@ const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const SsoService = require('../backend/services/ssoService');
 
-const newSSOPayload = {
+const ssoObject = {
     "saml-enable": true,
     domain: "hackerbay.com",
-    samlSsoUrl: "hackerbat.com/login",
+    samlSsoUrl: "hackerbay.com/login",
     certificateFingerprint: "azertyuiop",
     remoteLogoutUrl: "hackerbay.com/logout",
     ipRanges: "127.0.0.1",
@@ -144,7 +144,7 @@ describe('SSO API', function () {
             const authorization = `Basic ${token}`;
             request.post('/sso')
                 .set('Authorization', authorization)
-                .send(newSSOPayload)
+                .send(ssoObject)
                 .end(async function (err, res) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
@@ -167,7 +167,7 @@ describe('SSO API', function () {
 
         it('should not create a new SSO if domaine is not defined', function (done) {
             const authorization = `Basic ${token}`;
-            const payload = { ...newSSOPayload };
+            const payload = { ...ssoObject };
             delete payload.domain;
 
             request.post('/sso')
@@ -181,7 +181,7 @@ describe('SSO API', function () {
 
         it('should not create a new SSO if Saml SSO url is not defined', function (done) {
             const authorization = `Basic ${token}`;
-            const payload = { ...newSSOPayload };
+            const payload = { ...ssoObject };
             delete payload.samlSsoUrl;
 
             request.post('/sso')
@@ -195,7 +195,7 @@ describe('SSO API', function () {
 
         it('should not create a new SSO if remote logout url is not defined', function (done) {
             const authorization = `Basic ${token}`;
-            const payload = { ...newSSOPayload };
+            const payload = { ...ssoObject };
             delete payload.remoteLogoutUrl;
 
             request.post('/sso')
@@ -211,7 +211,7 @@ describe('SSO API', function () {
     describe('DELETE /sso', function () {
         it('should delete sso', function (done) {
             const authorization = `Basic ${token}`;
-            SsoService.create(newSSOPayload)
+            SsoService.create(ssoObject)
                 .then(sso => {
                     const { _id: ssoId } = sso;
                     request.delete(`/sso/${ssoId}`)
@@ -229,6 +229,36 @@ describe('SSO API', function () {
                             expect(deletedSso.deleted).to.equal(true);
 
                             SsoService.hardDeleteBy({ _id: res.body._id });
+                            done();
+                        });
+                });
+        });
+    });
+
+    describe('UPDATE /sso', function () {
+        it('should update SSO', function (done) {
+            const authorization = `Basic ${token}`;
+            SsoService.create(ssoObject)
+                .then(sso => {
+                    const { _id: ssoId } = sso;
+                    const updatedSsoObject = { ...ssoObject };
+                    updatedSsoObject.domain = 'updated.hackerbay.com';
+                    updatedSsoObject.samlSsoUrl='updated.hackerbay.com/login';
+                    updatedSsoObject.remoteLogoutUrl='updated.hackerbay.com/logout';
+                    request.put(`/sso/${ssoId}`)
+                        .set('Authorization', authorization)
+                        .send(updatedSsoObject)
+                        .end(async function (err, res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body[0]).to.be.an('object');
+                            expect(res.body[0].domain).to.equal(updatedSsoObject.domain);
+
+                            const sso=await SsoService.findOneBy({_id:ssoId});
+                            expect(sso.domain).to.equal(updatedSsoObject.domain);
+                            expect(sso.samlSsoUrl).to.equal(updatedSsoObject.samlSsoUrl);
+                            expect(sso.remoteLogoutUrl).to.equal(updatedSsoObject.remoteLogoutUrl);
+
+                            await SsoService.hardDeleteBy({_id:ssoId});
                             done();
                         });
                 });
