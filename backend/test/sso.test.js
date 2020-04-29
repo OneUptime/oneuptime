@@ -130,4 +130,44 @@ describe('SSO API', function () {
                 })
         })
     })
+    describe('POST /sso', function () {
+
+        it('should create a new SSO', function (done) {
+            const authorization = `Basic ${token}`;
+            request.post('/sso')
+                .set('Authorization', authorization)
+                .send({
+                    "saml-enable":true,
+                    domain:"hackerbay.com",
+                    samlSsoUrl:"hackerbat.com/login",
+                    certificateFingerprint:"azertyuiop",
+                    remoteLogoutUrl:"hackerbay.com/logout",
+                    ipRanges:"127.0.0.1",
+                })
+                .end(function (err, res) {
+                    expect(res).to.have.status(200);
+                    expect(res.body).to.be.an('object');
+                    done();
+                })
+        })
+
+        it('should not create a new SSO if domaine is not defined', function (done) {
+            const authorization = `Basic ${token}`;
+            request.post('/sso')
+                .set('Authorization', authorization)
+                .send({
+                    "saml-enable":true,
+                    samlSsoUrl:"hackerbat.com/login",
+                    certificateFingerprint:"azertyuiop",
+                    remoteLogoutUrl:"hackerbay.com/logout",
+                    ipRanges:"127.0.0.1",
+                })
+                .end(function (err, res) {
+                    expect(res).to.have.status(400);
+                    expect(res.body).to.be.an('object');
+                    done();
+                })
+        })
+
+    });
 });
