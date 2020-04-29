@@ -145,6 +145,35 @@ module.exports = {
         }
     },
 
+    deleteDomain: async function(statusPageId, domainId) {
+        try {
+            let statusPage = await StatusPageModel.findOne({
+                _id: statusPageId,
+            })
+                .populate('projectId', 'name')
+                .populate('monitorIds', 'name')
+                .populate('domains.domainVerificationToken');
+
+            if (!statusPage) {
+                let error = new Error(
+                    'Status page not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            let remainingDomains = statusPage.domains.filter(domain => {
+                return String(domain._id) !== String(domainId);
+            });
+
+            statusPage.domains = remainingDomains;
+            return statusPage.save();
+        } catch (error) {
+            ErrorService.log('statusPageService.deleteDomain', error);
+            throw error;
+        }
+    },
+
     countBy: async function(query) {
         try {
             if (!query) {
