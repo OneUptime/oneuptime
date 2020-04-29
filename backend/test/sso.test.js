@@ -87,14 +87,14 @@ describe('SSO API', function () {
                 })
         })
         it('should reject PUT requests', function (done) {
-            request.put('/sso/ssoId')
+            request.put('/sso/5ea951228877984ea9f47660')
                 .end(function (err, res) {
                     expect(res).to.have.status(401);
                     done();
                 })
         })
         it('should reject DELETE requests', function (done) {
-            request.delete('/sso/ssoId')
+            request.delete('/sso/5ea951228877984ea9f47660')
                 .end(function (err, res) {
                     expect(res).to.have.status(401);
                     done();
@@ -102,7 +102,7 @@ describe('SSO API', function () {
         })
     })
 
-    describe('should return the list of the create SSO', function () {
+    describe('should return the list of the available SSO', function () {
         it('should return SSOs list with count', function (done) {
             const authorization = `Basic ${token}`;
             request.get('/sso')
@@ -112,6 +112,20 @@ describe('SSO API', function () {
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
                     expect(res.body).to.have.property('count');
+                    done();
+                })
+        })
+        it('should return SSOs list with count, skip and limit (when skip&limit specified)', function (done) {
+            const authorization = `Basic ${token}`;
+            request.get('/sso?limit=10&skip=0')
+                .set('Authorization', authorization)
+                .end(function (err, res) {
+                    expect(res).to.have.status(200);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('data');
+                    expect(res.body).to.have.property('count');
+                    expect(res.body).to.have.property('limit');
+                    expect(res.body).to.have.property('skip');
                     done();
                 })
         })
