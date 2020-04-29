@@ -48,17 +48,13 @@ router.get('/:id', getUser, isUserMasterAdmin, async function (req, res) {
   }
 })
 
-router.put('/update', getUser, isUserMasterAdmin, async function (req, res) {
-  const data = req.body
-  const { _id: ssoId } = data
-  if (!ssoId) {
-    return sendErrorResponse(req, res, {
-      code: 400,
-      message: 'SsoId must be present.'
-    })
-  }
+router.put('/:id', getUser, isUserMasterAdmin, async function (req, res) {
   try {
-    await SsoService.updateSso(ssoId, data);
+    const data = req.body;
+    await SsoService.updateBy(
+      { _id: req.params.id },
+      data
+    );
     return sendItemResponse(req, res);
   } catch (error) {
     return sendErrorResponse(req, res, error)
