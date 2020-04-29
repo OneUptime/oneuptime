@@ -3,6 +3,9 @@ apiVersion: v1
 metadata:
   name: {{ printf "%s-%s" .Release.Name "configmap"  }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: fyipe
+    app.kubernetes.io/managed-by: helm
 data:
   clusterkey: {{ randAlphaNum 15 | quote }}
   encryptionkey: {{ randAlphaNum 15 | quote }}
