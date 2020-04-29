@@ -107,7 +107,7 @@ then
     echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl k"
     sudo snap alias microk8s.kubectl k
     echo "RUNNING COMMAND: microk8s.kubectl config view --raw > $HOME/.kube/config"
-    sudo microk8s.kubectl config view --raw > $HOME/.kube/config
+    microk8s.kubectl config view --raw > $HOME/.kube/config
     #Kubectl version.
     echo "RUNNING COMMAND: sudo k version"
     sudo k version
