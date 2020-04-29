@@ -28,7 +28,18 @@ const ssoSchema = new Schema({
     },
     createdAt: {
         type: Date,
-        required: true,
+        required: Date.now,
+    },
+    deleted: { 
+        type: Boolean, 
+        default: false 
+    },
+    deletedAt: {
+        type: Date,
+    },
+    deletedById: { 
+        type: String, 
+        ref: 'User' 
     },
 });
 
