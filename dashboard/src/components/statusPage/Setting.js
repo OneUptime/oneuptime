@@ -25,9 +25,10 @@ import {
     IS_LOCALHOST,
     IS_SAAS_SERVICE,
 } from '../../config';
-import { verifyDomain, createDomain } from '../../actions/domain';
+import { verifyDomain, createDomain, deleteDomain } from '../../actions/domain';
 import { openModal, closeModal } from '../../actions/modal';
 import VerifyDomainModal from './VerifyDomainModal';
+import DeleteDomainModal from './DeleteDomainModal';
 
 //Client side validation
 function validate(values) {
@@ -41,7 +42,7 @@ function validate(values) {
 }
 
 export class Setting extends Component {
-    state = { verifyModalId: uuid.v4() };
+    state = { verifyModalId: uuid.v4(), deleteDomainModalId: uuid.v4() };
 
     submitForm = values => {
         const { reset } = this.props;
@@ -107,10 +108,42 @@ export class Setting extends Component {
         });
     };
 
+    handleDeleteDomain = (e, domain) => {
+        e.preventDefault();
+        const { deleteDomain } = this.props;
+        const { _id, projectId } = this.props.statusPage.status;
+        const thisObj = this;
+
+        const data = {
+            projectId: projectId._id || projectId,
+            statusPageId: _id,
+            domainId: domain._id,
+        };
+        this.props.openModal({
+            id: this.state.deleteDomainModalId,
+            onConfirm: () => {
+                //Todo: handle the dispatch to delete domain
+                return deleteDomain(data).then(() => {
+                    if (this.props.deleteDomainError) {
+                        // prevent dismissal of modal if errored
+                        return this.handleDeleteDomain();
+                    }
+
+                    if (window.location.href.indexOf('localhost') <= -1) {
+                        thisObj.context.mixpanel.track('Delete domain');
+                    }
+                });
+            },
+            content: DeleteDomainModal,
+        });
+    };
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({ id: this.state.verifyModalId });
+                return this.props.closeModal({
+                    id: this.state.verifyModalId,
+                });
             default:
                 return false;
         }
@@ -329,39 +362,86 @@ export class Setting extends Component {
                                                                                 </span>
                                                                             )}
                                                                     </p>
-                                                                    <ShouldRender
-                                                                        if={
-                                                                            !domain
-                                                                                .domainVerificationToken
-                                                                                .verified
-                                                                        }
+                                                                    <div
+                                                                        className="bs-Fieldset-row"
+                                                                        style={{
+                                                                            alignItems:
+                                                                                'center',
+                                                                            paddingLeft: 0,
+                                                                        }}
                                                                     >
-                                                                        <div
-                                                                            className="bs-Fieldset-row"
-                                                                            style={{
-                                                                                marginBottom: -5,
-                                                                                marginTop: -5,
-                                                                                paddingLeft: 0,
-                                                                                paddingRight: 0,
-                                                                            }}
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                !domain
+                                                                                    .domainVerificationToken
+                                                                                    .verified
+                                                                            }
                                                                         >
-                                                                            <button
-                                                                                id="btnVerifyDomain"
-                                                                                className="bs-Button"
-                                                                                onClick={e => {
-                                                                                    this.handleVerifyDomain(
-                                                                                        e,
-                                                                                        domain
-                                                                                    );
+                                                                            <div
+                                                                                className="bs-Fieldset-row"
+                                                                                style={{
+                                                                                    paddingLeft: 0,
+                                                                                    paddingRight: 0,
+                                                                                    marginRight:
+                                                                                        '15px',
                                                                                 }}
                                                                             >
-                                                                                <span>
-                                                                                    Verify
-                                                                                    domain
-                                                                                </span>
-                                                                            </button>
-                                                                        </div>
-                                                                    </ShouldRender>
+                                                                                <button
+                                                                                    id="btnVerifyDomain"
+                                                                                    className="bs-Button"
+                                                                                    onClick={e => {
+                                                                                        this.handleVerifyDomain(
+                                                                                            e,
+                                                                                            domain
+                                                                                        );
+                                                                                    }}
+                                                                                >
+                                                                                    <span>
+                                                                                        Verify
+                                                                                        domain
+                                                                                    </span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </ShouldRender>
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                this
+                                                                                    .props
+                                                                                    .domains &&
+                                                                                this
+                                                                                    .props
+                                                                                    .domains
+                                                                                    .length >
+                                                                                    1
+                                                                            }
+                                                                        >
+                                                                            <div
+                                                                                className="bs-Fieldset-row"
+                                                                                style={{
+                                                                                    paddingLeft: 0,
+                                                                                    paddingRight: 0,
+                                                                                    paddingBottom: 0,
+                                                                                }}
+                                                                            >
+                                                                                <button
+                                                                                    id="btnVerifyDomain"
+                                                                                    className="bs-Button bs-Button--red Box-background--red"
+                                                                                    onClick={e => {
+                                                                                        //Todo: handle delete here
+                                                                                        this.handleDeleteDomain(
+                                                                                            e,
+                                                                                            domain
+                                                                                        );
+                                                                                    }}
+                                                                                >
+                                                                                    <span>
+                                                                                        Delete
+                                                                                        Domain
+                                                                                    </span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </ShouldRender>
+                                                                    </div>
                                                                 </div>
                                                                 <ShouldRender
                                                                     if={domain}
@@ -724,6 +804,11 @@ Setting.propTypes = {
     closeModal: PropTypes.func,
     verifyError: PropTypes.bool,
     addDomain: PropTypes.object,
+    deleteDomain: PropTypes.func,
+    deleteDomainError: PropTypes.oneOfType([
+        PropTypes.oneOf([null, undefined]),
+        PropTypes.string,
+    ]),
 };
 
 const SettingForm = reduxForm({
@@ -743,6 +828,7 @@ const mapDispatchToProps = dispatch => {
             cancelAddMoreDomain,
             verifyDomain,
             createDomain,
+            deleteDomain,
             openModal,
             closeModal,
         },
@@ -781,6 +867,9 @@ function mapStateToProps(state) {
             state.statusPage.verifyDomain &&
             state.statusPage.verifyDomain.error,
         addDomain: state.statusPage.addDomain,
+        deleteDomainError:
+            state.statusPage.deleteDomain &&
+            state.statusPage.deleteDomain.error,
     };
 }
 
