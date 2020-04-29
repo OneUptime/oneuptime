@@ -106,13 +106,15 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-
+            if(query.createdAt!==undefined){
+                delete query.createdAt
+            }
             query.deleted = false;
 
             await SsoModel.updateMany(query, {
                 $set: data,
             });
-            const sso = this.findBy(query);
+            const sso =await this.findBy(query);
             return sso;
         } catch (error) {
             ErrorService.log('ssoService.updateBy', error);
