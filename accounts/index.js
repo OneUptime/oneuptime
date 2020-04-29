@@ -16,9 +16,10 @@ app.use('/', (req, res, next) => {
     next();
 });
 
-app.get(['/env.js', '/accounts/env.js'], function(req, res) {
+app.get(['/env.js', '/accounts/env.js'], function (req, res) {
     const env = {
         REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
+        REACT_APP_DISABLE_SIGNUP: process.env.DISABLE_SIGNUP,
         REACT_APP_HOST: req.host,
         REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
         REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
@@ -35,7 +36,7 @@ app.use(
     express.static(path.join(__dirname, 'build/static/js'))
 );
 
-app.get('/*', function(req, res) {
+app.get('/*', function (req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

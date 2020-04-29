@@ -31,6 +31,8 @@ spec:
                       {{- end }}
                       - name: NODE_ENV
                         value: 'production'
+                      - name: DISABLE_SIGNUP
+                        value: {{ template "fyipe.disableSignup" . }}
                   ports:
                       - containerPort: {{ .Values.host.accountsPort }}
                         hostPort: {{ .Values.host.accountsPort }}

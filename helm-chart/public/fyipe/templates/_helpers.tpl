@@ -22,3 +22,11 @@ Expand the name of the chart.
 {{- define "fyipe.serverUrl" -}}
 {{ printf "http://%s-backend.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
 {{- end -}}
+
+{{- define "fyipe.disableSignup" -}}
+{{- if and (not $.Values.saas.isSaasService) $.Values.fyipe.admin.email $.Values.fyipe.admin.password }}
+{{ printf "true" }}
+{{- else }}
+{{ printf "false" }}
+{{- end }}
+{{- end -}}
