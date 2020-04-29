@@ -20,17 +20,10 @@ router.get('/', getUser, isUserMasterAdmin, async function (req, res) {
   }
 })
 
-router.delete('/:ssoId', getUser, isUserMasterAdmin, async function (req, res) {
-  const ssoId = req.params.ssoId
-  if (!ssoId) {
-    return sendErrorResponse(req, res, {
-      code: 400,
-      message: 'SsoId must be present.'
-    })
-  }
+router.delete('/:id', getUser, isUserMasterAdmin, async function (req, res) {
   try {
-    await SsoService.deleteSso(ssoId);
-    return sendItemResponse(req, res);
+    const sso = await SsoService.deleteBy({ _id: req.params.id });
+    return sendItemResponse(req, res, sso);
   } catch (error) {
     return sendErrorResponse(req, res, error)
   }
