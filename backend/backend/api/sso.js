@@ -51,11 +51,11 @@ router.get('/:id', getUser, isUserMasterAdmin, async function (req, res) {
 router.put('/:id', getUser, isUserMasterAdmin, async function (req, res) {
   try {
     const data = req.body;
-    await SsoService.updateBy(
+    const sso = await SsoService.updateBy(
       { _id: req.params.id },
       data
     );
-    return sendItemResponse(req, res);
+    return sendItemResponse(req, res, sso);
   } catch (error) {
     return sendErrorResponse(req, res, error)
   }
