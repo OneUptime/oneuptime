@@ -368,6 +368,7 @@ export class Setting extends Component {
                                                                             alignItems:
                                                                                 'center',
                                                                             paddingLeft: 0,
+                                                                            paddingBottom: 0,
                                                                         }}
                                                                     >
                                                                         <ShouldRender
