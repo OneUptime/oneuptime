@@ -26,7 +26,7 @@ const ssoSchema = new Schema({
     },
     createdAt: {
         type: Date,
-        required: Date.now,
+        default: Date.now,
     },
     deleted: { 
         type: Boolean, 
