@@ -25,8 +25,8 @@ Expand the name of the chart.
 
 {{- define "fyipe.disableSignup" -}}
 {{- if and (not $.Values.saas.isSaasService) $.Values.fyipe.admin.email $.Values.fyipe.admin.password }}
-{{ printf "true" }}
+{{- printf "true" }}
 {{- else }}
-{{ printf "false" }}
+{{- printf "false" }}
 {{- end }}
 {{- end -}}
