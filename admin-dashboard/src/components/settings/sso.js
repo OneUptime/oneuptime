@@ -301,7 +301,7 @@ export class Component extends React.Component {
                                 <div className="ButtonGroup Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                     <div className="Box-root Margin-right--8">
                                         <button
-                                            id="btnPrev"
+                                            id="previous-button"
                                             onClick={this.previousClicked}
                                             className={
                                                 'Button bs-ButtonLegacy' +
