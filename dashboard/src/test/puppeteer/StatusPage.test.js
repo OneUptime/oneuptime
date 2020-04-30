@@ -18,7 +18,7 @@ describe('Status Page', () => {
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: {...utils.puppeteerLaunchConfig, headless: false},
+            puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
             timeout: 500000,
         });
@@ -84,6 +84,106 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 expect(elem).toBeTruthy();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not have option of deleting a domain, if there is only one domain in the status page',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.reload({ waitUntil: 'networkidle0' });
+                let elem = await page.$('.btnDeleteDomain');
+                expect(elem).toBeNull();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should delete a domain in a status page',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
+                // select the first item from the table row
+                const rowItem = await page.waitForSelector(
+                    '#statusPagesListContainer > tr',
+                    { visible: true }
+                );
+                rowItem.click();
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+
+                //Get the initial length of domains
+                let initialLength = await page.$$eval(
+                    'fieldset[name="added-domain"]',
+                    domains => domains.length
+                );
+
+                // create one more domain on the status page
+                await page.waitForSelector('#addMoreDomain');
+                await page.click('#addMoreDomain');
+                await page.waitForSelector('#domain', { visible: true });
+                await page.type('#domain', 'app.fyipeapp.com');
+                await page.click('#btnAddDomain');
+                await page.reload({ waitUntil: 'networkidle0' });
+
+                await page.$eval('.btnDeleteDomain', elem => elem.click());
+                await page.$eval('#confirmDomainDelete', elem => elem.click());
+
+                await page.reload({ waitUntil: 'networkidle0' });
+                // get the final length of domains after deleting
+                let finalLength = await page.$$eval(
+                    'fieldset[name="added-domain"]',
+                    domains => domains.length
+                );
+
+                expect(finalLength).toEqual(initialLength);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should cancel deleting of a domain in a status page',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
+                // select the first item from the table row
+                const rowItem = await page.waitForSelector(
+                    '#statusPagesListContainer > tr',
+                    { visible: true }
+                );
+                rowItem.click();
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+
+                //Get the initial length of domains
+                let initialLength = await page.$$eval(
+                    'fieldset[name="added-domain"]',
+                    domains => domains.length
+                );
+
+                // create one more domain on the status page
+                await page.waitForSelector('#addMoreDomain');
+                await page.click('#addMoreDomain');
+                await page.waitForSelector('#domain', { visible: true });
+                await page.type('#domain', 'app.fyipeapp.com');
+                await page.click('#btnAddDomain');
+                await page.reload({ waitUntil: 'networkidle0' });
+
+                await page.$eval('.btnDeleteDomain', elem => elem.click());
+                await page.$eval('#cancelDomainDelete', elem => elem.click());
+
+                await page.reload({ waitUntil: 'networkidle0' });
+                // get the final length of domains after cancelling
+                let finalLength = await page.$$eval(
+                    'fieldset[name="added-domain"]',
+                    domains => domains.length
+                );
+
+                expect(finalLength).toBeGreaterThan(initialLength);
             });
         },
         operationTimeOut

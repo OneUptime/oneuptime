@@ -425,8 +425,7 @@ export class Setting extends Component {
                                                                                 }}
                                                                             >
                                                                                 <button
-                                                                                    id="btnVerifyDomain"
-                                                                                    className="bs-Button bs-Button--red Box-background--red"
+                                                                                    className="btnDeleteDomain bs-Button bs-Button--red Box-background--red"
                                                                                     onClick={e => {
                                                                                         //Todo: handle delete here
                                                                                         this.handleDeleteDomain(

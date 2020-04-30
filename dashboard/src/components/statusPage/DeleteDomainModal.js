@@ -54,9 +54,8 @@ const DeleteDomainModal = ({
                                         </div>
                                     </div>
                                 </ShouldRender>
-                                {/* TODO: HANDLE DISABLING THE BUTTON WHEN PROCESSING */}
                                 <button
-                                    id="cancelAuditDelete"
+                                    id="cancelDomainDelete"
                                     className={`bs-Button ${deleteDomain.requesting &&
                                         'bs-is-disabled'}`}
                                     type="button"
@@ -66,7 +65,7 @@ const DeleteDomainModal = ({
                                     <span>Cancel</span>
                                 </button>
                                 <button
-                                    id="confirmDelete"
+                                    id="confirmDomainDelete"
                                     className={`bs-Button bs-Button--red Box-background--red ${deleteDomain.requesting &&
                                         'bs-is-disabled'}`}
                                     onClick={confirmThisDialog}
