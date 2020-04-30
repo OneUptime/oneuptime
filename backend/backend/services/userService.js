@@ -527,7 +527,11 @@ module.exports = {
                         ErrorService.log('userService.login', error);
                         throw error;
                     }
-                    if (!user.isVerified && NODE_ENV !== 'development') {
+                    if (
+                        user.role !== 'master-admin' &&
+                        !user.isVerified &&
+                        NODE_ENV !== 'development'
+                    ) {
                         const error = new Error('Verify your email first.');
                         error.code = 401;
                         ErrorService.log('userService.login', error);
