@@ -145,6 +145,64 @@ module.exports = {
         }
     },
 
+    updateDomain: async function(projectId, statusPageId, domainId, newDomain) {
+        const domain = getDomain(newDomain);
+        const token = 'fyipe=' + randomChar();
+        let createdDomain = {};
+
+        try {
+            const existingBaseDomain = await DomainVerificationService.findOneBy(
+                { domain }
+            );
+
+            if (!existingBaseDomain) {
+                const creationData = {
+                    domain,
+                    verificationToken: token,
+                    verifiedAt: null,
+                    deletedAt: null,
+                    projectId,
+                };
+                // create the domain
+                createdDomain = await DomainVerificationTokenModel.create(
+                    creationData
+                );
+            }
+
+            let statusPage = await this.findOneBy({
+                _id: statusPageId,
+            });
+
+            if (!statusPage) {
+                let error = new Error(
+                    'Status page not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            let domainList = [...statusPage.domains];
+            domainList = domainList.map(eachDomain => {
+                if (String(eachDomain._id) === String(domainId)) {
+                    eachDomain.domain = newDomain;
+                    eachDomain.domainVerificationToken =
+                        createdDomain._id || existingBaseDomain._id;
+                }
+                return eachDomain;
+            });
+
+            statusPage.domains = domainList;
+
+            let result = await statusPage.save();
+            return result
+                .populate('domains.domainVerificationToken')
+                .execPopulate();
+        } catch (error) {
+            ErrorService.log('statusPageService.deleteDomain', error);
+            throw error;
+        }
+    },
+
     deleteDomain: async function(statusPageId, domainId) {
         try {
             let statusPage = await this.findOneBy({
