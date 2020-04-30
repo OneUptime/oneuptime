@@ -128,26 +128,72 @@ describe('SSO API', () => {
                 await init.loginUser(user, page);
                 await page.waitForSelector('#settings');
                 await page.click('#settings');
+                
                 await page.waitForSelector('#sso');
                 await page.click('#sso');
+
                 await page.waitForSelector('.edit-button');
                 await page.click('.edit-button');
-                await page.waitForSelector('#save-button');
 
+                await page.waitForSelector('#save-button');
                 await page.click('#domain');
                 await page.keyboard.down('Control');
                 await page.keyboard.press('A');
                 await page.keyboard.up('Control');
                 await page.keyboard.press('Backspace');
                 await page.type('#domain', 'updated.test.hackerbay.io');
-
                 await page.click('#save-button');
+
                 await page.waitFor(2000);
 
                 const tbody = await page.$eval('tbody', e => {
                     return e.innerHTML;
                 });
                 expect(tbody).toContain('updated.test.hackerbay.io');
+            });
+
+            cluster.queue({ email, password, });
+
+            await cluster.idle();
+            await cluster.close();
+            done();
+        },
+        operationTimeOut
+    );
+
+    test('Should delete existing SSO',
+        async (done) => {
+            expect.assertions(0);
+            const cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 120000,
+            });
+
+            cluster.on('taskerror', err => {
+                throw err;
+            });
+
+            await cluster.task(async ({ page, data }) => {
+                const user = {
+                    email: data.email,
+                    password: data.password,
+                };
+                await init.loginUser(user, page);
+                await page.waitForSelector('#settings');
+                await page.click('#settings');
+                await page.waitForSelector('#sso');
+                await page.click('#sso');
+                await page.waitForSelector('.delete-button');
+                await page.click('.delete-button');
+
+                await page.waitForSelector('#confirmDelete');
+                await page.click('#confirmDelete');
+
+                await page.waitFor(2000);
+
+                await page.waitForSelector("#no-sso-message");
             });
 
             cluster.queue({ email, password, });
