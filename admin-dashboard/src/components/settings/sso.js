@@ -319,14 +319,14 @@ export class Component extends React.Component {
                                                 <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
                                                     <span>
                                                         Previous
-                                </span>
+                                                    </span>
                                                 </span>
                                             </div>
                                         </button>
                                     </div>
                                     <div className="Box-root">
                                         <button
-                                            id="btnNext"
+                                            id="next-button"
                                             onClick={this.nextClicked}
                                             className={
                                                 'Button bs-ButtonLegacy' +
@@ -344,7 +344,7 @@ export class Component extends React.Component {
                                                 <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
                                                     <span>
                                                         Next
-                                </span>
+                                                    </span>
                                                 </span>
                                             </div>
                                         </button>
