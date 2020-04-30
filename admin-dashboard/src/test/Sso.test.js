@@ -245,4 +245,80 @@ describe('SSO API', () => {
         },
         operationTimeOut
     );
+
+    it('should enable Next/Previous buttons when there are more than 10 SSOs',
+        async (done) => {
+            expect.assertions(7);
+            const cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 120000,
+            });
+
+            cluster.on('taskerror', err => {
+                throw err;
+            });
+
+            await cluster.task(async ({ page, data }) => {
+                const user = {
+                    email: data.email,
+                    password: data.password,
+                };
+                await init.loginUser(user, page);
+
+                await moveToSsoPage(page);
+                await page.waitForSelector("#no-sso-message");
+
+                for (let i = 0; i <= 11; i++) {
+                    await createSso(page, {
+                        domain: `subdomain.${i}.test.hackerbay.io`,
+                        samlSsoUrl: 'test.hackerbay.io/login',
+                        certificateFingerprint: 'AZERTYUIOP',
+                        remoteLogoutUrl: 'test.hackerbay.io/logout',
+                        ipRanges: '127.0.0.1',
+                    })
+                }
+
+                const ssoCount = await page.$eval('#sso-count', e => {
+                    return e.innerHTML;
+                });
+
+                expect(ssoCount).toContain('12');
+                
+                const firstPageTbody = await page.$eval('tbody', e => {
+                    return e.innerHTML;
+                });
+                expect(firstPageTbody).toContain('subdomain.11.test.hackerbay.io');
+                expect(firstPageTbody).toContain('subdomain.2.test.hackerbay.io');
+
+                await page.click('#next-button');
+                await page.waitFor(2000);
+
+                const secondPageTbody = await page.$eval('tbody', e => {
+                    return e.innerHTML;
+                });
+                expect(secondPageTbody).toContain('subdomain.1.test.hackerbay.io');
+                expect(secondPageTbody).toContain('subdomain.0.test.hackerbay.io');
+
+
+                await page.click('#previous-button');
+                await page.waitFor(2000);
+
+                const initalPageTbody = await page.$eval('tbody', e => {
+                    return e.innerHTML;
+                });
+
+                expect(initalPageTbody).toContain('subdomain.11.test.hackerbay.io');
+                expect(initalPageTbody).toContain('subdomain.2.test.hackerbay.io');
+
+            })
+
+            cluster.queue({ email, password });
+            await cluster.idle();
+            await cluster.close();
+            done();
+        },
+        operationTimeOut
+    );
 });
