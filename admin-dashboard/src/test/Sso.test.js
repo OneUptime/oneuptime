@@ -9,7 +9,7 @@ require('should');
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
-const moveToSsoPage= async (page)=>{
+const moveToSsoPage = async (page) => {
     await page.waitForSelector('#settings');
     await page.click('#settings');
     await page.waitForSelector('#sso');
@@ -76,7 +76,7 @@ describe('SSO API', () => {
 
     test('should add new SSO',
         async (done) => {
-            expect.assertions(1);
+            expect.assertions(3);
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -94,8 +94,14 @@ describe('SSO API', () => {
                     password: data.password,
                 };
                 await init.loginUser(user, page);
-                
-                await moveToSsoPage(page)
+
+                await moveToSsoPage(page);
+
+                const ssoCount = await page.$eval('#sso-count', e => {
+                    return e.innerHTML;
+                });
+
+                expect(ssoCount).toContain('0');
 
                 await page.waitForSelector("#no-sso-message");
 
@@ -106,6 +112,12 @@ describe('SSO API', () => {
                     remoteLogoutUrl: 'test.hackerbay.io/logout',
                     ipRanges: '127.0.0.1',
                 })
+
+                const ssoCountAfterCreation = await page.$eval('#sso-count', e => {
+                    return e.innerHTML;
+                });
+
+                expect(ssoCountAfterCreation).toContain('1');
 
                 const tbody = await page.$eval('tbody', e => {
                     return e.innerHTML;
@@ -124,7 +136,7 @@ describe('SSO API', () => {
 
     test('should update existing SSO',
         async (done) => {
-            expect.assertions(1);
+            expect.assertions(2);
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -143,7 +155,13 @@ describe('SSO API', () => {
                 };
                 await init.loginUser(user, page);
 
-                await moveToSsoPage(page)
+                await moveToSsoPage(page);
+
+                const ssoCount = await page.$eval('#sso-count', e => {
+                    return e.innerHTML;
+                });
+
+                expect(ssoCount).toContain('1');
 
                 await page.waitForSelector('.edit-button');
                 await page.click('.edit-button');
@@ -176,7 +194,7 @@ describe('SSO API', () => {
 
     test('should delete existing SSO',
         async (done) => {
-            expect.assertions(0);
+            expect.assertions(2);
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -197,6 +215,12 @@ describe('SSO API', () => {
 
                 await moveToSsoPage(page)
 
+                const ssoCount = await page.$eval('#sso-count', e => {
+                    return e.innerHTML;
+                });
+
+                expect(ssoCount).toContain('1');
+
                 await page.waitForSelector('.delete-button');
                 await page.click('.delete-button');
 
@@ -204,6 +228,11 @@ describe('SSO API', () => {
                 await page.click('#confirmDelete');
 
                 await page.waitFor(2000);
+
+                const ssoCountAfterDeletion = await page.$eval('#sso-count', e => {
+                    return e.innerHTML;
+                });
+                expect(ssoCountAfterDeletion).toContain('0');
 
                 await page.waitForSelector("#no-sso-message");
             });
