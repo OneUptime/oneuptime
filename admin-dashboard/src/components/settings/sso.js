@@ -284,7 +284,10 @@ export class Component extends React.Component {
                         </table>
 
                         <div className="bs-Tail bs-Tail--separated bs-Tail--short">
-                            <div className="bs-Tail-copy">
+                            <div
+                                id="sso-count"
+                                className="bs-Tail-copy"
+                            >
                                 <span>
                                     {ssos.count}{' '}
                                     SSO
