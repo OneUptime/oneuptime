@@ -41,7 +41,7 @@ describe('Disable Sign up test', function() {
                 );
                 done();
             } else {
-                done('User signed up');
+                done(new Error('User signed up'));
             }
         });
     });
