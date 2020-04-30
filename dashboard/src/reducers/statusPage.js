@@ -76,6 +76,9 @@ import {
     DELETE_DOMAIN_REQUEST,
     DELETE_DOMAIN_SUCCESS,
     DELETE_DOMAIN_FAILURE,
+    UPDATE_DOMAIN_REQUEST,
+    UPDATE_DOMAIN_SUCCESS,
+    UPDATE_DOMAIN_FAILURE,
 } from '../constants/domain';
 
 const INITIAL_STATE = {
@@ -147,6 +150,11 @@ const INITIAL_STATE = {
         error: null,
     },
     deleteDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    updateDomain: {
         requesting: false,
         success: false,
         error: null,
@@ -273,6 +281,37 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 ...state,
                 addMoreDomain: true,
                 addDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case UPDATE_DOMAIN_REQUEST:
+            return {
+                ...state,
+                updateDomain: {
+                    ...state.updateDomain,
+                    requesting: true,
+                    error: null,
+                },
+            };
+
+        case UPDATE_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                updateDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                status: action.payload,
+            };
+
+        case UPDATE_DOMAIN_FAILURE:
+            return {
+                ...state,
+                updateDomain: {
                     requesting: false,
                     success: false,
                     error: action.payload,

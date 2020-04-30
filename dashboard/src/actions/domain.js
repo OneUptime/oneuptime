@@ -130,3 +130,46 @@ export function deleteDomain({projectId, statusPageId, domainId}) {
         }
     };
 }
+
+export function updateDomainRequest(){
+    return {
+        type: types.UPDATE_DOMAIN_REQUEST,
+    }
+}
+
+export function updateDomainSuccess(payload){
+    return {
+        type: types.UPDATE_DOMAIN_SUCCESS,
+        payload,
+    }
+}
+
+export function updateDomainFailure(payload){
+    return {
+        type: types.UPDATE_DOMAIN_FAILURE,
+        payload,
+    }
+}
+
+export function updateDomain({projectId, statusPageId, domainId, newDomain}){
+    return async function(dispatch) {
+        dispatch(updateDomainRequest());
+        try {
+            const response = await putApi(
+                `statusPage/${projectId}/${statusPageId}/${domainId}`,
+                {domain: newDomain}
+            );
+            dispatch(updateDomainSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateDomainFailure(errorMsg));
+        }
+    };
+}
