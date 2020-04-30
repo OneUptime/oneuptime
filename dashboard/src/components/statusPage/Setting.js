@@ -25,7 +25,12 @@ import {
     IS_LOCALHOST,
     IS_SAAS_SERVICE,
 } from '../../config';
-import { verifyDomain, createDomain, deleteDomain } from '../../actions/domain';
+import {
+    verifyDomain,
+    createDomain,
+    deleteDomain,
+    updateDomain,
+} from '../../actions/domain';
 import { openModal, closeModal } from '../../actions/modal';
 import VerifyDomainModal from './VerifyDomainModal';
 import DeleteDomainModal from './DeleteDomainModal';
@@ -45,6 +50,28 @@ export class Setting extends Component {
     state = { verifyModalId: uuid.v4(), deleteDomainModalId: uuid.v4() };
 
     submitForm = values => {
+        if ('domain' in values) {
+            return this.handleCreateDomain({ domain: values.domain });
+        }
+
+        let isChanged =
+            JSON.stringify(this.props.initialFormValues) ===
+            JSON.stringify(values);
+
+        if (!isChanged) {
+            let data = {};
+            for (const property in values) {
+                if (
+                    this.props.initialFormValues[property] !== values[property]
+                ) {
+                    data = { domain: values[property], _id: property };
+                }
+            }
+            this.handleUpdateDomain(data);
+        }
+    };
+
+    handleCreateDomain = values => {
         const { reset } = this.props;
         const { domain } = values;
         const { _id, projectId } = this.props.statusPage.status;
@@ -57,6 +84,29 @@ export class Setting extends Component {
             statusPageId: _id,
         };
         this.props.createDomain(data).then(
+            () => {
+                reset();
+            },
+            function() {}
+        );
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('StatusPage Domain Updated', values);
+        }
+    };
+
+    handleUpdateDomain = values => {
+        const { reset } = this.props;
+        const { _id, projectId } = this.props.statusPage.status;
+
+        if (!values.domain) return;
+
+        const data = {
+            projectId: projectId._id || projectId,
+            statusPageId: _id,
+            domainId: values._id,
+            newDomain: values.domain,
+        };
+        this.props.updateDomain(data).then(
             () => {
                 reset();
             },
@@ -195,9 +245,7 @@ export class Setting extends Component {
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                 <span className="ContentHeader-title Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                    <span
-                                        className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                    >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         Domain and CNAME Settings
                                     </span>
                                 </span>
@@ -766,12 +814,18 @@ export class Setting extends Component {
                                         }
                                         type="submit"
                                     >
-                                        {!this.props.statusPage.setting
-                                            .requesting && (
+                                        {(!this.props.statusPage.setting
+                                            .requesting ||
+                                            !this.props
+                                                .updateDomainRequesting) && (
                                             <span>Save Domain Settings </span>
                                         )}
-                                        {this.props.statusPage.setting
-                                            .requesting && <FormLoader />}
+                                        {(this.props.statusPage.setting
+                                            .requesting ||
+                                            this.props
+                                                .updateDomainRequesting) && (
+                                            <FormLoader />
+                                        )}
                                     </button>
                                 </RenderIfSubProjectAdmin>
                             </div>
@@ -809,6 +863,18 @@ Setting.propTypes = {
         PropTypes.oneOf([null, undefined]),
         PropTypes.string,
     ]),
+    updateDomain: PropTypes.func,
+    updateDomainError: PropTypes.oneOfType([
+        PropTypes.oneOfType([null, undefined]),
+        PropTypes.string,
+    ]),
+    updateDomainRequesting: PropTypes.bool,
+    initialFormValues: PropTypes.object,
+    finalFormValues: PropTypes.object,
+    activeForm: PropTypes.oneOfType([
+        PropTypes.oneOfType([null, undefined]),
+        PropTypes.string,
+    ]),
 };
 
 const SettingForm = reduxForm({
@@ -828,6 +894,7 @@ const mapDispatchToProps = dispatch => {
             cancelAddMoreDomain,
             verifyDomain,
             createDomain,
+            updateDomain,
             deleteDomain,
             openModal,
             closeModal,
@@ -870,6 +937,11 @@ function mapStateToProps(state) {
         deleteDomainError:
             state.statusPage.deleteDomain &&
             state.statusPage.deleteDomain.error,
+        updateDomainError: state.statusPage.updateDomain.error,
+        updateDomainRequesting: state.statusPage.updateDomain.requesting,
+        initialFormValues: state.form.Setting && state.form.Setting.initial,
+        finalFormValues: state.form.Setting && state.form.Setting.values,
+        activeForm: state.form.Setting && state.form.Setting.active,
     };
 }
 
