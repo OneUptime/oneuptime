@@ -109,7 +109,7 @@ export function deleteDomainFailure(payload) {
     };
 }
 
-export function deleteDomain({projectId, statusPageId, domainId}) {
+export function deleteDomain({ projectId, statusPageId, domainId }) {
     return async function(dispatch) {
         dispatch(deleteDomainRequest());
         try {
@@ -131,33 +131,33 @@ export function deleteDomain({projectId, statusPageId, domainId}) {
     };
 }
 
-export function updateDomainRequest(){
+export function updateDomainRequest() {
     return {
         type: types.UPDATE_DOMAIN_REQUEST,
-    }
+    };
 }
 
-export function updateDomainSuccess(payload){
+export function updateDomainSuccess(payload) {
     return {
         type: types.UPDATE_DOMAIN_SUCCESS,
         payload,
-    }
+    };
 }
 
-export function updateDomainFailure(payload){
+export function updateDomainFailure(payload) {
     return {
         type: types.UPDATE_DOMAIN_FAILURE,
         payload,
-    }
+    };
 }
 
-export function updateDomain({projectId, statusPageId, domainId, newDomain}){
+export function updateDomain({ projectId, statusPageId, domainId, newDomain }) {
     return async function(dispatch) {
         dispatch(updateDomainRequest());
         try {
             const response = await putApi(
                 `statusPage/${projectId}/${statusPageId}/${domainId}`,
-                {domain: newDomain}
+                { domain: newDomain }
             );
             dispatch(updateDomainSuccess(response.data));
         } catch (error) {

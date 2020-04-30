@@ -129,7 +129,7 @@ describe('Status Page', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.reload({ waitUntil: 'networkidle0' });
-                let elem = await page.$('.btnDeleteDomain');
+                const elem = await page.$('.btnDeleteDomain');
                 expect(elem).toBeNull();
             });
         },
@@ -151,7 +151,7 @@ describe('Status Page', () => {
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 //Get the initial length of domains
-                let initialLength = await page.$$eval(
+                const initialLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
                     domains => domains.length
                 );
@@ -169,7 +169,7 @@ describe('Status Page', () => {
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 // get the final length of domains after deleting
-                let finalLength = await page.$$eval(
+                const finalLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
                     domains => domains.length
                 );
@@ -195,7 +195,7 @@ describe('Status Page', () => {
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 //Get the initial length of domains
-                let initialLength = await page.$$eval(
+                const initialLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
                     domains => domains.length
                 );
@@ -213,7 +213,7 @@ describe('Status Page', () => {
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 // get the final length of domains after cancelling
-                let finalLength = await page.$$eval(
+                const finalLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
                     domains => domains.length
                 );

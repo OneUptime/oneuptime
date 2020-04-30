@@ -54,7 +54,7 @@ export class Setting extends Component {
             return this.handleCreateDomain({ domain: values.domain });
         }
 
-        let isChanged =
+        const isChanged =
             JSON.stringify(this.props.initialFormValues) ===
             JSON.stringify(values);
 
@@ -747,14 +747,20 @@ export class Setting extends Component {
                                         <ShouldRender
                                             if={
                                                 this.props.statusPage.setting
-                                                    .error
+                                                    .error ||
+                                                this.props.updateDomainError
                                             }
                                         >
-                                            <span style={{ color: 'red' }}>
-                                                {
-                                                    this.props.statusPage
-                                                        .setting.error
-                                                }
+                                            <span
+                                                style={{
+                                                    color: 'red',
+                                                    display: 'block',
+                                                }}
+                                            >
+                                                {this.props.statusPage.setting
+                                                    .error ||
+                                                    this.props
+                                                        .updateDomainError}
                                             </span>
                                         </ShouldRender>
                                         <ShouldRender
@@ -870,11 +876,6 @@ Setting.propTypes = {
     ]),
     updateDomainRequesting: PropTypes.bool,
     initialFormValues: PropTypes.object,
-    finalFormValues: PropTypes.object,
-    activeForm: PropTypes.oneOfType([
-        PropTypes.oneOfType([null, undefined]),
-        PropTypes.string,
-    ]),
 };
 
 const SettingForm = reduxForm({
@@ -940,8 +941,6 @@ function mapStateToProps(state) {
         updateDomainError: state.statusPage.updateDomain.error,
         updateDomainRequesting: state.statusPage.updateDomain.requesting,
         initialFormValues: state.form.Setting && state.form.Setting.initial,
-        finalFormValues: state.form.Setting && state.form.Setting.values,
-        activeForm: state.form.Setting && state.form.Setting.active,
     };
 }
 

@@ -169,12 +169,12 @@ module.exports = {
                 );
             }
 
-            let statusPage = await this.findOneBy({
+            const statusPage = await this.findOneBy({
                 _id: statusPageId,
             });
 
             if (!statusPage) {
-                let error = new Error(
+                const error = new Error(
                     'Status page not found or does not exist'
                 );
                 error.code = 400;
@@ -193,7 +193,7 @@ module.exports = {
 
             statusPage.domains = domainList;
 
-            let result = await statusPage.save();
+            const result = await statusPage.save();
             return result
                 .populate('domains.domainVerificationToken')
                 .execPopulate();
@@ -205,19 +205,19 @@ module.exports = {
 
     deleteDomain: async function(statusPageId, domainId) {
         try {
-            let statusPage = await this.findOneBy({
+            const statusPage = await this.findOneBy({
                 _id: statusPageId,
             });
 
             if (!statusPage) {
-                let error = new Error(
+                const error = new Error(
                     'Status page not found or does not exist'
                 );
                 error.code = 400;
                 throw error;
             }
 
-            let remainingDomains = statusPage.domains.filter(domain => {
+            const remainingDomains = statusPage.domains.filter(domain => {
                 return String(domain._id) !== String(domainId);
             });
 
