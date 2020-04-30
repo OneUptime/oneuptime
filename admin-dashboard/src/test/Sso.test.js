@@ -43,8 +43,7 @@ describe('SSO API', () => {
         done();
     });
 
-    test(
-        'should add new SSO',
+    test('should add new SSO',
         async (done) => {
             expect.assertions(1);
             const cluster = await Cluster.launch({
@@ -106,7 +105,7 @@ describe('SSO API', () => {
         operationTimeOut
     );
 
-    test('Should update existing SSO',
+    test('should update existing SSO',
         async (done) => {
             expect.assertions(1);
             const cluster = await Cluster.launch({
@@ -161,7 +160,7 @@ describe('SSO API', () => {
         operationTimeOut
     );
 
-    test('Should delete existing SSO',
+    test('should delete existing SSO',
         async (done) => {
             expect.assertions(0);
             const cluster = await Cluster.launch({
