@@ -1,8 +1,6 @@
 /* eslint-disable no-undef */
 
 process.env.PORT = 3020;
-process.env.DISABLE_SIGNUP = 'true'; // this is in quotes because of helm chart and kubernetes.
-process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
 const data = require('./data/user');
 const chai = require('chai');
@@ -20,12 +18,14 @@ describe('Disable Sign up test', function() {
     before(async function() {
         this.timeout(400000);
         await GlobalConfig.initTestConfig();
+        process.env.DISABLE_SIGNUP = 'true'; // this is in quotes because of helm chart and kubernetes.
     });
 
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
         await AirtableService.deleteAll({ tableName: 'User' });
+        process.env.DISABLE_SIGNUP = undefined;
     });
 
     it('should not sign up the user when sign up is disabled', done => {
