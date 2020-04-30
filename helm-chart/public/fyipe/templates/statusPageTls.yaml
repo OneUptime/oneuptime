@@ -5,6 +5,9 @@ kind: Secret
 metadata:
   name: {{ printf "%s-%s-%s" $.Release.Name $key "statuspagetls"  }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: fyipe
+    app.kubernetes.io/managed-by: helm
 type: Opaque
 data:
   tls.crt: {{ $value.tls.crt }}

@@ -70,17 +70,24 @@ app.use(function(req, res, next) {
     global.dashboardHost = 'https://' + req.hostname + '/dashboard';
 
     if (req.hostname.includes('localhost')) {
-        global.apiHost =
-            'http://' +
-            req.hostname +
-            ':' +
-            (process.env.PORT || 3002) +
-            '/api';
-        global.accountsHost =
-            'http://' + req.hostname + ':' + 3003 + '/accounts';
-        global.homeHost = 'http://' + req.hostname + ':' + 1444;
-        global.dashboardHost =
-            'http://' + req.hostname + ':' + 3000 + '/dashboard';
+        if (req.get('host').includes('localhost:')) {
+            global.apiHost =
+                'http://' +
+                req.hostname +
+                ':' +
+                (process.env.PORT || 3002) +
+                '/api';
+            global.accountsHost =
+                'http://' + req.hostname + ':' + 3003 + '/accounts';
+            global.homeHost = 'http://' + req.hostname + ':' + 1444;
+            global.dashboardHost =
+                'http://' + req.hostname + ':' + 3000 + '/dashboard';
+        } else {
+            global.apiHost = 'http://' + req.hostname + '/api';
+            global.accountsHost = 'http://' + req.hostname + '/accounts';
+            global.homeHost = 'http://' + req.hostname;
+            global.dashboardHost = 'http://' + req.hostname + '/dashboard';
+        }
     }
 
     next();
