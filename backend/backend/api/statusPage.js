@@ -120,6 +120,50 @@ router.put(
 );
 
 /**
+ * @description updates a particular domain from statuspage collection
+ * @param {string} projectId id of the project
+ * @param {string} statusPageId id of the status page
+ * @param {string} domainId id of the domain on the status page
+ * @returns response body
+ */
+router.put(
+    '/:projectId/:statusPageId/:domainId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        const { projectId, statusPageId, domainId } = req.params;
+        const newDomain = req.body.domain;
+
+        if (typeof newDomain !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not of type string.',
+            });
+        }
+
+        if (!UtilService.isDomainValid(newDomain)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not valid.',
+            });
+        }
+
+        try {
+            // response should be an updated statusPage
+            const response = await StatusPageService.updateDomain(
+                projectId,
+                statusPageId,
+                domainId,
+                newDomain
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+/**
  * @description deletes a particular domain from statuspage collection
  * @param {string} projectId id of the project
  * @param {string} statusPageId id of the status page
@@ -134,7 +178,10 @@ router.delete(
         const { statusPageId, domainId } = req.params;
 
         try {
-            const response = await StatusPageService.deleteDomain(statusPageId, domainId);
+            const response = await StatusPageService.deleteDomain(
+                statusPageId,
+                domainId
+            );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
