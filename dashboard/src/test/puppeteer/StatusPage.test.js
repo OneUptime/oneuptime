@@ -62,6 +62,41 @@ describe('Status Page', () => {
     );
 
     test(
+        'should update a domain',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                const finalValue = 'status.fyipeapp.com';
+
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
+                // select the first item from the table row
+                const rowItem = await page.waitForSelector(
+                    '#statusPagesListContainer > tr',
+                    { visible: true }
+                );
+                rowItem.click();
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                const input = await page.$(
+                    'fieldset[name="added-domain"] input[type="text"]'
+                );
+                await input.click({ clickCount: 3 });
+                await input.type(finalValue);
+
+                await page.click('#btnAddDomain');
+                await page.reload({ waitUntil: 'networkidle0' });
+
+                const finalInputValue = await page.$eval(
+                    'fieldset[name="added-domain"] input[type="text"]',
+                    domain => domain.value
+                );
+
+                expect(finalInputValue).toEqual(finalValue);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'should not verify a domain when txt record does not match token',
         async () => {
             await cluster.execute(null, async ({ page }) => {
