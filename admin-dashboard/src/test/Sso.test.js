@@ -9,7 +9,14 @@ require('should');
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
-const createSSO = async (page, data) => {
+const moveToSsoPage= async (page)=>{
+    await page.waitForSelector('#settings');
+    await page.click('#settings');
+    await page.waitForSelector('#sso');
+    await page.click('#sso');
+}
+
+const createSso = async (page, data) => {
     await page.click('#add-sso');
     await page.waitForSelector('#save-button');
 
@@ -87,14 +94,12 @@ describe('SSO API', () => {
                     password: data.password,
                 };
                 await init.loginUser(user, page);
-                await page.waitForSelector('#settings');
-                await page.click('#settings');
-                await page.waitForSelector('#sso');
-                await page.click('#sso');
+                
+                await moveToSsoPage(page)
 
                 await page.waitForSelector("#no-sso-message");
 
-                await createSSO(page, {
+                await createSso(page, {
                     domain: 'test.hackerbay.io',
                     samlSsoUrl: 'test.hackerbay.io/login',
                     certificateFingerprint: 'AZERTYUIOP',
@@ -137,11 +142,8 @@ describe('SSO API', () => {
                     password: data.password,
                 };
                 await init.loginUser(user, page);
-                await page.waitForSelector('#settings');
-                await page.click('#settings');
 
-                await page.waitForSelector('#sso');
-                await page.click('#sso');
+                await moveToSsoPage(page)
 
                 await page.waitForSelector('.edit-button');
                 await page.click('.edit-button');
@@ -192,10 +194,9 @@ describe('SSO API', () => {
                     password: data.password,
                 };
                 await init.loginUser(user, page);
-                await page.waitForSelector('#settings');
-                await page.click('#settings');
-                await page.waitForSelector('#sso');
-                await page.click('#sso');
+
+                await moveToSsoPage(page)
+
                 await page.waitForSelector('.delete-button');
                 await page.click('.delete-button');
 
