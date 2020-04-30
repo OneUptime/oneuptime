@@ -68,7 +68,8 @@ describe('SSO API', () => {
                 await page.click('#settings');
                 await page.waitForSelector('#sso');
                 await page.click('#sso');
-                await page.waitForSelector('#add-sso');
+
+                await page.waitForSelector("#no-sso-message");
                 await page.click('#add-sso');
                 await page.waitForSelector('#save-button');
 
