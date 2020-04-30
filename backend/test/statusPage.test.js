@@ -520,6 +520,84 @@ describe('Status API', function() {
             });
     });
 
+    //TODO: write test for updating domain
+    // check for when the domain in statuspage is updated
+    // check for when domainverificationtoken is updated
+
+    it('should update a domain on a status page successfully', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: 'app.fyipeapp.com' };
+
+        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
+            // select the first domain
+            const { _id: domainId } = statusPage.domains[0];
+            request
+                .put(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .send(data)
+                .set('Authorization', authorization)
+                .end((err, res) => {
+                    expect(res).to.have.status(200);
+                    done();
+                });
+        });
+    });
+
+    it('should not update a domain on a status page if the domain field is empty', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: '' };
+
+        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
+            // select the first domain
+            const { _id: domainId } = statusPage.domains[0];
+            request
+                .put(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .send(data)
+                .set('Authorization', authorization)
+                .end((err, res) => {
+                    expect(res).to.have.status(400);
+                    done();
+                });
+        });
+    });
+
+    it('should not update a domain on a status page if the domain is not a string', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: { url: 'shop.fyipeapp.com' } };
+
+        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
+            // select the first domain
+            const { _id: domainId } = statusPage.domains[0];
+            request
+                .put(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .send(data)
+                .set('Authorization', authorization)
+                .end((err, res) => {
+                    expect(res).to.have.status(400);
+                    done();
+                });
+        });
+    });
+
+    it('should not update a domain on a status page if the status page is missing or not found', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: { url: 'shop.fyipeapp.com' } };
+
+        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
+            // select the first domain
+            const { _id: domainId } = statusPage.domains[0];
+            // provide a random object id
+            const statusPageId = '5ea70eb4be9f4b177a1719ad';
+            request
+                .put(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .send(data)
+                .set('Authorization', authorization)
+                .end((err, res) => {
+                    expect(res).to.have.status(400);
+                    done();
+                });
+        });
+    });
+
     it('should delete a domain from a status page', function(done) {
         const authorization = `Basic ${token}`;
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
