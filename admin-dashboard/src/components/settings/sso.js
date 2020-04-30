@@ -240,7 +240,7 @@ export class Component extends React.Component {
                                         >
                                             <div className="db-ListViewItem-link">
                                                 <button
-                                                    className="bs-Button bs-Button--blue Box-background--blue"
+                                                    className="bs-Button bs-Button--blue Box-background--blue edit-button"
                                                     onClick={() => this.editSso(sso._id)}
                                                 >
                                                     Edit
