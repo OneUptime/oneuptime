@@ -246,7 +246,7 @@ export class Component extends React.Component {
                                                     Edit
                                                 </button>
                                                 <button
-                                                    className="bs-Button bs-Button--red Box-background--red"
+                                                    className="bs-Button bs-Button--red Box-background--red delete-button"
                                                     onClick={() => this.deleteSso(sso._id)}
                                                 >
                                                     Delete
