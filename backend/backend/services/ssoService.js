@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function (query, limit, skip) {
+    findBy: async function(query, limit, skip) {
         try {
             if (!skip) skip = 0;
 
@@ -13,9 +13,11 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const ssos = await SsoModel.find(
-                query,
-                { _id: 1, domain: 1, createdAt: 1 })
+            const ssos = await SsoModel.find(query, {
+                _id: 1,
+                domain: 1,
+                createdAt: 1,
+            })
                 .sort([['createdAt', -1]])
                 .skip(skip)
                 .limit(limit);
@@ -26,7 +28,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query) {
+    deleteBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -44,9 +46,9 @@ module.exports = {
         }
     },
 
-    create: async function (data) {
+    create: async function(data) {
         const sso = new SsoModel();
-        sso["saml-enabled"] = data["saml-enabled"] || false
+        sso['saml-enabled'] = data['saml-enabled'] || false;
 
         if (!data.domain) {
             const error = new Error('Domain must be defined.');
@@ -84,10 +86,10 @@ module.exports = {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             if (!query) {
-                query = {}
+                query = {};
             }
 
             if (!query.deleted) {
@@ -101,20 +103,20 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
             }
-            if(query.createdAt!==undefined){
-                delete query.createdAt
+            if (query.createdAt !== undefined) {
+                delete query.createdAt;
             }
             query.deleted = false;
 
             await SsoModel.updateMany(query, {
                 $set: data,
             });
-            const sso =await this.findBy(query);
+            const sso = await this.findBy(query);
             return sso;
         } catch (error) {
             ErrorService.log('ssoService.updateBy', error);
@@ -122,7 +124,7 @@ module.exports = {
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         if (!query) {
             query = {};
         }
@@ -133,7 +135,7 @@ module.exports = {
         return count;
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await SsoModel.deleteMany(query);
             return 'SSO(s) removed successfully!';
@@ -142,8 +144,7 @@ module.exports = {
             throw error;
         }
     },
-
-}
+};
 
 const SsoModel = require('../models/sso');
 const ErrorService = require('./errorService');

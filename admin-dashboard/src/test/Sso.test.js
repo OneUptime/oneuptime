@@ -9,12 +9,12 @@ require('should');
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
-const moveToSsoPage = async (page) => {
+const moveToSsoPage = async page => {
     await page.waitForSelector('#settings');
     await page.click('#settings');
     await page.waitForSelector('#sso');
     await page.click('#sso');
-}
+};
 
 const createSso = async (page, data) => {
     await page.click('#add-sso');
@@ -37,8 +37,7 @@ const createSso = async (page, data) => {
 
     await page.click('#save-button');
     await page.waitFor(2000);
-
-}
+};
 
 describe('SSO API', () => {
     const operationTimeOut = 100000;
@@ -74,8 +73,9 @@ describe('SSO API', () => {
         done();
     });
 
-    test('should add new SSO',
-        async (done) => {
+    test(
+        'should add new SSO',
+        async done => {
             expect.assertions(3);
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
@@ -103,7 +103,7 @@ describe('SSO API', () => {
 
                 expect(ssoCount).toContain('0');
 
-                await page.waitForSelector("#no-sso-message");
+                await page.waitForSelector('#no-sso-message');
 
                 await createSso(page, {
                     domain: 'test.hackerbay.io',
@@ -111,11 +111,14 @@ describe('SSO API', () => {
                     certificateFingerprint: 'AZERTYUIOP',
                     remoteLogoutUrl: 'test.hackerbay.io/logout',
                     ipRanges: '127.0.0.1',
-                })
-
-                const ssoCountAfterCreation = await page.$eval('#sso-count', e => {
-                    return e.innerHTML;
                 });
+
+                const ssoCountAfterCreation = await page.$eval(
+                    '#sso-count',
+                    e => {
+                        return e.innerHTML;
+                    }
+                );
 
                 expect(ssoCountAfterCreation).toContain('1');
 
@@ -125,7 +128,7 @@ describe('SSO API', () => {
                 expect(tbody).toContain('test.hackerbay.io');
             });
 
-            cluster.queue({ email, password, });
+            cluster.queue({ email, password });
 
             await cluster.idle();
             await cluster.close();
@@ -134,8 +137,9 @@ describe('SSO API', () => {
         operationTimeOut
     );
 
-    test('should update existing SSO',
-        async (done) => {
+    test(
+        'should update existing SSO',
+        async done => {
             expect.assertions(2);
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
@@ -183,7 +187,7 @@ describe('SSO API', () => {
                 expect(tbody).toContain('updated.test.hackerbay.io');
             });
 
-            cluster.queue({ email, password, });
+            cluster.queue({ email, password });
 
             await cluster.idle();
             await cluster.close();
@@ -192,8 +196,9 @@ describe('SSO API', () => {
         operationTimeOut
     );
 
-    test('should delete existing SSO',
-        async (done) => {
+    test(
+        'should delete existing SSO',
+        async done => {
             expect.assertions(2);
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
@@ -213,7 +218,7 @@ describe('SSO API', () => {
                 };
                 await init.loginUser(user, page);
 
-                await moveToSsoPage(page)
+                await moveToSsoPage(page);
 
                 const ssoCount = await page.$eval('#sso-count', e => {
                     return e.innerHTML;
@@ -229,15 +234,18 @@ describe('SSO API', () => {
 
                 await page.waitFor(2000);
 
-                const ssoCountAfterDeletion = await page.$eval('#sso-count', e => {
-                    return e.innerHTML;
-                });
+                const ssoCountAfterDeletion = await page.$eval(
+                    '#sso-count',
+                    e => {
+                        return e.innerHTML;
+                    }
+                );
                 expect(ssoCountAfterDeletion).toContain('0');
 
-                await page.waitForSelector("#no-sso-message");
+                await page.waitForSelector('#no-sso-message');
             });
 
-            cluster.queue({ email, password, });
+            cluster.queue({ email, password });
 
             await cluster.idle();
             await cluster.close();
@@ -246,8 +254,9 @@ describe('SSO API', () => {
         operationTimeOut
     );
 
-    it('should enable Next/Previous buttons when there are more than 10 SSOs',
-        async (done) => {
+    it(
+        'should enable Next/Previous buttons when there are more than 10 SSOs',
+        async done => {
             expect.assertions(7);
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
@@ -268,7 +277,7 @@ describe('SSO API', () => {
                 await init.loginUser(user, page);
 
                 await moveToSsoPage(page);
-                await page.waitForSelector("#no-sso-message");
+                await page.waitForSelector('#no-sso-message');
 
                 for (let i = 0; i <= 11; i++) {
                     await createSso(page, {
@@ -277,7 +286,7 @@ describe('SSO API', () => {
                         certificateFingerprint: 'AZERTYUIOP',
                         remoteLogoutUrl: 'test.hackerbay.io/logout',
                         ipRanges: '127.0.0.1',
-                    })
+                    });
                 }
 
                 const ssoCount = await page.$eval('#sso-count', e => {
@@ -285,12 +294,16 @@ describe('SSO API', () => {
                 });
 
                 expect(ssoCount).toContain('12');
-                
+
                 const firstPageTbody = await page.$eval('tbody', e => {
                     return e.innerHTML;
                 });
-                expect(firstPageTbody).toContain('subdomain.11.test.hackerbay.io');
-                expect(firstPageTbody).toContain('subdomain.2.test.hackerbay.io');
+                expect(firstPageTbody).toContain(
+                    'subdomain.11.test.hackerbay.io'
+                );
+                expect(firstPageTbody).toContain(
+                    'subdomain.2.test.hackerbay.io'
+                );
 
                 await page.click('#next-button');
                 await page.waitFor(2000);
@@ -298,9 +311,12 @@ describe('SSO API', () => {
                 const secondPageTbody = await page.$eval('tbody', e => {
                     return e.innerHTML;
                 });
-                expect(secondPageTbody).toContain('subdomain.1.test.hackerbay.io');
-                expect(secondPageTbody).toContain('subdomain.0.test.hackerbay.io');
-
+                expect(secondPageTbody).toContain(
+                    'subdomain.1.test.hackerbay.io'
+                );
+                expect(secondPageTbody).toContain(
+                    'subdomain.0.test.hackerbay.io'
+                );
 
                 await page.click('#previous-button');
                 await page.waitFor(2000);
@@ -309,10 +325,13 @@ describe('SSO API', () => {
                     return e.innerHTML;
                 });
 
-                expect(initalPageTbody).toContain('subdomain.11.test.hackerbay.io');
-                expect(initalPageTbody).toContain('subdomain.2.test.hackerbay.io');
-
-            })
+                expect(initalPageTbody).toContain(
+                    'subdomain.11.test.hackerbay.io'
+                );
+                expect(initalPageTbody).toContain(
+                    'subdomain.2.test.hackerbay.io'
+                );
+            });
 
             cluster.queue({ email, password });
             await cluster.idle();

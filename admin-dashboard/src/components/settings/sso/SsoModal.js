@@ -58,10 +58,8 @@ const fields = [
     {
         key: 'domain',
         label: 'Domain',
-        placeholder:
-            'microsoftonline.com',
-        description:
-            'This is the domain that will be use in the SSO.',
+        placeholder: 'microsoftonline.com',
+        description: 'This is the domain that will be use in the SSO.',
         type: 'text',
         component: RenderField,
     },
@@ -199,11 +197,8 @@ class Component extends React.Component {
                             </div>
                         </div>
 
-                        <div
-                            className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12"
-                        >
-                            <span className="db-SettingsForm-footerMessage">
-                            </span>
+                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                            <span className="db-SettingsForm-footerMessage"></span>
                             <div>
                                 <button
                                     className="bs-Button bs-DeprecatedButton"
@@ -213,12 +208,9 @@ class Component extends React.Component {
                                     <span>Cancel</span>
                                 </button>
                                 <button
-                                    id='save-button'
+                                    id="save-button"
                                     className="bs-Button bs-Button--blue"
-                                    disabled={
-                                        sso &&
-                                        sso.requesting
-                                    }
+                                    disabled={sso && sso.requesting}
                                     type="submit"
                                 >
                                     <span>Save</span>
@@ -228,17 +220,23 @@ class Component extends React.Component {
                     </form>
                 </div>
             </div>
-        )
-
+        );
     }
-
 }
+
+Component.displayName = 'SsoModal';
 
 Component.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
+    // eslint-disable-next-line react/no-unused-prop-types
     addSso: PropTypes.func.isRequired,
     fetchSsos: PropTypes.func.isRequired,
+    // eslint-disable-next-line react/no-unused-prop-types
     initialValues: PropTypes.object,
+    closeThisDialog: PropTypes.func.isRequired,
+    onSubmit: PropTypes.func.isRequired,
+    formTitle: PropTypes.string.isRequired,
+    sso: PropTypes.object,
 };
 
 const ReduxFormComponent = reduxForm({
@@ -248,10 +246,10 @@ const ReduxFormComponent = reduxForm({
 })(Component);
 
 export const SsoAddModal = connect(
-    state => {
+    () => {
         return {
-            formTitle: "Create SSO",
-        }
+            formTitle: 'Create SSO',
+        };
     },
     dispatch => {
         return bindActionCreators(
@@ -260,17 +258,17 @@ export const SsoAddModal = connect(
                 fetchSsos,
             },
             dispatch
-        )
+        );
     }
-)(ReduxFormComponent)
+)(ReduxFormComponent);
 
 export const SsoUpdateModal = connect(
     state => {
         return {
-            formTitle: "Update SSO",
+            formTitle: 'Update SSO',
             sso: state.sso.sso,
             initialValues: state.sso.sso.sso,
-        }
+        };
     },
     dispatch => {
         return bindActionCreators(
@@ -279,6 +277,6 @@ export const SsoUpdateModal = connect(
                 fetchSsos,
             },
             dispatch
-        )
+        );
     }
-)(ReduxFormComponent)
+)(ReduxFormComponent);

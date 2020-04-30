@@ -2,13 +2,13 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const ssoSchema = new Schema({
-    "saml-enabled": {
+    'saml-enabled': {
         type: Boolean,
         required: true,
     },
-    domain:{
-        type:String,
-        required:true,
+    domain: {
+        type: String,
+        required: true,
     },
     samlSsoUrl: {
         type: String,
@@ -28,16 +28,16 @@ const ssoSchema = new Schema({
         type: Date,
         default: Date.now,
     },
-    deleted: { 
-        type: Boolean, 
-        default: false 
+    deleted: {
+        type: Boolean,
+        default: false,
     },
     deletedAt: {
         type: Date,
     },
-    deletedById: { 
-        type: String, 
-        ref: 'User' 
+    deletedById: {
+        type: String,
+        ref: 'User',
     },
 });
 
