@@ -9,6 +9,30 @@ require('should');
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
+const createSSO = async (page, data) => {
+    await page.click('#add-sso');
+    await page.waitForSelector('#save-button');
+
+    await page.click('#domain');
+    await page.type('#domain', data.domain);
+
+    await page.click('#samlSsoUrl');
+    await page.type('#samlSsoUrl', data.samlSsoUrl);
+
+    await page.click('#certificateFingerprint');
+    await page.type('#certificateFingerprint', data.certificateFingerprint);
+
+    await page.click('#remoteLogoutUrl');
+    await page.type('#remoteLogoutUrl', data.remoteLogoutUrl);
+
+    await page.click('#ipRanges');
+    await page.type('#ipRanges', data.ipRanges);
+
+    await page.click('#save-button');
+    await page.waitFor(2000);
+
+}
+
 describe('SSO API', () => {
     const operationTimeOut = 100000;
 
@@ -69,26 +93,14 @@ describe('SSO API', () => {
                 await page.click('#sso');
 
                 await page.waitForSelector("#no-sso-message");
-                await page.click('#add-sso');
-                await page.waitForSelector('#save-button');
 
-                await page.click('#domain');
-                await page.type('#domain', 'test.hackerbay.io');
-
-                await page.click('#samlSsoUrl');
-                await page.type('#samlSsoUrl', 'test.hackerbay.io/login');
-
-                await page.click('#certificateFingerprint');
-                await page.type('#certificateFingerprint', 'AZERTYUIOP');
-
-                await page.click('#remoteLogoutUrl');
-                await page.type('#remoteLogoutUrl', 'test.hackerbay.io/logout');
-
-                await page.click('#ipRanges');
-                await page.type('#ipRanges', '127.0.0.1');
-
-                await page.click('#save-button');
-                await page.waitFor(2000);
+                await createSSO(page, {
+                    domain: 'test.hackerbay.io',
+                    samlSsoUrl: 'test.hackerbay.io/login',
+                    certificateFingerprint: 'AZERTYUIOP',
+                    remoteLogoutUrl: 'test.hackerbay.io/logout',
+                    ipRanges: '127.0.0.1',
+                })
 
                 const tbody = await page.$eval('tbody', e => {
                     return e.innerHTML;
@@ -127,7 +139,7 @@ describe('SSO API', () => {
                 await init.loginUser(user, page);
                 await page.waitForSelector('#settings');
                 await page.click('#settings');
-                
+
                 await page.waitForSelector('#sso');
                 await page.click('#sso');
 
