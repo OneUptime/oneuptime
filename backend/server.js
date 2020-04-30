@@ -120,6 +120,7 @@ app.use(['/reports', '/api/reports'], require('./backend/api/report'));
 app.use(['/lead', '/api/lead'], require('./backend/api/lead'));
 app.use(['/feedback', '/api/feedback'], require('./backend/api/feedback'));
 app.use(['/twilio', '/api/twilio'], require('./backend/api/twilio'));
+app.use(['/sso', '/api/sso'], require('./backend/api/sso'));
 app.use(['/zapier', '/api/zapier'], require('./backend/api/zapier'));
 app.use(['/slack', '/api/slack'], require('./backend/api/slack'));
 app.use(['/webhook', '/api/webhook'], require('./backend/api/webHook'));
