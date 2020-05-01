@@ -276,6 +276,12 @@ router.get('/login', async function(req, res) {
 });
 
 // Route
+// Description: Callback function after SSO authentication page
+router.post('/callback', async function(req, res){
+    return res.json({});
+});
+
+// Route
 // Description: login function for  user
 // Params:
 // Param 1: req.body-> {email, password }
