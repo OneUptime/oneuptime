@@ -64,7 +64,18 @@ describe('Status Page', () => {
         'should create a domain',
         async () => {
             await cluster.execute(null, async ({ page }) => {
-                await init.addDomainToStatusPage(page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
+                // select the first item from the table row
+                const rowItem = await page.waitForSelector(
+                    '#statusPagesListContainer > tr',
+                    { visible: true }
+                );
+                rowItem.click();
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#domain', { visible: true });
+                await page.type('#domain', 'fyipeapp.com');
+                await page.click('#btnAddDomain');
                 // if domain was not added sucessfully, list will be undefined
                 // it will timeout
                 const list = await page.waitForSelector(
