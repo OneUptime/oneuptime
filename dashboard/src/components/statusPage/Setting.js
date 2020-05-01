@@ -473,7 +473,7 @@ export class Setting extends Component {
                                                                                 }}
                                                                             >
                                                                                 <button
-                                                                                    className="btnDeleteDomain bs-Button bs-Button--red Box-background--red"
+                                                                                    className="btnDeleteDomain bs-Button"
                                                                                     onClick={e => {
                                                                                         //Todo: handle delete here
                                                                                         this.handleDeleteDomain(
@@ -482,6 +482,7 @@ export class Setting extends Component {
                                                                                         );
                                                                                     }}
                                                                                 >
+                                                                                    <span className="bs-Button--icon bs-Button--delete"></span>
                                                                                     <span>
                                                                                         Delete
                                                                                         Domain
