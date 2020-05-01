@@ -25,6 +25,7 @@ module.exports = {
             LogHour.maxStorageUsed = data.storageUsed;
             LogHour.maxMainTemp = data.mainTemp;
             LogHour.intervalDate = data.intervalDate;
+            LogHour.sslCertificate = data.sslCertificate;
 
             const savedLogHour = await LogHour.save();
 

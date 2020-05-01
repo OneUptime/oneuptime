@@ -19,6 +19,7 @@ module.exports = {
             Log.storageUsage = data.storageUsage;
             Log.mainTemp = data.mainTemp;
             Log.maxTemp = data.maxTemp;
+            Log.sslCertificate = data.sslCertificate;
 
             const savedLog = await Log.save();
 

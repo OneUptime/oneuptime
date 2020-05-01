@@ -123,6 +123,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
         data.status = status;
         data.probeId = req.probe && req.probe.id ? req.probe.id : null;
         data.monitorId = req.params.monitorId;
+        data.sslCertificate = resp && resp.sslCertificate ? resp.sslCertificate : null;
         const log = await ProbeService.saveMonitorLog(data);
         return sendItemResponse(req, response, log);
     } catch (error) {
