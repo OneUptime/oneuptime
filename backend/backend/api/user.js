@@ -307,12 +307,11 @@ router.post('/callback', async function(req, res) {
 
         const email = saml_response.user.email;
 
-        const user = await UserService.findOneBy({ email });
+        let user = await UserService.findOneBy({ email });
         if (!user) {
             // User is not create yet
             try {
-                const user = await UserService.create({ email, sso: sso._id });
-                return sendItemResponse(req, res, user);
+                user = await UserService.create({ email, sso: sso._id });
             } catch (error) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -320,7 +319,27 @@ router.post('/callback', async function(req, res) {
                 });
             }
         }
-        return res.send({});
+
+        const authUserObj = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            redirect: null,
+            cardRegistered: user.stripeCustomerId ? true : false,
+            tokens: {
+                jwtAccessToken: `${jwt.sign(
+                    {
+                        id: user._id,
+                    },
+                    jwtSecretKey,
+                    { expiresIn: 8640000 }
+                )}`,
+                jwtRefreshToken: user.jwtRefreshToken,
+            },
+            role: user.role || null,
+        };
+
+        return sendItemResponse(req, res, authUserObj);
     });
 });
 
