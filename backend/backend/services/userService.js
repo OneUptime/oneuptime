@@ -59,6 +59,8 @@ module.exports = {
             if (data.role == 'master-admin') userModel.isVerified = true;
             userModel.jwtRefreshToken = randToken.uid(256);
 
+            if (data.sso) userModel.sso = data.sso;
+
             const user = await userModel.save();
             return user;
         } catch (error) {
