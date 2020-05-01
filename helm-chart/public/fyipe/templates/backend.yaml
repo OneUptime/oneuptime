@@ -56,6 +56,10 @@ spec:
                         value: {{ .Values.rateLimitter.requestLimit | quote }}
                       - name: RATE_LIMITTER_ENABLED
                         value: {{ .Values.rateLimitter.enabled | quote  }}
+                      - name: ADMIN_EMAIL
+                        value: {{ .Values.fyipe.admin.email }}
+                      - name: ADMIN_PASSWORD
+                        value: {{ .Values.fyipe.admin.password }}
                       - name: DISABLE_SIGNUP
                         value: {{ .Values.disableSignup | quote  }}
                       - name: CLUSTER_KEY
@@ -76,10 +80,6 @@ spec:
                         value: {{ .Values.saas.airtable.baseId }}
                       - name: IS_THIRD_PARTY_BILLING
                         value: {{ .Values.isThirdPartyBilling | quote }}
-                      - name: ADMIN_EMAIL
-                        value: {{ .Values.fyipe.admin.email }}
-                      - name: ADMIN_PASSWORD
-                        value: {{ .Values.fyipe.admin.password }}
                       {{- end }}
                   ports:
                       - containerPort: {{ .Values.host.backendPort }}
