@@ -294,20 +294,31 @@ router.post('/callback', async function(req, res) {
                 message: 'Invalid request',
             });
 
+        const { domain } = req.query;
+
+        //TODO Need to check that the caller own the domain.
+        const sso = await SsoService.findOneBy({ domain });
+
+        if (!sso)
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SSO not defined for the domain.',
+            });
+
         const email = saml_response.user.email;
 
         const user = await UserService.findOneBy({ email });
         if (!user) {
             // User is not create yet
-            const { domain } = req.query;
-            //TODO Still need to check that the caller own the domain. 
-            const sso = await SsoService.findByIdAndUpdate({ domain });
-            if (!sso)
+            try {
+                const user = await UserService.create({ email, sso: sso._id });
+                return sendItemResponse(req, res, user);
+            } catch (error) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'SSO not defined for the domain.',
+                    message: error,
                 });
-            
+            }
         }
         return res.send({});
     });
