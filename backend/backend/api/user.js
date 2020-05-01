@@ -5,6 +5,7 @@ const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const MailService = require('../services/mailService');
+const SsoService = require('../services/ssoService');
 const getUser = require('../middlewares/user').getUser;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -252,7 +253,26 @@ router.get('/login', async function(req, res) {
 
     const domain = matchedTokens[1];
 
-    return res.json({});
+    try {
+        const sso = await SsoService.findOneBy({ domain });
+        if (!sso) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Domain not found.',
+            });
+        }
+        const { "saml-enabled": samlEnabled, samlSsoUrl } = sso;
+
+        if (!samlEnabled) {
+            return sendErrorResponse(req, res, {
+                code: 401,
+                message: 'SSO disabled for this domain.',
+            });
+        }
+        return res.json({});
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
 });
 
 // Route
