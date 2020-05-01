@@ -125,7 +125,23 @@ export function loginUser(values) {
 }
 
 export const loginUserSso = values => async dispatch => {
-    getApi(`user/login?email=${values.email}`);
+    try {
+        const response = await getApi(`user/login?email=${values.email}`);
+        const { url } = response.data;
+        window.location = url;
+    } catch (error) {
+        if (error && error.response && error.response.data)
+            error = error.response.data;
+        if (error && error.data) {
+            error = error.data;
+        }
+        if (error && error.message) {
+            error = error.message;
+        } else {
+            error = 'Network Error';
+        }
+        dispatch(loginError(errors(error)));
+    }
 };
 
 // Calls the API to verify a user token and log them in.
