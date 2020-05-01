@@ -41,7 +41,7 @@ async function run() {
     // Switched to for loop, forEach does not await the callback
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
+
         // eslint-disable-next-line no-console
         console.log(file + ': Running script.');
 
@@ -49,7 +49,6 @@ async function run() {
 
         // eslint-disable-next-line no-console
         console.log(file + ': Completed. ');
-
     }
 
     // eslint-disable-next-line no-console
