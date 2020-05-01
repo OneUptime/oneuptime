@@ -244,7 +244,7 @@ router.get('/login', async function(req, res) {
 
     const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
 
-    if (matchedTokens.length === 0) {
+    if (!matchedTokens) {
         return sendErrorResponse(req, res, {
             code: 400,
             message: 'Invalid email.',
