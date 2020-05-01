@@ -232,6 +232,27 @@ router.get('/masterAdminExists', async function(req, res) {
 // Param 1: req.query-> {email }
 // Returns: 400: Error; 500: Server Error; 200: redirect to login page
 router.get('/login', async function(req, res) {
+    const { email } = req.query;
+    if (!email) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Email must be present.',
+        });
+    }
+    const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+
+    const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
+
+    if (matchedTokens.length === 0) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Invalid email.',
+        });
+    }
+
+    const domain = matchedTokens[1];
+
+    return res.json({});
 });
 
 // Route
