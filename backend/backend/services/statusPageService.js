@@ -142,25 +142,20 @@ module.exports = {
     },
 
     updateDomain: async function(projectId, statusPageId, domainId, newDomain) {
-        const domain = getDomain(newDomain);
-        const token = 'fyipe=' + randomChar();
         let createdDomain = {};
 
         try {
             const existingBaseDomain = await DomainVerificationService.findOneBy(
-                { domain }
+                { domain: newDomain }
             );
 
             if (!existingBaseDomain) {
                 const creationData = {
-                    domain,
-                    verificationToken: token,
-                    verifiedAt: null,
-                    deletedAt: null,
+                    domain: newDomain,
                     projectId,
                 };
                 // create the domain
-                createdDomain = await DomainVerificationTokenModel.create(
+                createdDomain = await DomainVerificationService.create(
                     creationData
                 );
             }
