@@ -1,6 +1,6 @@
 {
   "name": "helm-chart",
-  "version": "3.0.2472",
+  "version": "3.0.2602",
   "description": "Helm Chart Server for Fyipe",
   "main": "server.js",
   "scripts": {
@@ -17,6 +17,6 @@
   },
   "devDependencies": {
     "depcheck": "^0.9.2",
-    "npm-audit-ci-wrapper": "^2.4.3"
+    "npm-audit-ci-wrapper": "^2.5.1"
   }
 }

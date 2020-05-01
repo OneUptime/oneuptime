@@ -56,6 +56,8 @@ import {
     UPDATE_SUBSCRIBER_OPTION_SUCCESS,
     UPDATE_SUBSCRIBER_OPTION_FAILURE,
     UPDATE_SUBSCRIBER_OPTION_RESET,
+    ADD_MORE_DOMAIN,
+    CANCEL_ADD_MORE_DOMAIN,
 } from '../constants/statusPage';
 
 import {
@@ -64,7 +66,23 @@ import {
     PAGINATE_RESET,
 } from '../constants/statusPage';
 
+import {
+    VERIFY_DOMAIN_FAILURE,
+    VERIFY_DOMAIN_REQUEST,
+    VERIFY_DOMAIN_SUCCESS,
+    CREATE_DOMAIN_REQUEST,
+    CREATE_DOMAIN_SUCCESS,
+    CREATE_DOMAIN_FAILURE,
+    DELETE_DOMAIN_REQUEST,
+    DELETE_DOMAIN_SUCCESS,
+    DELETE_DOMAIN_FAILURE,
+    UPDATE_DOMAIN_REQUEST,
+    UPDATE_DOMAIN_SUCCESS,
+    UPDATE_DOMAIN_FAILURE,
+} from '../constants/domain';
+
 const INITIAL_STATE = {
+    addMoreDomain: false,
     setting: {
         error: null,
         requesting: false,
@@ -119,6 +137,26 @@ const INITIAL_STATE = {
     subscriberOption: {
         success: false,
         requesting: false,
+        error: null,
+    },
+    verifyDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    addDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    deleteDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    updateDomain: {
+        requesting: false,
+        success: false,
         error: null,
     },
     //this is for main status page object.
@@ -213,6 +251,162 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 ...INITIAL_STATE,
             });
 
+        //handle domain
+        case CREATE_DOMAIN_REQUEST:
+            return {
+                ...state,
+                addDomain: {
+                    ...state.addDomain,
+                    requesting: true,
+                },
+            };
+
+        case CREATE_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                addMoreDomain: false,
+                addDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                status: {
+                    ...state.status,
+                    domains: action.payload.domains,
+                },
+            };
+
+        case CREATE_DOMAIN_FAILURE:
+            return {
+                ...state,
+                addMoreDomain: true,
+                addDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case UPDATE_DOMAIN_REQUEST:
+            return {
+                ...state,
+                updateDomain: {
+                    ...state.updateDomain,
+                    requesting: true,
+                    error: null,
+                },
+            };
+
+        case UPDATE_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                updateDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                status: action.payload,
+            };
+
+        case UPDATE_DOMAIN_FAILURE:
+            return {
+                ...state,
+                updateDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case DELETE_DOMAIN_REQUEST:
+            return {
+                ...state,
+                deleteDomain: {
+                    ...state.deleteDomain,
+                    requesting: true,
+                    error: null,
+                },
+            };
+
+        case DELETE_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                status: action.payload,
+            };
+
+        case DELETE_DOMAIN_FAILURE:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case ADD_MORE_DOMAIN:
+            return {
+                ...state,
+                addMoreDomain: true,
+            };
+
+        case CANCEL_ADD_MORE_DOMAIN:
+            return {
+                ...state,
+                addMoreDomain: false,
+            };
+
+        case VERIFY_DOMAIN_REQUEST:
+            return {
+                ...state,
+                verifyDomain: {
+                    ...state.verifyDomain,
+                    requesting: true,
+                },
+            };
+
+        case VERIFY_DOMAIN_SUCCESS: {
+            const updateDomains = JSON.parse(
+                JSON.stringify(state.status.domains)
+            ); // deep clone to avoid mutation of state
+            updateDomains.forEach(({ domainVerificationToken }) => {
+                if (domainVerificationToken._id === action.payload._id) {
+                    domainVerificationToken.verified = action.payload.verified;
+                    domainVerificationToken.verifiedAt =
+                        action.payload.verifiedAt;
+                }
+            });
+
+            return {
+                ...state,
+                status: {
+                    ...state.status,
+                    domains: updateDomains,
+                },
+                verifyDomain: {
+                    ...state.verifyDomain,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+        }
+
+        case VERIFY_DOMAIN_FAILURE:
+            return {
+                ...state,
+                verifyDomain: {
+                    ...state.verifyDomain,
+                    requesting: false,
+                    error: action.payload,
+                },
+            };
+
         //update setting
         case UPDATE_STATUSPAGE_SETTING_REQUEST:
             return Object.assign({}, state, {
@@ -226,6 +420,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case UPDATE_STATUSPAGE_SETTING_SUCCESS:
             status = action.payload;
             return Object.assign({}, state, {
+                addMoreDomain: false,
                 setting: {
                     requesting: false,
                     error: null,

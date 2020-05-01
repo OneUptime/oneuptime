@@ -4,6 +4,9 @@ kind: Job
 metadata:
     name: {{ printf "%s-%s" .Release.Name "init-script"  }}
     namespace: {{ .Release.Namespace }}
+    labels:
+      app.kubernetes.io/part-of: fyipe
+      app.kubernetes.io/managed-by: helm
 spec:
     template:
         spec:

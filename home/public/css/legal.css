@@ -264,7 +264,6 @@ body{
     position:relative;
     width:62px;
     height:25px;
-    background-image:url(/img/documentation/logo.svg);
     top:1px
 }
 #sidebar .logo a.extension{

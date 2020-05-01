@@ -757,6 +757,30 @@ e2e_microk8s_test:
       - release
       - master
 
+e2e_microk8s_enterprise_test:
+  stage: E2E
+  script:
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - chmod +x ./ci/scripts/setup-machine.sh
+    - ./ci/scripts/setup-machine.sh enterprise
+    - chmod +x ./ci/scripts/setup.sh
+    - ./ci/scripts/setup.sh
+    - export ACCOUNTS_URL=http://localhost/accounts
+    - export ADMIN_DASHBOARD_URL=http://localhost/admin
+    - export DASHBOARD_URL=http://localhost/dashboard
+    - export BACKEND_URL=http://localhost/api
+    - export LICENSING_URL=http://localhost/license
+    - cd smoke-test
+    - npm ci
+    - npm run enterprise-test
+    - cd ..
+    - chmod +x ./ci/scripts/cleanup.sh
+    - ./ci/scripts/cleanup.sh
+  only:
+    refs:
+      - release
+      - master
+
 ##E2E Stage.
 e2e_docker_compose_test:
   stage: E2E
@@ -1522,7 +1546,7 @@ rollback_if_production_deployment_fails:
 smoke_test_production:
   stage: SmokeTest
   script:
-    - export HOME_URL=https://www.fyipe.com
+    - export HOME_URL=https://fyipe.com
     - export ACCOUNTS_URL=https://fyipe.com/accounts
     - export DASHBOARD_URL=https://fyipe.com/dashboard
     - export BACKEND_URL=https://fyipe.com/api
@@ -1549,7 +1573,7 @@ smoke_test_staging:
     - export ACCOUNTS_URL=https://staging.fyipe.com/accounts
     - export DASHBOARD_URL=https://staging.fyipe.com/dashboard
     - export BACKEND_URL=https://staging.fyipe.com/api
-    - export STATUSPAGE_URL=https://staging-statuspage.fyipe.com
+    - export STATUSPAGE_URL=https://staging.fyipe.com/status-page
     - export APIDOCS_URL=https://staging.fyipe.com/docs
     - export LICENSING_URL=https://staging.fyipe.com/license
     - cd smoke-test
@@ -1736,9 +1760,9 @@ staging_rollback_probe:
     - chmod +x ./ci/scripts/job-status.sh
     - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
     - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe
-    # Additionally rollback probe1 deployment
     - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe1
+    # Additionally rollback probe1 deployment
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe2
   only:
     refs:
       - master
@@ -1901,7 +1925,8 @@ production_rollback_probe:
     - chmod +x ./ci/scripts/job-status.sh
     - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
     - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe1
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe2
   only:
     refs:
       - release

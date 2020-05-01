@@ -1,6 +1,6 @@
 {
     "name": "fyipe-homepage",
-    "version": "3.0.2472",
+    "version": "3.0.2602",
     "scripts": {
         "start": "node server.js",
         "dev": "nodemon server.js",
@@ -23,13 +23,13 @@
         "try-to-catch": "^3.0.0"
     },
     "devDependencies": {
-        "chrome-launcher": "^0.10.7",
+        "chrome-launcher": "^0.13.1",
         "commander": "^4.0.1",
         "depcheck": "^0.9.2",
         "jest": "^24.8.0",
         "lighthouse": "^5.6.0",
         "nodemon": "^2.0.2",
-        "npm-audit-ci-wrapper": "^2.4.3",
+        "npm-audit-ci-wrapper": "^2.5.1",
         "ora": "^4.0.3",
         "puppeteer": "^1.20.0",
         "start-server-and-test": "^1.9.1"

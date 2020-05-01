@@ -28,10 +28,6 @@ then
     echo "RUNNING COMMAND:  sudo apt-add-repository restricted"
     sudo apt-add-repository restricted
 
-    # Iptables
-    echo "RUNNING COMMAND:  sudo iptables -P FORWARD ACCEPT"
-    sudo iptables -P FORWARD ACCEPT
-
     # Install Basic packages
     echo "RUNNING COMMAND:  sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget"
     sudo apt-get update -y && sudo apt-get install -y curl bash git python openssl sudo apt-transport-https ca-certificates gnupg-agent software-properties-common systemd wget
@@ -68,6 +64,9 @@ fi
 
 if [[ ! $(which microk8s) ]]
 then
+    # Iptables
+    echo "RUNNING COMMAND: sudo iptables -P FORWARD ACCEPT"
+    sudo iptables -P FORWARD ACCEPT
     # Install microK8s
     echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
     sudo snap set system refresh.retain=2
@@ -100,6 +99,10 @@ then
     # Making 'k' as an alias to microk8s.kubectl
     echo "RUNNING COMMAND: sudo snap alias microk8s.kubectl k"
     sudo snap alias microk8s.kubectl k
+    echo "RUNNING COMMAND: sudo chown -R $USER $HOME/.kube"
+    sudo chown -R $USER $HOME/.kube
+    echo "RUNNING COMMAND: sudo chmod 777 $HOME/.kube"
+    sudo chmod 777 $HOME/.kube
     echo "RUNNING COMMAND: microk8s.kubectl config view --raw > $HOME/.kube/config"
     sudo microk8s.kubectl config view --raw > $HOME/.kube/config
     #Kubectl version.
@@ -150,13 +153,31 @@ function updateinstallation {
 if [[ "$1" == "thirdPartyBillingEnabled" ]] #If thirdPartyBillingIsEnabled (for ex for Marketplace VM's)
 then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
-    then
-        # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
-        sudo helm install fyipe fyipe/Fyipe \
-        --set isThirdPartyBilling=true \
-        --set nginx-ingress-controller.service.type=NodePort \
-        --set nginx-ingress-controller.hostNetwork=true \
-        --set image.tag=$AVAILABLE_VERSION
+    then   
+        if [[ "$2" == "aws-ec2" ]]
+        then
+            # 169.254.169.254 is a static AWS service which amazon uses to get instance id
+            # https://forums.aws.amazon.com/thread.jspa?threadID=100982
+            INSTANCEID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`
+
+            # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
+            # Add Admin Email and Password on AWS.
+            sudo helm install fyipe fyipe/Fyipe \
+            --set isThirdPartyBilling=true \
+            --set nginx-ingress-controller.service.type=NodePort \
+            --set nginx-ingress-controller.hostNetwork=true \
+            --set image.tag=$AVAILABLE_VERSION
+            --set fyipe.admin.email=admin@admin.com
+            --set fyipe.admin.password=$INSTANCEID
+            --set disableSignup=true
+        else
+            # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. This is used for Azure and AWS.
+            sudo helm install fyipe fyipe/Fyipe \
+            --set isThirdPartyBilling=true \
+            --set nginx-ingress-controller.service.type=NodePort \
+            --set nginx-ingress-controller.hostNetwork=true \
+            --set image.tag=$AVAILABLE_VERSION
+        fi
     else
         updateinstallation
     fi
@@ -164,8 +185,13 @@ elif [[ "$1" == "ci-install" ]] # If its a local install, take local scripts.
 then
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
-        # set service of type nodeport for VM's. 
-        sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe
+        # install services.
+        if [[ "$2" == "enterprise" ]]
+        then
+            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fyipe ./helm-chart/public/fyipe
+        else
+            sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe
+        fi
     else
         sudo k delete job fyipe-init-script || echo "init-script already deleted"
         sudo helm upgrade --reuse-values fyipe ./helm-chart/public/fyipe

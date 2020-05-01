@@ -59,17 +59,24 @@ app.use(function(req, res, next) {
     global.dashboardHost = 'https://' + req.hostname + '/dashboard';
 
     if (req.hostname.includes('localhost')) {
-        global.apiHost =
-            'http://' +
-            req.hostname +
-            ':' +
-            (process.env.PORT || 3002) +
-            '/api';
-        global.accountsHost =
-            'http://' + req.hostname + ':' + 3003 + '/accounts';
-        global.homeHost = 'http://' + req.hostname + ':' + 1444;
-        global.dashboardHost =
-            'http://' + req.hostname + ':' + 3000 + '/dashboard';
+        if (req.get('host').includes('localhost:')) {
+            global.apiHost =
+                'http://' +
+                req.hostname +
+                ':' +
+                (process.env.PORT || 3002) +
+                '/api';
+            global.accountsHost =
+                'http://' + req.hostname + ':' + 3003 + '/accounts';
+            global.homeHost = 'http://' + req.hostname + ':' + 1444;
+            global.dashboardHost =
+                'http://' + req.hostname + ':' + 3000 + '/dashboard';
+        } else {
+            global.apiHost = 'http://' + req.hostname + '/api';
+            global.accountsHost = 'http://' + req.hostname + '/accounts';
+            global.homeHost = 'http://' + req.hostname;
+            global.dashboardHost = 'http://' + req.hostname + '/dashboard';
+        }
     }
 
     next();
@@ -113,6 +120,7 @@ app.use(['/reports', '/api/reports'], require('./backend/api/report'));
 app.use(['/lead', '/api/lead'], require('./backend/api/lead'));
 app.use(['/feedback', '/api/feedback'], require('./backend/api/feedback'));
 app.use(['/twilio', '/api/twilio'], require('./backend/api/twilio'));
+app.use(['/sso', '/api/sso'], require('./backend/api/sso'));
 app.use(['/zapier', '/api/zapier'], require('./backend/api/zapier'));
 app.use(['/slack', '/api/slack'], require('./backend/api/slack'));
 app.use(['/webhook', '/api/webhook'], require('./backend/api/webHook'));
@@ -162,6 +170,10 @@ app.use(['/component', '/api/component'], require('./backend/api/component'));
 app.use(
     ['/globalConfig', '/api/globalConfig'],
     require('./backend/api/globalConfig')
+);
+app.use(
+    ['/domainVerificationToken', '/api/domainVerificationToken'],
+    require('./backend/api/domainVerificationToken')
 );
 
 app.set('port', process.env.PORT || 3002);

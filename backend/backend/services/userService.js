@@ -460,9 +460,31 @@ module.exports = {
     login: async function(email, password, clientIP) {
         try {
             const _this = this;
+            let user = null;
             if (util.isEmailValid(email)) {
                 // find user if present in db.
-                let user = await _this.findOneBy({ email: email });
+
+                // If no users are in the DB, and is your have ADMIN_USERNAME and ADMIN_PASSWORD env var set,
+                // then create an admin user and the log in.
+                if (
+                    process.env.ADMIN_EMAIL &&
+                    process.env.ADMIN_PASSWORD &&
+                    email === process.env.ADMIN_EMAIL &&
+                    process.env.ADMIN_PASSWORD === password
+                ) {
+                    const count = await _this.countBy({});
+                    if (count === 0) {
+                        //create a new admin user.
+                        user = await _this.create({
+                            name: 'Fyipe Admin',
+                            email: process.env.ADMIN_EMAIL,
+                            password: process.env.ADMIN_PASSWORD,
+                            role: 'master-admin',
+                        });
+                    }
+                }
+
+                user = await _this.findOneBy({ email: email });
 
                 if (!user) {
                     const error = new Error('User does not exist.');
@@ -505,7 +527,11 @@ module.exports = {
                         ErrorService.log('userService.login', error);
                         throw error;
                     }
-                    if (!user.isVerified && NODE_ENV !== 'development') {
+                    if (
+                        user.role !== 'master-admin' &&
+                        !user.isVerified &&
+                        NODE_ENV !== 'development'
+                    ) {
                         const error = new Error('Verify your email first.');
                         error.code = 401;
                         ErrorService.log('userService.login', error);

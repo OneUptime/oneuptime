@@ -34,7 +34,7 @@
     </div>
     <div class="comparision-others">
         <ul class="others-listing">
-            <li class="list-container" style="margin-top: 0;">
+            <li class="list-container" style="margin-top: 0; cursor: pointer;" onclick="navigateTocompare('pagerduty')">
                 <div class="list-image-container">
                     <img src="/img/price_compare/pagerduty.svg" alt="slack" class="list-image">
                 </div>
@@ -45,7 +45,7 @@
             </li>
             <li class="list-container">
                 <div class="list-image-container">
-                    <img src="/img/price_compare/Pingdom.jpg" alt="2" class="list-image">
+                    <img src="/img/price_compare/Pingdom.jpg" alt="2" style="cursor: pointer;" class="list-image" onclick="navigateTocompare('pingdom')">
                 </div>
                 <div class="list-text">
                     <h3>Pingdom: Website Monitoring</h3>
@@ -54,7 +54,7 @@
             </li>
             <li class="list-container">
                 <div class="list-image-container">
-                    <img src="/img/price_compare/Statuspageio.png" alt="3" class="list-image">
+                    <img src="/img/price_compare/Statuspageio.png" alt="3" style="cursor: pointer;" class="list-image" onclick="navigateTocompare('statuspage.io')">
                 </div>
                 <div class="list-text">
                     <h3>Statuspageio: Status Page Tool</h3>
@@ -75,3 +75,9 @@
         </h3>
     </div>
 </section>
+
+<script>
+    function navigateTocompare(page){
+        window.location.href='/compare/'+page;
+    }
+</script>

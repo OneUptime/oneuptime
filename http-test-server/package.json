@@ -21,13 +21,13 @@
         "express": "^4.16.4",
         "faker": "^4.1.0",
         "jest": "^24.9.0",
-        "puppeteer": "^2.0.0",
+        "puppeteer": "^2.1.1",
         "should": "^13.2.3"
     },
     "devDependencies": {
         "depcheck": "^0.9.2",
         "nodemon": "^2.0.2",
-        "npm-audit-ci-wrapper": "^2.4.3"
+        "npm-audit-ci-wrapper": "^2.5.1"
     },
     "jest": {
         "collectCoverageFrom": [

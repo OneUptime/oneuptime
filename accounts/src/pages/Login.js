@@ -7,7 +7,7 @@ import LoginForm from '../components/auth/LoginForm';
 import { loginUser, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
 import { identify, setUserId, logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+import { SHOULD_LOG_ANALYTICS, DISABLE_SIGNUP } from '../config';
 import { history } from '../store';
 
 class LoginPage extends React.Component {
@@ -76,14 +76,16 @@ class LoginPage extends React.Component {
                 )}
 
                 {/* FOOTER */}
-                {!masterAdminExists && !requestingMasterAdmin && (
-                    <div id="signUpLink" className="below-box">
-                        <p>
-                            Don&#39;t have an account?{' '}
-                            <Link to="/accounts/register">Sign up</Link>.
-                        </p>
-                    </div>
-                )}
+                {!masterAdminExists &&
+                    !requestingMasterAdmin &&
+                    !DISABLE_SIGNUP && (
+                        <div id="signUpLink" className="below-box">
+                            <p>
+                                Don&#39;t have an account?{' '}
+                                <Link to="/accounts/register">Sign up</Link>.
+                            </p>
+                        </div>
+                    )}
 
                 {/* END FOOTER */}
                 <div id="footer_spacer" />

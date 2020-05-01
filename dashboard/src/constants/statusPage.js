@@ -119,3 +119,7 @@ export const SET_STATUS_PAGE_COLORS = 'UPDATE_STATUS_PAGE_COLORS';
 export const PAGINATE_NEXT = 'PAGINATE_NEXT';
 export const PAGINATE_PREV = 'PAGINATE_PREV';
 export const PAGINATE_RESET = 'PAGINATE_RESET';
+
+// whether to show input field to add more domain
+export const ADD_MORE_DOMAIN = 'ADD_MORE_DOMAIN';
+export const CANCEL_ADD_MORE_DOMAIN = 'CANCEL_ADD_MORE_DOMAIN';

@@ -7,7 +7,15 @@ const statusSchema = new Schema({
         ref: 'Project',
         alias: 'project',
     }, //which project this statuspage belongs to.
-    domain: String,
+    domains: [
+        {
+            domain: String, // complete domain eg status.fyipe.com
+            domainVerificationToken: {
+                type: Schema.Types.ObjectId,
+                ref: 'DomainVerificationToken',
+            },
+        },
+    ],
     monitorIds: [{ type: String, ref: 'Monitor' }],
     links: Array,
     title: String,

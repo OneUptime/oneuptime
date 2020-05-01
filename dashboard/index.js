@@ -13,11 +13,18 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
     global.accountsHost = 'https://' + req.host + '/accounts';
     global.backendHost = 'https://' + req.host + '/api';
     if (req.host.includes('localhost')) {
-        global.dashboardHost =
-            'http://' + req.host + ':' + (process.env.PORT || 3002);
-        global.accountsHost = 'http://' + req.host + ':' + 3003;
-        global.homeHost = 'http://' + req.host + ':' + 1444;
-        global.backendHost = 'http://' + req.host + ':' + 3002;
+        if (req.get('host').includes('localhost:')) {
+            global.dashboardHost =
+                'http://' + req.host + ':' + (process.env.PORT || 3002);
+            global.accountsHost = 'http://' + req.host + ':' + 3003;
+            global.homeHost = 'http://' + req.host + ':' + 1444;
+            global.backendHost = 'http://' + req.host + ':' + 3002;
+        } else {
+            global.dashboardHost = 'http://' + req.host + '/dashboard';
+            global.accountsHost = 'http://' + req.host + '/accounts';
+            global.homeHost = 'http://' + req.host;
+            global.backendHost = 'http://' + req.host + '/api';
+        }
     }
 
     const env = {

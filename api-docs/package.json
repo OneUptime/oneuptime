@@ -1,6 +1,6 @@
 {
     "name": "fyipe-api-docs",
-    "version": "3.0.2472",
+    "version": "3.0.2602",
     "description": "fyipe api refernce",
     "main": "Gruntfile.js",
     "repository": {
@@ -26,6 +26,6 @@
     },
     "devDependencies": {
         "nodemon": "^2.0.2",
-        "npm-audit-ci-wrapper": "^2.4.3"
+        "npm-audit-ci-wrapper": "^2.5.1"
     }
 }
