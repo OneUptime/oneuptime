@@ -270,7 +270,7 @@ router.get('/login', async function(req, res) {
                 message: 'SSO disabled for this domain.',
             });
         }
-        return res.redirect(samlSsoUrl);
+        return sendItemResponse(req, res, { url: samlSsoUrl});
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
