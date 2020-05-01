@@ -166,10 +166,11 @@ then
             --set isThirdPartyBilling=true \
             --set nginx-ingress-controller.service.type=NodePort \
             --set nginx-ingress-controller.hostNetwork=true \
-            --set image.tag=$AVAILABLE_VERSION
-            --set fyipe.admin.email=admin@admin.com
-            --set fyipe.admin.password=$INSTANCEID
-            --set disableSignup=true
+            --set image.tag=$AVAILABLE_VERSION \
+            --set fyipe.admin.email=admin@admin.com \
+            --set disableSignup=true \
+            --set fyipe.admin.password=$INSTANCEID 
+            
         else
             # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. This is used for Azure and AWS.
             sudo helm install fyipe fyipe/Fyipe \
