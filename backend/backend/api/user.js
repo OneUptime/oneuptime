@@ -4,6 +4,7 @@ const ProjectService = require('../services/projectService');
 const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const saml2 = require('saml2-js');
 const MailService = require('../services/mailService');
 const SsoService = require('../services/ssoService');
 const getUser = require('../middlewares/user').getUser;
@@ -278,12 +279,24 @@ router.get('/login', async function(req, res) {
 // Route
 // Description: Callback function after SSO authentication page
 router.post('/callback', async function(req, res) {
-    const { SAMLResponse: SAMLResponseBase64 } = req.body;
-    const SAMLResponseXML = Buffer.from(SAMLResponseBase64, 'base64').toString(
-        'ascii'
-    );
+    const sp = new saml2.ServiceProvider({});
+    const idp = new saml2.IdentityProvider({});
+    const options = {
+        request_body: req.body,
+        allow_unencrypted_assertion: true,
+        ignore_signature: true,
+    };
+    sp.post_assert(idp, options, function(err, saml_response) {
+        if (err != null)
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Invalid request',
+            });
 
-    return res.json({});
+        const email = saml_response.user.email;
+
+        res.send({});
+    });
 });
 
 // Route
