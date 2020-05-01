@@ -338,7 +338,7 @@ describe('Incident API', function() {
                 },
             },
         });
-        await sleep(5000);
+        await sleep(10000);
         await UserModel.findByIdAndUpdate(userId, {
             $set: {
                 alertPhoneNumber: Config.testphoneNumber,

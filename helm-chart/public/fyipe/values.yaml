@@ -166,3 +166,7 @@ host:
 isThirdPartyBilling: false
 isRunningOnGCPMarketplace: false
 isTesting: false
+
+# If you disable sign up, then you need to specify 
+# fyipe.admin.email and fyipe.admin.password values for the admin account. 
+disableSignup: false

@@ -6,6 +6,8 @@ metadata:
     namespace: {{ .Release.Namespace }}
     labels:
         app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: helm
 spec:
     selector:
         matchLabels:
@@ -31,6 +33,8 @@ spec:
                       {{- end }}
                       - name: NODE_ENV
                         value: 'production'
+                      - name: DISABLE_SIGNUP
+                        value: {{ .Values.disableSignup | quote  }}
                   ports:
                       - containerPort: {{ .Values.host.accountsPort }}
                         hostPort: {{ .Values.host.accountsPort }}
@@ -44,6 +48,8 @@ kind: Service
 metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "accounts"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: helm
     name: {{ printf "%s-%s" .Release.Name "accounts"  }}
     namespace: {{ .Release.Namespace }}
 spec:

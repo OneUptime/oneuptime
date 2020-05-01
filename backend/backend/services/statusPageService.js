@@ -87,28 +87,24 @@ module.exports = {
     },
 
     createDomain: async function(subDomain, projectId, statusPageId) {
-        const token = 'fyipe=' + randomChar();
-        const domain = getDomain(subDomain);
         let createdDomain = {};
 
         try {
             // check if domain already exist
             const existingBaseDomain = await DomainVerificationService.findOneBy(
                 {
-                    domain,
+                    domain: subDomain,
+                    projectId,
                 }
             );
 
             if (!existingBaseDomain) {
                 const creationData = {
-                    domain,
-                    verificationToken: token,
-                    verifiedAt: null,
-                    deletedAt: null,
+                    domain: subDomain,
                     projectId,
                 };
                 // create the domain
-                createdDomain = await DomainVerificationTokenModel.create(
+                createdDomain = await DomainVerificationService.create(
                     creationData
                 );
             }
@@ -501,7 +497,7 @@ module.exports = {
         }
     },
 
-    getStatus: async function(query, userId) {
+    getStatusPage: async function(query, userId) {
         try {
             const thisObj = this;
             if (!query) {
@@ -509,12 +505,46 @@ module.exports = {
             }
 
             query.deleted = false;
-            const statusPage = await StatusPageModel.findOne(query)
+
+            const statusPages = await StatusPageModel.find(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('monitorIds', 'name')
                 .populate('domains.domainVerificationToken')
                 .lean();
+
+            let statusPage = null;
+
+            if (
+                query &&
+                query.domains &&
+                query.domains.$elemMatch &&
+                query.domains.$elemMatch.domain
+            ) {
+                const domain = query.domains.$elemMatch.domain;
+
+                const verifiedStatusPages = statusPages.filter(
+                    page =>
+                        page &&
+                        page.domains.length > 0 &&
+                        page.domains.filter(
+                            domainItem =>
+                                domainItem &&
+                                domainItem.domain === domain &&
+                                domainItem.domainVerificationToken &&
+                                domainItem.domainVerificationToken.verified ===
+                                    true
+                        ).length > 0
+                );
+                if (verifiedStatusPages.length > 0) {
+                    statusPage = verifiedStatusPages[0];
+                }
+            } else {
+                if (statusPages.length > 0) {
+                    statusPage = statusPages[0];
+                }
+            }
+
             if (statusPage && (statusPage._id || statusPage.id)) {
                 const permitted = await thisObj.isPermitted(userId, statusPage);
                 if (!permitted) {
@@ -522,9 +552,10 @@ module.exports = {
                         'You are unauthorized to access the page please login to continue.'
                     );
                     error.code = 401;
-                    ErrorService.log('statusPageService.getStatus', error);
+                    ErrorService.log('statusPageService.getStatusPage', error);
                     throw error;
                 }
+
                 const monitorIds = statusPage.monitorIds.map(monitorId =>
                     monitorId._id.toString()
                 );
@@ -547,14 +578,21 @@ module.exports = {
                 });
                 statusPage.monitorsData = _.flatten(filteredMonitorData);
             } else {
-                const error = new Error('Page Not Found');
-                error.code = 400;
-                ErrorService.log('statusPageService.getStatus', error);
-                throw error;
+                if (statusPages.length > 0) {
+                    const error = new Error('Domain not verified');
+                    error.code = 400;
+                    ErrorService.log('statusPageService.getStatusPage', error);
+                    throw error;
+                } else {
+                    const error = new Error('Page Not Found');
+                    error.code = 400;
+                    ErrorService.log('statusPageService.getStatusPage', error);
+                    throw error;
+                }
             }
             return statusPage;
         } catch (error) {
-            ErrorService.log('statusPageService.getStatus', error);
+            ErrorService.log('statusPageService.getStatusPage', error);
             throw error;
         }
     },
@@ -707,6 +745,3 @@ const ProjectService = require('./projectService');
 const _ = require('lodash');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const DomainVerificationService = require('./domainVerificationService');
-const DomainVerificationTokenModel = require('../models/domainVerificationToken');
-const randomChar = require('../utils/randomChar');
-const getDomain = require('../utils/getDomain');

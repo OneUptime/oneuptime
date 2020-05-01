@@ -342,7 +342,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 data
             );
 
-            const updatedStatusPage = await StatusPageService.getStatus(
+            const updatedStatusPage = await StatusPageService.getStatusPage(
                 { _id: statusPage._id },
                 req.user.id
             );
@@ -426,12 +426,12 @@ router.get('/:statusPageId', checkUser, async function(req, res) {
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatus(
-                { domain: url },
+            statusPage = await StatusPageService.getStatusPage(
+                { domains: { $elemMatch: { domain: url } } },
                 user
             );
         } else if ((!url || url === 'null') && statusPageId) {
-            statusPage = await StatusPageService.getStatus(
+            statusPage = await StatusPageService.getStatusPage(
                 { _id: statusPageId },
                 user
             );
@@ -463,12 +463,12 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatus(
-                { domain: url },
+            statusPage = await StatusPageService.getStatusPage(
+                { domains: { $elemMatch: { domain: url } } },
                 user
             );
         } else if ((!url || url === 'null') && statusPageId) {
-            statusPage = await StatusPageService.getStatus(
+            statusPage = await StatusPageService.getStatusPage(
                 { _id: statusPageId },
                 user
             );
