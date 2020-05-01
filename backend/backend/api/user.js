@@ -278,6 +278,7 @@ router.get('/login', async function(req, res) {
 
 // Route
 // Description: Callback function after SSO authentication page
+// param: query->{domain}
 router.post('/callback', async function(req, res) {
     const sp = new saml2.ServiceProvider({});
     const idp = new saml2.IdentityProvider({});
@@ -286,7 +287,7 @@ router.post('/callback', async function(req, res) {
         allow_unencrypted_assertion: true,
         ignore_signature: true,
     };
-    sp.post_assert(idp, options, function(err, saml_response) {
+    sp.post_assert(idp, options, async function(err, saml_response) {
         if (err != null)
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -295,7 +296,20 @@ router.post('/callback', async function(req, res) {
 
         const email = saml_response.user.email;
 
-        res.send({});
+        const user = await UserService.findOneBy({ email });
+        if (!user) {
+            // User is not create yet
+            const { domain } = req.query;
+            //TODO Still need to check that the caller own the domain. 
+            const sso = await SsoService.findByIdAndUpdate({ domain });
+            if (!sso)
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'SSO not defined for the domain.',
+                });
+            
+        }
+        return res.send({});
     });
 });
 
