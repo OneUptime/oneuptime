@@ -261,7 +261,7 @@ router.get('/login', async function(req, res) {
                 message: 'Domain not found.',
             });
         }
-        const { "saml-enabled": samlEnabled, samlSsoUrl } = sso;
+        const { 'saml-enabled': samlEnabled, samlSsoUrl } = sso;
 
         if (!samlEnabled) {
             return sendErrorResponse(req, res, {
@@ -269,7 +269,7 @@ router.get('/login', async function(req, res) {
                 message: 'SSO disabled for this domain.',
             });
         }
-        return res.json({});
+        return res.redirect(samlSsoUrl);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
