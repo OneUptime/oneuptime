@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import LoginForm from '../components/auth/LoginForm';
-import { loginUser, loginError } from '../actions/login';
+import { loginUser, loginUserSso, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
 import { identify, setUserId, logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -22,15 +22,19 @@ class LoginPage extends React.Component {
     }
 
     submitHandler = values => {
-        this.props.loginUser(values).then(user => {
-            if (user && user.data && user.data.id) {
-                if (SHOULD_LOG_ANALYTICS) {
-                    identify(user.data.id);
-                    setUserId(user.data.id);
-                    logEvent('Log in user', { id: user.data.id });
+        if(this.props.loginMethod ==='sso'){
+            this.props.loginUserSso(values);
+        } else {
+            this.props.loginUser(values).then(user => {
+                if (user && user.data && user.data.id) {
+                    if (SHOULD_LOG_ANALYTICS) {
+                        identify(user.data.id);
+                        setUserId(user.data.id);
+                        logEvent('Log in user', { id: user.data.id });
+                    }
                 }
-            }
-        });
+            });
+        }
     };
 
     render() {
@@ -117,14 +121,17 @@ const mapStateToProps = state => {
         login: state.login,
         masterAdminExists: state.login.masterAdmin.exists,
         requestingMasterAdmin: state.login.masterAdmin.requesting,
+        loginMethod: state.login.loginMethod,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ loginUser, loginError }, dispatch);
+    bindActionCreators({ loginUser,loginUserSso, loginError }, dispatch);
 
 LoginPage.propTypes = {
     loginUser: PropTypes.func.isRequired,
+    loginUserSso: PropTypes.func.isRequired,
+    loginMethod: PropTypes.string.isRequired,
     login: PropTypes.object,
     success: PropTypes.bool,
     error: PropTypes.oneOfType([PropTypes.object, PropTypes.bool]),
