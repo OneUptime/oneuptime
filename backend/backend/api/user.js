@@ -277,7 +277,12 @@ router.get('/login', async function(req, res) {
 
 // Route
 // Description: Callback function after SSO authentication page
-router.post('/callback', async function(req, res){
+router.post('/callback', async function(req, res) {
+    const { SAMLResponse: SAMLResponseBase64 } = req.body;
+    const SAMLResponseXML = Buffer.from(SAMLResponseBase64, 'base64').toString(
+        'ascii'
+    );
+
     return res.json({});
 });
 
