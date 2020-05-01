@@ -166,3 +166,4 @@ host:
 isThirdPartyBilling: false
 isRunningOnGCPMarketplace: false
 isTesting: false
+disableSignup: false

@@ -57,7 +57,7 @@ spec:
                       - name: RATE_LIMITTER_ENABLED
                         value: {{ .Values.rateLimitter.enabled | quote  }}
                       - name: DISABLE_SIGNUP
-                        value: {{ template "fyipe.disableSignup" . }}
+                        value: {{ .Values.disableSignup | quote  }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
