@@ -124,6 +124,10 @@ export function loginUser(values) {
     };
 }
 
+export const loginUserSso = values => async dispatch => {
+    getApi(`user/login?email=${values.email}`);
+};
+
 // Calls the API to verify a user token and log them in.
 export function verifyAuthToken(values) {
     const initialUrl = User.initialUrl();
