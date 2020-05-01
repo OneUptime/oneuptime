@@ -29,6 +29,12 @@ kubectl delete job fi-init-script
 helm upgrade --reuse-values fi ./helm-chart/public/fyipe
 ```
 
+If you introduce values, you can set 
+
+```
+helm upgrade --reuse-values --set key=value fi ./helm-chart/public/fyipe
+```
+
 ### Uninstall
 ```
 helm uninstall fi --namespace=default
