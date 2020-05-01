@@ -141,6 +141,85 @@ module.exports = {
         }
     },
 
+    updateDomain: async function(projectId, statusPageId, domainId, newDomain) {
+        let createdDomain = {};
+
+        try {
+            const existingBaseDomain = await DomainVerificationService.findOneBy(
+                { domain: newDomain }
+            );
+
+            if (!existingBaseDomain) {
+                const creationData = {
+                    domain: newDomain,
+                    projectId,
+                };
+                // create the domain
+                createdDomain = await DomainVerificationService.create(
+                    creationData
+                );
+            }
+
+            const statusPage = await this.findOneBy({
+                _id: statusPageId,
+            });
+
+            if (!statusPage) {
+                const error = new Error(
+                    'Status page not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            let domainList = [...statusPage.domains];
+            domainList = domainList.map(eachDomain => {
+                if (String(eachDomain._id) === String(domainId)) {
+                    eachDomain.domain = newDomain;
+                    eachDomain.domainVerificationToken =
+                        createdDomain._id || existingBaseDomain._id;
+                }
+                return eachDomain;
+            });
+
+            statusPage.domains = domainList;
+
+            const result = await statusPage.save();
+            return result
+                .populate('domains.domainVerificationToken')
+                .execPopulate();
+        } catch (error) {
+            ErrorService.log('statusPageService.deleteDomain', error);
+            throw error;
+        }
+    },
+
+    deleteDomain: async function(statusPageId, domainId) {
+        try {
+            const statusPage = await this.findOneBy({
+                _id: statusPageId,
+            });
+
+            if (!statusPage) {
+                const error = new Error(
+                    'Status page not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            const remainingDomains = statusPage.domains.filter(domain => {
+                return String(domain._id) !== String(domainId);
+            });
+
+            statusPage.domains = remainingDomains;
+            return statusPage.save();
+        } catch (error) {
+            ErrorService.log('statusPageService.deleteDomain', error);
+            throw error;
+        }
+    },
+
     countBy: async function(query) {
         try {
             if (!query) {
