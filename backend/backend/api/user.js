@@ -227,6 +227,14 @@ router.get('/masterAdminExists', async function(req, res) {
 });
 
 // Route
+// Description: SSO login function for  user
+// Params:
+// Param 1: req.query-> {email }
+// Returns: 400: Error; 500: Server Error; 200: redirect to login page
+router.get('/login', async function(req, res) {
+});
+
+// Route
 // Description: login function for  user
 // Params:
 // Param 1: req.body-> {email, password }
