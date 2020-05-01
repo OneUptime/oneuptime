@@ -1,6 +1,6 @@
 {
     "name": "fyipe-homepage",
-    "version": "3.0.2617",
+    "version": "3.0.2620",
     "scripts": {
         "start": "node server.js",
         "dev": "nodemon server.js",
