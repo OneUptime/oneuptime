@@ -28,9 +28,21 @@ export class RowData extends Component {
                         <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
                             {statusPage.name || 'Unknown'}
                         </div>
-                        <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
-                            {statusPage.domain || 'Domain not set yet'}
-                        </div>
+                        {statusPage.domains.length > 0 ? (
+                            <div
+                                id="domainSet"
+                                className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
+                            >
+                                {statusPage.domains[0].domain}
+                            </div>
+                        ) : (
+                            <div
+                                id="domainNotSet"
+                                className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
+                            >
+                                Domain(s) not set yet
+                            </div>
+                        )}
                     </div>
                 </td>
                 <td
