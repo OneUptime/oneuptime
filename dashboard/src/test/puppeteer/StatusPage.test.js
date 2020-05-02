@@ -45,10 +45,37 @@ describe('Status Page', () => {
     });
 
     test(
+        'should indicate that no domain is set yet for a status page',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await init.addProject(page);
+                await init.addStatusPageToProject('test', 'test', page);
+
+                const elem = await page.waitForSelector('#domainNotSet', {
+                    visible: true,
+                });
+                expect(elem).toBeTruthy();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'should create a domain',
         async () => {
             await cluster.execute(null, async ({ page }) => {
-                await init.addDomainToStatusPage(page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
+                // select the first item from the table row
+                const rowItem = await page.waitForSelector(
+                    '#statusPagesListContainer > tr',
+                    { visible: true }
+                );
+                rowItem.click();
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#domain', { visible: true });
+                await page.type('#domain', 'fyipeapp.com');
+                await page.click('#btnAddDomain');
                 // if domain was not added sucessfully, list will be undefined
                 // it will timeout
                 const list = await page.waitForSelector(
@@ -56,6 +83,23 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 expect(list).toBeTruthy();
+            });
+        },
+        operationTimeOut
+    );
+
+    // This test comes after you must have created a domain
+    test(
+        'should indicate if domain(s) is set on a status page',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
+
+                const elem = await page.waitForSelector('#domainSet', {
+                    visible: true,
+                });
+                expect(elem).toBeTruthy();
             });
         },
         operationTimeOut
