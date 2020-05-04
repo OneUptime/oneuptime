@@ -340,8 +340,7 @@ router.post('/callback', async function(req, res) {
         };
 
         return res.redirect(
-            // `${global.accountsHost}` +
-            `http://localhost:3003/accounts` +
+            `${global.accountsHost}` +
                 `/ssologin?id=${authUserObj.id}` +
                 `&name=${authUserObj.name}` +
                 `&email=${authUserObj.email}` +
