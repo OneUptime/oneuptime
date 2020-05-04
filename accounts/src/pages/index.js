@@ -1,4 +1,5 @@
 import Login from './Login';
+import SsoLogin from './SsoLogin';
 import Register from './Register';
 import ResetPassword from './ResetPassword';
 import ChangePassword from './ChangePassword';
@@ -11,6 +12,7 @@ export default {
     Register,
     ChangePassword,
     Login,
+    SsoLogin,
     ResendToken,
     VerifyAuthToken,
     VerifyBackupCode,
