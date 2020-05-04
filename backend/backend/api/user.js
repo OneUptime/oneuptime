@@ -233,7 +233,7 @@ router.get('/masterAdminExists', async function(req, res) {
 // Params:
 // Param 1: req.query-> {email }
 // Returns: 400: Error; 500: Server Error; 200: redirect to login page
-router.get('/login', async function(req, res) {
+router.get('/sso/login', async function(req, res) {
     const { email } = req.query;
     if (!email) {
         return sendErrorResponse(req, res, {
@@ -279,7 +279,7 @@ router.get('/login', async function(req, res) {
 // Route
 // Description: Callback function after SSO authentication page
 // param: query->{domain}
-router.post('/callback', async function(req, res) {
+router.post('/sso/callback', async function(req, res) {
     const sp = new saml2.ServiceProvider({});
     const idp = new saml2.IdentityProvider({});
     const options = {
