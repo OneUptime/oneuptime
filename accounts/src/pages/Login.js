@@ -22,7 +22,7 @@ class LoginPage extends React.Component {
     }
 
     submitHandler = values => {
-        if(this.props.loginMethod ==='sso'){
+        if (this.props.loginMethod === 'sso') {
             this.props.loginUserSso(values);
         } else {
             this.props.loginUser(values).then(user => {
@@ -126,7 +126,7 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ loginUser,loginUserSso, loginError }, dispatch);
+    bindActionCreators({ loginUser, loginUserSso, loginError }, dispatch);
 
 LoginPage.propTypes = {
     loginUser: PropTypes.func.isRequired,
