@@ -130,17 +130,18 @@ export const loginUserSso = values => async dispatch => {
         const { url } = response.data;
         window.location = url;
     } catch (error) {
+        let errorMsg;
         if (error && error.response && error.response.data)
-            error = error.response.data;
+            errorMsg = error.response.data;
         if (error && error.data) {
-            error = error.data;
+            errorMsg = error.data;
         }
         if (error && error.message) {
-            error = error.message;
+            errorMsg = error.message;
         } else {
-            error = 'Network Error';
+            errorMsg = 'Network Error';
         }
-        dispatch(loginError(errors(error)));
+        dispatch(loginError(errors(errorMsg)));
     }
 };
 
