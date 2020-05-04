@@ -126,7 +126,7 @@ export function loginUser(values) {
 
 export const loginUserSso = values => async dispatch => {
     try {
-        const response = await getApi(`user/login?email=${values.email}`);
+        const response = await getApi(`user/sso/login?email=${values.email}`);
         const { url } = response.data;
         window.location = url;
     } catch (error) {
