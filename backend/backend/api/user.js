@@ -270,7 +270,7 @@ router.get('/login', async function(req, res) {
                 message: 'SSO disabled for this domain.',
             });
         }
-        return sendItemResponse(req, res, { url: samlSsoUrl});
+        return sendItemResponse(req, res, { url: samlSsoUrl });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -339,7 +339,18 @@ router.post('/callback', async function(req, res) {
             role: user.role || null,
         };
 
-        return sendItemResponse(req, res, authUserObj);
+        return res.redirect(
+            // `${global.accountsHost}` +
+            `http://localhost:3003/accounts` +
+                `/ssologin?id=${authUserObj.id}` +
+                `&name=${authUserObj.name}` +
+                `&email=${authUserObj.email}` +
+                `&jwtAccessToken=${authUserObj.tokens.jwtAccessToken}` +
+                `&jwtRefreshToken=${authUserObj.tokens.jwtRefreshToken}` +
+                `&role=${authUserObj.role}` +
+                `&redirect=${authUserObj.redirect}` +
+                `&cardRegistered=${authUserObj.cardRegistered}`
+        );
     });
 });
 
