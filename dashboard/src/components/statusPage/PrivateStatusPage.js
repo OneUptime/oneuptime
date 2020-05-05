@@ -296,54 +296,62 @@ export class PrivateStatusPage extends Component {
                                                             height: '5px',
                                                         }}
                                                     ></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name={
-                                                                    'isSubscriberEnabled'
-                                                                }
-                                                                data-test="RetrySettings-failedPaymentsCheckbox"
-                                                                className="Checkbox-source"
-                                                                id="statuspage.isSubscriberEnabled"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
+                                                    <PricingPlan
+                                                        plan="Enterprise"
+                                                        hideChildren={false}
+                                                    >
+                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                            <label className="Checkbox">
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name={
+                                                                        'isSubscriberEnabled'
+                                                                    }
+                                                                    data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                    className="Checkbox-source"
+                                                                    id="statuspage.isSubscriberEnabled"
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <label>
-                                                                    <span>
-                                                                        Enable
-                                                                        Subscribers
-                                                                    </span>
-                                                                </label>
-                                                                <p className="bs-Fieldset-explanation">
-                                                                    <span>
-                                                                        Enabling
-                                                                        this
-                                                                        will
-                                                                        allow
-                                                                        your
-                                                                        users to
-                                                                        subscribe
-                                                                        and get
-                                                                        notifications
-                                                                        for your
-                                                                        incidents.
-                                                                    </span>
-                                                                </p>
-                                                            </div>
-                                                        </label>
-                                                    </div>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <label>
+                                                                        <span>
+                                                                            Enable
+                                                                            Subscribers
+                                                                        </span>
+                                                                    </label>
+                                                                    <p className="bs-Fieldset-explanation">
+                                                                        <span>
+                                                                            Enabling
+                                                                            this
+                                                                            will
+                                                                            allow
+                                                                            your
+                                                                            users
+                                                                            to
+                                                                            subscribe
+                                                                            and
+                                                                            get
+                                                                            notifications
+                                                                            for
+                                                                            your
+                                                                            incidents.
+                                                                        </span>
+                                                                    </p>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </PricingPlan>
                                                 </div>
                                             </div>
                                             <div className="bs-Fieldset-row">
