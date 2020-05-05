@@ -135,7 +135,9 @@ describe('Status Page', () => {
                 );
                 rowItem.click();
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.$eval('input[name="isPrivate"]', elem => elem.click());
+                await page.$eval('input[name="isPrivate"]', elem =>
+                    elem.click()
+                );
 
                 await page.waitForSelector('#pricingPlanModal', {
                     visible: true,
@@ -168,7 +170,9 @@ describe('Status Page', () => {
                 );
                 rowItem.click();
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.$eval('input[name="isPrivate"]', elem => elem.click());
+                await page.$eval('input[name="isPrivate"]', elem =>
+                    elem.click()
+                );
 
                 await page.waitForSelector('#pricingPlanModal', {
                     visible: true,
@@ -183,9 +187,14 @@ describe('Status Page', () => {
                 await page.waitForSelector('#pricingPlanModal', {
                     hidden: true,
                 });
-                await page.reload({ waitUntil: 'networkidle2'});
-                await page.$eval('input[name="isPrivate"]', elem => elem.click());
-                const value = await page.$eval('input[name="isPrivate"]', elem => elem.value);
+                await page.reload({ waitUntil: 'networkidle2' });
+                await page.$eval('input[name="isPrivate"]', elem =>
+                    elem.click()
+                );
+                const value = await page.$eval(
+                    'input[name="isPrivate"]',
+                    elem => elem.value
+                );
                 expect(utils.parseBoolean(value)).toBe(true);
             });
         },

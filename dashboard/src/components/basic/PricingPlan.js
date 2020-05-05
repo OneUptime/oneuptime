@@ -76,7 +76,9 @@ const PricingPlanComponent = ({
                     }
 
                     if (window.location.href.indexOf('localhost') <= -1) {
-                        PricingPlanComponent.context.mixpanel.track('Project plan changed');
+                        PricingPlanComponent.context.mixpanel.track(
+                            'Project plan changed'
+                        );
                     }
                 });
             },
@@ -106,7 +108,6 @@ PricingPlanComponent.propTypes = {
     children: PropTypes.element.isRequired,
     currentProject: PropTypes.object,
     openModal: PropTypes.func,
-    isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     currentPlanId: PropTypes.string,
     changePlan: PropTypes.func,
     error: PropTypes.oneOfType([
@@ -126,7 +127,6 @@ const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
         currentPlanId,
-        isRequesting: state.project.changePlan.requesting,
         error: state.project.changePlan.error,
     };
 };

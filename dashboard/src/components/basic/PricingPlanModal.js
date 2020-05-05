@@ -152,7 +152,6 @@ PricingPlanModal.propTypes = {
     closeThisDialog: PropTypes.func,
     confirmThisDialog: PropTypes.func,
     propArr: PropTypes.array,
-    initialValues: PropTypes.object,
     handleSubmit: PropTypes.func,
     isRequesting: PropTypes.bool,
     error: PropTypes.oneOfType([
