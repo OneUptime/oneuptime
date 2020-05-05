@@ -25,6 +25,16 @@ const user = faker.helpers.createCard();
 const cvv = '542';
 const expiryDate = '09/2020';
 
+/**
+ * @param {string} val : The value to be parsed.
+ * @description Resolves or Parses any value to boolean value.
+ * @returns Boolean true or false
+ */
+function parseBoolean(val) {
+    const falsy = /^(?:f(?:alse)?|no?|0+)$/i;
+    return !falsy.test(val) && !!val;
+}
+
 function generateWrongEmail() {
     return (
         Math.random()
@@ -102,4 +112,5 @@ module.exports = {
     generateRandomBusinessEmail,
     generateRandomWebsite,
     timeout: 300000,
+    parseBoolean,
 };
