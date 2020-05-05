@@ -161,7 +161,26 @@ module.exports = {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', '1234567890');
         await page.click('button[type=submit]');
-        await page.waitFor(15000);
+        try {
+            const signupResponse = await page.waitForResponse(
+                response =>
+                    response.url().includes('/user/signup') &&
+                    response.status() === 200
+            );
+            if (signupResponse) {
+                const signupData = await signupResponse.text();
+                const parsedSignupData = JSON.parse(signupData);
+                if (parsedSignupData.verificationToken) {
+                    await request
+                        .get(
+                            `/user/confirmation/${parsedSignupData.verificationToken}`
+                        )
+                        .redirects(0);
+                }
+            }
+        } catch (error) {
+            //catch
+        }
     },
     selectByText: async function(selector, text, page) {
         await page.click(selector);

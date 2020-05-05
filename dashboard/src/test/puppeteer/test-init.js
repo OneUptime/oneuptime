@@ -411,4 +411,19 @@ module.exports = {
             request.continue();
         }
     },
+    addProject: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#AccountSwitcherId');
+        await page.click('#AccountSwitcherId');
+        await page.waitForSelector('#create-project');
+        await page.click('#create-project');
+        await page.waitForSelector('#name');
+        await page.type('#name', 'test');
+        await page.$$eval(
+            'input[name="planId"]',
+            inputs => inputs[0].click() // select the first plan
+        );
+        await page.click('#btnCreateProject');
+        await page.waitForNavigation({ waitUntil: 'networkidle0' });
+    },
 };

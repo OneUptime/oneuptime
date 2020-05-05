@@ -7,6 +7,7 @@ try {
     require('./emailTemplate.test');
     require('./feedback.test');
     require('./globalConfig.test');
+    require('./disablesignup.test');
     require('./incident.test');
     require('./invoice.test');
     require('./jwttoken.test');

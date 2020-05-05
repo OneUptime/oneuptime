@@ -33,6 +33,8 @@ spec:
                       {{- end }}
                       - name: NODE_ENV
                         value: 'production'
+                      - name: DISABLE_SIGNUP
+                        value: {{ .Values.disableSignup | quote  }}
                   ports:
                       - containerPort: {{ .Values.host.accountsPort }}
                         hostPort: {{ .Values.host.accountsPort }}

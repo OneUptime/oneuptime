@@ -42,18 +42,13 @@ async function run() {
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
 
-        if (
-            currentVersion &&
-            parseInt(currentVersion) < parseInt(file.split('.')[2])
-        ) {
-            // eslint-disable-next-line no-console
-            console.log(file + ': Running script.');
+        // eslint-disable-next-line no-console
+        console.log(file + ': Running script.');
 
-            await require(`./scripts/${file}`)();
+        await require(`./scripts/${file}`)();
 
-            // eslint-disable-next-line no-console
-            console.log(file + ': Completed. ');
-        }
+        // eslint-disable-next-line no-console
+        console.log(file + ': Completed. ');
     }
 
     // eslint-disable-next-line no-console
