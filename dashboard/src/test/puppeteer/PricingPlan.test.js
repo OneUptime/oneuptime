@@ -75,13 +75,43 @@ describe('Status Page', () => {
                 );
                 rowItem.click();
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#pricingPlan');
-                await page.click('#pricingPlan');
+                await page.$eval('input[name="isPrivate"]', elem =>
+                    elem.click()
+                );
 
                 const modal = await page.waitForSelector('#pricingPlanModal', {
                     visible: true,
                 });
                 expect(modal).toBeTruthy();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should show upgrade modal if plan is Enterprise and Project is not on Enterprise plan',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
+                // select the first item from the table row
+                const rowItem = await page.waitForSelector(
+                    '#statusPagesListContainer > tr',
+                    { visible: true }
+                );
+                rowItem.click();
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.$eval('input[name="isSubscriberEnabled"]', elem =>
+                    elem.click()
+                );
+
+                const modal = await page.waitForSelector('#pricingPlanModal', {
+                    visible: true,
+                });
+                const emailBtn = await page.waitForSelector('#enterpriseMail');
+
+                expect(modal).toBeTruthy();
+                expect(emailBtn).toBeTruthy();
             });
         },
         operationTimeOut
