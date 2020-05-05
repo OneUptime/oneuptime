@@ -3,9 +3,11 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
-import { PricingPlan } from '../../config';
+import { PricingPlan, SHOULD_LOG_ANALYTICS } from '../../config';
+import { logEvent } from '../../analytics';
 import PricingPlanModal from './PricingPlanModal';
 import { openModal } from '../../actions/modal';
+import { changePlan } from '../../actions/project';
 
 const PricingPlanComponent = ({
     plan,
@@ -13,10 +15,12 @@ const PricingPlanComponent = ({
     children,
     currentProject,
     openModal,
+    changePlan,
+    currentPlanId,
+    error,
 }) => {
-    const [pricingPlanModalId] = useState(uuid.v4());
-
-    const { category } = PricingPlan.getPlanById(currentProject.stripeId);
+    const [pricingPlanModalId] = useState(uuid.v4()); // initialise modal ID
+    const { category } = PricingPlan.getPlanById(currentProject.stripePlanId);
 
     const createAllowedPlans = plan => {
         const plans = ['Startup', 'Growth', 'Scale', 'Enterprise'];
@@ -36,12 +40,45 @@ const PricingPlanComponent = ({
 
     const handleModal = e => {
         e.preventDefault();
-        e.stopPropagation();
+
+        const { _id: id, name } = currentProject;
+        const {
+            category: oldCategory,
+            type: oldType,
+            details: oldDetails,
+        } = PricingPlan.getPlanById(currentPlanId);
+        const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
 
         openModal({
             id: pricingPlanModalId,
-            onConfirm: () => {
-                //Todo: handle plan upgrade
+            onConfirm: values => {
+                const {
+                    category: newCategory,
+                    type: newType,
+                    details: newDetails,
+                } = PricingPlan.getPlanById(values.planId);
+
+                const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
+                return changePlan(
+                    id,
+                    values.planId,
+                    name,
+                    oldPlan,
+                    newPlan
+                ).then(() => {
+                    if (error) {
+                        // prevent dismissal of modal when errored
+                        return handleModal();
+                    }
+
+                    if (SHOULD_LOG_ANALYTICS) {
+                        logEvent('Plan Changed', { oldPlan, newPlan });
+                    }
+
+                    if (window.location.href.indexOf('localhost') <= -1) {
+                        PricingPlanComponent.context.mixpanel.track('Project plan changed');
+                    }
+                });
             },
             content: PricingPlanModal,
             propArr: [{ plan }],
@@ -69,16 +106,33 @@ PricingPlanComponent.propTypes = {
     children: PropTypes.element.isRequired,
     currentProject: PropTypes.object,
     openModal: PropTypes.func,
+    isRequesting: PropTypes.oneOf([null, undefined, true, false]),
+    currentPlanId: PropTypes.string,
+    changePlan: PropTypes.func,
+    error: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 const mapStateToProps = state => {
+    const currentPlanId =
+        state.project &&
+        state.project.currentProject &&
+        state.project.currentProject.stripePlanId
+            ? state.project.currentProject.stripePlanId
+            : '';
+
     return {
         currentProject: state.project.currentProject,
+        currentPlanId,
+        isRequesting: state.project.changePlan.requesting,
+        error: state.project.changePlan.error,
     };
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ openModal }, dispatch);
+    return bindActionCreators({ openModal, changePlan }, dispatch);
 };
 
 export default connect(
