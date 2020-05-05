@@ -121,4 +121,74 @@ describe('Status Page', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should not upgrade a project when cancel button is clicked',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
+                // select the first item from the table row
+                const rowItem = await page.waitForSelector(
+                    '#statusPagesListContainer > tr',
+                    { visible: true }
+                );
+                rowItem.click();
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.$eval('input[name="isPrivate"]', elem => elem.click());
+
+                await page.waitForSelector('#pricingPlanModal', {
+                    visible: true,
+                });
+                const growthOption = await page.waitForSelector(
+                    '#Growth_month',
+                    { visible: true }
+                );
+                growthOption.click();
+                await page.click('#cancelPlanUpgrade');
+                const elem = await page.waitForSelector('#pricingPlanModal', {
+                    hidden: true,
+                });
+                expect(elem).toBeNull();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should upgrade a plan when upgrade is triggered from pricing plan component',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
+                // select the first item from the table row
+                const rowItem = await page.waitForSelector(
+                    '#statusPagesListContainer > tr',
+                    { visible: true }
+                );
+                rowItem.click();
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.$eval('input[name="isPrivate"]', elem => elem.click());
+
+                await page.waitForSelector('#pricingPlanModal', {
+                    visible: true,
+                });
+                const growthOption = await page.waitForSelector(
+                    '#Growth_month',
+                    { visible: true }
+                );
+                growthOption.click();
+                await page.click('#confirmPlanUpgrade');
+
+                await page.waitForSelector('#pricingPlanModal', {
+                    hidden: true,
+                });
+                await page.reload({ waitUntil: 'networkidle2'});
+                await page.$eval('input[name="isPrivate"]', elem => elem.click());
+                const value = await page.$eval('input[name="isPrivate"]', elem => elem.value);
+                expect(utils.parseBoolean(value)).toBe(true);
+            });
+        },
+        operationTimeOut
+    );
 });
