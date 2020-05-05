@@ -51,58 +51,70 @@ const PricingPlanModal = ({
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    This feature is available on{' '}
-                                    {propArr[0].plan} plan. Please upgrade your
-                                    plan to access this feature.
-                                </span>
+                                {propArr[0].plan === 'Enterprise' ? (
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        This feature is available in the
+                                        Enterprise Plan. To upgrade to this
+                                        plan, please contact sales@fyipe.com
+                                    </span>
+                                ) : (
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        This feature is available on{' '}
+                                        {propArr[0].plan} plan. Please upgrade
+                                        your plan to access this feature.
+                                    </span>
+                                )}
                             </div>
-                            <div className="bs-Modal-content">
-                                <div className="Margin-bottom--12 Text-fontWeight--medium">
-                                    Choose a Plan
-                                </div>
-                                {plans.map((plan, index) => (
-                                    <>
-                                        <div
-                                            className="bs-Fieldset-fields .Flex-justifyContent--center Margin-bottom--12"
-                                            style={{ flex: 1, padding: 0 }}
-                                            key={index}
-                                        >
-                                            <span
-                                                style={{ marginBottom: '4px' }}
-                                            >
-                                                {plan.category}{' '}
-                                                {plan.type === 'month'
-                                                    ? 'Monthly'
-                                                    : 'Yearly'}{' '}
-                                                Plan
-                                            </span>
+                            <ShouldRender if={propArr[0].plan !== 'Enterprise'}>
+                                <div className="bs-Modal-content">
+                                    <div className="Margin-bottom--12 Text-fontWeight--medium">
+                                        Choose a Plan
+                                    </div>
+                                    {plans.map((plan, index) => (
+                                        <>
                                             <div
-                                                className="bs-Fieldset-field"
-                                                style={{
-                                                    width: '100%',
-                                                    alignItems: 'center',
-                                                }}
+                                                className="bs-Fieldset-fields .Flex-justifyContent--center Margin-bottom--12"
+                                                style={{ flex: 1, padding: 0 }}
+                                                key={index}
                                             >
-                                                <Field
-                                                    required={true}
-                                                    component="input"
-                                                    type="radio"
-                                                    name="planId"
-                                                    id={`${plan.category}_${plan.type}`}
-                                                    value={plan.planId}
-                                                    className="Margin-right--12"
-                                                />
-                                                <label
-                                                    htmlFor={`${plan.category}_${plan.type}`}
+                                                <span
+                                                    style={{
+                                                        marginBottom: '4px',
+                                                    }}
                                                 >
-                                                    {plan.details}
-                                                </label>
+                                                    {plan.category}{' '}
+                                                    {plan.type === 'month'
+                                                        ? 'Monthly'
+                                                        : 'Yearly'}{' '}
+                                                    Plan
+                                                </span>
+                                                <div
+                                                    className="bs-Fieldset-field"
+                                                    style={{
+                                                        width: '100%',
+                                                        alignItems: 'center',
+                                                    }}
+                                                >
+                                                    <Field
+                                                        required={true}
+                                                        component="input"
+                                                        type="radio"
+                                                        name="planId"
+                                                        id={`${plan.category}_${plan.type}`}
+                                                        value={plan.planId}
+                                                        className="Margin-right--12"
+                                                    />
+                                                    <label
+                                                        htmlFor={`${plan.category}_${plan.type}`}
+                                                    >
+                                                        {plan.details}
+                                                    </label>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </>
-                                ))}
-                            </div>
+                                        </>
+                                    ))}
+                                </div>
+                            </ShouldRender>
                             <ShouldRender if={error}>
                                 <div className="Box-background--white">
                                     <div className="Padding-all--20, color: 'red',">
@@ -124,18 +136,28 @@ const PricingPlanModal = ({
                                     >
                                         <span>Cancel</span>
                                     </button>
-                                    <button
-                                        id="confirmPlanUpgrade"
-                                        className={`bs-Button bs-Button--blue`}
-                                        type="submit"
-                                    >
-                                        <ShouldRender if={!isRequesting}>
-                                            <span>Upgrade</span>
-                                        </ShouldRender>
-                                        <ShouldRender if={isRequesting}>
-                                            <FormLoader />
-                                        </ShouldRender>
-                                    </button>
+                                    {propArr[0].plan === 'Enterprise' ? (
+                                        <a
+                                            id="enterpriseMail"
+                                            className={`bs-Button bs-Button--blue`}
+                                            href="mailto:sales@fyipe.com"
+                                        >
+                                            Contact Sales
+                                        </a>
+                                    ) : (
+                                        <button
+                                            id="confirmPlanUpgrade"
+                                            className={`bs-Button bs-Button--blue`}
+                                            type="submit"
+                                        >
+                                            <ShouldRender if={!isRequesting}>
+                                                <span>Upgrade</span>
+                                            </ShouldRender>
+                                            <ShouldRender if={isRequesting}>
+                                                <FormLoader />
+                                            </ShouldRender>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </form>
