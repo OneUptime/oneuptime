@@ -81,7 +81,7 @@ module.exports = {
     loginUser: async function(user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle2',
+            waitUntil: 'networkidle0',
         });
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
