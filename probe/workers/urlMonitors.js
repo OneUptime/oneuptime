@@ -34,18 +34,29 @@ const pingfetch = async url => {
     let resp = null;
     let res = null;
     try {
-        const response = await fetch(url, { timeout: 30000 });
-        const data = await response.text();
-        const urlObject = new URL(url);
-        let sslCertificate;
-        if (urlObject.protocol === 'https:') {
-            const certificate = await sslCert.get(urlObject.hostname);
-            if (certificate) {
+        let sslCertificate, response, data;
+        try {
+            response = await fetch(url, { timeout: 30000 });
+            data = await response.text();
+            const urlObject = new URL(url);
+            if (urlObject.protocol === 'https:') {
+                const certificate = await sslCert.get(urlObject.hostname);
+                if (certificate) {
+                    sslCertificate = {
+                        issuer: certificate.issuer,
+                        expires: certificate.valid_to,
+                        fingerprint: certificate.fingerprint,
+                    };
+                }
+            }
+        } catch (e) {
+            if (e.code === 'DEPTH_ZERO_SELF_SIGNED_CERT') {
+                response = { status: 200 };
                 sslCertificate = {
-                    issuer: certificate.issuer,
-                    expires: certificate.valid_to,
-                    fingerprint: certificate.fingerprint,
+                    selfSigned: true,
                 };
+            } else {
+                throw e;
             }
         }
         resp = { status: response.status, body: data, sslCertificate };
