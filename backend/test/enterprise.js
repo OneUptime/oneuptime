@@ -5,6 +5,7 @@ try {
     require('./enterpriseMonitor.test');
     require('./enterpriseAlert.test');
     require('./enterpriseTeam.test');
+    require('./enterpriseDisableSignup.test');
 } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error);

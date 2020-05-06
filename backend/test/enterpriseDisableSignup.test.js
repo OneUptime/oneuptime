@@ -14,14 +14,23 @@ const AirtableService = require('../backend/services/airtableService');
 
 describe('Disable Sign up test', function() {
     this.timeout(200000);
-
-    before(async function() {
+    let token = null;
+    this.beforeAll(async function() {
         this.timeout(400000);
+        await GlobalConfig.removeTestConfig();
+        await UserService.hardDeleteBy({});
+        await AirtableService.deleteAll({ tableName: 'User' });
         await GlobalConfig.initTestConfig();
+        await createUser(request, data.adminUser);
+        const res = await request.post('/user/login').send({
+            email: data.adminUser.email,
+            password: data.adminUser.password,
+        });
+        token = res.body.tokens.jwtAccessToken;
         process.env.DISABLE_SIGNUP = 'true'; // this is in quotes because of helm chart and kubernetes.
     });
 
-    after(async () => {
+    this.afterAll(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
         await AirtableService.deleteAll({ tableName: 'User' });
@@ -44,5 +53,22 @@ describe('Disable Sign up test', function() {
                 done(new Error('User signed up'));
             }
         });
+    });
+
+    it('should sign up a new when user is admin.', done => {
+        const authorization = `Basic ${token}`;
+        request
+            .post('/user/signup')
+            .set('Authorization', authorization)
+            .send({
+                ...data.anotherUser,
+            })
+            .end(function(err) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
     });
 });
