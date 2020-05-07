@@ -1872,4 +1872,4 @@ const MonitorStatusService = require('./monitorStatusService');
 const MonitorLogService = require('./monitorLogService');
 const IncidentService = require('./incidentService');
 const IncidentTimelineService = require('./incidentTimelineService');
-import moment from 'moment';
+const moment = require('moment');
