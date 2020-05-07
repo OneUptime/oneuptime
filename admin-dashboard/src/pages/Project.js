@@ -10,6 +10,7 @@ import ProjectRestoreBox from '../components/project/ProjectRestoreBox';
 import ProjectBlockBox from '../components/project/ProjectBlockBox';
 import ProjectAlertLimitBox from '../components/project/ProjectAlertLimitBox';
 import ProjectUnblockBox from '../components/project/ProjectUnblockBox';
+import ProjectUpgrade from '../components/project/ProjectUpgrade';
 import AdminNotes from '../components/adminNote/AdminNotes';
 import { addProjectNote, fetchProject } from '../actions/project';
 
@@ -56,6 +57,19 @@ class Project extends Component {
                                                     }
                                                 />
                                             </div>
+                                            <ShouldRender
+                                                if={
+                                                    this.props.project &&
+                                                    !this.props.project
+                                                        .deleted &&
+                                                    !this.props.project
+                                                        .isBlocked
+                                                }
+                                            >
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <ProjectUpgrade />
+                                                </div>
+                                            </ShouldRender>
                                             <ShouldRender
                                                 if={
                                                     this.props.project &&
