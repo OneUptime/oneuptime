@@ -327,7 +327,25 @@ module.exports = {
         }
     },
 
-    changePlan: async function(projectId, planId) {
+    upgradeToEnterprise: async function(projectId) {
+        let data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
+        try {
+            const project = await this.findOneBy({ _id: projectId });
+            await PaymentService.removeSubscription(
+                project.stripeSubscriptionId
+            );
+            const updatedProject = await this.updateOneBy(
+                { _id: projectId },
+                data
+            );
+            return updatedProject;
+        } catch (error) {
+            ErrorService.log('projectService.upgradeToEnterprise', error);
+            throw error;
+        }
+    },
+
+    changePlan: async function(projectId, userId, planId) {
         try {
             const _this = this;
             let project = await _this.updateOneBy(
@@ -336,27 +354,39 @@ module.exports = {
             );
 
             if (!project.stripeSubscriptionId) {
-                const error = new Error('You have not subscribed to a plan.');
-                error.code = 400;
-                ErrorService.log('projectService.changePlan', error);
-                throw error;
-            }
-            const trialLeft = moment(new Date()).diff(
-                moment(project.createdAt),
-                'days'
-            );
-            const stripeSubscriptionId = await PaymentService.changePlan(
-                project.stripeSubscriptionId,
-                planId,
-                project.users.length,
-                trialLeft
-            );
+                //on enterprise plan stripeSubscriptionId is null
+                //downgrading from enterprise plan
+                const user = await UserService.findOneBy({ _id: userId });
+                const {
+                    stripeSubscriptionId,
+                } = await PaymentService.subscribePlan(
+                    planId,
+                    user.stripeCustomerId
+                );
 
-            project = await _this.updateOneBy(
-                { _id: project._id },
-                { stripeSubscriptionId: stripeSubscriptionId }
-            );
-            return project;
+                project = await _this.updateOneBy(
+                    { _id: project._id },
+                    { stripeSubscriptionId: stripeSubscriptionId }
+                );
+                return project;
+            } else {
+                const trialLeft = moment(new Date()).diff(
+                    moment(project.createdAt),
+                    'days'
+                );
+                const stripeSubscriptionId = await PaymentService.changePlan(
+                    project.stripeSubscriptionId,
+                    planId,
+                    project.users.length,
+                    trialLeft
+                );
+    
+                project = await _this.updateOneBy(
+                    { _id: project._id },
+                    { stripeSubscriptionId: stripeSubscriptionId }
+                );
+                return project;
+            }
         } catch (error) {
             ErrorService.log('projectService.changePlan', error);
             throw error;

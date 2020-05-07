@@ -442,7 +442,11 @@ router.post(
                     message: 'New Plan must be present.',
                 });
             }
-            const project = await ProjectService.changePlan(projectId, planId);
+            const project = await ProjectService.changePlan(
+                projectId,
+                userId,
+                planId
+            );
             const user = await UserService.findOneBy({ _id: userId });
             const email = user.email;
             MailService.sendChangePlanMail(
@@ -452,6 +456,86 @@ router.post(
                 email
             );
             return sendItemResponse(req, res, project);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
+    '/:projectId/admin/changePlan',
+    getUser,
+    isUserMasterAdmin,
+    async function(req, res) {
+        try {
+            const projectId = req.params.projectId;
+            const projectName = req.body.projectName;
+            const planId = req.body.planId;
+            const userId = req.user ? req.user.id : null;
+            const oldPlan = req.body.oldPlan;
+            const newPlan = req.body.newPlan;
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'ProjectId must be present.',
+                });
+            }
+
+            if (!projectName) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'ProjectName must be present.',
+                });
+            }
+
+            if (!planId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'PlanID must be present.',
+                });
+            }
+
+            if (planId === 'enterprise') {
+                // run all the upgrade here for enterprise plan
+                const response = await ProjectService.upgradeToEnterprise(
+                    projectId
+                );
+                return sendItemResponse(req, res, response);
+            } else {
+                if (!oldPlan) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Old Plan must be present.',
+                    });
+                }
+
+                if (!newPlan) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'New Plan must be present.',
+                    });
+                }
+
+                const project = await ProjectService.findOneBy({
+                    _id: projectId,
+                });
+                let owner = project.users.find(user => user.role === 'Owner');
+                const updatedProject = await ProjectService.changePlan(
+                    projectId,
+                    owner.userId,
+                    planId
+                );
+                const user = await UserService.findOneBy({ _id: userId });
+                const email = user.email;
+                MailService.sendChangePlanMail(
+                    projectName,
+                    oldPlan,
+                    newPlan,
+                    email
+                );
+                return sendItemResponse(req, res, updatedProject);
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
