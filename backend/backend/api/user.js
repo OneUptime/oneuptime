@@ -28,10 +28,13 @@ router.post('/signup', async function(req, res) {
             typeof process.env.DISABLE_SIGNUP === 'string' &&
             process.env.DISABLE_SIGNUP === 'true'
         ) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Sign up is disabled.',
-            });
+            // res,and next is skipped in isUserMasterAdmin because we don't want to reject the request.
+            if (!(await isUserMasterAdmin(req))) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Sign up is disabled.',
+                });
+            }
         }
 
         const data = req.body;

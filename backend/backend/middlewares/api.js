@@ -25,10 +25,14 @@ module.exports = {
         } else if (req.body.projectId) {
             projectId = req.body.projectId;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID not found.',
-            });
+            if (res) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID not found.',
+                });
+            } else {
+                return false;
+            }
         }
 
         if (req.query.apiKey) {
@@ -38,10 +42,14 @@ module.exports = {
         } else if (req.body.apiKey) {
             apiKey = req.body.apiKey;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'API Key not found.',
-            });
+            if (res) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'API Key not found.',
+                });
+            } else {
+                return false;
+            }
         }
 
         const project = await ProjectService.findOneBy({
@@ -56,12 +64,18 @@ module.exports = {
             req.user = {};
             req.user.id = 'API';
 
-            next();
+            if (next) next();
+            else return true;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'No Project found with this API Key and Project ID.',
-            });
+            if (res) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'No Project found with this API Key and Project ID.',
+                });
+            } else {
+                return false;
+            }
         }
     },
 
