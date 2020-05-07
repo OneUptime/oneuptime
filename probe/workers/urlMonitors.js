@@ -46,6 +46,7 @@ const pingfetch = async url => {
                         issuer: certificate.issuer,
                         expires: certificate.valid_to,
                         fingerprint: certificate.fingerprint,
+                        selfSigned: false,
                     };
                 }
             }
