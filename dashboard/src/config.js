@@ -302,7 +302,7 @@ export const PricingPlan = {
                     planId: 'plan_H9IlBKhsFz4hV2',
                     type: 'annual',
                     amount: 1188,
-                    details: '$1188/ Year / User',
+                    details: '$1188 / Year / User',
                 },
             ];
         } else {
@@ -347,7 +347,7 @@ export const PricingPlan = {
                     planId: 'plan_H9IjvX2Flsvlcg',
                     type: 'annual',
                     amount: 1188,
-                    details: '$1188/ Year / User',
+                    details: '$1188 / Year / User',
                 },
             ];
         }

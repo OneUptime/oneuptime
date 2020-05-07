@@ -3,7 +3,11 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
-import { PricingPlan, SHOULD_LOG_ANALYTICS } from '../../config';
+import {
+    PricingPlan,
+    SHOULD_LOG_ANALYTICS,
+    IS_SAAS_SERVICE,
+} from '../../config';
 import { logEvent } from '../../analytics';
 import PricingPlanModal from './PricingPlanModal';
 import { openModal } from '../../actions/modal';
@@ -89,7 +93,9 @@ const PricingPlanComponent = ({
 
     return (
         <Fragment>
-            {isAllowed(plan, category) ? (
+            {!IS_SAAS_SERVICE ? (
+                children
+            ) : isAllowed(plan, category) ? (
                 children
             ) : !hideChildren ? (
                 <div id="pricingPlan" onClick={handleModal}>
