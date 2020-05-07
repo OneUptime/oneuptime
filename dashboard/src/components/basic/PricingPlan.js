@@ -23,8 +23,15 @@ const PricingPlanComponent = ({
     currentPlanId,
     error,
 }) => {
+    let category;
     const [pricingPlanModalId] = useState(uuid.v4()); // initialise modal ID
-    const { category } = PricingPlan.getPlanById(currentProject.stripePlanId);
+    const isEnterprise =
+        currentProject.stripePlanId === 'enterprise' ? true : false;
+
+    if (!isEnterprise) {
+        category = PricingPlan.getPlanById(currentProject.stripePlanId)
+            .category;
+    }
 
     const createAllowedPlans = plan => {
         const plans = ['Startup', 'Growth', 'Scale', 'Enterprise'];
@@ -93,7 +100,7 @@ const PricingPlanComponent = ({
 
     return (
         <Fragment>
-            {!IS_SAAS_SERVICE ? (
+            {isEnterprise || !IS_SAAS_SERVICE ? (
                 children
             ) : isAllowed(plan, category) ? (
                 children
