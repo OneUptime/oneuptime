@@ -230,6 +230,61 @@ describe('Project API', function() {
             });
     });
 
+    it('should not upgrade the subscription plan of the user for a project to enterprise plan if not an admin', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/project/${projectId}/admin/changePlan`)
+            .set('Authorization', authorization)
+            .send({
+                projectName: 'Unnamed Project',
+                planId: 'enterprise',
+            })
+            .end(function(err, response) {
+                expect(response).to.have.status(400);
+                done();
+            });
+    });
+
+    it('should upgrade the subscription plan of the user for a project to enterprise plan by an admin', function(done) {
+        const authorization = `Basic ${token}`;
+        UserService.updateBy({ _id: userId }, { role: 'master-admin' }).then(
+            () => {
+                request
+                    .put(`/project/${projectId}/admin/changePlan`)
+                    .set('Authorization', authorization)
+                    .send({
+                        projectName: 'Unnamed Project',
+                        planId: 'enterprise',
+                    })
+                    .end(function(err, response) {
+                        expect(response).to.have.status(200);
+                        expect(response.body.stripePlanId).to.be.equal(
+                            'enterprise'
+                        );
+                        done();
+                    });
+            }
+        );
+    });
+
+    it('should change the subscription plan of the user for a project to any other plan by an admin', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/project/${projectId}/admin/changePlan`)
+            .set('Authorization', authorization)
+            .send({
+                projectName: 'Unnamed Project',
+                planId: plans[1].planId,
+                oldPlan: 'Enterprise',
+                newPlan: `${plans[1].category} ${plans[1].details}`,
+            })
+            .end(function(err, response) {
+                expect(response).to.have.status(200);
+                expect(response.body.stripePlanId).to.be.equal(plans[1].planId);
+                done();
+            });
+    });
+
     it('should change the subscription plan of the user for a project', function(done) {
         const authorization = `Basic ${token}`;
         request
