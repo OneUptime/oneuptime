@@ -27,15 +27,18 @@ describe('Status Page', () => {
             throw err;
         });
 
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-            // user
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
-        });
+        return await cluster.execute(
+            { email, password },
+            async ({ page, data }) => {
+                const user = {
+                    email: data.email,
+                    password: data.password,
+                };
+                // user
+                await init.registerUser(user, page);
+                await init.loginUser(user, page);
+            }
+        );
     });
 
     afterAll(async done => {
@@ -47,7 +50,7 @@ describe('Status Page', () => {
     test(
         'should indicate that no domain is set yet for a status page',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await init.addProject(page);
                 await init.addStatusPageToProject('test', 'test', page);
 
@@ -63,7 +66,7 @@ describe('Status Page', () => {
     test(
         'should create a domain',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval('#statusPages > a', elem => elem.click());
                 // select the first item from the table row
@@ -92,7 +95,7 @@ describe('Status Page', () => {
     test(
         'should indicate if domain(s) is set on a status page',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval('#statusPages > a', elem => elem.click());
 
@@ -108,7 +111,7 @@ describe('Status Page', () => {
     test(
         'should update a domain',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 const finalValue = 'status.fyipeapp.com';
 
                 await page.goto(utils.DASHBOARD_URL);
@@ -143,7 +146,7 @@ describe('Status Page', () => {
     test(
         'should not verify a domain when txt record does not match token',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval('#statusPages > a', elem => elem.click());
                 // select the first item from the table row
@@ -171,7 +174,7 @@ describe('Status Page', () => {
     test(
         'should not have option of deleting a domain, if there is only one domain in the status page',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.reload({ waitUntil: 'networkidle0' });
                 const elem = await page.$('.btnDeleteDomain');
                 expect(elem).toBeNull();
@@ -183,7 +186,7 @@ describe('Status Page', () => {
     test(
         'should delete a domain in a status page',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval('#statusPages > a', elem => elem.click());
                 // select the first item from the table row
@@ -227,7 +230,7 @@ describe('Status Page', () => {
     test(
         'should cancel deleting of a domain in a status page',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval('#statusPages > a', elem => elem.click());
                 // select the first item from the table row

@@ -29,7 +29,7 @@ describe('Monitor API', () => {
             throw err;
         });
 
-        await cluster.execute(null, async ({ page }) => {
+        return await cluster.execute(null, async ({ page }) => {
             const user = {
                 email,
                 password,
@@ -51,7 +51,7 @@ describe('Monitor API', () => {
     test(
         'Should create new monitor with correct details',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Create Component first
                 await init.addComponent(componentName, page);
 
@@ -85,7 +85,7 @@ describe('Monitor API', () => {
     test(
         'Should create new monitor with call schedule',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -113,7 +113,7 @@ describe('Monitor API', () => {
     test(
         'Should not create new monitor when details are incorrect',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
