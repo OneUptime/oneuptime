@@ -4,6 +4,7 @@ import validUrl from 'valid-url';
 import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
+import booleanParser from './utils/booleanParser';
 
 export function env(value) {
     const { _env } = window;
@@ -41,7 +42,7 @@ export const ACCOUNTS_URL = accountsUrl;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 
-export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
+export const IS_SAAS_SERVICE = booleanParser(env('IS_SAAS_SERVICE'));
 
 export const IS_THIRD_PARTY_BILLING =
     env('IS_THIRD_PARTY_BILLING') === 'true' ? true : false;
@@ -547,3 +548,4 @@ export function mapCriteria(val) {
         return val2;
     }
 }
+
