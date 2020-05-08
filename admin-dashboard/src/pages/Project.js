@@ -13,6 +13,7 @@ import ProjectUnblockBox from '../components/project/ProjectUnblockBox';
 import ProjectUpgrade from '../components/project/ProjectUpgrade';
 import AdminNotes from '../components/adminNote/AdminNotes';
 import { addProjectNote, fetchProject } from '../actions/project';
+import { IS_SAAS_SERVICE } from '../config';
 
 class Project extends Component {
     componentDidMount() {
@@ -63,7 +64,7 @@ class Project extends Component {
                                                     !this.props.project
                                                         .deleted &&
                                                     !this.props.project
-                                                        .isBlocked
+                                                        .isBlocked && IS_SAAS_SERVICE
                                                 }
                                             >
                                                 <div className="Box-root Margin-bottom--12">
