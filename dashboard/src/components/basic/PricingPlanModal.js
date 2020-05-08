@@ -115,7 +115,10 @@ const PricingPlanModal = ({
                             </ShouldRender>
                             <ShouldRender if={error}>
                                 <div className="Box-background--white">
-                                    <div className="Padding-all--20" style={{color: 'red'}}>
+                                    <div
+                                        className="Padding-all--20"
+                                        style={{ color: 'red' }}
+                                    >
                                         {error}
                                     </div>
                                 </div>

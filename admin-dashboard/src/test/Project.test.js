@@ -80,7 +80,7 @@ describe('Project', () => {
                     );
                     await page.$eval('#submitChangePlan', elem => elem.click());
 
-                    let loader = await page.waitForSelector('.ball-beat', {
+                    const loader = await page.waitForSelector('.ball-beat', {
                         hidden: true,
                     });
 
@@ -121,7 +121,7 @@ describe('Project', () => {
                 );
                 await page.$eval('#submitChangePlan', elem => elem.click());
 
-                let loader = await page.waitForSelector('.ball-beat', {
+                const loader = await page.waitForSelector('.ball-beat', {
                     hidden: true,
                 });
 

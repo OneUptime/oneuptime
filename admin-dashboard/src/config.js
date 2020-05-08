@@ -548,4 +548,3 @@ export function mapCriteria(val) {
         return val2;
     }
 }
-

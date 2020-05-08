@@ -520,7 +520,7 @@ router.put(
                 const project = await ProjectService.findOneBy({
                     _id: projectId,
                 });
-                let owner = project.users.find(user => user.role === 'Owner');
+                const owner = project.users.find(user => user.role === 'Owner');
                 const updatedProject = await ProjectService.changePlan(
                     projectId,
                     owner.userId,

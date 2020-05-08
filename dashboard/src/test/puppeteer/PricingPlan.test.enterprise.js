@@ -51,7 +51,9 @@ describe('Status Page', () => {
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.$eval('#statusPages > a', elem => elem.click());
-                await page.waitForSelector('button[type="button"] .bs-FileUploadButton');
+                await page.waitForSelector(
+                    'button[type="button"] .bs-FileUploadButton'
+                );
                 await page.click('button[type="button"] .bs-FileUploadButton');
                 await page.waitForSelector('#name');
                 await page.click('#name');

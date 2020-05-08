@@ -562,15 +562,12 @@ export const changePlan = (
     dispatch(changePlanRequest());
 
     try {
-        const response = await putApi(
-            `project/${projectId}/admin/changePlan`,
-            {
-                projectName,
-                planId,
-                oldPlan,
-                newPlan,
-            }
-        );
+        const response = await putApi(`project/${projectId}/admin/changePlan`, {
+            projectName,
+            planId,
+            oldPlan,
+            newPlan,
+        });
         dispatch(changePlanSuccess(response.data));
     } catch (error) {
         const errorMsg =

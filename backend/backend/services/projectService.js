@@ -328,7 +328,7 @@ module.exports = {
     },
 
     upgradeToEnterprise: async function(projectId) {
-        let data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
+        const data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
         try {
             const project = await this.findOneBy({ _id: projectId });
             await PaymentService.removeSubscription(
@@ -380,7 +380,7 @@ module.exports = {
                     project.users.length,
                     trialLeft
                 );
-    
+
                 project = await _this.updateOneBy(
                     { _id: project._id },
                     { stripeSubscriptionId: stripeSubscriptionId }

@@ -64,7 +64,8 @@ class Project extends Component {
                                                     !this.props.project
                                                         .deleted &&
                                                     !this.props.project
-                                                        .isBlocked && IS_SAAS_SERVICE
+                                                        .isBlocked &&
+                                                    IS_SAAS_SERVICE
                                                 }
                                             >
                                                 <div className="Box-root Margin-bottom--12">

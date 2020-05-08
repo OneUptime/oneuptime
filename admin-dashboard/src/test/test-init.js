@@ -99,15 +99,15 @@ module.exports = {
             });
 
             await page.click('input[name=address1]');
-            await page.type('input[name=address1]', "Enugu, Nigerian");
+            await page.type('input[name=address1]', 'Enugu, Nigerian');
             await page.click('input[name=address2]');
-            await page.type('input[name=address2]', "Lagos, Nigeria");
+            await page.type('input[name=address2]', 'Lagos, Nigeria');
             await page.click('input[name=city]');
-            await page.type('input[name=city]', "Awka");
+            await page.type('input[name=city]', 'Awka');
             await page.click('input[name=state]');
-            await page.type('input[name=state]', "Enugu");
+            await page.type('input[name=state]', 'Enugu');
             await page.click('input[name=zipCode]');
-            await page.type('input[name=zipCode]', "420110");
+            await page.type('input[name=zipCode]', '420110');
             await page.select('#country', 'India');
         }
 
