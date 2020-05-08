@@ -71,17 +71,17 @@ const ProjectUpgrade = ({
     };
 
     return (
-        <div className="Box-root Margin-bottom--12">
+        <div id="planBox" className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                <span>Upgrade This Project</span>
+                                <span>Change Project Plan</span>
                             </span>
                             <p>
                                 <span>
-                                    Select any of the plans below to upgrade.
+                                    Upgrade or change the plan of this project.
                                 </span>
                             </p>
                         </div>
@@ -191,18 +191,30 @@ const ProjectUpgrade = ({
                             </div>
                         </div>
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                            <span className="db-SettingsForm-footerMessage"></span>
+                            <span className="db-SettingsForm-footerMessage">
+                                <ShouldRender if={!isRequesting && error}>
+                                    <div className="Box-background--white">
+                                        <div
+                                            className="Padding-all--20"
+                                            style={{ color: 'red' }}
+                                        >
+                                            {error}
+                                        </div>
+                                    </div>
+                                </ShouldRender>
+                            </span>
                             <div>
                                 <button
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                     disabled={isRequesting}
                                     type="submit"
+                                    id="submitChangePlan"
                                 >
                                     <ShouldRender if={isRequesting}>
                                         <FormLoader />
                                     </ShouldRender>
                                     <ShouldRender if={!isRequesting}>
-                                        <span>Upgrade</span>
+                                        <span>Change Plan</span>
                                     </ShouldRender>
                                 </button>
                             </div>
