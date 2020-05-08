@@ -29,11 +29,18 @@ describe('Project', () => {
         });
 
         await cluster.execute({ email, password }, async ({ page, data }) => {
+            const email = utils.generateRandomBusinessEmail();
+            const password = '1234567890';
+
             const user = {
                 email: data.email,
                 password: data.password,
             };
             await init.registerEnterpriseUser(user, page);
+
+            // creating a user automatically
+            // adds an unamed project to the user
+            await init.registerUser({ email, password }, page);
         });
     });
 
@@ -43,63 +50,51 @@ describe('Project', () => {
     });
 
     test(
-        'should add a project by a user',
-        async () => {
-            const email = utils.generateRandomBusinessEmail();
-            const password = "1234567890";
-    
-            await cluster.execute({ email, password }, async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                // creating a user automatically
-                // adds an unamed project to the user
-                await init.registerUser(user, page);
-            });
-        },
-        operationTimeOut
-    )
-
-    test(
         'should upgrade a project to enterprise plan',
         async () => {
-            await cluster.execute({ email, password }, async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-                await init.loginUser(user, page);
+            await cluster.execute(
+                { email, password },
+                async ({ page, data }) => {
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
+                    await init.loginUser(user, page);
 
-                await page.$eval('#projects > a', elem => elem.click());
-                await page.evaluate(() => {
-                    let elem = document.querySelectorAll('.Table > tbody tr');
-                    elem = Array.from(elem);
-                    elem[0].click();
-                });
+                    await page.$eval('#projects > a', elem => elem.click());
+                    await page.evaluate(() => {
+                        let elem = document.querySelectorAll(
+                            '.Table > tbody tr'
+                        );
+                        elem = Array.from(elem);
+                        elem[0].click();
+                    });
 
-                await page.waitForSelector('input[name="planId"]#Enterprise', {visible: true});
-                
-                await page.$eval('input[name="planId"]#Enterprise', elem =>
-                    elem.click()
-                );
-                await page.$eval('#submitChangePlan', elem => elem.click());
+                    await page.waitForSelector(
+                        'input[name="planId"]#Enterprise',
+                        { visible: true }
+                    );
 
-                let loader = await page.waitForSelector('.ball-beat', {
-                    hidden: true,
-                });
-                
-                await page.reload({ waitUntil: 'networkidle0' });
-                
-                const checked = await page.$eval(
-                    'input[name="planId"]#Enterprise',
-                    elem => elem.checked
-                );
+                    await page.$eval('input[name="planId"]#Enterprise', elem =>
+                        elem.click()
+                    );
+                    await page.$eval('#submitChangePlan', elem => elem.click());
 
-                expect(loader).toBeNull();
-                expect(checked).toEqual(true);
-            });
+                    let loader = await page.waitForSelector('.ball-beat', {
+                        hidden: true,
+                    });
+
+                    await page.reload({ waitUntil: 'networkidle0' });
+
+                    const checked = await page.$eval(
+                        'input[name="planId"]#Enterprise',
+                        elem => elem.checked
+                    );
+
+                    expect(loader).toBeNull();
+                    expect(checked).toEqual(true);
+                }
+            );
         },
         operationTimeOut
     );
@@ -116,8 +111,11 @@ describe('Project', () => {
                     elem[0].click();
                 });
 
-                await page.waitForSelector('input[name="planId"]#Growth_annual', {visible: true})
-                
+                await page.waitForSelector(
+                    'input[name="planId"]#Growth_annual',
+                    { visible: true }
+                );
+
                 await page.$eval('input[name="planId"]#Growth_annual', elem =>
                     elem.click()
                 );
@@ -128,7 +126,7 @@ describe('Project', () => {
                 });
 
                 await page.reload({ waitUntil: 'networkidle0' });
-                
+
                 const checked = await page.$eval(
                     'input[name="planId"]#Growth_annual',
                     elem => elem.checked

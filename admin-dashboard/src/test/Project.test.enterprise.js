@@ -21,7 +21,7 @@ describe('Project', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 1200000
+            timeout: 1200000,
         });
 
         cluster.on('taskerror', err => {
@@ -29,12 +29,18 @@ describe('Project', () => {
         });
 
         await cluster.execute({ email, password }, async ({ page, data }) => {
+            const email = utils.generateRandomBusinessEmail();
+            const password = '1234567890';
+
             const user = {
                 email: data.email,
                 password: data.password,
             };
             await init.registerEnterpriseUser(user, page);
-            await init.loginUser(user, page);
+
+            // creating a user automatically
+            // adds an unamed project to the user
+            await init.registerUser({ email, password }, page);
         });
     });
 
@@ -46,19 +52,30 @@ describe('Project', () => {
     test(
         'should not show upgrade/downgrade box if IS_SAAS_SERVICE is false',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.ADMIN_DASHBOARD_URL);
-                await page.$eval('#projects > a', elem => elem.click());
-                await page.evaluate(() => {
-                    let elem = document.querySelectorAll('.Table > tbody tr');
-                    elem = Array.from(elem);
-                    elem[0].click();
-                });
+            await cluster.execute(
+                { email, password },
+                async ({ page, data }) => {
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
 
-                await page.reload({ waitUntil: 'networkidle2' });
-                const planBox = await page.$('#planBox');
-                expect(planBox).toBeNull();
-            });
+                    await init.loginUser(user, page);
+
+                    await page.$eval('#projects > a', elem => elem.click());
+                    await page.evaluate(() => {
+                        let elem = document.querySelectorAll(
+                            '.Table > tbody tr'
+                        );
+                        elem = Array.from(elem);
+                        elem[0].click();
+                    });
+
+                    await page.reload({ waitUntil: 'networkidle2' });
+                    const planBox = await page.$('#planBox');
+                    expect(planBox).toBeNull();
+                }
+            );
         },
         operationTimeOut
     );
