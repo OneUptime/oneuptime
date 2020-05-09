@@ -103,7 +103,7 @@ describe('Monitor API With SubProjects', () => {
         'should not display new monitor form for user that is not `admin` in sub-project.',
         async () => {
             expect.assertions(2);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Switch to invited project for new user
                 // await init.switchProject(projectName, page); // Commented because project already switched to
                 await page.goto(utils.DASHBOARD_URL);
@@ -123,7 +123,7 @@ describe('Monitor API With SubProjects', () => {
         'should create a monitor in sub-project for valid `admin`',
         async () => {
             expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 const user = { email, password };
                 await init.loginUser(user, page);
                 // Navigate to details page of component created
@@ -157,7 +157,7 @@ describe('Monitor API With SubProjects', () => {
         async () => {
             expect.assertions(1);
             const monitorName = utils.generateRandomString();
-            await cluster.execute(
+            return await cluster.execute(
                 { email, password, monitorName },
                 async ({ page, data }) => {
                     const user = {
@@ -192,7 +192,7 @@ describe('Monitor API With SubProjects', () => {
         "should get only sub-project's monitors for valid sub-project user",
         async () => {
             expect.assertions(2);
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email: newEmail,
                     password: newPassword,
@@ -238,7 +238,7 @@ describe('Monitor API With SubProjects', () => {
             expect.assertions(2);
             const monitorName = utils.generateRandomString();
 
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email,
                     password,

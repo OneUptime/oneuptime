@@ -38,7 +38,7 @@
         "socket.io": "^2.3.0",
         "socket.io-redis": "^5.2.0",
         "speakeasy": "^2.0.0",
-        "stripe": "^6.36.0",
+        "stripe": "^8.50.0",
         "twilio": "^3.33.2",
         "uuid": "^3.2.1",
         "valid-url": "^1.0.9",
