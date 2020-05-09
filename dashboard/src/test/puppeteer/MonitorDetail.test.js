@@ -16,7 +16,7 @@ const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = 150000;
+    const operationTimeOut = 500000;
 
     let cluster;
 
