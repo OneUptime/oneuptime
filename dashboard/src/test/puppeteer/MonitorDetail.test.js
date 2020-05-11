@@ -236,7 +236,7 @@ describe('Monitor Detail API', () => {
                 );
 
                 await page.click('#createScheduledEventButton');
-                await page.waitFor(20000);
+                await page.waitFor(60000);
 
                 try {
                     await page.reload({ waitUntil: 'domcontentloaded' });
@@ -244,7 +244,7 @@ describe('Monitor Detail API', () => {
                     //
                 }
 
-                await page.waitFor(120000);
+                await page.waitFor(60000);
                 const createdScheduledEventSelector =
                     '#scheduledEventsList > div.scheduled-event-list-item';
 
