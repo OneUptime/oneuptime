@@ -667,7 +667,9 @@ export function MonitorChart({
                                                             : 'red'
                                                     }`}
                                                 >
-                                                    <small>
+                                                    <small
+                                                        id={`ssl-status-${monitor.name}`}
+                                                    >
                                                         {sslCertificate
                                                             ? sslCertificate.selfSigned
                                                                 ? 'Self Signed'
