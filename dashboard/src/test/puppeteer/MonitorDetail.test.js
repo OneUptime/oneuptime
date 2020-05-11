@@ -201,63 +201,56 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    test(
-        'Should navigate to monitor details and get list of scheduled events and paginate scheduled events',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
-                await page.setDefaultTimeout(utils.timeout);
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    monitorName,
-                    page
-                );
+    test('Should navigate to monitor details and get list of scheduled events and paginate scheduled events', async () => {
+        expect.assertions(1);
+        return await cluster.execute(null, async ({ page }) => {
+            await page.setDefaultTimeout(utils.timeout);
+            // Navigate to Monitor details
+            await init.navigateToMonitorDetails(
+                componentName,
+                monitorName,
+                page
+            );
 
-                const addButtonSelector = '#addScheduledEventButton';
-                await page.waitForSelector(addButtonSelector);
-                await page.click(addButtonSelector);
+            const addButtonSelector = '#addScheduledEventButton';
+            await page.waitForSelector(addButtonSelector);
+            await page.click(addButtonSelector);
 
-                await page.click('input[name=startDate]');
-                await page.click(
-                    'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
-                );
+            await page.click('input[name=startDate]');
+            await page.click(
+                'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
+            );
 
-                await page.waitFor(1000);
+            await page.waitFor(1000);
 
-                await page.click('input[name=endDate]');
-                await page.click(
-                    'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
-                );
+            await page.click('input[name=endDate]');
+            await page.click(
+                'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
+            );
 
-                await page.type(
-                    'input[name=name]',
-                    `${utils.scheduledEventName}1`
-                );
-                await page.type(
-                    'textarea[name=description]',
-                    utils.scheduledEventDescription
-                );
+            await page.type('input[name=name]', `${utils.scheduledEventName}1`);
+            await page.type(
+                'textarea[name=description]',
+                utils.scheduledEventDescription
+            );
 
-                await page.click('#createScheduledEventButton');
+            await page.click('#createScheduledEventButton');
 
-                const createdScheduledEventSelector =
-                    '#scheduledEventsList > div.scheduled-event-list-item';
+            const createdScheduledEventSelector =
+                '#scheduledEventsList > div.scheduled-event-list-item';
 
-                await page.waitForSelector(
-                    '#scheduledEventsList > div.scheduled-event-list-item'
-                );
+            await page.waitForSelector(
+                '#scheduledEventsList > div.scheduled-event-list-item'
+            );
 
-                const scheduledEventRows = await page.$$(
-                    createdScheduledEventSelector
-                );
-                const countScheduledEvent = scheduledEventRows.length;
+            const scheduledEventRows = await page.$$(
+                createdScheduledEventSelector
+            );
+            const countScheduledEvent = scheduledEventRows.length;
 
-                expect(countScheduledEvent).toEqual(2);
-            });
-        },
-        operationTimeOut
-    );
+            expect(countScheduledEvent).toEqual(2);
+        });
+    });
 
     test(
         'Should navigate to monitor details and create a new subscriber',
