@@ -158,7 +158,7 @@ describe('Monitor API', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitFor(120000);
+                await page.waitFor(180000);
 
                 let sslStatusElement = await page.waitForSelector(
                     `#ssl-status-${sslMonitorName}`
@@ -193,7 +193,7 @@ describe('Monitor API', () => {
                 await page.click('#url');
                 await page.type('#url', 'http://localhost:3010');
                 await page.click('button[type=submit]');
-                await page.waitFor(120000);
+                await page.waitFor(180000);
 
                 let sslStatusElement = await page.waitForSelector(
                     `#ssl-status-${testServerMonitorName}`
@@ -228,7 +228,7 @@ describe('Monitor API', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://self-signed.badssl.com');
                 await page.click('button[type=submit]');
-                await page.waitFor(120000);
+                await page.waitFor(180000);
 
                 let sslStatusElement = await page.waitForSelector(
                     `#ssl-status-${selfSignedMonitorName}`
