@@ -16,7 +16,7 @@ const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = 300000;
 
     let cluster;
 
@@ -220,7 +220,7 @@ describe('Monitor Detail API', () => {
                 await page.click(
                     'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
                 );
-                await page.waitFor(5000);
+                await page.waitFor(2000);
                 await page.click('input[name=endDate]');
                 await page.click(
                     'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
@@ -239,12 +239,12 @@ describe('Monitor Detail API', () => {
                 await page.waitFor(20000);
 
                 try {
-                    await page.reload({ waitUntil: 'networkidle2' });
+                    await page.reload({ waitUntil: 'domcontentloaded' });
                 } catch (e) {
                     //
                 }
 
-                await page.waitFor(20000);
+                await page.waitFor(120000);
                 const createdScheduledEventSelector =
                     '#scheduledEventsList > div.scheduled-event-list-item';
 
