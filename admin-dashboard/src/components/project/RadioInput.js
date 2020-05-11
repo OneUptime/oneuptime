@@ -28,6 +28,7 @@ RadioInput.propTypes = {
     id: PropTypes.string.isRequired,
     details: PropTypes.string.isRequired,
     value: PropTypes.string.isRequired,
+    style: PropTypes.object,
 };
 
 export default RadioInput;

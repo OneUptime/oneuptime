@@ -230,8 +230,6 @@ const ProjectUpgrade = ({
                                                             className="bs-Fieldset-field"
                                                             style={{
                                                                 width: '100%',
-                                                                alignItems:
-                                                                    'center',
                                                                 display: 'flex',
                                                                 alignItems:
                                                                     'center',
