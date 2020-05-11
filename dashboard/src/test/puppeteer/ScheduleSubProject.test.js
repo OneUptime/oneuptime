@@ -111,7 +111,7 @@ describe('Schedule API With SubProjects', () => {
         'should not display create schedule button for subproject `member` role.',
         async () => {
             expect.assertions(1);
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email: newEmail,
                     password: newPassword,
@@ -149,7 +149,7 @@ describe('Schedule API With SubProjects', () => {
             expect.assertions(1);
             const scheduleName = utils.generateRandomString();
 
-            await cluster.execute(
+            return await cluster.execute(
                 { email, password, subProjectName, scheduleName },
                 async ({ page, data }) => {
                     await page.setDefaultTimeout(utils.timeout);
@@ -255,7 +255,7 @@ describe('Schedule API With SubProjects', () => {
         'should add monitor to sub-project schedule',
         async () => {
             expect.assertions(1);
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email,
                     password,
@@ -300,7 +300,7 @@ describe('Schedule API With SubProjects', () => {
         'should delete sub-project schedule',
         async () => {
             expect.assertions(1);
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email,
                     password,
