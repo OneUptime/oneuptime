@@ -2,11 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Field } from 'redux-form';
 
-export function RadioInput({ id, details, value }) {
+export function RadioInput({ id, details, value, style }) {
     return (
         <div
             className="bs-Fieldset-field"
-            style={{ width: '100%', alignItems: 'center' }}
+            style={{ width: '100%', alignItems: 'center', ...style }}
         >
             <Field
                 required={true}
