@@ -16,7 +16,7 @@ const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = 300000;
+    const operationTimeOut = 500000;
 
     let cluster;
 
@@ -35,7 +35,7 @@ describe('Monitor Detail API', () => {
         });
 
         // Register user
-        await cluster.execute(null, async ({ page }) => {
+        return await cluster.execute(null, async ({ page }) => {
             await page.setDefaultTimeout(utils.timeout);
             const user = {
                 email: email,
@@ -60,7 +60,7 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details of monitor created with correct details',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -84,7 +84,7 @@ describe('Monitor Detail API', () => {
         'Should navigate to monitor details and create an incident',
         async () => {
             expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -112,7 +112,7 @@ describe('Monitor Detail API', () => {
         'Should navigate to monitor details and get list of incidents and paginate incidents',
         async () => {
             expect.assertions(2);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -145,7 +145,7 @@ describe('Monitor Detail API', () => {
         'Should navigate to monitor details and create a scheduled event',
         async () => {
             expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -162,7 +162,9 @@ describe('Monitor Detail API', () => {
                 await page.click(
                     'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
                 );
+
                 await page.waitFor(1000);
+
                 await page.click('input[name=endDate]');
                 await page.click(
                     'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
@@ -261,7 +263,7 @@ describe('Monitor Detail API', () => {
         'Should navigate to monitor details and create a new subscriber',
         async () => {
             expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -279,10 +281,12 @@ describe('Monitor Detail API', () => {
                 await init.selectByText('#alertViaId', 'email', page);
                 await page.type('input[name=email]', subscriberEmail);
                 await page.click('#createSubscriber');
-                await page.waitFor(2000);
 
                 const createdSubscriberSelector =
                     '#subscribersList > tbody > tr.subscriber-list-item .contact';
+
+                await page.waitForSelector(createdSubscriberSelector);
+
                 const createdSubscriberEmail = await page.$eval(
                     createdSubscriberSelector,
                     el => el.textContent
@@ -295,8 +299,8 @@ describe('Monitor Detail API', () => {
     );
 
     test('Should navigate to monitor details and get list of subscribers and paginate subscribers', async () => {
-        expect.assertions(2);
-        await cluster.execute(null, async ({ page }) => {
+        expect.assertions(3);
+        return await cluster.execute(null, async ({ page }) => {
             await page.setDefaultTimeout(utils.timeout);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -320,23 +324,29 @@ describe('Monitor Detail API', () => {
                 await page.waitFor(1000);
             }
 
-            await page.waitFor(2000);
-
-            const nextSelector = await page.$('#btnNextSubscriber');
-            await nextSelector.click();
-            await page.waitFor(2000);
-
             const createdSubscriberSelector =
                 '#subscribersList > tbody > tr.subscriber-list-item';
 
+            await page.waitForSelector(createdSubscriberSelector);
+
             let subscriberRows = await page.$$(createdSubscriberSelector);
             let countSubscribers = subscriberRows.length;
+
+            expect(countSubscribers).toEqual(5);
+
+            const nextSelector = await page.$('#btnNextSubscriber');
+            await nextSelector.click();
+
+            await page.waitForSelector(createdSubscriberSelector);
+
+            subscriberRows = await page.$$(createdSubscriberSelector);
+            countSubscribers = subscriberRows.length;
 
             expect(countSubscribers).toEqual(1);
 
             const prevSelector = await page.$('#btnPrevSubscriber');
             await prevSelector.click();
-            await page.waitFor(2000);
+            await page.waitForSelector(createdSubscriberSelector);
 
             subscriberRows = await page.$$(createdSubscriberSelector);
             countSubscribers = subscriberRows.length;
@@ -349,7 +359,7 @@ describe('Monitor Detail API', () => {
         'Should navigate to monitor details and create a webhook',
         async () => {
             expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -392,7 +402,7 @@ describe('Monitor Detail API', () => {
 
     test('Should navigate to monitor details and get list of webhooks and paginate webhooks', async () => {
         // expect.assertions(2);
-        await cluster.execute(null, async ({ page }) => {
+        return await cluster.execute(null, async ({ page }) => {
             await page.setDefaultTimeout(utils.timeout);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -419,18 +429,23 @@ describe('Monitor Detail API', () => {
                 await page.waitFor(1000);
             }
 
-            await page.waitFor(10000);
-
-            const nextSelector = await page.$('#btnNextWebhook');
-
             const createdWebhookSelector =
                 '#webhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
-
-            await nextSelector.click();
-            await page.waitFor(1000);
+            await page.waitForSelector(createdWebhookSelector);
 
             let webhookRows = await page.$$(createdWebhookSelector);
             let countWebhooks = webhookRows.length;
+
+            expect(countWebhooks).toEqual(11);
+
+            const nextSelector = await page.$('#btnNextWebhook');
+
+            await nextSelector.click();
+            await page.waitFor(1000);
+            await page.waitForSelector(createdWebhookSelector);
+
+            webhookRows = await page.$$(createdWebhookSelector);
+            countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(1);
 
@@ -438,6 +453,7 @@ describe('Monitor Detail API', () => {
 
             await prevSelector.click();
             await page.waitFor(1000);
+            await page.waitForSelector(createdWebhookSelector);
 
             webhookRows = await page.$$(createdWebhookSelector);
             countWebhooks = webhookRows.length;
@@ -449,7 +465,7 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details and edit monitor',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -483,7 +499,7 @@ describe('Monitor Detail API', () => {
         'Should navigate to monitor details and delete monitor',
         async () => {
             expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.setDefaultTimeout(utils.timeout);
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(

@@ -143,7 +143,7 @@ describe('Monitor API', () => {
         async () => {
             const sslMonitorName = utils.generateRandomString();
 
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector('#form-new-monitor');
@@ -178,7 +178,7 @@ describe('Monitor API', () => {
         async () => {
             const testServerMonitorName = utils.generateRandomString();
 
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector('#form-new-monitor');
@@ -213,7 +213,7 @@ describe('Monitor API', () => {
         async () => {
             const selfSignedMonitorName = utils.generateRandomString();
 
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector('#form-new-monitor');
