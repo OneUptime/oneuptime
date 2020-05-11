@@ -44,21 +44,21 @@ module.exports = {
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42424242424242424242', {
-                delay: 50,
+                delay: 150,
             });
 
             elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cvc]');
             await frame.type('input[name=cvc]', '123', {
-                delay: 50,
+                delay: 150,
             });
 
             elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23', {
-                delay: 50,
+                delay: 150,
             });
             await page.click('input[name=address1]');
             await page.type('input[name=address1]', utils.user.address.streetA);

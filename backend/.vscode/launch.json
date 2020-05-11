@@ -17,7 +17,7 @@
             "name": "Debug Mocha Tests",
             "program": "${workspaceRoot}/node_modules/mocha/bin/mocha",
             "args": [
-                "test"
+                "test/disablesignup.test"
             ],
             "internalConsoleOptions": "openOnSessionStart"
         }

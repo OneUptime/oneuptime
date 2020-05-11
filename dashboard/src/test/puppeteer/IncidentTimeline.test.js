@@ -33,7 +33,7 @@ describe('Incident Timeline API', () => {
         });
 
         // Register user
-        await cluster.execute(null, async ({ page }) => {
+        return await cluster.execute(null, async ({ page }) => {
             const user = {
                 email,
                 password,
@@ -199,7 +199,7 @@ describe('Incident Timeline API', () => {
     test('should get incident timeline and paginate for incident timeline in project', async () => {
         expect.assertions(3);
         const internalNote = utils.generateRandomString();
-        await cluster.execute(null, async ({ page }) => {
+        return await cluster.execute(null, async ({ page }) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 

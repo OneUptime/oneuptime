@@ -120,7 +120,7 @@ describe('Incident API With SubProjects', () => {
         'should create an incident in parent project for valid `admin`',
         async () => {
             expect.assertions(1);
-            await cluster.execute(
+            return await cluster.execute(
                 { email, password, projectMonitorName },
                 async ({ page, data }) => {
                     await page.setDefaultTimeout(utils.timeout);
@@ -160,7 +160,7 @@ describe('Incident API With SubProjects', () => {
         'should create an incident in sub-project for sub-project `member`',
         async () => {
             expect.assertions(1);
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email: newEmail,
                     password: newPassword,
@@ -211,7 +211,7 @@ describe('Incident API With SubProjects', () => {
         'should acknowledge incident in sub-project for sub-project `member`',
         async () => {
             expect.assertions(1);
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email: newEmail,
                     password: newPassword,
@@ -249,7 +249,7 @@ describe('Incident API With SubProjects', () => {
         'should resolve incident in sub-project for sub-project `member`',
         async () => {
             expect.assertions(1);
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email: newEmail,
                     password: newPassword,
@@ -286,7 +286,7 @@ describe('Incident API With SubProjects', () => {
             expect.assertions(2);
             const investigationNote = utils.generateRandomString();
             const internalNote = utils.generateRandomString();
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email: newEmail,
                     password: newPassword,
@@ -354,7 +354,7 @@ describe('Incident API With SubProjects', () => {
     test('should get incident timeline and paginate for incident timeline in sub-project', async () => {
         expect.assertions(3);
         const internalNote = utils.generateRandomString();
-        await cluster.execute(
+        return await cluster.execute(
             {
                 email: newEmail,
                 password: newPassword,
@@ -459,7 +459,7 @@ describe('Incident API With SubProjects', () => {
             expect(countIncidents).toEqual(10);
         };
 
-        await cluster.execute(
+        return await cluster.execute(
             {
                 email: newEmail,
                 password: newPassword,

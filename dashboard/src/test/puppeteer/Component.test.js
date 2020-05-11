@@ -28,7 +28,7 @@ describe('Components', () => {
             throw err;
         });
 
-        await cluster.execute(null, async ({ page }) => {
+        return await cluster.execute(null, async ({ page }) => {
             const user = {
                 email,
                 password,
@@ -48,7 +48,7 @@ describe('Components', () => {
     test(
         'Should create new component',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
@@ -75,7 +75,7 @@ describe('Components', () => {
     test(
         'Should not create new component when details are incorrect',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
