@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -25,12 +25,36 @@ const ProjectUpgrade = ({
     isRequesting,
     error,
     project,
+    activeForm,
 }) => {
-    const plans = PricingPlan.getPlans();
+    const [planDuration, setPlanDuration] = useState('annual');
+    const [isAnnual, setIsAnnual] = useState(true);
+
+    const getPlansFromToggle = (planDuration, plansArr) =>
+        plansArr.filter(plan => plan.type === planDuration);
+
+    const plansArr = PricingPlan.getPlans();
+    const [plans, setPlan] = useState(
+        getPlansFromToggle(planDuration, plansArr)
+    );
+
     const enterprisePlan = {
         category: 'Enterprise',
         planId: 'enterprise',
     };
+
+    const handlePlanToggle = () => {
+        setIsAnnual(!isAnnual);
+    };
+
+    useEffect(() => {
+        if (isAnnual) {
+            setPlanDuration('annual');
+        } else {
+            setPlanDuration('month');
+        }
+        setPlan(getPlansFromToggle(planDuration, plansArr));
+    }, [isAnnual, planDuration]);
 
     const submit = values => {
         let oldPlan, newPlan;
@@ -85,6 +109,31 @@ const ProjectUpgrade = ({
                                 </span>
                             </p>
                         </div>
+                        <div
+                            className="bs-Fieldset-row"
+                            style={{
+                                padding: 0,
+                                display: 'flex',
+                                marginTop: 15,
+                            }}
+                        >
+                            <label style={{ marginRight: 10 }}>
+                                {isAnnual ? 'Annual Plans' : 'Monthly Plans'}
+                            </label>
+                            <div>
+                                <label className="Toggler-wrap">
+                                    <input
+                                        className="btn-toggler"
+                                        type="checkbox"
+                                        onChange={() => handlePlanToggle()}
+                                        name="planDuration"
+                                        id="planDuration"
+                                        checked={isAnnual}
+                                    />
+                                    <span className="TogglerBtn-slider round"></span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     <form onSubmit={handleSubmit(submit)}>
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -112,7 +161,6 @@ const ProjectUpgrade = ({
                                                                 flex: 1,
                                                                 padding: 0,
                                                             }}
-                                                        key={index}
                                                         >
                                                             <span
                                                                 style={{
@@ -217,17 +265,6 @@ const ProjectUpgrade = ({
                                                     </div>
                                                 </label>
                                             </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label"></label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <span
-                                                        className="value"
-                                                        style={{
-                                                            marginTop: '6px',
-                                                        }}
-                                                    ></span>
-                                        </div>
-                                            </div>
                                         </div>
                                     </fieldset>
                                 </div>
@@ -280,6 +317,7 @@ ProjectUpgrade.propTypes = {
     ]),
     changePlan: PropTypes.func,
     project: PropTypes.object,
+    activeForm: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -296,6 +334,9 @@ const mapStateToProps = state => {
         initialValues: {
             planId: project && project.stripePlanId,
         },
+        activeForm:
+            state.form.UpgradeProjectForm &&
+            state.form.UpgradeProjectForm.values.planId,
     };
 };
 
