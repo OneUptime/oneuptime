@@ -16,7 +16,7 @@ const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = 300000;
+    const operationTimeOut = 500000;
 
     let cluster;
 
@@ -199,58 +199,65 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    test('Should navigate to monitor details and get list of scheduled events and paginate scheduled events', async () => {
-        expect.assertions(1);
-        await cluster.execute(null, async ({ page }) => {
-            await page.setDefaultTimeout(utils.timeout);
-            // Navigate to Monitor details
-            await init.navigateToMonitorDetails(
-                componentName,
-                monitorName,
-                page
-            );
+    test(
+        'Should navigate to monitor details and get list of scheduled events and paginate scheduled events',
+        async () => {
+            expect.assertions(1);
+            await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
 
-            const addButtonSelector = '#addScheduledEventButton';
-            await page.waitForSelector(addButtonSelector);
-            await page.click(addButtonSelector);
+                const addButtonSelector = '#addScheduledEventButton';
+                await page.waitForSelector(addButtonSelector);
+                await page.click(addButtonSelector);
 
-            await page.click('input[name=startDate]');
-            await page.click(
-                'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
-            );
-            await page.waitFor(2000);
-            await page.click('input[name=endDate]');
-            await page.click(
-                'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
-            );
+                await page.click('input[name=startDate]');
+                await page.click(
+                    'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
+                );
+                await page.waitFor(5000);
+                await page.click('input[name=endDate]');
+                await page.click(
+                    'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
+                );
 
-            await page.type('input[name=name]', `${utils.scheduledEventName}1`);
-            await page.type(
-                'textarea[name=description]',
-                utils.scheduledEventDescription
-            );
+                await page.type(
+                    'input[name=name]',
+                    `${utils.scheduledEventName}1`
+                );
+                await page.type(
+                    'textarea[name=description]',
+                    utils.scheduledEventDescription
+                );
 
-            await page.click('#createScheduledEventButton');
-            await page.waitFor(60000);
+                await page.click('#createScheduledEventButton');
+                await page.waitFor(20000);
 
-            try {
-                await page.reload({ waitUntil: 'domcontentloaded' });
-            } catch (e) {
-                //
-            }
+                try {
+                    await page.reload({ waitUntil: 'networkidle2' });
+                } catch (e) {
+                    //
+                }
 
-            await page.waitFor(20000);
-            const createdScheduledEventSelector =
-                '#scheduledEventsList > div.scheduled-event-list-item';
+                await page.waitFor(20000);
+                const createdScheduledEventSelector =
+                    '#scheduledEventsList > div.scheduled-event-list-item';
 
-            const scheduledEventRows = await page.$$(
-                createdScheduledEventSelector
-            );
-            const countScheduledEvent = scheduledEventRows.length;
+                const scheduledEventRows = await page.$$(
+                    createdScheduledEventSelector
+                );
+                const countScheduledEvent = scheduledEventRows.length;
 
-            expect(countScheduledEvent).toEqual(2);
-        });
-    });
+                expect(countScheduledEvent).toEqual(2);
+            });
+        },
+        operationTimeOut
+    );
 
     test(
         'Should navigate to monitor details and create a new subscriber',
