@@ -44,38 +44,33 @@ describe('Project', () => {
         });
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
+        done();
     });
 
     test(
         'should not show upgrade/downgrade box if IS_SAAS_SERVICE is false',
         async () => {
-            await cluster.execute(
-                { email, password },
-                async ({ page, data }) => {
-                    const user = {
-                        email: data.email,
-                        password: data.password,
-                    };
+            await cluster.execute(null, async ({ page }) => {
+                const user = {
+                    email,
+                    password,
+                };
 
-                    await init.loginUser(user, page);
+                await init.loginUser(user, page);
 
-                    await page.$eval('#projects > a', elem => elem.click());
-                    await page.evaluate(() => {
-                        let elem = document.querySelectorAll(
-                            '.Table > tbody tr'
-                        );
-                        elem = Array.from(elem);
-                        elem[0].click();
-                    });
+                await page.$eval('#projects > a', elem => elem.click());
+                await page.reload({ waitUntil: 'networkidle0' });
 
-                    await page.reload({ waitUntil: 'networkidle2' });
-                    const planBox = await page.$('#planBox');
-                    expect(planBox).toBeNull();
-                }
-            );
+                const elem = await page.$$('table > tbody > tr');
+                elem[0].click();
+
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                const planBox = await page.$('#planBox');
+                expect(planBox).toBeNull();
+            });
         },
         operationTimeOut
     );
