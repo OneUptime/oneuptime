@@ -102,5 +102,5 @@ module.exports = {
     generateRandomString,
     generateRandomBusinessEmail,
     generateRandomWebsite,
-    timeout: 300000,
+    timeout: 500000,
 };
