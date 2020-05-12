@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -19,44 +19,48 @@ function validate(values) {
     return errors;
 }
 
-const ProjectUpgrade = ({
-    handleSubmit,
-    changePlan,
-    isRequesting,
-    error,
-    project,
-    activeForm,
-}) => {
-    const [planDuration, setPlanDuration] = useState('annual');
-    const [isAnnual, setIsAnnual] = useState(true);
+class ProjectUpgrade extends Component {
+    constructor(props) {
+        super(props);
+        this.enterprisePlan = {
+            category: 'Enterprise',
+            planId: 'enterprise',
+        };
+        this.plansArr = PricingPlan.getPlans();
 
-    const getPlansFromToggle = (planDuration, plansArr) =>
-        plansArr.filter(plan => plan.type === planDuration);
+        this.getPlansFromToggle = (planDuration, plansArr) =>
+            plansArr.filter(plan => plan.type === planDuration);
 
-    const plansArr = PricingPlan.getPlans();
-    const [plans, setPlan] = useState(
-        getPlansFromToggle(planDuration, plansArr)
-    );
+        this.state = {
+            isAnnual: true,
+            plans: this.getPlansFromToggle('annual', this.plansArr),
+        };
+    }
 
-    const enterprisePlan = {
-        category: 'Enterprise',
-        planId: 'enterprise',
-    };
+    componentDidUpdate(prevProps, prevState) {
+        this.shouldTogglePlans(prevState);
+    }
 
-    const handlePlanToggle = () => {
-        setIsAnnual(!isAnnual);
-    };
-
-    useEffect(() => {
-        if (isAnnual) {
-            setPlanDuration('annual');
-        } else {
-            setPlanDuration('month');
+    shouldTogglePlans = prevState => {
+        if (this.state.isAnnual !== prevState.isAnnual) {
+            if (this.state.isAnnual) {
+                this.setState({
+                    plans: this.getPlansFromToggle('annual', this.plansArr),
+                });
+            } else {
+                this.setState({
+                    plans: this.getPlansFromToggle('month', this.plansArr),
+                });
+            }
         }
-        setPlan(getPlansFromToggle(planDuration, plansArr));
-    }, [isAnnual, planDuration]);
+    };
 
-    const submit = values => {
+    handlePlanToggle = () => {
+        this.setState(prevState => ({ isAnnual: !prevState.isAnnual }));
+    };
+
+    submit = values => {
+        const { project, changePlan } = this.props;
         let oldPlan, newPlan;
         const { _id, name, stripePlanId } = project;
 
@@ -66,7 +70,7 @@ const ProjectUpgrade = ({
         }
 
         if (stripePlanId === 'enterprise') {
-            oldPlan = enterprisePlan.category;
+            oldPlan = this.enterprisePlan.category;
 
             const {
                 category: newCategory,
@@ -94,58 +98,122 @@ const ProjectUpgrade = ({
         changePlan(_id, values.planId, name, oldPlan, newPlan);
     };
 
-    return (
-        <div id="planBox" className="Box-root Margin-bottom--12">
-            <div className="bs-ContentSection Card-root Card-shadow--medium">
-                <div className="Box-root">
-                    <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root">
-                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                <span>Change Project Plan</span>
-                            </span>
-                            <p>
-                                <span>
-                                    Upgrade or change the plan of this project.
+    render() {
+        const { handleSubmit, isRequesting, error, activeForm } = this.props;
+        const { isAnnual, plans } = this.state;
+
+        return (
+            <div id="planBox" className="Box-root Margin-bottom--12">
+                <div className="bs-ContentSection Card-root Card-shadow--medium">
+                    <div className="Box-root">
+                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                            <div className="Box-root">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span>Change Project Plan</span>
                                 </span>
-                            </p>
-                        </div>
-                        <div
-                            className="bs-Fieldset-row"
-                            style={{
-                                padding: 0,
-                                display: 'flex',
-                                marginTop: 15,
-                            }}
-                        >
-                            <label style={{ marginRight: 10 }}>
-                                {isAnnual ? 'Annual Plans' : 'Monthly Plans'}
-                            </label>
-                            <div>
-                                <label className="Toggler-wrap">
-                                    <input
-                                        className="btn-toggler"
-                                        type="checkbox"
-                                        onChange={() => handlePlanToggle()}
-                                        name="planDuration"
-                                        id="planDuration"
-                                        checked={isAnnual}
-                                    />
-                                    <span className="TogglerBtn-slider round"></span>
+                                <p>
+                                    <span>
+                                        Upgrade or change the plan of this
+                                        project.
+                                    </span>
+                                </p>
+                            </div>
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{
+                                    padding: 0,
+                                    display: 'flex',
+                                    marginTop: 15,
+                                }}
+                            >
+                                <label style={{ marginRight: 10 }}>
+                                    {isAnnual
+                                        ? 'Annual Plans'
+                                        : 'Monthly Plans'}
                                 </label>
+                                <div>
+                                    <label className="Toggler-wrap">
+                                        <input
+                                            className="btn-toggler"
+                                            type="checkbox"
+                                            onChange={() =>
+                                                this.handlePlanToggle()
+                                            }
+                                            name="planDuration"
+                                            id="planDuration"
+                                            checked={isAnnual}
+                                        />
+                                        <span className="TogglerBtn-slider round"></span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <form onSubmit={handleSubmit(submit)}>
-                        <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                            <div>
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    <fieldset className="bs-Fieldset">
-                                        <div className="bs-Fieldset-rows">
-                                            <div className="price-list-4c Margin-all--16">
-                                                {plans.map(plan => (
+                        <form onSubmit={handleSubmit(this.submit)}>
+                            <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                                <div>
+                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                        <fieldset className="bs-Fieldset">
+                                            <div className="bs-Fieldset-rows">
+                                                <div className="price-list-4c Margin-all--16">
+                                                    {plans.map(plan => (
+                                                        <label
+                                                            key={plan.planId}
+                                                            htmlFor={`${plan.category}_${plan.type}`}
+                                                            style={{
+                                                                cursor:
+                                                                    'pointer',
+                                                            }}
+                                                        >
+                                                            <div
+                                                                className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${
+                                                                    activeForm ===
+                                                                    plan.planId
+                                                                        ? 'price-list-item--active'
+                                                                        : ''
+                                                                }`}
+                                                                style={{
+                                                                    flex: 1,
+                                                                    padding: 0,
+                                                                }}
+                                                            >
+                                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                    <span
+                                                                        style={{
+                                                                            marginBottom:
+                                                                                '4px',
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            plan.category
+                                                                        }{' '}
+                                                                        Plan
+                                                                    </span>
+                                                                </span>
+                                                                <RadioInput
+                                                                    id={`${plan.category}_${plan.type}`}
+                                                                    details={
+                                                                        plan.details
+                                                                    }
+                                                                    value={
+                                                                        plan.planId
+                                                                    }
+                                                                    style={{
+                                                                        display:
+                                                                            'flex',
+                                                                        alignItems:
+                                                                            'center',
+                                                                        justifyContent:
+                                                                            'center',
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </label>
+                                                    ))}
                                                     <label
-                                                        key={plan.planId}
-                                                        htmlFor={`${plan.category}_${plan.type}`}
+                                                        htmlFor={
+                                                            this.enterprisePlan
+                                                                .category
+                                                        }
                                                         style={{
                                                             cursor: 'pointer',
                                                         }}
@@ -153,7 +221,7 @@ const ProjectUpgrade = ({
                                                         <div
                                                             className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${
                                                                 activeForm ===
-                                                                plan.planId
+                                                                'enterprise'
                                                                     ? 'price-list-item--active'
                                                                     : ''
                                                             }`}
@@ -170,20 +238,18 @@ const ProjectUpgrade = ({
                                                                     }}
                                                                 >
                                                                     {
-                                                                        plan.category
+                                                                        this
+                                                                            .enterprisePlan
+                                                                            .category
                                                                     }{' '}
                                                                     Plan
                                                                 </span>
                                                             </span>
-                                                            <RadioInput
-                                                                id={`${plan.category}_${plan.type}`}
-                                                                details={
-                                                                    plan.details
-                                                                }
-                                                                value={
-                                                                    plan.planId
-                                                                }
+                                                            <div
+                                                                className="bs-Fieldset-field"
                                                                 style={{
+                                                                    width:
+                                                                        '100%',
                                                                     display:
                                                                         'flex',
                                                                     alignItems:
@@ -191,120 +257,84 @@ const ProjectUpgrade = ({
                                                                     justifyContent:
                                                                         'center',
                                                                 }}
-                                                            />
+                                                            >
+                                                                <Field
+                                                                    required={
+                                                                        true
+                                                                    }
+                                                                    component="input"
+                                                                    type="radio"
+                                                                    name="planId"
+                                                                    id={
+                                                                        this
+                                                                            .enterprisePlan
+                                                                            .category
+                                                                    }
+                                                                    value={
+                                                                        this
+                                                                            .enterprisePlan
+                                                                            .planId
+                                                                    }
+                                                                    className="Margin-right--12"
+                                                                />
+                                                                <label
+                                                                    htmlFor={
+                                                                        this
+                                                                            .enterprisePlan
+                                                                            .category
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        this
+                                                                            .enterprisePlan
+                                                                            .category
+                                                                    }
+                                                                </label>
+                                                            </div>
                                                         </div>
                                                     </label>
-                                                ))}
-                                                <label
-                                                    htmlFor={
-                                                        enterprisePlan.category
-                                                    }
-                                                    style={{
-                                                        cursor: 'pointer',
-                                                    }}
-                                                >
-                                                    <div
-                                                        className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${
-                                                            activeForm ===
-                                                            'enterprise'
-                                                                ? 'price-list-item--active'
-                                                                : ''
-                                                        }`}
-                                                        style={{
-                                                            flex: 1,
-                                                            padding: 0,
-                                                        }}
-                                                    >
-                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                            <span
-                                                                style={{
-                                                                    marginBottom:
-                                                                        '4px',
-                                                                }}
-                                                            >
-                                                                {
-                                                                    enterprisePlan.category
-                                                                }{' '}
-                                                                Plan
-                                                            </span>
-                                                        </span>
-                                                        <div
-                                                            className="bs-Fieldset-field"
-                                                            style={{
-                                                                width: '100%',
-                                                                display: 'flex',
-                                                                alignItems:
-                                                                    'center',
-                                                                justifyContent:
-                                                                    'center',
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                required={true}
-                                                                component="input"
-                                                                type="radio"
-                                                                name="planId"
-                                                                id={
-                                                                    enterprisePlan.category
-                                                                }
-                                                                value={
-                                                                    enterprisePlan.planId
-                                                                }
-                                                                className="Margin-right--12"
-                                                            />
-                                                            <label
-                                                                htmlFor={
-                                                                    enterprisePlan.category
-                                                                }
-                                                            >
-                                                                {
-                                                                    enterprisePlan.category
-                                                                }
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                </label>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </fieldset>
+                                        </fieldset>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                            <span className="db-SettingsForm-footerMessage">
-                                <ShouldRender if={!isRequesting && error}>
-                                    <div className="Box-background--white">
-                                        <div
-                                            className="Padding-all--20"
-                                            style={{ color: 'red' }}
-                                        >
-                                            {error}
+                            <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                <span className="db-SettingsForm-footerMessage">
+                                    <ShouldRender if={!isRequesting && error}>
+                                        <div className="Box-background--white">
+                                            <div
+                                                className="Padding-all--20"
+                                                style={{ color: 'red' }}
+                                            >
+                                                {error}
+                                            </div>
                                         </div>
-                                    </div>
-                                </ShouldRender>
-                            </span>
-                            <div>
-                                <button
-                                    className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                    disabled={isRequesting}
-                                    type="submit"
-                                    id="submitChangePlan"
-                                >
-                                    <ShouldRender if={isRequesting}>
-                                        <FormLoader />
                                     </ShouldRender>
-                                    <ShouldRender if={!isRequesting}>
-                                        <span>Change Plan</span>
-                                    </ShouldRender>
-                                </button>
+                                </span>
+                                <div>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        disabled={isRequesting}
+                                        type="submit"
+                                        id="submitChangePlan"
+                                    >
+                                        <ShouldRender if={isRequesting}>
+                                            <FormLoader />
+                                        </ShouldRender>
+                                        <ShouldRender if={!isRequesting}>
+                                            <span>Change Plan</span>
+                                        </ShouldRender>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
-};
+        );
+    }
+}
 
 ProjectUpgrade.displayName = 'Project Upgrade';
 
