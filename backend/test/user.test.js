@@ -12,6 +12,7 @@ const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const UserModel = require('../backend/models/user');
+const SsoModel = require('../backend/models/sso');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 
@@ -432,4 +433,32 @@ describe('User API', function() {
                 done();
             });
     });
+});
+
+let ssoId;
+describe('SSO authentication', function () {
+    this.timeout(20000);
+    before(async() => {
+        const sso = await SsoModel.create({
+            'saml-enabled': true,
+            domain: 'localhost',
+            samlSsoUrl: 'http://localhost/login',
+            remoteLogoutUrl: 'http://localhost/logout',
+        })
+        ssoId = sso._id;
+    });
+    after(async () => {
+        await SsoModel.remove({ _id: ssoId })
+    });
+    // GET /user/sso/login
+    it('Should not accept request without email as query', function(done) {
+        request
+        .get('/user/sso/login')
+        .end(function(err,res){
+                console.log(res)
+                expect(res).to.have.status(400)
+                done();
+            });
+    })
+
 });
