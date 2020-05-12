@@ -25,6 +25,7 @@ module.exports = {
             LogWeek.maxStorageUsed = data.storageUsed;
             LogWeek.maxMainTemp = data.mainTemp;
             LogWeek.intervalDate = data.intervalDate;
+            LogWeek.sslCertificate = data.sslCertificate;
 
             const savedLogWeek = await LogWeek.save();
 

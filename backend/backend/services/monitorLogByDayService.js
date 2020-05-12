@@ -25,6 +25,7 @@ module.exports = {
             LogDay.maxStorageUsed = data.storageUsed;
             LogDay.maxMainTemp = data.mainTemp;
             LogDay.intervalDate = data.intervalDate;
+            LogDay.sslCertificate = data.sslCertificate;
 
             const savedLogDay = await LogDay.save();
 
