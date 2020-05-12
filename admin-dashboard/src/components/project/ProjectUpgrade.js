@@ -204,7 +204,8 @@ class ProjectUpgrade extends Component {
                                                                             'center',
                                                                         justifyContent:
                                                                             'center',
-                                                                        color: '#4c4c4c',
+                                                                        color:
+                                                                            '#4c4c4c',
                                                                     }}
                                                                 />
                                                             </div>
@@ -257,7 +258,8 @@ class ProjectUpgrade extends Component {
                                                                         'center',
                                                                     justifyContent:
                                                                         'center',
-                                                                    color: '#4c4c4c',
+                                                                    color:
+                                                                        '#4c4c4c',
                                                                 }}
                                                             >
                                                                 <Field
