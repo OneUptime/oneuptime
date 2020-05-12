@@ -162,18 +162,18 @@ const ProjectUpgrade = ({
                                                                 padding: 0,
                                                             }}
                                                         >
-                                                            <span
-                                                                style={{
-                                                                    marginBottom:
-                                                                        '4px',
-                                                                }}
-                                                            >
-                                                                {plan.category}{' '}
-                                                                {plan.type ===
-                                                                'month'
-                                                                    ? 'Monthly'
-                                                                    : 'Yearly'}{' '}
-                                                                Plan
+                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                <span
+                                                                    style={{
+                                                                        marginBottom:
+                                                                            '4px',
+                                                                    }}
+                                                                >
+                                                                    {
+                                                                        plan.category
+                                                                    }{' '}
+                                                                    Plan
+                                                                </span>
                                                             </span>
                                                             <RadioInput
                                                                 id={`${plan.category}_${plan.type}`}
@@ -215,16 +215,18 @@ const ProjectUpgrade = ({
                                                             padding: 0,
                                                         }}
                                                     >
-                                                        <span
-                                                            style={{
-                                                                marginBottom:
-                                                                    '4px',
-                                                            }}
-                                                        >
-                                                            {
-                                                                enterprisePlan.category
-                                                            }{' '}
-                                                            Plan
+                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                            <span
+                                                                style={{
+                                                                    marginBottom:
+                                                                        '4px',
+                                                                }}
+                                                            >
+                                                                {
+                                                                    enterprisePlan.category
+                                                                }{' '}
+                                                                Plan
+                                                            </span>
                                                         </span>
                                                         <div
                                                             className="bs-Fieldset-field"
