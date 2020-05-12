@@ -33,6 +33,3 @@ encrypted-credentials.tar
 encrypted-credentials/
 
 _README.md
-
-# This is the build directory of gcp-deployer.
-gcp-deployer/chart

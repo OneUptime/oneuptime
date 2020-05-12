@@ -1,4 +1,4 @@
-import { putApi } from '../api';
+import { putApi, deleteApi } from '../api';
 import * as types from '../constants/domain';
 
 export function verifyDomainRequest() {
@@ -85,6 +85,91 @@ export function createDomain({ projectId, statusPageId, domain }) {
                     ? error.message
                     : 'Network Error';
             dispatch(createDomainFailure(errorMsg));
+        }
+    };
+}
+
+export function deleteDomainRequest() {
+    return {
+        type: types.DELETE_DOMAIN_REQUEST,
+    };
+}
+
+export function deleteDomainSuccess(payload) {
+    return {
+        type: types.DELETE_DOMAIN_SUCCESS,
+        payload,
+    };
+}
+
+export function deleteDomainFailure(payload) {
+    return {
+        type: types.DELETE_DOMAIN_FAILURE,
+        payload,
+    };
+}
+
+export function deleteDomain({ projectId, statusPageId, domainId }) {
+    return async function(dispatch) {
+        dispatch(deleteDomainRequest());
+        try {
+            const response = await deleteApi(
+                `statusPage/${projectId}/${statusPageId}/${domainId}`
+            );
+            dispatch(deleteDomainSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteDomainFailure(errorMsg));
+        }
+    };
+}
+
+export function updateDomainRequest() {
+    return {
+        type: types.UPDATE_DOMAIN_REQUEST,
+    };
+}
+
+export function updateDomainSuccess(payload) {
+    return {
+        type: types.UPDATE_DOMAIN_SUCCESS,
+        payload,
+    };
+}
+
+export function updateDomainFailure(payload) {
+    return {
+        type: types.UPDATE_DOMAIN_FAILURE,
+        payload,
+    };
+}
+
+export function updateDomain({ projectId, statusPageId, domainId, newDomain }) {
+    return async function(dispatch) {
+        dispatch(updateDomainRequest());
+        try {
+            const response = await putApi(
+                `statusPage/${projectId}/${statusPageId}/${domainId}`,
+                { domain: newDomain }
+            );
+            dispatch(updateDomainSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateDomainFailure(errorMsg));
         }
     };
 }

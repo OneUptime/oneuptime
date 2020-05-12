@@ -44,21 +44,21 @@ module.exports = {
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42424242424242424242', {
-                delay: 50,
+                delay: 150,
             });
 
             elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cvc]');
             await frame.type('input[name=cvc]', '123', {
-                delay: 50,
+                delay: 150,
             });
 
             elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23', {
-                delay: 50,
+                delay: 150,
             });
             await page.click('input[name=address1]');
             await page.type('input[name=address1]', utils.user.address.streetA);
@@ -410,5 +410,20 @@ module.exports = {
         } else {
             request.continue();
         }
+    },
+    addProject: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#AccountSwitcherId');
+        await page.click('#AccountSwitcherId');
+        await page.waitForSelector('#create-project');
+        await page.click('#create-project');
+        await page.waitForSelector('#name');
+        await page.type('#name', 'test');
+        await page.$$eval(
+            'input[name="planId"]',
+            inputs => inputs[0].click() // select the first plan
+        );
+        await page.click('#btnCreateProject');
+        await page.waitForNavigation({ waitUntil: 'networkidle0' });
     },
 };

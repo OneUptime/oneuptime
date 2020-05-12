@@ -43,6 +43,11 @@ const placeholderfilter = [
     'isDown',
     'empty',
     'notEmpty',
+    'isValid',
+    'notFound',
+    'selfSigned',
+    'expiresIn30',
+    'expiresIn10',
 ];
 const mapValue = {
     greaterThan: 'Greater Than',
@@ -210,6 +215,13 @@ export class RenderOption extends Component {
                                 {
                                     value: 'responseBody',
                                     label: 'Response Body',
+                                    show:
+                                        type !== 'script' &&
+                                        type !== 'server-monitor',
+                                },
+                                {
+                                    value: 'ssl',
+                                    label: 'SSL',
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor',
@@ -495,6 +507,41 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType === 'error',
+                                    },
+                                    {
+                                        value: 'isValid',
+                                        label: 'Is Valid',
+                                        show:
+                                            bodyfield &&
+                                            bodyfield.responseType === 'ssl',
+                                    },
+                                    {
+                                        value: 'notFound',
+                                        label: 'Not Found',
+                                        show:
+                                            bodyfield &&
+                                            bodyfield.responseType === 'ssl',
+                                    },
+                                    {
+                                        value: 'selfSigned',
+                                        label: 'Self Signed',
+                                        show:
+                                            bodyfield &&
+                                            bodyfield.responseType === 'ssl',
+                                    },
+                                    {
+                                        value: 'expiresIn30',
+                                        label: 'Expires in 30 days',
+                                        show:
+                                            bodyfield &&
+                                            bodyfield.responseType === 'ssl',
+                                    },
+                                    {
+                                        value: 'expiresIn10',
+                                        label: 'Expires in 10 days',
+                                        show:
+                                            bodyfield &&
+                                            bodyfield.responseType === 'ssl',
                                     },
                                 ]}
                             />

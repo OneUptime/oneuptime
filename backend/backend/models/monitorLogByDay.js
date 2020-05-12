@@ -28,5 +28,6 @@ const monitorLogByDaySchema = new Schema({
     maxMemoryUsed: Number,
     maxStorageUsed: Number,
     maxMainTemp: Number,
+    sslCertificate: Object,
 });
 module.exports = mongoose.model('MonitorLogByDay', monitorLogByDaySchema);

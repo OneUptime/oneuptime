@@ -3432,7 +3432,6 @@ html.db-NewChrome body {
 }
 .db-Trend-row {
     display: flex;
-    height: 24px;
 }
 .db-Trend-rowTitle {
     font-size: 14px;

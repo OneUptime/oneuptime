@@ -41,13 +41,6 @@ then
     sudo apt-get install -y python-jsonpath-rw
 fi
 
-if [[ "$2" == "aws-ec2" ]]
-then
-    # 169.254.169.254 is a static AWS service which amazon uses to get instance id
-    # https://forums.aws.amazon.com/thread.jspa?threadID=100982
-    INSTANCEID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`
-fi
-
 #Install Docker and setup registry and insecure access to it.
 if [[ ! $(which docker) ]]
 then
@@ -163,17 +156,23 @@ then
     then   
         if [[ "$2" == "aws-ec2" ]]
         then
+            # 169.254.169.254 is a static AWS service which amazon uses to get instance id
+            # https://forums.aws.amazon.com/thread.jspa?threadID=100982
+            INSTANCEID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`
+
             # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
             # Add Admin Email and Password on AWS.
             sudo helm install fyipe fyipe/Fyipe \
             --set isThirdPartyBilling=true \
             --set nginx-ingress-controller.service.type=NodePort \
             --set nginx-ingress-controller.hostNetwork=true \
-            --set image.tag=$AVAILABLE_VERSION
-            --set fyipe.admin.email=admin@admin.com
-            --set fyipe.admin.password=$INSTANCEID
+            --set image.tag=$AVAILABLE_VERSION \
+            --set fyipe.admin.email=admin@admin.com \
+            --set disableSignup=true \
+            --set fyipe.admin.password=$INSTANCEID 
+            
         else
-            # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
+            # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. This is used for Azure and AWS.
             sudo helm install fyipe fyipe/Fyipe \
             --set isThirdPartyBilling=true \
             --set nginx-ingress-controller.service.type=NodePort \

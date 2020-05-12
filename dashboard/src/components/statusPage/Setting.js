@@ -25,9 +25,15 @@ import {
     IS_LOCALHOST,
     IS_SAAS_SERVICE,
 } from '../../config';
-import { verifyDomain, createDomain } from '../../actions/domain';
+import {
+    verifyDomain,
+    createDomain,
+    deleteDomain,
+    updateDomain,
+} from '../../actions/domain';
 import { openModal, closeModal } from '../../actions/modal';
 import VerifyDomainModal from './VerifyDomainModal';
+import DeleteDomainModal from './DeleteDomainModal';
 
 //Client side validation
 function validate(values) {
@@ -41,9 +47,31 @@ function validate(values) {
 }
 
 export class Setting extends Component {
-    state = { verifyModalId: uuid.v4() };
+    state = { verifyModalId: uuid.v4(), deleteDomainModalId: uuid.v4() };
 
     submitForm = values => {
+        if ('domain' in values) {
+            return this.handleCreateDomain({ domain: values.domain });
+        }
+
+        const isChanged =
+            JSON.stringify(this.props.initialFormValues) ===
+            JSON.stringify(values);
+
+        if (!isChanged) {
+            let data = {};
+            for (const property in values) {
+                if (
+                    this.props.initialFormValues[property] !== values[property]
+                ) {
+                    data = { domain: values[property], _id: property };
+                }
+            }
+            this.handleUpdateDomain(data);
+        }
+    };
+
+    handleCreateDomain = values => {
         const { reset } = this.props;
         const { domain } = values;
         const { _id, projectId } = this.props.statusPage.status;
@@ -56,6 +84,29 @@ export class Setting extends Component {
             statusPageId: _id,
         };
         this.props.createDomain(data).then(
+            () => {
+                reset();
+            },
+            function() {}
+        );
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('StatusPage Domain Updated', values);
+        }
+    };
+
+    handleUpdateDomain = values => {
+        const { reset } = this.props;
+        const { _id, projectId } = this.props.statusPage.status;
+
+        if (!values.domain) return;
+
+        const data = {
+            projectId: projectId._id || projectId,
+            statusPageId: _id,
+            domainId: values._id,
+            newDomain: values.domain,
+        };
+        this.props.updateDomain(data).then(
             () => {
                 reset();
             },
@@ -107,10 +158,42 @@ export class Setting extends Component {
         });
     };
 
+    handleDeleteDomain = (e, domain) => {
+        e.preventDefault();
+        const { deleteDomain } = this.props;
+        const { _id, projectId } = this.props.statusPage.status;
+        const thisObj = this;
+
+        const data = {
+            projectId: projectId._id || projectId,
+            statusPageId: _id,
+            domainId: domain._id,
+        };
+        this.props.openModal({
+            id: this.state.deleteDomainModalId,
+            onConfirm: () => {
+                //Todo: handle the dispatch to delete domain
+                return deleteDomain(data).then(() => {
+                    if (this.props.deleteDomainError) {
+                        // prevent dismissal of modal if errored
+                        return this.handleDeleteDomain();
+                    }
+
+                    if (window.location.href.indexOf('localhost') <= -1) {
+                        thisObj.context.mixpanel.track('Delete domain');
+                    }
+                });
+            },
+            content: DeleteDomainModal,
+        });
+    };
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({ id: this.state.verifyModalId });
+                return this.props.closeModal({
+                    id: this.state.verifyModalId,
+                });
             default:
                 return false;
         }
@@ -161,10 +244,8 @@ export class Setting extends Component {
                     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                    <span
-                                        style={{ textTransform: 'capitalize' }}
-                                    >
+                                <span className="ContentHeader-title Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         Domain and CNAME Settings
                                     </span>
                                 </span>
@@ -329,39 +410,87 @@ export class Setting extends Component {
                                                                                 </span>
                                                                             )}
                                                                     </p>
-                                                                    <ShouldRender
-                                                                        if={
-                                                                            !domain
-                                                                                .domainVerificationToken
-                                                                                .verified
-                                                                        }
+                                                                    <div
+                                                                        className="bs-Fieldset-row"
+                                                                        style={{
+                                                                            alignItems:
+                                                                                'center',
+                                                                            paddingLeft: 0,
+                                                                            paddingBottom: 0,
+                                                                        }}
                                                                     >
-                                                                        <div
-                                                                            className="bs-Fieldset-row"
-                                                                            style={{
-                                                                                marginBottom: -5,
-                                                                                marginTop: -5,
-                                                                                paddingLeft: 0,
-                                                                                paddingRight: 0,
-                                                                            }}
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                !domain
+                                                                                    .domainVerificationToken
+                                                                                    .verified
+                                                                            }
                                                                         >
-                                                                            <button
-                                                                                id="btnVerifyDomain"
-                                                                                className="bs-Button"
-                                                                                onClick={e => {
-                                                                                    this.handleVerifyDomain(
-                                                                                        e,
-                                                                                        domain
-                                                                                    );
+                                                                            <div
+                                                                                className="bs-Fieldset-row"
+                                                                                style={{
+                                                                                    paddingLeft: 0,
+                                                                                    paddingRight: 0,
+                                                                                    marginRight:
+                                                                                        '15px',
                                                                                 }}
                                                                             >
-                                                                                <span>
-                                                                                    Verify
-                                                                                    domain
-                                                                                </span>
-                                                                            </button>
-                                                                        </div>
-                                                                    </ShouldRender>
+                                                                                <button
+                                                                                    id="btnVerifyDomain"
+                                                                                    className="bs-Button"
+                                                                                    onClick={e => {
+                                                                                        this.handleVerifyDomain(
+                                                                                            e,
+                                                                                            domain
+                                                                                        );
+                                                                                    }}
+                                                                                >
+                                                                                    <span>
+                                                                                        Verify
+                                                                                        domain
+                                                                                    </span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </ShouldRender>
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                this
+                                                                                    .props
+                                                                                    .domains &&
+                                                                                this
+                                                                                    .props
+                                                                                    .domains
+                                                                                    .length >
+                                                                                    1
+                                                                            }
+                                                                        >
+                                                                            <div
+                                                                                className="bs-Fieldset-row"
+                                                                                style={{
+                                                                                    paddingLeft: 0,
+                                                                                    paddingRight: 0,
+                                                                                    paddingBottom: 0,
+                                                                                }}
+                                                                            >
+                                                                                <button
+                                                                                    className="btnDeleteDomain bs-Button"
+                                                                                    onClick={e => {
+                                                                                        //Todo: handle delete here
+                                                                                        this.handleDeleteDomain(
+                                                                                            e,
+                                                                                            domain
+                                                                                        );
+                                                                                    }}
+                                                                                >
+                                                                                    <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                                    <span>
+                                                                                        Delete
+                                                                                        Domain
+                                                                                    </span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </ShouldRender>
+                                                                    </div>
                                                                 </div>
                                                                 <ShouldRender
                                                                     if={domain}
@@ -619,14 +748,20 @@ export class Setting extends Component {
                                         <ShouldRender
                                             if={
                                                 this.props.statusPage.setting
-                                                    .error
+                                                    .error ||
+                                                this.props.updateDomainError
                                             }
                                         >
-                                            <span style={{ color: 'red' }}>
-                                                {
-                                                    this.props.statusPage
-                                                        .setting.error
-                                                }
+                                            <span
+                                                style={{
+                                                    color: 'red',
+                                                    display: 'block',
+                                                }}
+                                            >
+                                                {this.props.statusPage.setting
+                                                    .error ||
+                                                    this.props
+                                                        .updateDomainError}
                                             </span>
                                         </ShouldRender>
                                         <ShouldRender
@@ -686,12 +821,18 @@ export class Setting extends Component {
                                         }
                                         type="submit"
                                     >
-                                        {!this.props.statusPage.setting
-                                            .requesting && (
+                                        {(!this.props.statusPage.setting
+                                            .requesting ||
+                                            !this.props
+                                                .updateDomainRequesting) && (
                                             <span>Save Domain Settings </span>
                                         )}
-                                        {this.props.statusPage.setting
-                                            .requesting && <FormLoader />}
+                                        {(this.props.statusPage.setting
+                                            .requesting ||
+                                            this.props
+                                                .updateDomainRequesting) && (
+                                            <FormLoader />
+                                        )}
                                     </button>
                                 </RenderIfSubProjectAdmin>
                             </div>
@@ -724,6 +865,18 @@ Setting.propTypes = {
     closeModal: PropTypes.func,
     verifyError: PropTypes.bool,
     addDomain: PropTypes.object,
+    deleteDomain: PropTypes.func,
+    deleteDomainError: PropTypes.oneOfType([
+        PropTypes.oneOf([null, undefined]),
+        PropTypes.string,
+    ]),
+    updateDomain: PropTypes.func,
+    updateDomainError: PropTypes.oneOfType([
+        PropTypes.oneOfType([null, undefined]),
+        PropTypes.string,
+    ]),
+    updateDomainRequesting: PropTypes.bool,
+    initialFormValues: PropTypes.object,
 };
 
 const SettingForm = reduxForm({
@@ -743,6 +896,8 @@ const mapDispatchToProps = dispatch => {
             cancelAddMoreDomain,
             verifyDomain,
             createDomain,
+            updateDomain,
+            deleteDomain,
             openModal,
             closeModal,
         },
@@ -781,6 +936,12 @@ function mapStateToProps(state) {
             state.statusPage.verifyDomain &&
             state.statusPage.verifyDomain.error,
         addDomain: state.statusPage.addDomain,
+        deleteDomainError:
+            state.statusPage.deleteDomain &&
+            state.statusPage.deleteDomain.error,
+        updateDomainError: state.statusPage.updateDomain.error,
+        updateDomainRequesting: state.statusPage.updateDomain.requesting,
+        initialFormValues: state.form.Setting && state.form.Setting.initial,
     };
 }
 

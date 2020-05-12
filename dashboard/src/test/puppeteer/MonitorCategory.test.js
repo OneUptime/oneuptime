@@ -28,7 +28,7 @@ describe('Monitor Category', () => {
         });
 
         // Register user
-        await cluster.execute(async ({ page }) => {
+        return await cluster.execute(async ({ page }) => {
             const user = {
                 email,
                 password,
@@ -52,7 +52,7 @@ describe('Monitor Category', () => {
         async () => {
             expect.assertions(1);
 
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
@@ -89,7 +89,7 @@ describe('Monitor Category', () => {
         'should show created monitor category in new monitor dropdown',
         async () => {
             expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector('#form-new-monitor');
@@ -116,7 +116,7 @@ describe('Monitor Category', () => {
     test(
         'should create a new monitor by selecting monitor category from dropdown',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -151,7 +151,7 @@ describe('Monitor Category', () => {
         'should delete the created monitor category',
         async () => {
             expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');

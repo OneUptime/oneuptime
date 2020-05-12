@@ -113,7 +113,7 @@ describe('StatusPage API With SubProjects', () => {
         'should not display create status page button for subproject `member` role.',
         async () => {
             expect.assertions(1);
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email: newEmail,
                     password: newPassword,
@@ -149,7 +149,7 @@ describe('StatusPage API With SubProjects', () => {
         async () => {
             expect.assertions(1);
             const statuspageName = utils.generateRandomString();
-            await cluster.execute(
+            return await cluster.execute(
                 { email, password, subProjectName, statuspageName },
                 async ({ page, data }) => {
                     await page.setDefaultTimeout(utils.timeout);
@@ -256,7 +256,7 @@ describe('StatusPage API With SubProjects', () => {
     test(
         'should update sub-project status page settings',
         async () => {
-            await cluster.execute(
+            return await cluster.execute(
                 { email, password, subProjectMonitorName },
                 async ({ page, data }) => {
                     await page.setDefaultTimeout(utils.timeout);
@@ -298,7 +298,7 @@ describe('StatusPage API With SubProjects', () => {
         'should delete sub-project status page',
         async () => {
             expect.assertions(1);
-            await cluster.execute(
+            return await cluster.execute(
                 {
                     email,
                     password,

@@ -514,11 +514,19 @@ module.exports = {
                 : null
             : null;
         const body = resp && resp.body ? resp.body : null;
+        const sslCertificate =
+            resp && resp.sslCertificate ? resp.sslCertificate : null;
 
         if (con && con.and && con.and.length) {
-            stat = await checkAnd(payload, con.and, status, body);
+            stat = await checkAnd(
+                payload,
+                con.and,
+                status,
+                body,
+                sslCertificate
+            );
         } else if (con && con.or && con.or.length) {
-            stat = await checkOr(payload, con.or, status, body);
+            stat = await checkOr(payload, con.or, status, body, sslCertificate);
         }
         return stat;
     },
@@ -526,7 +534,7 @@ module.exports = {
 
 const _ = require('lodash');
 
-const checkAnd = async (payload, con, statusCode, body) => {
+const checkAnd = async (payload, con, statusCode, body, ssl) => {
     let validity = true;
     for (let i = 0; i < con.length; i++) {
         if (
@@ -641,6 +649,49 @@ const checkAnd = async (payload, con, statusCode, body) => {
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
                 if (!(con[i] && con[i].filter && !payload)) {
+                    validity = false;
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'ssl') {
+            const expiresIn = moment(
+                new Date(
+                    ssl && ssl.expires ? ssl.expires : Date.now()
+                ).getTime()
+            ).diff(Date.now(), 'days');
+            if (con[i] && con[i].filter && con[i].filter === 'isValid') {
+                if (!(ssl && !ssl.selfSigned)) {
+                    validity = false;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notFound'
+            ) {
+                if (ssl) {
+                    validity = false;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'selfSigned'
+            ) {
+                if (!(ssl && ssl.selfSigned)) {
+                    validity = false;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'expiresIn30'
+            ) {
+                if (!(ssl && !ssl.selfSigned && expiresIn < 30)) {
+                    validity = false;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'expiresIn10'
+            ) {
+                if (!(ssl && !ssl.selfSigned && expiresIn < 10)) {
                     validity = false;
                 }
             }
@@ -1187,7 +1238,7 @@ const checkAnd = async (payload, con, statusCode, body) => {
     }
     return validity;
 };
-const checkOr = async (payload, con, statusCode, body) => {
+const checkOr = async (payload, con, statusCode, body, ssl) => {
     let validity = false;
     for (let i = 0; i < con.length; i++) {
         if (con[i] && con[i].responseType === 'responseTime') {
@@ -1284,6 +1335,49 @@ const checkOr = async (payload, con, statusCode, body) => {
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
                 if (con[i] && con[i].filter && !payload) {
+                    validity = true;
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'ssl') {
+            const expiresIn = moment(
+                new Date(
+                    ssl && ssl.expires ? ssl.expires : Date.now()
+                ).getTime()
+            ).diff(Date.now(), 'days');
+            if (con[i] && con[i].filter && con[i].filter === 'isValid') {
+                if (ssl && !ssl.selfSigned) {
+                    validity = true;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notFound'
+            ) {
+                if (!ssl) {
+                    validity = true;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'selfSigned'
+            ) {
+                if (ssl && ssl.selfSigned) {
+                    validity = true;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'expiresIn30'
+            ) {
+                if (ssl && !ssl.selfSigned && expiresIn < 30) {
+                    validity = true;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'expiresIn10'
+            ) {
+                if (ssl && !ssl.selfSigned && expiresIn < 10) {
                     validity = true;
                 }
             }
@@ -1778,3 +1872,4 @@ const MonitorStatusService = require('./monitorStatusService');
 const MonitorLogService = require('./monitorLogService');
 const IncidentService = require('./incidentService');
 const IncidentTimelineService = require('./incidentTimelineService');
+const moment = require('moment');
