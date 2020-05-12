@@ -33,7 +33,7 @@ describe('Enterprise Project API', () => {
                 password: data.password,
             };
             // user
-            await init.registerEnterpriseUser(user, page);
+            await init.registerUser(user, page);
         });
 
         await cluster.queue({ email, password });
