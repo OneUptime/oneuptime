@@ -119,6 +119,76 @@ router.put(
     }
 );
 
+/**
+ * @description updates a particular domain from statuspage collection
+ * @param {string} projectId id of the project
+ * @param {string} statusPageId id of the status page
+ * @param {string} domainId id of the domain on the status page
+ * @returns response body
+ */
+router.put(
+    '/:projectId/:statusPageId/:domainId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        const { projectId, statusPageId, domainId } = req.params;
+        const newDomain = req.body.domain;
+
+        if (typeof newDomain !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not of type string.',
+            });
+        }
+
+        if (!UtilService.isDomainValid(newDomain)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not valid.',
+            });
+        }
+
+        try {
+            // response should be an updated statusPage
+            const response = await StatusPageService.updateDomain(
+                projectId,
+                statusPageId,
+                domainId,
+                newDomain
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+/**
+ * @description deletes a particular domain from statuspage collection
+ * @param {string} projectId id of the project
+ * @param {string} statusPageId id of the status page
+ * @param {string} domainId id of the domain
+ * @returns response body
+ */
+router.delete(
+    '/:projectId/:statusPageId/:domainId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        const { statusPageId, domainId } = req.params;
+
+        try {
+            const response = await StatusPageService.deleteDomain(
+                statusPageId,
+                domainId
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 // Route Description: Updating Status Page.
 // Params:
 // Param1:
@@ -272,7 +342,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 data
             );
 
-            const updatedStatusPage = await StatusPageService.getStatus(
+            const updatedStatusPage = await StatusPageService.getStatusPage(
                 { _id: statusPage._id },
                 req.user.id
             );
@@ -356,12 +426,12 @@ router.get('/:statusPageId', checkUser, async function(req, res) {
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatus(
-                { domain: url },
+            statusPage = await StatusPageService.getStatusPage(
+                { domains: { $elemMatch: { domain: url } } },
                 user
             );
         } else if ((!url || url === 'null') && statusPageId) {
-            statusPage = await StatusPageService.getStatus(
+            statusPage = await StatusPageService.getStatusPage(
                 { _id: statusPageId },
                 user
             );
@@ -393,12 +463,12 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatus(
-                { domain: url },
+            statusPage = await StatusPageService.getStatusPage(
+                { domains: { $elemMatch: { domain: url } } },
                 user
             );
         } else if ((!url || url === 'null') && statusPageId) {
-            statusPage = await StatusPageService.getStatus(
+            statusPage = await StatusPageService.getStatusPage(
                 { _id: statusPageId },
                 user
             );

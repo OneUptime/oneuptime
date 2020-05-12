@@ -23,5 +23,6 @@ const monitorLogSchema = new Schema({
         type: Date,
         default: Date.now,
     },
+    sslCertificate: Object,
 });
 module.exports = mongoose.model('MonitorLog', monitorLogSchema);

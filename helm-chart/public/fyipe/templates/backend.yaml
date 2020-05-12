@@ -10,6 +10,8 @@ metadata:
         app: {{ printf "%s-%s" .Release.Name "backend"  }}
         {{- if $.Values.saas.isRunningOnGCPMarketplace }}
         app.kubernetes.io/name: "$name"
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: helm
         app.kubernetes.io/component:  {{ printf "%s-%s" .Release.Name "backend"  }}
         {{- end }}
 spec:
@@ -54,6 +56,12 @@ spec:
                         value: {{ .Values.rateLimitter.requestLimit | quote }}
                       - name: RATE_LIMITTER_ENABLED
                         value: {{ .Values.rateLimitter.enabled | quote  }}
+                      - name: ADMIN_EMAIL
+                        value: {{ .Values.fyipe.admin.email }}
+                      - name: ADMIN_PASSWORD
+                        value: {{ .Values.fyipe.admin.password }}
+                      - name: DISABLE_SIGNUP
+                        value: {{ .Values.disableSignup | quote  }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
@@ -72,10 +80,6 @@ spec:
                         value: {{ .Values.saas.airtable.baseId }}
                       - name: IS_THIRD_PARTY_BILLING
                         value: {{ .Values.isThirdPartyBilling | quote }}
-                      - name: ADMIN_EMAIL
-                        value: {{ .Values.fyipe.admin.email }}
-                      - name: ADMIN_PASSWORD
-                        value: {{ .Values.fyipe.admin.password }}
                       {{- end }}
                   ports:
                       - containerPort: {{ .Values.host.backendPort }}
@@ -115,6 +119,8 @@ kind: Service
 metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "backend"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: helm
     name: {{ printf "%s-%s" .Release.Name "backend"  }}
     namespace: {{ .Release.Namespace }}
 spec:

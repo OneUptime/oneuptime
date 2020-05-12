@@ -9,6 +9,9 @@ metadata:
     ingress.kubernetes.io/ssl-redirect: "true"
   name: {{ printf "%s-%s-%s" $.Release.Name $key "statuspage"  }}
   namespace: {{ $.Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: fyipe
+    app.kubernetes.io/managed-by: helm
 spec:
   {{- if  $value.tls.enabled }} 
   tls:

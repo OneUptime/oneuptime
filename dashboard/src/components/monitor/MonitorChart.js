@@ -109,6 +109,14 @@ export function MonitorChart({
     const type = monitor.type;
     const checkLogs = data && data.length > 0;
 
+    const sslCertificate = checkLogs ? data[0].sslCertificate : null;
+    const sslCertExpiringIn = moment(
+        new Date(
+            sslCertificate && sslCertificate.expires
+                ? sslCertificate.expires
+                : now
+        ).getTime()
+    ).diff(now, 'days');
     const responseTime = checkLogs ? data[0].responseTime : '0';
     const monitorStatus = toPascalCase(status);
     const uptime =
@@ -488,93 +496,71 @@ export function MonitorChart({
         );
     } else if (type === 'url' || type === 'api' || type === 'device') {
         monitorInfo = (
-            <div className="db-Trend">
-                <div className="block-chart-side line-chart">
-                    <div className="db-TrendRow">
-                        {isCurrentlyNotMonitoring ? (
-                            <div className="db-Trend-colInformation probe-offline">
-                                <div
-                                    className="db-Trend-rowTitle"
-                                    title="Currently not monitoring"
-                                >
-                                    <div className="db-Trend-title">
-                                        <strong>
-                                            <span className="chart-font">
-                                                Currently not monitoring
-                                            </span>
-                                        </strong>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-rowTitle">
-                                    <div className="db-Trend-title description">
-                                        <small>
-                                            <span className="chart-font">
-                                                We&apos;re currently not
-                                                monitoring this monitor from
-                                                this probe because the probe is
-                                                offline.
-                                            </span>
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="db-Trend-colInformation">
+            <>
+                <div className="db-Trend">
+                    <div className="block-chart-side line-chart">
+                        <div className="db-TrendRow">
+                            {isCurrentlyNotMonitoring ? (
+                                <div className="db-Trend-colInformation probe-offline">
                                     <div
                                         className="db-Trend-rowTitle"
-                                        title="Monitor Status"
+                                        title="Currently not monitoring"
                                     >
                                         <div className="db-Trend-title">
-                                            <span className="chart-font">
-                                                Monitor Status
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="db-Trend-row">
-                                        <div className="db-Trend-col db-Trend-colValue">
-                                            <span>
-                                                {' '}
-                                                <span
-                                                    className={`chart-font Text-color--${statusColor}`}
-                                                >
-                                                    {monitorStatus}
-                                                </span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-colInformation">
-                                    <div
-                                        className="db-Trend-rowTitle"
-                                        title="Uptime Stats"
-                                    >
-                                        <div className="db-Trend-title">
-                                            <span className="chart-font">
-                                                Uptime Stats
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="db-Trend-row">
-                                        <div className="db-Trend-col db-Trend-colValue">
-                                            <span>
-                                                {' '}
+                                            <strong>
                                                 <span className="chart-font">
-                                                    {uptime} %
+                                                    Currently not monitoring
                                                 </span>
-                                            </span>
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-rowTitle">
+                                        <div className="db-Trend-title description">
+                                            <small>
+                                                <span className="chart-font">
+                                                    We&apos;re currently not
+                                                    monitoring this monitor from
+                                                    this probe because the probe
+                                                    is offline.
+                                                </span>
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
-                                <ShouldRender if={data && data.length > 0}>
+                            ) : (
+                                <>
                                     <div className="db-Trend-colInformation">
                                         <div
                                             className="db-Trend-rowTitle"
-                                            title="Response Time"
+                                            title="Monitor Status"
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Response Time
+                                                    Monitor Status
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span
+                                                        className={`chart-font Text-color--${statusColor}`}
+                                                    >
+                                                        {monitorStatus}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Uptime Stats"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Uptime Stats
                                                 </span>
                                             </div>
                                         </div>
@@ -583,28 +569,223 @@ export function MonitorChart({
                                                 <span>
                                                     {' '}
                                                     <span className="chart-font">
-                                                        {responseTime} ms
+                                                        {uptime} %
                                                     </span>
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
-                                </ShouldRender>
-                            </>
-                        )}
+                                    <ShouldRender if={data && data.length > 0}>
+                                        <div className="db-Trend-colInformation">
+                                            <div
+                                                className="db-Trend-rowTitle"
+                                                title="Response Time"
+                                            >
+                                                <div className="db-Trend-title">
+                                                    <span className="chart-font">
+                                                        Response Time
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            {responseTime} ms
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </ShouldRender>
+                                </>
+                            )}
+                        </div>
                     </div>
+                    <ShouldRender if={!isCurrentlyNotMonitoring}>
+                        <div className="block-chart-main line-chart">
+                            <AreaChart
+                                type={type}
+                                data={data}
+                                name={'response time'}
+                                symbol="ms"
+                            />
+                        </div>
+                    </ShouldRender>
                 </div>
-                <ShouldRender if={!isCurrentlyNotMonitoring}>
-                    <div className="block-chart-main line-chart">
-                        <AreaChart
-                            type={type}
-                            data={data}
-                            name={'response time'}
-                            symbol="ms"
-                        />
+                <ShouldRender
+                    if={
+                        !isCurrentlyNotMonitoring &&
+                        checkLogs &&
+                        (type === 'url' || type === 'api')
+                    }
+                >
+                    <div
+                        className="db-Trend"
+                        style={{ height: 'auto', fontSize: '120%' }}
+                    >
+                        <div className="block-chart-side line-chart">
+                            <div
+                                className="db-TrendRow"
+                                style={{
+                                    flexFlow: 'row wrap',
+                                }}
+                            >
+                                <div
+                                    className="db-Trend-colInformation"
+                                    style={{
+                                        flexBasis: '10%',
+                                    }}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="SSL Status"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                SSL Status
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span
+                                                    className={`chart-font Text-color--${
+                                                        sslCertificate
+                                                            ? sslCertificate.selfSigned
+                                                                ? 'yellow'
+                                                                : sslCertExpiringIn <
+                                                                  30
+                                                                ? sslCertExpiringIn <
+                                                                  10
+                                                                    ? 'red'
+                                                                    : 'yellow'
+                                                                : 'green'
+                                                            : 'red'
+                                                    }`}
+                                                >
+                                                    <small
+                                                        id={`ssl-status-${monitor.name}`}
+                                                    >
+                                                        {sslCertificate
+                                                            ? sslCertificate.selfSigned
+                                                                ? 'Self Signed'
+                                                                : sslCertExpiringIn <
+                                                                  30
+                                                                ? 'Expiring Soon'
+                                                                : 'Enabled'
+                                                            : 'No SSL Found'}
+                                                    </small>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className="db-Trend-colInformation"
+                                    style={{
+                                        flexBasis: '25%',
+                                    }}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Issuer"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Issuer
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    <small>
+                                                        {sslCertificate &&
+                                                        sslCertificate.issuer
+                                                            ? sslCertificate
+                                                                  .issuer.CN
+                                                            : '-'}
+                                                    </small>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className="db-Trend-colInformation"
+                                    style={{
+                                        flexBasis: '20%',
+                                    }}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Expires"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Expires
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    <small>
+                                                        {sslCertificate &&
+                                                        sslCertificate.expires
+                                                            ? sslCertificate.expires
+                                                            : '-'}
+                                                    </small>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className="db-Trend-colInformation"
+                                    style={{
+                                        flexBasis: '35%',
+                                    }}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Fingerprint"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Fingerprint
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    <small>
+                                                        {sslCertificate &&
+                                                        sslCertificate.fingerprint
+                                                            ? sslCertificate.fingerprint
+                                                            : '-'}
+                                                    </small>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </ShouldRender>
-            </div>
+            </>
         );
     } else if (type === 'manual') {
         monitorInfo = (

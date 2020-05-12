@@ -380,6 +380,8 @@ const ProjectService = require('../services/projectService');
 const ProjectModel = require('../models/project');
 const MailService = require('../services/mailService');
 const ErrorService = require('../services/errorService');
-const stripe = require('stripe')(payment.paymentPrivateKey);
+const stripe = require('stripe')(payment.paymentPrivateKey, {
+    maxNetworkRetries: 3, // Retry a request three times before giving up
+});
 
 module.exports = Services;

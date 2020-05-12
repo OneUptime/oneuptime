@@ -757,6 +757,30 @@ e2e_microk8s_test:
       - release
       - master
 
+e2e_microk8s_enterprise_test:
+  stage: E2E
+  script:
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - chmod +x ./ci/scripts/setup-machine.sh
+    - ./ci/scripts/setup-machine.sh enterprise
+    - chmod +x ./ci/scripts/setup.sh
+    - ./ci/scripts/setup.sh
+    - export ACCOUNTS_URL=http://localhost/accounts
+    - export ADMIN_DASHBOARD_URL=http://localhost/admin
+    - export DASHBOARD_URL=http://localhost/dashboard
+    - export BACKEND_URL=http://localhost/api
+    - export LICENSING_URL=http://localhost/license
+    - cd smoke-test
+    - npm ci
+    - npm run enterprise-test
+    - cd ..
+    - chmod +x ./ci/scripts/cleanup.sh
+    - ./ci/scripts/cleanup.sh
+  only:
+    refs:
+      - release
+      - master
+
 ##E2E Stage.
 e2e_docker_compose_test:
   stage: E2E
@@ -1532,8 +1556,6 @@ smoke_test_production:
     - cd smoke-test
     - npm ci
     - npm run test
-      # if job is successs, cancel the next jobs in pipeline.
-    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/pipelines/$CI_PIPELINE_ID/cancel
   only:
     refs:
       - release
@@ -1555,8 +1577,6 @@ smoke_test_staging:
     - cd smoke-test
     - npm ci
     - npm run test
-    # if job is successs, create smoke test status variable
-    - curl --request POST --header PRIVATE-TOKEN:$PERSONAL_ACCESS_TOKEN https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/variables --form "key=STAGING_SMOKE_TEST_STATUS" --form "value=success"
   only:
     refs:
       - master

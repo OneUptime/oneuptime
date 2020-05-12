@@ -24,6 +24,19 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 router.post('/signup', async function(req, res) {
     try {
+        if (
+            typeof process.env.DISABLE_SIGNUP === 'string' &&
+            process.env.DISABLE_SIGNUP === 'true'
+        ) {
+            // res,and next is skipped in isUserMasterAdmin because we don't want to reject the request.
+            if (!(await isUserMasterAdmin(req))) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Sign up is disabled.',
+                });
+            }
+        }
+
         const data = req.body;
 
         if (IS_SAAS_SERVICE) {

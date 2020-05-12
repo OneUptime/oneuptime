@@ -13,11 +13,11 @@ echo "Delete microk8s Cluster..."
 echo "RUNNING COMMAND:  sudo usermod -a -G microk8s $USER"
 sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
 echo "RUNNING COMMAND: microk8s.reset || 'microk8s cannot delete'"
-microk8s.reset || 'microk8s cannot delete'
+sudo microk8s.reset || 'microk8s cannot delete'
 echo "RUNNING COMMAND: microk8s.kubectl delete all --all || 'microk8s.kubectl cannot delete'"
-microk8s.kubectl delete all --all || 'microk8s.kubectl cannot delete'
+sudo microk8s.kubectl delete all --all || 'microk8s.kubectl cannot delete'
 echo "RUNNING COMMAND: microk8s.stop || 'microk8s cannot Stop'"
-microk8s.stop || "microk8s cannot Stop"
+sudo microk8s.stop || "microk8s cannot Stop"
 echo "RUNNING COMMAND: sudo snap remove microk8s || 'microk8s cannot be removed.'"
 sudo snap remove microk8s || 'microk8s cannot be removed.'
 # Stop all docker containers

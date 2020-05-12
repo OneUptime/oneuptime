@@ -30,7 +30,7 @@ describe('Scheduled event', () => {
         });
 
         // Register user
-        await cluster.execute(null, async ({ page }) => {
+        return await cluster.execute(null, async ({ page }) => {
             const user = {
                 email,
                 password,
@@ -54,7 +54,7 @@ describe('Scheduled event', () => {
         async () => {
             expect.assertions(1);
 
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -123,7 +123,7 @@ describe('Scheduled event', () => {
         'should update the created scheduled event for a monitor',
         async () => {
             expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -184,7 +184,7 @@ describe('Scheduled event', () => {
         'should delete the created scheduled event for a monitor',
         async () => {
             expect.assertions(1);
-            await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
 
