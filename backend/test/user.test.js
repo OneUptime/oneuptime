@@ -448,17 +448,23 @@ describe('SSO authentication', function () {
         ssoId = sso._id;
     });
     after(async () => {
-        await SsoModel.remove({ _id: ssoId })
+        await SsoModel.deleteOne({ _id: ssoId })
     });
     // GET /user/sso/login
     it('Should not accept request without email as query', function(done) {
         request
         .get('/user/sso/login')
         .end(function(err,res){
-                console.log(res)
-                expect(res).to.have.status(400)
+                expect(res).to.have.status(400);
                 done();
             });
     })
-
+    it('Should not accept request with invalid email', function(done){
+        request
+        .get('/user/sso/login?email=invalid@email')
+        .end(function(err,res){
+            expect(res).have.status(400);
+            done();
+        })
+    })
 });
