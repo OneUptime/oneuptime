@@ -33,7 +33,7 @@ describe('Enterprise Disabled Billing API', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);
+            await init.registerEnterpriseUser(user, page);
         });
 
         await cluster.queue({ email, password });

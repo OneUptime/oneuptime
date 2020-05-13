@@ -33,8 +33,7 @@ describe('Status Page', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            await init.registerEnterpriseUser(user, page);
         });
     });
 
@@ -48,7 +47,9 @@ describe('Status Page', () => {
         'should not show upgrade modal if IS_SAAS_SERVICE is false',
         async () => {
             await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
 
                 await page.$eval('#statusPages > a', elem => elem.click());
                 await page.waitForSelector(
