@@ -96,7 +96,7 @@ describe('Enterprise User API', () => {
                 const userRows = await page.$$('a.db-UserListRow');
                 const countUsers = userRows.length;
 
-                expect(countUsers).toEqual(2);
+                expect(countUsers).toBeGreaterThanOrEqual(2);
             });
 
             cluster.queue({ email, password, newEmail });
@@ -165,7 +165,7 @@ describe('Enterprise User API', () => {
             await page.waitFor(5000);
             userRows = await page.$$('a.db-UserListRow');
             countUsers = userRows.length;
-            expect(countUsers).toEqual(2);
+            expect(countUsers).toBeGreaterThanOrEqual(2);
 
             const prevSelector = await page.$('#btnPrev');
 
