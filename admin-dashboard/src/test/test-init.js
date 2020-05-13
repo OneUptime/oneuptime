@@ -18,6 +18,7 @@ module.exports = {
     },
     registerEnterpriseUser: async function(user, page) {
         const { email } = user;
+        let frame, elementHandle;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
@@ -45,46 +46,62 @@ module.exports = {
                     page.waitForSelector(`form#card-form`),
                     page.click('button[type=submit]'),
                 ]);
-    
-                await page.waitForSelector('iframe[name=__privateStripeFrame5]');
-                await page.waitForSelector('iframe[name=__privateStripeFrame6]');
-                await page.waitForSelector('iframe[name=__privateStripeFrame7]');
-    
+
+                await page.waitForSelector(
+                    'iframe[name=__privateStripeFrame5]'
+                );
+                await page.waitForSelector(
+                    'iframe[name=__privateStripeFrame6]'
+                );
+                await page.waitForSelector(
+                    'iframe[name=__privateStripeFrame7]'
+                );
+
                 await page.click('input[name=cardName]');
                 await page.type('input[name=cardName]', 'Test name');
-    
-                elementHandle = await page.$('iframe[name=__privateStripeFrame5]');
+
+                elementHandle = await page.$(
+                    'iframe[name=__privateStripeFrame5]'
+                );
                 frame = await elementHandle.contentFrame();
                 await frame.waitForSelector('input[name=cardnumber]');
-                await frame.type('input[name=cardnumber]', '42424242424242424242', {
-                    delay: 150,
-                });
-    
-                elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
+                await frame.type(
+                    'input[name=cardnumber]',
+                    '42424242424242424242',
+                    {
+                        delay: 150,
+                    }
+                );
+
+                elementHandle = await page.$(
+                    'iframe[name=__privateStripeFrame6]'
+                );
                 frame = await elementHandle.contentFrame();
                 await frame.waitForSelector('input[name=cvc]');
                 await frame.type('input[name=cvc]', '123', {
                     delay: 150,
                 });
-    
-                elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
+
+                elementHandle = await page.$(
+                    'iframe[name=__privateStripeFrame7]'
+                );
                 frame = await elementHandle.contentFrame();
                 await frame.waitForSelector('input[name=exp-date]');
                 await frame.type('input[name=exp-date]', '11/23', {
                     delay: 150,
                 });
                 await page.click('input[name=address1]');
-                await page.type('input[name=address1]', "Enugu, Nigeria");
+                await page.type('input[name=address1]', 'Enugu, Nigeria');
                 await page.click('input[name=address2]');
-                await page.type('input[name=address2]', "Enugu, Nigeria");
+                await page.type('input[name=address2]', 'Enugu, Nigeria');
                 await page.click('input[name=city]');
-                await page.type('input[name=city]', "Awka");
+                await page.type('input[name=city]', 'Awka');
                 await page.click('input[name=state]');
-                await page.type('input[name=state]', "Delta");
+                await page.type('input[name=state]', 'Delta');
                 await page.click('input[name=zipCode]');
-                await page.type('input[name=zipCode]', "11011");
+                await page.type('input[name=zipCode]', '11011');
                 await page.select('#country', 'India');
-    
+
                 await Promise.all([
                     page.waitForSelector('div#success-step'),
                     page.click('button[type=submit]'),
@@ -92,8 +109,6 @@ module.exports = {
             } catch (error) {
                 return;
             }
-            
-            
         }
     },
     registerUser: async function(user, page, checkCard = true) {
@@ -149,15 +164,15 @@ module.exports = {
                 delay: 150,
             });
             await page.click('input[name=address1]');
-            await page.type('input[name=address1]', "Enugu, Nigeria");
+            await page.type('input[name=address1]', 'Enugu, Nigeria');
             await page.click('input[name=address2]');
-            await page.type('input[name=address2]', "Enugu, Nigeria");
+            await page.type('input[name=address2]', 'Enugu, Nigeria');
             await page.click('input[name=city]');
-            await page.type('input[name=city]', "Centenary City");
+            await page.type('input[name=city]', 'Centenary City');
             await page.click('input[name=state]');
-            await page.type('input[name=state]', "Enugu");
+            await page.type('input[name=state]', 'Enugu');
             await page.click('input[name=zipCode]');
-            await page.type('input[name=zipCode]', "11011");
+            await page.type('input[name=zipCode]', '11011');
             await page.select('#country', 'India');
         }
 
