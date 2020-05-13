@@ -7,6 +7,7 @@ require('should');
 
 // user credentials
 const email = 'masteradmin@hackerbay.io';
+const userEmail = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Enterprise User API', () => {
@@ -29,14 +30,14 @@ describe('Enterprise User API', () => {
         // Register user
         await cluster.task(async ({ page, data }) => {
             const user = {
-                email: data.email,
+                email: data.userEmail,
                 password: data.password,
             };
             // user
             await init.registerEnterpriseUser(user, page);
         });
 
-        await cluster.queue({ email, password });
+        await cluster.queue({ email, password, userEmail });
 
         await cluster.idle();
         await cluster.close();

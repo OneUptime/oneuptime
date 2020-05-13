@@ -6,7 +6,7 @@ const { Cluster } = require('puppeteer-cluster');
 require('should');
 
 // user credentials
-const email = 'masteradmin@hackerbay.io';
+const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Project', () => {
@@ -29,18 +29,11 @@ describe('Project', () => {
         });
 
         await cluster.execute({ email, password }, async ({ page, data }) => {
-            const email = utils.generateRandomBusinessEmail();
-            const password = '1234567890';
-
             const user = {
                 email: data.email,
                 password: data.password,
             };
             await init.registerEnterpriseUser(user, page);
-
-            // creating a user automatically
-            // adds an unamed project to the user
-            await init.registerUser({ email, password }, page);
         });
     });
 
@@ -53,13 +46,18 @@ describe('Project', () => {
     test(
         'should not show upgrade/downgrade box if IS_SAAS_SERVICE is false',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
-                const user = {
-                    email,
-                    password,
-                };
+            const email = utils.generateRandomBusinessEmail();
+            const password = '1234567890';
 
-                await init.loginUser(user, page);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+
+                await init.createUserFromAdminDashboard(
+                    { email, password },
+                    page
+                );
 
                 await page.$eval('#projects > a', elem => elem.click());
                 await page.reload({ waitUntil: 'networkidle0' });
