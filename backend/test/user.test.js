@@ -447,24 +447,36 @@ describe('SSO authentication', function () {
         })
         ssoId = sso._id;
     });
+
     after(async () => {
         await SsoModel.deleteOne({ _id: ssoId })
     });
+    
     // GET /user/sso/login
-    it('Should not accept request without email as query', function(done) {
+    it('Should not accept request without email as query.', function(done) {
         request
-        .get('/user/sso/login')
-        .end(function(err,res){
+            .get('/user/sso/login')
+            .end(function(err,res){
                 expect(res).to.have.status(400);
                 done();
             });
-    })
-    it('Should not accept request with invalid email', function(done){
+    });
+
+    it('Should not accept request with invalid email.', function(done){
         request
-        .get('/user/sso/login?email=invalid@email')
-        .end(function(err,res){
-            expect(res).have.status(400);
-            done();
-        })
-    })
+            .get('/user/sso/login?email=invalid@email')
+            .end(function(err,res){
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('Should not accept request with domains that aren\'t defined in the ssos collection.',function(done){
+        request
+            .get('/user/sso/login?email=user@undefinedsso.domain')
+            .end(function(err,res){
+                expect(res).to.have.status(404);
+                done();
+            });
+    });
 });
