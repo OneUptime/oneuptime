@@ -439,9 +439,10 @@ let ssoId;
 describe('SSO authentication', function () {
     this.timeout(20000);
     before(async() => {
+        await SsoModel.deleteMany({ });
         const sso = await SsoModel.create({
             'saml-enabled': true,
-            domain: 'localhost',
+            domain: 'hackerbay.io',
             samlSsoUrl: 'http://localhost/login',
             remoteLogoutUrl: 'http://localhost/logout',
         })
@@ -449,11 +450,11 @@ describe('SSO authentication', function () {
     });
 
     after(async () => {
-        await SsoModel.deleteOne({ _id: ssoId })
+        // await SsoModel.deleteOne({ _id: ssoId });
     });
     
     // GET /user/sso/login
-    it('Should not accept request without email as query.', function(done) {
+    it('Should not accept requests without email as query.', function(done) {
         request
             .get('/user/sso/login')
             .end(function(err,res){
@@ -462,7 +463,7 @@ describe('SSO authentication', function () {
             });
     });
 
-    it('Should not accept request with invalid email.', function(done){
+    it('Should not accept requests with invalid email.', function(done){
         request
             .get('/user/sso/login?email=invalid@email')
             .end(function(err,res){
@@ -471,12 +472,32 @@ describe('SSO authentication', function () {
             });
     });
 
-    it('Should not accept request with domains that aren\'t defined in the ssos collection.',function(done){
+    it('Should not accept requests with domains that aren\'t defined in the ssos collection.',function(done){
         request
             .get('/user/sso/login?email=user@undefinedsso.domain')
             .end(function(err,res){
                 expect(res).to.have.status(404);
                 done();
             });
+    });
+
+    it('Should not accept requests with domains having SSO disabled', function(done){
+        SsoModel.updateOne(
+            {_id:ssoId},
+            {$set:{'saml-enabled':false}}
+            ).then(()=>{
+                request
+                    .get('/user/sso/login?email=user@hackerbay.io')
+                    .end(function(err,res){
+                        expect(res).to.have.status(401);
+                        
+                    });
+                    SsoModel.updateOne(
+                            {_id:ssoId},
+                            {$set:{'saml-enabled':true}}
+                        ).then(()=>{
+                            done();
+                        });
+            })
     });
 });
