@@ -22,6 +22,7 @@ import {
     switchStatusPage,
     fetchProjectStatusPage,
 } from '../actions/statusPage';
+import CustomStyles from '../components/statusPage/CustomStyles';
 
 class StatusPage extends Component {
     async componentDidMount() {
@@ -105,6 +106,9 @@ class StatusPage extends Component {
                                                         </div>
                                                         <div className="Box-root Margin-bottom--12">
                                                             <Links />
+                                                        </div>
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <CustomStyles />
                                                         </div>
                                                     </RenderIfSubProjectAdmin>
                                                     <RenderIfSubProjectAdmin

@@ -270,4 +270,38 @@ describe('Status Page', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should create custom HTML and CSS',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#statusPages');
+                await page.$eval('#statusPages > a', elem => elem.click());
+                // select the first item from the table row
+                const rowItem = await page.waitForSelector(
+                    '#statusPagesListContainer > tr',
+                    { visible: true }
+                );
+                rowItem.click();
+                await page.waitForNavigation({ waitUntil: 'load' });
+
+                await page.type('#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
+                await page.click('#btnAddCustomStyles');
+                await page.waitFor(3000);
+
+                let link = await page.$('#publicStatusPageUrl > span > a');
+                link = await link.getProperty('href');
+                link = await link.jsonValue();
+                await page.goto(link);
+                await page.waitForSelector('#customHeaderHTML > div');
+
+                let spanElement = await page.$('#customHeaderHTML > div');
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('My header');
+            });
+        },
+        operationTimeOut
+    );
 });
