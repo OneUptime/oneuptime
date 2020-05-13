@@ -182,7 +182,14 @@ describe('Monitor Detail API', () => {
                         .click();
                 });
 
-                await page.click('#createScheduledEventButton');
+                const createScheduledEventPromise = page.waitForResponse(
+                    response => response.url().includes('/scheduledEvent/')
+                );
+
+                await Promise.all([
+                    createScheduledEventPromise,
+                    page.click('#createScheduledEventButton'),
+                ]);
 
                 const createdScheduledEventSelector =
                     '#scheduledEventsList > div.scheduled-event-list-item .scheduled-event-name';
