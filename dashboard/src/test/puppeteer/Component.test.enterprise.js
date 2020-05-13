@@ -78,14 +78,15 @@ describe('Enterprise Component API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', data.componentName);
                 await page.click('button[type=submit]');
+                page.waitForNavigation()
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    'span#component-content-header'
+                    `#${componentName} a div div div span span`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(data.componentName);
+                spanElement.should.be.exactly(componentName);
             });
 
             cluster.queue({ email, password, componentName });
