@@ -530,3 +530,54 @@ export const searchProjects = (filter, skip, limit) => async dispatch => {
         dispatch(searchProjectsError(errors(errorMsg)));
     }
 };
+
+// Upgrade a Project
+export const changePlanRequest = () => {
+    return {
+        type: types.CHANGE_PLAN_REQUEST,
+    };
+};
+
+export const changePlanSuccess = payload => {
+    return {
+        type: types.CHANGE_PLAN_SUCCESS,
+        payload,
+    };
+};
+
+export const changePlanFailure = error => {
+    return {
+        type: types.CHANGE_PLAN_FAILURE,
+        payload: error,
+    };
+};
+
+export const changePlan = (
+    projectId,
+    planId,
+    projectName,
+    oldPlan,
+    newPlan
+) => async dispatch => {
+    dispatch(changePlanRequest());
+
+    try {
+        const response = await putApi(`project/${projectId}/admin/changePlan`, {
+            projectName,
+            planId,
+            oldPlan,
+            newPlan,
+        });
+        dispatch(changePlanSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(changePlanFailure(errorMsg));
+    }
+};

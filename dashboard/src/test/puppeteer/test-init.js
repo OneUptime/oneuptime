@@ -81,7 +81,7 @@ module.exports = {
     loginUser: async function(user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle2',
+            waitUntil: 'networkidle0',
         });
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
@@ -89,7 +89,7 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await Promise.all([
-            page.waitForNavigation(),
+            page.waitForNavigation({ waitUntil: 'networkidle0' }),
             page.click('button[type=submit]'),
         ]);
     },
@@ -166,11 +166,17 @@ module.exports = {
             await page.type('input[name=password]', '1234567890');
             await page.click('input[name=confirmPassword]');
             await page.type('input[name=confirmPassword]', '1234567890');
-            await page.click('button[type=submit]');
+            await Promise.all([
+                page.click('button[type=submit]'),
+                page.waitForNavigation({ waitUntil: 'networkidle0' }),
+            ]);
+            await this.createUserFromAdminDashboard(user, page);
         } else {
             await this.loginUser(masterAdmin, page);
+            await this.createUserFromAdminDashboard(user, page);
         }
-        await page.waitFor(20000);
+    },
+    createUserFromAdminDashboard: async function(user, page) {
         // create the user from admin dashboard
         const { email } = user;
         await page.waitForSelector('#add_user');
@@ -189,7 +195,7 @@ module.exports = {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', '1234567890');
         await page.click('button[type=submit]');
-        await page.waitFor(10000);
+        await page.waitForSelector('#frmUser', { hidden: true });
     },
     addSchedule: async function(callSchedule, page) {
         await page.waitForSelector('#callSchedules');
