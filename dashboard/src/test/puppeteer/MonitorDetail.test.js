@@ -96,7 +96,7 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector(`#createIncident_${monitorName}`);
                 await page.click(`#createIncident_${monitorName}`);
                 await page.waitForSelector('#createIncident');
-                await init.selectByText('#incidentType', 'Offline', page);
+                await init.selectByText('#incidentType', 'Online', page);
                 await page.click('#createIncident');
 
                 const selector = 'tr.incidentListItem';

@@ -47,7 +47,7 @@ module.exports = {
                     monitor,
                     incident,
                     integration,
-                    monitorStatus.status
+                    monitorStatus ? monitorStatus.status : null
                 );
             }
             return response;
