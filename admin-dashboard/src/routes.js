@@ -77,7 +77,7 @@ export const groups = [
     },
     {
         group: 'Settings',
-        visible: !IS_SAAS_SERVICE,
+        visible: true,
         routes: [
             {
                 title: 'Settings',
