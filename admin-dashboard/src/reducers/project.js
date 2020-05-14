@@ -39,6 +39,9 @@ import {
     SEARCH_PROJECTS_RESET,
     SEARCH_PROJECTS_SUCCESS,
     SEARCH_PROJECTS_FAILURE,
+    CHANGE_PLAN_REQUEST,
+    CHANGE_PLAN_SUCCESS,
+    CHANGE_PLAN_FAILURE,
 } from '../constants/project';
 
 const INITIAL_STATE = {
@@ -505,6 +508,37 @@ export default function project(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
             });
+
+        case CHANGE_PLAN_REQUEST:
+            return {
+                ...state,
+                project: {
+                    ...state.project,
+                    requesting: true,
+                },
+            };
+
+        case CHANGE_PLAN_SUCCESS:
+            return {
+                ...state,
+                project: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    project: action.payload,
+                },
+            };
+
+        case CHANGE_PLAN_FAILURE:
+            return {
+                ...state,
+                project: {
+                    ...state.project,
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                },
+            };
 
         default:
             return state;
