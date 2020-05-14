@@ -168,8 +168,8 @@ build_n_test_dashboard:
     - cd dashboard
     - npm ci
     # try building, if there are warnings then this will fail
-    - npm run build
-    - sudo docker logs -f backend
+    # - npm run build
+    - sudo docker logs -f backend &
     - npm run test
   except:
     refs:
