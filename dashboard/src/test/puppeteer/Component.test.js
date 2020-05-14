@@ -65,7 +65,7 @@ describe('Components', () => {
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    `#${componentName}-text`
+                    `span#${componentName}-text`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
