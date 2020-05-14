@@ -3,8 +3,8 @@ const TestSequencer = require('@jest/test-sequencer').default;
 class CustomSequencer extends TestSequencer {
     sort(tests) {
         const orderPath = [
-            'MonitorDetailScheduledEvents.test.js',
             'MonitorDetail.test.js',
+            'MonitorDetailScheduledEvents.test.js',
             'IncidentTimeline.test.js',
             'Monitor.test.js',
             'IncidentSubProject.test.js',
