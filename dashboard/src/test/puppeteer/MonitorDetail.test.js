@@ -11,7 +11,6 @@ const password = '1234567890';
 const monitorName = utils.generateRandomString();
 const newMonitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
-const projectName = utils.generateRandomString();
 const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
 
@@ -45,8 +44,6 @@ describe('Monitor Detail API', () => {
             await init.registerUser(user, page);
             await init.loginUser(user, page);
 
-            // rename default project
-            await init.renameProject(projectName, page);
             // add new monitor to component on parent project
             await init.addMonitorToComponent(componentName, monitorName, page);
         });

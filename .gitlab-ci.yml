@@ -169,6 +169,7 @@ build_n_test_dashboard:
     - npm ci
     # try building, if there are warnings then this will fail
     # - npm run build
+    - sudo docker info
     - sudo docker logs -f backend &
     - npm run test
   except:
