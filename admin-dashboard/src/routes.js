@@ -81,11 +81,15 @@ export const groups = [
         routes: [
             {
                 title: 'Settings',
-                path: (!IS_THIRD_PARTY_BILLING && !IS_SAAS_SERVICE)
-                    ? '/admin/settings/license'
-                    : '/admin/settings/smtp',
+                path:
+                    !IS_THIRD_PARTY_BILLING && !IS_SAAS_SERVICE
+                        ? '/admin/settings/license'
+                        : '/admin/settings/smtp',
                 icon: 'businessSettings',
-                component: (!IS_THIRD_PARTY_BILLING && !IS_SAAS_SERVICE) ? License : Settings,
+                component:
+                    !IS_THIRD_PARTY_BILLING && !IS_SAAS_SERVICE
+                        ? License
+                        : Settings,
                 exact: true,
                 visible: true,
                 subRoutes: [
