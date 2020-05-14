@@ -65,7 +65,7 @@ class NewComponent extends Component {
         history.push(
             `/dashboard/project/${projectId}/${componentId}/monitoring`
         );
-    }
+    };
 
     submitForm = values => {
         const thisObj = this;
@@ -93,7 +93,7 @@ class NewComponent extends Component {
                     if (IS_SAAS_SERVICE) {
                         logEvent('Add New Component', values);
                     }
-                    this.viewCreatedComponent(projectId._id, componentId)
+                    this.viewCreatedComponent(projectId._id, componentId);
                 },
                 error => {
                     if (

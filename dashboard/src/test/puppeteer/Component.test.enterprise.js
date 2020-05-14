@@ -78,11 +78,11 @@ describe('Enterprise Component API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', data.componentName);
                 await page.click('button[type=submit]');
-                page.waitForNavigation()
+                page.waitForNavigation();
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    `#${componentName} a div div div span span`
+                    `#${componentName}-text`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
