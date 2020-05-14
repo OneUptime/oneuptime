@@ -81,6 +81,67 @@ describe('Monitor Detail API', () => {
     );
 
     test(
+        'Should navigate to monitor details and create an incident',
+        async () => {
+            expect.assertions(1);
+            return await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                await page.waitForSelector(`#createIncident_${monitorName}`);
+                await page.click(`#createIncident_${monitorName}`);
+                await page.waitForSelector('#createIncident');
+                await init.selectByText('#incidentType', 'Offline', page);
+                await page.click('#createIncident');
+
+                const selector = 'tr.incidentListItem';
+                await page.waitForSelector(selector);
+
+                expect((await page.$$(selector)).length).toEqual(1);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and get list of incidents and paginate incidents',
+        async () => {
+            expect.assertions(2);
+            return await cluster.execute(null, async ({ page }) => {
+                await page.setDefaultTimeout(utils.timeout);
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const nextSelector = await page.waitForSelector('#btnNext');
+                await nextSelector.click();
+
+                let incidentRows = await page.$$('tr.incidentListItem');
+                let countIncidents = incidentRows.length;
+
+                expect(countIncidents).toEqual(1);
+
+                const prevSelector = await page.waitForSelector('#btnPrev');
+                await prevSelector.click();
+
+                incidentRows = await page.$$('tr.incidentListItem');
+                countIncidents = incidentRows.length;
+
+                expect(countIncidents).toEqual(1);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should navigate to monitor details and create a scheduled event',
         async () => {
             expect.assertions(1);

@@ -154,7 +154,7 @@ build_n_test_dashboard:
     - sudo docker build -t fyipeproject/init-script:3.0.$CI_PIPELINE_IID ./init-script
     - sudo docker run -e NODE_ENV=development --net=host -d fyipeproject/init-script:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-    - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker run --name backend --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/probe:3.0.$CI_PIPELINE_IID ./probe
     - sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
     - sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
@@ -169,6 +169,7 @@ build_n_test_dashboard:
     - npm ci
     # try building, if there are warnings then this will fail
     - npm run build
+    - sudo docker logs -f backend
     - npm run test
   except:
     refs:
