@@ -51,6 +51,9 @@ const PricingPlanComponent = ({
 
     const handleModal = e => {
         e.preventDefault();
+        // javascript enables bubbling by default
+        // prevent propagation of the bubble
+        e.stopPropagation();
 
         const { _id: id, name } = currentProject;
         const {
