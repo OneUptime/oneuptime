@@ -113,4 +113,5 @@ module.exports = {
     generateRandomBusinessEmail,
     generateRandomWebsite,
     timeout: 500000,
+    parseBoolean,
 };
