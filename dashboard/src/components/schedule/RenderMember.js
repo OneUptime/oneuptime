@@ -6,6 +6,7 @@ import TimezoneSelector from '../basic/TimezoneSelector';
 import TeamMemberSelector from '../basic/TeamMemberSelector';
 import TimeSelector from '../basic/TimeSelector';
 import Tooltip from '../basic/Tooltip';
+import PricingPlan from '../basic/PricingPlan';
 
 const RenderMember = ({
     memberValue,
@@ -69,8 +70,11 @@ const RenderMember = ({
                                 onClick={() =>
                                     manageVisibility(true, memberHasCallTimes)
                                 }
+                                id="addOnCallDutyTimes"
                             >
-                                Advanced: Add on-call duty times
+                                <PricingPlan plan="Growth" hideChildren={false}>
+                                    Advanced: Add on-call duty times
+                                </PricingPlan>
                             </button>
                         </div>
                     </div>
