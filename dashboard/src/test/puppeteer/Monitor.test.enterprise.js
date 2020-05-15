@@ -76,10 +76,10 @@ describe('Enterprise Monitor API', () => {
                 await init.addComponent(data.componentName, page);
 
                 // Navigate to details page of component created in previous test
-                await page.waitForSelector(
-                    `#more-details-${data.componentName}`
-                );
-                await page.click(`#more-details-${data.componentName}`);
+                // await page.waitForSelector(
+                //     `#more-details-${data.componentName}`
+                // );
+                // await page.click(`#more-details-${data.componentName}`);
                 await page.waitForSelector('#form-new-monitor');
 
                 await page.waitForSelector('#monitors');

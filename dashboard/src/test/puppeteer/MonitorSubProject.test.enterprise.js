@@ -81,7 +81,7 @@ describe('Enterprise Monitor SubProject API', () => {
                 // Create Component first
                 await init.addComponent(data.componentName, page);
                 // Navigate to details page of component created
-                await init.navigateToComponentDetails(data.componentName, page);
+                // await init.navigateToComponentDetails(data.componentName, page);
 
                 // switch to invited project for new user
                 // await page.waitForSelector('#monitors');

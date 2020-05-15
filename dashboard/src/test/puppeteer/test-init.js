@@ -122,6 +122,7 @@ module.exports = {
         }
 
         await page.click('button[type=submit]');
+        await page.waitForNavigation();
     },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
@@ -285,13 +286,7 @@ module.exports = {
         }
     },
     addMonitorToComponent: async function(component, monitorName, page) {
-        if (component) {
-            await this.addComponent(component, page);
-            // Navigate to details page of component created in previous test
-            await page.waitForSelector(`#more-details-${component}`);
-            await page.click(`#more-details-${component}`);
-            await page.waitFor(5000);
-        }
+        await this.addComponent(component, page);
 
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
@@ -308,10 +303,10 @@ module.exports = {
         componentName,
         page
     ) {
-        // await page.reload({ waitUntil: 'domcontentloaded' });
-        // await page.waitForSelector('#monitors');
-        // await page.click('#monitors'); // Fix this
-        await this.navigateToComponentDetails(componentName, page);
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('#monitors');
+        await page.click('#monitors'); // Fix this
+        // await this.navigateToComponentDetails(componentName, page);
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);

@@ -57,9 +57,10 @@ describe('Monitor API', () => {
                 await init.addComponent(componentName, page);
 
                 // Navigate to details page of component created in previous test
-                await page.waitForSelector(`#more-details-${componentName}`);
-                await page.click(`#more-details-${componentName}`);
+                // await page.waitForSelector(`#more-details-${componentName}`);
+                // await page.click(`#more-details-${componentName}`);
                 await page.waitForSelector('#form-new-monitor');
+                // page.waitForNavigation();
 
                 await page.waitForSelector('#monitors');
                 await page.click('#monitors');

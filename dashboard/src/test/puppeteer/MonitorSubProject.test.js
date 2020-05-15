@@ -85,6 +85,8 @@ describe('Monitor API With SubProjects', () => {
             await init.addSubProject(subProjectName, page);
             // Create component
             await init.addComponent(componentName, page, subProjectName);
+
+            await page.goto(utils.DASHBOARD_URL);
             // add new user to sub-project
             await init.addUserToProject(
                 {
@@ -137,8 +139,8 @@ describe('Monitor API With SubProjects', () => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
                 // switch to invited project for new user
-                // await page.waitForSelector('#monitors');
-                // await page.click('#monitors');
+                await page.waitForSelector('#monitors');
+                await page.click('#monitors');
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', subProjectMonitorName);
