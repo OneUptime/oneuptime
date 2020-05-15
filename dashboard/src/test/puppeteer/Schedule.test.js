@@ -78,9 +78,7 @@ describe('Schedule', () => {
                 await page.waitForSelector('#name', { hidden: true });
 
                 await page.evaluate(() => {
-                    let elem = document.querySelectorAll(
-                        '.Table > tbody tr'
-                    );
+                    let elem = document.querySelectorAll('.Table > tbody tr');
                     elem = Array.from(elem);
                     elem[0].click();
                 });
@@ -102,12 +100,10 @@ describe('Schedule', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval('#callSchedules a', elem => elem.click());
-                
-                await page.reload({waitUntil: 'networkidle0'});
+
+                await page.reload({ waitUntil: 'networkidle0' });
                 await page.evaluate(() => {
-                    let elem = document.querySelectorAll(
-                        '.Table > tbody tr'
-                    );
+                    let elem = document.querySelectorAll('.Table > tbody tr');
                     elem = Array.from(elem);
                     elem[0].click();
                 });
