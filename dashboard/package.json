@@ -71,7 +71,7 @@
         "dev": "PORT=3000 react-scripts start",
         "build": "react-scripts build && npm run build-sw",
         "build-sw": "node ./src/sw-build.js",
-        "test": "jest --runInBand ./src/test/puppeteer/*.test.js",
+        "test": "jest --testSequencer ./src/test/puppeteer/CustomSequencer.js --runInBand ./src/test/puppeteer/*.test.js",
         "enterprise-test": "jest --runInBand ./src/test/puppeteer/*.test.enterprise.js",
         "start": "node index.js",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
@@ -79,6 +79,7 @@
         "fix-lint": "eslint . --fix"
     },
     "devDependencies": {
+        "@jest/test-sequencer": "^26.0.1",
         "axios-mock-adapter": "^1.15.0",
         "babel-preset-es2015": "^6.24.1",
         "babel-preset-react": "^6.24.1",
