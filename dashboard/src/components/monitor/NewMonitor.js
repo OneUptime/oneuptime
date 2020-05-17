@@ -37,8 +37,9 @@ import AceEditor from 'react-ace';
 import 'brace/mode/javascript';
 import 'brace/theme/github';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
+import PricingPlan from '../basic/PricingPlan';
 const selector = formValueSelector('NewMonitor');
 
 class NewMonitor extends Component {
@@ -392,14 +393,54 @@ class NewMonitor extends Component {
             'Monitor servers constantly and notify your team when they do not behave the way you want.',
     };
 
+    getCurrentMonitorCount = monitor => {
+        let count = 0;
+        if (monitor.monitorsList.monitors.length > 0) {
+            monitor.monitorsList.monitors.map(monitorObj => {
+                count += monitorObj.count;
+                return monitorObj;
+            });
+        }
+        return count;
+    };
+
+    getNextPlan = plan => {
+        const plans = ['Startup', 'Growth', 'Scale', 'Enterprise'];
+        const nextPlanIndex = plans.indexOf(plan) + 1;
+
+        if (nextPlanIndex >= plans.length) {
+            return plans[plans.length - 1];
+        }
+
+        return plans[nextPlanIndex];
+    };
+
     render() {
         const requesting =
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||
             (this.props.monitor.editMonitor.requesting && this.props.edit);
 
-        const { handleSubmit, subProjects, schedules } = this.props;
-        const { monitorCategoryList } = this.props;
+        const {
+            handleSubmit,
+            subProjects,
+            schedules,
+            monitorCategoryList,
+            monitor,
+            project,
+            currentPlanId,
+        } = this.props;
         const type = this.state.type;
+
+        const unlimitedMonitors = ['Scale', 'Enterprise'];
+        const planCategory =
+            currentPlanId === 'enterprise'
+                ? 'Enterprise'
+                : PlanListing.getPlanById(currentPlanId).category;
+        const numOfUsers = project.users.length;
+        const monitorPerUser =
+            planCategory === 'Startup' ? 5 : planCategory === 'Growth' ? 10 : 0;
+        const monitorCount = numOfUsers * monitorPerUser;
+        const currentMonitorCount = this.getCurrentMonitorCount(monitor);
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -1276,12 +1317,28 @@ class NewMonitor extends Component {
                                         disabled={requesting}
                                         type="submit"
                                     >
-                                        <ShouldRender
-                                            if={!this.props.edit && !requesting}
+                                        <PricingPlan
+                                            plan={this.getNextPlan(
+                                                planCategory
+                                            )}
+                                            hideChildren={false}
+                                            disabled={
+                                                unlimitedMonitors.includes(
+                                                    planCategory
+                                                ) ||
+                                                currentMonitorCount <
+                                                    monitorCount
+                                            }
                                         >
-                                            <span>Add Monitor</span>
-                                        </ShouldRender>
-
+                                            <ShouldRender
+                                                if={
+                                                    !this.props.edit &&
+                                                    !requesting
+                                                }
+                                            >
+                                                <span>Add Monitor</span>
+                                            </ShouldRender>
+                                        </PricingPlan>
                                         <ShouldRender
                                             if={this.props.edit && !requesting}
                                         >
@@ -1339,6 +1396,12 @@ const mapStateToProps = (state, ownProps) => {
     const category = selector(state, 'monitorCategoryId_1000');
     const subProject = selector(state, 'subProject_1000');
     const schedule = selector(state, 'callSchedule_1000');
+    const currentPlanId =
+        state.project &&
+        state.project.currentProject &&
+        state.project.currentProject.stripePlanId
+            ? state.project.currentProject.stripePlanId
+            : '';
 
     if (ownProps.edit) {
         const monitorId = ownProps.match
@@ -1360,6 +1423,10 @@ const mapStateToProps = (state, ownProps) => {
                 state.monitorCategories.monitorCategoryListForNewMonitor
                     .monitorCategories,
             monitorId,
+            project: state.project.currentProject
+                ? state.project.currentProject
+                : {},
+            currentPlanId,
         };
     } else {
         return {
@@ -1376,6 +1443,10 @@ const mapStateToProps = (state, ownProps) => {
                     .monitorCategories,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
+            project: state.project.currentProject
+                ? state.project.currentProject
+                : {},
+            currentPlanId,
         };
     }
 };
@@ -1408,6 +1479,8 @@ NewMonitor.propTypes = {
     setMonitorCriteria: PropTypes.func,
     fetchMonitorCriteria: PropTypes.func,
     showUpgradeForm: PropTypes.func,
+    project: PropTypes.object,
+    currentPlanId: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);
