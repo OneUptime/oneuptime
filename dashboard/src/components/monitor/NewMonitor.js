@@ -415,6 +415,28 @@ class NewMonitor extends Component {
         return plans[nextPlanIndex];
     };
 
+    getUserCount = (project, subProjects) => {
+        let count = 0;
+        if (subProjects.length > 0) {
+            const users = [];
+            subProjects.map(subProject => {
+                subProject.users.map(user => {
+                    // ensure a user is not counted twice
+                    // even when they're added to multiple subprojects
+                    if (!users.includes(user.userId)) {
+                        users.push(user.userId);
+                    }
+                    return user;
+                });
+                return subProject;
+            });
+            count = users.length;
+        } else {
+            count = project.users.length;
+        }
+        return count;
+    };
+
     render() {
         const requesting =
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||
@@ -436,7 +458,7 @@ class NewMonitor extends Component {
             currentPlanId === 'enterprise'
                 ? 'Enterprise'
                 : PlanListing.getPlanById(currentPlanId).category;
-        const numOfUsers = project.users.length;
+        const numOfUsers = this.getUserCount(project, subProjects);
         const monitorPerUser =
             planCategory === 'Startup' ? 5 : planCategory === 'Growth' ? 10 : 0;
         const monitorCount = numOfUsers * monitorPerUser;
