@@ -77,15 +77,19 @@ export const groups = [
     },
     {
         group: 'Settings',
-        visible: !IS_SAAS_SERVICE,
+        visible: true,
         routes: [
             {
                 title: 'Settings',
-                path: IS_THIRD_PARTY_BILLING
-                    ? '/admin/settings/smtp'
-                    : '/admin/settings/license',
+                path:
+                    !IS_THIRD_PARTY_BILLING && !IS_SAAS_SERVICE
+                        ? '/admin/settings/license'
+                        : '/admin/settings/smtp',
                 icon: 'businessSettings',
-                component: IS_THIRD_PARTY_BILLING ? Settings : License,
+                component:
+                    !IS_THIRD_PARTY_BILLING && !IS_SAAS_SERVICE
+                        ? License
+                        : Settings,
                 exact: true,
                 visible: true,
                 subRoutes: [
@@ -94,7 +98,7 @@ export const groups = [
                         path: '/admin/settings/license',
                         icon: 'activate',
                         component: License,
-                        visible: !IS_THIRD_PARTY_BILLING,
+                        visible: !IS_THIRD_PARTY_BILLING && !IS_SAAS_SERVICE,
                         subRoutes: [],
                         index: 1,
                     },
