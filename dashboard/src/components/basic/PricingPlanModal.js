@@ -60,7 +60,7 @@ const PricingPlanModal = ({
                                 ) : (
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         This feature is available on{' '}
-                                        {propArr[0].plan} plan. Please upgrade
+                                        {propArr[0].plan} plan and above. Please upgrade
                                         your plan to access this feature.
                                     </span>
                                 )}
