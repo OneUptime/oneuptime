@@ -58,17 +58,20 @@ describe('New Monitor API', () => {
                 await page.click(`#more-details-${componentName}`);
 
                 for (let i = 0; i <= 5; i++) {
-                    let monitorName = utils.generateRandomString();
+                    const monitorName = utils.generateRandomString();
 
                     await init.addMonitorToComponent(null, monitorName, page);
                     await page.waitForSelector('.ball-beat', { hidden: true });
                 }
-                
+
                 // try to add more monitor
                 const monitorName = utils.generateRandomString();
                 await init.addMonitorToComponent(null, monitorName, page);
 
-                const pricingPlanModal = await page.waitForSelector('#pricingPlanModal', {visible: true});
+                const pricingPlanModal = await page.waitForSelector(
+                    '#pricingPlanModal',
+                    { visible: true }
+                );
                 expect(pricingPlanModal).toBeTruthy();
             });
         },

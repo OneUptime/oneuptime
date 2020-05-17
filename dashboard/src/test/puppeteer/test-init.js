@@ -285,7 +285,7 @@ module.exports = {
         }
     },
     addMonitorToComponent: async function(component, monitorName, page) {
-        if(component){
+        if (component) {
             await this.addComponent(component, page);
             // Navigate to details page of component created in previous test
             await page.waitForSelector(`#more-details-${component}`);
