@@ -22,6 +22,7 @@ const PricingPlanComponent = ({
     changePlan,
     currentPlanId,
     error,
+    disabled = false,
 }) => {
     let category;
     const [pricingPlanModalId] = useState(uuid.v4()); // initialise modal ID
@@ -103,7 +104,7 @@ const PricingPlanComponent = ({
 
     return (
         <Fragment>
-            {isEnterprise || !IS_SAAS_SERVICE ? (
+            {disabled || isEnterprise || !IS_SAAS_SERVICE ? (
                 children
             ) : isAllowed(plan, category) ? (
                 children
@@ -130,6 +131,7 @@ PricingPlanComponent.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    disabled: PropTypes.bool,
 };
 
 const mapStateToProps = state => {
