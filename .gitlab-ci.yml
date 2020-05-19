@@ -8,7 +8,6 @@
 stages:
   - BuildAndTest
   - E2E
-  - VersionUpdate
   - Deploy
   - RollbackIfDeploymentFail
   - SmokeTest
@@ -834,29 +833,6 @@ e2e_docker_compose_enterprise_test:
     refs:
       - release
       - master
-
-# VERSION UPDATE
-version_update:
-  before_script:
-    - cd ..
-    - rm -rf app
-    - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
-    - cd app
-    - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
-  stage: VersionUpdate
-  script:
-    - git checkout $CI_COMMIT_REF_NAME
-    - chmod +x ./ci/scripts/version-setup.sh
-    - ./ci/scripts/version-setup.sh
-    - git add .
-    - git commit -m "Version Update 3.0.$CI_PIPELINE_IID [skip ci]"
-    - git push origin $CI_COMMIT_REF_NAME
-  only:
-    refs:
-      - master
-      - release
-      - hotfix-master
-      - hotfix-release
 
 # DEPLOYMENT STAGE - BACKEND
 deploy_staging_backend:
