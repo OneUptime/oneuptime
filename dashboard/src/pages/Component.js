@@ -36,22 +36,7 @@ class DashboardView extends Component {
             ? this.props.currentProject._id
             : null;
         this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
-        this.props.fetchComponents(projectId).then(() => {
-            this.props.component.componentList.components.forEach(
-                subProject => {
-                    if (subProject.components.length > 0) {
-                        subProject.components.forEach(component => {
-                            this.props.fetchComponentLogs(
-                                component.projectId._id || component.projectId,
-                                component._id,
-                                this.props.startDate,
-                                this.props.endDate
-                            );
-                        });
-                    }
-                }
-            );
-        });
+        this.props.fetchComponents(projectId);
         this.props.fetchTutorial();
     };
 
@@ -337,14 +322,11 @@ DashboardView.propTypes = {
     ]),
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
-    fetchComponentLogs: PropTypes.func,
     fetchComponents: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     componentTutorial: PropTypes.object,
     fetchTutorial: PropTypes.func,
     getProbes: PropTypes.func,
-    startDate: PropTypes.object,
-    endDate: PropTypes.object,
 };
 
 DashboardView.displayName = 'DashboardView';
