@@ -33,6 +33,35 @@ class DashboardView extends Component {
         }
     }
 
+    componentDidUpdate(prevProps) {
+        if (prevProps.monitor.monitorsList.monitors.length === 0) {
+            this.props.monitor.monitorsList.monitors.forEach(subProject => {
+                if (subProject.monitors.length > 0) {
+                    subProject.monitors.forEach(monitor => {
+                        this.props.fetchMonitorLogs(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            this.props.startDate,
+                            this.props.endDate
+                        );
+                        this.props.fetchMonitorsIncidents(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            0,
+                            3
+                        );
+                        this.props.fetchMonitorStatuses(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            this.props.startDate,
+                            this.props.endDate
+                        );
+                    });
+                }
+            });
+        }
+    }
+
     componentWillUnmount() {
         this.props.destroy('NewMonitor');
     }
