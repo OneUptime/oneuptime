@@ -36,9 +36,6 @@
                 <a class="rootLink item-company hasDropdown colorize" data-dropdown="company">
                     Company
                 </a>
-            </li>
-
-            <li class="navSection secondary">
                 <% if(!support) { %>
                 <a class="rootLink item-support colorize" href="/support" data-analytics-action="support"
                     data-analytics-source="global_nav">
@@ -51,6 +48,13 @@
                     Enterprises
                 </a>
                 <% } %>
+            </li>
+
+            <li class="navSection secondary">
+                <a class="rootLink item-support colorize" data-adroll-segment='submit_two' href="#"
+                    onclick="registerUrl()" data-analytics-source="global_nav" data-analytics-action="sign_up">
+                    Sign up
+                </a>
                 <a class="rootLink item-dashboard colorize" data-adroll-segment='submit_two' href="#"
                     onclick="loginUrl()" data-analytics-source="global_nav" data-analytics-action="sign_in">
                     Sign in
@@ -264,8 +268,8 @@
                             </a>
                         </li>
                         <li>
-                            <a class="linkContainer item-customers" href="/slack"
-                                data-analytics-action="customers" data-analytics-source="nav_dropdown">
+                            <a class="linkContainer item-customers" href="/slack" data-analytics-action="customers"
+                                data-analytics-source="nav_dropdown">
                                 <h3 class="linkTitle linkIcon">
                                     We're on Slack</h3>
                             </a>
@@ -288,8 +292,7 @@
                         </a>
                         <ul class="blogPosts">
                             <li>
-                                <a
-                                    href="https://blog.fyipe.com/how-to-create-an-on-call-schedule-that-doesnt-suck/">
+                                <a href="https://blog.fyipe.com/how-to-create-an-on-call-schedule-that-doesnt-suck/">
                                     <span class='title new'>Create an oncall schedule that doesn't suck</span>
                                     <span class='new-badge'>New</span>
                                 </a>

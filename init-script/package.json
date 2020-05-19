@@ -1,7 +1,7 @@
 {
     "name": "fyipe-init-script",
     "private": true,
-    "version": "3.0.2640",
+    "version": "3.0.0",
     "main": "server.js",
     "scripts": {
         "test": "jest tests",
