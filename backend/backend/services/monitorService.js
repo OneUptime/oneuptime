@@ -37,7 +37,7 @@ module.exports = {
             });
             let userCount = 0;
             if (subProjects && subProjects.length > 0) {
-                const userId = [];
+                let userId = [];
                 subProjectIds = subProjects.map(project => project._id);
                 subProjects.map(subProject => {
                     subProject.users.map(user => {
@@ -59,7 +59,9 @@ module.exports = {
             const monitorCategory = await MonitorCategoryService.findBy({
                 _id: data.monitorCategoryId,
             });
-            const plan = Plans.getPlanById(project.stripePlanId);
+            let plan = Plans.getPlanById(project.stripePlanId);
+            // null plan => enterprise plan
+            plan = plan && plan.category ? plan : { category: 'Enterprise' };
 
             if (!plan && IS_SAAS_SERVICE) {
                 const error = new Error('Invalid project plan.');
