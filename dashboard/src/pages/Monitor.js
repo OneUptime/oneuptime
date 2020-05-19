@@ -82,30 +82,35 @@ class DashboardView extends Component {
             document.head.appendChild(scriptElement);
         }
 
+        let allMonitors = this.props.monitor.monitorsList.monitors
+            .map(monitor => monitor.monitors)
+            .flat();
+
+        const monitorIds = allMonitors.map(monitor => monitor._id);
+
         if (this.props.incidents) {
-            incidentslist = this.props.incidents.map((incident, i) => {
-                return (
-                    <RenderIfUserInSubProject
-                        key={`${incident._id || i}`}
-                        subProjectId={
-                            incident.projectId._id || incident.projectId
-                        }
-                    >
-                        <IncidentStatus
-                            count={i}
-                            incident={incident}
-                            multiple={true}
-                        />
-                    </RenderIfUserInSubProject>
-                );
-            });
+            incidentslist = this.props.incidents
+                .filter(incident => monitorIds.includes(incident.monitorId._id))
+                .map((incident, i) => {
+                    return (
+                        <RenderIfUserInSubProject
+                            key={`${incident._id || i}`}
+                            subProjectId={
+                                incident.projectId._id || incident.projectId
+                            }
+                        >
+                            <IncidentStatus
+                                count={i}
+                                incident={incident}
+                                multiple={true}
+                            />
+                        </RenderIfUserInSubProject>
+                    );
+                });
         }
 
         const { componentId, subProjects, currentProject } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
-        let allMonitors = this.props.monitor.monitorsList.monitors
-            .map(monitor => monitor.monitors)
-            .flat();
 
         // SubProject Monitors List
         const monitors =
