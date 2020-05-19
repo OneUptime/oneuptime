@@ -845,8 +845,6 @@ version_update:
     - git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app.git
   stage: VersionUpdate
   script:
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
     - git checkout $CI_COMMIT_REF_NAME
     - chmod +x ./ci/scripts/version-setup.sh
     - ./ci/scripts/version-setup.sh
@@ -865,6 +863,8 @@ deploy_staging_backend:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -891,6 +891,8 @@ deploy_staging_helm-chart:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -924,6 +926,8 @@ deploy_staging_helm-chart:
 deploy_production_helm-chart:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -956,6 +960,8 @@ deploy_production_helm-chart:
 deploy_production_backend:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -981,6 +987,8 @@ deploy_staging_licensing:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -1005,6 +1013,8 @@ deploy_staging_licensing:
 deploy_production_licensing:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -1030,6 +1040,8 @@ deploy_staging_api-docs:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -1054,6 +1066,8 @@ deploy_staging_api-docs:
 deploy_production_api-docs:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -1079,6 +1093,8 @@ deploy_staging_home:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -1103,6 +1119,8 @@ deploy_staging_home:
 deploy_production_home:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -1128,6 +1146,8 @@ deploy_staging_slack:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -1152,6 +1172,8 @@ deploy_staging_slack:
 deploy_production_slack:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -1177,6 +1199,8 @@ deploy_staging_probe:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -1203,6 +1227,8 @@ deploy_staging_probe:
 deploy_production_probe:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -1229,6 +1255,8 @@ deploy_staging_status-page:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -1253,6 +1281,8 @@ deploy_staging_status-page:
 deploy_production_status-page:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -1278,6 +1308,8 @@ deploy_staging_admin-dashboard:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -1302,6 +1334,8 @@ deploy_staging_admin-dashboard:
 deploy_production_admin-dashboard:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -1327,6 +1361,8 @@ deploy_staging_accounts:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -1351,6 +1387,8 @@ deploy_staging_accounts:
 deploy_production_accounts:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -1376,6 +1414,8 @@ deploy_staging_dashboard:
   stage: Deploy
   allow_failure: true
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -1400,6 +1440,8 @@ deploy_staging_dashboard:
 deploy_production_dashboard:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -1434,6 +1476,8 @@ deploy_staging_server-monitor:
     - sudo npm install -g json
     - git checkout $CI_COMMIT_REF_NAME
     - git pull https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
+    - chmod +x ../ci/scripts/version-setup.sh
+    - ../ci/scripts/version-setup.sh
     - json -I -f package.json -e 'this.name="fyipe-server-monitor-staging"'
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
     - npm publish
@@ -1453,6 +1497,8 @@ deploy_production_server-monitor:
     - sudo apt-get install -y build-essential
     - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
     - sudo apt-get install -y nodejs
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - cd server-monitor
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
     # - git checkout server-monitor-staging
@@ -1469,6 +1515,8 @@ deploy_production_server-monitor:
 deploy_staging_init-script:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -1494,6 +1542,8 @@ deploy_staging_init-script:
 deploy_production_init-script:
   stage: Deploy
   script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
     - chmod +x ./ci/scripts/deployment-setup.sh
     - ./ci/scripts/deployment-setup.sh
     - chmod +x ./ci/scripts/deployment-production-setup.sh
