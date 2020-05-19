@@ -723,7 +723,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                 await request
                     .post(`/monitor/${projectId}`)
                     .set('Authorization', authorization)
-                    .send(monitor);
+                    .send({ ...monitor, componentId });
             })
         );
     });
@@ -793,6 +793,26 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                     done();
                 });
         }
+    });
+
+    it('should not create monitor if componentId is not provided', function(done) {
+        let authorization = `Basic ${token}`;
+
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'Random Monitor',
+                type: 'url',
+                data: { url: 'http://www.tests.org' },
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Component ID is required.'
+                );
+                done();
+            });
     });
 
     it('should delete a monitor', async () => {
