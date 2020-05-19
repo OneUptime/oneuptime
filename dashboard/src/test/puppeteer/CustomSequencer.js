@@ -7,6 +7,7 @@ class CustomSequencer extends TestSequencer {
             'IncidentTimeline.test.js',
             'Monitor.test.js',
             'IncidentSubProject.test.js',
+            'Component.test.js',
         ];
         const copyTests = Array.from(tests);
         return copyTests.sort((testA, testB) => {

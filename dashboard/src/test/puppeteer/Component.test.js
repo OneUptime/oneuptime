@@ -8,6 +8,10 @@ require('should');
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const componentName = utils.generateRandomString();
+const newComponentName = utils.generateRandomString();
+const monitorName = utils.generateRandomString();
+const newMonitorName = utils.generateRandomString();
 
 describe('Components', () => {
     const operationTimeOut = 50000;
@@ -42,8 +46,6 @@ describe('Components', () => {
         await cluster.idle();
         await cluster.close();
     });
-
-    const componentName = utils.generateRandomString();
 
     test(
         'Should create new component',
@@ -94,6 +96,73 @@ describe('Components', () => {
                 spanElement.should.be.exactly(
                     'This field cannot be left blank'
                 );
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should create a new monitor in component',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', monitorName);
+                await init.selectByText('#type', 'url', page);
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', 'https://google.com');
+                await page.click('button[type=submit]');
+
+                let spanElement = await page.waitForSelector(
+                    `#monitor-title-${monitorName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(monitorName);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should create a new monitor in a new component and get list of monitors',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // add new monitor to component on parent project
+                await init.addMonitorToComponent(
+                    newComponentName,
+                    newMonitorName,
+                    page
+                );
+
+                // Navigate to Components page
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components');
+                await page.click('#components');
+
+                const newComponentMonitorSelector =
+                    '#component0 table > tbody > tr';
+                await page.waitForSelector(newComponentMonitorSelector);
+
+                const newMonitorRows = await page.$$(
+                    newComponentMonitorSelector
+                );
+                const countNewMonitors = newMonitorRows.length;
+
+                expect(countNewMonitors).toEqual(1);
+
+                const componentMonitorSelector =
+                    '#component1 table > tbody > tr';
+                await page.waitForSelector(componentMonitorSelector);
+
+                const monitorRows = await page.$$(componentMonitorSelector);
+                const countMonitors = monitorRows.length;
+
+                expect(countMonitors).toEqual(1);
             });
         },
         operationTimeOut
