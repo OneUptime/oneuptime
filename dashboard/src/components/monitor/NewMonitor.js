@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
 import { reduxForm, Field, formValueSelector } from 'redux-form';
 import {
     createMonitor,
@@ -17,7 +16,6 @@ import {
 import { RenderField } from '../basic/RenderField';
 import { makeCriteria } from '../../config';
 import { FormLoader } from '../basic/Loader';
-import AddSeats from '../modals/AddSeats';
 import { openModal, closeModal } from '../../actions/modal';
 import {
     fetchMonitorCriteria,
@@ -46,7 +44,6 @@ class NewMonitor extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            upgradeModalId: uuid.v4(),
             advance: false,
             script: '',
             type: props.edit ? props.editMonitorProp.type : props.type,
@@ -108,7 +105,6 @@ class NewMonitor extends Component {
     submitForm = values => {
         const thisObj = this;
 
-        const { upgradeModalId } = this.state;
         const postObj = { data: {}, criteria: {} };
         postObj.projectId = values[`subProject_${this.props.index}`];
         postObj.componentId = thisObj.props.componentId;
@@ -296,19 +292,9 @@ class NewMonitor extends Component {
                 error => {
                     if (
                         error &&
-                        error.message &&
-                        error.message ===
-                            "You can't add any more monitors. Please add an extra seat to add more monitors."
+                        error.message
                     ) {
-                        thisObj.props.openModal({
-                            id: upgradeModalId,
-                            onClose: () => '',
-                            onConfirm: () =>
-                                thisObj.props.addSeat(
-                                    thisObj.props.currentProject._id
-                                ),
-                            content: AddSeats,
-                        });
+                        return error;
                     }
                 }
             );
