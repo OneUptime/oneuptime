@@ -19,7 +19,7 @@ describe('Monitor API With SubProjects', () => {
 
     let cluster;
 
-    beforeAll(async (done) => {
+    beforeAll(async done => {
         jest.setTimeout(200000);
 
         cluster = await Cluster.launch({
@@ -60,7 +60,7 @@ describe('Monitor API With SubProjects', () => {
             task
         );
 
-        await cluster.execute(null, async ({page}) => {
+        await cluster.execute(null, async ({ page }) => {
             const user = { email, password };
             await init.loginUser(user, page);
 
@@ -84,11 +84,7 @@ describe('Monitor API With SubProjects', () => {
             // add sub-project
             await init.addSubProject(subProjectName, page);
             // Create component
-            await init.addComponent(
-                componentName,
-                page,
-                subProjectName
-            );
+            await init.addComponent(componentName, page, subProjectName);
             // add new user to sub-project
             await init.addUserToProject(
                 {
@@ -103,7 +99,7 @@ describe('Monitor API With SubProjects', () => {
         done();
     });
 
-    afterAll(async (done) => {
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
         done();
@@ -111,7 +107,7 @@ describe('Monitor API With SubProjects', () => {
 
     test(
         'should not display new monitor form for user that is not `admin` in sub-project.',
-        async (done) => {
+        async done => {
             await cluster.execute(null, async ({ page }) => {
                 const user = { email: newEmail, password: newPassword };
                 await init.loginUser(user, page);
@@ -134,7 +130,7 @@ describe('Monitor API With SubProjects', () => {
 
     test(
         'should create a monitor in sub-project for valid `admin`',
-        async (done) => {
+        async done => {
             await cluster.execute(null, async ({ page }) => {
                 const user = { email, password };
                 await init.loginUser(user, page);
@@ -168,7 +164,7 @@ describe('Monitor API With SubProjects', () => {
 
     test(
         'should create a monitor in parent project for valid `admin`',
-        async (done) => {
+        async done => {
             const monitorName = utils.generateRandomString();
             await cluster.execute(
                 { email, password, monitorName },
@@ -205,7 +201,7 @@ describe('Monitor API With SubProjects', () => {
     test(
         // eslint-disable-next-line quotes
         "should get only sub-project's monitors for valid sub-project user",
-        async (done) => {
+        async done => {
             await cluster.execute(
                 {
                     email: newEmail,
@@ -250,7 +246,7 @@ describe('Monitor API With SubProjects', () => {
 
     test(
         'should get both project and sub-project monitors for valid parent project user.',
-        async (done) => {
+        async done => {
             const monitorName = utils.generateRandomString();
 
             await cluster.execute(
