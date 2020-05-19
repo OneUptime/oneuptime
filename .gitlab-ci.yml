@@ -1476,8 +1476,8 @@ deploy_staging_server-monitor:
     - sudo npm install -g json
     - git checkout $CI_COMMIT_REF_NAME
     - git pull https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
-    - chmod +x ./ci/scripts/version-setup.sh
-    - ./ci/scripts/version-setup.sh
+    - chmod +x ../ci/scripts/version-setup.sh
+    - ../ci/scripts/version-setup.sh
     - json -I -f package.json -e 'this.name="fyipe-server-monitor-staging"'
     - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
     - npm publish
