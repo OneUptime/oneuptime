@@ -16,7 +16,6 @@ import {
     fetchMonitorLogs,
     fetchMonitorsIncidents,
     fetchMonitorStatuses,
-    fetchMonitors,
 } from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
@@ -43,33 +42,30 @@ class DashboardView extends Component {
             ? this.props.currentProject._id
             : null;
         this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
-        this.props.fetchMonitors(projectId).then(() => {
-            this.props.monitor.monitorsList.monitors.forEach(subProject => {
-                if (subProject.monitors.length > 0) {
-                    subProject.monitors.forEach(monitor => {
-                        this.props.fetchMonitorLogs(
-                            monitor.projectId._id || monitor.projectId,
-                            monitor._id,
-                            this.props.startDate,
-                            this.props.endDate
-                        );
-                        this.props.fetchMonitorsIncidents(
-                            monitor.projectId._id || monitor.projectId,
-                            monitor._id,
-                            0,
-                            3
-                        );
-                        this.props.fetchMonitorStatuses(
-                            monitor.projectId._id || monitor.projectId,
-                            monitor._id,
-                            this.props.startDate,
-                            this.props.endDate
-                        );
-                    });
-                }
-            });
+        this.props.monitor.monitorsList.monitors.forEach(subProject => {
+            if (subProject.monitors.length > 0) {
+                subProject.monitors.forEach(monitor => {
+                    this.props.fetchMonitorLogs(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        this.props.startDate,
+                        this.props.endDate
+                    );
+                    this.props.fetchMonitorsIncidents(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        0,
+                        3
+                    );
+                    this.props.fetchMonitorStatuses(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        this.props.startDate,
+                        this.props.endDate
+                    );
+                });
+            }
         });
-        this.props.fetchTutorial();
     };
 
     render() {
@@ -333,7 +329,6 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorLogs,
             fetchMonitorsIncidents,
             fetchMonitorStatuses,
-            fetchMonitors,
             loadPage,
             fetchTutorial,
             getProbes,
@@ -400,10 +395,8 @@ DashboardView.propTypes = {
     fetchMonitorLogs: PropTypes.func,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorStatuses: PropTypes.func.isRequired,
-    fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     monitorTutorial: PropTypes.object,
-    fetchTutorial: PropTypes.func,
     getProbes: PropTypes.func,
     startDate: PropTypes.object,
     endDate: PropTypes.object,

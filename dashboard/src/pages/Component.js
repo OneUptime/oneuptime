@@ -11,10 +11,8 @@ import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMemb
 import { LoadingState } from '../components/basic/Loader';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
-import { fetchComponents } from '../actions/component';
+import { fetchMonitors } from '../actions/monitor';
 import { loadPage } from '../actions/page';
-import { fetchTutorial } from '../actions/tutorial';
-import { getProbes } from '../actions/probe';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
@@ -35,9 +33,7 @@ class DashboardView extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-        this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
-        this.props.fetchComponents(projectId);
-        this.props.fetchTutorial();
+        this.props.fetchMonitors(projectId);
     };
 
     render() {
@@ -272,10 +268,8 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             destroy,
-            fetchComponents,
+            fetchMonitors,
             loadPage,
-            fetchTutorial,
-            getProbes,
         },
         dispatch
     );
@@ -322,11 +316,9 @@ DashboardView.propTypes = {
     ]),
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
-    fetchComponents: PropTypes.func.isRequired,
+    fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     componentTutorial: PropTypes.object,
-    fetchTutorial: PropTypes.func,
-    getProbes: PropTypes.func,
 };
 
 DashboardView.displayName = 'DashboardView';
