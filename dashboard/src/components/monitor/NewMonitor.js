@@ -290,10 +290,7 @@ class NewMonitor extends Component {
                     }
                 },
                 error => {
-                    if (
-                        error &&
-                        error.message
-                    ) {
+                    if (error && error.message) {
                         return error;
                     }
                 }

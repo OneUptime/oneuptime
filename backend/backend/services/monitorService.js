@@ -37,7 +37,7 @@ module.exports = {
             });
             let userCount = 0;
             if (subProjects && subProjects.length > 0) {
-                let userId = [];
+                const userId = [];
                 subProjectIds = subProjects.map(project => project._id);
                 subProjects.map(subProject => {
                     subProject.users.map(user => {
