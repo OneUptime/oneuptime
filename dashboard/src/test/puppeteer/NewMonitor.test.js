@@ -45,7 +45,7 @@ describe('New Monitor API', () => {
     });
 
     test(
-        'should show upgrade modal when number of monitor for a project is reached',
+        "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Startup plan => 5 Monitors/User)",
         async () => {
             const componentName = utils.generateRandomString();
 
@@ -73,6 +73,102 @@ describe('New Monitor API', () => {
                     { visible: true }
                 );
                 expect(pricingPlanModal).toBeTruthy();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Growth plan => 10 Monitors/User)",
+        async () => {
+            const projectName = utils.generateRandomString();
+            const componentName = utils.generateRandomString();
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#AccountSwitcherId');
+                await page.click('#AccountSwitcherId');
+                await page.waitForSelector('#create-project');
+                await page.click('#create-project');
+                await page.waitForSelector('#name');
+                await page.type('#name', projectName);
+                await page.$$eval(
+                    'input[name="planId"]',
+                    inputs => inputs[2].click() // select the Growth plan
+                );
+                await page.click('#btnCreateProject');
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+
+                // create a component
+                await init.addComponent(componentName, page);
+
+                // view the created component
+                await page.waitForSelector(`#more-details-${componentName}`);
+                await page.click(`#more-details-${componentName}`);
+
+                for (let i = 0; i <= 10; i++) {
+                    const monitorName = utils.generateRandomString();
+
+                    await init.addMonitorToComponent(null, monitorName, page);
+                    await page.waitForSelector('.ball-beat', { hidden: true });
+                }
+
+                // try to add more monitor
+                const monitorName = utils.generateRandomString();
+                await init.addMonitorToComponent(null, monitorName, page);
+
+                const pricingPlanModal = await page.waitForSelector(
+                    '#pricingPlanModal',
+                    { visible: true }
+                );
+                expect(pricingPlanModal).toBeTruthy();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not show any upgrade modal if the project plan is on Scale plan and above',
+        async () => {
+            const projectName = utils.generateRandomString();
+            const componentName = utils.generateRandomString();
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#AccountSwitcherId');
+                await page.click('#AccountSwitcherId');
+                await page.waitForSelector('#create-project');
+                await page.click('#create-project');
+                await page.waitForSelector('#name');
+                await page.type('#name', projectName);
+                await page.$$eval(
+                    'input[name="planId"]',
+                    inputs => inputs[4].click() // select the Scale plan
+                );
+                await page.click('#btnCreateProject');
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+
+                // create a component
+                await init.addComponent(componentName, page);
+
+                // view the created component
+                await page.waitForSelector(`#more-details-${componentName}`);
+                await page.click(`#more-details-${componentName}`);
+
+                for (let i = 0; i <= 15; i++) {
+                    const monitorName = utils.generateRandomString();
+
+                    await init.addMonitorToComponent(null, monitorName, page);
+                    await page.waitForSelector('.ball-beat', { hidden: true });
+                }
+
+                // try to add more monitor
+                const monitorName = utils.generateRandomString();
+                await init.addMonitorToComponent(null, monitorName, page);
+
+                const pricingPlanModal = await page.waitForSelector(
+                    '#pricingPlanModal',
+                    { hidden: true }
+                );
+                expect(pricingPlanModal).toBeNull();
             });
         },
         operationTimeOut
