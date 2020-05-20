@@ -19,13 +19,12 @@ describe('Monitor API With SubProjects', () => {
 
     let cluster;
 
-    beforeAll(async () => {
+    beforeAll(async done => {
         jest.setTimeout(200000);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_CONTEXT,
             puppeteerOptions: utils.puppeteerLaunchConfig,
-            maxConcurrency: 2,
             puppeteer,
             timeout: utils.timeout,
         });
@@ -42,68 +41,76 @@ describe('Monitor API With SubProjects', () => {
             };
 
             // user
-            await init.registerUser(user, page, data.isParentUser);
-            await init.loginUser(user, page);
-
-            if (data.isParentUser) {
-                // rename default project
-                await init.renameProject(data.projectName, page);
-                // add sub-project
-                await init.addSubProject(data.subProjectName, page);
-                // Create component
-                await init.addComponent(
-                    componentName,
-                    page,
-                    data.subProjectName
-                );
-                // add new user to sub-project
-                await init.addUserToProject(
-                    {
-                        email: data.newEmail,
-                        role: 'Member',
-                        subProjectName: data.subProjectName,
-                    },
-                    page
-                );
-
-                await init.logout(page);
-            }
+            await init.registerUser(user, page);
         };
 
         await cluster.execute(
             {
-                projectName,
-                subProjectName,
                 email,
                 password,
-                newEmail,
-                isParentUser: true,
             },
             task
         );
 
         await cluster.execute(
             {
-                projectName,
-                subProjectName,
                 email: newEmail,
                 password: newPassword,
-                isParentUser: false,
             },
             task
         );
+
+        await cluster.execute(null, async ({ page }) => {
+            const user = { email, password };
+            await init.loginUser(user, page);
+
+            await page.goto(utils.DASHBOARD_URL);
+
+            await page.waitForSelector('#AccountSwitcherId');
+            await page.click('#AccountSwitcherId');
+            await page.waitForSelector('#create-project');
+            await page.click('#create-project');
+            await page.waitForSelector('#name');
+            await page.type('#name', projectName);
+            await page.$$eval(
+                'input[name="planId"]',
+                inputs => inputs[2].click() // select Growth plan
+            );
+            await page.click('#btnCreateProject');
+            await page.waitForNavigation({ waitUntil: 'networkidle0' });
+
+            // rename default project
+            await init.renameProject(projectName, page);
+            // add sub-project
+            await init.addSubProject(subProjectName, page);
+            // Create component
+            await init.addComponent(componentName, page, subProjectName);
+            // add new user to sub-project
+            await init.addUserToProject(
+                {
+                    email: newEmail,
+                    role: 'Member',
+                    subProjectName,
+                },
+                page
+            );
+        });
+
+        done();
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
+        done();
     });
 
     test(
         'should not display new monitor form for user that is not `admin` in sub-project.',
-        async () => {
-            expect.assertions(2);
-            return await cluster.execute(null, async ({ page }) => {
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                const user = { email: newEmail, password: newPassword };
+                await init.loginUser(user, page);
                 // Switch to invited project for new user
                 // await init.switchProject(projectName, page); // Commented because project already switched to
                 await page.goto(utils.DASHBOARD_URL);
@@ -115,15 +122,16 @@ describe('Monitor API With SubProjects', () => {
                 const newMonitorForm = await page.$('#form-new-monitor');
                 expect(newMonitorForm).toEqual(null);
             });
+
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should create a monitor in sub-project for valid `admin`',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
                 const user = { email, password };
                 await init.loginUser(user, page);
                 // Navigate to details page of component created
@@ -148,16 +156,17 @@ describe('Monitor API With SubProjects', () => {
                 spanElement = await spanElement.jsonValue();
                 expect(spanElement).toBe(subProjectMonitorName);
             });
+
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should create a monitor in parent project for valid `admin`',
-        async () => {
-            expect.assertions(1);
+        async done => {
             const monitorName = utils.generateRandomString();
-            return await cluster.execute(
+            await cluster.execute(
                 { email, password, monitorName },
                 async ({ page, data }) => {
                     const user = {
@@ -183,6 +192,8 @@ describe('Monitor API With SubProjects', () => {
                     expect(spanElement).toBe(data.monitorName);
                 }
             );
+
+            done();
         },
         operationTimeOut
     );
@@ -190,9 +201,8 @@ describe('Monitor API With SubProjects', () => {
     test(
         // eslint-disable-next-line quotes
         "should get only sub-project's monitors for valid sub-project user",
-        async () => {
-            expect.assertions(2);
-            return await cluster.execute(
+        async done => {
+            await cluster.execute(
                 {
                     email: newEmail,
                     password: newPassword,
@@ -228,17 +238,18 @@ describe('Monitor API With SubProjects', () => {
                     );
                 }
             );
+
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should get both project and sub-project monitors for valid parent project user.',
-        async () => {
-            expect.assertions(2);
+        async done => {
             const monitorName = utils.generateRandomString();
 
-            return await cluster.execute(
+            await cluster.execute(
                 {
                     email,
                     password,
@@ -294,6 +305,8 @@ describe('Monitor API With SubProjects', () => {
                     expect(textContent).toEqual(subProjectName.toUpperCase());
                 }
             );
+
+            done();
         },
         operationTimeOut
     );

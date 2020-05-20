@@ -20,6 +20,7 @@ const DomainVerificationService = require('../backend/services/domainVerificatio
 const project = require('./data/project');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
+const ComponentModel = require('../backend/models/component');
 
 // eslint-disable-next-line
 let token,
@@ -30,7 +31,8 @@ let token,
     statusPageId,
     privateStatusPageId,
     userId,
-    airtableId;
+    airtableId,
+    componentId;
 
 const monitor = {
     name: 'New Monitor',
@@ -89,33 +91,47 @@ describe('Status API', function() {
                                         .end(function(err, res) {
                                             monitorCategoryId = res.body._id;
                                             monitor.monitorCategoryId = monitorCategoryId;
-                                            request
-                                                .post(`/monitor/${projectId}`)
-                                                .set(
-                                                    'Authorization',
-                                                    authorization
-                                                )
-                                                .send(monitor)
-                                                .end(function(err, res) {
-                                                    monitorId = res.body._id;
-                                                    request
-                                                        .post(
-                                                            `/scheduledEvent/${projectId}/${monitorId}`
-                                                        )
-                                                        .set(
-                                                            'Authorization',
-                                                            authorization
-                                                        )
-                                                        .send(scheduledEvent)
-                                                        .end(function(
-                                                            err,
-                                                            res
-                                                        ) {
-                                                            scheduledEventId =
-                                                                res.body._id;
-                                                            done();
-                                                        });
-                                                });
+                                            ComponentModel.create({
+                                                name: 'New Component',
+                                            }).then(component => {
+                                                componentId = component._id;
+                                                request
+                                                    .post(
+                                                        `/monitor/${projectId}`
+                                                    )
+                                                    .set(
+                                                        'Authorization',
+                                                        authorization
+                                                    )
+                                                    .send({
+                                                        ...monitor,
+                                                        componentId,
+                                                    })
+                                                    .end(function(err, res) {
+                                                        monitorId =
+                                                            res.body._id;
+                                                        request
+                                                            .post(
+                                                                `/scheduledEvent/${projectId}/${monitorId}`
+                                                            )
+                                                            .set(
+                                                                'Authorization',
+                                                                authorization
+                                                            )
+                                                            .send(
+                                                                scheduledEvent
+                                                            )
+                                                            .end(function(
+                                                                err,
+                                                                res
+                                                            ) {
+                                                                scheduledEventId =
+                                                                    res.body
+                                                                        ._id;
+                                                                done();
+                                                            });
+                                                    });
+                                            });
                                         });
                                 });
                         });

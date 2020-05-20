@@ -16,6 +16,7 @@ const MonitorService = require('../backend/services/monitorService');
 const IncidentService = require('../backend/services/incidentService');
 const AlertService = require('../backend/services/alertService');
 const AirtableService = require('../backend/services/airtableService');
+const ComponentModel = require('../backend/models/component');
 
 let token, projectId, airtableId, monitorId, incidentId, alertId;
 
@@ -30,30 +31,35 @@ describe('Enterprise Alert API', function() {
                 projectId = project._id;
                 airtableId = res.body.airtableId;
 
-                request
-                    .post('/user/login')
-                    .send({
-                        email: userData.user.email,
-                        password: userData.user.password,
-                    })
-                    .end(function(err, res) {
-                        token = res.body.tokens.jwtAccessToken;
-                        const authorization = `Basic ${token}`;
+                ComponentModel.create({ name: 'New Component' }).then(
+                    component => {
                         request
-                            .post(`/monitor/${projectId}`)
-                            .set('Authorization', authorization)
+                            .post('/user/login')
                             .send({
-                                name: 'New Monitor',
-                                type: 'url',
-                                data: {
-                                    url: 'http://www.tests.org',
-                                },
+                                email: userData.user.email,
+                                password: userData.user.password,
                             })
                             .end(function(err, res) {
-                                monitorId = res.body._id;
-                                done();
+                                token = res.body.tokens.jwtAccessToken;
+                                const authorization = `Basic ${token}`;
+                                request
+                                    .post(`/monitor/${projectId}`)
+                                    .set('Authorization', authorization)
+                                    .send({
+                                        name: 'New Monitor',
+                                        type: 'url',
+                                        data: {
+                                            url: 'http://www.tests.org',
+                                        },
+                                        componentId: component._id,
+                                    })
+                                    .end(function(err, res) {
+                                        monitorId = res.body._id;
+                                        done();
+                                    });
                             });
-                    });
+                    }
+                );
             });
         });
     });
