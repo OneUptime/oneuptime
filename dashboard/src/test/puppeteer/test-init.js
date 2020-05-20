@@ -290,6 +290,7 @@ module.exports = {
             // Navigate to details page of component created in previous test
             await page.waitForSelector(`#more-details-${component}`);
             await page.click(`#more-details-${component}`);
+            await page.waitFor(5000);
         }
 
         await page.waitForSelector('#form-new-monitor');
