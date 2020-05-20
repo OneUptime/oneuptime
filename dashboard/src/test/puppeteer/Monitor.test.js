@@ -57,7 +57,6 @@ describe('Monitor API', () => {
                 // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
 
-
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
