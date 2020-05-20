@@ -119,7 +119,7 @@ describe('Monitor API With SubProjects', () => {
                 const newComponentForm = await page.$('#form-new-component');
                 expect(newComponentForm).toEqual(null);
                 // Navigate to details page of component created
-                // await init.navigateToComponentDetails(componentName, page);
+                await init.navigateToComponentDetails(componentName, page);
 
                 const newMonitorForm = await page.$('#form-new-monitor');
                 expect(newMonitorForm).toEqual(null);
@@ -140,7 +140,6 @@ describe('Monitor API With SubProjects', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 // switch to invited project for new user
                 await page.waitForSelector('#monitors');
-                await page.click('#monitors');
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', subProjectMonitorName);

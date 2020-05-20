@@ -54,16 +54,10 @@ describe('Monitor API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Create Component first
+                // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
 
-                // Navigate to details page of component created in previous test
-                // await page.waitForSelector(`#more-details-${componentName}`);
-                // await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#form-new-monitor');
-                // page.waitForNavigation();
 
-                await page.waitForSelector('#monitors');
-                await page.click('#monitors');
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
@@ -119,6 +113,8 @@ describe('Monitor API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
+                // await page.waitForSelector('#monitors');
+                // await page.click('#monitors');
                 await page.waitForSelector('#form-new-monitor');
                 await page.waitForSelector('#name');
                 await init.selectByText('#type', 'url', page);
@@ -147,10 +143,7 @@ describe('Monitor API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector('#form-new-monitor');
 
-                await page.waitForSelector('#monitors');
-                await page.click('#monitors');
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', sslMonitorName);
@@ -182,10 +175,7 @@ describe('Monitor API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector('#form-new-monitor');
 
-                await page.waitForSelector('#monitors');
-                await page.click('#monitors');
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', testServerMonitorName);
@@ -217,10 +207,7 @@ describe('Monitor API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector('#form-new-monitor');
 
-                await page.waitForSelector('#monitors');
-                await page.click('#monitors');
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', selfSignedMonitorName);
