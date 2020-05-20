@@ -343,6 +343,31 @@ app.get('/enterprise/download-resource/:resourceName', function(req, res) {
     });
 });
 
+app.get('/table/:product', function(req, res) {
+    const productConfig = productCompare(req.params.product);
+
+    if (!productConfig) {
+        res.status(404);
+        res.render('notFound.ejs', {
+            footerCards: false,
+            support: false,
+            cta: false,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    } else {
+        res.render('product-compare.ejs', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+            productConfig,
+            onlyShowCompareTable: true,
+        });
+    }
+});
+
 app.get('/compare/:product', function(req, res) {
     const productConfig = productCompare(req.params.product);
 
@@ -363,6 +388,7 @@ app.get('/compare/:product', function(req, res) {
             blackLogo: false,
             requestDemoCta: false,
             productConfig,
+            onlyShowCompareTable: false,
         });
     }
 });

@@ -33,41 +33,43 @@ describe('Monitor API', function() {
 
     before(function(done) {
         this.timeout(30000);
-        GlobalConfig.initTestConfig().then(function () {
-        createUser(request, userData.user, function(err, res) {
-            let project = res.body.project;
-            projectId = project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                let project = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            ComponentModel.create({ name: 'Test Component' }, function(
-                err,
-                component
-            ) {
-                componentId = component;
-                VerificationTokenModel.findOne({ userId }, function(
+                ComponentModel.create({ name: 'Test Component' }, function(
                     err,
-                    verificationToken
+                    component
                 ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    done();
-                                });
-                        });
+                    componentId = component;
+                    VerificationTokenModel.findOne({ userId }, function(
+                        err,
+                        verificationToken
+                    ) {
+                        request
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end(function() {
+                                request
+                                    .post('/user/login')
+                                    .send({
+                                        email: userData.user.email,
+                                        password: userData.user.password,
+                                    })
+                                    .end(function(err, res) {
+                                        token = res.body.tokens.jwtAccessToken;
+                                        done();
+                                    });
+                            });
+                    });
                 });
             });
         });
-    });
     });
 
     after(async function() {
@@ -348,44 +350,44 @@ describe('Monitor API', function() {
 
 describe('Monitor API with monitor Category', function() {
     this.timeout(30000);
-    
+
     before(function(done) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-        createUser(request, userData.user, function(err, res) {
-            let project = res.body.project;
-            projectId = project._id;
-            userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                let authorization = `Basic ${token}`;
-                                request
-                                    .post(`/monitorCategory/${projectId}`)
-                                    .set('Authorization', authorization)
-                                    .send(monitorCategory)
-                                    .end(function(err, res) {
-                                        monitorCategoryId = res.body._id;
-                                        done();
-                                    });
-                            });
-                    });
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                let project = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    let authorization = `Basic ${token}`;
+                                    request
+                                        .post(`/monitorCategory/${projectId}`)
+                                        .set('Authorization', authorization)
+                                        .send(monitorCategory)
+                                        .end(function(err, res) {
+                                            monitorCategoryId = res.body._id;
+                                            done();
+                                        });
+                                });
+                        });
+                });
             });
         });
-    });
     });
 
     after(async function() {
@@ -424,54 +426,58 @@ let subProjectId, newUserToken, subProjectMonitorId;
 describe('Monitor API with Sub-Projects', function() {
     this.timeout(30000);
     before(function(done) {
-        GlobalConfig.initTestConfig().then(function () {
-        let authorization = `Basic ${token}`;
-        // create a subproject for parent project
-        request
-            .post(`/project/${projectId}/subProject`)
-            .set('Authorization', authorization)
-            .send({ subProjectName: 'New SubProject' })
-            .end(function(err, res) {
-                subProjectId = res.body[0]._id;
-                // sign up second user (subproject user)
-                createUser(request, userData.newUser, function(err, res) {
-                    userId = res.body.id;
-                    VerificationTokenModel.findOne({ userId }, function(
-                        err,
-                        verificationToken
-                    ) {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end(function() {
-                                request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.newUser.email,
-                                        password: userData.newUser.password,
-                                    })
-                                    .end(function(err, res) {
-                                        newUserToken =
-                                            res.body.tokens.jwtAccessToken;
-                                        let authorization = `Basic ${token}`;
-                                        // add second user to subproject
-                                        request
-                                            .post(`/team/${subProjectId}`)
-                                            .set('Authorization', authorization)
-                                            .send({
-                                                emails: userData.newUser.email,
-                                                role: 'Member',
-                                            })
-                                            .end(function() {
-                                                done();
-                                            });
-                                    });
-                            });
+        GlobalConfig.initTestConfig().then(function() {
+            let authorization = `Basic ${token}`;
+            // create a subproject for parent project
+            request
+                .post(`/project/${projectId}/subProject`)
+                .set('Authorization', authorization)
+                .send({ subProjectName: 'New SubProject' })
+                .end(function(err, res) {
+                    subProjectId = res.body[0]._id;
+                    // sign up second user (subproject user)
+                    createUser(request, userData.newUser, function(err, res) {
+                        userId = res.body.id;
+                        VerificationTokenModel.findOne({ userId }, function(
+                            err,
+                            verificationToken
+                        ) {
+                            request
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function() {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.newUser.email,
+                                            password: userData.newUser.password,
+                                        })
+                                        .end(function(err, res) {
+                                            newUserToken =
+                                                res.body.tokens.jwtAccessToken;
+                                            let authorization = `Basic ${token}`;
+                                            // add second user to subproject
+                                            request
+                                                .post(`/team/${subProjectId}`)
+                                                .set(
+                                                    'Authorization',
+                                                    authorization
+                                                )
+                                                .send({
+                                                    emails:
+                                                        userData.newUser.email,
+                                                    role: 'Member',
+                                                })
+                                                .end(function() {
+                                                    done();
+                                                });
+                                        });
+                                });
+                        });
                     });
                 });
-            });
         });
     });
 
@@ -706,16 +712,18 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
     ];
 
     before(async function() {
-        
         this.timeout(30000);
-        await GlobalConfig.initTestConfig()
+        await GlobalConfig.initTestConfig();
         let authorization = `Basic ${token}`;
+
+        await MonitorService.hardDeleteBy({ projectId });
+
         await Promise.all(
             monitorDataArray.map(async monitor => {
                 await request
                     .post(`/monitor/${projectId}`)
                     .set('Authorization', authorization)
-                    .send(monitor);
+                    .send({ ...monitor, componentId });
             })
         );
     });
@@ -737,9 +745,9 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         await MonitorService.hardDeleteBy({ projectId });
     });
 
-    // project seats -> 2, monitors -> 10
-    it('should not create a new monitor because project seats are filled up (project seats -> 2, monitors -> 10).', function(done) {
+    it('should not create a new monitor because the monitor count limit is reached (Startup Plan -> 5 monitors/user).', function(done) {
         let authorization = `Basic ${token}`;
+
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -752,61 +760,66 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
-                    "You can't add any more monitors. Please add an extra seat to add more monitors."
+                    "You can't add any more monitors. Please upgrade your account."
                 );
                 done();
             });
     });
 
-    // project seats -> 3, monitors -> 10
-    it('should add a new seat (project seats -> 3, monitors -> 10).', function(done) {
+    it('should be able to create more monitor on upgrade of project to Growth plan.', function(done) {
         let authorization = `Basic ${token}`;
-        request
-            .post(`/monitor/${projectId}/addseat`)
-            .set('Authorization', authorization)
-            .send({
-                name: 'New Monitor 14',
-                type: 'url',
-                data: { url: 'http://www.tests.org' },
-                componentId,
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.text).to.be.equal(
-                    'A new seat added. Now you can add a monitor'
-                );
-                done();
-            });
+        const growthPlan = 'plan_GoWKgxRnPPBJWy';
+
+        const project = ProjectService.changePlan(
+            projectId,
+            userId,
+            growthPlan
+        );
+
+        if (project) {
+            request
+                .post(`/monitor/${projectId}`)
+                .set('Authorization', authorization)
+                .send({
+                    name: 'New Monitor 15',
+                    type: 'url',
+                    data: { url: 'http://www.tests.org' },
+                    componentId,
+                })
+                .end(function(err, res) {
+                    monitorId = res.body._id;
+                    expect(res).to.have.status(200);
+                    expect(res.body.name).to.be.equal('New Monitor 15');
+                    done();
+                });
+        }
     });
 
-    // project seats -> 3, monitors -> 11
-    it('should create a monitor (project seats -> 3, monitors -> 11).', function(done) {
+    /* it('should not create monitor if componentId is not provided', function(done) {
         let authorization = `Basic ${token}`;
+
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
             .send({
-                name: 'New Monitor 15',
+                name: 'Random Monitor',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
-                componentId,
             })
             .end(function(err, res) {
-                monitorId = res.body._id;
-                expect(res).to.have.status(200);
-                expect(res.body.name).to.be.equal('New Monitor 15');
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Component ID is required.'
+                );
                 done();
             });
-    });
+    }); */
 
-    // project seats -> 2, monitors -> 10
-    it('should delete project monitor (project seats -> 2, monitors -> 10)', async () => {
+    it('should delete a monitor', async () => {
         let authorization = `Basic ${token}`;
         let res = await request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization);
-        let project = await ProjectService.findOneBy({ _id: projectId });
         expect(res).to.have.status(200);
-        expect(parseInt(project.seats)).to.be.equal(2);
     });
 });

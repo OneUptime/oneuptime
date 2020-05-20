@@ -144,7 +144,7 @@ export class LoginForm extends Component {
 
 LoginForm.displayName = 'LoginForm';
 
-const validate = function(values) {
+const validate = function(values, props) {
     const errors = {};
     if (!Validate.text(values.email)) {
         errors.email = 'Email is required.';
@@ -154,7 +154,7 @@ const validate = function(values) {
         }
     }
 
-    if (!Validate.text(values.password)) {
+    if (!Validate.text(values.password) && props.loginMethod === 'standard') {
         errors.password = 'Password is required.';
     }
 

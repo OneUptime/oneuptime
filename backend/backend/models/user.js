@@ -10,6 +10,7 @@ const userSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    sso: { type: String, ref: 'Sso' },
     companyName: String,
     companyRole: String,
     companySize: String,

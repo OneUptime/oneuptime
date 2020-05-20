@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
 import { reduxForm, Field, formValueSelector } from 'redux-form';
 import {
     createMonitor,
@@ -17,7 +16,6 @@ import {
 import { RenderField } from '../basic/RenderField';
 import { makeCriteria } from '../../config';
 import { FormLoader } from '../basic/Loader';
-import AddSeats from '../modals/AddSeats';
 import { openModal, closeModal } from '../../actions/modal';
 import {
     fetchMonitorCriteria,
@@ -37,15 +35,15 @@ import AceEditor from 'react-ace';
 import 'brace/mode/javascript';
 import 'brace/theme/github';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
+import PricingPlan from '../basic/PricingPlan';
 const selector = formValueSelector('NewMonitor');
 
 class NewMonitor extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            upgradeModalId: uuid.v4(),
             advance: false,
             script: '',
             type: props.edit ? props.editMonitorProp.type : props.type,
@@ -107,7 +105,6 @@ class NewMonitor extends Component {
     submitForm = values => {
         const thisObj = this;
 
-        const { upgradeModalId } = this.state;
         const postObj = { data: {}, criteria: {} };
         postObj.projectId = values[`subProject_${this.props.index}`];
         postObj.componentId = thisObj.props.componentId;
@@ -293,21 +290,8 @@ class NewMonitor extends Component {
                     }
                 },
                 error => {
-                    if (
-                        error &&
-                        error.message &&
-                        error.message ===
-                            "You can't add any more monitors. Please add an extra seat to add more monitors."
-                    ) {
-                        thisObj.props.openModal({
-                            id: upgradeModalId,
-                            onClose: () => '',
-                            onConfirm: () =>
-                                thisObj.props.addSeat(
-                                    thisObj.props.currentProject._id
-                                ),
-                            content: AddSeats,
-                        });
+                    if (error && error.message) {
+                        return error;
                     }
                 }
             );
@@ -392,14 +376,76 @@ class NewMonitor extends Component {
             'Monitor servers constantly and notify your team when they do not behave the way you want.',
     };
 
+    getCurrentMonitorCount = monitor => {
+        let count = 0;
+        if (monitor.monitorsList.monitors.length > 0) {
+            monitor.monitorsList.monitors.map(monitorObj => {
+                count += monitorObj.count;
+                return monitorObj;
+            });
+        }
+        return count;
+    };
+
+    getNextPlan = plan => {
+        const plans = ['Startup', 'Growth', 'Scale', 'Enterprise'];
+        const nextPlanIndex = plans.indexOf(plan) + 1;
+
+        if (nextPlanIndex >= plans.length) {
+            return plans[plans.length - 1];
+        }
+
+        return plans[nextPlanIndex];
+    };
+
+    getUserCount = (project, subProjects) => {
+        let count = 0;
+        if (subProjects.length > 0) {
+            const users = [];
+            subProjects.map(subProject => {
+                subProject.users.map(user => {
+                    // ensure a user is not counted twice
+                    // even when they're added to multiple subprojects
+                    if (!users.includes(user.userId)) {
+                        users.push(user.userId);
+                    }
+                    return user;
+                });
+                return subProject;
+            });
+            count = users.length;
+        } else {
+            count = project.users.length;
+        }
+        return count;
+    };
+
     render() {
         const requesting =
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||
             (this.props.monitor.editMonitor.requesting && this.props.edit);
 
-        const { handleSubmit, subProjects, schedules } = this.props;
-        const { monitorCategoryList } = this.props;
+        const {
+            handleSubmit,
+            subProjects,
+            schedules,
+            monitorCategoryList,
+            monitor,
+            project,
+            currentPlanId,
+        } = this.props;
         const type = this.state.type;
+
+        const unlimitedMonitors = ['Scale', 'Enterprise'];
+        const planCategory =
+            currentPlanId === 'enterprise'
+                ? 'Enterprise'
+                : PlanListing.getPlanById(currentPlanId).category;
+        const numOfUsers = this.getUserCount(project, subProjects);
+        const monitorPerUser =
+            planCategory === 'Startup' ? 5 : planCategory === 'Growth' ? 10 : 0;
+        const monitorCount = numOfUsers * monitorPerUser;
+        const currentMonitorCount = this.getCurrentMonitorCount(monitor);
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -1276,12 +1322,28 @@ class NewMonitor extends Component {
                                         disabled={requesting}
                                         type="submit"
                                     >
-                                        <ShouldRender
-                                            if={!this.props.edit && !requesting}
+                                        <PricingPlan
+                                            plan={this.getNextPlan(
+                                                planCategory
+                                            )}
+                                            hideChildren={false}
+                                            disabled={
+                                                unlimitedMonitors.includes(
+                                                    planCategory
+                                                ) ||
+                                                currentMonitorCount <
+                                                    monitorCount
+                                            }
                                         >
-                                            <span>Add Monitor</span>
-                                        </ShouldRender>
-
+                                            <ShouldRender
+                                                if={
+                                                    !this.props.edit &&
+                                                    !requesting
+                                                }
+                                            >
+                                                <span>Add Monitor</span>
+                                            </ShouldRender>
+                                        </PricingPlan>
                                         <ShouldRender
                                             if={this.props.edit && !requesting}
                                         >
@@ -1339,6 +1401,12 @@ const mapStateToProps = (state, ownProps) => {
     const category = selector(state, 'monitorCategoryId_1000');
     const subProject = selector(state, 'subProject_1000');
     const schedule = selector(state, 'callSchedule_1000');
+    const currentPlanId =
+        state.project &&
+        state.project.currentProject &&
+        state.project.currentProject.stripePlanId
+            ? state.project.currentProject.stripePlanId
+            : '';
 
     if (ownProps.edit) {
         const monitorId = ownProps.match
@@ -1360,6 +1428,10 @@ const mapStateToProps = (state, ownProps) => {
                 state.monitorCategories.monitorCategoryListForNewMonitor
                     .monitorCategories,
             monitorId,
+            project: state.project.currentProject
+                ? state.project.currentProject
+                : {},
+            currentPlanId,
         };
     } else {
         return {
@@ -1376,6 +1448,10 @@ const mapStateToProps = (state, ownProps) => {
                     .monitorCategories,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
+            project: state.project.currentProject
+                ? state.project.currentProject
+                : {},
+            currentPlanId,
         };
     }
 };
@@ -1408,6 +1484,8 @@ NewMonitor.propTypes = {
     setMonitorCriteria: PropTypes.func,
     fetchMonitorCriteria: PropTypes.func,
     showUpgradeForm: PropTypes.func,
+    project: PropTypes.object,
+    currentPlanId: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

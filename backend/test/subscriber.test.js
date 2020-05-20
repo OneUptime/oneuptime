@@ -18,6 +18,7 @@ const MonitorService = require('../backend/services/monitorService');
 const AirtableService = require('../backend/services/airtableService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
+const ComponentModel = require('../backend/models/component');
 
 let projectId, userId, airtableId, monitorId, token, subscriberId, statusPageId;
 const monitor = {
@@ -54,42 +55,50 @@ describe('Subscriber API', function() {
                                 .end(function(err, res) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
-                                    request
-                                        .post(`/monitor/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send(monitor)
-                                        .end(function(err, res) {
-                                            monitorId = res.body._id;
-                                            expect(res.body.name).to.be.equal(
-                                                monitor.name
-                                            );
-                                            request
-                                                .post(
-                                                    `/statusPage/${projectId}`
-                                                )
-                                                .set(
-                                                    'Authorization',
-                                                    authorization
-                                                )
-                                                .send({
-                                                    links: [],
-                                                    title: 'Status title',
-                                                    name: 'Status name',
-                                                    description:
-                                                        'status description',
-                                                    copyright:
-                                                        'status copyright',
-                                                    projectId,
-                                                    monitorIds: [monitorId],
-                                                })
-                                                .end(function(err, res) {
-                                                    statusPageId = res.body._id;
-                                                    expect(res).to.have.status(
-                                                        200
-                                                    );
-                                                    done();
-                                                });
-                                        });
+                                    ComponentModel.create({
+                                        name: 'New Component',
+                                    }).then(component => {
+                                        request
+                                            .post(`/monitor/${projectId}`)
+                                            .set('Authorization', authorization)
+                                            .send({
+                                                ...monitor,
+                                                componentId: component._id,
+                                            })
+                                            .end(function(err, res) {
+                                                monitorId = res.body._id;
+                                                expect(
+                                                    res.body.name
+                                                ).to.be.equal(monitor.name);
+                                                request
+                                                    .post(
+                                                        `/statusPage/${projectId}`
+                                                    )
+                                                    .set(
+                                                        'Authorization',
+                                                        authorization
+                                                    )
+                                                    .send({
+                                                        links: [],
+                                                        title: 'Status title',
+                                                        name: 'Status name',
+                                                        description:
+                                                            'status description',
+                                                        copyright:
+                                                            'status copyright',
+                                                        projectId,
+                                                        monitorIds: [monitorId],
+                                                    })
+                                                    .end(function(err, res) {
+                                                        statusPageId =
+                                                            res.body._id;
+                                                        expect(
+                                                            res
+                                                        ).to.have.status(200);
+                                                        done();
+                                                    });
+                                            });
+                                    });
                                 });
                         });
                 });

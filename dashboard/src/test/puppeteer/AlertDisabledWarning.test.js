@@ -22,9 +22,6 @@ describe('Alert Warning', () => {
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
             timeout: 1200000,
-            env: {
-                REACT_APP_IS_SAAS_SERVICE: true,
-            },
         });
 
         cluster.on('taskerror', err => {

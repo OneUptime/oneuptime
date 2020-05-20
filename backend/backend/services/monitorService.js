@@ -35,8 +35,22 @@ module.exports = {
             const subProjects = await ProjectService.findBy({
                 parentProjectId: project._id,
             });
+            let userCount = 0;
             if (subProjects && subProjects.length > 0) {
+                const userId = [];
                 subProjectIds = subProjects.map(project => project._id);
+                subProjects.map(subProject => {
+                    subProject.users.map(user => {
+                        if (!userId.includes(user.userId)) {
+                            userId.push(user.userId);
+                        }
+                        return user;
+                    });
+                    return subProject;
+                });
+                userCount = userId.length;
+            } else {
+                userCount = project.users.length;
             }
             subProjectIds.push(project._id);
             const count = await _this.countBy({
@@ -45,18 +59,28 @@ module.exports = {
             const monitorCategory = await MonitorCategoryService.findBy({
                 _id: data.monitorCategoryId,
             });
-            const plan = await Plans.getPlanById(project.stripePlanId);
-            let projectSeats = project.seats;
-            if (typeof projectSeats === 'string') {
-                projectSeats = parseInt(projectSeats);
-            }
+            let plan = Plans.getPlanById(project.stripePlanId);
+            // null plan => enterprise plan
+            plan = plan && plan.category ? plan : { category: 'Enterprise' };
+
             if (!plan && IS_SAAS_SERVICE) {
                 const error = new Error('Invalid project plan.');
                 error.code = 400;
                 ErrorService.log('monitorService.create', error);
                 throw error;
             } else {
-                if (count < projectSeats * 5 || !IS_SAAS_SERVICE) {
+                const unlimitedMonitor = ['Scale', 'Enterprise'];
+                const monitorCount =
+                    plan.category === 'Startup'
+                        ? 5
+                        : plan.category === 'Growth'
+                        ? 10
+                        : 0;
+                if (
+                    count < userCount * monitorCount ||
+                    !IS_SAAS_SERVICE ||
+                    unlimitedMonitor.includes(plan.category)
+                ) {
                     let monitor = new MonitorModel();
                     monitor.name = data.name;
                     monitor.type = data.type;
@@ -108,7 +132,7 @@ module.exports = {
                     return monitor;
                 } else {
                     const error = new Error(
-                        "You can't add any more monitors. Please add an extra seat to add more monitors."
+                        "You can't add any more monitors. Please upgrade your account."
                     );
                     error.code = 400;
                     ErrorService.log('monitorService.create', error);

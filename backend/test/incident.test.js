@@ -25,6 +25,7 @@ const Config = require('./utils/config');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const AlertModel = require('../backend/models/alert');
 const GlobalConfig = require('./utils/globalConfig');
+const ComponentModel = require('../backend/models/component');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
@@ -35,7 +36,8 @@ let token,
     monitorId,
     incidentId,
     testServerMonitorId,
-    testServerIncidentId;
+    testServerIncidentId,
+    componentId;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -74,18 +76,23 @@ describe('Incident API', function() {
                                 .end(function(err, res) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
-                                    request
-                                        .post(`/monitor/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send(monitor)
-                                        .end(function(err, res) {
-                                            monitorId = res.body._id;
-                                            expect(res).to.have.status(200);
-                                            expect(res.body.name).to.be.equal(
-                                                monitor.name
-                                            );
-                                            done();
-                                        });
+                                    ComponentModel.create({
+                                        name: 'New Component',
+                                    }).then(component => {
+                                        componentId = component._id;
+                                        request
+                                            .post(`/monitor/${projectId}`)
+                                            .set('Authorization', authorization)
+                                            .send({ ...monitor, componentId })
+                                            .end(function(err, res) {
+                                                monitorId = res.body._id;
+                                                expect(res).to.have.status(200);
+                                                expect(
+                                                    res.body.name
+                                                ).to.be.equal(monitor.name);
+                                                done();
+                                            });
+                                    });
                                 });
                         });
                 });
@@ -127,7 +134,7 @@ describe('Incident API', function() {
                 request
                     .post(`/monitor/${projectId}`)
                     .set('Authorization', authorization)
-                    .send(testServerMonitor)
+                    .send({ ...testServerMonitor, componentId })
                     .end(async function(err, res) {
                         testServerMonitorId = res.body._id;
                         await sleep(300000);
