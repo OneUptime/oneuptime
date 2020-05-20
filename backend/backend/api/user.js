@@ -4,7 +4,9 @@ const ProjectService = require('../services/projectService');
 const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const saml2 = require('saml2-js');
 const MailService = require('../services/mailService');
+const SsoService = require('../services/ssoService');
 const getUser = require('../middlewares/user').getUser;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -237,6 +239,131 @@ router.get('/masterAdminExists', async function(req, res) {
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
+});
+
+// Route
+// Description: SSO login function for  user
+// Params:
+// Param 1: req.query-> {email }
+// Returns: 400: Error; 500: Server Error; 200: redirect to login page
+router.get('/sso/login', async function(req, res) {
+    const { email } = req.query;
+    if (!email) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Email must be present.',
+        });
+    }
+    const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+
+    const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
+
+    if (!matchedTokens) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Invalid email.',
+        });
+    }
+
+    const domain = matchedTokens[1];
+
+    try {
+        const sso = await SsoService.findOneBy({ domain });
+        if (!sso) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Domain not found.',
+            });
+        }
+        const { 'saml-enabled': samlEnabled, samlSsoUrl } = sso;
+
+        if (!samlEnabled) {
+            return sendErrorResponse(req, res, {
+                code: 401,
+                message: 'SSO disabled for this domain.',
+            });
+        }
+        return sendItemResponse(req, res, { url: samlSsoUrl });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// Description: Callback function after SSO authentication page
+// param: query->{domain}
+router.post('/sso/callback', async function(req, res) {
+    const sp = new saml2.ServiceProvider({});
+    const idp = new saml2.IdentityProvider({});
+    const options = {
+        request_body: req.body,
+        allow_unencrypted_assertion: true,
+        ignore_signature: true,
+    };
+    sp.post_assert(idp, options, async function(err, saml_response) {
+        if (err != null)
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Invalid request',
+            });
+
+        const { domain } = req.query;
+
+        //TODO Need to check that the caller own the domain.
+        const sso = await SsoService.findOneBy({ domain });
+
+        if (!sso)
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SSO not defined for the domain.',
+            });
+
+        const email = saml_response.user.email;
+
+        let user = await UserService.findOneBy({ email });
+        if (!user) {
+            // User is not create yet
+            try {
+                user = await UserService.create({ email, sso: sso._id });
+            } catch (error) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: error,
+                });
+            }
+        }
+
+        const authUserObj = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            redirect: null,
+            cardRegistered: user.stripeCustomerId ? true : false,
+            tokens: {
+                jwtAccessToken: `${jwt.sign(
+                    {
+                        id: user._id,
+                    },
+                    jwtSecretKey,
+                    { expiresIn: 8640000 }
+                )}`,
+                jwtRefreshToken: user.jwtRefreshToken,
+            },
+            role: user.role || null,
+        };
+
+        return res.redirect(
+            `${global.accountsHost}` +
+                `/ssologin?id=${authUserObj.id}` +
+                `&name=${authUserObj.name}` +
+                `&email=${authUserObj.email}` +
+                `&jwtAccessToken=${authUserObj.tokens.jwtAccessToken}` +
+                `&jwtRefreshToken=${authUserObj.tokens.jwtRefreshToken}` +
+                `&role=${authUserObj.role}` +
+                `&redirect=${authUserObj.redirect}` +
+                `&cardRegistered=${authUserObj.cardRegistered}`
+        );
+    });
 });
 
 // Route

@@ -124,6 +124,27 @@ export function loginUser(values) {
     };
 }
 
+export const loginUserSso = values => async dispatch => {
+    try {
+        const response = await getApi(`user/sso/login?email=${values.email}`);
+        const { url } = response.data;
+        window.location = url;
+    } catch (error) {
+        let errorMsg;
+        if (error && error.response && error.response.data)
+            errorMsg = error.response.data;
+        if (error && error.data) {
+            errorMsg = error.data;
+        }
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else {
+            errorMsg = 'Network Error';
+        }
+        dispatch(loginError(errors(errorMsg)));
+    }
+};
+
 // Calls the API to verify a user token and log them in.
 export function verifyAuthToken(values) {
     const initialUrl = User.initialUrl();

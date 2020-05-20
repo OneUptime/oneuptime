@@ -58,8 +58,14 @@ app.use(function(req, res, next) {
     global.homeHost = 'https://' + req.hostname;
     global.dashboardHost = 'https://' + req.hostname + '/dashboard';
 
-    if (req.hostname.includes('localhost')) {
-        if (req.get('host').includes('localhost:')) {
+    if (
+        req.hostname.includes('localhost') ||
+        req.hostname.includes('127.0.0.1')
+    ) {
+        if (
+            req.get('host').includes('localhost:') ||
+            req.get('host').includes('127.0.0.1:')
+        ) {
             global.apiHost =
                 'http://' +
                 req.hostname +

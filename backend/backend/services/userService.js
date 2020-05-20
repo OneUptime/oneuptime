@@ -59,6 +59,8 @@ module.exports = {
             if (data.role == 'master-admin') userModel.isVerified = true;
             userModel.jwtRefreshToken = randToken.uid(256);
 
+            if (data.sso) userModel.sso = data.sso;
+
             const user = await userModel.save();
             return user;
         } catch (error) {
@@ -489,6 +491,13 @@ module.exports = {
                 if (!user) {
                     const error = new Error('User does not exist.');
                     error.code = 400;
+                    ErrorService.log('userService.login', error);
+                    throw error;
+                } else if ( user.sso ) {
+                    const error = new Error(
+                        'This domain is configured as SSO. Please use SSO to log in to your account'
+                    );
+                    error.code = 401;
                     ErrorService.log('userService.login', error);
                     throw error;
                 } else {

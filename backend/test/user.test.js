@@ -12,6 +12,7 @@ const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const UserModel = require('../backend/models/user');
+const SsoModel = require('../backend/models/sso');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 
@@ -431,5 +432,72 @@ describe('User API', function() {
                 expect(res.body.alertPhoneNumber).to.be.equal('');
                 done();
             });
+    });
+});
+
+let ssoId;
+describe('SSO authentication', function () {
+    this.timeout(20000);
+    before(async() => {
+        await SsoModel.deleteMany({ });
+        const sso = await SsoModel.create({
+            'saml-enabled': true,
+            domain: 'hackerbay.io',
+            samlSsoUrl: 'http://localhost/login',
+            remoteLogoutUrl: 'http://localhost/logout',
+        })
+        ssoId = sso._id;
+    });
+
+    after(async () => {
+        // await SsoModel.deleteOne({ _id: ssoId });
+    });
+    
+    // GET /user/sso/login
+    it('Should not accept requests without email as query.', function(done) {
+        request
+            .get('/user/sso/login')
+            .end(function(err,res){
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('Should not accept requests with invalid email.', function(done){
+        request
+            .get('/user/sso/login?email=invalid@email')
+            .end(function(err,res){
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('Should not accept requests with domains that aren\'t defined in the ssos collection.',function(done){
+        request
+            .get('/user/sso/login?email=user@undefinedsso.domain')
+            .end(function(err,res){
+                expect(res).to.have.status(404);
+                done();
+            });
+    });
+
+    it('Should not accept requests with domains having SSO disabled', function(done){
+        SsoModel.updateOne(
+            {_id:ssoId},
+            {$set:{'saml-enabled':false}}
+            ).then(()=>{
+                request
+                    .get('/user/sso/login?email=user@hackerbay.io')
+                    .end(function(err,res){
+                        expect(res).to.have.status(401);
+                        
+                    });
+                    SsoModel.updateOne(
+                            {_id:ssoId},
+                            {$set:{'saml-enabled':true}}
+                        ).then(()=>{
+                            done();
+                        });
+            })
     });
 });
