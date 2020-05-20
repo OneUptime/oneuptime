@@ -363,7 +363,7 @@ app.get('/table/:product', function(req, res) {
             blackLogo: false,
             requestDemoCta: false,
             productConfig,
-            onlyShowCompareTable: true
+            onlyShowCompareTable: true,
         });
     }
 });
@@ -388,7 +388,7 @@ app.get('/compare/:product', function(req, res) {
             blackLogo: false,
             requestDemoCta: false,
             productConfig,
-            onlyShowCompareTable: false
+            onlyShowCompareTable: false,
         });
     }
 });
