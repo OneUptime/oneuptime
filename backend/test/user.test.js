@@ -488,13 +488,13 @@ describe('SSO authentication', function() {
                 .get('/user/sso/login?email=user@hackerbay.io')
                 .end(function(err, res) {
                     expect(res).to.have.status(401);
+                    SsoModel.updateOne(
+                        { _id: ssoId },
+                        { $set: { 'saml-enabled': true } }
+                    ).then(() => {
+                        done();
+                    });
                 });
-            SsoModel.updateOne(
-                { _id: ssoId },
-                { $set: { 'saml-enabled': true } }
-            ).then(() => {
-                done();
-            });
         });
     });
 });
