@@ -216,7 +216,7 @@
 
 
     </article>
-
+    <% if (!onlyShowCompareTable) { %>
     <% include ./sdlc %>
     <article>
         <div class='container-lg' style="padding:0px; padding-bottom:75px">
@@ -239,6 +239,7 @@
     <div class="sectionBorderTop">
       <% include ./comparision-chart %>
     </div>
+    <% } %>
     <% if (productConfig && productConfig.productName) { %>
     <div class="comparision-heading">
       <h3 class="black">Here's a more detailed comparision.</h3>
