@@ -132,12 +132,27 @@ describe('Components', () => {
         'Should create a new monitor in a new component and get list of monitors',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                // add new monitor to component on parent project
-                await init.addMonitorToComponent(
-                    newComponentName,
-                    newMonitorName,
-                    page
-                );
+                // Navigate to Components page
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components');
+                await page.click('#components');
+
+                // Fill and submit New Component form
+                await page.waitForSelector('#form-new-component');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', newComponentName);
+                await page.click('button[type=submit]');
+
+                await init.navigateToComponentDetails(newComponentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', newMonitorName);
+                await init.selectByText('#type', 'url', page);
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', 'https://google.com');
+                await page.click('button[type=submit]');
 
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL);
