@@ -20,6 +20,7 @@ const NotificationService = require('../backend/services/notificationService');
 const AirtableService = require('../backend/services/airtableService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
+const ComponentModel = require('../backend/models/component');
 
 let token, userId, airtableId, projectId, monitorId;
 const monitor = {
@@ -62,14 +63,21 @@ describe('Reports API', function() {
                                 .end(function(err, res) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
-                                    request
-                                        .post(`/monitor/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send(monitor)
-                                        .end(function(err, res) {
-                                            monitorId = res.body._id;
-                                            done();
-                                        });
+                                    ComponentModel.create({
+                                        name: 'Test Component',
+                                    }).then(component => {
+                                        request
+                                            .post(`/monitor/${projectId}`)
+                                            .set('Authorization', authorization)
+                                            .send({
+                                                ...monitor,
+                                                componentId: component._id,
+                                            })
+                                            .end(function(err, res) {
+                                                monitorId = res.body._id;
+                                                done();
+                                            });
+                                    });
                                 });
                         });
                 });

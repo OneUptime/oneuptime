@@ -20,6 +20,7 @@ const payment = require('../backend/config/payment');
 const stripe = require('stripe')(payment.paymentPrivateKey);
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
+const ComponentModel = require('../backend/models/component');
 
 let token,
     userId,
@@ -29,7 +30,8 @@ let token,
     scheduleEventId,
     apiKey,
     monitorId,
-    authorization;
+    authorization,
+    componentId;
 
 const scheduledEvent = {
         name: 'New scheduled Event',
@@ -81,20 +83,26 @@ describe('Scheduled event API', function() {
                                 .end(function(err, res) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
-                                    request
-                                        .post(`/monitor/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send({
-                                            name: 'New Monitor 1',
-                                            type: 'url',
-                                            data: {
-                                                url: 'http://www.tests.org',
-                                            },
-                                        })
-                                        .end(function(err, res) {
-                                            monitorId = res.body._id;
-                                            done();
-                                        });
+                                    ComponentModel.create({
+                                        name: 'Test Component',
+                                    }).then(component => {
+                                        componentId = component._id;
+                                        request
+                                            .post(`/monitor/${projectId}`)
+                                            .set('Authorization', authorization)
+                                            .send({
+                                                name: 'New Monitor 1',
+                                                type: 'url',
+                                                data: {
+                                                    url: 'http://www.tests.org',
+                                                },
+                                                componentId,
+                                            })
+                                            .end(function(err, res) {
+                                                monitorId = res.body._id;
+                                                done();
+                                            });
+                                    });
                                 });
                         });
                 });
@@ -807,6 +815,7 @@ describe('Scheduled events APIs for status page', function() {
                 name: 'New Monitor 2',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
+                componentId,
             });
         monitorId = monitorRequest.body._id;
 

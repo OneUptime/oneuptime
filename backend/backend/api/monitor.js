@@ -43,12 +43,12 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         }
         data.createdById = req.user ? req.user.id : null;
 
-        if (!data.componentId) {
+        /* if (!data.componentId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Component ID is required.',
             });
-        }
+        } */
 
         if (
             data.monitorCategoryId &&

@@ -795,7 +795,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         }
     });
 
-    it('should not create monitor if componentId is not provided', function(done) {
+    /* it('should not create monitor if componentId is not provided', function(done) {
         let authorization = `Basic ${token}`;
 
         request
@@ -813,7 +813,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                 );
                 done();
             });
-    });
+    }); */
 
     it('should delete a monitor', async () => {
         let authorization = `Basic ${token}`;
