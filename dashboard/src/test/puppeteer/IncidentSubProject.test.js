@@ -16,6 +16,7 @@ const projectMonitorName = utils.generateRandomString();
 const subProjectMonitorName = utils.generateRandomString();
 const subProjectName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
+const newComponentName = utils.generateRandomString();
 
 describe('Incident API With SubProjects', () => {
     const operationTimeOut = 500000;
@@ -99,6 +100,7 @@ describe('Incident API With SubProjects', () => {
                 await init.addSubProject(subProjectName, page);
                 // Create Component
                 await init.addComponent(componentName, page, subProjectName);
+                await init.addComponent(newComponentName, page, subProjectName);
                 // add new user to sub-project
                 await init.addUserToProject(
                     {
@@ -145,6 +147,35 @@ describe('Incident API With SubProjects', () => {
             });
 
             done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not display created incident status in a different component',
+        async () => {
+            expect.assertions(1);
+            return await cluster.execute(
+                { email, password, projectMonitorName },
+                async ({ page, data }) => {
+                    await page.setDefaultTimeout(utils.timeout);
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
+                    await init.loginUser(user, page);
+                    // Navigate to details page of monitor
+                    await init.navigateToComponentDetails(
+                        newComponentName,
+                        page
+                    );
+
+                    const incidentTitleSelector = await page.$(
+                        '#incident_span_0'
+                    );
+                    expect(incidentTitleSelector).toBeNull();
+                }
+            );
         },
         operationTimeOut
     );

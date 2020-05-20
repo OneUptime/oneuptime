@@ -382,7 +382,9 @@ module.exports = {
                 statusPage => statusPage.monitorIds.length
             );
             const statuspage = withMonitors[0];
-            const monitorIds = statuspage.monitorIds.map(m => m._id);
+            const monitorIds = statuspage
+                ? statuspage.monitorIds.map(m => m._id)
+                : [];
             if (monitorIds && monitorIds.length) {
                 const notes = await IncidentService.findBy(
                     { monitorId: { $in: monitorIds } },
@@ -449,7 +451,9 @@ module.exports = {
                 statusPage => statusPage.monitorIds.length
             );
             const statuspage = withMonitors[0];
-            const monitorIds = statuspage.monitorIds.map(m => m._id);
+            const monitorIds = statuspage
+                ? statuspage.monitorIds.map(m => m._id)
+                : [];
             if (monitorIds && monitorIds.length) {
                 const events = await ScheduledEventsService.findBy(
                     {

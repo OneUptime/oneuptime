@@ -11,10 +11,8 @@ import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMemb
 import { LoadingState } from '../components/basic/Loader';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
-import { fetchComponents } from '../actions/component';
+import { fetchMonitors } from '../actions/monitor';
 import { loadPage } from '../actions/page';
-import { fetchTutorial } from '../actions/tutorial';
-import { getProbes } from '../actions/probe';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
@@ -35,24 +33,7 @@ class DashboardView extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-        this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
-        this.props.fetchComponents(projectId).then(() => {
-            this.props.component.componentList.components.forEach(
-                subProject => {
-                    if (subProject.components.length > 0) {
-                        subProject.components.forEach(component => {
-                            this.props.fetchComponentLogs(
-                                component.projectId._id || component.projectId,
-                                component._id,
-                                this.props.startDate,
-                                this.props.endDate
-                            );
-                        });
-                    }
-                }
-            );
-        });
-        this.props.fetchTutorial();
+        this.props.fetchMonitors(projectId);
     };
 
     render() {
@@ -287,10 +268,8 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             destroy,
-            fetchComponents,
+            fetchMonitors,
             loadPage,
-            fetchTutorial,
-            getProbes,
         },
         dispatch
     );
@@ -337,14 +316,9 @@ DashboardView.propTypes = {
     ]),
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
-    fetchComponentLogs: PropTypes.func,
-    fetchComponents: PropTypes.func.isRequired,
+    fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     componentTutorial: PropTypes.object,
-    fetchTutorial: PropTypes.func,
-    getProbes: PropTypes.func,
-    startDate: PropTypes.object,
-    endDate: PropTypes.object,
 };
 
 DashboardView.displayName = 'DashboardView';

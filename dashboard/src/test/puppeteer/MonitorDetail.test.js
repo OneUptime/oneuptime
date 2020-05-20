@@ -522,6 +522,7 @@ describe('Monitor Detail API', () => {
                 const confirmDeleteButtonSelector = '#deleteMonitor';
                 await page.waitForSelector(confirmDeleteButtonSelector);
                 await page.click(confirmDeleteButtonSelector);
+                await page.waitFor(5000);
 
                 const selector = `span#monitor-title-${newMonitorName}`;
 
