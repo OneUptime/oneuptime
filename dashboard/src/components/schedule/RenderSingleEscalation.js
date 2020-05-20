@@ -9,6 +9,7 @@ import TimezoneSelector from '../basic/TimezoneSelector';
 import { RenderTeams } from './RenderTeams';
 import { RenderField } from '../basic/RenderField';
 import Tooltip from '../basic/Tooltip';
+import PricingPlan from '../basic/PricingPlan';
 
 const RenderSingleEscalation = ({
     policy,
@@ -288,9 +289,15 @@ const RenderSingleEscalation = ({
                                                                 true
                                                             )
                                                         }
+                                                        id="enableTeamRotation"
                                                     >
-                                                        Advanced: Enable Team
-                                                        Rotation
+                                                        <PricingPlan
+                                                            plan="Growth"
+                                                            hideChildren={false}
+                                                        >
+                                                            Advanced: Enable
+                                                            Team Rotation
+                                                        </PricingPlan>
                                                     </button>
                                                 </div>
                                             </>

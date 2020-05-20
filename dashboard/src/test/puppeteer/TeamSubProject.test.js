@@ -15,7 +15,6 @@ const anotherEmail = utils.generateRandomBusinessEmail();
 const anotherPassword = '1234567890';
 
 const subProjectName = utils.generateRandomString();
-const subProjectMonitorName = utils.generateRandomString();
 
 describe('Team API With SubProjects', () => {
     const operationTimeOut = 100000;
@@ -26,7 +25,6 @@ describe('Team API With SubProjects', () => {
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_CONTEXT,
             puppeteerOptions: utils.puppeteerLaunchConfig,
-            maxConcurrency: 3,
             puppeteer,
             timeout: 120000,
         });
@@ -36,7 +34,7 @@ describe('Team API With SubProjects', () => {
         });
 
         // Register user
-        await cluster.task(async ({ page, data }) => {
+        const task = async ({ page, data }) => {
             const user = {
                 email: data.email,
                 password: data.password,
@@ -44,38 +42,53 @@ describe('Team API With SubProjects', () => {
 
             // user
             await init.registerUser(user, page);
+        };
+
+        await cluster.execute(
+            {
+                email,
+                password,
+            },
+            task
+        );
+
+        await cluster.execute(
+            {
+                email: newEmail,
+                password: newPassword,
+            },
+            task
+        );
+
+        await cluster.execute(
+            {
+                email: anotherEmail,
+                password: anotherPassword,
+            },
+            task
+        );
+
+        await cluster.execute(null, async ({ page }) => {
+            const user = { email, password };
             await init.loginUser(user, page);
 
-            if (data.isParentUser) {
-                // rename default project
-                await init.renameProject(data.projectName, page);
-                // add sub-project
-                await init.addSubProject(data.subProjectName, page);
-            }
-        });
+            await page.goto(utils.DASHBOARD_URL);
 
-        await cluster.queue({
-            projectName,
-            subProjectName,
-            email,
-            password,
-            newEmail,
-            subProjectMonitorName,
-            isParentUser: true,
-        });
-        await cluster.queue({
-            projectName,
-            subProjectName,
-            email: newEmail,
-            password: newPassword,
-            isParentUser: false,
-        });
-        await cluster.queue({
-            projectName,
-            subProjectName,
-            email: anotherEmail,
-            password: anotherPassword,
-            isParentUser: false,
+            await page.waitForSelector('#AccountSwitcherId');
+            await page.click('#AccountSwitcherId');
+            await page.waitForSelector('#create-project');
+            await page.click('#create-project');
+            await page.waitForSelector('#name');
+            await page.type('#name', projectName);
+            await page.$$eval(
+                'input[name="planId"]',
+                inputs => inputs[2].click() // select Growth plan
+            );
+            await page.click('#btnCreateProject');
+            await page.waitForNavigation({ waitUntil: 'networkidle0' });
+
+            // add sub-project
+            await init.addSubProject(subProjectName, page);
         });
 
         await cluster.idle();
@@ -88,8 +101,6 @@ describe('Team API With SubProjects', () => {
     });
 
     test('should add a new user to parent project and all sub-projects (role -> `Administrator`)', async done => {
-        expect.assertions(1);
-
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_CONTEXT,
             puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -173,8 +184,6 @@ describe('Team API With SubProjects', () => {
     }, 200000);
 
     test('should add a new user to sub-project (role -> `Member`)', async done => {
-        expect.assertions(1);
-
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_CONTEXT,
             puppeteerOptions: utils.puppeteerLaunchConfig,
