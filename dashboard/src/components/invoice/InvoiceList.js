@@ -19,13 +19,10 @@ export class InvoiceList extends Component {
             error,
             nextClicked,
             nextCount,
-            total_count,
-            count,
             prevClicked,
         } = this.props;
         const canPrev = Boolean(nextCount);
-        const canNext =
-            Boolean(has_more) || (!nextCount && total_count > count);
+        const canNext = Boolean(has_more);
 
         return (
             <div>
@@ -383,7 +380,7 @@ const mapDispatchToProps = dispatch => {
 
 const mapStateToProps = state => {
     const { invoices, nextCount } = state.invoice;
-    const { has_more, total_count, count } = invoices;
+    const { has_more } = invoices;
     const isRequesting = state.invoice.requesting;
     const error = state.invoice.error;
 
@@ -393,8 +390,6 @@ const mapStateToProps = state => {
         error,
         has_more,
         nextCount,
-        total_count,
-        count,
     };
 };
 
@@ -411,8 +406,6 @@ InvoiceList.propTypes = {
     ]),
     has_more: PropTypes.bool,
     nextCount: PropTypes.number.isRequired,
-    count: PropTypes.number,
-    total_count: PropTypes.number,
     prevClicked: PropTypes.func.isRequired,
 };
 
