@@ -114,8 +114,8 @@ describe('Monitor API With SubProjects', () => {
                 const user = { email: newEmail, password: newPassword };
                 await init.loginUser(user, page);
                 // Switch to invited project for new user
-                // await init.switchProject(projectName, page); // Commented because project already switched to
-                await page.goto(utils.DASHBOARD_URL);
+                await init.switchProject(subProjectName, page); // Commented because project already switched to
+                // await page.goto(utils.DASHBOARD_URL);
                 const newComponentForm = await page.$('#form-new-component');
                 expect(newComponentForm).toEqual(null);
                 // Navigate to details page of component created
