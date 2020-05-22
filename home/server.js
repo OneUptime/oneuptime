@@ -9,15 +9,7 @@ const productCompare = require('./config/product-compare');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
 app.use(compression());
-
-app.use('*', function(req, res, next) {
-    if (process.env && process.env.PRODUCTION) {
-        res.set('Cache-Control', 'public, max-age=86400');
-    } else res.set('Cache-Control', 'no-cache');
-    next();
-});
 
 //View engine setup
 app.set('views', path.join(__dirname, 'views'));
