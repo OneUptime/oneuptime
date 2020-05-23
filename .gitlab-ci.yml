@@ -961,7 +961,7 @@ deploy_production_backend:
 
 # DEPLOYMENT STAGE - HTTP-TEST-SERVER
 deploy_staging_http_test_server:
-stage: Deploy
+  stage: Deploy
   script:
     - chmod +x ./ci/scripts/version-setup.sh
     - ./ci/scripts/version-setup.sh
