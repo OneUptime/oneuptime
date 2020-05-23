@@ -1,0 +1,27 @@
+#E2E Stage.
+e2e_microk8s_test:
+  stage: E2E
+  script:
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - chmod +x ./ci/scripts/setup-machine.sh
+    - ./ci/scripts/setup-machine.sh
+    - chmod +x ./ci/scripts/setup.sh
+    - ./ci/scripts/setup.sh
+    - export HOME_URL=http://localhost
+    - export ACCOUNTS_URL=http://localhost/accounts
+    - export ADMIN_DASHBOARD_URL=http://localhost/admin
+    - export DASHBOARD_URL=http://localhost/dashboard
+    - export BACKEND_URL=http://localhost/api
+    - export STATUSPAGE_URL=http://localhost/status-page
+    - export APIDOCS_URL=http://localhost/docs
+    - export LICENSING_URL=http://localhost/license
+    - cd smoke-test
+    - npm ci
+    - npm run test
+    - cd ..
+    - chmod +x ./ci/scripts/cleanup.sh
+    - ./ci/scripts/cleanup.sh
+  only:
+    refs:
+      - release
+      - master

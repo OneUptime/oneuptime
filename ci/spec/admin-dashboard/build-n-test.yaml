@@ -1,0 +1,13 @@
+build_n_test_admin-dashboard:
+  stage: BuildAndTest
+  script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker.
+    - cd admin-dashboard
+    - npm ci
+      # try building, if there are warnings then this will fail
+    - npm run build
+    - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release

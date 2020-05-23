@@ -1,0 +1,27 @@
+# DEPLOYMENT STAGE - LICENSING
+deploy_staging_licensing:
+  stage: Deploy
+  allow_failure: true
+  script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
+    # Build and deploy licensing.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipeproject/licensing:master ./licensing
+    - sudo docker tag fyipeproject/licensing:master fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/licensing:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+      - hotfix-master
+  environment:
+    name: staging

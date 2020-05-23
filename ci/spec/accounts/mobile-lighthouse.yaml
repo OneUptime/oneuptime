@@ -1,0 +1,29 @@
+## Lighouse for the mobile version of the accounts pages
+mobile_lighthouse_accounts:
+  stage: BuildAndTest
+  allow_failure: true
+  script:
+    - chmod +x ./ci/scripts/setup-docker.sh
+    - ./ci/scripts/setup-docker.sh
+    - echo "Setup machine for running lighthouse on accounts pages"
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+    - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
+    - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+    - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+    - sudo docker ps
+    - cd accounts
+    - npm ci
+    - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-674921/chrome-linux/chrome"
+    # try building, if there are warnings then this will fail
+    - npm run build
+    - npm run light-house-mobile
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release

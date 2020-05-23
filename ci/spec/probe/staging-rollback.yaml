@@ -1,0 +1,19 @@
+staging_rollback_probe:
+  stage: RollbackIfSmokeTestFail
+  script:
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
+    # Rollback probe
+    - chmod +x ./ci/scripts/job-status.sh
+    - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
+    - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe1
+    # Additionally rollback probe1 deployment
+    - sudo $HOME/google-cloud-sdk/bin/kubectl rollout undo deployment/fi-probe2
+  only:
+    refs:
+      - master
+  except:
+    - $STAGING_SMOKE_TEST_STATUS

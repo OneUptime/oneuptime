@@ -1,0 +1,20 @@
+## SMOKE TEST STAGE
+smoke_test_production:
+  stage: SmokeTest
+  script:
+    - export HOME_URL=https://fyipe.com
+    - export ACCOUNTS_URL=https://fyipe.com/accounts
+    - export DASHBOARD_URL=https://fyipe.com/dashboard
+    - export BACKEND_URL=https://fyipe.com/api
+    - export STATUSPAGE_URL=https://statuspage.fyipe.com
+    - export APIDOCS_URL=https://fyipe.com/docs
+    - export LICENSING_URL=https://fyipe.com/license
+    - cd smoke-test
+    - npm ci
+    - npm run test
+  only:
+    refs:
+      - release
+      - hotfix-release
+  environment:
+    name: production

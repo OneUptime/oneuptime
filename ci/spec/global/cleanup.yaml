@@ -1,0 +1,7 @@
+cleanup:
+  stage: CleanUp
+  script:
+    - sudo docker system prune -a --force
+  only:
+    refs:
+      - master

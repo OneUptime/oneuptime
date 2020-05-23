@@ -1,0 +1,33 @@
+deploy_production_helm-chart:
+  stage: Deploy
+  script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
+    # Install Helm.
+    - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
+    - cd ./helm-chart/public
+    - sudo helm repo index ./fyipe
+    - sudo helm package ./fyipe
+    - sudo helm repo index .
+    - cd ..
+    - cd ..
+    # Deploy to production
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipeproject/helm-chart:latest ./helm-chart
+    - sudo docker tag fyipeproject/helm-chart:latest fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/helm-chart:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-helm-chart fi-helm-chart=fyipeproject/helm-chart:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+      - hotfix-release
+  environment:
+    name: production

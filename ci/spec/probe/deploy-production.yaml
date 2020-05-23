@@ -1,0 +1,25 @@
+deploy_production_probe:
+  stage: Deploy
+  script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipeproject/probe:latest ./probe
+    - sudo docker tag fyipeproject/probe:latest fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/probe:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe1 fi-probe1=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-probe2 fi-probe2=fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+      - hotfix-release
+  environment:
+    name: production
