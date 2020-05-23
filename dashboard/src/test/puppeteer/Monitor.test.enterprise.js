@@ -73,17 +73,10 @@ describe('Enterprise Monitor API', () => {
                 await init.loginUser(user, page);
 
                 // Create Component first
+                // Redirects automatically component to details page
                 await init.addComponent(data.componentName, page);
 
-                // Navigate to details page of component created in previous test
-                await page.waitForSelector(
-                    `#more-details-${data.componentName}`
-                );
-                await page.click(`#more-details-${data.componentName}`);
-                await page.waitForSelector('#form-new-monitor');
-
                 await page.waitForSelector('#monitors');
-                await page.click('#monitors');
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', data.monitorName);

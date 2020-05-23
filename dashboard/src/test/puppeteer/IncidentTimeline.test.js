@@ -47,7 +47,7 @@ describe('Incident Timeline API', () => {
 
             // Create component
             await init.addComponent(componentName, page);
-            await init.navigateToComponentDetails(componentName, page);
+            // await init.navigateToComponentDetails(componentName, page);
 
             // add new monitor to project
             await page.waitForSelector('#monitors');

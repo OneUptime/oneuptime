@@ -61,10 +61,11 @@ describe('Components', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    'span#component-content-header'
+                    `span#${componentName}-text`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();

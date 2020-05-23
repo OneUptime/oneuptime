@@ -83,6 +83,7 @@ describe('StatusPage API With SubProjects', () => {
             await init.addSubProject(subProjectName, page);
             // Create Component
             await init.addComponent(componentName, page, subProjectName);
+            await page.goto(utils.DASHBOARD_URL);
             // add new user to sub-project
             await init.addUserToProject(
                 {

@@ -51,11 +51,8 @@ describe('New Monitor API', () => {
 
             await cluster.execute(null, async ({ page }) => {
                 // create a component
+                // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
-
-                // view the created component
-                await page.waitForSelector(`#more-details-${componentName}`);
-                await page.click(`#more-details-${componentName}`);
 
                 for (let i = 0; i <= 5; i++) {
                     const monitorName = utils.generateRandomString();
@@ -99,11 +96,8 @@ describe('New Monitor API', () => {
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 // create a component
+                // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
-
-                // view the created component
-                await page.waitForSelector(`#more-details-${componentName}`);
-                await page.click(`#more-details-${componentName}`);
 
                 for (let i = 0; i <= 10; i++) {
                     const monitorName = utils.generateRandomString();
@@ -147,11 +141,8 @@ describe('New Monitor API', () => {
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 // create a component
+                // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
-
-                // view the created component
-                await page.waitForSelector(`#more-details-${componentName}`);
-                await page.click(`#more-details-${componentName}`);
 
                 for (let i = 0; i <= 15; i++) {
                     const monitorName = utils.generateRandomString();
