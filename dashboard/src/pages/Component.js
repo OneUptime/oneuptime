@@ -16,6 +16,7 @@ import { loadPage } from '../actions/page';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
+import { BreadcrumbsItem } from 'react-breadcrumbs-dynamic';
 
 class DashboardView extends Component {
     componentDidMount() {
@@ -138,6 +139,11 @@ class DashboardView extends Component {
 
         return (
             <Dashboard ready={this.ready}>
+                <BreadcrumbsItem
+                    to={`/dashboard/project/${currentProjectId}/components`}
+                >
+                    Components
+                </BreadcrumbsItem>
                 <div className="Box-root">
                     <div>
                         <div>

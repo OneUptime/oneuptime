@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { BreadcrumbsItem } from 'react-breadcrumbs-dynamic';
 import Dashboard from '../components/Dashboard';
 import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
@@ -212,8 +213,14 @@ class AlertLog extends Component {
                 false
             );
         allAlerts && allAlerts.unshift(projectAlert);
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Dashboard ready={this.ready}>
+                <BreadcrumbsItem
+                    to={`/dashboard/project/${projectId}/alert-log`}
+                >
+                    Alert Log
+                </BreadcrumbsItem>
                 <div className="Box-root">
                     <div>
                         <div>

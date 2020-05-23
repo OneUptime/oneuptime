@@ -11,6 +11,7 @@ import ResolveTime from '../components/reports/ResolveTime';
 import Select from '../components/basic/react-select-fyipe';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import { BreadcrumbsItem } from 'react-breadcrumbs-dynamic';
 
 const styles = {
     cardGrid: {
@@ -132,8 +133,13 @@ export class Reports extends Component {
     };
 
     render() {
+        const { currentProject } = this.props;
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Dashboard ready={this.ready}>
+                <BreadcrumbsItem to={`/dashboard/project/${projectId}/reports`}>
+                    Reports
+                </BreadcrumbsItem>
                 <div className="Box-root Margin-vertical--12">
                     <div>
                         <div>
@@ -574,6 +580,9 @@ const mapStateToProps = state => {
 
 Reports.propTypes = {
     match: PropTypes.object,
+    currentProject: PropTypes.shape({
+        _id: PropTypes.string,
+    }),
 };
 
 Reports.displayName = 'Reports';

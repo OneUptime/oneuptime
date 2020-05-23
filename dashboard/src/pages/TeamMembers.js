@@ -19,6 +19,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { history } from '../store';
+import { BreadcrumbsItem } from 'react-breadcrumbs-dynamic';
 
 const LoadingState = () => (
     <div className="Box-root Margin-bottom--12">
@@ -245,10 +246,17 @@ class TeamApp extends Component {
     };
 
     render() {
-        const { subProjectTeamLoading, teamMembers, pages } = this.props.team;
+        const {
+            team: { subProjectTeamLoading, teamMembers, pages },
+            currentProject,
+        } = this.props;
         const { inviteModalId } = this.state;
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Dashboard>
+                <BreadcrumbsItem to={`/dashboard/project/${projectId}/team`}>
+                    Team Members
+                </BreadcrumbsItem>
                 <div
                     onKeyDown={this.handleKeyBoard}
                     className="Margin-vertical--12"

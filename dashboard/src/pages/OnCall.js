@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
+import { BreadcrumbsItem } from 'react-breadcrumbs-dynamic';
 import Dashboard from '../components/Dashboard';
 import {
     fetchProjectSchedule,
@@ -259,6 +260,11 @@ export class OnCall extends Component {
 
         return (
             <Dashboard>
+                <BreadcrumbsItem
+                    to={`/dashboard/project/${currentProjectId}/on-call`}
+                >
+                    Call Schedules
+                </BreadcrumbsItem>
                 <div tabIndex="0" onKeyDown={this.handleKeyBoard}>
                     <div>
                         <div>

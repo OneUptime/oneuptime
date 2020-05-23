@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { BreadcrumbsItem } from 'react-breadcrumbs-dynamic';
 import Dashboard from '../components/Dashboard';
 import StatusPagesTable from '../components/statusPage/StatusPagesTable';
 import PropTypes from 'prop-types';
@@ -21,6 +22,11 @@ class StatusPage extends Component {
 
         return (
             <Dashboard>
+                <BreadcrumbsItem
+                    to={`/dashboard/project/${projectId}/status-pages`}
+                >
+                    Status Pages
+                </BreadcrumbsItem>
                 <ShouldRender if={this.props.statusPageTutorial.show}>
                     <TutorialBox type="status-page" />
                 </ShouldRender>
