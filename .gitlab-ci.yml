@@ -25,8 +25,7 @@ include:
   - '/ci/spec/accounts/build-n-test.yaml'
   - '/ci/spec/accounts/deploy.yaml'
   - '/ci/spec/accounts/rollback.yaml'
-  - '/ci/spec/accounts/desktop-lighthouse.yaml'
-  - '/ci/spec/accounts/mobile-lighthouse.yaml'
+  - '/ci/spec/accounts/lighthouse.yaml'
 
   # ADMIN DASHBOARD
   - '/ci/spec/admin-dashboard/audit.yaml'
@@ -64,8 +63,7 @@ include:
   - '/ci/spec/home/build-n-test.yaml'
   - '/ci/spec/home/deploy.yaml'
   - '/ci/spec/home/rollback.yaml'
-  - '/ci/spec/home/desktop-lighthouse.yaml'
-  - '/ci/spec/home/mobile-lighthouse.yaml'
+  - '/ci/spec/home/lighthouse.yaml'
 
   # HTTP-TEST-SERVER
   - '/ci/spec/http-test-server/audit.yaml'
