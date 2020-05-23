@@ -286,7 +286,7 @@ module.exports = {
         }
     },
     addMonitorToComponent: async function(component, monitorName, page) {
-        await this.addComponent(component, page);
+        component && (await this.addComponent(component, page));
 
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
