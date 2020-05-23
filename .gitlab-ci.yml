@@ -15,23 +15,9 @@ stages:
   - CleanUp
   - Misc
 
-# Run lint all projects
-lint-projects:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - npm ci
-    - npm run lint
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
-
+include:
+  - '/ci/spec/global/lint.yaml'
+  
 # BACKEND
 audit_backend:
   stage: BuildAndTest
