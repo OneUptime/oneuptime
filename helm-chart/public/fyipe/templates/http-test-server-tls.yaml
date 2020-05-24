@@ -1,10 +1,10 @@
 {{- if .Values.saas.isSaasService }} 
-{{- range $key, $value := $.Values.httpTestServer.hosts }}
+{{- range $key, $value := $.Values.httptest.hosts }}
 {{- if $value.tls.enabled }}
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ printf "%s-%s-%s" $.Release.Name $key "testservertls"  }}
+  name: {{ printf "%s-%s-%s" $.Release.Name $key "testtls"  }}
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/part-of: fyipe

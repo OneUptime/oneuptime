@@ -1,13 +1,13 @@
 ############----TEST-SERVER-INGRESS--#####################################
 {{- if .Values.saas.isSaasService }} 
-{{- range $key, $value := $.Values.httpTestServer.hosts }}
+{{- range $key, $value := $.Values.httptest.hosts }}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     ingress.kubernetes.io/ssl-redirect: "true"
-  name: {{ printf "%s-%s-%s" $.Release.Name $key "testserver"  }}
+  name: {{ printf "%s-%s-%s" $.Release.Name $key "test"  }}
   namespace: {{ $.Release.Namespace }}
   labels:
     app.kubernetes.io/part-of: fyipe
@@ -17,7 +17,7 @@ spec:
   tls:
     - hosts:
       - {{  $value.host }} 
-      secretName: {{ printf "%s-%s-%s" $.Release.Name $key "testservertls"  }}
+      secretName: {{ printf "%s-%s-%s" $.Release.Name $key "testtls"  }}
   {{- end }}
   rules:
     {{- if  $value.host }} 
@@ -29,7 +29,7 @@ spec:
         paths:
           - path: /
             backend:
-              serviceName: {{ printf "%s-%s" $.Release.Name "testserver"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "test"  }}
               servicePort: 80
 ---
 {{- end }}
