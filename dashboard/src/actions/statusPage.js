@@ -444,6 +444,57 @@ export function updateStatusPageLinks(projectId, values) {
     };
 }
 
+//Update status page links
+
+export function updateStatusPageCustomHTMLRequest() {
+    return {
+        type: types.UPDATE_STATUSPAGE_CUSTOM_HTML_REQUEST,
+    };
+}
+
+export function updateStatusPageCustomHTMLSuccess(statusPage) {
+    return {
+        type: types.UPDATE_STATUSPAGE_CUSTOM_HTML_SUCCESS,
+        payload: statusPage,
+    };
+}
+
+export function updateStatusPageCustomHTMLError(error) {
+    return {
+        type: types.UPDATE_STATUSPAGE_CUSTOM_HTML_FAILURE,
+        payload: error,
+    };
+}
+
+// Calls the API to update links.
+export function updateStatusPageCustomHTML(projectId, values) {
+    return function(dispatch) {
+        const promise = putApi(`statusPage/${projectId}`, values);
+        dispatch(updateStatusPageCustomHTMLRequest());
+
+        promise.then(
+            function(response) {
+                const statusPage = response.data;
+                dispatch(updateStatusPageCustomHTMLSuccess(statusPage));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateStatusPageCustomHTMLError(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+
 //fetch project statuspage
 
 export function fetchProjectStatusPageRequest() {
@@ -483,6 +534,8 @@ export function fetchProjectStatusPage(projectId, refresh, skip, limit) {
         promise.then(
             function(response) {
                 const data = response.data;
+                // eslint-disable-next-line no-console
+                console.log(response.data);
                 data.projectId = projectId;
                 dispatch(fetchProjectStatusPageSuccess(data));
             },

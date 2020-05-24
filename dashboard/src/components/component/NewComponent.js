@@ -28,6 +28,7 @@ import 'brace/mode/javascript';
 import 'brace/theme/github';
 import { logEvent } from '../../analytics';
 import { IS_SAAS_SERVICE } from '../../config';
+import { history } from '../../store';
 
 const selector = formValueSelector('NewComponent');
 
@@ -60,6 +61,12 @@ class NewComponent extends Component {
         }
     }
 
+    viewCreatedComponent = (projectId, componentId) => {
+        history.push(
+            `/dashboard/project/${projectId}/${componentId}/monitoring`
+        );
+    };
+
     submitForm = values => {
         const thisObj = this;
 
@@ -81,11 +88,12 @@ class NewComponent extends Component {
             });
         } else {
             this.props.createComponent(postObj.projectId, postObj).then(
-                () => {
+                ({ data: { _id: componentId, projectId } }) => {
                     thisObj.props.reset();
                     if (IS_SAAS_SERVICE) {
                         logEvent('Add New Component', values);
                     }
+                    this.viewCreatedComponent(projectId._id, componentId);
                 },
                 error => {
                     if (

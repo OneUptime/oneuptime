@@ -100,7 +100,9 @@ describe('Incident API With SubProjects', () => {
                 await init.addSubProject(subProjectName, page);
                 // Create Component
                 await init.addComponent(componentName, page, subProjectName);
+                await page.goto(utils.DASHBOARD_URL);
                 await init.addComponent(newComponentName, page, subProjectName);
+                await page.goto(utils.DASHBOARD_URL);
                 // add new user to sub-project
                 await init.addUserToProject(
                     {
@@ -110,6 +112,8 @@ describe('Incident API With SubProjects', () => {
                     },
                     page
                 );
+                await init.navigateToComponentDetails(componentName, page);
+
                 // add new monitor to parent project
                 await init.addMonitorToSubProject(
                     projectMonitorName,

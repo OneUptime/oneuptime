@@ -47,6 +47,17 @@ fyipe:
         key: 
   licensingUrl: https://fyipe.com/license
 
+###################################################################################
+
+httpTestServer: 
+    hosts:
+      host1: 
+        host: 
+        tls:
+          enabled: false
+          crt: 
+          key: 
+
 ##################################################################################  
 ## Important: Probe Values. More information in the Readme.md 
 ################################################################################## 
@@ -146,6 +157,7 @@ host:
   accountsPort: 3003
   helmChartPort: 3423
   apiDocsPort: 1445
+  httpTestServerPort: 3010
   adminDashboardPort: 3100
   backendServicePort: 80
   homeServicePort: 80
@@ -162,6 +174,7 @@ host:
   adminDashboardNodePort: 80
   licensingServicePort: 80
   helmChartServicePort: 80
+  httpTestServerServicePort: 80
 
 isThirdPartyBilling: false
 isRunningOnGCPMarketplace: false

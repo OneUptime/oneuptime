@@ -326,7 +326,10 @@ export class Setting extends Component {
                                                                         }
                                                                         placeholder="domain"
                                                                     />
-                                                                    <p className="bs-Fieldset-explanation">
+                                                                    <p
+                                                                        className="bs-Fieldset-explanation"
+                                                                        id="publicStatusPageUrl"
+                                                                    >
                                                                         {IS_LOCALHOST && (
                                                                             <span>
                                                                                 If
@@ -627,7 +630,10 @@ export class Setting extends Component {
                                                                     </div>
                                                                 </div>
                                                             </ShouldRender>
-                                                            <p className="bs-Fieldset-explanation">
+                                                            <p
+                                                                className="bs-Fieldset-explanation"
+                                                                id="publicStatusPageUrl"
+                                                            >
                                                                 {IS_LOCALHOST && (
                                                                     <span>
                                                                         If you

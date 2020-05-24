@@ -1,0 +1,25 @@
+rollback_if_staging_deployment_fails:
+  stage: RollbackIfDeploymentFail
+  script:
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
+    - chmod +x ./ci/scripts/staging-rollback.sh
+    - ./ci/scripts/staging-rollback.sh
+  only:
+    refs:
+      - master
+
+rollback_if_production_deployment_fails:
+  stage: RollbackIfDeploymentFail
+  script:
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
+    - chmod +x ./ci/scripts/production-rollback.sh
+    - ./ci/scripts/production-rollback.sh
+  only:
+    refs:
+      - release

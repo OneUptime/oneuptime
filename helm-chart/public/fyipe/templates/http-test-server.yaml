@@ -1,0 +1,59 @@
+###########-----TEST-SERVER------#################
+{{- if .Values.saas.isSaasService }} 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "test"  }}
+    namespace: {{ .Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "test"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: helm
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "test"  }}
+    replicas: {{ .Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "test"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "http-test-server" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "test"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                    - name: FYIPE_HOST
+                      value: {{ .Values.fyipe.hosts.host1.host }}
+                    {{- if .Values.saas.isSaasService }}
+                    - name: IS_SAAS_SERVICE
+                      value: 'true'
+                    {{- end }}
+                    - name: NODE_ENV
+                      value: 'production'
+                  ports:
+                      - containerPort: {{ .Values.host.httptestPort }}
+                        hostPort: {{ .Values.host.httptestPort }}
+                        name: {{ printf "%s-%s" .Release.Name "test"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "test"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: helm
+    name: {{ printf "%s-%s" .Release.Name "test"  }}
+    namespace: {{ .Release.Namespace }}
+spec:
+    ports:
+        - port: {{ .Values.host.httptestServicePort }}
+          targetPort: {{ .Values.host.httptestPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "test"  }}
+    type: ClusterIP
+---
+{{- end }}
+########################################
