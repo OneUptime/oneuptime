@@ -1,0 +1,48 @@
+## DEPLOYMENT STAGE - Server Monitor
+deploy_staging_server-monitor:
+  stage: Deploy
+  allow_failure: true
+  script:
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
+    - cd server-monitor
+    - sudo npm install -g json
+    - git checkout $CI_COMMIT_REF_NAME
+    - git pull https://$GIT_USERNAME:$GIT_PASSWORD@gitlab.com/fyipe-project/app
+    - chmod +x ../ci/scripts/version-setup.sh
+    - ../ci/scripts/version-setup.sh
+    - json -I -f package.json -e 'this.name="fyipe-server-monitor-staging"'
+    - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+    - npm publish
+    - cd ..
+  only:
+    refs:
+      - master
+      - hotfix-master
+  environment:
+    name: staging
+
+deploy_production_server-monitor:
+  stage: Deploy
+  script:
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
+    - cd server-monitor
+    - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+    # - git checkout server-monitor-staging
+    - npm publish
+    - cd ..
+  only:
+    refs:
+      - release
+      - hotfix-release
+  environment:
+    name: production

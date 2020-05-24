@@ -1,0 +1,54 @@
+
+deploy_production_api-docs:
+  stage: Deploy
+  script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-production-setup.sh
+    - ./ci/scripts/deployment-production-setup.sh
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipeproject/api-docs:latest ./api-docs
+    - sudo docker tag fyipeproject/api-docs:latest fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/api-docs:latest
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
+  only:
+    refs:
+      - release
+      - hotfix-release
+  environment:
+    name: production
+
+
+# DEPLOYMENT STAGE - Api docs
+deploy_staging_api-docs:
+  stage: Deploy
+  allow_failure: true
+  script:
+    - chmod +x ./ci/scripts/version-setup.sh
+    - ./ci/scripts/version-setup.sh
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
+    # Build and deploy api-docs.
+    - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+    - sudo docker build -t fyipeproject/api-docs:master ./api-docs
+    - sudo docker tag fyipeproject/api-docs:master fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+    - sudo docker push fyipeproject/api-docs:master
+    - sudo $HOME/google-cloud-sdk/bin/kubectl set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+    # Cleanup
+    - chmod +x ./ci/scripts/deployment-cleanup.sh
+    - ./ci/scripts/deployment-cleanup.sh
+  only:
+    refs:
+      - master
+      - hotfix-master
+  environment:
+    name: staging

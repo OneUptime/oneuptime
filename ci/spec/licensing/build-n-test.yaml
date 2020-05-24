@@ -1,0 +1,13 @@
+build_n_test_licensing:
+  stage: BuildAndTest
+  script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker.
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker build -t fyipeproject/licensing:3.0.$CI_PIPELINE_IID ./licensing
+    - sudo docker ps
+    - sudo docker run --env-file ./licensing/.env --net=host fyipeproject/licensing:3.0.$CI_PIPELINE_IID npm test
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
