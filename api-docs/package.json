@@ -14,7 +14,7 @@
     },
     "homepage": "https://github.com/fyipe/api-docs#readme",
     "dependencies": {
-        "ejs": "^3.0.1",
+        "ejs": "^3.1.3",
         "express": "^4.17.1",
         "path": "^0.12.7"
     },
@@ -23,7 +23,7 @@
         "dev": "nodemon server.js",
         "test": "echo \"no test required\"",
         "audit": "npm-audit-ci-wrapper --threshold=high",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,ejs,path,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
     },
     "devDependencies": {
         "depcheck": "^0.9.2",
