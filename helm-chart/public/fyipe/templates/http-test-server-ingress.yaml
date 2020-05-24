@@ -1,6 +1,6 @@
 ############----TEST-SERVER-INGRESS--#####################################
 {{- if .Values.saas.isSaasService }} 
-{{- range $key, $value := $.Values.httptest.hosts }}
+{{- range $key, $value := $.Values.httpTestServer.hosts }}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
