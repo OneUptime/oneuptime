@@ -21,10 +21,42 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.page-main-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  max-height: fit-content;
+  display: flex;
+  flex-direction: column;
+  justify-items: center;
+}
+/* .innernew responsive styles */
 .innernew {
-  width: 614px;
+  width: 32%;
   margin: auto;
 }
+
+@media only screen and (max-width: 1500px) {
+  .innernew {
+    width: 34%;
+  }
+}
+@media only screen and (max-width: 1200px) {
+  .innernew {
+    width: 41%;
+  }
+}
+@media only screen and (max-width: 950px) {
+  .innernew {
+    width: 70%;
+  }
+}
+@media only screen and (max-width: 500px) {
+  .innernew {
+    width: 90%;
+  }
+}
+/* end */
 .center{
   text-align: center;
 }
@@ -227,6 +259,8 @@ div.block-chart {
   border: 0;
   position: relative;
   z-index: 10;
+  margin: auto;
+  width: fit-content;
 
   padding: 0 36px;
   padding-left: 84px;

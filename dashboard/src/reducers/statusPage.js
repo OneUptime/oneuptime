@@ -58,6 +58,9 @@ import {
     UPDATE_SUBSCRIBER_OPTION_RESET,
     ADD_MORE_DOMAIN,
     CANCEL_ADD_MORE_DOMAIN,
+    UPDATE_STATUSPAGE_CUSTOM_HTML_REQUEST,
+    UPDATE_STATUSPAGE_CUSTOM_HTML_SUCCESS,
+    UPDATE_STATUSPAGE_CUSTOM_HTML_FAILURE,
 } from '../constants/statusPage';
 
 import {
@@ -115,6 +118,11 @@ const INITIAL_STATE = {
         success: false,
     },
     links: {
+        error: null,
+        requesting: false,
+        success: false,
+    },
+    customHTML: {
         error: null,
         requesting: false,
         success: false,
@@ -650,6 +658,35 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case UPDATE_STATUSPAGE_LINKS_RESET:
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
+            });
+
+        case UPDATE_STATUSPAGE_CUSTOM_HTML_REQUEST:
+            return Object.assign({}, state, {
+                customHTML: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case UPDATE_STATUSPAGE_CUSTOM_HTML_SUCCESS:
+            status = action.payload;
+            return Object.assign({}, state, {
+                customHTML: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status,
+            });
+
+        case UPDATE_STATUSPAGE_CUSTOM_HTML_FAILURE:
+            return Object.assign({}, state, {
+                customHTML: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
             });
 
         // fetch status page

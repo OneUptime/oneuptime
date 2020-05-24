@@ -10633,6 +10633,20 @@ table {
     width: 100%;
     outline: none;
 }
+.script-editor-wrapper {
+    max-width: 50%;
+    width: 50%;
+}
+
+.script-label {
+    flex: 20% 0 0;
+}
+
+@media only screen and (min-width: 761px) and (max-width: 1000px) {
+    .bs-Fieldset-fields {
+        max-width: 70%;
+    }
+}
 
 @media only screen and (max-width: 760px) {
     .db-MenuContainer {
@@ -10682,6 +10696,13 @@ table {
     .ace_editor {
         width: 250px !important;
     }
+    .script-editor-wrapper {
+        max-width: 80%;
+        width: 80%;
+    }
+    .script-editor-wrapper .ace_editor {
+        width: 100% !important;
+    }
 }
 @media screen and (max-width: 500px) {
     .db-FeedbackInput-container {
@@ -10707,6 +10728,10 @@ table {
     }
     .bs-Fieldset-fields {
         padding-left: 0;
+    }
+    .script-editor-wrapper {
+        width: 80%;
+        max-width: 80%;
     }
     .ContentHeader-end {
         margin: 0 !important;
