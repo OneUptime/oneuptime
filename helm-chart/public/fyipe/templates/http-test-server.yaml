@@ -33,8 +33,8 @@ spec:
                     - name: NODE_ENV
                       value: 'production'
                   ports:
-                      - containerPort: {{ .Values.host.httptestPort }}
-                        hostPort: {{ .Values.host.httptestPort }}
+                      - containerPort: {{ .Values.host.httpTestServerPort }}
+                        hostPort: {{ .Values.host.httpTestServerPort }}
                         name: {{ printf "%s-%s" .Release.Name "test"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 ---
@@ -49,8 +49,8 @@ metadata:
     namespace: {{ .Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.httptestServicePort }}
-          targetPort: {{ .Values.host.httptestPort }}
+        - port: {{ .Values.host.httpTestServerServicePort }}
+          targetPort: {{ .Values.host.httpTestServerPort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "test"  }}
     type: ClusterIP
