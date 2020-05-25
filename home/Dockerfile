@@ -7,6 +7,7 @@ FROM node:12.16.1
 
 #SET ENV Variables. 
 ENV PRODUCTION=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 RUN mkdir -p /usr/src/app
 
