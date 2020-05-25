@@ -20,6 +20,8 @@ build_n_test_dashboard:
     - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
     - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipeproject/status-page:3.0.$CI_PIPELINE_IID ./status-page
+    - sudo docker run --env-file ./status-page/.env -e IS_SAAS_SERVICE=true -p 3006:3006 -d fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
     - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker ps
@@ -50,7 +52,7 @@ build_n_test_enterprise_dashboard:
     - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
     - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/status-page:3.0.$CI_PIPELINE_IID ./status-page
-    - sudo docker run --env-file ./status-page/.env -e IS_SAAS_SERVICE=true -p 3006:3006 -d fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+    - sudo docker run --env-file ./status-page/.env -p 3006:3006 -d fyipeproject/status-page:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID ./admin-dashboard
     - sudo docker run --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
     - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
