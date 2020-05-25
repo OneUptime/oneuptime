@@ -7,7 +7,6 @@
 # Define stages
 stages:
   - BuildAndTest
-  - E2E
   - Deploy
   - RollbackIfDeploymentFail
   - SmokeTest

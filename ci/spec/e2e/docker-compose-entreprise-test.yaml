@@ -1,6 +1,6 @@
 ##E2E Stage.
 e2e_docker_compose_test:
-  stage: E2E
+  stage: BuildAndTest
   script:
     - sudo apt-get update
     - curl -sSL https://get.docker.com/ | sh #Install docker.

@@ -1,6 +1,6 @@
 #E2E Stage.
 e2e_microk8s_test:
-  stage: E2E
+  stage: BuildAndTest
   script:
     - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
     - chmod +x ./ci/scripts/setup-machine.sh
