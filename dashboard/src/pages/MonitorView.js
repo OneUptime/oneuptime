@@ -22,6 +22,8 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
 import moment from 'moment';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 class MonitorView extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
@@ -65,12 +67,26 @@ class MonitorView extends React.Component {
     };
 
     render() {
-        const { initialValues } = this.props;
+        const {
+            initialValues,
+            location: { pathname },
+            component,
+            monitor,
+        } = this.props;
         const subProjectId = this.props.monitor
             ? this.props.monitor.projectId._id || this.props.monitor.projectId
             : null;
+        const componentName = component.length > 0 ? component[0].name : null;
+        const monitorName = monitor ? monitor.name : null;
+
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem route="#" name={componentName} />
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Monitors"
+                />
+                <BreadCrumbItem route={pathname} name={monitorName} />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -260,6 +276,9 @@ class MonitorView extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const { componentId, monitorId } = props.match.params;
+    const component = state.component.componentList.components.map(item => {
+        return item.components.find(component => component._id === componentId);
+    });
     const monitor = state.monitor.monitorsList.monitors
         .map(monitor =>
             monitor.monitors.find(monitor => monitor._id === monitorId)
@@ -351,6 +370,7 @@ const mapStateToProps = (state, props) => {
         monitor,
         initialValues,
         match: props.match,
+        component,
     };
 };
 
@@ -368,6 +388,14 @@ MonitorView.propTypes = {
     fetchMonitorsSubscribers: PropTypes.func.isRequired,
     initialValues: PropTypes.object.isRequired,
     getMonitorLogs: PropTypes.func.isRequired,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+    component: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 MonitorView.displayName = 'MonitorView';

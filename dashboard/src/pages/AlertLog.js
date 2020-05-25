@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { BreadcrumbsItem } from 'react-breadcrumbs-dynamic';
 import Dashboard from '../components/Dashboard';
 import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
@@ -13,6 +12,8 @@ import ShouldRender from '../components/basic/ShouldRender';
 import uuid from 'uuid';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class AlertLog extends Component {
     componentDidMount() {
@@ -51,7 +52,13 @@ class AlertLog extends Component {
     };
 
     render() {
-        const { subProjects, currentProject, isRequesting, error } = this.props;
+        const {
+            subProjects,
+            currentProject,
+            isRequesting,
+            error,
+            location: { pathname },
+        } = this.props;
         // SubProject Alert List
         const allAlerts =
             subProjects &&
@@ -213,14 +220,14 @@ class AlertLog extends Component {
                 false
             );
         allAlerts && allAlerts.unshift(projectAlert);
-        const projectId = currentProject ? currentProject._id : '';
+
         return (
             <Dashboard ready={this.ready}>
-                <BreadcrumbsItem
-                    to={`/dashboard/project/${projectId}/alert-log`}
-                >
-                    Alert Log
-                </BreadcrumbsItem>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Call Schedules"
+                />
+                <BreadCrumbItem route={pathname} name="Alert Log" />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -276,6 +283,9 @@ AlertLog.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     subProjects: PropTypes.array.isRequired,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 AlertLog.displayName = 'AlertLog';

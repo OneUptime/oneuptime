@@ -2,12 +2,6 @@ import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import {
-    Breadcrumbs,
-    CrumbItem,
-    BreadcrumbsItem,
-} from 'react-breadcrumbs-dynamic';
-import { Breadcrumb as BootstrapBreadcrumb } from 'react-bootstrap';
 import SideNav from './nav/SideNav';
 import TopNav from './nav/TopNav';
 import { getProjects } from '../actions/project';
@@ -26,7 +20,8 @@ import UnVerifiedEmailBox from '../components/auth/UnVerifiedEmail';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import AlertDisabledWarning from './settings/AlertDisabledWarning';
-// import BreadCrumb from './breadCrumb/BreadCrumb';
+import BreadCrumbItem from './breadCrumb/BreadCrumbItem';
+import BreadCrumbs from './breadCrumb/BreadCrumbs';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
@@ -111,6 +106,12 @@ export class DashboardApp extends Component {
 
         return (
             <Fragment>
+                {location.pathname === '/dashboard/profile/billing' ||
+                location.pathname === '/dashboard/profile/settings' ? (
+                    <BreadCrumbItem route="#" name="Account" />
+                ) : (
+                    <BreadCrumbItem route="/" name={projectName} />
+                )}
                 <CreateProjectModal />
 
                 <UpgradePlanModal />
@@ -179,18 +180,7 @@ export class DashboardApp extends Component {
 
                                     <div className="db-World-mainPane Box-root Padding-right--20">
                                         <div className="db-World-contentPane Box-root Padding-bottom--48">
-                                            {/* <BreadCrumb link={location.pathname} project={project} /> */}
-                                            <BreadcrumbsItem to="/">
-                                                {projectName}
-                                            </BreadcrumbsItem>
-
-                                            <Breadcrumbs
-                                                separator={<b> / </b>}
-                                                item={CrumbItem}
-                                                container={BootstrapBreadcrumb}
-                                                finalProps={{ active: true }}
-                                                duplicateProps={{ to: 'href' }}
-                                            />
+                                            <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium" />
                                             <ShouldRender
                                                 if={
                                                     this.props.profile

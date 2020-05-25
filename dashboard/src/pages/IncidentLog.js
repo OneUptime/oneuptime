@@ -21,6 +21,7 @@ import TutorialBox from '../components/tutorial/TutorialBox';
 import { LoadingState } from '../components/basic/Loader';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class IncidentLog extends React.Component {
     constructor(props) {
@@ -73,6 +74,8 @@ class IncidentLog extends React.Component {
             subProjectIncidents,
             incidents,
             componentId,
+            location: { pathname },
+            component,
         } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
 
@@ -179,9 +182,12 @@ class IncidentLog extends React.Component {
             );
 
         allIncidents && allIncidents.unshift(projectIncident);
+        const componentName = component.length > 0 ? component[0].name : null;
 
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem route="#" name={componentName} />
+                <BreadCrumbItem route={pathname} name="Incident Log" />
                 <div>
                     <div>
                         <div className="db-RadarRulesLists-page">
@@ -205,6 +211,10 @@ const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
     let subProjects = state.subProject.subProjects.subProjects;
 
+    const component = state.component.componentList.components.map(item => {
+        return item.components.find(component => component._id === componentId);
+    });
+
     // sort subprojects names for display in alphabetical order
     const subProjectNames =
         subProjects && subProjects.map(subProject => subProject.name);
@@ -222,6 +232,7 @@ const mapStateToProps = (state, props) => {
         subProjects,
         subProjectIncidents: state.incident.incidents.incidents,
         incidentTutorial: state.tutorial.incident,
+        component,
     };
 };
 
@@ -255,6 +266,14 @@ IncidentLog.propTypes = {
         PropTypes.array,
     ]),
     incidentTutorial: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+    component: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 IncidentLog.displayName = 'IncidentLog';

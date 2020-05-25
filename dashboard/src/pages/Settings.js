@@ -13,6 +13,7 @@ import { hideDeleteModal } from '../actions/project';
 import PropTypes from 'prop-types';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class Settings extends Component {
     componentDidMount() {
@@ -32,8 +33,13 @@ class Settings extends Component {
     };
 
     render() {
+        const {
+            location: { pathname },
+        } = this.props;
+
         return (
             <Dashboard>
+                <BreadCrumbItem route={pathname} name="Project Settings" />
                 <div
                     onKeyDown={this.handleKeyBoard}
                     className="Margin-vertical--12"
@@ -80,6 +86,9 @@ const mapDispatchToProps = dispatch =>
 
 Settings.propTypes = {
     hideDeleteModal: PropTypes.func.isRequired,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 Settings.displayName = 'Settings';
