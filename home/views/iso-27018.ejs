@@ -4,6 +4,12 @@
 
     <p>Information technology — Security techniques — Code of practice for protection of personally identifiable
         information (PII) in public clouds acting as PII processors</p>
+    <script>
+        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (IS_SAAS_SERVICE) {
+            amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > ISO 27018');
+        }
+    </script>
 </header>
 
 <section>
@@ -32,13 +38,15 @@
         PII processors. ISO/IEC 27018:2014 is not intended to cover such additional obligations.
         <br /><br /></p>
 
-    <p><a href="https://www.iso.org/standard/61498.html" rel="noreferrer" target="_blank">Click here to read more.</a></p>
+    <p><a href="https://www.iso.org/standard/61498.html" rel="noreferrer" target="_blank">Click here to read more.</a>
+    </p>
 
     <h3>Certificate of Registration</h3>
 
     <p>Fyipe has achieved ISO 27018 compliance. </p>
 
-    <p> <a href="/files/iso-27018.pdf" rel="noreferrer" target="_blank">Download certificate of registration here.</a> For all other
+    <p> <a href="/files/iso-27018.pdf" rel="noreferrer" target="_blank">Download certificate of registration here.</a>
+        For all other
         matters please
         contact: iso@hackerbay.io</p>
 </section>

@@ -16,7 +16,7 @@
     <script async>
         var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
         if (IS_SAAS_SERVICE) {
-            amplitude.getInstance().logEvent('Demo page viewed');
+            amplitude.getInstance().logEvent('PAGE VIEW: HOME > REQUEST DEMO');
         }
     </script>
 
@@ -1004,7 +1004,7 @@
                         var formData = Object.fromEntries(new URLSearchParams(queryString));
                         var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
                         if (IS_SAAS_SERVICE) {
-                            amplitude.getInstance().logEvent('Filling demo form', { data: formData });
+                            amplitude.getInstance().logEvent('EVENT: SUBMITTED REQUEST DEMO FORM', { data: formData });
                         }
                     } catch { }
                     return 0;
@@ -1024,7 +1024,7 @@
                 var formData = Object.fromEntries(new URLSearchParams(queryString));
                 var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
                 if (IS_SAAS_SERVICE) {
-                    amplitude.getInstance().logEvent('Filling demo form', { data: formData });
+                    amplitude.getInstance().logEvent('EVENT: SUBMITTED REQUEST DEMO FORM', { data: formData });
                 }
             })
         });

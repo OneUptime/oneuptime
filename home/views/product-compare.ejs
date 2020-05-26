@@ -6,13 +6,13 @@
   <title>Fyipe | Compare <%= productConfig.productName %> with Fyipe </title>
   <% } %>
   <meta name="description"
-    content="Les tarifs de fyipe sont simple et transparents et facturés à l'utilisation. Il n'y a pas de frais d'installation, pas de frais mensuels, et pas non plus de frais cachés. Vous n'êtes liés par aucun engagement.">
+    content="Here's a more detailed comparision between <%= productConfig.productName %> and Fyipe.">
   <% include ./head %>
   <script src="/js/amplitude.js"></script>
   <script async>
     var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
     if (IS_SAAS_SERVICE) {
-      amplitude.getInstance().logEvent('Pricing page viewed');
+      amplitude.getInstance().logEvent('PAGE VIEW: HOME > COMPARE PRODUCT > <%= productConfig.productName %>');
     }
   </script>
   <link rel="stylesheet" href="/css/flexbox-grid.css">
