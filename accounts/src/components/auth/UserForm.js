@@ -26,30 +26,6 @@ class UserForm extends Component {
         removeQuery();
     }
 
-    trackClick = target => {
-        const { formValues } = this.props;
-        const allowedValues = [
-            'email',
-            'name',
-            'companyName',
-            'companyPhoneNumber',
-        ];
-        const filteredValues =
-            formValues &&
-            Object.keys(formValues)
-                .filter(key => allowedValues.includes(key))
-                .reduce((obj, key) => {
-                    obj[key] = formValues[key];
-                    return obj;
-                }, {});
-
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(`Register page click on # ${target.id}`, {
-                data: filteredValues,
-            });
-        }
-    };
-
     render() {
         const { serverResponse } = this.state;
         return (
@@ -57,7 +33,6 @@ class UserForm extends Component {
                 id="main-body"
                 className="box css"
                 style={{ width: 500 }}
-                onClick={event => this.trackClick(event.target)}
             >
                 <div className="inner">
                     <div className="title extra">

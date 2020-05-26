@@ -125,7 +125,6 @@ class CardForm extends Component {
                     else throw new Error(data.error.message);
                 })
                 .then(({ data }) => {
-                    signupSuccess(data);
                     if (SHOULD_LOG_ANALYTICS) {
                         setUserId(data.id);
                         identify(data.id);
@@ -139,6 +138,7 @@ class CardForm extends Component {
                             id: data.id,
                         });
                     }
+                    signupSuccess(data);
                 })
                 .catch(error => {
                     signupError(error.message);
@@ -150,32 +150,6 @@ class CardForm extends Component {
         }
     };
 
-    trackClick = target => {
-        const { formValues } = this.props;
-        const allowedValues = [
-            'address1',
-            'address2',
-            'country',
-            'city',
-            'state',
-            'zipCode',
-            'promoCode',
-        ];
-        const filteredValues =
-            formValues &&
-            Object.keys(formValues)
-                .filter(key => allowedValues.includes(key))
-                .reduce((obj, key) => {
-                    obj[key] = formValues[key];
-                    return obj;
-                }, {});
-
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(`Register page click on #${target.id}`, {
-                data: filteredValues,
-            });
-        }
-    };
 
     render() {
         this.plan = PricingPlan.getPlanById(this.props.planId);
@@ -192,7 +166,6 @@ class CardForm extends Component {
                 id="main-body"
                 className="box css"
                 style={{ width: 500 }}
-                onClick={event => this.trackClick(event.target)}
             >
                 <div className="inner">
                     <div className="title extra">
