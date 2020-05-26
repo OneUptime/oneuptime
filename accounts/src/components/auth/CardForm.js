@@ -85,7 +85,7 @@ class CardForm extends Component {
         }
     };
 
-    componentDidMount(){
+    componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: CARD FORM');
         }
@@ -159,7 +159,6 @@ class CardForm extends Component {
         }
     };
 
-
     render() {
         this.plan = PricingPlan.getPlanById(this.props.planId);
         const { handleSubmit } = this.props;
@@ -171,11 +170,7 @@ class CardForm extends Component {
             header = <span>Enter your card details</span>;
         }
         return (
-            <div
-                id="main-body"
-                className="box css"
-                style={{ width: 500 }}
-            >
+            <div id="main-body" className="box css" style={{ width: 500 }}>
                 <div className="inner">
                     <div className="title extra">
                         <div>
@@ -516,7 +511,7 @@ class CardForm extends Component {
 
 CardForm.displayName = 'CardForm';
 
-const validate = function (values) {
+const validate = function(values) {
     const errors = {};
 
     if (!Validate.text(values.cardName)) {

@@ -28,9 +28,7 @@ export class RegisterForm extends Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: SIGN UP'
-            );
+            logEvent('PAGE VIEW: SIGN UP');
         }
     }
 
@@ -38,7 +36,7 @@ export class RegisterForm extends Component {
         const thisObj = this;
         this.props.saveUserState(values);
         this.props.isUserInvited(values).then(
-            function (value) {
+            function(value) {
                 if (value.data) {
                     thisObj.props
                         .signupUser({ ...values, planId: thisObj.props.planId })
@@ -52,9 +50,7 @@ export class RegisterForm extends Component {
                                         Created: new Date(),
                                         Email: user.data.email,
                                     });
-                                    logEvent(
-                                        'EVENT: SIGNED UP'
-                                    );
+                                    logEvent('EVENT: SIGNED UP');
                                 }
                             }
                         });
@@ -91,7 +87,7 @@ export class RegisterForm extends Component {
                     }
                 }
             },
-            function (error) {
+            function(error) {
                 return error;
             }
         );

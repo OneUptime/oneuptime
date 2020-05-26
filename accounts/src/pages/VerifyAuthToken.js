@@ -24,7 +24,6 @@ export class VerifyAuthToken extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: VERIFY TOKEN');
         }
-        
     }
 
     submitForm = values => {

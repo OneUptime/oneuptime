@@ -983,8 +983,7 @@ router.get('/confirmation/:token', async function(req, res) {
             });
             if (!user) {
                 return res.redirect(
-                    global.accountsHost +
-                        '/register?status=user-not-found'
+                    global.accountsHost + '/register?status=user-not-found'
                 );
             }
             if (
@@ -993,8 +992,7 @@ router.get('/confirmation/:token', async function(req, res) {
                     (user.tempEmail && user.tempEmail === user.email))
             ) {
                 return res.redirect(
-                    global.accountsHost +
-                        '/login?status=already-verified'
+                    global.accountsHost + '/login?status=already-verified'
                 );
             }
             let dataUpdate = { isVerified: true };
@@ -1008,10 +1006,7 @@ router.get('/confirmation/:token', async function(req, res) {
             await UserModel.findByIdAndUpdate(user._id, {
                 $set: dataUpdate,
             });
-            return res.redirect(
-                global.accountsHost +
-                    '/login?status=verified'
-            );
+            return res.redirect(global.accountsHost + '/login?status=verified');
         } else {
             return res.redirect(
                 global.accountsHost +

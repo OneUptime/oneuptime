@@ -7,7 +7,7 @@ import { verifyBackupCode } from '../actions/login';
 import { bindActionCreators } from 'redux';
 import { RenderField } from '../components/basic/RenderField';
 import { Link } from 'react-router-dom';
-import { identify, setUserId, logEvent } from '../analytics';
+import { logEvent, setUserId, identify } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 
 const errorStyle = { color: '#c23d4b' };
@@ -22,7 +22,7 @@ export class VerifyBackupCode extends Component {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: VERIFY BACKUP CODE', { id: user.data.id });
+            logEvent('PAGE VIEW: VERIFY BACKUP CODE');
         }
     }
 
@@ -30,7 +30,9 @@ export class VerifyBackupCode extends Component {
         this.props.verifyBackupCode(values).then(user => {
             if (user && user.data && user.data.id) {
                 if (SHOULD_LOG_ANALYTICS) {
-                    logEvent('EVENT: USER LOG IN', { id: user.data.id });
+                    setUserId(user.data.id);
+                    identify(user.data.id);
+                    logEvent('EVENT: USER LOG IN');
                 }
             }
         });

@@ -20,7 +20,7 @@ class LoginPage extends React.Component {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: LOG IN')
+            logEvent('PAGE VIEW: LOG IN');
         }
     }
 
@@ -59,28 +59,28 @@ class LoginPage extends React.Component {
 
                 {/* LOGIN BOX */}
                 {!this.props.login.success &&
-                    this.props.login.error &&
-                    this.props.login.error === 'Verify your email first.' ? (
-                        <div>
-                            <MessageBox
-                                title="Your email is not verified."
-                                //eslint-disable-next-line
+                this.props.login.error &&
+                this.props.login.error === 'Verify your email first.' ? (
+                    <div>
+                        <MessageBox
+                            title="Your email is not verified."
+                            //eslint-disable-next-line
                                 message={`An email is on its way to you with new verification link. Please don't forget to check spam.`}
-                            >
-                                <div className="below-box">
-                                    <p>
-                                        Click{' '}
-                                        <Link to="/accounts/user-verify/resend">
-                                            here
+                        >
+                            <div className="below-box">
+                                <p>
+                                    Click{' '}
+                                    <Link to="/accounts/user-verify/resend">
+                                        here
                                     </Link>{' '}
                                     to resend verification link to your email.
                                 </p>
-                                </div>
-                            </MessageBox>
-                        </div>
-                    ) : (
-                        <LoginForm onSubmit={this.submitHandler} {...this.props} />
-                    )}
+                            </div>
+                        </MessageBox>
+                    </div>
+                ) : (
+                    <LoginForm onSubmit={this.submitHandler} {...this.props} />
+                )}
 
                 {/* FOOTER */}
                 {!masterAdminExists &&

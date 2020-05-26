@@ -18,7 +18,7 @@ class UserForm extends Component {
 
     componentDidMount() {
         const query = queryString.parse(this.props.location.search).status;
-        
+
         if (query === 'user-not-found') {
             this.setState({
                 serverResponse: 'No user found for this token',
@@ -30,17 +30,12 @@ class UserForm extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: SIGN UP FORM');
         }
-
     }
 
     render() {
         const { serverResponse } = this.state;
         return (
-            <div
-                id="main-body"
-                className="box css"
-                style={{ width: 500 }}
-            >
+            <div id="main-body" className="box css" style={{ width: 500 }}>
                 <div className="inner">
                     <div className="title extra">
                         <h2>
@@ -326,10 +321,6 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         register: state.register,
-        formValues:
-            state.form &&
-            state.form.UserSignupForm &&
-            state.form.UserSignupForm.values,
     };
 }
 
@@ -338,7 +329,6 @@ UserForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     register: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
-    formValues: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(userForm);
