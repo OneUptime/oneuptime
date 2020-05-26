@@ -19,6 +19,9 @@ class LoginPage extends React.Component {
     componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('PAGE VIEW: LOG IN')
+        }
     }
 
     submitHandler = values => {
@@ -30,7 +33,7 @@ class LoginPage extends React.Component {
                     if (SHOULD_LOG_ANALYTICS) {
                         identify(user.data.id);
                         setUserId(user.data.id);
-                        logEvent('Log in user', { id: user.data.id });
+                        logEvent('EVENT: USER LOG IN');
                     }
                 }
             });
@@ -56,28 +59,28 @@ class LoginPage extends React.Component {
 
                 {/* LOGIN BOX */}
                 {!this.props.login.success &&
-                this.props.login.error &&
-                this.props.login.error === 'Verify your email first.' ? (
-                    <div>
-                        <MessageBox
-                            title="Your email is not verified."
-                            //eslint-disable-next-line
-                            message={`An email is on its way to you with new verification link. Please don't forget to check spam.`}
-                        >
-                            <div className="below-box">
-                                <p>
-                                    Click{' '}
-                                    <Link to="/accounts/user-verify/resend">
-                                        here
+                    this.props.login.error &&
+                    this.props.login.error === 'Verify your email first.' ? (
+                        <div>
+                            <MessageBox
+                                title="Your email is not verified."
+                                //eslint-disable-next-line
+                                message={`An email is on its way to you with new verification link. Please don't forget to check spam.`}
+                            >
+                                <div className="below-box">
+                                    <p>
+                                        Click{' '}
+                                        <Link to="/accounts/user-verify/resend">
+                                            here
                                     </Link>{' '}
                                     to resend verification link to your email.
                                 </p>
-                            </div>
-                        </MessageBox>
-                    </div>
-                ) : (
-                    <LoginForm onSubmit={this.submitHandler} {...this.props} />
-                )}
+                                </div>
+                            </MessageBox>
+                        </div>
+                    ) : (
+                        <LoginForm onSubmit={this.submitHandler} {...this.props} />
+                    )}
 
                 {/* FOOTER */}
                 {!masterAdminExists &&

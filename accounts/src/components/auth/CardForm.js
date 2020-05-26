@@ -85,6 +85,12 @@ class CardForm extends Component {
         }
     };
 
+    componentDidMount(){
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('PAGE VIEW: CARD FORM');
+        }
+    }
+
     handleSubmit = values => {
         const {
             stripe,
@@ -108,6 +114,9 @@ class CardForm extends Component {
                             companyName,
                         });
                     } else {
+                        if (SHOULD_LOG_ANALYTICS) {
+                            logEvent('EVENT: INVALID CARD DETAILS');
+                        }
                         throw new Error('Invalid card Details.');
                     }
                 })
@@ -133,10 +142,7 @@ class CardForm extends Component {
                             Created: new Date(),
                             Email: data.email,
                         });
-                        logEvent('Sign up completed', {
-                            'First Time': 'TRUE',
-                            id: data.id,
-                        });
+                        logEvent('EVENT: SIGN UP COMPLETE');
                     }
                     signupSuccess(data);
                 })
@@ -144,6 +150,9 @@ class CardForm extends Component {
                     signupError(error.message);
                 });
         } else {
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent('EVENT: PROBLEM CONNECTING TO PAYMENT GATEWAY');
+            }
             signupError(
                 'Problem connnecting to payment gateway, please try again later'
             );
@@ -507,7 +516,7 @@ class CardForm extends Component {
 
 CardForm.displayName = 'CardForm';
 
-const validate = function(values) {
+const validate = function (values) {
     const errors = {};
 
     if (!Validate.text(values.cardName)) {

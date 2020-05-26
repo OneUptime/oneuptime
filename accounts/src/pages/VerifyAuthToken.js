@@ -21,6 +21,10 @@ export class VerifyAuthToken extends Component {
     componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('PAGE VIEW: VERIFY TOKEN');
+        }
+        
     }
 
     submitForm = values => {
@@ -29,7 +33,7 @@ export class VerifyAuthToken extends Component {
                 if (SHOULD_LOG_ANALYTICS) {
                     identify(user.data.id);
                     setUserId(user.data.id);
-                    logEvent('Log in user', { id: user.data.id });
+                    logEvent('EVENT: USER LOG IN');
                 }
             }
         });

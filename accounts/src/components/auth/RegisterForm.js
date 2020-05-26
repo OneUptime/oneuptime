@@ -26,11 +26,19 @@ export class RegisterForm extends Component {
         this.props = props;
     }
 
+    componentDidMount() {
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'PAGE VIEW: SIGN UP'
+            );
+        }
+    }
+
     userFormSubmitted = values => {
         const thisObj = this;
         this.props.saveUserState(values);
         this.props.isUserInvited(values).then(
-            function(value) {
+            function (value) {
                 if (value.data) {
                     thisObj.props
                         .signupUser({ ...values, planId: thisObj.props.planId })
@@ -45,11 +53,7 @@ export class RegisterForm extends Component {
                                         Email: user.data.email,
                                     });
                                     logEvent(
-                                        'Sign up completed for invited user',
-                                        {
-                                            'First Time': 'TRUE',
-                                            id: user.data.id,
-                                        }
+                                        'EVENT: SIGNED UP'
                                     );
                                 }
                             }
@@ -66,10 +70,7 @@ export class RegisterForm extends Component {
                                         Created: new Date(),
                                         Email: user.data.email,
                                     });
-                                    logEvent('Sign up completed for user', {
-                                        'First Time': 'TRUE',
-                                        id: user.data.id,
-                                    });
+                                    logEvent('EVENT: SIGNED UP');
                                 }
                             }
                         });
@@ -85,14 +86,12 @@ export class RegisterForm extends Component {
                                 CompanyName: values.companyName,
                                 CompanyPhoneNumber: values.companyPhoneNumber,
                             });
-                            logEvent('Sign up step one completed', {
-                                'First Time': 'TRUE',
-                            });
+                            logEvent('EVENT: SIGN UP STEP 1 COMPLETE');
                         }
                     }
                 }
             },
-            function(error) {
+            function (error) {
                 return error;
             }
         );

@@ -18,12 +18,19 @@ class UserForm extends Component {
 
     componentDidMount() {
         const query = queryString.parse(this.props.location.search).status;
-        if (query === 'z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk') {
+        
+        if (query === 'user-not-found') {
             this.setState({
                 serverResponse: 'No user found for this token',
             });
         }
+
         removeQuery();
+
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('PAGE VIEW: SIGN UP FORM');
+        }
+
     }
 
     render() {
