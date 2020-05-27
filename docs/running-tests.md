@@ -188,6 +188,7 @@ There are two types of dashboard test, saas and enterprise test.
 -   Backend
 -   Accounts
 -   Admin Dashboard
+-   Status Page
 -   Dashboard
 
 To run saas test, add the following line in the `.env` file in the backend project (`app/backend/.env`), accounts project (`app/accounts/.env`), dashboard project (`app/dashboard/.env`) and admin dashboard project (`app/admin-dashboard/.env`); this line is not required to run enterprise test:
