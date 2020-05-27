@@ -39,7 +39,7 @@ if (userData !== undefined) {
             Created: new Date(),
             Email: userData.email,
         });
-        logEvent('Logged in successfully', { id: userData.id });
+        logEvent('PAGE VIEW: DASHBOARD');
     }
 } else {
     window.location = ACCOUNTS_URL + '/login';

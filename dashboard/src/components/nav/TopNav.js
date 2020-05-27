@@ -24,28 +24,28 @@ class TopContent extends Component {
     showFeedbackModal = () => {
         this.props.openFeedbackModal();
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Feedback Modal Opened', {});
+            logEvent('EVENT: DASHBOARD > FEEDBACK MODAL OPENED', {});
         }
     };
 
     hideFeedbackModal = () => {
         this.props.closeFeedbackModal();
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Feedback Modal Closed', {});
+            logEvent('EVENT: DASHBOARD > FEEDBACK MODAL CLOSED', {});
         }
     };
 
     showProfileMenu = e => {
         this.props.showProfileMenu(e.clientX);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Profile Menu Opened', {});
+            logEvent('EVENT: DASHBOARD > PROFILE MENU OPENED', {});
         }
     };
 
     showNotificationsMenu = e => {
         this.props.openNotificationMenu(e.clientX);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Notification Menu Opened', {});
+            logEvent('EVENT: DASHBOARD > NOTIFICATION MENU OPENED', {});
         }
     };
 

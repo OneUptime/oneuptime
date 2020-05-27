@@ -12,7 +12,7 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 class StatusPage extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('StatusPage Settings Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGE LIST');
         }
     }
 

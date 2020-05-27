@@ -18,7 +18,7 @@ class Billing extends Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Billing page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > BILLING');
         }
     }
 

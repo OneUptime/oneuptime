@@ -74,7 +74,9 @@ export class Links extends Component {
                 });
             });
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Links Updated', values);
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > LINKS UPDATED'
+            );
         }
     };
 

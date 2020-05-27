@@ -83,7 +83,10 @@ class NewComponent extends Component {
             this.props.editComponent(postObj.projectId, postObj).then(() => {
                 thisObj.props.destroy();
                 if (IS_SAAS_SERVICE) {
-                    logEvent('Component Edit', values);
+                    logEvent(
+                        'EVENT: DASHBOARD > COMPONENT > EDIT COMPONENT',
+                        values
+                    );
                 }
             });
         } else {
@@ -91,7 +94,10 @@ class NewComponent extends Component {
                 ({ data: { _id: componentId, projectId } }) => {
                     thisObj.props.reset();
                     if (IS_SAAS_SERVICE) {
-                        logEvent('Add New Component', values);
+                        logEvent(
+                            'EVENT: DASHBOARD > COMPONENT > NEW COMPONENT',
+                            values
+                        );
                     }
                     this.viewCreatedComponent(projectId._id, componentId);
                 },
@@ -133,9 +139,6 @@ class NewComponent extends Component {
 
     cancelEdit = () => {
         this.props.editComponentSwitch(this.props.index);
-        if (IS_SAAS_SERVICE) {
-            logEvent('Component Edit Cancelled', {});
-        }
     };
 
     render() {

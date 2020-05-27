@@ -53,7 +53,9 @@ class StatusPage extends Component {
             }
         }
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('StatusPage Settings Loaded');
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGE LIST > STATUS PAGE'
+            );
         }
     }
 

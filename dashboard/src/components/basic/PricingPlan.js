@@ -87,7 +87,10 @@ const PricingPlanComponent = ({
                     }
 
                     if (SHOULD_LOG_ANALYTICS) {
-                        logEvent('Plan Changed', { oldPlan, newPlan });
+                        logEvent('EVENT: DAHBOARD > PROJECT PLAN CHANGED', {
+                            oldPlan,
+                            newPlan,
+                        });
                     }
 
                     if (window.location.href.indexOf('localhost') <= -1) {

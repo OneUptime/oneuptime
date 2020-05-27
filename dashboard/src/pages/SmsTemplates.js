@@ -22,7 +22,9 @@ class SmsTemplates extends Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('SmsTemplates page Loaded');
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > SMS TEMPLATES'
+            );
         }
     }
 

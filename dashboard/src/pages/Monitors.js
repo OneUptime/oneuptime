@@ -15,7 +15,9 @@ class Monitors extends Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Monitors page Loaded');
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > MONITOR CATEGORY LIST'
+            );
         }
     }
 

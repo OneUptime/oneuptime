@@ -31,15 +31,12 @@ class IncidentLog extends React.Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Log Page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT LOG');
         }
     }
 
     ready = () => {
         this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Log Page Ready, Data Requested');
-        }
     };
 
     prevClicked = (projectId, skip, limit) => {
@@ -49,18 +46,18 @@ class IncidentLog extends React.Component {
             10
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Incident Requested', {
-                projectId: projectId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT LOG > PREVIOUS BUTTON CLICKED'
+            );
         }
     };
 
     nextClicked = (projectId, skip, limit) => {
         this.props.getProjectIncidents(projectId, skip + limit, 10);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Incident Requested', {
-                projectId: projectId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT LOG > NEXT BUTTON CLICKED'
+            );
         }
     };
 

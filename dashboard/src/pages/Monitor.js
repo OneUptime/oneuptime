@@ -29,7 +29,9 @@ class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Monitors');
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Main monitor page Loaded');
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR LIST'
+            );
         }
     }
 

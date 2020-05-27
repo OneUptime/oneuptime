@@ -138,7 +138,7 @@ export class ProfileSetting extends Component {
 
     async componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Profile settings page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROFILE');
         }
         await this.props.userSettings();
         const profilePic =
@@ -207,7 +207,9 @@ export class ProfileSetting extends Component {
             return;
         }
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('New Profile Picture selected');
+            logEvent(
+                'EVENT: DASHBOARD > PROFILE > NEW PROFILE PICTURE UPLOADED'
+            );
         }
     };
 
@@ -276,7 +278,7 @@ export class ProfileSetting extends Component {
             resetFile();
         });
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Update Profile', values);
+            logEvent('EVENT: DASHBOARD > PROFILE > UPDATE PROFILE');
         }
         User.setEmail(values.email);
         User.setName(values.name);

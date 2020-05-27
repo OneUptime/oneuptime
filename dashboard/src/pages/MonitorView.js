@@ -30,7 +30,9 @@ class MonitorView extends React.Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('MonitorView Page Loaded');
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DETAIL PAGE'
+            );
         }
     }
 
@@ -59,9 +61,6 @@ class MonitorView extends React.Component {
                 .utc(),
             moment().utc()
         ); //0 -> skip, 5-> limit.
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('MonitorView Page Ready, Data Requested');
-        }
     };
 
     render() {

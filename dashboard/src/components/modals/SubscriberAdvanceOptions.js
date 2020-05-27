@@ -28,7 +28,10 @@ class SubscriberAdvanceOption extends React.Component {
                 });
             });
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Private StatusPage Updated', values);
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGE > SUBSCRIBER ADVANCED OPTIONS SUBMIT',
+                values
+            );
         }
     };
 

@@ -34,7 +34,7 @@ export class ProjectSettings extends Component {
                     }
                 });
             if (SHOULD_LOG_ANALYTICS) {
-                logEvent('Rename Project', values);
+                logEvent('EVENT: DASHBOARD > PROJECT > RENAME PROJECT', values);
             }
         }
     };

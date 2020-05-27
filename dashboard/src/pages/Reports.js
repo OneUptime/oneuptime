@@ -127,7 +127,7 @@ export class Reports extends Component {
 
     ready = () => {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Reports Page Ready, Data Requested');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > REPORTS');
         }
     };
 

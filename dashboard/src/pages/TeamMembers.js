@@ -227,7 +227,7 @@ class TeamApp extends Component {
             this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Team members page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > TEAM MEMBERS');
         }
     }
     componentWillUnmount() {

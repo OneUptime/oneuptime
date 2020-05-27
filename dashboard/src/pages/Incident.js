@@ -35,7 +35,7 @@ class Incident extends React.Component {
     }
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
     }
     internalNote = note => {
@@ -45,10 +45,13 @@ class Incident extends React.Component {
             note
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Internal Note Added', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > INTERNAL NOTE ADDED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -59,10 +62,13 @@ class Incident extends React.Component {
             note
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Note Added', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > PUBLIC NOTE ADDED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -74,10 +80,13 @@ class Incident extends React.Component {
             parseInt(this.props.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Incident Alert Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT ALERT CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -89,10 +98,13 @@ class Incident extends React.Component {
             parseInt(this.props.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Incident Alert Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS ALERT CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -105,10 +117,13 @@ class Incident extends React.Component {
             parseInt(this.props.incidentTimeline.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Incident Timeline Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT TIMELINE CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -121,10 +136,13 @@ class Incident extends React.Component {
             parseInt(this.props.incidentTimeline.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Incident Timeline Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS TIMELINE CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -137,10 +155,13 @@ class Incident extends React.Component {
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Subscriber Alert Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT SUBSCRIBER CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -153,10 +174,13 @@ class Incident extends React.Component {
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Subscriber Alert Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS SUBSCRIBER CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -203,12 +227,6 @@ class Incident extends React.Component {
             null,
             this.props.match.params.incidentId
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Page Ready, Data Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
-        }
     };
 
     render() {

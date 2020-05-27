@@ -21,7 +21,7 @@ class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Components');
         if (IS_SAAS_SERVICE) {
-            logEvent('Main component page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > COMPONENT');
         }
     }
 

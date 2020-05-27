@@ -277,7 +277,10 @@ class NewMonitor extends Component {
                     );
                 }
                 if (SHOULD_LOG_ANALYTICS) {
-                    logEvent('Monitor Edit', values);
+                    logEvent(
+                        'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > EDIT MONITOR',
+                        values
+                    );
                 }
             });
         } else {
@@ -286,7 +289,10 @@ class NewMonitor extends Component {
                     thisObj.props.reset();
                     thisObj.props.closeCreateMonitorModal();
                     if (SHOULD_LOG_ANALYTICS) {
-                        logEvent('Add New Monitor', values);
+                        logEvent(
+                            'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEW MONITOR',
+                            values
+                        );
                     }
                 },
                 error => {
@@ -322,9 +328,6 @@ class NewMonitor extends Component {
 
     cancelEdit = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Monitor Edit Cancelled', {});
-        }
     };
 
     openAdvance = () => {

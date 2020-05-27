@@ -24,11 +24,6 @@ class Probe extends React.Component {
                 : 10,
             10
         );
-        /* if (SHOULD_LOG_ANALYTICS) {
-       logEvent('Previous Incident Requested', {
-         projectId: this.props.currentProject._id,
-       });
-     }*/
     };
 
     nextClicked = () => {
@@ -39,11 +34,6 @@ class Probe extends React.Component {
                 : 10,
             10
         );
-        /* if (SHOULD_LOG_ANALYTICS) {
-       logEvent('Next Incident Requested', {
-         projectId: this.props.currentProject._id,
-       });
-     }*/
     };
 
     render() {

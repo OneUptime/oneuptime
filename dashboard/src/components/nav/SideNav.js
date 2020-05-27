@@ -13,25 +13,17 @@ import {
     hideProjectSwitcher,
     hideForm,
 } from '../../actions/project';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class SideNav extends Component {
     hideSwitcher = () => {
         if (this.props.project.projectSwitcherVisible) {
             this.props.hideProjectSwitcher();
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent('Project Switcher hidden', {});
-            }
         }
     };
 
     showSwitcher = () => {
         if (!this.props.project.projectSwitcherVisible) {
             this.props.showProjectSwitcher();
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent('Project Switcher Visible', {});
-            }
         }
     };
 

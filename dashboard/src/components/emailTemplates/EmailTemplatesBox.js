@@ -31,16 +31,15 @@ class EmailTemplatesBox extends React.Component {
         );
         this.props.editEmailTemplates(currentProject._id, val);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Email Templates Updated');
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > SETTINGS > EMAIL TEMPLATE UPDATED'
+            );
         }
     };
 
     resetTemplate = templateId => {
         const { currentProject } = this.props;
         this.props.resetEmailTemplates(currentProject._id, templateId);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Email Templates Reset');
-        }
     };
 
     templateChange = (e, value) => {

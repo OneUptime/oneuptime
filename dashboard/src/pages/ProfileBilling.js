@@ -15,7 +15,7 @@ class ProfileBilling extends Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Profile billing page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROFILE > BILLING');
         }
     }
 
