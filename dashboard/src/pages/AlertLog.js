@@ -12,6 +12,8 @@ import ShouldRender from '../components/basic/ShouldRender';
 import uuid from 'uuid';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class AlertLog extends Component {
     componentDidMount() {
@@ -49,7 +51,13 @@ class AlertLog extends Component {
     };
 
     render() {
-        const { subProjects, currentProject, isRequesting, error } = this.props;
+        const {
+            subProjects,
+            currentProject,
+            isRequesting,
+            error,
+            location: { pathname },
+        } = this.props;
         // SubProject Alert List
         const allAlerts =
             subProjects &&
@@ -211,8 +219,14 @@ class AlertLog extends Component {
                 false
             );
         allAlerts && allAlerts.unshift(projectAlert);
+
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Call Schedules"
+                />
+                <BreadCrumbItem route={pathname} name="Alert Log" />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -268,6 +282,9 @@ AlertLog.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     subProjects: PropTypes.array.isRequired,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 AlertLog.displayName = 'AlertLog';

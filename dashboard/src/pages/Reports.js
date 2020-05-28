@@ -11,6 +11,7 @@ import ResolveTime from '../components/reports/ResolveTime';
 import Select from '../components/basic/react-select-fyipe';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 const styles = {
     cardGrid: {
@@ -132,8 +133,13 @@ export class Reports extends Component {
     };
 
     render() {
+        const {
+            location: { pathname },
+        } = this.props;
+
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem route={pathname} name="Reports" />
                 <div className="Box-root Margin-vertical--12">
                     <div>
                         <div>
@@ -574,6 +580,9 @@ const mapStateToProps = state => {
 
 Reports.propTypes = {
     match: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 Reports.displayName = 'Reports';

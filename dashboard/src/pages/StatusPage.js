@@ -23,6 +23,8 @@ import {
     fetchProjectStatusPage,
 } from '../actions/statusPage';
 import CustomStyles from '../components/statusPage/CustomStyles';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class StatusPage extends Component {
     async componentDidMount() {
@@ -60,8 +62,19 @@ class StatusPage extends Component {
     }
 
     render() {
+        const {
+            location: { pathname },
+            statusPage: { status },
+        } = this.props;
+        const pageName = status ? status.name : null;
+
         return (
             <Dashboard>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Status Pages"
+                />
+                <BreadCrumbItem route={pathname} name={pageName} />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -182,6 +195,9 @@ StatusPage.propTypes = {
     fetchProjectStatusPage: PropTypes.func,
     fetchSubProjectStatusPages: PropTypes.func,
     match: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 StatusPage.displayName = 'StatusPage';

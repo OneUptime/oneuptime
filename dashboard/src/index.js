@@ -2,6 +2,7 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { Frontload } from 'react-frontload';
 import ReactGA from 'react-ga';
+import { ThroughProvider } from 'react-through';
 import ErrorBoundary from './components/basic/ErrorBoundary';
 import { render } from 'react-dom';
 import * as serviceWorker from './serviceWorker';
@@ -16,13 +17,15 @@ if (!isServer) {
 const target = document.getElementById('root');
 
 render(
-    <Provider store={store} history={history}>
-        <Frontload noServerRender={true}>
-            <ErrorBoundary>
-                <App />
-            </ErrorBoundary>
-        </Frontload>
-    </Provider>,
+    <ThroughProvider>
+        <Provider store={store} history={history}>
+            <Frontload noServerRender={true}>
+                <ErrorBoundary>
+                    <App />
+                </ErrorBoundary>
+            </Frontload>
+        </Provider>
+    </ThroughProvider>,
     target
 );
 

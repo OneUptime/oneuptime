@@ -19,6 +19,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { history } from '../store';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 const LoadingState = () => (
     <div className="Box-root Margin-bottom--12">
@@ -245,10 +246,15 @@ class TeamApp extends Component {
     };
 
     render() {
-        const { subProjectTeamLoading, teamMembers, pages } = this.props.team;
+        const {
+            team: { subProjectTeamLoading, teamMembers, pages },
+            location: { pathname },
+        } = this.props;
         const { inviteModalId } = this.state;
+
         return (
             <Dashboard>
+                <BreadCrumbItem route={pathname} name="Team Members" />
                 <div
                     onKeyDown={this.handleKeyBoard}
                     className="Margin-vertical--12"
@@ -280,6 +286,7 @@ class TeamApp extends Component {
                                                           ._id
                                                     : null
                                             }
+                                            parent={pathname}
                                         />
                                     )}
                                 </div>
@@ -299,6 +306,9 @@ TeamApp.propTypes = {
     closeModal: PropTypes.func.isRequired,
     paginate: PropTypes.func.isRequired,
     subProjects: PropTypes.array.isRequired,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 const mapStateToProps = state => {

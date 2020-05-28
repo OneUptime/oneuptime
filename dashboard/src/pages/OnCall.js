@@ -19,6 +19,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 export class OnCall extends Component {
     constructor(props) {
@@ -116,6 +117,7 @@ export class OnCall extends Component {
             subProjectSchedules,
             subProjects,
             currentProject,
+            location: { pathname },
         } = this.props;
 
         // SubProject Schedules List
@@ -260,6 +262,7 @@ export class OnCall extends Component {
 
         return (
             <Dashboard>
+                <BreadCrumbItem route={pathname} name="Call Schedules" />
                 <div tabIndex="0" onKeyDown={this.handleKeyBoard}>
                     <div>
                         <div>
@@ -371,6 +374,9 @@ OnCall.propTypes = {
     openModal: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     callScheduleTutorial: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 OnCall.displayName = 'OnCall';

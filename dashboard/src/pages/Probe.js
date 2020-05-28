@@ -5,6 +5,8 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ProbeList from '../components/probe/ProbeList';
 import { getProbes } from '../actions/probe';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class Probe extends React.Component {
     constructor(props) {
@@ -37,8 +39,17 @@ class Probe extends React.Component {
     };
 
     render() {
+        const {
+            location: { pathname },
+        } = this.props;
+
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Probe" />
                 <div className="Box-root Margin-vertical--12">
                     <div>
                         <div>
@@ -118,6 +129,9 @@ Probe.propTypes = {
     _id: PropTypes.string,
     probes: PropTypes.object,
     skip: PropTypes.number,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 Probe.displayName = 'Probe';

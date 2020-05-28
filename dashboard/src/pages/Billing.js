@@ -9,6 +9,9 @@ import ChangePlan from '../components/settings/ChangePlan';
 import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
+import { PropTypes } from 'prop-types';
 
 class Billing extends Component {
     constructor(props) {
@@ -23,8 +26,17 @@ class Billing extends Component {
     }
 
     render() {
+        const {
+            location: { pathname },
+        } = this.props;
+
         return (
             <Dashboard>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Billing" />
                 <div className="Margin-vertical--12">
                     <CustomerBalance />
                     <AlertCharges />
@@ -43,5 +55,11 @@ class Billing extends Component {
 }
 
 Billing.displayName = 'Billing';
+
+Billing.propTypes = {
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+};
 
 export default withRouter(connect(null, null)(Billing));

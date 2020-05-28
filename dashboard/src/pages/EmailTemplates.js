@@ -8,6 +8,8 @@ import EmailSmtpBox from '../components/emailTemplates/EmailSmtpBox';
 import { getEmailTemplates, getSmtpConfig } from '../actions/emailTemplates';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class EmailTemplates extends Component {
     constructor(props) {
@@ -29,8 +31,17 @@ class EmailTemplates extends Component {
     }
 
     render() {
+        const {
+            location: { pathname },
+        } = this.props;
+
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Emails" />
                 <EmailTemplatesBox />
                 <EmailSmtpBox />
             </Dashboard>
@@ -42,6 +53,9 @@ EmailTemplates.propTypes = {
     getEmailTemplates: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     getSmtpConfig: PropTypes.func.isRequired,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 const mapDispatchToProps = dispatch =>
