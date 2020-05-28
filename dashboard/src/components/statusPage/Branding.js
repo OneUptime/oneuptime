@@ -169,7 +169,7 @@ export class Branding extends Component {
             },
             function() {}
         );
-        if (!SHOULD_LOG_ANALYTICS)
+        if (SHOULD_LOG_ANALYTICS)
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > BRANDING UPDATED'
             );
