@@ -117,7 +117,7 @@ class CardForm extends Component {
                         if (SHOULD_LOG_ANALYTICS) {
                             logEvent('EVENT: INVALID CARD DETAILS');
                         }
-                        throw new Error('Invalid card Details.');
+                        throw new Error('Your card details are incorrect.');
                     }
                 })
                 .then(({ data }) =>
