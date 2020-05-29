@@ -15,6 +15,7 @@ const isAuthorizedProbe = require('../middlewares/probeAuthorization')
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
+const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 
@@ -125,8 +126,21 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
         data.monitorId = req.params.monitorId;
         data.sslCertificate =
             resp && resp.sslCertificate ? resp.sslCertificate : null;
-        const log = await ProbeService.saveMonitorLog(data);
-        return sendItemResponse(req, response, log);
+        data.lighthouseScanStatus =
+            resp && resp.lighthouseScanStatus
+                ? resp.lighthouseScanStatus
+                : null;
+        data.lighthouseScores =
+            resp && resp.lighthouseScores ? resp.lighthouseScores : null;
+
+        if (data.lighthouseScanStatus) {
+            await ProbeService.saveLighthouseScan(data);
+        }
+        if (!data.lighthouseScores) {
+            const log = await ProbeService.saveMonitorLog(data);
+            return sendItemResponse(req, response, log);
+        }
+        return sendEmptyResponse(req, response);
     } catch (error) {
         return sendErrorResponse(req, response, error);
     }

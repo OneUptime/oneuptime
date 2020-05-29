@@ -169,6 +169,32 @@ module.exports = {
         }
     },
 
+    saveLighthouseScan: async function(data) {
+        try {
+            if (data.lighthouseScores) {
+                await MonitorService.updateOneBy(
+                    { _id: data.monitorId },
+                    {
+                        lighthouseScannedAt: Date.now(),
+                        lighthouseScanStatus: data.lighthouseScanStatus, // scanned
+                        lighthouseScannedBy: data.probeId,
+                        lighthouseScores: data.lighthouseScores,
+                    }
+                );
+            } else {
+                await MonitorService.updateOneBy(
+                    { _id: data.monitorId },
+                    {
+                        lighthouseScanStatus: data.lighthouseScanStatus, // scanning || failed
+                    }
+                );
+            }
+        } catch (error) {
+            ErrorService.log('ProbeService.saveLighthouseScan', error);
+            throw error;
+        }
+    },
+
     saveMonitorLog: async function(data) {
         try {
             const _this = this;
