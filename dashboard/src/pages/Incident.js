@@ -332,7 +332,12 @@ class Incident extends React.Component {
             component,
             location: { pathname },
         } = this.props;
-        const componentName = component.length > 0 ? component[0].name : null;
+        const componentName =
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : null
+                : null;
 
         return (
             <Dashboard ready={this.ready}>

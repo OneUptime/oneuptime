@@ -10,7 +10,7 @@ user.message = 'Test message';
 
 const puppeteerLaunchConfig = {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: ['--proxy-server=', '--no-sandbox', '--disable-setuid-sandbox'],
 };
 
 const HOME_URL = process.env.HOME_URL || 'http://localhost:1444';
