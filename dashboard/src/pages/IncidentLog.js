@@ -22,6 +22,7 @@ import { LoadingState } from '../components/basic/Loader';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class IncidentLog extends React.Component {
     constructor(props) {
@@ -183,7 +184,10 @@ class IncidentLog extends React.Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem route="#" name={componentName} />
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name={componentName}
+                />
                 <BreadCrumbItem route={pathname} name="Incident Log" />
                 <div>
                     <div>

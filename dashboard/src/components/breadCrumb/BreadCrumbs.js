@@ -13,10 +13,7 @@ function BreadCrumbs({ styles }) {
                         fontWeight: 'bold',
                     },
                 }}
-                duplicateProps={{
-                    to: 'href',
-                }}
-                compare={(a, b) => a - b}
+                compare={(a, b) => b.weight - a.weight}
             />
         </div>
     );

@@ -103,6 +103,7 @@ export class DashboardApp extends Component {
             project: { currentProject },
         } = this.props;
         const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
 
         return (
             <Fragment>
@@ -110,7 +111,11 @@ export class DashboardApp extends Component {
                 location.pathname === '/dashboard/profile/settings' ? (
                     <BreadCrumbItem route="#" name="Account" />
                 ) : (
-                    <BreadCrumbItem route="/" name={projectName} />
+                    <BreadCrumbItem
+                        route="/"
+                        name={projectName}
+                        projectId={projectId}
+                    />
                 )}
                 <CreateProjectModal />
 
@@ -180,7 +185,7 @@ export class DashboardApp extends Component {
 
                                     <div className="db-World-mainPane Box-root Padding-right--20">
                                         <div className="db-World-contentPane Box-root Padding-bottom--48">
-                                            <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium" />
+                                            <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
                                             <ShouldRender
                                                 if={
                                                     this.props.profile

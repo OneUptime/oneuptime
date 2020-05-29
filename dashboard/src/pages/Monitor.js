@@ -233,8 +233,8 @@ class DashboardView extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem route="#" name={componentName} />
-                <BreadCrumbItem route={pathname} name="Monitors" />
+                <BreadCrumbItem route={pathname} name={componentName} />
+                <BreadCrumbItem route={pathname + '#'} name="Monitors" />
                 <div className="Box-root">
                     <div>
                         <div>

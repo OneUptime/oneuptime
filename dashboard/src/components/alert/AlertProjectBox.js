@@ -31,16 +31,15 @@ const AlertProjectBox = ({
                                 Alert Log
                             </span>
                         </span>
-                        <span
-                            style={{ textTransform: 'lowercase' }}
-                            className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                        >
+                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 Here&#39;s a log of all the alerts that were
                                 sent to{' '}
-                                {currentProjectId !== subProjectAlert._id
-                                    ? `${subProjectName} sub-project`
-                                    : `${subProjectName} project`}{' '}
+                                <span style={{ textTransform: 'lowercase' }}>
+                                    {currentProjectId !== subProjectAlert._id
+                                        ? `${subProjectName} sub-project`
+                                        : `${subProjectName} project`}
+                                </span>{' '}
                                 team.
                             </span>
                         </span>
