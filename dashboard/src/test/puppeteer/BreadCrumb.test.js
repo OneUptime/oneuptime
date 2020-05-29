@@ -37,6 +37,7 @@ describe('BreadCrumb Component test', () => {
 
             // user
             await init.registerUser(user, page);
+            await init.loginUser(user, page);
         });
     });
 
@@ -49,11 +50,7 @@ describe('BreadCrumb Component test', () => {
         'Should navigate between pages from the breadcrumbs',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                const user = {
-                    email,
-                    password,
-                };
-                await init.loginUser(user, page);
+                await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
                 await page.waitForSelector('#monitors');
@@ -69,6 +66,24 @@ describe('BreadCrumb Component test', () => {
                 currentPage = await currentPage.getProperty('innerText');
                 currentPage = await currentPage.jsonValue();
                 expect(currentPage).toBe('Project Settings');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should not go to the landing page when the project breadcrumb item is clicked',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#cbUnnamedProject');
+                await page.click('#cbUnnamedProject');
+                let currentPage = await page.waitForSelector(
+                    '#cbUnnamedProject'
+                );
+                currentPage = await currentPage.getProperty('innerText');
+                currentPage = await currentPage.jsonValue();
+                expect(currentPage).toBe('Unnamed Project');
             });
         },
         operationTimeOut

@@ -4,6 +4,9 @@ function getParentRoute(childRoute, projectId = null) {
     if (lastNode === 'alert-log') {
         return urlParts.join('/').concat('/on-call');
     }
+    if (lastNode === 'incident-log') {
+        return urlParts.join('/').concat('/monitoring');
+    }
     if (childRoute.includes('sub-project') && childRoute.includes('schedule')) {
         const urlParts = childRoute.split('/').slice(0, 4);
         return urlParts.join('/').concat('/on-call');
