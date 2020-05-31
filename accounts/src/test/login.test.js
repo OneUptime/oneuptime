@@ -90,11 +90,13 @@ describe('SSO login', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#login-button');
-        await page.click('#sso-login')
+        await page.click('#sso-login');
         await page.click('input[name=email]');
         await page.type('input[name=email]', 'email@inexistent-domain.io');
         await page.click('button[type=submit]');
-        await page.waitForResponse(response => response.url().includes('/login'));
+        await page.waitForResponse(response =>
+            response.url().includes('/login')
+        );
         const html = await page.$eval('#main-body', e => e.innerHTML);
         html.should.containEql('Domain not found.');
     }, 30000);
@@ -104,7 +106,7 @@ describe('SSO login', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#login-button');
-        await page.click('#sso-login')
+        await page.click('#sso-login');
         await page.click('input[name=email]');
         await page.type('input[name=email]', 'email@hackerbay.io');
 
@@ -115,5 +117,4 @@ describe('SSO login', () => {
         const chain = response.request().redirectChain();
         expect(chain.length).not.toBe(0);
     }, 30000);
-
 });
