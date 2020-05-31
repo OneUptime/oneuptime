@@ -493,7 +493,7 @@ module.exports = {
                     error.code = 400;
                     ErrorService.log('userService.login', error);
                     throw error;
-                } else if ( user.sso ) {
+                } else if (user.sso) {
                     const error = new Error(
                         'This domain is configured as SSO. Please use SSO to log in to your account'
                     );
