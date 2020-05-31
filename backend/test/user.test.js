@@ -497,4 +497,13 @@ describe('SSO authentication', function() {
                 });
         });
     });
+    it('Should return samlSsoUrl for requests with domains having SSO enabled',function(done){
+        request
+            .get('/user/sso/login?email=user@hackerbay.io')
+            .end(function(err,res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.have.property('url');
+                done();
+            });
+    });
 });
