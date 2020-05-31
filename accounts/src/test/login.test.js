@@ -85,4 +85,35 @@ describe('SSO login', () => {
         await browser.close();
     });
 
+    it('Should return an error message if the domain is not defined in the database.', async () => {
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
+        await page.waitForSelector('#login-button');
+        await page.click('#sso-login')
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', 'email@inexistent-domain.io');
+        await page.click('button[type=submit]');
+        await page.waitForResponse(response => response.url().includes('/login'));
+        const html = await page.$eval('#main-body', e => e.innerHTML);
+        html.should.containEql('Domain not found.');
+    }, 30000);
+
+    it('Should redirects the user if the domain is defined in the database.', async () => {
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
+        await page.waitForSelector('#login-button');
+        await page.click('#sso-login')
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', 'email@hackerbay.io');
+
+        const [response] = await Promise.all([
+            page.waitForNavigation('networkidle2'),
+            page.click('button[type=submit]'),
+        ]);
+        const chain = response.request().redirectChain();
+        expect(chain.length).not.toBe(0);
+    }, 30000);
+
 });
