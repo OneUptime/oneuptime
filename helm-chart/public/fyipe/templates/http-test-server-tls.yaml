@@ -1,0 +1,20 @@
+{{- if .Values.saas.isSaasService }} 
+{{- range $key, $value := $.Values.httpTestServer.hosts }}
+{{- if $value.tls.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ printf "%s-%s-%s" $.Release.Name $key "testtls"  }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: fyipe
+    app.kubernetes.io/managed-by: helm
+type: Opaque
+data:
+  tls.crt: {{ $value.tls.crt }}
+  tls.key: {{ $value.tls.key }}
+---
+{{- end }}
+{{- end }}
+{{- end }}
+

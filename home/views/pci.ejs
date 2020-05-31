@@ -1,5 +1,10 @@
 <header id="pagmt">
-
+    <script>
+        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (IS_SAAS_SERVICE) {
+          amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > PCI');
+        }
+      </script>
     <h1>PCI DSS</h1>
 
     <p>Payment Card Industry Data Security Standard</p>

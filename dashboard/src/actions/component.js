@@ -1,7 +1,6 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/component';
 import errors from '../errors';
-import { change, autofill } from 'redux-form';
 
 // Component list
 // props -> {name: '', type, data -> { data.url}}
@@ -53,7 +52,7 @@ export function fetchComponentsFailure(error) {
     };
 }
 
-export function resetfetchComponents() {
+export function resetFetchComponents() {
     return {
         type: types.FETCH_COMPONENTS_RESET,
     };
@@ -244,73 +243,6 @@ export function deleteProjectComponents(projectId) {
     };
 }
 
-// Fetch Component Logs
-export function fetchComponentLogs(projectId, componentId, startDate, endDate) {
-    return function(dispatch) {
-        const promise = postApi(
-            `component/${projectId}/componentLog/${componentId}`,
-            { startDate, endDate }
-        );
-        dispatch(fetchComponentLogsRequest());
-        dispatch(updateDateRange(startDate, endDate));
-
-        promise.then(
-            function(componentLogs) {
-                dispatch(
-                    fetchComponentLogsSuccess({
-                        projectId,
-                        componentId,
-                        logs: componentLogs.data,
-                    })
-                );
-            },
-            function(error) {
-                if (error && error.response && error.response.data) {
-                    error = error.response.data;
-                }
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(fetchComponentLogsFailure(errors(error)));
-            }
-        );
-
-        return promise;
-    };
-}
-
-export function updateDateRange(startDate, endDate) {
-    return {
-        type: 'UPDATE_DATE_RANGE',
-        payload: { startDate, endDate },
-    };
-}
-
-export function fetchComponentLogsRequest() {
-    return {
-        type: types.FETCH_COMPONENT_LOGS_REQUEST,
-    };
-}
-
-export function fetchComponentLogsSuccess(componentLogs) {
-    return {
-        type: types.FETCH_COMPONENT_LOGS_SUCCESS,
-        payload: componentLogs,
-    };
-}
-
-export function fetchComponentLogsFailure(error) {
-    return {
-        type: types.FETCH_COMPONENT_LOGS_FAILURE,
-        payload: error,
-    };
-}
-
 export function addSeat(projectId) {
     return function(dispatch) {
         const promise = postApi(`component/${projectId}/addseat`, {});
@@ -364,27 +296,5 @@ export function addSeatFailure(error) {
 export function addSeatReset() {
     return {
         type: types.ADD_SEAT_RESET,
-    };
-}
-
-export function addArrayField(val) {
-    return function(dispatch) {
-        dispatch(change('NewComponent', `${val}.field3`, true));
-    };
-}
-
-export function removeArrayField(val) {
-    return function(dispatch) {
-        dispatch(change('NewComponent', `${val}.field3`, false));
-        dispatch(autofill('NewComponent', `${val}.collection`, undefined));
-    };
-}
-
-export function selectedProbe(val) {
-    return function(dispatch) {
-        dispatch({
-            type: types.SELECT_PROBE,
-            payload: val,
-        });
     };
 }

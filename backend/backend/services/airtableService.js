@@ -98,6 +98,17 @@ module.exports = {
             return await base(tableName).destroy(recordIds);
         }
     },
+
+    logProjectDeletionFeedback: function({ reason, project, name, email }) {
+        if (!base) return;
+
+        return base('Project Delete').create({
+            'Reason for Deletion': reason,
+            'Project Name': project,
+            'Full Name': name,
+            Email: email,
+        });
+    },
 };
 
 const Airtable = require('airtable');

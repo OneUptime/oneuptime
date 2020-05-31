@@ -11,19 +11,18 @@ import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMemb
 import { LoadingState } from '../components/basic/Loader';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
-import { fetchComponents } from '../actions/component';
+import { fetchMonitors } from '../actions/monitor';
 import { loadPage } from '../actions/page';
-import { fetchTutorial } from '../actions/tutorial';
-import { getProbes } from '../actions/probe';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Components');
         if (IS_SAAS_SERVICE) {
-            logEvent('Main component page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > COMPONENT');
         }
     }
 
@@ -35,24 +34,7 @@ class DashboardView extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-        this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
-        this.props.fetchComponents(projectId).then(() => {
-            this.props.component.componentList.components.forEach(
-                subProject => {
-                    if (subProject.components.length > 0) {
-                        subProject.components.forEach(component => {
-                            this.props.fetchComponentLogs(
-                                component.projectId._id || component.projectId,
-                                component._id,
-                                this.props.startDate,
-                                this.props.endDate
-                            );
-                        });
-                    }
-                }
-            );
-        });
-        this.props.fetchTutorial();
+        this.props.fetchMonitors(projectId);
     };
 
     render() {
@@ -67,7 +49,11 @@ class DashboardView extends Component {
             document.head.appendChild(scriptElement);
         }
 
-        const { subProjects, currentProject } = this.props;
+        const {
+            subProjects,
+            currentProject,
+            location: { pathname },
+        } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
         let allComponents = this.props.component.componentList.components
             .map(component => component.components)
@@ -157,6 +143,7 @@ class DashboardView extends Component {
 
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem route={pathname} name="Components" />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -287,10 +274,8 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             destroy,
-            fetchComponents,
+            fetchMonitors,
             loadPage,
-            fetchTutorial,
-            getProbes,
         },
         dispatch
     );
@@ -337,14 +322,12 @@ DashboardView.propTypes = {
     ]),
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
-    fetchComponentLogs: PropTypes.func,
-    fetchComponents: PropTypes.func.isRequired,
+    fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     componentTutorial: PropTypes.object,
-    fetchTutorial: PropTypes.func,
-    getProbes: PropTypes.func,
-    startDate: PropTypes.object,
-    endDate: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 DashboardView.displayName = 'DashboardView';

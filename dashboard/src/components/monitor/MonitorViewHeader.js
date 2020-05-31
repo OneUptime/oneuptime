@@ -80,7 +80,10 @@ export class MonitorViewHeader extends Component {
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Edit Monitor Switch Clicked', {});
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > EDIT MONITOR CLICKED',
+                {}
+            );
         }
     };
 
@@ -93,10 +96,13 @@ export class MonitorViewHeader extends Component {
             `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring`
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Monitor Deleted', {
-                ProjectId: this.props.currentProject._id,
-                monitorId: this.props.monitor._id,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DELETED',
+                {
+                    ProjectId: this.props.currentProject._id,
+                    monitorId: this.props.monitor._id,
+                }
+            );
         }
         return promise;
     };

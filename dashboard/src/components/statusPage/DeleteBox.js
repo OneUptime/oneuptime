@@ -27,10 +27,9 @@ export class DeleteStatusPageBox extends Component {
             onConfirm: () => {
                 return deleteStatusPage(subProjectId, scheduleId).then(() => {
                     if (SHOULD_LOG_ANALYTICS) {
-                        logEvent('Status Page Deleted', {
-                            subProjectId,
-                            scheduleId,
-                        });
+                        logEvent(
+                            'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > STATUS PAGE DELETED'
+                        );
                     }
                     history.push(
                         `/dashboard/project/${projectId}/status-pages`

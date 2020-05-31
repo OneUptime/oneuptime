@@ -3,6 +3,13 @@
     <h1>CCPA</h1>
 
     <p>California Consumer Privacy Act (CCPA)</p>
+
+    <script>
+        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (IS_SAAS_SERVICE) {
+          amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > CCPA');
+        }
+      </script>
 </header>
 
 <section>

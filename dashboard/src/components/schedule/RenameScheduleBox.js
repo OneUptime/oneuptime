@@ -27,7 +27,9 @@ function validate(value) {
 export class RenameScheduleBox extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Schedule settings page Loaded');
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > SCHEDULE LIST > SCHEUDLE'
+            );
         }
     }
 
@@ -39,7 +41,10 @@ export class RenameScheduleBox extends Component {
         if (scheduleName) {
             renameSchedule(subProjectId, scheduleId, scheduleName);
             if (SHOULD_LOG_ANALYTICS) {
-                logEvent('Rename Schedule', values);
+                logEvent(
+                    'EVENT: DASHBOARD > PROJECT > SCHEDULE LIST > SCHEUDLE > RENAME SCHEDULE',
+                    values
+                );
             }
         }
     };

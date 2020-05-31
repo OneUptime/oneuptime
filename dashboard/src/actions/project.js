@@ -9,6 +9,7 @@ import {
     resetCreateMonitor,
     deleteProjectMonitors,
 } from './monitor';
+import { fetchTutorial, resetFetchTutorial } from './tutorial';
 import {
     fetchMonitorCategories,
     fetchMonitorCategoriesForNewMonitor,
@@ -239,6 +240,7 @@ export function switchProject(dispatch, project) {
     dispatch(resetCreateMonitor());
     dispatch(resetSubProjectFetchStatusPages());
     dispatch(fetchNotificationsReset());
+    dispatch(resetFetchTutorial());
 
     getSubProjects(project._id)(dispatch);
     fetchAlert(project._id)(dispatch);
@@ -251,6 +253,7 @@ export function switchProject(dispatch, project) {
     fetchSchedules(project._id)(dispatch);
     fetchSubProjectSchedules(project._id)(dispatch);
     fetchNotifications(project._id)(dispatch);
+    fetchTutorial()(dispatch);
     User.setProject(JSON.stringify(project));
 
     return {

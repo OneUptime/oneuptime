@@ -17,20 +17,11 @@ import {
     DELETE_COMPONENT_FAILURE,
     DELETE_COMPONENT_REQUEST,
     DELETE_PROJECT_COMPONENTS,
-    FETCH_COMPONENT_LOGS_REQUEST,
-    FETCH_COMPONENT_LOGS_SUCCESS,
-    FETCH_COMPONENT_LOGS_FAILURE,
     ADD_SEAT_SUCCESS,
     ADD_SEAT_FAILURE,
     ADD_SEAT_REQUEST,
     ADD_SEAT_RESET,
-    SELECT_PROBE,
-    GET_COMPONENT_LOGS_REQUEST,
-    GET_COMPONENT_LOGS_SUCCESS,
-    GET_COMPONENT_LOGS_FAILURE,
-    GET_COMPONENT_LOGS_RESET,
 } from '../constants/component';
-import moment from 'moment';
 
 const INITIAL_STATE = {
     componentList: {
@@ -38,10 +29,7 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false,
-        startDate: moment().subtract(30, 'd'),
-        endDate: moment(),
     },
-    componentLogs: {},
     newComponent: {
         component: null,
         error: null,
@@ -59,8 +47,6 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
     },
-    activeProbe: 0,
-    fetchComponentLogsRequest: false,
     deleteComponent: false,
 };
 
@@ -216,17 +202,6 @@ export default function component(state = INITIAL_STATE, action) {
                                     subProjectComponents[componentIndex]
                                 );
 
-                                if (!newComponent.logs)
-                                    newComponent.logs = oldComponent.logs;
-                                if (!newComponent.statuses)
-                                    newComponent.statuses =
-                                        oldComponent.statuses;
-                                if (!newComponent.incidents)
-                                    newComponent.incidents =
-                                        oldComponent.incidents;
-                                if (!newComponent.subscribers)
-                                    newComponent.subscribers =
-                                        oldComponent.subscribers;
                                 if (!newComponent.skip)
                                     newComponent.skip = oldComponent.skip;
                                 if (!newComponent.limit)
@@ -322,277 +297,6 @@ export default function component(state = INITIAL_STATE, action) {
                 },
             });
 
-        case FETCH_COMPONENT_LOGS_REQUEST:
-            return Object.assign({}, state, {
-                fetchComponentLogsRequest: true,
-            });
-
-        case FETCH_COMPONENT_LOGS_SUCCESS:
-            return Object.assign({}, state, {
-                componentList: {
-                    ...state.componentList,
-                    requesting: false,
-                    error: null,
-                    success: true,
-                    components: state.componentList.components.map(
-                        component => {
-                            component.components =
-                                component._id === action.payload.projectId
-                                    ? component.components.map(component => {
-                                          if (
-                                              component._id ===
-                                              action.payload.componentId
-                                          ) {
-                                              component.logs =
-                                                  action.payload.logs.data;
-                                              return component;
-                                          } else {
-                                              return component;
-                                          }
-                                      })
-                                    : component.components;
-                            return component;
-                        }
-                    ),
-                },
-                fetchComponentLogsRequest: false,
-            });
-
-        case FETCH_COMPONENT_LOGS_FAILURE:
-            return Object.assign({}, state, {
-                componentList: {
-                    ...state.componentList,
-                    requesting: false,
-                    error: action.payload,
-                    success: false,
-                },
-                fetchComponentLogsRequest: false,
-            });
-
-        case 'UPDATE_DATE_RANGE':
-            return Object.assign({}, state, {
-                componentList: {
-                    ...state.componentList,
-                    startDate: action.payload.startDate,
-                    endDate: action.payload.endDate,
-                },
-            });
-
-        case 'UPDATE_COMPONENT_LOG':
-            return Object.assign({}, state, {
-                componentList: {
-                    ...state.componentList,
-                    requesting: false,
-                    error: null,
-                    success: true,
-                    components: state.componentList.components.map(
-                        component => {
-                            component.components =
-                                component._id === action.payload.projectId
-                                    ? component.components.map(component => {
-                                          if (
-                                              component._id ===
-                                              action.payload.componentId
-                                          ) {
-                                              const data = Object.assign(
-                                                  {},
-                                                  action.payload.data
-                                              );
-                                              const intervalInDays = moment(
-                                                  state.componentList.endDate
-                                              ).diff(
-                                                  moment(
-                                                      state.componentList
-                                                          .startDate
-                                                  ),
-                                                  'days'
-                                              );
-                                              const isNewComponent =
-                                                  moment(
-                                                      state.componentList
-                                                          .endDate
-                                                  ).diff(
-                                                      moment(
-                                                          component.createdAt
-                                                      ),
-                                                      'days'
-                                                  ) < 2;
-
-                                              let dateFormat, outputFormat;
-                                              if (
-                                                  intervalInDays > 30 &&
-                                                  !isNewComponent
-                                              ) {
-                                                  dateFormat = 'weeks';
-                                                  outputFormat =
-                                                      'wo [week of] YYYY';
-                                              } else if (
-                                                  intervalInDays > 2 &&
-                                                  !isNewComponent
-                                              ) {
-                                                  dateFormat = 'days';
-                                                  outputFormat = 'MMM Do YYYY';
-                                              } else {
-                                                  if (
-                                                      moment(
-                                                          state.componentList
-                                                              .endDate
-                                                      ).diff(
-                                                          moment(
-                                                              component.createdAt
-                                                          ),
-                                                          'minutes'
-                                                      ) > 60
-                                                  ) {
-                                                      dateFormat = 'hours';
-                                                      outputFormat =
-                                                          'MMM Do YYYY, h A';
-                                                  } else {
-                                                      dateFormat = 'minutes';
-                                                      outputFormat =
-                                                          'MMM Do YYYY, h:mm:ss A';
-                                                  }
-                                              }
-
-                                              const logData = {
-                                                  ...data,
-                                                  maxResponseTime:
-                                                      data.responseTime,
-                                                  maxCpuLoad: data.cpuLoad,
-                                                  maxMemoryUsed:
-                                                      data.memoryUsed,
-                                                  maxStorageUsed:
-                                                      data.storageUsed,
-                                                  maxMainTemp: data.mainTemp,
-                                                  intervalDate: moment(
-                                                      data.createdAt
-                                                  ).format(outputFormat),
-                                              };
-
-                                              component.logs =
-                                                  component.logs &&
-                                                  component.logs.length > 0
-                                                      ? component.logs
-                                                            .map(a => a._id)
-                                                            .includes(
-                                                                logData.probeId
-                                                            ) ||
-                                                        !logData.probeId
-                                                          ? component.logs.map(
-                                                                probeLogs => {
-                                                                    const probeId =
-                                                                        probeLogs._id;
-
-                                                                    if (
-                                                                        probeId ===
-                                                                            logData.probeId ||
-                                                                        (!probeId &&
-                                                                            !logData.probeId)
-                                                                    ) {
-                                                                        if (
-                                                                            probeLogs.logs &&
-                                                                            probeLogs
-                                                                                .logs
-                                                                                .length >
-                                                                                0 &&
-                                                                            moment(
-                                                                                probeLogs
-                                                                                    .logs[0]
-                                                                                    .createdAt
-                                                                            ).isSame(
-                                                                                moment(
-                                                                                    logData.createdAt
-                                                                                ),
-                                                                                dateFormat
-                                                                            )
-                                                                        ) {
-                                                                            const currentLog =
-                                                                                probeLogs
-                                                                                    .logs[0];
-
-                                                                            logData.maxResponseTime =
-                                                                                data.responseTime >
-                                                                                currentLog.maxResponseTime
-                                                                                    ? data.responseTime
-                                                                                    : currentLog.maxResponseTime;
-                                                                            logData.maxCpuLoad =
-                                                                                data.cpuLoad >
-                                                                                currentLog.maxCpuLoad
-                                                                                    ? data.cpuLoad
-                                                                                    : currentLog.maxCpuLoad;
-                                                                            logData.maxMemoryUsed =
-                                                                                data.memoryUsed >
-                                                                                currentLog.maxMemoryUsed
-                                                                                    ? data.memoryUsed
-                                                                                    : currentLog.maxMemoryUsed;
-                                                                            logData.maxStorageUsed =
-                                                                                data.storageUsed >
-                                                                                currentLog.maxStorageUsed
-                                                                                    ? data.storageUsed
-                                                                                    : currentLog.maxStorageUsed;
-                                                                            logData.maxMainTemp =
-                                                                                data.mainTemp >
-                                                                                currentLog.maxMainTemp
-                                                                                    ? data.mainTemp
-                                                                                    : currentLog.maxMainTemp;
-
-                                                                            return {
-                                                                                _id: probeId,
-                                                                                logs: [
-                                                                                    logData,
-                                                                                    ...probeLogs.logs.slice(
-                                                                                        1
-                                                                                    ),
-                                                                                ],
-                                                                            };
-                                                                        } else {
-                                                                            return {
-                                                                                _id: probeId,
-                                                                                logs: [
-                                                                                    logData,
-                                                                                    ...probeLogs.logs,
-                                                                                ],
-                                                                            };
-                                                                        }
-                                                                    } else {
-                                                                        return probeLogs;
-                                                                    }
-                                                                }
-                                                            )
-                                                          : [
-                                                                ...component.logs,
-                                                                {
-                                                                    _id:
-                                                                        logData.probeId ||
-                                                                        null,
-                                                                    logs: [
-                                                                        logData,
-                                                                    ],
-                                                                },
-                                                            ]
-                                                      : [
-                                                            {
-                                                                _id:
-                                                                    logData.probeId ||
-                                                                    null,
-                                                                logs: [logData],
-                                                            },
-                                                        ];
-
-                                              return component;
-                                          } else {
-                                              return component;
-                                          }
-                                      })
-                                    : component.components;
-
-                            return component;
-                        }
-                    ),
-                },
-                fetchComponentLogsRequest: false,
-            });
-
         case DELETE_COMPONENT_SUCCESS:
             return Object.assign({}, state, {
                 componentList: {
@@ -683,84 +387,6 @@ export default function component(state = INITIAL_STATE, action) {
                     error: null,
                     success: false,
                 },
-            });
-
-        case SELECT_PROBE:
-            return Object.assign({}, state, {
-                activeProbe: action.payload,
-            });
-
-        case GET_COMPONENT_LOGS_SUCCESS:
-            return Object.assign({}, state, {
-                componentLogs: {
-                    ...state.componentLogs,
-                    [action.payload.componentId]: {
-                        logs: action.payload.logs,
-                        error: null,
-                        requesting: false,
-                        success: false,
-                        skip: action.payload.skip,
-                        limit: action.payload.limit,
-                        count: action.payload.count,
-                    },
-                },
-            });
-
-        case GET_COMPONENT_LOGS_FAILURE: {
-            const failureLogs = {
-                ...state.componentLogs,
-                [action.payload.componentId]: state.componentLogs[
-                    action.payload.componentId
-                ]
-                    ? {
-                          ...state.componentLogs[action.payload.componentId],
-                          error: action.payload.error,
-                      }
-                    : {
-                          logs: [],
-                          probes: [],
-                          error: action.payload.error,
-                          requesting: false,
-                          success: false,
-                          skip: 0,
-                          limit: 10,
-                          count: null,
-                      },
-            };
-            return Object.assign({}, state, {
-                componentLogs: failureLogs,
-            });
-        }
-
-        case GET_COMPONENT_LOGS_REQUEST: {
-            const requestLogs = {
-                ...state.componentLogs,
-                [action.payload.componentId]: state.componentLogs[
-                    action.payload.componentId
-                ]
-                    ? {
-                          ...state.componentLogs[action.payload.componentId],
-                          requesting: true,
-                      }
-                    : {
-                          logs: [],
-                          probes: [],
-                          error: null,
-                          requesting: true,
-                          success: false,
-                          skip: 0,
-                          limit: 10,
-                          count: null,
-                      },
-            };
-            return Object.assign({}, state, {
-                componentLogs: requestLogs,
-            });
-        }
-
-        case GET_COMPONENT_LOGS_RESET:
-            return Object.assign({}, state, {
-                componentLogs: INITIAL_STATE.componentLogs,
             });
 
         default:

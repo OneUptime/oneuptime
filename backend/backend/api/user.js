@@ -975,7 +975,7 @@ router.get('/confirmation/:token', async function(req, res) {
             if (!token) {
                 return res.redirect(
                     global.accountsHost +
-                        '/user-verify/resend?status=Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq'
+                        '/user-verify/resend?status=link-expired'
                 );
             }
             const user = await UserModel.findOne({
@@ -983,8 +983,7 @@ router.get('/confirmation/:token', async function(req, res) {
             });
             if (!user) {
                 return res.redirect(
-                    global.accountsHost +
-                        '/register?status=z1hb0g8vfg0rWM1Ly1euQSZ1L5ZNHuAk'
+                    global.accountsHost + '/register?status=user-not-found'
                 );
             }
             if (
@@ -993,8 +992,7 @@ router.get('/confirmation/:token', async function(req, res) {
                     (user.tempEmail && user.tempEmail === user.email))
             ) {
                 return res.redirect(
-                    global.accountsHost +
-                        '/login?status=IIYQNdn4impaXQeeteTBEBmz0If1rlwC'
+                    global.accountsHost + '/login?status=already-verified'
                 );
             }
             let dataUpdate = { isVerified: true };
@@ -1008,14 +1006,11 @@ router.get('/confirmation/:token', async function(req, res) {
             await UserModel.findByIdAndUpdate(user._id, {
                 $set: dataUpdate,
             });
-            return res.redirect(
-                global.accountsHost +
-                    '/login?status=V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP'
-            );
+            return res.redirect(global.accountsHost + '/login?status=verified');
         } else {
             return res.redirect(
                 global.accountsHost +
-                    '/user-verify/resend?status=eG5aFRDeZXgOkjEfdhOYbFb2lA3Z0OJm'
+                    '/user-verify/resend?status=invalid-verification-link'
             );
         }
     } catch (error) {

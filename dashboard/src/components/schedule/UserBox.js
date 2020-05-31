@@ -25,7 +25,10 @@ function submitUserForm(values, dispatch, props) {
     }
     props.addUsers(projectId, scheduleId, { users });
     if (SHOULD_LOG_ANALYTICS) {
-        logEvent('Added Users To Schedule', { projectId, scheduleId, users });
+        logEvent(
+            'EVENT: DASHBOARD > PROJECT > SCHEDULE LIST > SCHEUDLE > ADD USER TO SCHEDULE',
+            { projectId, scheduleId, users }
+        );
     }
 }
 

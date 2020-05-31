@@ -17,7 +17,7 @@ export class CreateProjectModal extends Component {
 
     createProject(values) {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('New Project Created', values);
+            logEvent('EVENT: DASHBOARD > NEW PROJECT CREATED');
         }
         const { switchProject, dispatch } = this.props;
         return this.props.createProject(values).then(res => {

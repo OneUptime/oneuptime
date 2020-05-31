@@ -1,0 +1,9 @@
+
+build_n_test_helm-chart:
+  stage: BuildAndTest
+  script:
+    - echo "No test implemented"
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release

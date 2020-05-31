@@ -101,13 +101,16 @@ export class MonitorDetail extends Component {
             3
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Incident Requested', {
-                ProjectId: this.props.monitor.projectId._id,
-                monitorId: this.props.monitor._id,
-                skip: this.props.monitor.skip
-                    ? parseInt(this.props.monitor.skip, 10) - 3
-                    : 3,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
+                {
+                    ProjectId: this.props.monitor.projectId._id,
+                    monitorId: this.props.monitor._id,
+                    skip: this.props.monitor.skip
+                        ? parseInt(this.props.monitor.skip, 10) - 3
+                        : 3,
+                }
+            );
         }
     };
 
@@ -121,20 +124,26 @@ export class MonitorDetail extends Component {
             3
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Incident Requested', {
-                ProjectId: this.props.monitor.projectId._id,
-                monitorId: this.props.monitor._id,
-                skip: this.props.monitor.skip
-                    ? parseInt(this.props.monitor.skip, 10) + 3
-                    : 3,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
+                {
+                    ProjectId: this.props.monitor.projectId._id,
+                    monitorId: this.props.monitor._id,
+                    skip: this.props.monitor.skip
+                        ? parseInt(this.props.monitor.skip, 10) + 3
+                        : 3,
+                }
+            );
         }
     };
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Edit Monitor Switch Clicked', {});
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > EDIT MONITOR CLICKED',
+                {}
+            );
         }
     };
 

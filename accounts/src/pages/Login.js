@@ -19,6 +19,9 @@ class LoginPage extends React.Component {
     componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('PAGE VIEW: LOG IN');
+        }
     }
 
     submitHandler = values => {
@@ -30,7 +33,7 @@ class LoginPage extends React.Component {
                     if (SHOULD_LOG_ANALYTICS) {
                         identify(user.data.id);
                         setUserId(user.data.id);
-                        logEvent('Log in user', { id: user.data.id });
+                        logEvent('EVENT: USER LOG IN');
                     }
                 }
             });
@@ -62,7 +65,7 @@ class LoginPage extends React.Component {
                         <MessageBox
                             title="Your email is not verified."
                             //eslint-disable-next-line
-                            message={`An email is on its way to you with new verification link. Please don't forget to check spam.`}
+                                message={`An email is on its way to you with new verification link. Please don't forget to check spam.`}
                         >
                             <div className="below-box">
                                 <p>

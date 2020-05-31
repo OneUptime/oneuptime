@@ -29,7 +29,10 @@ export class ExitProjectBox extends Component {
                     !nextProject && dispatch({ type: 'CLEAR_STORE' });
                     getProjects(false);
                     if (SHOULD_LOG_ANALYTICS) {
-                        logEvent('User Exited Project', { projectId, userId });
+                        logEvent('EVENT: DASHBOARD > PROJECT > USER REMOVED', {
+                            projectId,
+                            userId,
+                        });
                     }
                 });
             },

@@ -28,16 +28,15 @@ class SmsTemplatesBox extends React.Component {
         });
         this.props.editSmsTemplates(currentProject._id, val);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('SMS Templates Updated');
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > SETTINGS > SMS TEMPLATES UPDATED'
+            );
         }
     };
 
     resetTemplate = templateId => {
         const { currentProject } = this.props;
         this.props.resetSmsTemplates(currentProject._id, templateId);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('SMS Templates Reset');
-        }
     };
 
     templateChange = (e, value) => {
@@ -69,7 +68,7 @@ class SmsTemplatesBox extends React.Component {
                                     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                                     <span>SMS Templates</span>
                                                 </span>
                                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">

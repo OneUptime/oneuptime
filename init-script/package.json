@@ -1,18 +1,22 @@
 {
     "name": "fyipe-init-script",
     "private": true,
-    "version": "3.0.2640",
+    "version": "3.0.0",
     "main": "server.js",
     "scripts": {
         "test": "jest tests",
         "start": "node server.js",
-        "dev": "nodemon server.js"
+        "dev": "nodemon server.js",
+        "audit": "npm-audit-ci-wrapper --threshold=high",
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,ejs,path,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
     },
     "dependencies": {
         "mongodb": "^3.5.2"
     },
     "devDependencies": {
-        "jest": "^25.1.0"
+        "depcheck": "^0.9.2",
+        "jest": "^25.1.0",
+        "npm-audit-ci-wrapper": "^2.5.4"
     },
     "jest": {
         "collectCoverageFrom": [

@@ -6,6 +6,8 @@ import Invoice from '../components/invoice/Invoice';
 import PaymentCard from '../components/paymentCard/PaymentCard';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import { PropTypes } from 'prop-types';
 
 class ProfileBilling extends Component {
     constructor(props) {
@@ -15,13 +17,18 @@ class ProfileBilling extends Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Profile billing page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROFILE > BILLING');
         }
     }
 
     render() {
+        const {
+            location: { pathname },
+        } = this.props;
+
         return (
             <Dashboard>
+                <BreadCrumbItem route={pathname} name="Billing" />
                 <div className="Margin-vertical--12">
                     <Invoice />
                     <PaymentCard />
@@ -32,5 +39,11 @@ class ProfileBilling extends Component {
 }
 
 ProfileBilling.displayName = 'ProfileBilling';
+
+ProfileBilling.propTypes = {
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+};
 
 export default withRouter(connect(null, null)(ProfileBilling));

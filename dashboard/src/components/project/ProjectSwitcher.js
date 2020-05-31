@@ -35,7 +35,7 @@ export class ProjectSwitcher extends Component {
         if (project._id !== currentProject._id) {
             switchProject(dispatch, project);
             if (SHOULD_LOG_ANALYTICS) {
-                logEvent('Project Switched', project);
+                logEvent('EVENT: DASHBOARD > PROJECT > SWITCH PROJECT');
             }
         }
 

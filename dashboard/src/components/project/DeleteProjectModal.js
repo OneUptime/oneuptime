@@ -32,7 +32,7 @@ export class DeleteProjectModal extends Component {
             this.closeNotice();
         });
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Project Marked for Deleted', { projectId });
+            logEvent('EVENT: DASHBOARD > PROJECT > PROJECT DELETED', values);
         }
     }
 

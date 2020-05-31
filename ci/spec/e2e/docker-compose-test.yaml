@@ -1,0 +1,24 @@
+e2e_docker_compose_enterprise_test:
+  stage: BuildAndTest
+  script:
+    - sudo apt-get update
+    - curl -sSL https://get.docker.com/ | sh #Install docker.
+    # Install Docker Compose.
+    - sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    - sudo chmod +x /usr/local/bin/docker-compose
+    - sudo docker-compose down -v
+    # Install the cluster.
+    - chmod +x ./install.sh
+    - ./install.sh
+    # Set env var
+    - export ACCOUNTS_URL=http://localhost:3003
+    - export ADMIN_DASHBOARD_URL=http://localhost:3100
+    - export DASHBOARD_URL=http://localhost:3000
+    - export BACKEND_URL=http://localhost:3002
+    - cd smoke-test
+    - npm ci
+    - npm run enterprise-test
+  only:
+    refs:
+      - release
+      - master

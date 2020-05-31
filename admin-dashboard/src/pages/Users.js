@@ -5,12 +5,11 @@ import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import UserList from '../components/user/UserList';
 import { fetchUsers, searchUsers } from '../actions/user';
-import { ListLoader, FormLoader } from '../components/basic/Loader';
+import { ListLoader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import UserAddModal from '../components/user/UserAddModal';
-import { IS_SAAS_SERVICE } from '../config';
 
 class Users extends Component {
     constructor(props) {
@@ -153,51 +152,38 @@ class Users extends Component {
                                                                                 }
                                                                             />
                                                                         </div>
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                !IS_SAAS_SERVICE
-                                                                            }
-                                                                        >
-                                                                            <div>
-                                                                                <button
-                                                                                    className="bs-Button bs-ButtonLegacy ActionIconParent"
-                                                                                    type="button"
-                                                                                    disabled={
-                                                                                        false
+                                                                        <div>
+                                                                            <button
+                                                                                className="bs-Button bs-ButtonLegacy ActionIconParent"
+                                                                                type="button"
+                                                                                disabled={
+                                                                                    false
+                                                                                }
+                                                                                id="add_user"
+                                                                                onClick={
+                                                                                    this
+                                                                                        .handleClick
+                                                                                }
+                                                                                style={{
+                                                                                    marginLeft:
+                                                                                        '8px',
+                                                                                }}
+                                                                            >
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        true
                                                                                     }
-                                                                                    id="add_user"
-                                                                                    onClick={
-                                                                                        this
-                                                                                            .handleClick
-                                                                                    }
-                                                                                    style={{
-                                                                                        marginLeft:
-                                                                                            '8px',
-                                                                                    }}
                                                                                 >
-                                                                                    <ShouldRender
-                                                                                        if={
-                                                                                            true
-                                                                                        }
-                                                                                    >
-                                                                                        <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                                                            <span>
-                                                                                                Add
-                                                                                                New
-                                                                                                User
-                                                                                            </span>
+                                                                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                        <span>
+                                                                                            Add
+                                                                                            New
+                                                                                            User
                                                                                         </span>
-                                                                                    </ShouldRender>
-                                                                                    <ShouldRender
-                                                                                        if={
-                                                                                            false
-                                                                                        }
-                                                                                    >
-                                                                                        <FormLoader />
-                                                                                    </ShouldRender>
-                                                                                </button>
-                                                                            </div>
-                                                                        </ShouldRender>
+                                                                                    </span>
+                                                                                </ShouldRender>
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>

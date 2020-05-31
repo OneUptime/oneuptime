@@ -1,0 +1,11 @@
+
+build_n_test_init-script:
+  stage: BuildAndTest
+  script:
+    - cd init-script
+    - npm ci
+    - npm test
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release

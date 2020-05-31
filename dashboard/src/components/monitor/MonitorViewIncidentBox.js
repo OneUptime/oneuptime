@@ -32,9 +32,12 @@ export class MonitorViewIncidentBox extends Component {
             5
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Incident Requested', {
-                projectId: this.props.monitor.projectId._id,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
+                {
+                    projectId: this.props.monitor.projectId._id,
+                }
+            );
         }
     };
 
@@ -48,9 +51,12 @@ export class MonitorViewIncidentBox extends Component {
             5
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Incident Requested', {
-                projectId: this.props.monitor.projectId._id,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
+                {
+                    projectId: this.props.monitor.projectId._id,
+                }
+            );
         }
     };
 

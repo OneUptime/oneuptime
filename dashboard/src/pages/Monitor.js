@@ -16,7 +16,6 @@ import {
     fetchMonitorLogs,
     fetchMonitorsIncidents,
     fetchMonitorStatuses,
-    fetchMonitors,
 } from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
@@ -25,25 +24,20 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Monitors');
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Main monitor page Loaded');
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR LIST'
+            );
         }
     }
 
-    componentWillUnmount() {
-        this.props.destroy('NewMonitor');
-    }
-
-    ready = () => {
-        const projectId = this.props.currentProject
-            ? this.props.currentProject._id
-            : null;
-        this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
-        this.props.fetchMonitors(projectId).then(() => {
+    componentDidUpdate(prevProps) {
+        if (prevProps.monitor.monitorsList.monitors.length === 0) {
             this.props.monitor.monitorsList.monitors.forEach(subProject => {
                 if (subProject.monitors.length > 0) {
                     subProject.monitors.forEach(monitor => {
@@ -68,8 +62,42 @@ class DashboardView extends Component {
                     });
                 }
             });
+        }
+    }
+
+    componentWillUnmount() {
+        this.props.destroy('NewMonitor');
+    }
+
+    ready = () => {
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : null;
+        this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
+        this.props.monitor.monitorsList.monitors.forEach(subProject => {
+            if (subProject.monitors.length > 0) {
+                subProject.monitors.forEach(monitor => {
+                    this.props.fetchMonitorLogs(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        this.props.startDate,
+                        this.props.endDate
+                    );
+                    this.props.fetchMonitorsIncidents(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        0,
+                        3
+                    );
+                    this.props.fetchMonitorStatuses(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        this.props.startDate,
+                        this.props.endDate
+                    );
+                });
+            }
         });
-        this.props.fetchTutorial();
     };
 
     render() {
@@ -86,30 +114,41 @@ class DashboardView extends Component {
             document.head.appendChild(scriptElement);
         }
 
-        if (this.props.incidents) {
-            incidentslist = this.props.incidents.map((incident, i) => {
-                return (
-                    <RenderIfUserInSubProject
-                        key={`${incident._id || i}`}
-                        subProjectId={
-                            incident.projectId._id || incident.projectId
-                        }
-                    >
-                        <IncidentStatus
-                            count={i}
-                            incident={incident}
-                            multiple={true}
-                        />
-                    </RenderIfUserInSubProject>
-                );
-            });
-        }
-
-        const { componentId, subProjects, currentProject } = this.props;
-        const currentProjectId = currentProject ? currentProject._id : null;
         let allMonitors = this.props.monitor.monitorsList.monitors
             .map(monitor => monitor.monitors)
             .flat();
+
+        const monitorIds = allMonitors.map(monitor => monitor._id);
+
+        if (this.props.incidents) {
+            incidentslist = this.props.incidents
+                .filter(incident => monitorIds.includes(incident.monitorId._id))
+                .map((incident, i) => {
+                    return (
+                        <RenderIfUserInSubProject
+                            key={`${incident._id || i}`}
+                            subProjectId={
+                                incident.projectId._id || incident.projectId
+                            }
+                        >
+                            <IncidentStatus
+                                count={i}
+                                incident={incident}
+                                multiple={true}
+                            />
+                        </RenderIfUserInSubProject>
+                    );
+                });
+        }
+
+        const {
+            componentId,
+            subProjects,
+            currentProject,
+            location: { pathname },
+            component,
+        } = this.props;
+        const currentProjectId = currentProject ? currentProject._id : null;
 
         // SubProject Monitors List
         const monitors =
@@ -190,9 +229,12 @@ class DashboardView extends Component {
             );
 
         monitors && monitors.unshift(projectMonitor);
+        const componentName = component.length > 0 ? component[0].name : null;
 
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem route={pathname} name={componentName} />
+                <BreadCrumbItem route={pathname + '#'} name="Monitors" />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -333,7 +375,6 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorLogs,
             fetchMonitorsIncidents,
             fetchMonitorStatuses,
-            fetchMonitors,
             loadPage,
             fetchTutorial,
             getProbes,
@@ -345,6 +386,10 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = (state, props) => {
     const componentId = props.match.params.componentId;
     const monitor = state.monitor;
+
+    const component = state.component.componentList.components.map(item => {
+        return item.components.find(component => component._id === componentId);
+    });
 
     monitor.monitorsList.monitors.forEach(item => {
         item.monitors = item.monitors.filter(
@@ -374,6 +419,7 @@ const mapStateToProps = (state, props) => {
         monitorTutorial: state.tutorial.monitor,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
+        component,
     };
 };
 
@@ -400,13 +446,19 @@ DashboardView.propTypes = {
     fetchMonitorLogs: PropTypes.func,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorStatuses: PropTypes.func.isRequired,
-    fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     monitorTutorial: PropTypes.object,
-    fetchTutorial: PropTypes.func,
     getProbes: PropTypes.func,
     startDate: PropTypes.object,
     endDate: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+    component: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 DashboardView.displayName = 'DashboardView';

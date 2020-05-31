@@ -26,7 +26,6 @@ module.exports = {
                     limit: 10,
                     starting_after: startingAfter,
                     ending_before: endingBefore,
-                    'include[]': 'total_count',
                 });
                 if (!invoices || !invoices.data) {
                     const error = new Error(

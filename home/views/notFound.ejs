@@ -10,6 +10,12 @@
   <% include ./head %>
   <link rel="stylesheet" href="/css/home.css">
   <script defer src="/js/home.js"></script>
+  <script>
+    var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+    if (IS_SAAS_SERVICE) {
+      amplitude.getInstance().logEvent('PAGE VIEW: HOME > NOT FOUND (404)');
+    }
+  </script>
 </head>
 
 <body>

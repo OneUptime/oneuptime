@@ -19,13 +19,12 @@ describe('StatusPage API With SubProjects', () => {
 
     let cluster;
 
-    beforeAll(async () => {
+    beforeAll(async done => {
         jest.setTimeout(200000);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_CONTEXT,
             puppeteerOptions: utils.puppeteerLaunchConfig,
-            maxConcurrency: 2,
             puppeteer,
             timeout: utils.timeout,
         });
@@ -42,78 +41,82 @@ describe('StatusPage API With SubProjects', () => {
             };
 
             // user
-            await init.registerUser(user, page, data.isParentUser);
-            await init.loginUser(user, page);
-
-            if (data.isParentUser) {
-                // rename default project
-                await init.renameProject(data.projectName, page);
-                // add sub-project
-                await init.addSubProject(data.subProjectName, page);
-                // Create Component
-                await init.addComponent(
-                    componentName,
-                    page,
-                    data.subProjectName
-                );
-                // add new user to sub-project
-                await init.addUserToProject(
-                    {
-                        email: data.newEmail,
-                        role: 'Member',
-                        subProjectName: data.subProjectName,
-                    },
-                    page
-                );
-                // Navigate to details page of component created
-                await init.navigateToComponentDetails(componentName, page);
-                // add new monitor to sub-project
-                await init.addMonitorToSubProject(
-                    data.subProjectMonitorName,
-                    data.subProjectName,
-                    componentName,
-                    page
-                );
-
-                await init.logout(page);
-            }
+            await init.registerUser(user, page);
         };
 
         await cluster.execute(
             {
-                projectName,
-                subProjectName,
                 email,
                 password,
-                newEmail,
-                subProjectMonitorName,
-                isParentUser: true,
             },
             task
         );
 
         await cluster.execute(
             {
-                projectName,
-                subProjectName,
                 email: newEmail,
                 password: newPassword,
-                isParentUser: false,
             },
             task
         );
+
+        await cluster.execute(null, async ({ page }) => {
+            const user = { email, password };
+            await init.loginUser(user, page);
+
+            await page.goto(utils.DASHBOARD_URL);
+
+            await page.waitForSelector('#AccountSwitcherId');
+            await page.click('#AccountSwitcherId');
+            await page.waitForSelector('#create-project');
+            await page.click('#create-project');
+            await page.waitForSelector('#name');
+            await page.type('#name', projectName);
+            await page.$$eval(
+                'input[name="planId"]',
+                inputs => inputs[2].click() // select Growth plan
+            );
+            await page.click('#btnCreateProject');
+            await page.waitForNavigation({ waitUntil: 'networkidle0' });
+
+            // add sub-project
+            await init.addSubProject(subProjectName, page);
+            // Create Component
+            await init.addComponent(componentName, page, subProjectName);
+            await page.goto(utils.DASHBOARD_URL);
+            // add new user to sub-project
+            await init.addUserToProject(
+                {
+                    email: newEmail,
+                    role: 'Member',
+                    subProjectName,
+                },
+                page
+            );
+            // Navigate to details page of component created
+            await init.navigateToComponentDetails(componentName, page);
+            // add new monitor to sub-project
+            await init.addMonitorToSubProject(
+                subProjectMonitorName,
+                subProjectName,
+                componentName,
+                page
+            );
+        });
+
+        done();
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
+        done();
     });
 
     test(
         'should not display create status page button for subproject `member` role.',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(
+        async done => {
+            await cluster.execute(
                 {
                     email: newEmail,
                     password: newPassword,
@@ -121,13 +124,13 @@ describe('StatusPage API With SubProjects', () => {
                     subProjectName,
                 },
                 async ({ page, data }) => {
-                    await page.setDefaultTimeout(utils.timeout);
                     const user = {
                         email: data.email,
                         password: data.password,
                     };
 
                     await init.loginUser(user, page);
+
                     // switch to invited project for new user
                     // await init.switchProject(data.projectName, page);
                     await page.waitForSelector('#statusPages');
@@ -140,19 +143,19 @@ describe('StatusPage API With SubProjects', () => {
                     expect(createButton).toBe(null);
                 }
             );
+
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should create a status page in sub-project for sub-project `admin`',
-        async () => {
-            expect.assertions(1);
+        async done => {
             const statuspageName = utils.generateRandomString();
-            return await cluster.execute(
+            await cluster.execute(
                 { email, password, subProjectName, statuspageName },
                 async ({ page, data }) => {
-                    await page.setDefaultTimeout(utils.timeout);
                     const user = {
                         email: data.email,
                         password: data.password,
@@ -179,14 +182,14 @@ describe('StatusPage API With SubProjects', () => {
                     expect(textContent).toEqual('1 Status Page');
                 }
             );
+
+            done();
         },
         operationTimeOut
     );
 
-    test('should get list of status pages in sub-projects and paginate status pages in sub-project', async () => {
-        expect.assertions(3);
+    test('should get list of status pages in sub-projects and paginate status pages in sub-project', async done => {
         const fn = async ({ page, data }) => {
-            await page.setDefaultTimeout(utils.timeout);
             const user = {
                 email: data.email,
                 password: data.password,
@@ -251,15 +254,16 @@ describe('StatusPage API With SubProjects', () => {
             },
             fn
         );
+
+        done();
     }, 500000);
 
     test(
         'should update sub-project status page settings',
-        async () => {
-            return await cluster.execute(
+        async done => {
+            await cluster.execute(
                 { email, password, subProjectMonitorName },
                 async ({ page, data }) => {
-                    await page.setDefaultTimeout(utils.timeout);
                     const user = {
                         email: data.email,
                         password: data.password,
@@ -290,15 +294,16 @@ describe('StatusPage API With SubProjects', () => {
                     await page.click('#createFooter');
                 }
             );
+
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should delete sub-project status page',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(
+        async done => {
+            await cluster.execute(
                 {
                     email,
                     password,
@@ -332,6 +337,8 @@ describe('StatusPage API With SubProjects', () => {
                     expect(countStatusPages).toEqual(10);
                 }
             );
+
+            done();
         },
         operationTimeOut
     );

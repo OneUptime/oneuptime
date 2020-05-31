@@ -1,4 +1,5 @@
 import React from 'react';
+import { ThroughProvider } from 'react-through';
 
 import axiosMock from '../src/test/axios_mock'
 import {

@@ -30,11 +30,10 @@ export class ProfileMenu extends Component {
     };
 
     logout() {
-        const values = { name: User.getName(), email: User.getEmail() };
         const { logoutUser } = this.props;
         logoutUser();
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('User Logged Out', values);
+            logEvent('EVENT: DASHBOARD > USER LOG OUT');
         }
     }
 

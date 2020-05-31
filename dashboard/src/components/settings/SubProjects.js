@@ -9,6 +9,7 @@ import uuid from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import { getSubProjects } from '../../actions/subProject';
+import PricingPlan from '../basic/PricingPlan';
 
 export class SubProjects extends Component {
     constructor(props) {
@@ -40,7 +41,7 @@ export class SubProjects extends Component {
                             <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                        <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                        <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                             <span>Sub Projects</span>
                                         </span>
                                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -78,16 +79,21 @@ export class SubProjects extends Component {
                                                 className="Button bs-ButtonLegacy ActionIconParent"
                                                 type="button"
                                             >
-                                                <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                    <div className="Box-root Margin-right--8">
-                                                        <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                                    </div>
-                                                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                        <span>
-                                                            Add Subproject
+                                                <PricingPlan
+                                                    plan="Growth"
+                                                    hideChildren={false}
+                                                >
+                                                    <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                        <div className="Box-root Margin-right--8">
+                                                            <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
+                                                        </div>
+                                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                            <span>
+                                                                Add Subproject
+                                                            </span>
                                                         </span>
-                                                    </span>
-                                                </div>
+                                                    </div>
+                                                </PricingPlan>
                                             </button>
                                         </div>
                                     </div>

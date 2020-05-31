@@ -22,6 +22,9 @@ import {
     switchStatusPage,
     fetchProjectStatusPage,
 } from '../actions/statusPage';
+import CustomStyles from '../components/statusPage/CustomStyles';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class StatusPage extends Component {
     async componentDidMount() {
@@ -52,13 +55,26 @@ class StatusPage extends Component {
             }
         }
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('StatusPage Settings Loaded');
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGE LIST > STATUS PAGE'
+            );
         }
     }
 
     render() {
+        const {
+            location: { pathname },
+            statusPage: { status },
+        } = this.props;
+        const pageName = status ? status.name : null;
+
         return (
             <Dashboard>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Status Pages"
+                />
+                <BreadCrumbItem route={pathname} name={pageName} />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -105,6 +121,9 @@ class StatusPage extends Component {
                                                         </div>
                                                         <div className="Box-root Margin-bottom--12">
                                                             <Links />
+                                                        </div>
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <CustomStyles />
                                                         </div>
                                                     </RenderIfSubProjectAdmin>
                                                     <RenderIfSubProjectAdmin
@@ -176,6 +195,9 @@ StatusPage.propTypes = {
     fetchProjectStatusPage: PropTypes.func,
     fetchSubProjectStatusPages: PropTypes.func,
     match: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 StatusPage.displayName = 'StatusPage';

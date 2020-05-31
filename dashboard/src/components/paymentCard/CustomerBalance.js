@@ -38,8 +38,12 @@ export class CustomerBalance extends Component {
         const { MessageBoxId } = this.state;
 
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Add amount to balance', values);
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > BILLING > ADD BALANCE',
+                values
+            );
         }
+
         if (rechargeBalanceAmount) {
             addBalance(projectId, values)
                 .then(() => {

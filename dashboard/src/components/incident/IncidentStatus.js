@@ -28,11 +28,14 @@ export class IncidentStatus extends Component {
             this.props.multiple
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Acknowledged', {
-                ProjectId: this.props.incident.projectId,
-                incidentId: this.props.incident._id,
-                userId: userId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > INCIDENT ACKNOWLEDGED',
+                {
+                    ProjectId: this.props.incident.projectId,
+                    incidentId: this.props.incident._id,
+                    userId: userId,
+                }
+            );
         }
     };
 
@@ -45,11 +48,14 @@ export class IncidentStatus extends Component {
             this.props.multiple
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Resolved', {
-                ProjectId: this.props.incident.projectId,
-                incidentId: this.props.incident._id,
-                userId: userId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > INCIDENT RESOLVED',
+                {
+                    ProjectId: this.props.incident.projectId,
+                    incidentId: this.props.incident._id,
+                    userId: userId,
+                }
+            );
         }
     };
 

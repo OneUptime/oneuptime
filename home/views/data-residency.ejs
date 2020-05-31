@@ -4,6 +4,12 @@
 
     <p>Fyipe customers will be able to choose which country or region their data is stored while fulfilling corporate
         policies and compliance requirements</p>
+        <script>
+            var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+            if (IS_SAAS_SERVICE) {
+              amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > DATA RESIDENCY');
+            }
+          </script>
 </header>
 
 <section>

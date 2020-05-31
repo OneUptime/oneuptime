@@ -8,19 +8,24 @@ import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class StatusPage extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('StatusPage Settings Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGE LIST');
         }
     }
 
     render() {
-        const { projectId } = this.props;
+        const {
+            projectId,
+            location: { pathname },
+        } = this.props;
 
         return (
             <Dashboard>
+                <BreadCrumbItem route={pathname} name="Status Pages" />
                 <ShouldRender if={this.props.statusPageTutorial.show}>
                     <TutorialBox type="status-page" />
                 </ShouldRender>
@@ -48,6 +53,9 @@ function mapStateToProps(state, props) {
 StatusPage.propTypes = {
     projectId: PropTypes.string.isRequired,
     statusPageTutorial: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 StatusPage.displayName = 'StatusPage';

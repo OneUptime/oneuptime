@@ -81,7 +81,7 @@ module.exports = {
     loginUser: async function(user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle2',
+            waitUntil: 'networkidle0',
         });
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
@@ -89,7 +89,7 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await Promise.all([
-            page.waitForNavigation(),
+            page.waitForNavigation({ waitUntil: 'networkidle0' }),
             page.click('button[type=submit]'),
         ]);
     },
@@ -122,6 +122,7 @@ module.exports = {
         }
 
         await page.click('button[type=submit]');
+        await page.waitForNavigation();
     },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
@@ -166,11 +167,17 @@ module.exports = {
             await page.type('input[name=password]', '1234567890');
             await page.click('input[name=confirmPassword]');
             await page.type('input[name=confirmPassword]', '1234567890');
-            await page.click('button[type=submit]');
+            await Promise.all([
+                page.click('button[type=submit]'),
+                page.waitForNavigation({ waitUntil: 'networkidle0' }),
+            ]);
+            await this.createUserFromAdminDashboard(user, page);
         } else {
             await this.loginUser(masterAdmin, page);
+            await this.createUserFromAdminDashboard(user, page);
         }
-        await page.waitFor(20000);
+    },
+    createUserFromAdminDashboard: async function(user, page) {
         // create the user from admin dashboard
         const { email } = user;
         await page.waitForSelector('#add_user');
@@ -189,7 +196,7 @@ module.exports = {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', '1234567890');
         await page.click('button[type=submit]');
-        await page.waitFor(10000);
+        await page.waitForSelector('#frmUser', { hidden: true });
     },
     addSchedule: async function(callSchedule, page) {
         await page.waitForSelector('#callSchedules');
@@ -279,10 +286,7 @@ module.exports = {
         }
     },
     addMonitorToComponent: async function(component, monitorName, page) {
-        await this.addComponent(component, page);
-        // Navigate to details page of component created in previous test
-        await page.waitForSelector(`#more-details-${component}`);
-        await page.click(`#more-details-${component}`);
+        component && (await this.addComponent(component, page));
 
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
@@ -299,10 +303,10 @@ module.exports = {
         componentName,
         page
     ) {
-        // await page.reload({ waitUntil: 'domcontentloaded' });
-        // await page.waitForSelector('#monitors');
-        // await page.click('#monitors'); // Fix this
-        await this.navigateToComponentDetails(componentName, page);
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('#monitors');
+        await page.click('#monitors'); // Fix this
+        // await this.navigateToComponentDetails(componentName, page);
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);

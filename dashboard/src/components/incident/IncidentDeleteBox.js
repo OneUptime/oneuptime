@@ -27,15 +27,18 @@ export class IncidentDeleteBox extends Component {
 
         const promise = this.props.deleteIncident(projectId, incidentId);
         promise.then(() => {
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent(
+                    'EVENT: DASHBOARD > PROJECT > INCIDENT > DELETE INCIDENT',
+                    {
+                        projectId,
+                        incidentId,
+                    }
+                );
+            }
             history.push(
                 `/dashboard/project/${this.props.currentProject._id}/monitoring`
             );
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent('Incident Deleted', {
-                    projectId,
-                    incidentId,
-                });
-            }
         });
         return promise;
     };

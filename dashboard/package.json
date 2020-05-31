@@ -1,6 +1,6 @@
 {
     "name": "fyipe-dashboard",
-    "version": "3.0.2640",
+    "version": "3.0.0",
     "private": true,
     "dependencies": {
         "@beam-australia/react-env": "^2.1.2",
@@ -37,6 +37,7 @@
         "qrcode.react": "^1.0.0",
         "react": "^16.5.2",
         "react-ace": "^7.0.4",
+        "react-breadcrumbs-dynamic": "^1.2.1",
         "react-click-outside": "github:tj/react-click-outside",
         "react-color": "^2.18.0",
         "react-copy-to-clipboard": "^5.0.2",
@@ -54,6 +55,7 @@
         "react-scripts": "^3.4.1",
         "react-select": "^3.0.8",
         "react-stripe-elements": "^1.7.0",
+        "react-through": "^1.1.4",
         "react-widgets": "^4.4.9",
         "recharts": "^1.7.1",
         "redux": "^3.7.2",
@@ -71,7 +73,7 @@
         "dev": "PORT=3000 react-scripts start",
         "build": "react-scripts build && npm run build-sw",
         "build-sw": "node ./src/sw-build.js",
-        "test": "jest --runInBand ./src/test/puppeteer/*.test.js",
+        "test": "jest --testSequencer ./src/test/puppeteer/CustomSequencer.js --runInBand ./src/test/puppeteer/*.test.js",
         "enterprise-test": "jest --runInBand ./src/test/puppeteer/*.test.enterprise.js",
         "start": "node index.js",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
@@ -79,6 +81,7 @@
         "fix-lint": "eslint . --fix"
     },
     "devDependencies": {
+        "@jest/test-sequencer": "^26.0.1",
         "axios-mock-adapter": "^1.15.0",
         "babel-preset-es2015": "^6.24.1",
         "babel-preset-react": "^6.24.1",

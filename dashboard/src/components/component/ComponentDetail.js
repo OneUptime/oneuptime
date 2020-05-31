@@ -35,13 +35,16 @@ export class ComponentDetail extends Component {
             3
         );
         if (IS_SAAS_SERVICE) {
-            logEvent('Previous Monitor Requested', {
-                ProjectId: this.props.component.projectId._id,
-                componentId: this.props.component._id,
-                skip: this.props.component.skip
-                    ? parseInt(this.props.component.skip, 10) - 3
-                    : 3,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > COMPONENT > MONITOR PREVIOUS BUTTON CLICKED',
+                {
+                    ProjectId: this.props.component.projectId._id,
+                    componentId: this.props.component._id,
+                    skip: this.props.component.skip
+                        ? parseInt(this.props.component.skip, 10) - 3
+                        : 3,
+                }
+            );
         }
     };
 
@@ -55,13 +58,16 @@ export class ComponentDetail extends Component {
             3
         );
         if (IS_SAAS_SERVICE) {
-            logEvent('Next Monitor Requested', {
-                ProjectId: this.props.component.projectId._id,
-                componentId: this.props.component._id,
-                skip: this.props.component.skip
-                    ? parseInt(this.props.component.skip, 10) + 3
-                    : 3,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > COMPONENT > MONITOR PREVIOUS BUTTON CLICKED',
+                {
+                    ProjectId: this.props.component.projectId._id,
+                    componentId: this.props.component._id,
+                    skip: this.props.component.skip
+                        ? parseInt(this.props.component.skip, 10) + 3
+                        : 3,
+                }
+            );
         }
     };
 
@@ -96,7 +102,7 @@ export class ComponentDetail extends Component {
             `/dashboard/project/${this.props.currentProject._id}/components`
         );
         if (IS_SAAS_SERVICE) {
-            logEvent('Component Deleted', {
+            logEvent('EVENT: DASHBOARD > COMPONENT > COMPONENT DELETED', {
                 ProjectId: this.props.currentProject._id,
                 componentId,
             });
@@ -151,7 +157,7 @@ export class ComponentDetail extends Component {
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                     <span
                                         id="component-content-header"
-                                        className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
+                                        className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                     >
                                         <span
                                             id={`component-title-${component.name}`}

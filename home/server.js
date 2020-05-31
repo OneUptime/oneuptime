@@ -9,15 +9,7 @@ const productCompare = require('./config/product-compare');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
 app.use(compression());
-
-app.use('*', function(req, res, next) {
-    if (process.env && process.env.PRODUCTION) {
-        res.set('Cache-Control', 'public, max-age=86400');
-    } else res.set('Cache-Control', 'no-cache');
-    next();
-});
 
 //View engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -343,6 +335,31 @@ app.get('/enterprise/download-resource/:resourceName', function(req, res) {
     });
 });
 
+app.get('/table/:product', function(req, res) {
+    const productConfig = productCompare(req.params.product);
+
+    if (!productConfig) {
+        res.status(404);
+        res.render('notFound.ejs', {
+            footerCards: false,
+            support: false,
+            cta: false,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    } else {
+        res.render('product-compare.ejs', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+            productConfig,
+            onlyShowCompareTable: true,
+        });
+    }
+});
+
 app.get('/compare/:product', function(req, res) {
     const productConfig = productCompare(req.params.product);
 
@@ -363,6 +380,7 @@ app.get('/compare/:product', function(req, res) {
             blackLogo: false,
             requestDemoCta: false,
             productConfig,
+            onlyShowCompareTable: false,
         });
     }
 });

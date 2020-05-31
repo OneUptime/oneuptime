@@ -14,6 +14,8 @@ const ProjectService = require('../backend/services/projectService');
 const MonitorService = require('../backend/services/monitorService');
 const AirtableService = require('../backend/services/airtableService');
 
+const ComponentModel = require('../backend/models/component');
+
 let token, projectId, newProjectId, airtableId, monitorId;
 
 describe('Enterprise Monitor API', function() {
@@ -53,28 +55,32 @@ describe('Enterprise Monitor API', function() {
 
     it('should create a new monitor for project with no billing plan', function(done) {
         const authorization = `Basic ${token}`;
-        request
-            .post('/project/create')
-            .set('Authorization', authorization)
-            .send({
-                projectName: 'Test Project',
-            })
-            .end(function(err, res) {
-                newProjectId = res.body._id;
-                request
-                    .post(`/monitor/${newProjectId}`)
-                    .set('Authorization', authorization)
-                    .send({
-                        name: 'New Monitor',
-                        type: 'url',
-                        data: { url: 'http://www.tests.org' },
-                    })
-                    .end(function(err, res) {
-                        monitorId = res.body._id;
-                        expect(res).to.have.status(200);
-                        expect(res.body.name).to.be.equal('New Monitor');
-                        done();
-                    });
-            });
+
+        ComponentModel.create({ name: 'Test Component' }).then(component => {
+            request
+                .post('/project/create')
+                .set('Authorization', authorization)
+                .send({
+                    projectName: 'Test Project',
+                })
+                .end(function(err, res) {
+                    newProjectId = res.body._id;
+                    request
+                        .post(`/monitor/${newProjectId}`)
+                        .set('Authorization', authorization)
+                        .send({
+                            name: 'New Monitor',
+                            type: 'url',
+                            data: { url: 'http://www.tests.org' },
+                            componentId: component._id,
+                        })
+                        .end(function(err, res) {
+                            monitorId = res.body._id;
+                            expect(res).to.have.status(200);
+                            expect(res.body.name).to.be.equal('New Monitor');
+                            done();
+                        });
+                });
+        });
     });
 });

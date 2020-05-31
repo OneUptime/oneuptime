@@ -22,7 +22,7 @@ class Invoice extends Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Invoice page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROFILE > BILLING > INVOICES');
         }
         this.resetAndFetchInvoices();
     }

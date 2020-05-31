@@ -35,9 +35,12 @@ export class MonitorViewSubscriberBox extends Component {
             5
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Subscriber Requested', {
-                projectId: subProjectId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS SUBSCRIBER CLICKED',
+                {
+                    projectId: subProjectId,
+                }
+            );
         }
     };
 
@@ -53,9 +56,12 @@ export class MonitorViewSubscriberBox extends Component {
             5
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Subscriber Requested', {
-                projectId: this.props.currentProject._id,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT SUBSCRIBER CLICKED',
+                {
+                    projectId: this.props.currentProject._id,
+                }
+            );
         }
     };
 

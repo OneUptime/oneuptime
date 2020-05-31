@@ -104,7 +104,7 @@ export class OnCallAlertBox extends Component {
         await this.props.addEscalation(subProjectId, scheduleId, values);
         if (this.props.afterSave) this.props.afterSave();
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Links Updated', values);
+            logEvent('EVENT: DASHBOARD > SCHEDULE > ADD ESCALATION', values);
         }
     };
 

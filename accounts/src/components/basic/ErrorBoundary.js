@@ -15,7 +15,7 @@ class ErrorBoundary extends Component {
         // You can also log the error to an error reporting service
         try {
             if (SHOULD_LOG_ANALYTICS) {
-                logEvent('Error', { error, info });
+                logEvent('PAGE VIEW: ACCOUNTS ERROR', { error, info });
             }
         } catch (error) {
             return error;

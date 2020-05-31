@@ -1,0 +1,27 @@
+# Helm Chart Repo
+audit_helm-chart:
+  stage: BuildAndTest
+  allow_failure: true
+  script:
+    - sudo apt-get update
+    - sudo apt-get install -y curl gcc
+    - sudo apt-get install -y build-essential
+    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    - sudo apt-get install -y nodejs
+    # Lint helm chart - helm lint needs a kubeconfig file and this is why we do staging deployment setup.
+    - chmod +x ./ci/scripts/deployment-setup.sh
+    - ./ci/scripts/deployment-setup.sh
+    - chmod +x ./ci/scripts/deployment-staging-setup.sh
+    - ./ci/scripts/deployment-staging-setup.sh
+    - cd helm-chart
+    - npm ci
+    - npm run audit
+    - npm run dep-check
+    # Install Helm.
+    - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
+    - sudo helm lint ./public/fyipe
+    - cd ..
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release

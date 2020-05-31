@@ -1,0 +1,38 @@
+build_n_test_backend:
+  stage: BuildAndTest
+  script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker.
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+    - sudo docker build -t fyipeproject/init-script:3.0.$CI_PIPELINE_IID ./init-script
+    - sudo docker run -e NODE_ENV=development --net=host -d fyipeproject/init-script:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+    - sudo docker build -t fyipeproject/probe:3.0.$CI_PIPELINE_IID ./probe
+    - sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e SERVER_URL=http://localhost:3020 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e SERVER_URL=http://localhost:3020 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
+    - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
+    - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
+    - sudo docker ps
+    - sudo docker run --name fyipe --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm test
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release
+
+build_n_test_enterprise_backend:
+  stage: BuildAndTest
+  script:
+    - curl -sSL https://get.docker.com/ | sh #Install docker.
+    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+    - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+    - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+    - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+    - sudo docker ps
+    - sudo docker run --name fyipe --env-file ./backend/.env --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm run enterprise-test
+  except:
+    refs:
+      - hotfix-master
+      - hotfix-release

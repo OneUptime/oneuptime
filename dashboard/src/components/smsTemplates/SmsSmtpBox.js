@@ -89,7 +89,9 @@ export class SmsSmtpBox extends Component {
             );
         }
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Changed sms smtp configuration', {});
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > SETTINGS > SMS SETTINGS UPDATED'
+            );
         }
     };
 

@@ -10550,6 +10550,45 @@ table {
   overflow: auto;
 }
 
+.price-list-3c {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-gap: 20px;
+}
+
+.price-list-4c {
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  grid-gap: 20px;
+}
+
+.price-list-item {
+  border: 1px solid #f7f7f7;
+  border-radius: 4px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  max-width: 100%;
+}
+
+.price-list-item input[name='planId'] {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+}
+
+.price-list-item--active {
+  border: 1px solid #000;
+}
+
+@media only screen and (max-width: 1018px){
+  .price-list-4c {
+    grid-template-columns: auto auto auto;
+  }
+}
+
 @media only screen and (max-width: 760px) {
     .db-MenuContainer {
         display: inline-block;
@@ -10599,6 +10638,18 @@ table {
         width: 250px !important;
     }
 }
+
+@media only screen and (max-width: 660px){
+  /* make pricing list two column system */
+  .price-list-3c {
+    grid-template-columns: auto auto;
+  }
+  /* three column */
+  .price-list-4c {
+    grid-template-columns: auto auto;
+  }
+}
+
 @media screen and (max-width: 500px) {
     .db-FeedbackInput-container {
         width: auto;
@@ -10703,6 +10754,15 @@ table {
         margin-left: 20px !important;
     }
 }
+
+@media only screen and (max-width: 470px) {
+  /* single column system on mobile */
+  .price-list-3c,
+  .price-list-4c {
+    grid-template-columns: auto;
+  }
+}
+
 .bs-Modal fieldset {
     padding: 10px 20px 0;
 }
