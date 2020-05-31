@@ -442,8 +442,9 @@ describe('SSO authentication', function() {
         await SsoModel.deleteMany({});
         const sso = await SsoModel.create({
             'saml-enabled': true,
-            domain: 'hackerbay.io',
-            samlSsoUrl: 'http://localhost/login',
+            domain: 'tests.hackerbay.io',
+            samlSsoUrl:
+                'https://dev-m23jrw-w.auth0.com/samlp/pCjtweXBYfdpL3fYDeCV3DvpAbe0xZQM',
             remoteLogoutUrl: 'http://localhost/logout',
         });
         ssoId = sso._id;
@@ -497,13 +498,24 @@ describe('SSO authentication', function() {
                 });
         });
     });
-    it('Should return samlSsoUrl for requests with domains having SSO enabled',function(done){
+
+    it('Should return samlSsoUrl for requests with domains having SSO enabled', function(done) {
         request
             .get('/user/sso/login?email=user@hackerbay.io')
-            .end(function(err,res) {
+            .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('url');
                 done();
             });
+    });
+
+    it('Should return user login details if the user login successfully', function(done) {
+        SsoModel.findById(ssoId).then(sso => {
+            const { samlSsoUrl } = sso;
+            request.get(samlSsoUrl).end((err, res) => {
+                //Connect to the identity provide or forge SAML response and send it to the endpoint.
+                done();
+            });
+        });
     });
 });
