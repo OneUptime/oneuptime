@@ -92,13 +92,29 @@ describe('SSO login', () => {
         await page.waitForSelector('#login-button');
         await page.click('#sso-login');
         await page.click('input[name=email]');
-        await page.type('input[name=email]', 'email@inexistent-domain.io');
+        await page.type('input[name=email]', 'email@inexistent-domain.hackerbay.io');
         await page.click('button[type=submit]');
         await page.waitForResponse(response =>
             response.url().includes('/login')
         );
         const html = await page.$eval('#main-body', e => e.innerHTML);
         html.should.containEql('Domain not found.');
+    }, 30000);
+
+    it('Should return an error message if the SSO authentication is disabled for the email\'s domain.', async () => {
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
+        await page.waitForSelector('#login-button');
+        await page.click('#sso-login');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', 'email@disabled-domain.hackerbay.io');
+        await page.click('button[type=submit]');
+        await page.waitForResponse(response =>
+            response.url().includes('/login')
+        );
+        const html = await page.$eval('#main-body', e => e.innerHTML);
+        html.should.containEql('SSO disabled for this domain.');
     }, 30000);
 
     it('Should redirects the user if the domain is defined in the database.', async () => {
