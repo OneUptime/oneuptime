@@ -92,7 +92,7 @@ export const addDockerCredential = ({ projectId, data }) => async dispatch => {
 
     try {
         const response = await postApi(
-            `credential/${projectId}/DockerCredential`,
+            `credential/${projectId}/dockerCredential`,
             data
         );
         dispatch(addDockerCredentialSuccess(response.data));
@@ -129,7 +129,7 @@ export const getDockerCredentials = ({ projectId }) => async dispatch => {
 
     try {
         const response = await getApi(
-            `credential/${projectId}/DockerCredential`
+            `credential/${projectId}/dockerCredential`
         );
         dispatch(getDockerCredentialsSuccess(response.data));
     } catch (error) {
