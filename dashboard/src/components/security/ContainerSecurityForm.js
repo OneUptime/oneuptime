@@ -10,6 +10,8 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addContainerSecurity } from '../../actions/security';
 import { getDockerCredentials } from '../../actions/credential';
+import { openModal, closeModal } from '../../actions/modal';
+import DockerCredentialModal from '../credential/DockerCredentialModal';
 
 class ContainerSecurityForm extends Component {
     componentDidMount() {
@@ -27,6 +29,29 @@ class ContainerSecurityForm extends Component {
         dispatch(reset('ContainerSecurityForm'));
     };
 
+    handleDockerCredential = () => {
+        const { openModal, projectId } = this.props;
+
+        openModal({
+            id: projectId,
+            content: DockerCredentialModal,
+            propArr: [{ projectId }],
+        });
+    };
+
+    handleKeyBoard = e => {
+        const { closeModal, projectId } = this.props;
+
+        switch (e.key) {
+            case 'Escape':
+                return closeModal({
+                    id: projectId,
+                });
+            default:
+                return false;
+        }
+    };
+
     render() {
         const {
             handleSubmit,
@@ -37,7 +62,10 @@ class ContainerSecurityForm extends Component {
         } = this.props;
 
         return (
-            <div className="Box-root Margin-bottom--12">
+            <div
+                onKeyDown={this.handleKeyBoard}
+                className="Box-root Margin-bottom--12"
+            >
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -127,6 +155,27 @@ class ContainerSecurityForm extends Component {
                                                                     : []),
                                                             ]}
                                                         />
+                                                        <p
+                                                            className="bs-Fieldset-explanation"
+                                                            style={{
+                                                                color:
+                                                                    '#4c4c4c',
+                                                                textDecoration:
+                                                                    'underline',
+                                                                cursor:
+                                                                    'pointer',
+                                                            }}
+                                                        >
+                                                            <span
+                                                                onClick={
+                                                                    this
+                                                                        .handleDockerCredential
+                                                                }
+                                                            >
+                                                                Add a docker
+                                                                credential
+                                                            </span>
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 <div className="bs-Fieldset-row bs-u-justify--center">
@@ -243,11 +292,18 @@ ContainerSecurityForm.propTypes = {
     dockerCredentials: PropTypes.array,
     getDockerCredentials: PropTypes.func,
     requestingDockerCredentials: PropTypes.bool,
+    closeModal: PropTypes.func,
+    openModal: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { addContainerSecurity, getDockerCredentials },
+        {
+            addContainerSecurity,
+            getDockerCredentials,
+            closeModal,
+            openModal,
+        },
         dispatch
     );
 

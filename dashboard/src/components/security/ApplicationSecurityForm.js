@@ -10,6 +10,8 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addApplicationSecurity } from '../../actions/security';
 import { getGitCredentials } from '../../actions/credential';
+import { openModal, closeModal } from '../../actions/modal';
+import GitCredentialModal from '../credential/GitCredentialModal';
 
 class ApplicationSecurityForm extends Component {
     componentDidMount() {
@@ -26,6 +28,29 @@ class ApplicationSecurityForm extends Component {
         dispatch(reset('ApplicationSecurityForm'));
     };
 
+    handleGitCredential = () => {
+        const { openModal, projectId } = this.props;
+
+        openModal({
+            id: projectId,
+            content: GitCredentialModal,
+            propArr: [{ projectId }],
+        });
+    };
+
+    handleKeyBoard = e => {
+        const { closeModal, projectId } = this.props;
+
+        switch (e.key) {
+            case 'Escape':
+                return closeModal({
+                    id: projectId,
+                });
+            default:
+                return false;
+        }
+    };
+
     render() {
         const {
             isRequesting,
@@ -36,7 +61,10 @@ class ApplicationSecurityForm extends Component {
         } = this.props;
 
         return (
-            <div className="Box-root Margin-bottom--12">
+            <div
+                onKeyDown={this.handleKeyBoard}
+                className="Box-root Margin-bottom--12"
+            >
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -148,6 +176,27 @@ class ApplicationSecurityForm extends Component {
                                                                     : []),
                                                             ]}
                                                         />
+                                                        <p
+                                                            className="bs-Fieldset-explanation"
+                                                            style={{
+                                                                color:
+                                                                    '#4c4c4c',
+                                                                textDecoration:
+                                                                    'underline',
+                                                                cursor:
+                                                                    'pointer',
+                                                            }}
+                                                        >
+                                                            <span
+                                                                onClick={
+                                                                    this
+                                                                        .handleGitCredential
+                                                                }
+                                                            >
+                                                                Add a git
+                                                                credential
+                                                            </span>
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -218,10 +267,15 @@ ApplicationSecurityForm.propTypes = {
     getGitCredentials: PropTypes.func,
     gitCredentials: PropTypes.array,
     requestingGitCredentials: PropTypes.bool,
+    openModal: PropTypes.func,
+    closeModal: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ addApplicationSecurity, getGitCredentials }, dispatch);
+    bindActionCreators(
+        { addApplicationSecurity, getGitCredentials, openModal, closeModal },
+        dispatch
+    );
 
 const mapStateToProps = state => {
     return {
