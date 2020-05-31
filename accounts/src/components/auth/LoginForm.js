@@ -115,6 +115,7 @@ export class LoginForm extends Component {
                                 <p className="text">
                                     {this.props.loginMethod === 'standard' ? (
                                         <span
+                                            id='sso-login'
                                             className="loginoption"
                                             onClick={() => {
                                                 this.handleClick('sso');
@@ -124,6 +125,7 @@ export class LoginForm extends Component {
                                         </span>
                                     ) : (
                                         <span
+                                            id='standard-login'
                                             className="loginoption"
                                             onClick={() => {
                                                 this.handleClick('standard');
