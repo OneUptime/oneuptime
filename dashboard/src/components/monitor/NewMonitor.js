@@ -974,7 +974,7 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-                                                
+
                                                 <ShouldRender
                                                     if={type === 'api'}
                                                 >
