@@ -72,4 +72,23 @@ router.get(
     }
 );
 
+router.delete(
+    '/:projectId/dockerCredential/:credentialId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { credentialId } = req.params;
+
+            const deletedDockerCredential = await DockerCredentialService.deleteBy(
+                { _id: credentialId }
+            );
+
+            return sendItemResponse(req, res, deletedDockerCredential);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;

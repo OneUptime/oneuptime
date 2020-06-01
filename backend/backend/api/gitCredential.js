@@ -60,4 +60,23 @@ router.get(
     }
 );
 
+router.delete(
+    '/:projectId/gitCredential/:credentialId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { credentialId } = req.params;
+
+            const deletedGitCredential = await GitCredentialService.deleteBy({
+                _id: credentialId,
+            });
+
+            return sendItemResponse(req, res, deletedGitCredential);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;
