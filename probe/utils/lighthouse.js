@@ -4,7 +4,7 @@ const ErrorService = require('./errorService');
 
 function launchChromeAndRunLighthouse(
     url,
-    options = { chromeFlags: ['--headless', '--disable-gpu'] },
+    options = { chromeFlags: ['--headless', '--disable-gpu', '--no-sandbox'] },
     config = null
 ) {
     return chromeLauncher.launch(options).then(chrome => {

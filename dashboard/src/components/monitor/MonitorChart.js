@@ -785,6 +785,191 @@ export function MonitorChart({
                         </div>
                     </div>
                 </ShouldRender>
+                <ShouldRender
+                    if={
+                        !isCurrentlyNotMonitoring && checkLogs && type === 'url'
+                    }
+                >
+                    <div
+                        className="db-Trend"
+                        style={{ height: 'auto', fontSize: '120%' }}
+                    >
+                        <div className="block-chart-side line-chart">
+                            <div
+                                className="db-TrendRow"
+                                style={{
+                                    flexFlow: 'row wrap',
+                                }}
+                            >
+                                <div
+                                    className="db-Trend-colInformation"
+                                    style={{
+                                        flexBasis: '18%',
+                                    }}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Performance"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Performance
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    <small>
+                                                        {monitor.lighthouseScores &&
+                                                        monitor.lighthouseScores
+                                                            .performance
+                                                            ? `${monitor.lighthouseScores.performance}%`
+                                                            : '-'}
+                                                    </small>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className="db-Trend-colInformation"
+                                    style={{
+                                        flexBasis: '18%',
+                                    }}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Accessibility"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Accessibility
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    <small>
+                                                        {monitor.lighthouseScores &&
+                                                        monitor.lighthouseScores
+                                                            .accessibility
+                                                            ? `${monitor.lighthouseScores.accessibility}%`
+                                                            : '-'}
+                                                    </small>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className="db-Trend-colInformation"
+                                    style={{
+                                        flexBasis: '18%',
+                                    }}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Best Practices"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Best Practices
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    <small>
+                                                        {monitor.lighthouseScores &&
+                                                        monitor.lighthouseScores
+                                                            .bestPractices
+                                                            ? `${monitor.lighthouseScores.bestPractices}%`
+                                                            : '-'}
+                                                    </small>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className="db-Trend-colInformation"
+                                    style={{
+                                        flexBasis: '18%',
+                                    }}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="SEO"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                SEO
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    <small>
+                                                        {monitor.lighthouseScores &&
+                                                        monitor.lighthouseScores
+                                                            .seo
+                                                            ? `${monitor.lighthouseScores.seo}%`
+                                                            : '-'}
+                                                    </small>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className="db-Trend-colInformation"
+                                    style={{
+                                        flexBasis: '18%',
+                                    }}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="PWA"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                PWA
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    <small>
+                                                        {monitor.lighthouseScores &&
+                                                        monitor.lighthouseScores
+                                                            .pwa
+                                                            ? `${monitor.lighthouseScores.pwa}%`
+                                                            : '-'}
+                                                    </small>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ShouldRender>
             </>
         );
     } else if (type === 'manual') {

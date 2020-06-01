@@ -7,6 +7,7 @@ FROM node:12.16.1
 
 #SET ENV Variables
 ENV PRODUCTION=true
+ENV CHROME_PATH=/usr/src/app/node_modules/chromium/lib/chromium/chrome-linux/chrome
 
 RUN mkdir -p /usr/src/app
 
