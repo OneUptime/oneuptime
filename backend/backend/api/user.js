@@ -257,8 +257,8 @@ router.get('/sso/login', async function(req, res) {
             message: 'Email must be present.',
         });
     }
-    const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
 
+    const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
     const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
 
     if (!matchedTokens) {
@@ -286,7 +286,15 @@ router.get('/sso/login', async function(req, res) {
                 message: 'SSO disabled for this domain.',
             });
         }
-        return sendItemResponse(req, res, { url: samlSsoUrl });
+
+        const idp = new saml2.IdentityProvider({
+            sso_login_url: samlSsoUrl,
+        });
+
+        sp.create_login_request_url(idp, {}, function(err, login_url) {
+            if (err != null) return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, { url: login_url });
+        });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
