@@ -74,4 +74,55 @@ module.exports = {
             throw error;
         }
     },
+    updateOneBy: async function(query, data) {
+        try {
+            if (!query) query = {};
+
+            if (!query.deleted) query.deleted = false;
+
+            const gitCredential = GitCredentialModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                { new: true }
+            );
+
+            if (!gitCredential) {
+                const error = new Error(
+                    'Git Credential not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            return gitCredential;
+        } catch (error) {
+            ErrorService.log('gitCredentialService.updateOneBy', error);
+            throw error;
+        }
+    },
+    deleteBy: async function(query) {
+        try {
+            let gitCredential = this.findOneBy(query);
+
+            if (!gitCredential) {
+                const error = new Error(
+                    'Git Credential not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            gitCredential = this.updateOneBy(query, {
+                deleted: true,
+                deletedAt: Date.now(),
+            });
+
+            return gitCredential;
+        } catch (error) {
+            ErrorService.log('gitCredentialService.deleteBy', error);
+            throw error;
+        }
+    },
 };

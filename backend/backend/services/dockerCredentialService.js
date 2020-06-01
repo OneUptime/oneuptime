@@ -69,4 +69,55 @@ module.exports = {
             throw error;
         }
     },
+    updateOneBy: async function(query, data) {
+        try {
+            if (!query) query = {};
+
+            if (!query.deleted) query.deleted = false;
+
+            const dockerCredential = DockerCredentialModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                { new: true }
+            );
+
+            if (!dockerCredential) {
+                const error = new Error(
+                    'Docker Credential not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            return dockerCredential;
+        } catch (error) {
+            ErrorService.log('dockerCredentialService.updateOneBy', error);
+            throw error;
+        }
+    },
+    deleteBy: async function(query) {
+        try {
+            let dockerCredential = this.findOneBy(query);
+
+            if (!dockerCredential) {
+                const error = new Error(
+                    'Docker Credential not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            dockerCredential = this.updateOneBy(query, {
+                deleted: true,
+                deletedAt: Date.now(),
+            });
+
+            return dockerCredential;
+        } catch (error) {
+            ErrorService.log('dockerCredentialService.deleteBy', error);
+            throw error;
+        }
+    },
 };
