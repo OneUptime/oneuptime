@@ -1,5 +1,5 @@
 import * as types from '../constants/credential';
-import { postApi, getApi } from '../api';
+import { postApi, getApi, deleteApi } from '../api';
 
 // Add Git Credential
 export const addGitCredentialRequest = () => ({
@@ -69,6 +69,47 @@ export const getGitCredentials = ({ projectId }) => async dispatch => {
                 ? error.message
                 : 'Network Error';
         dispatch(getGitCredentialsFailure(errorMsg));
+    }
+};
+
+// Delete Git Credential
+export const deleteGitCredentialRequest = () => ({
+    type: types.DELETE_GIT_CREDENTIAL_REQUEST,
+});
+
+export const deleteGitCredentialSuccess = payload => ({
+    type: types.DELETE_GIT_CREDENTIAL_SUCCESS,
+    payload,
+});
+
+export const deleteGitCredentialFailure = error => ({
+    type: types.DELETE_GIT_CREDENTIAL_FAILURE,
+    payload: error,
+});
+
+export const deleteGitCredential = ({
+    projectId,
+    credentialId,
+}) => async dispatch => {
+    dispatch(deleteGitCredentialRequest());
+
+    try {
+        const response = await deleteApi(
+            `credential/${projectId}/gitCredential/${credentialId}`
+        );
+
+        dispatch(deleteGitCredentialSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+
+        dispatch(deleteGitCredentialFailure(errorMsg));
     }
 };
 
@@ -142,5 +183,46 @@ export const getDockerCredentials = ({ projectId }) => async dispatch => {
                 ? error.message
                 : 'Network Error';
         dispatch(getDockerCredentialsFailure(errorMsg));
+    }
+};
+
+// Delete Docker Credential
+export const deleteDockerCredentialRequest = () => ({
+    type: types.DELETE_DOCKER_CREDENTIAL_REQUEST,
+});
+
+export const deleteDockerCredentialSuccess = payload => ({
+    type: types.DELETE_DOCKER_CREDENTIAL_SUCCESS,
+    payload,
+});
+
+export const deleteDockerCredentialFailure = error => ({
+    type: types.DELETE_DOCKER_CREDENTIAL_FAILURE,
+    payload: error,
+});
+
+export const deleteDockerCredential = ({
+    projectId,
+    credentialId,
+}) => async dispatch => {
+    dispatch(deleteDockerCredentialRequest());
+
+    try {
+        const response = await deleteApi(
+            `credential/${projectId}/dockerCredential/${credentialId}`
+        );
+
+        dispatch(deleteDockerCredentialSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+
+        dispatch(deleteDockerCredentialFailure(errorMsg));
     }
 };
