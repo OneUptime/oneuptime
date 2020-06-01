@@ -1,11 +1,10 @@
 import * as types from '../constants/credential';
 
 const initialState = {
-    addGitCredential: { requesting: false, success: false, error: null },
-    getGitCredential: { requesting: false, success: false, error: null },
+    addCredential: { requesting: false, success: false, error: null },
+    getCredential: { requesting: false, success: false, error: null },
+    deleteCredential: { requesting: false, success: false, error: null },
     gitCredentials: [],
-    addDockerCredential: { requesting: false, success: false, error: null },
-    getDockerCredential: { requesting: false, success: false, error: null },
     dockerCredentials: [],
 };
 
@@ -14,7 +13,7 @@ export default function credential(state = initialState, action) {
         case types.ADD_GIT_CREDENTIAL_REQUEST:
             return {
                 ...state,
-                addGitCredential: {
+                addCredential: {
                     requesting: true,
                     success: false,
                     error: null,
@@ -25,7 +24,7 @@ export default function credential(state = initialState, action) {
             const gitCredentials = [action.payload, ...state.gitCredentials];
             return {
                 ...state,
-                addGitCredential: {
+                addCredential: {
                     requesting: false,
                     success: true,
                     error: null,
@@ -37,7 +36,7 @@ export default function credential(state = initialState, action) {
         case types.ADD_GIT_CREDENTIAL_FAILURE:
             return {
                 ...state,
-                addGitCredential: {
+                addCredential: {
                     requesting: false,
                     success: false,
                     error: action.payload,
@@ -47,7 +46,7 @@ export default function credential(state = initialState, action) {
         case types.GET_GIT_CREDENTIALS_REQUEST:
             return {
                 ...state,
-                getGitCredential: {
+                getCredential: {
                     requesting: true,
                     success: false,
                     error: null,
@@ -57,7 +56,7 @@ export default function credential(state = initialState, action) {
         case types.GET_GIT_CREDENTIALS_SUCCESS:
             return {
                 ...state,
-                getGitCredential: {
+                getCredential: {
                     requesting: false,
                     success: true,
                     error: null,
@@ -68,7 +67,45 @@ export default function credential(state = initialState, action) {
         case types.GET_GIT_CREDENTIALS_FAILURE:
             return {
                 ...state,
-                getGitCredential: {
+                getCredential: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.DELETE_GIT_CREDENTIAL_REQUEST:
+            return {
+                ...state,
+                deleteCredential: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.DELETE_GIT_CREDENTIAL_SUCCESS: {
+            // update the list of git credential
+            const gitCredentials = state.gitCredentials.filter(
+                gitCredential =>
+                    String(gitCredential._id) !== String(action.payload._id)
+            );
+
+            return {
+                ...state,
+                deleteCredential: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                gitCredentials,
+            };
+        }
+
+        case types.DELETE_GIT_CREDENTIAL_FAILURE:
+            return {
+                ...state,
+                deleteCredential: {
                     requesting: false,
                     success: false,
                     error: action.payload,
@@ -78,7 +115,7 @@ export default function credential(state = initialState, action) {
         case types.ADD_DOCKER_CREDENTIAL_REQUEST:
             return {
                 ...state,
-                addDockerCredential: {
+                addCredential: {
                     requesting: true,
                     success: false,
                     error: null,
@@ -92,7 +129,7 @@ export default function credential(state = initialState, action) {
             ];
             return {
                 ...state,
-                addDockerCredential: {
+                addCredential: {
                     requesting: false,
                     success: true,
                     error: null,
@@ -104,7 +141,7 @@ export default function credential(state = initialState, action) {
         case types.ADD_DOCKER_CREDENTIAL_FAILURE:
             return {
                 ...state,
-                addDockerCredential: {
+                addCredential: {
                     requesting: false,
                     success: false,
                     error: action.payload,
@@ -114,7 +151,7 @@ export default function credential(state = initialState, action) {
         case types.GET_DOCKER_CREDENTIALS_REQUEST:
             return {
                 ...state,
-                getDockerCredential: {
+                getCredential: {
                     requesting: true,
                     success: false,
                     error: null,
@@ -124,7 +161,7 @@ export default function credential(state = initialState, action) {
         case types.GET_DOCKER_CREDENTIALS_SUCCESS:
             return {
                 ...state,
-                getDockerCredential: {
+                getCredential: {
                     requesting: false,
                     success: true,
                     error: null,
@@ -135,7 +172,45 @@ export default function credential(state = initialState, action) {
         case types.GET_DOCKER_CREDENTIALS_FAILURE:
             return {
                 ...state,
-                getDockerCredential: {
+                getCredential: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.DELETE_DOCKER_CREDENTIAL_REQUEST:
+            return {
+                ...state,
+                deleteCredential: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.DELETE_DOCKER_CREDENTIAL_SUCCESS: {
+            // update the list of git credential
+            const dockerCredentials = state.dockerCredentials.filter(
+                dockerCredential =>
+                    String(dockerCredential._id) !== String(action.payload._id)
+            );
+
+            return {
+                ...state,
+                deleteCredential: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                dockerCredentials,
+            };
+        }
+
+        case types.DELETE_DOCKER_CREDENTIAL_FAILURE:
+            return {
+                ...state,
+                deleteCredential: {
                     requesting: false,
                     success: false,
                     error: action.payload,
