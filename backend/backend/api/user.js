@@ -5,6 +5,9 @@ const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const saml2 = require('saml2-js');
+const sp = new saml2.ServiceProvider({
+    entity_id: 'hackerbay.io',
+});
 const MailService = require('../services/mailService');
 const SsoService = require('../services/ssoService');
 const getUser = require('../middlewares/user').getUser;
