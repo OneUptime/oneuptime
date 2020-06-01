@@ -23,7 +23,6 @@
     "dependencies": {
         "axios": "^0.19.0",
         "chrome-launcher": "^0.13.2",
-        "chromium": "^2.1.2",
         "cors": "^2.8.5",
         "custom-env": "^2.0.1",
         "express": "^4.17.1",
