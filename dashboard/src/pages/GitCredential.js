@@ -6,7 +6,6 @@ import Dashboard from '../components/Dashboard';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { getGitCredentials } from '../actions/credential';
-import GitCredentialForm from '../components/credential/GitCredentialForm';
 import GitCredentialList from '../components/credential/GitCredentialList';
 
 class GitCredential extends Component {
@@ -39,16 +38,8 @@ class GitCredential extends Component {
                                     <GitCredentialList
                                         gitCredentials={gitCredentials}
                                         error={getError}
+                                        projectId={projectId}
                                     />
-                                </span>
-                                <span>
-                                    <div>
-                                        <div>
-                                            <GitCredentialForm
-                                                projectId={projectId}
-                                            />
-                                        </div>
-                                    </div>
                                 </span>
                             </div>
                         </div>
@@ -77,7 +68,7 @@ const mapStateToProps = (state, ownProps) => {
     return {
         projectId,
         gitCredentials: state.credential.gitCredentials,
-        getError: state.credential.getGitCredential.error,
+        getError: state.credential.getCredential.error,
     };
 };
 

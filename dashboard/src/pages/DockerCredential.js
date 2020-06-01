@@ -6,7 +6,6 @@ import Dashboard from '../components/Dashboard';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { getDockerCredentials } from '../actions/credential';
-import DockerCredentialForm from '../components/credential/DockerCredentialForm';
 import DockerCredentialList from '../components/credential/DockerCredentialList';
 
 class DockerCredential extends Component {
@@ -39,16 +38,8 @@ class DockerCredential extends Component {
                                     <DockerCredentialList
                                         dockerCredentials={dockerCredentials}
                                         error={getError}
+                                        projectId={projectId}
                                     />
-                                </span>
-                                <span>
-                                    <div>
-                                        <div>
-                                            <DockerCredentialForm
-                                                projectId={projectId}
-                                            />
-                                        </div>
-                                    </div>
                                 </span>
                             </div>
                         </div>
@@ -77,7 +68,7 @@ const mapStateToProps = (state, ownProps) => {
     return {
         projectId,
         dockerCredentials: state.credential.dockerCredentials,
-        getError: state.credential.getDockerCredential.error,
+        getError: state.credential.getCredential.error,
     };
 };
 
