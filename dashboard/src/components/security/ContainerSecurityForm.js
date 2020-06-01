@@ -312,8 +312,7 @@ const mapStateToProps = state => {
         addingContainer: state.security.addContainer.requesting,
         addContainerError: state.security.addContainer.error,
         dockerCredentials: state.credential.dockerCredentials,
-        requestingDockerCredentials:
-            state.credential.getDockerCredential.requesting,
+        requestingDockerCredentials: state.credential.getCredential.requesting,
     };
 };
 

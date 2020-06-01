@@ -282,7 +282,7 @@ const mapStateToProps = state => {
         isRequesting: state.security.addApplication.requesting,
         addApplicationError: state.security.addApplication.error,
         gitCredentials: state.credential.gitCredentials,
-        requestingGitCredentials: state.credential.getGitCredential.requesting,
+        requestingGitCredentials: state.credential.getCredential.requesting,
     };
 };
 

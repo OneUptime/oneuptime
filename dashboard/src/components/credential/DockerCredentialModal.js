@@ -261,8 +261,8 @@ DockerCredentialModal.propTypes = {
 
 const mapStateToProps = state => {
     return {
-        isRequesting: state.credential.addDockerCredential.requesting,
-        addCredentialError: state.credential.addDockerCredential.error,
+        isRequesting: state.credential.addCredential.requesting,
+        addCredentialError: state.credential.addCredential.error,
     };
 };
 

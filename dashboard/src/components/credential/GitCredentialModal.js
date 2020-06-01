@@ -235,8 +235,8 @@ GitCredentialModal.propTypes = {
 
 const mapStateToProps = state => {
     return {
-        isRequesting: state.credential.addGitCredential.requesting,
-        addCredentialError: state.credential.addGitCredential.error,
+        isRequesting: state.credential.addCredential.requesting,
+        addCredentialError: state.credential.addCredential.error,
     };
 };
 
