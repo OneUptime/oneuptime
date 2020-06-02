@@ -43,7 +43,7 @@ const RenderSelect = ({
 
     return (
         <span style={{ height: '28px', width: '250px', ...style }}>
-            <div>
+            <div style={{ display: 'flex' }}>
                 <Select
                     name={input.name}
                     value={value}
@@ -56,13 +56,14 @@ const RenderSelect = ({
                         opt.show !== undefined ? opt.show : true
                     )}
                 />
+                {message && message.length && (
+                    <>
+                        <span style={{ marginLeft: '5px', display: 'flex', alignItems: 'center' }}>{message}</span>
+                        <br />
+                    </>
+                )}
             </div>
-            {message && message.length && (
-                <>
-                    <span style={{ marginLeft: '5px' }}>{message}</span>
-                    <br />
-                </>
-            )}
+
             {meta.touched && meta.error && (
                 <div
                     className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
