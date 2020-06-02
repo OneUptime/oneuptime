@@ -51,7 +51,10 @@ const fields = [
                     name="saml-enabled"
                     id="saml-enabled"
                 />
-                <span id="saml-enabled-slider" className="TogglerBtn-slider round"></span>
+                <span
+                    id="saml-enabled-slider"
+                    className="TogglerBtn-slider round"
+                ></span>
             </label>
         ),
     },

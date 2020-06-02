@@ -291,8 +291,8 @@ router.get('/sso/login', async function(req, res) {
             sso_login_url: samlSsoUrl,
         });
 
-        sp.create_login_request_url(idp, {}, function(err, login_url) {
-            if (err != null) return sendErrorResponse(req, res, error);
+        sp.create_login_request_url(idp, {}, function(error, login_url) {
+            if (error != null) return sendErrorResponse(req, res, error);
             return sendItemResponse(req, res, { url: login_url });
         });
     } catch (error) {
