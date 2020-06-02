@@ -822,7 +822,9 @@ export function MonitorChart({
                                             <span>
                                                 {' '}
                                                 <span className="chart-font">
-                                                    <small>
+                                                    <small
+                                                        id={`lighthouse-performance-${monitor.name}`}
+                                                    >
                                                         {monitor.lighthouseScores &&
                                                         monitor.lighthouseScores
                                                             .performance
@@ -855,7 +857,9 @@ export function MonitorChart({
                                             <span>
                                                 {' '}
                                                 <span className="chart-font">
-                                                    <small>
+                                                    <small
+                                                        id={`lighthouse-accessibility-${monitor.name}`}
+                                                    >
                                                         {monitor.lighthouseScores &&
                                                         monitor.lighthouseScores
                                                             .accessibility
@@ -888,7 +892,9 @@ export function MonitorChart({
                                             <span>
                                                 {' '}
                                                 <span className="chart-font">
-                                                    <small>
+                                                    <small
+                                                        id={`lighthouse-bestPractices-${monitor.name}`}
+                                                    >
                                                         {monitor.lighthouseScores &&
                                                         monitor.lighthouseScores
                                                             .bestPractices
@@ -921,7 +927,9 @@ export function MonitorChart({
                                             <span>
                                                 {' '}
                                                 <span className="chart-font">
-                                                    <small>
+                                                    <small
+                                                        id={`lighthouse-seo-${monitor.name}`}
+                                                    >
                                                         {monitor.lighthouseScores &&
                                                         monitor.lighthouseScores
                                                             .seo
@@ -954,7 +962,9 @@ export function MonitorChart({
                                             <span>
                                                 {' '}
                                                 <span className="chart-font">
-                                                    <small>
+                                                    <small
+                                                        id={`lighthouse-pwa-${monitor.name}`}
+                                                    >
                                                         {monitor.lighthouseScores &&
                                                         monitor.lighthouseScores
                                                             .pwa
