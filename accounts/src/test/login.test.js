@@ -55,6 +55,23 @@ describe('Login API', () => {
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );
+        //create user in an isolcated session
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000,
+    });
+
+        cluster.on('taskerror', err => {
+            throw err;
+        });
+        cluster.task(async ({ page }) => {
+            await init.registerEnterpriseUser(user, page);
+        });
+        cluster.queue();
+        await cluster.idle();
+        await cluster.close();
     });
 
     afterAll(async () => {
