@@ -30,6 +30,8 @@ import Reports from './Reports';
 import Probe from './Probe';
 import ProfileBilling from './ProfileBilling';
 
+import ApplicationLog from './ApplicationLog';
+
 export default {
     ChangePassword,
     Monitor,
@@ -54,4 +56,5 @@ export default {
     MonitorView,
     Probe,
     ProfileBilling,
+    ApplicationLog
 };
