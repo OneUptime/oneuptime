@@ -154,4 +154,26 @@ router.delete(
     }
 );
 
+//Route: GET
+//Description: get a particular security with a particular credential
+//Param: req.params -> {projectId, credentialId} credentialId -> docker credential Id
+//returns: response -> {sendItemResponse, sendErrorResponse}
+router.get(
+    '/:projectId/container/:credentialId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { credentialId } = req.params;
+            const response = await ContainerSecurityService.findBy({
+                dockerCredential: credentialId,
+            });
+
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;
