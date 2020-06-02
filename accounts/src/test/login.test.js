@@ -15,6 +15,38 @@ const user = {
     password,
 };
 
+const moveToSsoPage = async page => {
+    await page.waitForSelector('#settings');
+    await page.click('#settings');
+    await page.waitForSelector('#sso');
+    await page.click('#sso');
+};
+
+const createSso = async (page, data) => {
+    await page.click('#add-sso');
+    await page.waitForSelector('#save-button');
+
+    if (data['saml-enabled']) await page.click('#saml-enabled-slider');
+
+    await page.click('#domain');
+    await page.type('#domain', data.domain);
+
+    await page.click('#samlSsoUrl');
+    await page.type('#samlSsoUrl', data.samlSsoUrl);
+
+    await page.click('#certificateFingerprint');
+    await page.type('#certificateFingerprint', data.certificateFingerprint);
+
+    await page.click('#remoteLogoutUrl');
+    await page.type('#remoteLogoutUrl', data.remoteLogoutUrl);
+
+    await page.click('#ipRanges');
+    await page.type('#ipRanges', data.ipRanges);
+
+    await page.click('#save-button');
+    await page.waitFor(2000);
+};
+
 describe('Login API', () => {
     beforeAll(async () => {
         jest.setTimeout(20000);
