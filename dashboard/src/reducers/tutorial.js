@@ -28,6 +28,9 @@ const initialState = {
     callSchedule: {
         show: true,
     },
+    applicationLog: {
+        show: true,
+    },
 };
 
 export default (state = initialState, action) => {
@@ -75,6 +78,9 @@ export default (state = initialState, action) => {
                     show: true,
                 },
                 callSchedule: {
+                    show: true,
+                },
+                applicationLog: {
                     show: true,
                 },
             });
