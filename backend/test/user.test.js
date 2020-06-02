@@ -476,7 +476,7 @@ describe('SSO authentication', function() {
 
     it("Should not accept requests with domains that aren't defined in the ssos collection.", function(done) {
         request
-            .get('/user/sso/login?email=user@undefinedsso.domain')
+            .get('/user/sso/login?email=user@inexistant-domain.hackerbay.io')
             .end(function(err, res) {
                 expect(res).to.have.status(404);
                 done();
@@ -489,7 +489,7 @@ describe('SSO authentication', function() {
             { $set: { 'saml-enabled': false } }
         ).then(() => {
             request
-                .get('/user/sso/login?email=user@hackerbay.io')
+                .get('/user/sso/login?email=user@tests.hackerbay.io')
                 .end(function(err, res) {
                     expect(res).to.have.status(401);
                     SsoModel.updateOne(
@@ -502,23 +502,85 @@ describe('SSO authentication', function() {
         });
     });
 
-    it('Should return samlSsoUrl for requests with domains having SSO enabled', function(done) {
-        request
-            .get('/user/sso/login?email=user@hackerbay.io')
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.have.property('url');
-                done();
-            });
-    });
+    it('Should return create a new user and send the login details if the user login successfully', async function() {
+        let userCount = await UserModel.find({
+            email: 'user1@tests.hackerbay.io',
+        }).countDocuments();
+        expect(userCount).to.eql(0);
 
-    it('Should return user login details if the user login successfully', function(done) {
-        SsoModel.findById(ssoId).then(sso => {
-            const { samlSsoUrl } = sso;
-            request.get(samlSsoUrl).end((err, res) => {
-                //Connect to the identity provide or forge SAML response and send it to the endpoint.
-                done();
+        const loginRequest = await request.get(
+            '/user/sso/login?email=user@tests.hackerbay.io'
+        );
+        expect(loginRequest).to.have.status(200);
+        expect(loginRequest.body).to.have.property('url');
+        const { url } = loginRequest.body;
+        let firstIdpResponse;
+
+        try {
+            await chai
+                .request(url)
+                .get('')
+                .redirects(0);
+        } catch (error) {
+            expect(error.response).to.have.status(302);
+            firstIdpResponse = error.response;
+        }
+
+        const {
+            headers: { location, 'set-cookie': cookies },
+        } = firstIdpResponse;
+        const [postSubmissionUrl, AuthState] = location.split('AuthState=');
+
+        const samlResponsePage = await chai
+            .request(postSubmissionUrl)
+            .post('')
+            .set('Referer', url)
+            .set('Content-Type', 'application/x-www-form-urlencoded')
+            .set('Cookie', cookies[0])
+            .send({
+                username: 'user1',
+                password: 'user1pass',
+                AuthState: decode(AuthState),
             });
-        });
+
+        const {
+            res: { text: html },
+        } = samlResponsePage;
+        const { parse } = require('node-html-parser');
+        const root = parse(html);
+        const form = root.querySelector('form');
+        // const callbackUrl = form.rawAttrs.split('\"')[3]
+        const input = root.querySelectorAll('input')[1];
+        const [type, name, value] = input.rawAttrs.split(' ');
+        const SAMLResponse = value.split('"')[1];
+
+        let response;
+        try {
+            await request
+                .post('/api/user/sso/callback')
+                .redirects(0)
+                .send({ SAMLResponse });
+        } catch (error) {
+            expect(error.response).to.have.status(302);
+            response = error.response;
+        }
+        const {
+            header: { location: loginLink },
+        } = response;
+        const parsedQuery = queryString.parse(loginLink.split('?')[1]);
+
+        expect(parsedQuery).to.have.property('id');
+        expect(parsedQuery).to.have.property('name');
+        expect(parsedQuery).to.have.property('email');
+        expect(parsedQuery).to.have.property('jwtAccessToken');
+        expect(parsedQuery).to.have.property('jwtRefreshToken');
+        expect(parsedQuery).to.have.property('role');
+        expect(parsedQuery).to.have.property('redirect');
+        expect(parsedQuery).to.have.property('cardRegistered');
+
+        userCount = await UserModel.find({
+            email: 'user1@tests.hackerbay.io',
+        }).countDocuments();
+        expect(userCount).to.eql(1);
     });
 });
