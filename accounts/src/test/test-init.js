@@ -89,20 +89,18 @@ module.exports = {
     },
     loginUser: async function(user, page) {
         const { email, password } = user;
-        try {
-            await page.goto(utils.ACCOUNTS_URL + '/login', {
-                waitUntil: 'networkidle2',
-            });
-        } catch (e) {
-            //
-        }
+        await page.goto(utils.ACCOUNTS_URL + '/accounts/login', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
-        await page.click('button[type=submit]');
-        await page.waitFor(10000);
+        await Promise.all([
+            page.click('button[type=submit]'),
+            page.waitForNavigation(),
+        ]);
     },
     registerEnterpriseUser: async function(user, page) {
         await page.goto(utils.ACCOUNTS_URL + '/login', {
@@ -113,9 +111,6 @@ module.exports = {
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
             });
-        } catch (e) {
-            //
-        }
             await page.waitForSelector('#email');
             await page.click('input[name=email]');
             await page.type('input[name=email]', user.email);
