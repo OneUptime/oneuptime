@@ -116,22 +116,42 @@ describe('Login API', () => {
         done();
     });
 
-        await page.waitFor(10000);
-
-        const localStorageData = await page.evaluate(() => {
-            const json = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                json[key] = localStorage.getItem(key);
-            }
-            return json;
+    it('Should login valid User', async done => {
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000,
         });
 
-        await page.waitFor(10000);
-        localStorageData.should.have.property('access_token');
-        localStorageData.should.have.property('email', email);
-        page.url().should.containEql(utils.DASHBOARD_URL);
-    }, 300000);
+        cluster.on('taskerror', err => {
+            throw err;
+        });
+
+        cluster.task(async ({ page }) => {
+            await init.loginUser(user, page);
+            await page.waitFor(2000);
+
+            const localStorageData = await page.evaluate(() => {
+                const json = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    json[key] = localStorage.getItem(key);
+                }
+                return json;
+            });
+
+            await page.waitFor(2000);
+            localStorageData.should.have.property('access_token');
+            localStorageData.should.have.property('email', email);
+            page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
+        });
+
+        cluster.queue();
+        await cluster.idle();
+        await cluster.close();
+        done();
+    });
 });
 
 describe('SSO login', () => {
