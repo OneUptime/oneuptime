@@ -4,8 +4,11 @@ const initialState = {
     addCredential: { requesting: false, success: false, error: null },
     getCredential: { requesting: false, success: false, error: null },
     deleteCredential: { requesting: false, success: false, error: null },
+    getSecurities: { requesting: false, success: false, error: null },
     gitCredentials: [],
+    gitSecurities: [],
     dockerCredentials: [],
+    dockerSecurities: [],
 };
 
 export default function credential(state = initialState, action) {
@@ -112,6 +115,37 @@ export default function credential(state = initialState, action) {
                 },
             };
 
+        case types.GET_GIT_SECURITIES_REQUEST:
+            return {
+                ...state,
+                getSecurities: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.GET_GIT_SECURITIES_SUCCESS:
+            return {
+                ...state,
+                getSecurities: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                gitSecurities: action.payload,
+            };
+
+        case types.GET_GIT_SECURITIES_FAILURE:
+            return {
+                ...state,
+                getSecurities: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
         case types.ADD_DOCKER_CREDENTIAL_REQUEST:
             return {
                 ...state,
@@ -211,6 +245,37 @@ export default function credential(state = initialState, action) {
             return {
                 ...state,
                 deleteCredential: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.GET_DOCKER_SECURITIES_REQUEST:
+            return {
+                ...state,
+                getSecurities: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.GET_DOCKER_SECURITIES_SUCCESS:
+            return {
+                ...state,
+                getSecurities: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                dockerSecurities: action.payload,
+            };
+
+        case types.GET_DOCKER_SECURITIES_FAILURE:
+            return {
+                ...state,
+                getSecurities: {
                     requesting: false,
                     success: false,
                     error: action.payload,

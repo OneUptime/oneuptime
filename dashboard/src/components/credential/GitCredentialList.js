@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { deleteGitCredential } from '../../actions/credential';
 import { openModal, closeModal } from '../../actions/modal';
+import { getGitSecurities } from '../../actions/credential';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
@@ -18,8 +19,11 @@ const GitCredentialList = ({
     deleteError,
     openModal,
     closeModal,
+    getGitSecurities,
 }) => {
     const handleDelete = credentialId => {
+        getGitSecurities({ projectId, credentialId });
+
         openModal({
             id: projectId,
             onConfirm: () => {
@@ -33,7 +37,7 @@ const GitCredentialList = ({
                 });
             },
             content: DeleteCredentialModal,
-            propArr: [{ credentialType: 'git' }],
+            propArr: [{ credentialType: 'git', projectId }],
         });
     };
 
@@ -244,11 +248,12 @@ GitCredentialList.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    getGitSecurities: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { deleteGitCredential, openModal, closeModal },
+        { deleteGitCredential, openModal, closeModal, getGitSecurities },
         dispatch
     );
 

@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { deleteDockerCredential } from '../../actions/credential';
 import { openModal, closeModal } from '../../actions/modal';
+import {getDockerSecurities} from '../../actions/credential'
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
@@ -18,8 +19,11 @@ const DockerCredentialList = ({
     deleteError,
     openModal,
     closeModal,
+    getDockerSecurities,
 }) => {
     const handleDelete = credentialId => {
+        getDockerSecurities({projectId, credentialId});
+        
         openModal({
             id: projectId,
             onConfirm: () => {
@@ -33,7 +37,7 @@ const DockerCredentialList = ({
                 });
             },
             content: DeleteCredentialModal,
-            propArr: [{ credentialType: 'docker' }],
+            propArr: [{ credentialType: 'docker', projectId }],
         });
     };
 
@@ -274,11 +278,12 @@ DockerCredentialList.propTypes = {
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
     deleteDockerCredential: PropTypes.func,
+    getDockerSecurities: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { deleteDockerCredential, openModal, closeModal },
+        { deleteDockerCredential, openModal, closeModal, getDockerSecurities },
         dispatch
     );
 

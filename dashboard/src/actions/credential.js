@@ -113,6 +113,47 @@ export const deleteGitCredential = ({
     }
 };
 
+// Get securities based on git credential
+export const getGitSecuritiesRequest = () => ({
+    type: types.GET_GIT_SECURITIES_REQUEST,
+});
+
+export const getGitSecuritiesSuccess = payload => ({
+    type: types.GET_GIT_SECURITIES_SUCCESS,
+    payload,
+});
+
+export const getGitSecuritiesFailure = error => ({
+    type: types.GET_GIT_SECURITIES_FAILURE,
+    payload: error,
+});
+
+export const getGitSecurities = ({
+    projectId,
+    credentialId,
+}) => async dispatch => {
+    dispatch(getGitSecuritiesRequest());
+
+    try {
+        const response = await getApi(
+            `security/${projectId}/application/${credentialId}`
+        );
+
+        dispatch(getGitSecuritiesSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+
+        dispatch(getGitSecuritiesFailure(errorMsg));
+    }
+};
+
 // Add Docker Credential
 export const addDockerCredentialRequest = () => ({
     type: types.ADD_DOCKER_CREDENTIAL_REQUEST,
@@ -224,5 +265,46 @@ export const deleteDockerCredential = ({
                 : 'Network Error';
 
         dispatch(deleteDockerCredentialFailure(errorMsg));
+    }
+};
+
+// Get securities based on docker credential
+export const getDockerSecuritiesRequest = () => ({
+    type: types.GET_DOCKER_SECURITIES_REQUEST,
+});
+
+export const getDockerSecuritiesSuccess = payload => ({
+    type: types.GET_DOCKER_SECURITIES_SUCCESS,
+    payload,
+});
+
+export const getDockerSecuritiesFailure = error => ({
+    type: types.GET_DOCKER_SECURITIES_FAILURE,
+    payload: error,
+});
+
+export const getDockerSecurities = ({
+    projectId,
+    credentialId,
+}) => async dispatch => {
+    dispatch(getDockerSecuritiesRequest());
+
+    try {
+        const response = await getApi(
+            `security/${projectId}/container/${credentialId}`
+        );
+
+        dispatch(getDockerSecuritiesSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+
+        dispatch(getDockerSecuritiesFailure(errorMsg));
     }
 };
