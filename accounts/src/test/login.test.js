@@ -8,8 +8,9 @@ require('should');
 let browser;
 let page;
 
-const email = utils.generateRandomBusinessEmail();
+const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
+const inexistentEmail = 'inexistent@hackerbay.io';
 const user = {
     email,
     password,
@@ -155,65 +156,162 @@ describe('Login API', () => {
 });
 
 describe('SSO login', () => {
-    beforeAll(async () => {
-        jest.setTimeout(20000);
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-        page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+    beforeAll(async done => {
+        jest.setTimeout(120000);
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000,
+        });
+
+        cluster.on('taskerror', err => {
+            throw err;
+        });
+
+        cluster.task(async ({ page }) => {
+            const user = { email, password };
+            await init.loginUser(user, page);
+            await page.waitFor(2000);
+            await moveToSsoPage(page);
+            await page.waitFor(2000);
+            await createSso(page, {
+                'saml-enabled': false,
+                domain: `disabled-domain.hackerbay.io`,
+                samlSsoUrl:
+                    'http://localhost:8080/simplesaml/saml2/idp/SSOService.php',
+                certificateFingerprint: 'AZERTYUIOP',
+                remoteLogoutUrl: 'http://localhost:8080/logout',
+                ipRanges: '127.0.0.1',
+            });
+            await createSso(page, {
+                'saml-enabled': true,
+                domain: `tests.hackerbay.io`,
+                samlSsoUrl:
+                    'http://localhost:8080/simplesaml/saml2/idp/SSOService.php',
+                certificateFingerprint: 'AZERTYUIOP',
+                remoteLogoutUrl: 'http://localhost:8080/logout',
+                ipRanges: '127.0.0.1',
+            });
+        });
+        cluster.queue();
+        await cluster.idle();
+        await cluster.close();
+        done();
     });
 
-    afterAll(async () => {
-        await browser.close();
+    it('Should return an error message if the domain is not defined in the database.', async done => {
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000,
+        });
+
+        cluster.on('taskerror', err => {
+            throw err;
+        });
+
+        cluster.task(async ({ page }) => {
+            await page.goto(utils.ACCOUNTS_URL + '/login', {
+                waitUntil: 'networkidle2',
+            });
+            await page.waitForSelector('#login-button');
+            await page.click('#sso-login');
+            await page.click('input[name=email]');
+            await page.type(
+                'input[name=email]',
+                'email@inexistent-domain.hackerbay.io'
+            );
+            await page.click('button[type=submit]');
+            await page.waitForResponse(response =>
+                response.url().includes('/login')
+            );
+            const html = await page.$eval('#main-body', e => e.innerHTML);
+            html.should.containEql('Domain not found.');
+        });
+        cluster.queue();
+        await cluster.idle();
+        await cluster.close();
+        done();
     });
 
-    it('Should return an error message if the domain is not defined in the database.', async () => {
-        await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle2',
+    it("Should return an error message if the SSO authentication is disabled for the email's domain.", async done => {
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000,
         });
-        await page.waitForSelector('#login-button');
-        await page.click('#sso-login');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', 'email@inexistent-domain.hackerbay.io');
-        await page.click('button[type=submit]');
-        await page.waitForResponse(response =>
-            response.url().includes('/login')
-        );
-        const html = await page.$eval('#main-body', e => e.innerHTML);
-        html.should.containEql('Domain not found.');
-    }, 30000);
-
-    it('Should return an error message if the SSO authentication is disabled for the email\'s domain.', async () => {
-        await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle2',
+        cluster.on('taskerror', err => {
+            throw err;
         });
-        await page.waitForSelector('#login-button');
-        await page.click('#sso-login');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', 'email@disabled-domain.hackerbay.io');
-        await page.click('button[type=submit]');
-        await page.waitForResponse(response =>
-            response.url().includes('/login')
-        );
-        const html = await page.$eval('#main-body', e => e.innerHTML);
-        html.should.containEql('SSO disabled for this domain.');
-    }, 30000);
-
-    it('Should redirects the user if the domain is defined in the database.', async () => {
-        await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle2',
+        cluster.task(async ({ page }) => {
+            await page.goto(utils.ACCOUNTS_URL + '/login', {
+                waitUntil: 'networkidle2',
+            });
+            await page.waitForSelector('#login-button');
+            await page.click('#sso-login');
+            await page.click('input[name=email]');
+            await page.type(
+                'input[name=email]',
+                'email@disabled-domain.hackerbay.io'
+            );
+            await page.click('button[type=submit]');
+            await page.waitForResponse(response =>
+                response.url().includes('/login')
+            );
+            const html = await page.$eval('#main-body', e => e.innerHTML);
+            html.should.containEql('SSO disabled for this domain.');
         });
-        await page.waitForSelector('#login-button');
-        await page.click('#sso-login');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', 'email@hackerbay.io');
+        cluster.queue();
+        await cluster.idle();
+        await cluster.close();
+        done();
+    });
+    it('Should redirects the user if the domain is defined in the database.', async done => {
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000,
+        });
+        cluster.on('taskerror', err => {
+            throw err;
+        });
+        cluster.task(async ({ page, data }) => {
+            const { username, password } = data;
+            await page.goto(utils.ACCOUNTS_URL + '/login', {
+                waitUntil: 'networkidle2',
+            });
+            await page.waitForSelector('#login-button');
+            await page.click('#sso-login');
+            await page.click('input[name=email]');
+            await page.type('input[name=email]', 'email@tests.hackerbay.io');
+            const [response] = await Promise.all([
+                page.waitForNavigation('networkidle2'),
+                page.click('button[type=submit]'),
+            ]);
+            const chain = response.request().redirectChain();
+            expect(chain.length).not.toBe(0);
 
-        const [response] = await Promise.all([
-            page.waitForNavigation('networkidle2'),
-            page.click('button[type=submit]'),
-        ]);
-        const chain = response.request().redirectChain();
-        expect(chain.length).not.toBe(0);
-    }, 30000);
+            await page.click('#username');
+            await page.type('#username', username);
+
+            await page.click('#password');
+            await page.type('#password', password);
+            await page.click('button');
+
+            await page.waitForNavigation('networkidle2');
+
+            await page.waitForSelector('#createButton');
+        });
+        cluster.queue({
+            username: 'user1',
+            password: 'user1pass',
+        });
+        await cluster.idle();
+        await cluster.close();
+        done();
+    });
 });
