@@ -168,7 +168,7 @@ router.get(
     isAuthorized,
     async (req, res) => {
         try {
-            const {  credentialId } = req.params;
+            const { credentialId } = req.params;
             const response = await ApplicationSecurityService.findBy({
                 gitCredential: credentialId,
             });

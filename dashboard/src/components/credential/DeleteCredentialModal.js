@@ -74,6 +74,7 @@ class DeleteCredentialModal extends Component {
                                             </span>
                                             {securities.map(security => (
                                                 <span
+                                                    key={security._id}
                                                     style={{
                                                         display: 'block',
                                                         textDecoration:
@@ -145,7 +146,9 @@ class DeleteCredentialModal extends Component {
                                         >
                                             <span>Cancel</span>
                                         </button>
-                                        <ShouldRender if={securities.length === 0}>
+                                        <ShouldRender
+                                            if={securities.length === 0}
+                                        >
                                             <button
                                                 id="deleteCredentialBtn"
                                                 className="bs-Button bs-DeprecatedButton bs-Button--red"
