@@ -21,6 +21,48 @@ const AirtableService = require('../backend/services/airtableService');
 const LoginIPLog = require('../backend/models/loginIPLog');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
+const fetchIdpSAMLResponse = async function(SAMLRequest) {
+    let firstIdpResponse;
+    try {
+        await chai
+            .request(SAMLRequest)
+            .get('')
+            .redirects(0);
+    } catch (error) {
+        expect(error.response).to.have.status(302);
+        firstIdpResponse = error.response;
+    }
+
+    const {
+        headers: { location, 'set-cookie': cookies },
+    } = firstIdpResponse;
+    const [postSubmissionUrl, AuthState] = location.split('AuthState=');
+
+    const samlResponsePage = await chai
+        .request(postSubmissionUrl)
+        .post('')
+        .set('Referer', SAMLRequest)
+        .set('Content-Type', 'application/x-www-form-urlencoded')
+        .set('Cookie', cookies[0])
+        .send({
+            username: 'user1',
+            password: 'user1pass',
+            AuthState: decode(AuthState),
+        });
+
+    const {
+        res: { text: html },
+    } = samlResponsePage;
+    const { parse } = require('node-html-parser');
+    const root = parse(html);
+    // const form = root.querySelector('form');
+    // const callbackUrl = form.rawAttrs.split('\"')[3]
+    const input = root.querySelectorAll('input')[1];
+    const value = input.rawAttrs.split(' ')[2];
+    const SAMLResponse = value.split('"')[1];
+    return SAMLResponse;
+};
+
 let projectId, userId, airtableId, token;
 
 describe('User API', function() {
@@ -513,46 +555,9 @@ describe('SSO authentication', function() {
         );
         expect(loginRequest).to.have.status(200);
         expect(loginRequest.body).to.have.property('url');
-        const { url } = loginRequest.body;
-        let firstIdpResponse;
+        const { url: SAMLRequest } = loginRequest.body;
 
-        try {
-            await chai
-                .request(url)
-                .get('')
-                .redirects(0);
-        } catch (error) {
-            expect(error.response).to.have.status(302);
-            firstIdpResponse = error.response;
-        }
-
-        const {
-            headers: { location, 'set-cookie': cookies },
-        } = firstIdpResponse;
-        const [postSubmissionUrl, AuthState] = location.split('AuthState=');
-
-        const samlResponsePage = await chai
-            .request(postSubmissionUrl)
-            .post('')
-            .set('Referer', url)
-            .set('Content-Type', 'application/x-www-form-urlencoded')
-            .set('Cookie', cookies[0])
-            .send({
-                username: 'user1',
-                password: 'user1pass',
-                AuthState: decode(AuthState),
-            });
-
-        const {
-            res: { text: html },
-        } = samlResponsePage;
-        const { parse } = require('node-html-parser');
-        const root = parse(html);
-        const form = root.querySelector('form');
-        // const callbackUrl = form.rawAttrs.split('\"')[3]
-        const input = root.querySelectorAll('input')[1];
-        const [type, name, value] = input.rawAttrs.split(' ');
-        const SAMLResponse = value.split('"')[1];
+        const SAMLResponse = await fetchIdpSAMLResponse(SAMLRequest);
 
         let response;
         try {
