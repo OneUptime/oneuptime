@@ -446,14 +446,15 @@ describe('SSO authentication', function() {
             'saml-enabled': true,
             domain: 'tests.hackerbay.io',
             samlSsoUrl:
-                'https://dev-m23jrw-w.auth0.com/samlp/pCjtweXBYfdpL3fYDeCV3DvpAbe0xZQM',
-            remoteLogoutUrl: 'http://localhost/logout',
+                'http://localhost:8080/simplesaml/saml2/idp/SSOService.php',
+            remoteLogoutUrl: 'http://localhost:8080/logout',
         });
         ssoId = sso._id;
     });
 
     after(async () => {
         await SsoModel.deleteOne({ _id: ssoId });
+        await UserModel.deleteMany({ email: 'user1@tests.hackerbay.io' });
     });
 
     // GET /user/sso/login
