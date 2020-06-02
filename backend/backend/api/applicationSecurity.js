@@ -158,4 +158,26 @@ router.delete(
     }
 );
 
+//Route: GET
+//Description: get a particular security with a particular credential
+//Param: req.params -> {projectId, credentialId} credentialId -> git credential Id
+//returns: response -> {sendItemResponse, sendErrorResponse}
+router.get(
+    '/:projectId/application/:credentialId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const {  credentialId } = req.params;
+            const response = await ApplicationSecurityService.findBy({
+                gitCredential: credentialId,
+            });
+
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;
