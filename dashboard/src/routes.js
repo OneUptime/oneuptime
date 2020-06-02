@@ -33,21 +33,6 @@ export const groups = [
         visibleOnComponentDetail: true,
         routes: [
             {
-                title: '',
-                path: '/dashboard/project/:projectId/components',
-                component: Component,
-                visible: true,
-                disabled: true,
-                exact: true,
-                subRoutes: [],
-                index: 1,
-                textStyle: {
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    color: 'black',
-                },
-            },
-            {
                 title: 'Monitors',
                 path: '/dashboard/project/:projectId/:componentId/monitoring',
                 icon: 'atlas',

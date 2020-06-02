@@ -133,7 +133,7 @@ class NotificationMenu extends Component {
                                                 color: '#24b47e',
                                                 paddingLeft: '15px',
                                                 fontSize: '14px',
-                                                fontWeight: 'medium',
+                                                fontWeight: 'bold',
                                             }}
                                         >
                                             NOTIFICATIONS
