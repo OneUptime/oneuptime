@@ -61,7 +61,7 @@ describe('Login API', () => {
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
             timeout: 120000,
-    });
+        });
 
         cluster.on('taskerror', err => {
             throw err;
@@ -78,30 +78,43 @@ describe('Login API', () => {
         await browser.close();
     });
 
-    it('Users cannot login with incorrect credentials', async () => {
-        try {
-            await page.goto(utils.ACCOUNTS_URL + '/login', {
+    it('Users cannot login with incorrect credentials', async done => {
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000,
+        });
+
+        cluster.on('taskerror', err => {
+            throw err;
+        });
+
+        cluster.task(async ({ page }) => {
+            await page.goto(utils.ACCOUNTS_URL + '/accounts/login', {
                 waitUntil: 'networkidle2',
             });
-        } catch (e) {
-            //
-        }
-        await page.waitForSelector('#login-button');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', user.email);
-        await page.click('input[name=password]');
-        await page.type('input[name=password]', user.password);
-        await page.click('button[type=submit]');
-        await page.waitFor(10000);
-        const html = await page.$eval('#main-body', e => {
-            return e.innerHTML;
+            await page.waitForSelector('#login-button');
+            await page.click('input[name=email]');
+            await page.type('input[name=email]', inexistentEmail);
+            await page.click('input[name=password]');
+            await page.type('input[name=password]', user.password);
+            await page.click('button[type=submit]'),
+                await page.waitForResponse(response =>
+                    response.url().includes('/login')
+                );
+            await page.waitFor(1000);
+            const html = await page.$eval('#main-body', e => {
+                return e.innerHTML;
+            });
+            html.should.containEql('User does not exist.');
         });
-        html.should.containEql('User does not exist.');
-    }, 160000);
 
-    it('Should login valid User', async () => {
-        await init.registerUser(user, page);
-        await init.loginUser(user, page);
+        cluster.queue();
+        await cluster.idle();
+        await cluster.close();
+        done();
+    });
 
         await page.waitFor(10000);
 
