@@ -43,6 +43,8 @@ describe('Monitor Detail API', () => {
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
+            await page.waitFor(1000);
+            await page.goto(utils.DASHBOARD_URL);
             // add new monitor to component on parent project
             await init.addMonitorToComponent(componentName, monitorName, page);
         });
@@ -182,8 +184,7 @@ describe('Monitor Detail API', () => {
                     page.click('#createScheduledEventButton'),
                 ]);
 
-                const createdScheduledEventSelector =
-                    '#scheduledEventsList .scheduled-event-name';
+                const createdScheduledEventSelector = '.scheduled-event-name';
                 await page.waitFor(5000);
 
                 const createdScheduledEventName = await page.$eval(

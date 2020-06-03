@@ -57,17 +57,16 @@ describe('Monitor API', () => {
         'Should create new component',
         async () => {
             // Navigate to Components page
-            await page.waitForSelector('#components');
-            await page.click('#components');
+            await page.goto(utils.DASHBOARD_URL);
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
             await page.click('input[id=name]');
             await page.type('input[id=name]', componentName);
             await page.click('button[type=submit]');
+            await page.goto(utils.DASHBOARD_URL);
 
-            let spanElement;
-            spanElement = await page.waitForSelector(
+            let spanElement = await page.waitForSelector(
                 `#component-title-${componentName}`
             );
             spanElement = await spanElement.getProperty('innerText');
