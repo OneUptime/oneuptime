@@ -426,8 +426,27 @@ module.exports = {
             throw error;
         }
     },
+
+    sendApplicationLogCreated: async applicationLog => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const component = await ApplicationLogService.findOneBy({
+                _id: applicationLog.componentId._id,
+            });
+            const componentId = component._id;
+
+            global.io.emit(`createApplicationLog-${componentId}`, applicationLog);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendApplicationLogCreated', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
 const ProjectService = require('./projectService');
 const MonitorService = require('./monitorService');
+const ApplicationLogService = require('./applicationLogService');
