@@ -5,9 +5,6 @@ const init = require('./test-init');
 
 require('should');
 
-let browser;
-let page;
-
 const operationTimeOut = 100000;
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
@@ -52,11 +49,6 @@ const createSso = async (page, data) => {
 describe('Login API', () => {
     beforeAll(async () => {
         jest.setTimeout(20000);
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-        page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
         //create user in an isolcated session
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -74,10 +66,6 @@ describe('Login API', () => {
         cluster.queue();
         await cluster.idle();
         await cluster.close();
-    });
-
-    afterAll(async () => {
-        await browser.close();
     });
 
     it(
