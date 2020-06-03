@@ -49,6 +49,15 @@ class SideNav extends Component {
             ) ||
             location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+            ) ||
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container/
+            ) ||
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/application/
+            ) ||
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security/
             );
 
         let groupsToRender = [];
