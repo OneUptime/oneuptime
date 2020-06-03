@@ -432,11 +432,7 @@ module.exports = {
             if (!global || !global.io) {
                 return;
             }
-
-            const component = await ApplicationLogService.findOneBy({
-                _id: applicationLog.componentId._id,
-            });
-            const componentId = component._id;
+            const componentId = applicationLog.componentId._id;
 
             global.io.emit(`createApplicationLog-${componentId}`, applicationLog);
         } catch (error) {
@@ -449,4 +445,3 @@ module.exports = {
 const ErrorService = require('./errorService');
 const ProjectService = require('./projectService');
 const MonitorService = require('./monitorService');
-const ApplicationLogService = require('./applicationLogService');

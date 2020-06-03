@@ -6,7 +6,7 @@ module.exports = {
             let component = await ComponentService.findOneBy({
                 _id: data.componentId,
             });
-            // sendd an error if the component doesnt exist
+            // send an error if the component doesnt exist
             if (!component) {
                 const error = new Error('Component does not exist.');
                 error.code = 400;
