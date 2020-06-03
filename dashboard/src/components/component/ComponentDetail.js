@@ -171,7 +171,7 @@ export class ComponentDetail extends Component {
                         <div>
                             <button
                                 id={`more-details-${component.name}`}
-                                className="bs-Button bs-Button--icon bs-Button--help"
+                                className="bs-Button bs-Button--icon bs-Button--more"
                                 type="button"
                                 onClick={() => {
                                     history.push(
@@ -183,7 +183,7 @@ export class ComponentDetail extends Component {
                                     );
                                 }}
                             >
-                                <span>View</span>
+                                <span>More</span>
                             </button>
                             <button
                                 id={`delete-component-${component.name}`}

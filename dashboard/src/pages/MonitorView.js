@@ -75,7 +75,12 @@ class MonitorView extends React.Component {
         const subProjectId = this.props.monitor
             ? this.props.monitor.projectId._id || this.props.monitor.projectId
             : null;
-        const componentName = component.length > 0 ? component[0].name : null;
+        const componentName =
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : null
+                : null;
         const monitorName = monitor ? monitor.name : null;
 
         return (

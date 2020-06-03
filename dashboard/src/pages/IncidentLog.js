@@ -180,7 +180,12 @@ class IncidentLog extends React.Component {
             );
 
         allIncidents && allIncidents.unshift(projectIncident);
-        const componentName = component.length > 0 ? component[0].name : null;
+        const componentName =
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : null
+                : null;
 
         return (
             <Dashboard ready={this.ready}>

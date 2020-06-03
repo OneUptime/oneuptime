@@ -333,11 +333,10 @@ class Incident extends React.Component {
             location: { pathname },
         } = this.props;
         const componentName =
-            component &&
-            component.length > 0 &&
-            component[0] &&
-            component[0].name
-                ? component[0].name
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : null
                 : null;
 
         return (
