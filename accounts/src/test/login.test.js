@@ -69,7 +69,7 @@ describe('Login API', () => {
             throw err;
         });
         cluster.task(async ({ page }) => {
-            await init.registerEnterpriseUser(user, page);
+            await init.registerUser(user, page);
         });
         cluster.queue();
         await cluster.idle();
