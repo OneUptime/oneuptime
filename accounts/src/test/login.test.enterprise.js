@@ -8,11 +8,6 @@ require('should');
 const operationTimeOut = 100000;
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
-const inexistentEmail = 'inexistent@hackerbay.io';
-const user = {
-    email,
-    password,
-};
 
 const moveToSsoPage = async page => {
     await page.waitForSelector('#settings');
@@ -154,10 +149,12 @@ describe('SSO login', () => {
                     'input[name=email]',
                     'email@disabled-domain.hackerbay.io'
                 );
-                await page.click('button[type=submit]');
-                await page.waitForResponse(response =>
-                    response.url().includes('/login')
-                );
+                await Promise.all([
+                    page.click('button[type=submit]'),
+                    page.waitForResponse(response =>
+                        response.url().includes('/login')
+                    )
+                ]);
                 const html = await page.$eval('#main-body', e => e.innerHTML);
                 html.should.containEql('SSO disabled for this domain.');
             });
@@ -205,9 +202,11 @@ describe('SSO login', () => {
 
                 await page.click('#password');
                 await page.type('#password', password);
-                await page.click('button');
 
-                await page.waitForNavigation('networkidle2');
+                await Promise.all([
+                    page.waitForNavigation('networkidle2'),
+                    page.click('button'),
+                ]);
 
                 await page.waitForSelector('#createButton');
             });
