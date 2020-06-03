@@ -22,7 +22,7 @@ const applicationLogSchema = new Schema({
     deletedById: { type: String, ref: 'User' },
 });
 
-applicationLogSchema.virtual('project', {
+applicationLogSchema.virtual('component', {
     localField: '_id',
     foreignField: 'componentId',
     ref: 'Component',
