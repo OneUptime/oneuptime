@@ -9,7 +9,7 @@ FROM node:12.16.1
 ENV PRODUCTION=true
 ENV CHROME_PATH=/usr/bin/google-chrome
 
-# Install Chromium.
+# Install Chrome.
 RUN \
   wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
   echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \

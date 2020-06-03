@@ -169,26 +169,10 @@ module.exports = {
         }
     },
 
-    saveLighthouseScan: async function(data) {
+    saveLighthouseLog: async function(data) {
         try {
-            if (data.lighthouseScores) {
-                await MonitorService.updateOneBy(
-                    { _id: data.monitorId },
-                    {
-                        lighthouseScannedAt: Date.now(),
-                        lighthouseScanStatus: data.lighthouseScanStatus, // scanned
-                        lighthouseScannedBy: data.probeId,
-                        lighthouseScores: data.lighthouseScores,
-                    }
-                );
-            } else {
-                await MonitorService.updateOneBy(
-                    { _id: data.monitorId },
-                    {
-                        lighthouseScanStatus: data.lighthouseScanStatus, // scanning || failed
-                    }
-                );
-            }
+            const log = await LighthouseLogService.create(data);
+            return log;
         } catch (error) {
             ErrorService.log('ProbeService.saveLighthouseScan', error);
             throw error;
@@ -1896,6 +1880,7 @@ const uuidv1 = require('uuid/v1');
 const MonitorService = require('./monitorService');
 const MonitorStatusService = require('./monitorStatusService');
 const MonitorLogService = require('./monitorLogService');
+const LighthouseLogService = require('./lighthouseLogService');
 const IncidentService = require('./incidentService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const moment = require('moment');

@@ -31,6 +31,7 @@
         "moment": "^2.24.0",
         "node-cron": "^2.0.3",
         "node-fetch": "^2.6.0",
+        "sitemap-stream-parser": "^1.7.0",
         "winston": "^2.4.0",
         "winston-slack-transport": "^2.0.0"
     },

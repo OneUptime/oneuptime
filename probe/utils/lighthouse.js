@@ -18,7 +18,8 @@ function launchChromeAndRunLighthouse(
 process.on('message', url => {
     launchChromeAndRunLighthouse(url)
         .then(results => {
-            const scores = {
+            const result = {
+                data: { url },
                 performance: Math.ceil(
                     results.categories.performance.score * 100
                 ),
@@ -31,9 +32,10 @@ process.on('message', url => {
                 seo: Math.ceil(results.categories.seo.score * 100),
                 pwa: Math.ceil(results.categories.pwa.score * 100),
             };
-            process.send(scores);
+            process.send(result);
         })
         .catch(error => {
+            process.send({ data: { url }, error });
             ErrorService.log('launchChromeAndRunLighthouse', error);
         });
 });

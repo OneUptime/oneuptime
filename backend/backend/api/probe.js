@@ -15,7 +15,6 @@ const isAuthorizedProbe = require('../middlewares/probeAuthorization')
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 
@@ -80,7 +79,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 ) {
     try {
         const { monitor, res, resp, type } = req.body;
-        let status;
+        let status, log;
 
         if (type === 'api' || type === 'url') {
             const validUp = await (monitor &&
@@ -130,17 +129,42 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             resp && resp.lighthouseScanStatus
                 ? resp.lighthouseScanStatus
                 : null;
-        data.lighthouseScores =
-            resp && resp.lighthouseScores ? resp.lighthouseScores : null;
+        data.performance = resp && resp.performance ? resp.performance : null;
+        data.accessibility =
+            resp && resp.accessibility ? resp.accessibility : null;
+        data.bestPractices =
+            resp && resp.bestPractices ? resp.bestPractices : null;
+        data.seo = resp && resp.seo ? resp.seo : null;
+        data.pwa = resp && resp.pwa ? resp.pwa : null;
+        data.data = resp && resp.data ? resp.data : null;
 
         if (data.lighthouseScanStatus) {
-            await ProbeService.saveLighthouseScan(data);
+            if (data.lighthouseScanStatus === 'scanning') {
+                await MonitorService.updateOneBy(
+                    { _id: data.monitorId },
+                    {
+                        lighthouseScanStatus: data.lighthouseScanStatus,
+                    }
+                );
+            } else {
+                await MonitorService.updateOneBy(
+                    { _id: data.monitorId },
+                    {
+                        lighthouseScannedAt: Date.now(),
+                        lighthouseScanStatus: data.lighthouseScanStatus, // scanned || failed
+                        lighthouseScannedBy: data.probeId,
+                    }
+                );
+            }
+        } else {
+            if (data.data) {
+                log = await ProbeService.saveLighthouseLog(data);
+            } else {
+                log = await ProbeService.saveMonitorLog(data);
+            }
         }
-        if (!data.lighthouseScores) {
-            const log = await ProbeService.saveMonitorLog(data);
-            return sendItemResponse(req, response, log);
-        }
-        return sendEmptyResponse(req, response);
+
+        return sendItemResponse(req, response, log);
     } catch (error) {
         return sendErrorResponse(req, response, error);
     }
