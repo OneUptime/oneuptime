@@ -7,6 +7,7 @@
 const express = require('express');
 const ApplicationLogService = require('../services/applicationLogService');
 const UserService = require('../services/userService');
+const ComponentService = require('../services/componentService');
 const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
 
@@ -36,16 +37,6 @@ router.post('/:componentId', getUser, isAuthorized, async function(
             });
         }
         data.createdById = req.user ? req.user.id : null;
-
-        if (
-            data.componentId &&
-            typeof data.componentId !== 'string'
-        ) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Component ID is not of string type.',
-            });
-        }
         if (!data.name) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -57,18 +48,21 @@ router.post('/:componentId', getUser, isAuthorized, async function(
         data.componentId = componentId;
 
         const applicationLog = await ApplicationLogService.create(data);
+        const component = await ComponentService.findOneBy({ _id: componentId });
 
         const user = await UserService.findOneBy({ _id: req.user.id });
 
         await NotificationService.create(
-            monitor.projectId._id,
+            component.projectId._id,
             `A New Application Log was Created with name ${applicationLog.name} by ${user.name}`,
             user._id,
             'applicationlogaddremove'
         );
         await RealTimeService.sendApplicationLogCreated(applicationLog);
-        return sendItemResponse(req, res, monitor);
+        return sendItemResponse(req, res, applicationLog);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
+
+module.exports = router;
