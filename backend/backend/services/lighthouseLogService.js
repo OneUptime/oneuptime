@@ -32,7 +32,7 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLog = await LighthouseLogModel.findOneAndUpdate(
+            const lighthouseLog = await LighthouseLogModel.findOneAndUpdate(
                 query,
                 { $set: data },
                 {
@@ -40,7 +40,7 @@ module.exports = {
                 }
             );
 
-            return monitorLog;
+            return lighthouseLog;
         } catch (error) {
             ErrorService.log('lighthouseLogService.updateOneBy', error);
             throw error;
@@ -65,13 +65,13 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLogs = await LighthouseLogModel.find(query)
+            const lighthouseLogs = await LighthouseLogModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('probeId');
 
-            return monitorLogs;
+            return lighthouseLogs;
         } catch (error) {
             ErrorService.log('lighthouseLogService.findBy', error);
             throw error;
@@ -84,11 +84,11 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLog = await LighthouseLogModel.findOne(query).populate(
-                'probeId'
-            );
+            const lighthouseLog = await LighthouseLogModel.findOne(
+                query
+            ).populate('probeId');
 
-            return monitorLog;
+            return lighthouseLog;
         } catch (error) {
             ErrorService.log('lighthouseLogService.findOneBy', error);
             throw error;

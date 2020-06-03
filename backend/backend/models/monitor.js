@@ -55,7 +55,6 @@ const monitorSchema = new Schema({
     lighthouseScannedAt: { type: Date },
     lighthouseScanStatus: String,
     lighthouseScannedBy: { type: String, ref: 'Probe' },
-    lighthouseScores: Object,
 });
 
 monitorSchema.virtual('project', {
