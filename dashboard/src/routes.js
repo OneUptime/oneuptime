@@ -84,7 +84,7 @@ export const groups = [
                 path:
                     '/dashboard/project/:projectId/:componentId/security/container',
                 icon: 'atlas',
-                visible: true,
+                visible: false,
                 component: Container,
                 exact: true,
                 subRoutes: [
@@ -139,7 +139,7 @@ export const groups = [
                 title: 'Back to Dashboard',
                 path: '/dashboard/project/:projectId/components',
                 icon: 'back',
-                component: Monitor,
+                component: Component,
                 visible: true,
                 subRoutes: [],
                 index: 5,
@@ -300,7 +300,7 @@ export const groups = [
                         path:
                             '/dashboard/project/:projectId/credential/gitCredential',
                         icon: 'radar',
-                        visible: true,
+                        visible: false,
                         subRoutes: [],
                         component: GitCredential,
                         index: 7,
@@ -310,7 +310,7 @@ export const groups = [
                         path:
                             '/dashboard/project/:projectId/credential/dockerCredential',
                         icon: 'radar',
-                        visible: true,
+                        visible: false,
                         subRoutes: [],
                         component: DockerCredential,
                         index: 8,
