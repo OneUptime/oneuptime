@@ -6,7 +6,7 @@ const init = require('./test-init');
 let browser, otherBrowser;
 let page, otherPage;
 
-const email = utils.generateRandomBusinessEmail();
+const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 const user = {
     email,
