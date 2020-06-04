@@ -65,18 +65,18 @@ describe('SSO login', () => {
                 'saml-enabled': false,
                 domain: `disabled-domain.hackerbay.io`,
                 samlSsoUrl:
-                    'http://localhost:8080/simplesaml/saml2/idp/SSOService.php',
+                    'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
                 certificateFingerprint: 'AZERTYUIOP',
-                remoteLogoutUrl: 'http://localhost:8080/logout',
+                remoteLogoutUrl: 'http://localhost:9876/logout',
                 ipRanges: '127.0.0.1',
             });
             await createSso(page, {
                 'saml-enabled': true,
                 domain: `tests.hackerbay.io`,
                 samlSsoUrl:
-                    'http://localhost:8080/simplesaml/saml2/idp/SSOService.php',
+                    'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
                 certificateFingerprint: 'AZERTYUIOP',
-                remoteLogoutUrl: 'http://localhost:8080/logout',
+                remoteLogoutUrl: 'http://localhost:9876/logout',
                 ipRanges: '127.0.0.1',
             });
         });

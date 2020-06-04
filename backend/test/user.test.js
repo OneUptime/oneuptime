@@ -492,8 +492,8 @@ describe('SSO authentication', function() {
             'saml-enabled': true,
             domain: 'tests.hackerbay.io',
             samlSsoUrl:
-                'http://localhost:8080/simplesaml/saml2/idp/SSOService.php',
-            remoteLogoutUrl: 'http://localhost:8080/logout',
+                'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
+            remoteLogoutUrl: 'http://localhost:9876/logout',
         });
         ssoId = sso._id;
     });
