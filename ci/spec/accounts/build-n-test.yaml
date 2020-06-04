@@ -9,7 +9,6 @@ build_n_test_accounts:
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-        - sudo docker run --name=samlIdp -p 8080:8080 -p 8443:8443 -e SIMPLESAMLPHP_SP_ENTITY_ID=hackerbay.io -e SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback -e SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp -v $PWD/saml/users.php:/var/www/simplesamlphp/config/authsources.php -d kristophjunge/test-saml-idp
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
         - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker build -t fyipeproject/accounts:3.0.$CI_PIPELINE_IID ./accounts
