@@ -11,9 +11,10 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { bindActionCreators } from 'redux';
 import {
     createApplicationLog,
+    createApplicationLogSuccess,
+    createApplicationLogFailure,
 } from '../../actions/applicationLog';
 const selector = formValueSelector('NewApplicationLog');
-
 
 class NewApplicationLog extends Component {
     validate = values => {
@@ -30,7 +31,7 @@ class NewApplicationLog extends Component {
         this.props.createApplicationLog(this.props.componentId, postObj).then(
             () => {
                 thisObj.props.reset();
-                thisObj.props.closeCreateApplicationModalModal();
+                thisObj.props.closeCreateApplicationLogModal();
                 if (SHOULD_LOG_ANALYTICS) {
                     logEvent(
                         'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > NEW APPLICATION LOG',
@@ -44,13 +45,11 @@ class NewApplicationLog extends Component {
                 }
             }
         );
-    }
+    };
     render() {
         const requesting = false;
-        const {
-            handleSubmit
-        } = this.props;
-       
+        const { handleSubmit } = this.props;
+
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -68,8 +67,10 @@ class NewApplicationLog extends Component {
                                 </p>
                             </div>
                         </div>
-                        <form id="form-new-application-log"
-                        onSubmit={handleSubmit(this.submitForm)}>
+                        <form
+                            id="form-new-application-log"
+                            onSubmit={handleSubmit(this.submitForm)}
+                        >
                             <div
                                 className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
                                 style={{ boxShadow: 'none' }}
@@ -106,7 +107,7 @@ class NewApplicationLog extends Component {
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                 <div className="bs-Tail-copy">
                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                        {/* <ShouldRender
+                                        <ShouldRender
                                             if={
                                                 this.props.applicationLog
                                                     .newApplicationLog.error
@@ -125,7 +126,7 @@ class NewApplicationLog extends Component {
                                                     }
                                                 </span>
                                             </div>
-                                        </ShouldRender> */}
+                                        </ShouldRender>
                                     </div>
                                 </div>
                                 <div>
@@ -161,6 +162,8 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             createApplicationLog,
+            createApplicationLogSuccess,
+            createApplicationLogFailure,
         },
         dispatch
     );
@@ -169,6 +172,7 @@ const mapStateToProps = (state, ownProps) => {
     const name = selector(state, 'name_2000');
     const componentId = ownProps.componentId;
     return {
+        applicationLog: state.applicationLog,
         name,
         componentId,
     };
