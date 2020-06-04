@@ -19,6 +19,7 @@ class ApplicationLog extends Component {
         const {
             location: { pathname },
             component,
+            componentId,
         } = this.props;
 
         const componentName = component.length > 0 ? component[0].name : null;
@@ -35,7 +36,13 @@ class ApplicationLog extends Component {
                             <ShouldRender if={this.props.applicationLogTutorial.show}>
                                 <TutorialBox type="applicationLog" />
                             </ShouldRender>
-                            <NewApplicationLog/>
+                            <NewApplicationLog
+                            index={2000}
+                            formKey="NewApplicationLogForm"
+                            componentId={
+                                this.props
+                                    .componentId
+                            }/>
                         </div>
                     </div>
                 </div>
@@ -50,7 +57,7 @@ const mapStateToProps = (state,props) => {
         return item.components.find(component => component._id === componentId);
     });
     return {
-        applicationLogTutorial: state.tutorial.incident,
+        applicationLogTutorial: state.tutorial.applicationLog,
         componentId,
         component,
     };
@@ -65,5 +72,6 @@ ApplicationLog.propTypes = {
             name: PropTypes.string,
         })
     ),
+    componentId: PropTypes.string,
 };
 export default connect(mapStateToProps)(ApplicationLog);

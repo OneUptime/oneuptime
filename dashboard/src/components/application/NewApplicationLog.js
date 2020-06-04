@@ -1,14 +1,56 @@
 import React, { Component } from 'react';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
-import { Field, reduxForm } from 'redux-form';
-import { RenderSelect } from '../basic/RenderSelect';
+import { Field, reduxForm, formValueSelector } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
+import { logEvent } from '../../analytics';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { bindActionCreators } from 'redux';
+import {
+    createApplicationLog,
+} from '../../actions/applicationLog';
+const selector = formValueSelector('NewApplicationLog');
+
 
 class NewApplicationLog extends Component {
+    validate = values => {
+        const errors = {};
+        if (!ValidateField.text(values[`name_${this.props.index}`])) {
+            errors.name = 'Application Name is required.';
+        }
+        return errors;
+    };
+    submitForm = values => {
+        const thisObj = this;
+        const postObj = {};
+        postObj.name = values[`name_${this.props.index}`];
+        this.props.createApplicationLog(this.props.componentId, postObj).then(
+            () => {
+                thisObj.props.reset();
+                thisObj.props.closeCreateApplicationModalModal();
+                if (SHOULD_LOG_ANALYTICS) {
+                    logEvent(
+                        'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > NEW APPLICATION LOG',
+                        values
+                    );
+                }
+            },
+            error => {
+                if (error && error.message) {
+                    return error;
+                }
+            }
+        );
+    }
     render() {
         const requesting = false;
+        const {
+            handleSubmit
+        } = this.props;
+       
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -26,7 +68,8 @@ class NewApplicationLog extends Component {
                                 </p>
                             </div>
                         </div>
-                        <form id="form-new-application-log">
+                        <form id="form-new-application-log"
+                        onSubmit={handleSubmit(this.submitForm)}>
                             <div
                                 className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
                                 style={{ boxShadow: 'none' }}
@@ -114,4 +157,33 @@ NewApplicationLog = new reduxForm({
     enableReinitialize: true,
 })(NewApplicationLog);
 
-export default NewApplicationLog;
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            createApplicationLog,
+        },
+        dispatch
+    );
+
+const mapStateToProps = (state, ownProps) => {
+    const name = selector(state, 'name_2000');
+    const componentId = ownProps.componentId;
+    return {
+        name,
+        componentId,
+    };
+};
+
+NewApplicationLog.propTypes = {
+    index: PropTypes.oneOfType([
+        PropTypes.string.isRequired,
+        PropTypes.number.isRequired,
+    ]),
+    createApplicationLog: PropTypes.func.isRequired,
+    applicationLog: PropTypes.object.isRequired,
+    handleSubmit: PropTypes.func.isRequired,
+    name: PropTypes.string,
+    componentId: PropTypes.string,
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(NewApplicationLog);
