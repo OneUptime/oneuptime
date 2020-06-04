@@ -35,6 +35,7 @@ describe('Enterprise Registration API', () => {
 
     it('Should register Initial User with valid details', async () => {
         await init.registerEnterpriseUser(user, page);
+        await page.waitFor(2000);
 
         const localStorageData = await page.evaluate(() => {
             const json = {};
