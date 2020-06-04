@@ -30,6 +30,13 @@ import Reports from './Reports';
 import Probe from './Probe';
 import ProfileBilling from './ProfileBilling';
 
+import Container from './Container';
+import Application from './Application';
+import ApplicationDetail from './ApplicationDetail';
+import ContainerDetail from './ContainerDetail';
+import GitCredential from './GitCredential';
+import DockerCredential from './DockerCredential';
+
 export default {
     ChangePassword,
     Monitor,
@@ -54,4 +61,10 @@ export default {
     MonitorView,
     Probe,
     ProfileBilling,
+    Container,
+    Application,
+    ApplicationDetail,
+    ContainerDetail,
+    GitCredential,
+    DockerCredential,
 };

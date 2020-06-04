@@ -49,19 +49,23 @@ class SideNav extends Component {
             ) ||
             location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+            ) ||
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container/
+            ) ||
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/application/
+            ) ||
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security/
             );
 
         let groupsToRender = [];
 
         if (switchToComponentDetailNav) {
-            groupsToRender = groups
-                .filter(group => group.visibleOnComponentDetail)
-                .map((group, index) => {
-                    if (index === 0 && selectedComponent) {
-                        group.routes[0].title = selectedComponent.name;
-                    }
-                    return group;
-                });
+            groupsToRender = groups.filter(
+                group => group.visibleOnComponentDetail
+            );
         } else {
             groupsToRender = groups
                 .filter(group => !group.isPublic)
@@ -146,6 +150,59 @@ class SideNav extends Component {
                                         className={marginClass}
                                     >
                                         <ul>
+                                            {switchToComponentDetailNav && (
+                                                <div
+                                                    style={{
+                                                        position: 'relative',
+                                                        marginBottom: '16px',
+                                                    }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            outline: 'none',
+                                                        }}
+                                                    >
+                                                        <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
+                                                            <div className="Box-root Flex-flex Flex-alignItems--center">
+                                                                <span
+                                                                    className={
+                                                                        'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--dark'
+                                                                    }
+                                                                >
+                                                                    <span
+                                                                        id={`text`}
+                                                                        style={{
+                                                                            fontSize:
+                                                                                '13px',
+                                                                            fontWeight:
+                                                                                'bold',
+                                                                            color:
+                                                                                'white',
+                                                                            background:
+                                                                                'rgb(0, 0, 0)',
+                                                                            padding:
+                                                                                '8px',
+                                                                            borderRadius:
+                                                                                '5px',
+                                                                            paddingTop:
+                                                                                '4px',
+                                                                            paddingBottom:
+                                                                                '4px',
+                                                                        }}
+                                                                    >
+                                                                        Component
+                                                                        {': ' +
+                                                                            (selectedComponent
+                                                                                ? selectedComponent.name
+                                                                                : '')}
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {group.routes.map(route => {
                                                 return (
                                                     <li key={route.index}>

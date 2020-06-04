@@ -181,6 +181,22 @@ app.use(
     ['/domainVerificationToken', '/api/domainVerificationToken'],
     require('./backend/api/domainVerificationToken')
 );
+app.use(
+    ['/security', '/api/security'],
+    require('./backend/api/containerSecurity')
+);
+app.use(
+    ['/security', '/api/security'],
+    require('./backend/api/applicationSecurity')
+);
+app.use(
+    ['/credential', '/api/credential'],
+    require('./backend/api/gitCredential')
+);
+app.use(
+    ['/credential', '/api/credential'],
+    require('./backend/api/dockerCredential')
+);
 
 app.set('port', process.env.PORT || 3002);
 

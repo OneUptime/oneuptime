@@ -4,12 +4,16 @@ const init = require('./test-init');
 const { Cluster } = require('puppeteer-cluster');
 
 // parent user credentials
-const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const user = {
+    email: utils.generateRandomBusinessEmail(),
+    password: '1234567890',
+};
 
 // sub-project user credentials
-const newEmail = utils.generateRandomBusinessEmail();
-const newPassword = '1234567890';
+const newUser = {
+    email: utils.generateRandomBusinessEmail(),
+    password: '1234567890',
+};
 
 const projectName = utils.generateRandomString();
 const projectMonitorName = utils.generateRandomString();
@@ -23,7 +27,7 @@ describe('Incident API With SubProjects', () => {
 
     let cluster;
 
-    beforeAll(async done => {
+    beforeAll(async () => {
         jest.setTimeout(500000);
 
         cluster = await Cluster.launch({
@@ -37,53 +41,26 @@ describe('Incident API With SubProjects', () => {
             throw err;
         });
 
-        // Register user
-        const task = async ({ page, data }) => {
-            await page.setDefaultTimeout(utils.timeout);
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-
-            // user
+        return await cluster.execute(null, async ({ page }) => {
             await init.registerUser(user, page);
-        };
-
-        await cluster.execute(
-            {
-                email: newEmail,
-                password: newPassword,
-            },
-            task
-        );
-
-        await cluster.execute(
-            {
-                email,
-                password,
-            },
-            task
-        );
-
-        done();
+            await init.registerUser(newUser, page);
+        });
     });
 
-    afterAll(async done => {
+    afterAll(async () => {
         await cluster.idle();
         await cluster.close();
-        done();
     });
 
     test(
         'should create an incident in parent project for valid `admin`',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
-                const user = { email, password };
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
                 await init.loginUser(user, page);
-
                 await page.goto(utils.DASHBOARD_URL);
-
-                await page.waitForSelector('#AccountSwitcherId');
+                await page.waitForSelector('#AccountSwitcherId', {
+                    visible: true,
+                });
                 await page.click('#AccountSwitcherId');
                 await page.waitForSelector('#create-project');
                 await page.click('#create-project');
@@ -106,7 +83,7 @@ describe('Incident API With SubProjects', () => {
                 // add new user to sub-project
                 await init.addUserToProject(
                     {
-                        email: newEmail,
+                        email: newUser.email,
                         role: 'Member',
                         subProjectName,
                     },
@@ -148,9 +125,8 @@ describe('Incident API With SubProjects', () => {
                 expect(textContent.toLowerCase()).toEqual(
                     `${projectMonitorName}'s Incident Status`.toLowerCase()
                 );
+                await init.logout(page);
             });
-
-            done();
         },
         operationTimeOut
     );
@@ -158,42 +134,30 @@ describe('Incident API With SubProjects', () => {
     test(
         'should not display created incident status in a different component',
         async () => {
-            expect.assertions(1);
-            return await cluster.execute(
-                { email, password, projectMonitorName },
-                async ({ page, data }) => {
-                    await page.setDefaultTimeout(utils.timeout);
-                    const user = {
-                        email: data.email,
-                        password: data.password,
-                    };
-                    await init.loginUser(user, page);
-                    // Navigate to details page of monitor
-                    await init.navigateToComponentDetails(
-                        newComponentName,
-                        page
-                    );
+            return await cluster.execute(null, async ({ page }) => {
+                await init.loginUser(user, page);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                // Navigate to details page of monitor
+                await init.navigateToComponentDetails(newComponentName, page);
 
-                    const incidentTitleSelector = await page.$(
-                        '#incident_span_0'
-                    );
-                    expect(incidentTitleSelector).toBeNull();
-                }
-            );
+                const incidentTitleSelector = await page.$('#incident_span_0');
+                expect(incidentTitleSelector).toBeNull();
+                await init.logout(page);
+            });
         },
         operationTimeOut
     );
 
     test(
         'should create an incident in sub-project for sub-project `member`',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
-                const user = {
-                    email: newEmail,
-                    password: newPassword,
-                };
-
-                await init.loginUser(user, page);
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await init.loginUser(newUser, page);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to details page of monitor
@@ -216,23 +180,20 @@ describe('Incident API With SubProjects', () => {
                 expect(textContent.toLowerCase()).toEqual(
                     `${subProjectMonitorName}'s Incident Status`.toLowerCase()
                 );
+                await init.logout(page);
             });
-
-            done();
         },
         operationTimeOut
     );
 
     test(
         'should acknowledge incident in sub-project for sub-project `member`',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
-                const user = {
-                    email: newEmail,
-                    password: newPassword,
-                };
-
-                await init.loginUser(user, page);
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await init.loginUser(newUser, page);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to details page of component created
@@ -246,23 +207,20 @@ describe('Incident API With SubProjects', () => {
                     '#AcknowledgeText_0'
                 );
                 expect(acknowledgeTextSelector).not.toBeNull();
+                await init.logout(page);
             });
-
-            done();
         },
         operationTimeOut
     );
 
     test(
         'should resolve incident in sub-project for sub-project `member`',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
-                const user = {
-                    email: newEmail,
-                    password: newPassword,
-                };
-
-                await init.loginUser(user, page);
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await init.loginUser(newUser, page);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to details page of component created
@@ -274,43 +232,52 @@ describe('Incident API With SubProjects', () => {
 
                 const resolveTextSelector = await page.$('#ResolveText_0');
                 expect(resolveTextSelector).not.toBeNull();
+                await init.logout(page);
             });
-
-            done();
         },
         operationTimeOut
     );
 
     test(
         'should update internal and investigation notes of incident in sub-project',
-        async done => {
-            const investigationNote = utils.generateRandomString();
-            const internalNote = utils.generateRandomString();
-            await cluster.execute(null, async ({ page }) => {
-                const user = {
-                    email: newEmail,
-                    password: newPassword,
-                };
-
-                await init.loginUser(user, page);
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const investigationNote = utils.generateRandomString();
+                const internalNote = utils.generateRandomString();
+                await init.loginUser(newUser, page);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
                 // update internal note
                 await page.waitForSelector(
-                    `#incident_${subProjectMonitorName}_0`
+                    `#incident_${subProjectMonitorName}_0`,
+                    { visible: true }
                 );
                 await page.click(`#incident_${subProjectMonitorName}_0`);
-                await page.waitForSelector('#txtInternalNote');
+
+                await page.waitForSelector('#txtInternalNote', {
+                    visible: true,
+                });
                 await page.type('#txtInternalNote', internalNote);
+                await page.waitForSelector('#btnUpdateInternalNote', {
+                    visible: true,
+                });
                 await page.click('#btnUpdateInternalNote');
                 await page.waitFor(5000);
-                await page.waitForSelector('#txtInvestigationNote');
+
+                await page.waitForSelector('#txtInvestigationNote', {
+                    visible: true,
+                });
                 await page.type('#txtInvestigationNote', investigationNote);
+                await page.waitForSelector('#btnUpdateInvestigationNote', {
+                    visible: true,
+                });
                 await page.click('#btnUpdateInvestigationNote');
                 await page.waitFor(5000);
-
                 const internalNoteSelector = await page.$('#txtInternalNote');
                 let internalContent = await internalNoteSelector.getProperty(
                     'textContent'
@@ -328,29 +295,26 @@ describe('Incident API With SubProjects', () => {
 
                 investigationContent = await investigationContent.jsonValue();
                 expect(investigationContent).toEqual(investigationNote);
+                await init.logout(page);
             });
-
-            done();
         },
         operationTimeOut
     );
 
     test(
         'should get incident timeline and paginate for incident timeline in sub-project',
-        async done => {
-            const internalNote = utils.generateRandomString();
-            await cluster.execute(null, async ({ page }) => {
-                // await page.setDefaultTimeout(utils.timeout);
-                const user = {
-                    email: newEmail,
-                    password: newPassword,
-                };
-
-                await init.loginUser(user, page);
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const internalNote = utils.generateRandomString();
+                await init.loginUser(newUser, page);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
+                await page.waitFor(3000);
 
                 await page.waitForSelector(
                     `#incident_${subProjectMonitorName}_0`
@@ -359,96 +323,80 @@ describe('Incident API With SubProjects', () => {
 
                 for (let i = 0; i < 10; i++) {
                     // update internal note
-                    await page.waitForSelector('#txtInternalNote');
+                    await page.waitForSelector('#txtInternalNote', {
+                        visible: true,
+                    });
                     await page.type('#txtInternalNote', internalNote);
                     await page.click('#btnUpdateInternalNote');
-                    await page.waitFor(5000);
+                    await page.waitFor(2000);
                 }
-
                 let incidentTimelineRows = await page.$$('tr.incidentListItem');
                 let countIncidentTimelines = incidentTimelineRows.length;
 
                 expect(countIncidentTimelines).toEqual(10);
 
                 const nextSelector = await page.$('#btnTimelineNext');
-
                 await nextSelector.click();
-                await page.waitFor(5000);
+                await page.waitFor(2000);
                 incidentTimelineRows = await page.$$('tr.incidentListItem');
                 countIncidentTimelines = incidentTimelineRows.length;
                 expect(countIncidentTimelines).toEqual(5);
 
                 const prevSelector = await page.$('#btnTimelinePrev');
-
                 await prevSelector.click();
-                await page.waitFor(5000);
+                await page.waitFor(2000);
                 incidentTimelineRows = await page.$$('tr.incidentListItem');
                 countIncidentTimelines = incidentTimelineRows.length;
                 expect(countIncidentTimelines).toEqual(10);
+                await init.logout(page);
             });
-
-            done();
         },
         operationTimeOut
     );
 
     test(
         'should get list of incidents and paginate for incidents in sub-project',
-        async done => {
-            await cluster.execute(
-                {
-                    email: newEmail,
-                    password: newPassword,
-                    subProjectMonitorName,
-                    subProjectName,
-                    projectName,
-                    counter: 0,
-                    limit: 10,
-                },
-                async ({ page, data }) => {
-                    const user = {
-                        email: data.email,
-                        password: data.password,
-                    };
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await init.loginUser(newUser, page);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                // switch to invited project for new user
+                await init.switchProject(projectName, page);
+                // Navigate to details page of component created
+                await init.navigateToComponentDetails(componentName, page);
 
-                    await init.loginUser(user, page);
-                    // switch to invited project for new user
-                    await init.switchProject(data.projectName, page);
-                    // Navigate to details page of component created
-                    await init.navigateToComponentDetails(componentName, page);
-
-                    for (let i = 0; i < 10; i++) {
-                        await init.addIncidentToProject(
-                            data.subProjectMonitorName,
-                            data.subProjectName,
-                            page
-                        );
-                    }
-
-                    let incidentRows = await page.$$('tr.incidentListItem');
-                    let countIncidents = incidentRows.length;
-
-                    expect(countIncidents).toEqual(10);
-
-                    const nextSelector = await page.$('#btnNext');
-
-                    await nextSelector.click();
-                    await page.waitFor(5000);
-                    incidentRows = await page.$$('tr.incidentListItem');
-                    countIncidents = incidentRows.length;
-                    expect(countIncidents).toEqual(1);
-
-                    const prevSelector = await page.$('#btnPrev');
-
-                    await prevSelector.click();
-                    await page.waitFor(5000);
-                    incidentRows = await page.$$('tr.incidentListItem');
-                    countIncidents = incidentRows.length;
-                    expect(countIncidents).toEqual(10);
+                for (let i = 0; i < 10; i++) {
+                    await init.addIncidentToProject(
+                        subProjectMonitorName,
+                        subProjectName,
+                        page
+                    );
+                    await page.waitFor(2000);
                 }
-            );
 
-            done();
+                let incidentRows = await page.$$('tr.incidentListItem');
+                let countIncidents = incidentRows.length;
+                expect(countIncidents).toEqual(10);
+
+                const nextSelector = await page.$('#btnNext', {
+                    visible: true,
+                });
+                await nextSelector.click();
+                incidentRows = await page.$$('tr.incidentListItem');
+                countIncidents = incidentRows.length;
+                expect(countIncidents).toEqual(10);
+
+                const prevSelector = await page.$('#btnPrev');
+
+                await prevSelector.click();
+                await page.waitFor(5000);
+                incidentRows = await page.$$('tr.incidentListItem');
+                countIncidents = incidentRows.length;
+                expect(countIncidents).toEqual(10);
+                await init.logout(page);
+            });
         },
         operationTimeOut
     );
