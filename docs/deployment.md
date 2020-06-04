@@ -1,6 +1,6 @@
 # Deployment
 
-## Emergency Deployment
+## Emergency Deployment to Staging and Production
 
 Run this on master branch.
 
@@ -18,4 +18,5 @@ git checkout hotfix-release
 git merge master
 git push
 
+git checkout master
 ```
