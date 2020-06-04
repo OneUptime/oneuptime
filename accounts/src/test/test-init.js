@@ -15,7 +15,7 @@ module.exports = {
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function (user, page) {
+    registerUser: async function(user, page) {
         const { email } = user;
         let frame, elementHandle;
         try {
@@ -102,7 +102,7 @@ module.exports = {
             page.waitForNavigation(),
         ]);
     },
-    registerEnterpriseUser: async function (user, page) {
+    registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
             email: 'masteradmin@hackerbay.io',
             password: '1234567890',

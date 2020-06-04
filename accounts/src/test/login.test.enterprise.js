@@ -153,7 +153,7 @@ describe('SSO login', () => {
                     page.click('button[type=submit]'),
                     page.waitForResponse(response =>
                         response.url().includes('/login')
-                    )
+                    ),
                 ]);
                 const html = await page.$eval('#main-body', e => e.innerHTML);
                 html.should.containEql('SSO disabled for this domain.');
