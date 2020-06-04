@@ -6,7 +6,7 @@ const init = require('./test-init');
 let browser, otherBrowser;
 let page, otherPage;
 
-const email = utils.generateRandomBusinessEmail();
+const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 const user = {
     email,
@@ -35,6 +35,7 @@ describe('Enterprise Registration API', () => {
 
     it('Should register Initial User with valid details', async () => {
         await init.registerEnterpriseUser(user, page);
+        await page.waitFor(2000);
 
         const localStorageData = await page.evaluate(() => {
             const json = {};
