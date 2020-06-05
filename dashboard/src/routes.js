@@ -24,7 +24,8 @@ const {
     MonitorView,
     Probe,
     ProfileBilling,
-    ApplicationLog
+    ApplicationLog,
+    ApplicationLogView
 } = pages;
 
 export const groups = [
@@ -90,12 +91,24 @@ export const groups = [
                 index: 3,
             },
             {
-                title: 'Application Log',
+                title: 'Application Logs',
                 path: '/dashboard/project/:projectId/:componentId/application-log',
                 icon: 'appLog',
                 visible: true,
+                exact: true,
                 component: ApplicationLog,
-                subRoutes: [],
+                subRoutes: [
+                    {
+                        title: 'Application Log View',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/application-log/:applicationLogId',
+                        icon: 'radar',
+                        visible: true,
+                        subRoutes: [],
+                        component: ApplicationLogView,
+                        index: 1,
+                    },
+                ],
                 index: 4,
             },
             {
