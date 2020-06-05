@@ -17,13 +17,15 @@ const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const isUserAdmin = require('../middlewares/project').isUserAdmin;
+
 
 // Route
 // Description: Adding a new application log to a component.
 // Params:
 // Param 1: req.params-> {componentId}; req.body -> {[_id], name}
 // Returns: response status, error message
-router.post('/:componentId', getUser, isAuthorized, async function(
+router.post('/:componentId', getUser, isAuthorized, isUserAdmin, async function(
     req,
     res
 ) {
@@ -88,5 +90,31 @@ router.get('/:componentId', getUser, isAuthorized, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+// Description: Delete an Application Log by applicationLogId and componentId.
+router.delete(
+    '/:componentId/:applicationLogId',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function(req, res) {
+        try {
+            const applicationLog = await ApplicationLogService.deleteBy(
+                { _id: req.params.applicationLogId, componentId: req.params.componentId },
+                req.user.id
+            );
+            if (applicationLog) {
+                return sendItemResponse(req, res, applicationLog);
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Application Log not found',
+                });
+            }
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 module.exports = router;
