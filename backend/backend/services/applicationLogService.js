@@ -125,9 +125,47 @@ module.exports = {
             throw error;
         }
     },
+    deleteBy: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const applicationLog = await ApplicationLogModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
+                },
+                { new: true }
+            ).populate('deletedById', 'name');
+            if(applicationLog) {
+                const component = ComponentService.findOneBy({_id: applicationLog.componentId._id});
+                await NotificationService.create(
+                    component.projectId,
+                    `An Application Log ${applicationLog.name} was deleted from the component ${applicationLog.componentId.name} by ${applicationLog.deletedById.name}`,
+                    applicationLog.deletedById._id,
+                    'applicationLogaddremove'
+                );
+                await RealTimeService.sendApplicationLogDelete(applicationLog);
+                return applicationLog;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            ErrorService.log('applicationLogService.deleteBy', error);
+            throw error;
+        }
+    },
 };
 
 const ApplicationLogModel = require('../models/applicationLog');
 const ErrorService = require('./errorService');
 const ComponentService = require('./componentService');
+const RealTimeService = require('./realTimeService');
+const NotificationService = require('./notificationService');
 const _ = require('lodash');
