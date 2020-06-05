@@ -2,7 +2,7 @@ import {
     CREATE_APPLICATION_LOG_FAILURE,
     CREATE_APPLICATION_LOG_REQUEST,
     CREATE_APPLICATION_LOG_RESET,
-    CREATE_APPLICATION_LOG_SUCCESS
+    CREATE_APPLICATION_LOG_SUCCESS,
 } from '../constants/applicationLog';
 const INITIAL_STATE = {
     newApplicationLog: {
@@ -11,6 +11,14 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         initialValue: null,
+    },
+    applicationLogsList: {
+        applicationLogs: [],
+        error: null,
+        requesting: false,
+        success: false,
+        startDate: moment().subtract(30, 'd'),
+        endDate: moment(),
     },
 };
 export default function applicationLog(state = INITIAL_STATE, action) {
@@ -39,6 +47,41 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                 newApplicationLog: {
                     ...state.newApplicationLog,
                     requesting: true,
+                },
+            });
+        case FETCH_APPLICATION_LOGS_SUCCESS:
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    applicationLogs: action.payload,
+                },
+            });
+
+        case FETCH_APPLICATION_LOGS_FAILURE:
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case FETCH_APPLICATION_LOGS_RESET:
+            return Object.assign({}, state, {
+                applicationLogsList: INITIAL_STATE.applicationLogsList,
+            });
+
+        case FETCH_APPLICATION_LOGS_REQUEST:
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: true,
+                    error: null,
+                    success: false,
                 },
             });
         default:
