@@ -63,9 +63,13 @@ class SideNav extends Component {
         let groupsToRender = [];
 
         if (switchToComponentDetailNav) {
-            groupsToRender = groups.filter(
-                group => group.visibleOnComponentDetail
-            );
+            groupsToRender = groups
+                .filter(group => group.visibleOnComponentDetail)
+                .filter(group => group.visible)
+                .map(group => {
+                    group.routes = group.routes.filter(route => route.visible);
+                    return group;
+                });
         } else {
             groupsToRender = groups
                 .filter(group => !group.isPublic)
