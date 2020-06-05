@@ -3,12 +3,30 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 import LogList from './LogList';
+import DateRangeWrapper from '../monitor/DateRangeWrapper';
+import moment from 'moment'
 
 class ApplicationLogDetail extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            startDate: moment().subtract(30, 'd'),
+            endDate: moment(),
+        };
+    }
+    handleDateChange = (startDate, endDate) => {
+        this.setState({ startDate, endDate });
+    };
     render() {
+        const { startDate, endDate } = this.state;
         const { applicationLog, componentId, currentProject } = this.props;
         return (
-            <div className="Box-root Card-shadow--medium" style={{ marginTop:'10px', marginBottom: '10px'}} tabIndex="0">
+            <div
+                className="Box-root Card-shadow--medium"
+                style={{ marginTop: '10px', marginBottom: '10px' }}
+                tabIndex="0"
+            >
                 <div className="db-Trends-header">
                     <div className="db-Trends-title">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
@@ -17,36 +35,43 @@ class ApplicationLogDetail extends Component {
                                     <span
                                         id="monitor-content-header"
                                         className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
-                                        style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                        }}
                                     >
                                         <span
                                             id={`application-log-title-${applicationLog.name}`}
                                         >
                                             {applicationLog.name}
                                         </span>
-                                        <button
-                                            id={`more-details-${applicationLog.name}`}
-                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help"
-                                            type="button"
-                                            onClick={() => {
-                                                history.push(
-                                                    '/dashboard/project/' +
-                                                        currentProject._id +
-                                                        '/' +
-                                                        componentId +
-                                                        '/application-log/' +
-                                                        applicationLog._id
-                                                );
-                                            }}
-                                        >
-                                            <span>More</span>
-                                        </button>
                                     </span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    <div className="db-Trends-controls">
+                        <div className="db-Trends-timeControls">
+                            <DateRangeWrapper
+                                selected={startDate}
+                                onChange={this.handleDateChange}
+                                dateRange={30}
+                            />
+                        </div>
+                        <div>
+                            <button
+                                id={`more-details-${applicationLog.name}`}
+                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help"
+                                type="button"
+                                onClick={() => {
+                                    history.push(
+                                        '/dashboard/project/' +
+                                            currentProject._id +
+                                            '/' +
+                                            componentId +
+                                            '/application-log/' +
+                                            applicationLog._id
+                                    );
+                                }}
+                            >
+                                <span>More</span>
+                            </button>
                         </div>
                     </div>
                     <div>
