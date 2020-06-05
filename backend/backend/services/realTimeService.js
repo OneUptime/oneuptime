@@ -440,6 +440,20 @@ module.exports = {
             throw error;
         }
     },
+    sendApplicationLogDelete: async applicationLog => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const componentId = applicationLog.componentId._id;
+
+            global.io.emit(`deleteApplicationLog-${componentId}`, applicationLog);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendApplicationLogDelete', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
