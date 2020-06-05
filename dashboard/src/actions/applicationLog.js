@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import { postApi, getApi } from '../api';
 import * as types from '../constants/applicationLog';
 import errors from '../errors';
 
