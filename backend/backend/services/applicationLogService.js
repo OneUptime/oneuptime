@@ -26,7 +26,7 @@ module.exports = {
                 ErrorService.log('applicationLogService.create', error);
                 throw error;
             }
-            // prepare application log model 
+            // prepare application log model
             let applicationLog = new ApplicationLogModel();
             applicationLog.name = data.name;
             applicationLog.componentId = data.componentId;
@@ -91,18 +91,37 @@ module.exports = {
     },
 
     async getApplicationLogsByComponentId(componentId, limit, skip) {
+        // try to get the component by the ID
+        let component = await ComponentService.findOneBy({
+            _id: componentId,
+        });
+        // send an error if the component doesnt exist
+        if (!component) {
+            const error = new Error('Component does not exist.');
+            error.code = 400;
+            ErrorService.log(
+                'applicationLogService.getApplicationLogsByComponentId',
+                error
+            );
+            throw error;
+        }
+
         try {
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
 
             const applicationLogs = await _this.findBy(
-                { componentId: componentId},
-                limit, skip
+                { componentId: componentId },
+                limit,
+                skip
             );
             return applicationLogs;
         } catch (error) {
-            ErrorService.log('applicationLogService.getApplicationLogsByComponentId', error);
+            ErrorService.log(
+                'applicationLogService.getApplicationLogsByComponentId',
+                error
+            );
             throw error;
         }
     },
