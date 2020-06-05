@@ -3,6 +3,7 @@ const faker = require('faker');
 const ACCOUNTS_URL = 'http://localhost:3003';
 const DASHBOARD_URL = 'http://localhost:3000';
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
+const ADMIN_DASHBOARD_URL = 'http://localhost:3100';
 
 const puppeteerLaunchConfig = {
     args: [
@@ -96,6 +97,7 @@ module.exports = {
     ACCOUNTS_URL,
     DASHBOARD_URL,
     HTTP_TEST_SERVER_URL,
+    ADMIN_DASHBOARD_URL,
     puppeteerLaunchConfig,
     user,
     cvv,

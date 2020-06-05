@@ -35,6 +35,7 @@ describe('Enterprise Dashboard API', () => {
         return await cluster.execute(null, async ({ page }) => {
             // user
             await init.registerEnterpriseUser(user, page);
+            await init.logout(page);
             await init.loginUser(user, page);
         });
 
@@ -51,18 +52,15 @@ describe('Enterprise Dashboard API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
-                await page.goto(utils.DASHBOARD_URL);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
 
                 // Fill and submit New Component form
                 await page.waitForSelector('#form-new-component');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
-
-                // Navigate to details page of component created
-                await page.waitForSelector(`#more-details-${componentName}`);
-                await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#form-new-monitor');
 
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]');
@@ -90,7 +88,9 @@ describe('Enterprise Dashboard API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
-                await page.goto(utils.DASHBOARD_URL);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
 
                 // Navigate to details page of component created in previous test
                 await page.waitForSelector(`#more-details-${componentName}`);
