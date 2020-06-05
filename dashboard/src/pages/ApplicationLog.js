@@ -31,6 +31,10 @@ class ApplicationLog extends Component {
         this.props.fetchApplicationLogs(componentId);
     };
     render() {
+        if (this.props.currentProject) {
+            document.title = this.props.currentProject.name + ' Dashboard';
+        }
+
         const {
             location: { pathname },
             component,
@@ -49,6 +53,7 @@ class ApplicationLog extends Component {
                         style={{ overflow: 'visible' }}
                     >
                         <ApplicationLogList
+                            componentId={componentId}
                             applicationLogs={this.props.applicationLog}
                         />
                     </div>
@@ -100,6 +105,8 @@ const mapStateToProps = (state, props) => {
 
     const applicationLog =
         state.applicationLog.applicationLogsList.applicationLogs;
+    
+    const currentProject = state.project.currentProject;
 
     const component = state.component.componentList.components.map(item => {
         return item.components.find(component => component._id === componentId);
@@ -109,6 +116,7 @@ const mapStateToProps = (state, props) => {
         componentId,
         component,
         applicationLog,
+        currentProject
     };
 };
 ApplicationLog.propTypes = {
@@ -123,5 +131,9 @@ ApplicationLog.propTypes = {
     ),
     componentId: PropTypes.string,
     loadPage: PropTypes.func,
+    currentProject: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ApplicationLog);
