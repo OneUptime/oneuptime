@@ -37,7 +37,7 @@ class ApplicationLogDetail extends Component {
                                                         currentProject._id +
                                                         '/' +
                                                         componentId +
-                                                        '/monitoring/' +
+                                                        '/application-log/' +
                                                         applicationLog._id
                                                 );
                                             }}
