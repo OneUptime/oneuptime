@@ -58,3 +58,57 @@ export function resetCreateApplicationLog() {
         type: types.CREATE_APPLICATION_LOG_RESET,
     };
 }
+
+export function fetchApplicationLogs(componentId) {
+    return function(dispatch) {
+        const promise = getApi(`application-log/${componentId}`);
+        dispatch(fetchApplicationLogsRequest());
+
+        promise.then(
+            function(applicationLogs) {
+                dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchApplicationLogsFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchApplicationLogsSuccess(applicationLogs) {
+    return {
+        type: types.FETCH_APPLICATION_LOGS_SUCCESS,
+        payload: applicationLogs,
+    };
+}
+
+export function fetchApplicationLogsRequest() {
+    return {
+        type: types.FETCH_APPLICATION_LOGS_REQUEST,
+    };
+}
+
+export function fetchApplicationLogsFailure(error) {
+    return {
+        type: types.FETCH_APPLICATION_LOGS_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetFetchApplicationLogs() {
+    return {
+        type: types.FETCH_APPLICATION_LOGS_RESET,
+    };
+}
