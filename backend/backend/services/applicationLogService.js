@@ -89,6 +89,23 @@ module.exports = {
             throw error;
         }
     },
+
+    async getApplicationLogsByComponentId(componentId, limit, skip) {
+        try {
+            if (typeof limit === 'string') limit = parseInt(limit);
+            if (typeof skip === 'string') skip = parseInt(skip);
+            const _this = this;
+
+            const applicationLogs = await _this.findBy(
+                { componentId: componentId},
+                limit, skip
+            );
+            return applicationLogs;
+        } catch (error) {
+            ErrorService.log('applicationLogService.getApplicationLogsByComponentId', error);
+            throw error;
+        }
+    },
 };
 
 const ApplicationLogModel = require('../models/applicationLog');
