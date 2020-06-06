@@ -53,7 +53,7 @@ describe('Enterprise Dashboard API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
+                    waitUntil: 'networkidle2',
                 });
 
                 // Fill and submit New Component form
@@ -61,9 +61,10 @@ describe('Enterprise Dashboard API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 // Fill and submit New Monitor form
-                await page.click('input[id=name]');
+                await page.click('input[id=name]', { visible: true });
                 await page.type('input[id=name]', monitorName);
                 await init.selectByText('#type', 'url', page);
                 await page.waitForSelector('#url');
@@ -73,7 +74,8 @@ describe('Enterprise Dashboard API', () => {
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    `#monitor-title-${monitorName}`
+                    `#monitor-title-${monitorName}`,
+                    { visible: true }
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
@@ -89,13 +91,15 @@ describe('Enterprise Dashboard API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
+                    waitUntil: 'networkidle2',
                 });
 
                 // Navigate to details page of component created in previous test
                 await page.waitForSelector(`#more-details-${componentName}`);
                 await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#form-new-monitor');
+                await page.waitForSelector('#form-new-monitor', {
+                    visible: true,
+                });
 
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]');
