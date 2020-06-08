@@ -12,7 +12,14 @@
   "devDependencies": {
     "@babel/core": "^7.10.2",
     "babel-loader": "^8.1.0",
+    "gulp-rename": "^2.0.0",
+    "gulp-sourcemaps": "^2.6.5",
+    "gulp-uglify": "^3.0.2",
     "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.11"
+    "webpack-cli": "^3.3.11",
+    "webpack-stream": "^5.2.1"
+  },
+  "dependencies": {
+    "gulp": "^4.0.2"
   }
 }

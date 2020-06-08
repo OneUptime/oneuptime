@@ -1,5 +1,6 @@
 module.exports = {
     entry: "./src/logger.js",
+    devtool: "#inline-source-map",
     // output tells webpack where to put the bundle it creates
     output: {
        library: "logger",
