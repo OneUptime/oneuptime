@@ -17,6 +17,35 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { RenderMonitors } from './RenderMonitors';
 
+const validate = values => {
+    const monitorFormsErrors = {};
+    const { monitors } = values;
+    for (let i = 0; i < monitors.length; i++) {
+        const monitor = monitors[i];
+        if (!monitor.id)
+            monitorFormsErrors[i] = { id: 'A monitor must be selected.' }
+        const {
+            uptime,
+            memory,
+            cpu,
+            storage,
+            responseTime,
+            temperature,
+            runtime,
+        } = monitor;
+        if (!uptime &&
+            !memory &&
+            !cpu &&
+            !storage &&
+            !responseTime &&
+            !temperature &&
+            !runtime
+        )
+            monitorFormsErrors[i] = { uptime: 'You must select at least one bar chart' };
+    }
+    return { monitors: monitorFormsErrors };
+}
+
 export class Monitors extends Component {
     submitForm = values => {
         const { status } = this.props.statusPage;
@@ -83,14 +112,15 @@ export class Monitors extends Component {
                                                 'monitors',
                                                 {
                                                     id: null,
+                                                    type: '',
                                                     description: '',
                                                     uptime: true,
-                                                    memroy: false,
+                                                    memory: false,
                                                     cpu: false,
                                                     storage: false,
                                                     responseTime: false,
                                                     temperature: false,
-                                                    runtime:false,
+                                                    runtime: false,
                                                 }
                                             )
                                             }
@@ -245,6 +275,7 @@ Monitors.propTypes = {
 const MonitorsForm = reduxForm({
     form: 'StatuspageMonitors', // a unique identifier for this form
     enableReinitialize: true,
+    validate,
 })(Monitors);
 
 const mapDispatchToProps = dispatch =>
