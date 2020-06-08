@@ -37,6 +37,10 @@ export default function applicationLog(state = INITIAL_STATE, action) {
         case CREATE_APPLICATION_LOG_SUCCESS:
             return Object.assign({}, state, {
                 newApplicationLog: INITIAL_STATE.newApplicationLog,
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    applicationLogs: state.applicationLogsList.applicationLogs.concat(action.payload)
+                }
             });
         case CREATE_APPLICATION_LOG_FAILURE:
             return Object.assign({}, state, {
