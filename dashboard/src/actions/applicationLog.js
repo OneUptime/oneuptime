@@ -1,4 +1,4 @@
-import { postApi, getApi } from '../api';
+import { postApi, getApi, deleteApi } from '../api';
 import * as types from '../constants/applicationLog';
 import errors from '../errors';
 
@@ -110,5 +110,67 @@ export function fetchApplicationLogsFailure(error) {
 export function resetFetchApplicationLogs() {
     return {
         type: types.FETCH_APPLICATION_LOGS_RESET,
+    };
+}
+
+//Delete a applicationLog
+//props -> {name: '', type, data -> { data.url}}
+export function deleteApplicationLog(applicationLogId, componentId) {
+    return function(dispatch) {
+        const promise = deleteApi(`application-log/${componentId}/${applicationLogId}`, {
+            applicationLogId,
+        });
+        dispatch(deleteApplicationLogRequest(applicationLogId));
+
+        promise.then(
+            function(applicationLog) {
+                dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    deleteApplicationLogFailure({ error: errors(error), applicationLogId })
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function deleteApplicationLogSuccess(removedApplicationLogId) {
+    return {
+        type: types.DELETE_APPLICATION_LOG_SUCCESS,
+        payload: removedApplicationLogId,
+    };
+}
+
+export function deleteApplicationLogRequest(applicationLogId) {
+    return {
+        type: types.DELETE_APPLICATION_LOG_REQUEST,
+        payload: applicationLogId,
+    };
+}
+
+export function deleteApplicationLogFailure(error) {
+    return {
+        type: types.DELETE_APPLICATION_LOG_FAILURE,
+        payload: error,
+    };
+}
+
+export function deleteComponentApplicationLogs(componentId) {
+    return {
+        type: types.DELETE_COMPONENT_APPLICATION_LOGS,
+        payload: componentId,
     };
 }
