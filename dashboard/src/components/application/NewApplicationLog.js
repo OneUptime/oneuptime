@@ -47,8 +47,7 @@ class NewApplicationLog extends Component {
         );
     };
     render() {
-        const requesting = this.props.applicationLog.newApplicationLog.requesting;
-        const { handleSubmit } = this.props;
+        const { handleSubmit, requesting } = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -171,10 +170,12 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = (state, ownProps) => {
     const name = selector(state, 'name_2000');
     const componentId = ownProps.componentId;
+    const requesting = state.applicationLog.newApplicationLog.requesting;
     return {
         applicationLog: state.applicationLog,
         name,
         componentId,
+        requesting
     };
 };
 
@@ -188,6 +189,7 @@ NewApplicationLog.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     name: PropTypes.string,
     componentId: PropTypes.string,
+    requesting: PropTypes.bool
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewApplicationLog);
