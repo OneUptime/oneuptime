@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { Field, formValueSelector } from 'redux-form';
+import { Field, formValueSelector, change } from 'redux-form';
 import { connect } from 'react-redux';
 import { RenderSelect } from '../basic/RenderSelect';
 
@@ -10,7 +10,7 @@ const Checkbox = ({
   <div
     className="bs-Fieldset-fields"
     style={{ maxHeight: '20px' }}
-    >
+  >
     <div
       className="Box-root"
       style={{ height: '5px' }}
@@ -46,11 +46,10 @@ let RenderMonitor = ({
   monitors,
   allMonitors,
   fields,
+  dispatch
 }) => {
   const currentMonitorForm = monitors[monitorIndex];
-  const { id: currentMonitorID } = currentMonitorForm;
-  const currentMonitorDetails = currentMonitorID && allMonitors.filter(monitor => monitor._id === currentMonitorForm.id)[0];
-  console.log(currentMonitorDetails)
+  const { id: currentMonitorID, type } = currentMonitorForm;
   return (
     <li style={{ margin: '5px 0px' }}>
       <div className="Card-root">
@@ -97,10 +96,17 @@ let RenderMonitor = ({
                     )
                   )
                 ]}
+                onChange={(value) => {
+                  const selectMonitorID = Object.values(value).slice(0, 24).join('');
+                  const selectedMonitor = allMonitors.filter(monitor => monitor._id === selectMonitorID)[0]
+                  const { type } = selectedMonitor
+                  dispatch(change('StatuspageMonitors', `${monitor}.type`, type))
+                }
+                }
               />
             </div>
             {
-              !!currentMonitorDetails && (
+              !!currentMonitorID && (
                 <div className="bs-Fieldset-row">
                   <label
                     className="bs-Fieldset-label"
@@ -121,7 +127,7 @@ let RenderMonitor = ({
               )
             }
             {
-              !!currentMonitorDetails && (
+              !!currentMonitorID && (
                 <div className="bs-Fieldset-row">
                   <label
                     className="bs-Fieldset-label"
@@ -133,9 +139,9 @@ let RenderMonitor = ({
                       Chart type
                   </span>
                   </label>
-                  <div  className="Flex-flex Flex-direction--column Flex-justifyContent--flexEnd">
+                  <div className="Flex-flex Flex-direction--column Flex-justifyContent--flexEnd">
                     {
-                      currentMonitorDetails.type === 'url' ?
+                      type === 'url' ?
                         (
                           <Fragment>
                             <Checkbox
@@ -149,7 +155,7 @@ let RenderMonitor = ({
                           </Fragment>
                         )
                         :
-                        currentMonitorDetails.type === 'script' ?
+                        type === 'script' ?
                           (
                             <Fragment>
                               <Checkbox
@@ -163,7 +169,7 @@ let RenderMonitor = ({
                             </Fragment>
                           )
                           :
-                          currentMonitorDetails.type === 'manual' ?
+                          type === 'manual' ?
                             (
                               <Checkbox
                                 label='Uptime'
@@ -171,7 +177,7 @@ let RenderMonitor = ({
                               />
                             )
                             :
-                            currentMonitorDetails.type === 'server-monitor' ?
+                            type === 'server-monitor' ?
                               (
                                 <Fragment>
                                   <Checkbox
@@ -197,14 +203,15 @@ let RenderMonitor = ({
                                 </Fragment>
                               )
                               :
-                              currentMonitorDetails.type === 'device' ?
+                              type === 'device' ?
                                 (
                                   <Checkbox
                                     label='Uptime'
                                     name={`${monitor}.uptime`}
                                   />
                                 )
-                                : currentMonitorDetails.type === 'api' &&
+                                :
+                                type === 'api' &&
                                 (
                                   <Fragment>
                                     <Checkbox
