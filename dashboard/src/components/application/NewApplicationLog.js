@@ -47,7 +47,7 @@ class NewApplicationLog extends Component {
         );
     };
     render() {
-        const requesting = false;
+        const requesting = this.props.applicationLog.newApplicationLog.requesting;
         const { handleSubmit } = this.props;
 
         return (
