@@ -334,12 +334,13 @@ const mapDispatchToProps = dispatch =>
             updateStatusPageMonitorsSuccess,
             updateStatusPageMonitorsError,
             fetchProjectStatusPage,
+            pushArray: arrayPush,
         },
         dispatch
     );
 
 const mapStateToProps = state => {
-    const initialValues = {};
+    const initialValues = { 'monitors': [] };
     const { currentProject } = state.project;
 
     const monitors = state.monitor.monitorsList.monitors
@@ -350,18 +351,6 @@ const mapStateToProps = state => {
         statusPage: { status },
     } = state;
 
-    if (
-        status &&
-        status.monitorIds &&
-        status.monitorIds.length > 0 &&
-        monitors.length > 0
-    ) {
-        monitors.forEach(({ _id }) => {
-            initialValues[_id] = status.monitorIds.some(
-                id => _id === id._id || _id === id
-            );
-        });
-    }
     const subProjects = state.subProject.subProjects.subProjects;
     return { initialValues, monitors, statusPage, currentProject, subProjects };
 };
