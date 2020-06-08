@@ -7,6 +7,10 @@ import {
     FETCH_APPLICATION_LOGS_REQUEST,
     FETCH_APPLICATION_LOGS_RESET,
     FETCH_APPLICATION_LOGS_SUCCESS,
+    DELETE_APPLICATION_LOG_FAILURE,
+    DELETE_APPLICATION_LOG_REQUEST,
+    DELETE_APPLICATION_LOG_SUCCESS,
+    DELETE_COMPONENT_APPLICATION_LOGS
 } from '../constants/applicationLog';
 import moment from 'moment';
 
@@ -28,6 +32,7 @@ const INITIAL_STATE = {
     },
 };
 export default function applicationLog(state = INITIAL_STATE, action) {
+    let applicationLogs;
     switch (action.type) {
         case CREATE_APPLICATION_LOG_SUCCESS:
             return Object.assign({}, state, {
@@ -92,5 +97,56 @@ export default function applicationLog(state = INITIAL_STATE, action) {
             });
         default:
             return state;
+
+            case DELETE_APPLICATION_LOG_SUCCESS:
+                return Object.assign({}, state, {
+                    applicationLogsList: {
+                        ...state.applicationLogsList,
+                        requesting: false,
+                        error: null,
+                        success: false,
+                        applicationLogs: state.applicationLogsList.applicationLogs.filter(
+                            ({ _id }) => _id !== action.payload
+                        ),
+                    },
+                    deleteApplicationLog: false,
+                });
+    
+            case DELETE_APPLICATION_LOG_FAILURE:
+                return Object.assign({}, state, {
+                    applicationLogsList: {
+                        ...state.applicationLogsList,
+                        requesting: false,
+                        error: action.payload,
+                        success: false,
+                    },
+                    deleteApplicationLog: false,
+                });
+    
+            case DELETE_APPLICATION_LOG_REQUEST:
+                return Object.assign({}, state, {
+                    applicationLogsList: {
+                        ...state.applicationLogsList,
+                        requesting: false,
+                        error: null,
+                        success: false,
+                    },
+                    deleteApplicationLog: action.payload,
+                });
+    
+            case DELETE_COMPONENT_APPLICATION_LOGS:
+                applicationLogs = Object.assign([], state.applicationLogsList.applicationLogs);
+                applicationLogs = applicationLogs.filter(
+                    applicationLog => action.payload !== applicationLog.componentId
+                );
+    
+                return Object.assign({}, state, {
+                    applicationLogsList: {
+                        ...state.applicationLogsList,
+                        applicationLogs,
+                        error: null,
+                        loading: false,
+                    },
+                });
     }
 }
