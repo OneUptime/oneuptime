@@ -1,14 +1,23 @@
+const path = require('path');
+
 module.exports = {
-    entry: "./src/logger.js",
-    devtool: "#inline-source-map",
-    // output tells webpack where to put the bundle it creates
-    output: {
-       library: "logger",
-       // We want webpack to build a UMD wrapper for our module
-       libraryTarget: "umd",
-       // the destination file name
-       filename: "lib/logger.js"
-    },
-    
- };
- 
+  mode: 'production',
+  entry: './src/logger.js',
+  output: {
+    path: path.resolve('dist'),
+    filename: 'logger.js',
+    libraryTarget: 'commonjs2',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js?$/,
+        exclude: /(node_modules)/,
+        use: 'babel-loader',
+      },
+    ],
+  },
+  resolve: {
+    extensions: ['.js'],
+  },
+};
