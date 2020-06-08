@@ -8,8 +8,8 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { fetchApplicationLogs } from '../actions/applicationLog';
-import LogList from '../components/application/LogList';
 import ApplicationLogDetail from '../components/application/ApplicationLogDetail';
+import ApplicationLogViewDeleteBox from '../components/application/ApplicationLogViewDeleteBox';
 
 class ApplicationLogView extends Component {
     componentDidMount() {
@@ -55,6 +55,13 @@ class ApplicationLogView extends Component {
                         applicationLog={applicationLog[0]}
                         index={applicationLog._id}
                         isDetails={true}
+                    />
+                </div>
+
+                <div className="Box-root Margin-bottom--12">
+                    <ApplicationLogViewDeleteBox
+                        componentId={this.props.componentId}
+                        applicationLog={this.props.applicationLog}
                     />
                 </div>
             </Dashboard>
