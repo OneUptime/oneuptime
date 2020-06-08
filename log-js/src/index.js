@@ -12,7 +12,6 @@ const prepareToLogRequest = (data, url, success, error) => {
 };
 
 const sendLogsToServer =  (data, url, success, error) => {
-    data = JSON.stringify({ data: data });
     return axios({
         method: 'post',
         url: `${API_URL}/${url}`,
