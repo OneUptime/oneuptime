@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { reduxForm } from 'redux-form';
+import { reduxForm, FieldArray, arrayPush, } from 'redux-form';
 import {
     updateStatusPageMonitors,
     updateStatusPageMonitorsRequest,
@@ -10,7 +10,6 @@ import {
     fetchProjectStatusPage,
 } from '../../actions/statusPage';
 import { FormLoader } from '../basic/Loader';
-import MonitorInputs from '../schedule/MonitorInputs';
 import ShouldRender from '../basic/ShouldRender';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
@@ -56,7 +55,7 @@ export class Monitors extends Component {
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
-                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                 <span className="ContentHeader-title Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
@@ -71,25 +70,42 @@ export class Monitors extends Component {
                                     </span>
                                 </span>
                             </div>
-                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                <div className="Box-root">
-                                    <button
-                                        id="addMoreDomain"
-                                        className="Button bs-ButtonLegacy ActionIconParent"
-                                        type="button"
-                                        // onClick={this.props.addMoreDomain}
-                                    >
-                                        <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                            <div className="Box-root Margin-right--8">
-                                                <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
+                            <ShouldRender if={this.props.monitors.length > 0}>
+                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                    <div className="Box-root">
+                                        <button
+                                            id="addMoreDomain"
+                                            className="Button bs-ButtonLegacy ActionIconParent"
+                                            type="button"
+                                            onClick={() => this.props.pushArray(
+                                                'StatuspageMonitors',
+                                                'monitors',
+                                                {
+                                                    id: null,
+                                                    description: '',
+                                                    uptime: true,
+                                                    memroy: false,
+                                                    cpu: false,
+                                                    storage: false,
+                                                    responseTime: false,
+                                                    temperature: false,
+                                                    runtime:false,
+                                                }
+                                            )
+                                            }
+                                        >
+                                            <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <div className="Box-root Margin-right--8">
+                                                    <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
+                                                </div>
+                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                    <span>Add Monitor</span>
+                                                </span>
                                             </div>
-                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                <span>Add Monitor</span>
-                                            </span>
-                                        </div>
-                                    </button>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </ShouldRender>
                         </div>
                     </div>
 
