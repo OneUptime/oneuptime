@@ -5,9 +5,16 @@ import { history } from '../../store';
 import LogList from './LogList';
 import DateRangeWrapper from '../monitor/DateRangeWrapper';
 import moment from 'moment';
-import { RenderIfOwner } from '../basic/RenderIfOwner';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import { openModal, closeModal } from '../../actions/modal';
+import uuid from 'uuid';
+import DataPathHoC from '../DataPathHoC';
+import DeleteApplicationLog from '../modals/DeleteApplicationLog';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { logEvent } from 'amplitude-js';
+import { bindActionCreators } from 'redux';
+import { deleteApplicationLog } from '../../actions/applicationLog';
 
 class ApplicationLogDetail extends Component {
     constructor(props) {
@@ -17,13 +24,41 @@ class ApplicationLogDetail extends Component {
             startDate: moment().subtract(30, 'd'),
             endDate: moment(),
             deleting: false,
+            deleteModalId: uuid.v4(),
         };
     }
     handleDateChange = (startDate, endDate) => {
         this.setState({ startDate, endDate });
     };
+    deleteApplicationLog = () => {
+        const promise = this.props.deleteApplicationLog(
+            this.props.applicationLog._id,
+            this.props.componentId
+        );
+        history.push(
+            `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`
+        );
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > APPLICATION LOG DELETED',
+                {
+                    ProjectId: this.props.currentProject._id,
+                    applicationLogId: this.props.applicationLog._id,
+                }
+            );
+        }
+        return promise;
+    };
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({ id: this.state.deleteModalId });
+            default:
+                return false;
+        }
+    };
     render() {
-        const { startDate, endDate, deleting } = this.state;
+        const { startDate, endDate, deleting, deleteModalId } = this.state;
         const { applicationLog, componentId, currentProject } = this.props;
         if (applicationLog) {
             return (
@@ -71,6 +106,18 @@ class ApplicationLogDetail extends Component {
                                             }
                                             type="button"
                                             disabled={deleting}
+                                            onClick={() =>
+                                                this.props.openModal({
+                                                    id: deleteModalId,
+                                                    onClose: () => '',
+                                                    onConfirm: () =>
+                                                        this.deleteApplicationLog(),
+                                                    content: DataPathHoC(
+                                                        DeleteApplicationLog,
+                                                        { applicationLog }
+                                                    ),
+                                                })
+                                            }
                                         >
                                             <ShouldRender if={!deleting}>
                                                 <span>Delete</span>
@@ -148,6 +195,16 @@ class ApplicationLogDetail extends Component {
 }
 ApplicationLogDetail.displayName = 'ApplicationLogDetail';
 
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            openModal,
+            closeModal,
+            deleteApplicationLog,
+        },
+        dispatch
+    );
+};
 function mapStateToProps(state) {
     return {
         currentProject: state.project.currentProject,
@@ -158,6 +215,11 @@ ApplicationLogDetail.propTypes = {
     componentId: PropTypes.object.isRequired,
     applicationLog: PropTypes.object.isRequired,
     currentProject: PropTypes.object.isRequired,
+    openModal: PropTypes.func,
+    closeModal: PropTypes.func,
 };
 
-export default connect(mapStateToProps)(ApplicationLogDetail);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(ApplicationLogDetail);
