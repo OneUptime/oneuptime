@@ -102,7 +102,11 @@ ApplicationLogView.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    applicationLog: PropTypes.object,
+    applicationLog: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ApplicationLogView);
