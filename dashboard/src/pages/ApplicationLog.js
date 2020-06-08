@@ -13,6 +13,7 @@ import { bindActionCreators } from 'redux';
 import { logEvent } from '../analytics';
 import { loadPage } from '../actions/page';
 import { ApplicationLogList } from '../components/application/ApplicationLogList';
+import { LoadingState } from '../components/basic/Loader';
 
 class ApplicationLog extends Component {
     componentDidMount() {
@@ -42,8 +43,8 @@ class ApplicationLog extends Component {
         } = this.props;
 
         const applicationLogsList =
-            this.props.applicationLog &&
-            this.props.applicationLog.length > 0 ? (
+            this.props.applicationLog.applicationLogs &&
+            this.props.applicationLog.applicationLogs.length > 0 ? (
                 <div
                     id={`box_${componentId}`}
                     className="Box-root Margin-vertical--12"
@@ -54,7 +55,7 @@ class ApplicationLog extends Component {
                     >
                         <ApplicationLogList
                             componentId={componentId}
-                            applicationLogs={this.props.applicationLog}
+                            applicationLogs={this.props.applicationLog.applicationLogs}
                         />
                     </div>
                 </div>
@@ -72,19 +73,32 @@ class ApplicationLog extends Component {
                 <BreadCrumbItem route={pathname} name="Application Log" />
                 <div>
                     <div>
-                        <div className="db-RadarRulesLists-page">
-                            <ShouldRender
-                                if={this.props.applicationLogTutorial.show}
-                            >
-                                <TutorialBox type="applicationLog" />
-                            </ShouldRender>
-                            {applicationLogsList}
-                            <NewApplicationLog
-                                index={2000}
-                                formKey="NewApplicationLogForm"
-                                componentId={this.props.componentId}
-                            />
-                        </div>
+                        <ShouldRender
+                            if={
+                                this.props.applicationLog.requesting
+                            }
+                        >
+                            <LoadingState />
+                        </ShouldRender>
+                        <ShouldRender
+                            if={
+                                !this.props.applicationLog.requesting
+                            }
+                        >
+                            <div className="db-RadarRulesLists-page">
+                                <ShouldRender
+                                    if={this.props.applicationLogTutorial.show}
+                                >
+                                    <TutorialBox type="applicationLog" />
+                                </ShouldRender>
+                                {applicationLogsList}
+                                <NewApplicationLog
+                                    index={2000}
+                                    formKey="NewApplicationLogForm"
+                                    componentId={this.props.componentId}
+                                />
+                            </div>
+                        </ShouldRender>
                     </div>
                 </div>
             </Dashboard>
@@ -104,8 +118,8 @@ const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
 
     const applicationLog =
-        state.applicationLog.applicationLogsList.applicationLogs;
-    
+        state.applicationLog.applicationLogsList;
+
     const currentProject = state.project.currentProject;
 
     const component = state.component.componentList.components.map(item => {
@@ -116,7 +130,7 @@ const mapStateToProps = (state, props) => {
         componentId,
         component,
         applicationLog,
-        currentProject
+        currentProject,
     };
 };
 ApplicationLog.propTypes = {

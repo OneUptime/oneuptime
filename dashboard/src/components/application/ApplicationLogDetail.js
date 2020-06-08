@@ -212,7 +212,7 @@ function mapStateToProps(state) {
 }
 
 ApplicationLogDetail.propTypes = {
-    componentId: PropTypes.object.isRequired,
+    componentId: PropTypes.string,
     applicationLog: PropTypes.object.isRequired,
     currentProject: PropTypes.object.isRequired,
     openModal: PropTypes.func,
