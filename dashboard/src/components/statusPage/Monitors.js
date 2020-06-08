@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { RenderMonitors } from './RenderMonitors';
 
 export class Monitors extends Component {
     submitForm = values => {
@@ -108,99 +109,19 @@ export class Monitors extends Component {
                             </ShouldRender>
                         </div>
                     </div>
-
                     <form onSubmit={handleSubmit(this.submitForm)}>
                         <ShouldRender if={this.props.monitors.length > 0}>
-                            <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                            <div className="bs-ContentSection-content Box-root">
                                 <div>
-                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                    <div className="bs-Fieldset-wrapper Box-root">
                                         <fieldset
-                                            data-test="RetrySettings-failedAndExpiring"
                                             className="bs-Fieldset"
+                                            style={{ paddingTop: '0px' }}
                                         >
-                                            <div className="bs-Fieldset-rows">
-                                                <div className="bs-Fieldset-row">
-                                                    <label
-                                                        className="bs-Fieldset-label"
-                                                        style={{
-                                                            flex: '35% 0 0',
-                                                        }}
-                                                    >
-                                                        <span>
-                                                            Add these to my
-                                                            status page
-                                                        </span>
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                        <div
-                                                            className="Box-root"
-                                                            style={{
-                                                                height: '5px',
-                                                            }}
-                                                        ></div>
-                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                            {status.projectId &&
-                                                            (this.props
-                                                                .currentProject
-                                                                ._id ===
-                                                                status.projectId
-                                                                    ._id ||
-                                                                this.props
-                                                                    .currentProject
-                                                                    ._id ===
-                                                                    status.projectId) ? (
-                                                                <MonitorInputs
-                                                                    monitors={
-                                                                        this
-                                                                            .props
-                                                                            .monitors
-                                                                    }
-                                                                    subProject={
-                                                                        this
-                                                                            .props
-                                                                            .currentProject
-                                                                    }
-                                                                />
-                                                            ) : (
-                                                                false
-                                                            )}
-                                                            {status.projectId &&
-                                                                subProjects.map(
-                                                                    (
-                                                                        subProject,
-                                                                        i
-                                                                    ) => {
-                                                                        if (
-                                                                            subProject._id ===
-                                                                                status
-                                                                                    .projectId
-                                                                                    ._id ||
-                                                                            subProject._id ===
-                                                                                status.projectId
-                                                                        ) {
-                                                                            return (
-                                                                                <MonitorInputs
-                                                                                    monitors={
-                                                                                        this
-                                                                                            .props
-                                                                                            .monitors
-                                                                                    }
-                                                                                    subProject={
-                                                                                        subProject
-                                                                                    }
-                                                                                    key={
-                                                                                        i
-                                                                                    }
-                                                                                />
-                                                                            );
-                                                                        }
-                                                                        return false;
-                                                                    }
-                                                                )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <FieldArray
+                                                name="monitors"
+                                                component={RenderMonitors}
+                                            />
                                         </fieldset>
                                     </div>
                                 </div>
@@ -291,8 +212,8 @@ export class Monitors extends Component {
                                     >
                                         {!this.props.statusPage.monitors
                                             .requesting && (
-                                            <span>Save Changes </span>
-                                        )}
+                                                <span>Save Changes </span>
+                                            )}
                                         {this.props.statusPage.monitors
                                             .requesting && <FormLoader />}
                                     </button>
