@@ -454,6 +454,19 @@ module.exports = {
             throw error;
         }
     },
+    sendContentLogCreated: async contentLog => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const applicationLogId = contentLog.applicationLogId._id;
+
+            global.io.emit(`createContentLog-${applicationLogId}`, contentLog);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendContentLogCreated', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
