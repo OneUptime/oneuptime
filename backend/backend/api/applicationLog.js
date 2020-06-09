@@ -120,7 +120,7 @@ router.delete(
 );
 
 router.post(
-    '/:applicationLogId/log-content',
+    '/:applicationLogId/log',
     isApplicationLogValid,
     async function(req, res) {
         try {
@@ -129,17 +129,17 @@ router.post(
             
             data.applicationLogId = applicationLogId;
     
-            const contentLog = await LogService.create(data);
+            const log = await LogService.create(data);
             
-            await RealTimeService.sendLogCreated(contentLog);
-            return sendItemResponse(req, res, contentLog);
+            await RealTimeService.sendLogCreated(log);
+            return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
     }
 );
-// Description: Get all Content Logs by applicationLogId.
-router.get('/:applicationLogId/log-content', getUser, isAuthorized, async function(
+// Description: Get all Logs by applicationLogId.
+router.get('/:applicationLogId/log', getUser, isAuthorized, async function(
     req,
     res
 ) {
