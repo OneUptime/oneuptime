@@ -454,16 +454,16 @@ module.exports = {
             throw error;
         }
     },
-    sendContentLogCreated: async contentLog => {
+    sendLogCreated: async contentLog => {
         try {
             if (!global || !global.io) {
                 return;
             }
             const applicationLogId = contentLog.applicationLogId._id;
 
-            global.io.emit(`createContentLog-${applicationLogId}`, contentLog);
+            global.io.emit(`createLog-${applicationLogId}`, contentLog);
         } catch (error) {
-            ErrorService.log('realTimeService.sendContentLogCreated', error);
+            ErrorService.log('realTimeService.sendLogCreated', error);
             throw error;
         }
     },
