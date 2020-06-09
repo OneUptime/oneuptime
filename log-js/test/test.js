@@ -1,10 +1,7 @@
 const chai = require('chai')
-const should = chai.should()
 const expect = chai.expect
 
-const logger = require('../src/logger');
 import Logger from '../src/logger';
-// const Logger = logger.Logger;
 
 describe('Logger', function() {
 
