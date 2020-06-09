@@ -10,11 +10,11 @@ const UserService = require('../services/userService');
 const ComponentService = require('../services/componentService');
 const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
-const ContentLogService = require('../services/contentLogService');
+const LogService = require('../services/logService');
 
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
-const isKeyMappedToId = require('../middlewares/applicationLog').isKeyMappedToId;
+const isApplicationLogValid = require('../middlewares/applicationLog').isApplicationLogValid;
 
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -121,7 +121,7 @@ router.delete(
 
 router.post(
     '/:applicationLogId/log-content',
-    isKeyMappedToId,
+    isApplicationLogValid,
     async function(req, res) {
         try {
             const data = req.body;
@@ -129,18 +129,9 @@ router.post(
             
             data.applicationLogId = applicationLogId;
     
-            const contentLog = await ContentLogService.create(data);
-            const applicationLog = await ApplicationLogService.findOneBy({ _id: contentLog.applicationLogId._id })
-            const component = await ComponentService.findOneBy({ _id: applicationLog.componentId._id });
-    
+            const contentLog = await LogService.create(data);
             
-            await NotificationService.create(
-                component.projectId._id,
-                `A New Content Log was Created under Application Log with name ${applicationLog.name}`,
-                contentLog.user,
-                'contentlogaddremove'
-            );
-            await RealTimeService.sendContentLogCreated(contentLog);
+            await RealTimeService.sendLogCreated(contentLog);
             return sendItemResponse(req, res, contentLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -160,12 +151,12 @@ router.get('/:applicationLogId/log-content', getUser, isAuthorized, async functi
                 message: "Application Log ID can't be null",
             });
         }
-        const contentLogs = await ContentLogService.getContentLogsApplicationLogId(
+        const logs = await LogService.getLogsByApplicationLogId(
             applicationLogId,
             req.query.limit || 0,
             req.query.skip || 0
         )
-        return sendItemResponse(req, res, contentLogs);
+        return sendItemResponse(req, res, logs);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

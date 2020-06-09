@@ -4,7 +4,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 
 const _this = {
-    isKeyMappedToId: async function(req, res, next) {
+    isApplicationLogValid: async function(req, res, next) {
         try {
             const data = req.body;
             const applicationLogId = req.params.applicationLogId;

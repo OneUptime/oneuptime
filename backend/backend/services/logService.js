@@ -4,17 +4,17 @@ module.exports = {
             const _this = this;
             
             // prepare  log model
-            let contentLog = new ContentLogModel();
-            contentLog.content = data.content;
-            contentLog.applicationLogId = data.applicationLogId;
-            contentLog.createdById = data.createdById;
-            const savedContentLog = await contentLog.save();
-            contentLog = await _this.findOneBy({
-                _id: savedContentLog._id,
+            let log = new LogModel();
+            log.content = data.content;
+            log.applicationLogId = data.applicationLogId;
+            log.createdById = data.createdById;
+            const savedlog = await log.save();
+            log = await _this.findOneBy({
+                _id: savedlog._id,
             });
-            return contentLog;
+            return log;
         } catch (error) {
-            ErrorService.log('contentLogService.create', error);
+            ErrorService.log('logService.create', error);
             throw error;
         }
     },
@@ -25,12 +25,12 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const contentLog = await ContentLogModel.findOne(
+            const log = await LogModel.findOne(
                 query
             ).populate('applicationLogId', 'name');
-            return contentLog;
+            return log;
         } catch (error) {
-            ErrorService.log('contentLogService.findOneBy', error);
+            ErrorService.log('logService.findOneBy', error);
             throw error;
         }
     },
@@ -53,18 +53,18 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const contentLogs = await ContentLogModel.find(query)
+            const logs = await LogModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('applicationLogId', 'name');
-            return contentLogs;
+            return logs;
         } catch (error) {
-            ErrorService.log('contentLogService.findBy', error);
+            ErrorService.log('logService.findBy', error);
             throw error;
         }
     },
-    async getContentLogsApplicationLogId(applicationLogId, limit, skip) {
+    async getLogsByApplicationLogId(applicationLogId, limit, skip) {
         // try to get the application log by the ID
         let applicationLog = await ApplicationLogService.findOneBy({
             _id: applicationLogId,
@@ -74,7 +74,7 @@ module.exports = {
             const error = new Error('Application Log does not exist.');
             error.code = 400;
             ErrorService.log(
-                'contentLogService.getContentLogsApplicationLogId',
+                'logService.getLogsByApplicationLogId',
                 error
             );
             throw error;
@@ -85,15 +85,15 @@ module.exports = {
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
 
-            const contentLogs = await _this.findBy(
+            const logs = await _this.findBy(
                 { applicationLogId: applicationLogId },
                 limit,
                 skip
             );
-            return contentLogs;
+            return logs;
         } catch (error) {
             ErrorService.log(
-                'contentLogService.getContentLogsApplicationLogId',
+                'logService.getLogsByApplicationLogId',
                 error
             );
             throw error;
@@ -101,6 +101,6 @@ module.exports = {
     },
 };
 
-const ContentLogModel = require('../models/contentLog');
+const LogModel = require('../models/log');
 const ErrorService = require('./errorService');
 const ApplicationLogService = require('./applicationLogService');
