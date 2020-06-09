@@ -50,6 +50,9 @@ class ApplicationLogDetail extends Component {
         }
         return promise;
     };
+    resetApplicationLogKey = () => {
+        // todo method to reset key
+    }
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -116,6 +119,8 @@ class ApplicationLogDetail extends Component {
                                                 this.props.openModal({
                                                     id: openApplicationLogKeyModalId,
                                                     onClose: () => '',
+                                                    onConfirm: () =>
+                                                        this.resetApplicationLogKey(),
                                                     content: DataPathHoC(
                                                         ViewApplicationLogKey,
                                                         { applicationLog }

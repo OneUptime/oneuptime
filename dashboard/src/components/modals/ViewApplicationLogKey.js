@@ -47,13 +47,13 @@ class ViewApplicationLogKey extends Component {
                                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--8 Padding-vertical--4">
                                     <p>
                                         <span>
-                                            Use your application id and
-                                            application key to log requests from
+                                            Use your Application Log ID and
+                                            Application Log Key to log requests from
                                             your apps to your Fyipe Dashboard
                                         </span>
                                     </p>
                                 </div>
-                                <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                                <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
                                             <div className="bs-Fieldset-row">
@@ -138,10 +138,10 @@ class ViewApplicationLogKey extends Component {
                                     >
                                         <span>Cancel</span>
                                     </button>
-                                    <RenderIfAdmin>
+                                    {/* <RenderIfAdmin> */}
                                         <button
                                             className="bs-Button bs-Button--blue"
-                                            onClick={this.apiResetModal}
+                                            onClick={this.props.resetApplicationLogKey}
                                         >
                                             <ShouldRender
                                                 if={!this.props.isRequesting}
@@ -156,7 +156,7 @@ class ViewApplicationLogKey extends Component {
                                                 <FormLoader />
                                             </ShouldRender>
                                         </button>
-                                    </RenderIfAdmin>
+                                    {/* </RenderIfAdmin> */}
                                 </div>
                             </div>
                         </div>
