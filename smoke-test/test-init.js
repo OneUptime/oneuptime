@@ -192,7 +192,7 @@ module.exports = {
         await page.waitFor(3000);
     },
     selectByText: async function(selector, text, page) {
-        await page.click(selector);
+        await page.click(selector, { delay: 100 });
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
         if (!noOption) {

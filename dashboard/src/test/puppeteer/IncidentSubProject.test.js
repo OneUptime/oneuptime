@@ -384,9 +384,10 @@ describe('Incident API With SubProjects', () => {
                     visible: true,
                 });
                 await nextSelector.click();
+                await page.waitFor(5000);
                 incidentRows = await page.$$('tr.incidentListItem');
                 countIncidents = incidentRows.length;
-                expect(countIncidents).toEqual(10);
+                expect(countIncidents).toEqual(1);
 
                 const prevSelector = await page.$('#btnPrev');
 
