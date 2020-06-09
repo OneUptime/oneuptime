@@ -14,6 +14,7 @@ const ContentLogService = require('../services/contentLogService');
 
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
+const isKeyMappedToId = require('../middlewares/applicationLog').isKeyMappedToId;
 
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -120,30 +121,10 @@ router.delete(
 
 router.post(
     '/:applicationLogId/log-content',
+    isKeyMappedToId,
     async function(req, res) {
         try {
             const data = req.body;
-            const applicationLogId = req.params.applicationLogId;
-            if (!data) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: "values can't be null",
-                });
-            }
-            data.createdById = req.user ? req.user.id : null;
-            if (!data.content) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Content to be logged is required.',
-                });
-            }
-            if (!data.applicationLogKey) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Application Log Key is required.',
-                });
-            }
-    
             
             data.applicationLogId = applicationLogId;
     
