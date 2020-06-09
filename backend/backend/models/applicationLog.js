@@ -8,6 +8,7 @@ const applicationLogSchema = new Schema({
         alias: 'component',
     }, //which component this application log belongs to.
     name: String,
+    key: String,
     createdById: { type: String, ref: 'User' }, //userId.
     createdAt: {
         type: Date,

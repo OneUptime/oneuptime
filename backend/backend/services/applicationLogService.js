@@ -29,6 +29,7 @@ module.exports = {
             // prepare application log model
             let applicationLog = new ApplicationLogModel();
             applicationLog.name = data.name;
+            applicationLog.key = uuid.v4(); // generate random string here
             applicationLog.componentId = data.componentId;
             applicationLog.createdById = data.createdById;
             const savedApplicationLog = await applicationLog.save();
@@ -168,4 +169,4 @@ const ErrorService = require('./errorService');
 const ComponentService = require('./componentService');
 const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
-const _ = require('lodash');
+const uuid = require('uuid');
