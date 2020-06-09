@@ -33,6 +33,19 @@ const _this = {
                     message: 'Application Log Key is required.',
                 });
             }
+            if (!data.type) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Log Type is required.',
+                });
+            }
+            const allowedLogType = ['info', 'warning', 'error'].filter(elem => elem === data.type)
+            if(allowedLogType.length < 1){
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Log Type must be of the allowed types.',
+                });
+            }
 
             // try to get the application log by the ID and key
             let applicationLog = await ApplicationLogService.findOneBy({
