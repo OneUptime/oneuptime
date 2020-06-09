@@ -15,6 +15,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import { bindActionCreators } from 'redux';
 import { deleteApplicationLog } from '../../actions/applicationLog';
+import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
 
 class ApplicationLogDetail extends Component {
     constructor(props) {
@@ -24,9 +25,10 @@ class ApplicationLogDetail extends Component {
             startDate: moment().subtract(30, 'd'),
             deleting: false,
             deleteModalId: uuid.v4(),
+            openApplicationLogKeyModalId: uuid.v4(),
         };
     }
-    handleDateChange = (startDate) => {
+    handleDateChange = startDate => {
         this.setState({ startDate });
     };
     deleteApplicationLog = () => {
@@ -57,8 +59,16 @@ class ApplicationLogDetail extends Component {
         }
     };
     render() {
-        const { startDate, deleting, deleteModalId } = this.state;
+        const {
+            startDate,
+            deleting,
+            deleteModalId,
+            openApplicationLogKeyModalId,
+        } = this.state;
         const { applicationLog, componentId, currentProject } = this.props;
+        if (currentProject) {
+            document.title = currentProject.name + ' Dashboard';
+        }
         if (applicationLog) {
             return (
                 <div
@@ -96,6 +106,25 @@ class ApplicationLogDetail extends Component {
                             <div>
                                 {this.props.isDetails ? (
                                     <div>
+                                        <button
+                                            id={`key_${applicationLog.name}`}
+                                            className={
+                                                'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--key'
+                                            }
+                                            type="button"
+                                            onClick={() =>
+                                                this.props.openModal({
+                                                    id: openApplicationLogKeyModalId,
+                                                    onClose: () => '',
+                                                    content: DataPathHoC(
+                                                        ViewApplicationLogKey,
+                                                        { applicationLog }
+                                                    ),
+                                                })
+                                            }
+                                        >
+                                            <span>Application Log Key</span>
+                                        </button>
                                         <button
                                             id={`delete_${applicationLog.name}`}
                                             className={
