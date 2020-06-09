@@ -4,7 +4,7 @@ class Logger {
     constructor(applicationLogId, applicationLogKey) {
         this.applicationLogId = applicationLogId;
         this.applicationLogKey = applicationLogKey;
-        this.apiUrl = `${getApiUrl()}${this.applicationLogId}/log-content`;
+        this.apiUrl = `${getApiUrl()}${this.applicationLogId}/log`;
     }
 
     async log(data) {
@@ -13,16 +13,18 @@ class Logger {
         if (!data || !(type === 'object' || type === 'string')) {
             return;
         }
+        const logType = 'info';
         // make api requeest to the server to save a log with the key, id and content
-        return await this.makeApiRequest(data);
+        return await this.makeApiRequest(data, logType);
     }
 
-    makeApiRequest(data) {
+    makeApiRequest(data, logType) {
         return new Promise((resolve, reject) => {
             axios
                 .post(this.apiUrl, {
                     content: data,
                     applicationLogKey: this.applicationLogKey,
+                    type: logType
                 })
                 .then(res => {
                     resolve(res);
