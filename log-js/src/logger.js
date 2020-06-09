@@ -20,7 +20,10 @@ class Logger {
     makeApiRequest(data) {
         return new Promise((resolve, reject) => {
             axios
-                .post(this.apiUrl, { content: data, applicationLogKey: this.applicationLogKey })
+                .post(this.apiUrl, {
+                    content: data,
+                    applicationLogKey: this.applicationLogKey,
+                })
                 .then(res => {
                     resolve(res);
                 })
