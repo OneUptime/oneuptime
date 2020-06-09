@@ -32,6 +32,12 @@ import ProfileBilling from './ProfileBilling';
 
 import ApplicationLog from './ApplicationLog';
 import ApplicationLogView from './ApplicationLogView';
+import Container from './Container';
+import Application from './Application';
+import ApplicationDetail from './ApplicationDetail';
+import ContainerDetail from './ContainerDetail';
+import GitCredential from './GitCredential';
+import DockerCredential from './DockerCredential';
 
 export default {
     ChangePassword,
@@ -58,5 +64,11 @@ export default {
     Probe,
     ProfileBilling,
     ApplicationLog,
-    ApplicationLogView
+    ApplicationLogView,
+    Container,
+    Application,
+    ApplicationDetail,
+    ContainerDetail,
+    GitCredential,
+    DockerCredential,
 };

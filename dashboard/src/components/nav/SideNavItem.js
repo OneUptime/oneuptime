@@ -61,7 +61,11 @@ export class SidebarNavItem extends Component {
                 (location.pathname.match(
                     /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/application-log*/
                 ) &&
-                    route.title === 'Application Logs');
+                    route.title === 'Application Logs') ||
+            (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security/
+            ) &&
+                route.title === 'Security');
 
         const isChildLinkActive = route.subRoutes.some(link => {
             let newPath = link.path.replace(
@@ -73,12 +77,22 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(/:monitorId/, match.params.monitorId);
             newPath = newPath.replace(/:componentId/, match.params.componentId);
             newPath = newPath.replace(/:applicationLogId/, match.params.applicationLogId);
+
             const response =
                 newPath === match.url
                     ? true
-                    : location.pathname.match(
+                    : (location.pathname.match(
                           /project\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
-                      ) && link.title === 'Incident Log'
+                      ) &&
+                          link.title === 'Incident Log') ||
+                      (location.pathname.match(
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container*/
+                      ) &&
+                          link.title === 'Container') ||
+                      (location.pathname.match(
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/application*/
+                      ) &&
+                          link.title === 'Application')
                     ? true
                     : false;
             return response;
@@ -147,6 +161,7 @@ export class SidebarNavItem extends Component {
                                 schedule={schedule}
                                 active={match.url}
                                 onLoad={title => loadPage(title)}
+                                componentId={match.params.componentId}
                             />
                         </ShouldRender>
                     </span>
@@ -155,7 +170,7 @@ export class SidebarNavItem extends Component {
         );
     }
 
-    RenderListItems({ projectId, schedule, active, onLoad }) {
+    RenderListItems({ projectId, schedule, active, onLoad, componentId }) {
         return this.props.route.subRoutes.map((child, index) => {
             const removedLinks = [
                 'Schedule',
@@ -164,12 +179,16 @@ export class SidebarNavItem extends Component {
                 'Component View',
                 'Application Log View',
                 'Status Page',
+                'Application Detail',
+                'Container Detail',
             ];
 
             if (removedLinks.some(link => link === child.title)) return null;
 
             if (child.visible) {
-                let link = child.path.replace(':projectId', projectId);
+                let link = child.path
+                    .replace(':projectId', projectId)
+                    .replace(':componentId', componentId);
                 link =
                     schedule && schedule._id
                         ? link.replace(':scheduleId', schedule._id)
@@ -179,12 +198,10 @@ export class SidebarNavItem extends Component {
                 )
                     ? active
                     : false;
+
                 return (
-                    <ul>
-                        <li
-                            id={this.camalize(child.title)}
-                            key={`nav ${index}`}
-                        >
+                    <ul key={`nav ${index}`}>
+                        <li id={this.camalize(child.title)}>
                             <div style={{ position: 'relative' }}>
                                 <Link
                                     to={link}

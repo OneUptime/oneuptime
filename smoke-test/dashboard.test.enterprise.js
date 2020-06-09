@@ -6,16 +6,21 @@ const { Cluster } = require('puppeteer-cluster');
 require('should');
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const user = {
+    email: utils.generateRandomBusinessEmail(),
+    password: '1234567890',
+};
 
 describe('Enterprise Dashboard API', () => {
     const operationTimeOut = 100000;
+    let cluster;
+    const monitorName = utils.generateRandomString();
+    const componentName = utils.generateRandomString();
 
-    beforeAll(async done => {
+    beforeAll(async () => {
         jest.setTimeout(200000);
 
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
@@ -27,72 +32,40 @@ describe('Enterprise Dashboard API', () => {
         });
 
         // Register user
-        await cluster.task(async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
+        return await cluster.execute(null, async ({ page }) => {
             // user
             await init.registerEnterpriseUser(user, page);
+            await init.logout(page);
+            await init.loginUser(user, page);
         });
 
-        await cluster.queue({ email, password });
+        // await cluster.queue({ email, password });
+    });
 
+    afterAll(async () => {
         await cluster.idle();
         await cluster.close();
-        done();
     });
-
-    afterAll(async done => {
-        done();
-    });
-
-    const componentName = utils.generateRandomString();
 
     it(
         'Should create new monitor with correct details',
-        async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            const monitorName = utils.generateRandomString();
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
-                await page.waitForSelector('#components');
-                await page.click('#components');
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle2',
+                });
 
                 // Fill and submit New Component form
                 await page.waitForSelector('#form-new-component');
                 await page.click('input[id=name]');
-                await page.type('input[id=name]', data.componentName);
+                await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
-
-                // Navigate to details page of component created
-                await page.waitForSelector(
-                    `#more-details-${data.componentName}`
-                );
-                await page.click(`#more-details-${data.componentName}`);
-                await page.waitForSelector('#form-new-monitor');
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 // Fill and submit New Monitor form
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', data.monitorName);
+                await page.click('input[id=name]', { visible: true });
+                await page.type('input[id=name]', monitorName);
                 await init.selectByText('#type', 'url', page);
                 await page.waitForSelector('#url');
                 await page.click('#url');
@@ -101,53 +74,32 @@ describe('Enterprise Dashboard API', () => {
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    `#monitor-title-${data.monitorName}`
+                    `#monitor-title-${monitorName}`,
+                    { visible: true }
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(data.monitorName);
+                spanElement.should.be.exactly(monitorName);
             });
-
-            cluster.queue({ email, password, componentName, monitorName });
-            await cluster.idle();
-            await cluster.close();
-            done();
         },
         operationTimeOut
     );
 
     it(
         'Should not create new monitor when details are incorrect',
-        async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
-                await page.waitForSelector('#components');
-                await page.click('#components');
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle2',
+                });
 
                 // Navigate to details page of component created in previous test
-                await page.waitForSelector(
-                    `#more-details-${data.componentName}`
-                );
-                await page.click(`#more-details-${data.componentName}`);
-                await page.waitForSelector('#form-new-monitor');
+                await page.waitForSelector(`#more-details-${componentName}`);
+                await page.click(`#more-details-${componentName}`);
+                await page.waitForSelector('#form-new-monitor', {
+                    visible: true,
+                });
 
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]');
@@ -164,11 +116,6 @@ describe('Enterprise Dashboard API', () => {
                     'This field cannot be left blank'
                 );
             });
-
-            cluster.queue({ email, password, componentName });
-            await cluster.idle();
-            await cluster.close();
-            done();
         },
         operationTimeOut
     );

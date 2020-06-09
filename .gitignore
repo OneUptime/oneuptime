@@ -17,6 +17,7 @@ node_modules
 .env.test.local
 .env.production.local
 env.js
+/.vscode
 
 npm-debug.log*
 yarn-debug.log*

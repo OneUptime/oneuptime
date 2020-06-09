@@ -5,6 +5,9 @@ const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const saml2 = require('saml2-js');
+const sp = new saml2.ServiceProvider({
+    entity_id: 'hackerbay.io',
+});
 const MailService = require('../services/mailService');
 const SsoService = require('../services/ssoService');
 const getUser = require('../middlewares/user').getUser;
@@ -254,8 +257,8 @@ router.get('/sso/login', async function(req, res) {
             message: 'Email must be present.',
         });
     }
-    const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
 
+    const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
     const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
 
     if (!matchedTokens) {
@@ -283,7 +286,15 @@ router.get('/sso/login', async function(req, res) {
                 message: 'SSO disabled for this domain.',
             });
         }
-        return sendItemResponse(req, res, { url: samlSsoUrl });
+
+        const idp = new saml2.IdentityProvider({
+            sso_login_url: samlSsoUrl,
+        });
+
+        sp.create_login_request_url(idp, {}, function(error, login_url) {
+            if (error != null) return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, { url: login_url });
+        });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -293,7 +304,6 @@ router.get('/sso/login', async function(req, res) {
 // Description: Callback function after SSO authentication page
 // param: query->{domain}
 router.post('/sso/callback', async function(req, res) {
-    const sp = new saml2.ServiceProvider({});
     const idp = new saml2.IdentityProvider({});
     const options = {
         request_body: req.body,
@@ -307,9 +317,21 @@ router.post('/sso/callback', async function(req, res) {
                 message: 'Invalid request',
             });
 
-        const { domain } = req.query;
+        // The structure of the saml_response is not the same from the different servers.
+        const email =
+            saml_response.user.email || saml_response.user.attributes.email[0];
 
-        //TODO Need to check that the caller own the domain.
+        const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+        const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
+
+        if (!matchedTokens) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Invalid email.',
+            });
+        }
+
+        const domain = matchedTokens[1];
         const sso = await SsoService.findOneBy({ domain });
 
         if (!sso)
@@ -318,9 +340,14 @@ router.post('/sso/callback', async function(req, res) {
                 message: 'SSO not defined for the domain.',
             });
 
-        const email = saml_response.user.email;
+        if (!sso['saml-enabled'])
+            return sendErrorResponse(req, res, {
+                code: 401,
+                message: 'SSO is disabled for the domain.',
+            });
 
         let user = await UserService.findOneBy({ email });
+
         if (!user) {
             // User is not create yet
             try {
@@ -411,7 +438,9 @@ router.post('/login', async function(req, res) {
             data.password,
             clientIP
         );
+
         let authUserObj;
+
         if (!user._id) {
             authUserObj = { ...user };
         } else {
@@ -435,7 +464,6 @@ router.post('/login', async function(req, res) {
                 role: user.role || null,
             };
         }
-
         return sendItemResponse(req, res, authUserObj);
     } catch (error) {
         return sendErrorResponse(req, res, error);

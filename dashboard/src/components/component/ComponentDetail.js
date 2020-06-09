@@ -15,6 +15,7 @@ import Badge from '../common/Badge';
 import { history } from '../../store';
 import { logEvent } from '../../analytics';
 import { IS_SAAS_SERVICE } from '../../config';
+import EditComponent from '../modals/EditComponent';
 
 export class ComponentDetail extends Component {
     constructor(props) {
@@ -22,6 +23,7 @@ export class ComponentDetail extends Component {
         this.props = props;
         this.state = {
             deleteComponentModalId: uuid.v4(),
+            editComponentModalId: uuid.v4(),
         };
     }
 
@@ -111,7 +113,7 @@ export class ComponentDetail extends Component {
     };
 
     render() {
-        const { deleteComponentModalId } = this.state;
+        const { deleteComponentModalId, editComponentModalId } = this.state;
         const { component, componentState, currentProject } = this.props;
 
         component.error = null;
@@ -171,7 +173,7 @@ export class ComponentDetail extends Component {
                         <div>
                             <button
                                 id={`more-details-${component.name}`}
-                                className="bs-Button bs-Button--icon bs-Button--help"
+                                className="bs-Button bs-Button--icon bs-Button--more"
                                 type="button"
                                 onClick={() => {
                                     history.push(
@@ -183,7 +185,22 @@ export class ComponentDetail extends Component {
                                     );
                                 }}
                             >
-                                <span>View</span>
+                                <span>More</span>
+                            </button>
+                            <button
+                                id={`edit-component-${component.name}`}
+                                className="bs-Button bs-Button--icon bs-Button--settings"
+                                type="button"
+                                onClick={() => {
+                                    this.props.openModal({
+                                        id: editComponentModalId,
+                                        content: DataPathHoC(EditComponent, {
+                                            componentId: component._id,
+                                        }),
+                                    });
+                                }}
+                            >
+                                <span>Edit</span>
                             </button>
                             <button
                                 id={`delete-component-${component.name}`}

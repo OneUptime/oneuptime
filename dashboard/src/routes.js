@@ -25,7 +25,13 @@ const {
     Probe,
     ProfileBilling,
     ApplicationLog,
-    ApplicationLogView
+    ApplicationLogView,
+    Container,
+    Application,
+    ApplicationDetail,
+    ContainerDetail,
+    GitCredential,
+    DockerCredential,
 } = pages;
 
 export const groups = [
@@ -34,21 +40,6 @@ export const groups = [
         visible: true,
         visibleOnComponentDetail: true,
         routes: [
-            {
-                title: '',
-                path: '/dashboard/project/:projectId/components',
-                component: Component,
-                visible: true,
-                disabled: true,
-                exact: true,
-                subRoutes: [],
-                index: 1,
-                textStyle: {
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    color: 'black',
-                },
-            },
             {
                 title: 'Monitors',
                 path: '/dashboard/project/:projectId/:componentId/monitoring',
@@ -92,11 +83,13 @@ export const groups = [
             },
             {
                 title: 'Application Logs',
-                path: '/dashboard/project/:projectId/:componentId/application-log',
+                path:
+                    '/dashboard/project/:projectId/:componentId/application-log',
                 icon: 'appLog',
                 visible: true,
                 exact: true,
                 component: ApplicationLog,
+                index: 4,
                 subRoutes: [
                     {
                         title: 'Application Log View',
@@ -109,16 +102,71 @@ export const groups = [
                         index: 1,
                     },
                 ],
-                index: 4,
+            },
+            {
+                title: 'Security',
+                path:
+                    '/dashboard/project/:projectId/:componentId/security/container',
+                icon: 'atlas',
+                visible: false,
+                component: Container,
+                exact: true,
+                subRoutes: [
+                    {
+                        title: 'Container',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/security/container',
+                        icon: 'info',
+                        visible: true,
+                        subRoute: [],
+                        component: Container,
+                        index: 1,
+                        exact: true,
+                    },
+                    {
+                        title: 'Container Detail',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/security/container/:containerSecurityId',
+                        icon: 'info',
+                        visible: true,
+                        subRoute: [],
+                        index: 2,
+                        component: ContainerDetail,
+                        exact: true,
+                    },
+                    {
+                        title: 'Application',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/security/application',
+                        icon: 'info',
+                        visible: true,
+                        component: Application,
+                        index: 3,
+                        subRoute: [],
+                        exact: true,
+                    },
+                    {
+                        title: 'Application Detail',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/security/application/:applicationSecurityId',
+                        icon: 'info',
+                        visible: true,
+                        component: ApplicationDetail,
+                        index: 4,
+                        subRoute: [],
+                        exact: true,
+                    },
+                ],
+                index: 5,
             },
             {
                 title: 'Back to Dashboard',
                 path: '/dashboard/project/:projectId/components',
                 icon: 'back',
-                component: Monitor,
+                component: Component,
                 visible: true,
                 subRoutes: [],
-                index: 5,
+                index: 6,
             },
         ],
     },
@@ -270,6 +318,26 @@ export const groups = [
                         subRoutes: [],
                         component: Probe,
                         index: 6,
+                    },
+                    {
+                        title: 'Git Credential',
+                        path:
+                            '/dashboard/project/:projectId/credential/gitCredential',
+                        icon: 'radar',
+                        visible: false,
+                        subRoutes: [],
+                        component: GitCredential,
+                        index: 7,
+                    },
+                    {
+                        title: 'Docker Credential',
+                        path:
+                            '/dashboard/project/:projectId/credential/dockerCredential',
+                        icon: 'radar',
+                        visible: false,
+                        subRoutes: [],
+                        component: DockerCredential,
+                        index: 8,
                     },
                 ],
                 component: Settings,
