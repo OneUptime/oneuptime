@@ -1,9 +1,4 @@
-/** The api url to send server information. */
-const API_URL =
-    // process.env.API_URL ||
-    // (process.env.NODE_ENV === 'development'
-    //     ? 
-        'http://localhost:3002/api/application-log'
-        // : 'https://fyipe.com/api/application-log');
-
-module.exports = { API_URL };
+/** The api url to send the log to. */
+export function getApiUrl() { // yet to figure how to make it use a local url (dev) or fypie url (production)
+    return 'http://localhost:3002/api/application-log/';
+}

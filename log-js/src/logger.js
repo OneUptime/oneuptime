@@ -1,9 +1,10 @@
 import axios from '../node_modules/axios';
+import { getApiUrl } from './config';
 class Logger {
     constructor(applicationLogId, applicationLogKey) {
         this.applicationLogId = applicationLogId;
         this.applicationLogKey = applicationLogKey;
-        this.apiUrl = `http://localhost:3002/api/application-log/${this.applicationLogId}/log-content`;
+        this.apiUrl = `${getApiUrl()}${this.applicationLogId}/log-content`;
     }
 
     async log(data) {
