@@ -93,8 +93,4 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = state_Ignored => {
-    return null;
-};
-
 export default connect(mapStateToProps)(DeleteApplicationLog);

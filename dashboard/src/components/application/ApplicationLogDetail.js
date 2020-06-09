@@ -22,13 +22,12 @@ class ApplicationLogDetail extends Component {
         this.props = props;
         this.state = {
             startDate: moment().subtract(30, 'd'),
-            endDate: moment(),
             deleting: false,
             deleteModalId: uuid.v4(),
         };
     }
-    handleDateChange = (startDate, endDate) => {
-        this.setState({ startDate, endDate });
+    handleDateChange = (startDate) => {
+        this.setState({ startDate });
     };
     deleteApplicationLog = () => {
         const promise = this.props.deleteApplicationLog(
@@ -58,7 +57,7 @@ class ApplicationLogDetail extends Component {
         }
     };
     render() {
-        const { startDate, endDate, deleting, deleteModalId } = this.state;
+        const { startDate, deleting, deleteModalId } = this.state;
         const { applicationLog, componentId, currentProject } = this.props;
         if (applicationLog) {
             return (
