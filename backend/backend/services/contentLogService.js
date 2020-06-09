@@ -2,18 +2,6 @@ module.exports = {
     create: async function (data) {
         try {
             const _this = this;
-            // try to get the application log by the ID and key
-            let applicationLog = await ApplicationLogService.findOneBy({
-                _id: data.applicationLogId,
-                key: data.applicationLogKey
-            });
-            // send an error if the application log doesnt exist
-            if (!applicationLog) {
-                const error = new Error('Application Log does not exist.');
-                error.code = 400;
-                ErrorService.log('contentLogService.create', error);
-                throw error;
-            }
             
             // prepare  log model
             let contentLog = new ContentLogModel();
