@@ -146,5 +146,28 @@ router.post(
         }
     }
 );
+// Description: Get all Content Logs by applicationLogId.
+router.get('/:applicationLogId/log-content', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const applicationLogId = req.params.applicationLogId;
+        if (!applicationLogId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "Application Log ID can't be null",
+            });
+        }
+        const contentLogs = await ContentLogService.getContentLogsApplicationLogId(
+            applicationLogId,
+            req.query.limit || 0,
+            req.query.skip || 0
+        )
+        return sendItemResponse(req, res, contentLogs);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 
 module.exports = router;
