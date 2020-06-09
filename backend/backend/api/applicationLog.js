@@ -10,6 +10,7 @@ const UserService = require('../services/userService');
 const ComponentService = require('../services/componentService');
 const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
+const ContentLogService = require('../services/contentLogService');
 
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
@@ -111,6 +112,54 @@ router.delete(
                     message: 'Application Log not found',
                 });
             }
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.post(
+    '/:applicationLogId/log-content',
+    async function(req, res) {
+        try {
+            const data = req.body;
+            const applicationLogId = req.params.applicationLogId;
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "values can't be null",
+                });
+            }
+            data.createdById = req.user ? req.user.id : null;
+            if (!data.content) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Content to be logged is required.',
+                });
+            }
+            if (!data.applicationLogKey) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Application Log Key is required.',
+                });
+            }
+    
+            
+            data.applicationLogId = applicationLogId;
+    
+            const contentLog = await ContentLogService.create(data);
+            const applicationLog = await ApplicationLogService.findOneBy({ _id: contentLog.applicationLogId._id })
+            const component = await ComponentService.findOneBy({ _id: applicationLog.componentId._id });
+    
+            
+            await NotificationService.create(
+                component.projectId._id,
+                `A New Content Log was Created under Application Log with name ${applicationLog.name}`,
+                contentLog.user,
+                'contentlogaddremove'
+            );
+            await RealTimeService.sendContentLogCreated(contentLog);
+            return sendItemResponse(req, res, contentLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
