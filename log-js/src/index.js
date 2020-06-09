@@ -25,7 +25,8 @@ module.exports = (applicationLogId, applicationLogKey) => {
 
     return {
         log: data => {
-            const url = `${applicationLogId}/create-log`;
+            const url = `${applicationLogId}/log-content`;
+            data.applicationLogKey = applicationLogKey;
 
             return prepareToLogRequest(
                 data,
