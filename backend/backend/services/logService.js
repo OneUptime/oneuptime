@@ -7,6 +7,7 @@ module.exports = {
             let log = new LogModel();
             log.content = data.content;
             log.applicationLogId = data.applicationLogId;
+            log.type = data.type;
             log.createdById = data.createdById;
             const savedlog = await log.save();
             log = await _this.findOneBy({
