@@ -8,6 +8,12 @@ const _this = {
         try {
             const data = req.body;
             const applicationLogId = req.params.applicationLogId;
+            if (!applicationLogId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Application Log ID can't be null",
+                });
+            }
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
