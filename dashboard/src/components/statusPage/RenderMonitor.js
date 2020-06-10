@@ -47,6 +47,7 @@ let RenderMonitor = ({
   allMonitors,
   fields,
   dispatch,
+  errors
 }) => {
   const currentMonitorForm = monitors[monitorIndex];
   const { id: currentMonitorID, type } = currentMonitorForm;
@@ -79,7 +80,9 @@ let RenderMonitor = ({
             className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2"
             style={{ backgroundColor: '#f7f7f7' }}
           >
-            <div className="bs-Fieldset-row">
+            <div
+              className="bs-Fieldset-row"
+            >
               <label
                 className="bs-Fieldset-label"
                 style={{
@@ -151,89 +154,101 @@ let RenderMonitor = ({
                   </label>
                   <div className="Flex-flex Flex-direction--column Flex-justifyContent--flexEnd">
                     {
-                      type === 'url' ?
-                        (
-                          <Fragment>
-                            <Checkbox
-                              label='Uptime'
-                              name={`${monitor}.uptime`}
-                            />
-                            <Checkbox
-                              label='Response Time'
-                              name={`${monitor}.responseTime`}
-                            />
-                          </Fragment>
-                        )
-                        :
-                        type === 'script' ?
-                          (
-                            <Fragment>
-                              <Checkbox
-                                label='Uptime'
-                                name={`${monitor}.uptime`}
-                              />
-                              <Checkbox
-                                label='Script running time'
-                                name={`${monitor}.runtime`}
-                              />
-                            </Fragment>
-                          )
-                          :
-                          type === 'manual' ?
-                            (
-                              <Checkbox
-                                label='Uptime'
-                                name={`${monitor}.uptime`}
-                              />
-                            )
-                            :
-                            type === 'server-monitor' ?
-                              (
-                                <Fragment>
-                                  <Checkbox
-                                    label='Uptime'
-                                    name={`${monitor}.uptime`}
-                                  />
-                                  <Checkbox
-                                    label='Memory'
-                                    name={`${monitor}.memory`}
-                                  />
-                                  <Checkbox
-                                    label='CPU'
-                                    name={`${monitor}.cpu`}
-                                  />
-                                  <Checkbox
-                                    label='Storage'
-                                    name={`${monitor}.storage`}
-                                  />
-                                  <Checkbox
-                                    label='Temperature'
-                                    name={`${monitor}.temperature`}
-                                  />
-                                </Fragment>
-                              )
-                              :
-                              type === 'device' ?
-                                (
-                                  <Checkbox
-                                    label='Uptime'
-                                    name={`${monitor}.uptime`}
-                                  />
-                                )
-                                :
-                                type === 'api' &&
-                                (
-                                  <Fragment>
-                                    <Checkbox
-                                      label='Uptime'
-                                      name={`${monitor}.uptime`}
-                                    />
-                                    <Checkbox
-                                      label='Response Time'
-                                      name={`${monitor}.responseTime`}
-                                    />
-                                  </Fragment>
-                                )
+                      type === 'url' &&
+                      (
+                        <Fragment>
+                          <Checkbox
+                            label='Uptime'
+                            name={`${monitor}.uptime`}
+                          />
+                          <Checkbox
+                            label='Response Time'
+                            name={`${monitor}.responseTime`}
+                          />
+                        </Fragment>
+                      )
+                    }
+                    {
+                      type === 'script' &&
+                      (
+                        <Fragment>
+                          <Checkbox
+                            label='Uptime'
+                            name={`${monitor}.uptime`}
+                          />
+                          <Checkbox
+                            label='Script running time'
+                            name={`${monitor}.runtime`}
+                          />
+                        </Fragment>
+                      )
+                    }
+                    {
+                      type === 'manual' &&
+                      (
+                        <Checkbox
+                          label='Uptime'
+                          name={`${monitor}.uptime`}
+                        />
+                      )
+                    }
+                    {
+                      type === 'server-monitor' &&
+                      (
+                        <Fragment>
+                          <Checkbox
+                            label='Uptime'
+                            name={`${monitor}.uptime`}
+                          />
+                          <Checkbox
+                            label='Memory'
+                            name={`${monitor}.memory`}
+                          />
+                          <Checkbox
+                            label='CPU'
+                            name={`${monitor}.cpu`}
+                          />
+                          <Checkbox
+                            label='Storage'
+                            name={`${monitor}.storage`}
+                          />
+                          <Checkbox
+                            label='Temperature'
+                            name={`${monitor}.temperature`}
+                          />
+                        </Fragment>
+                      )
+                    }
+                    {
+                      type === 'device' &&
+                      (
+                        <Checkbox
+                          label='Uptime'
+                          name={`${monitor}.uptime`}
+                        />
+                      )
+                    }
+                    {
+                      type === 'api' &&
+                      (
+                        <Fragment>
+                          <Checkbox
+                            label='Uptime'
+                            name={`${monitor}.uptime`}
+                          />
+                          <Checkbox
+                            label='Response Time'
+                            name={`${monitor}.responseTime`}
+                          />
+                        </Fragment>
+                      )
+                    }
+                    {
+                      errors.monitors[monitorIndex] &&
+                      errors.monitors[monitorIndex].error &&
+                      <div style={{ color: 'red' }}>
+                        {errors.monitors[monitorIndex].error}
+                      </div>
                     }
                   </div>
                 </div>
@@ -268,7 +283,8 @@ RenderMonitor = connect(state => {
     .map(monitor => monitor.monitors)
     .flat();
   const monitors = selector(state, 'monitors');
-  return { allMonitors, monitors };
+  const { form: { StatuspageMonitors: { syncErrors: errors } } } = state
+  return { allMonitors, monitors, errors };
 }
 )(RenderMonitor);
 

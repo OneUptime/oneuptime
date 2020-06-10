@@ -41,7 +41,7 @@ const validate = values => {
             !temperature &&
             !runtime
         )
-            monitorFormsErrors[i] = { uptime: 'You must select at least one bar chart' };
+            monitorFormsErrors[i] = { error: 'You must select at least one bar chart' };
     }
     return { monitors: monitorFormsErrors };
 }
@@ -139,7 +139,8 @@ export class Monitors extends Component {
                             </ShouldRender>
                         </div>
                     </div>
-                    <form onSubmit={handleSubmit(this.submitForm)}>
+                    {/* <form onSubmit={handleSubmit(this.submitForm)}> */}
+                    <form onSubmit={handleSubmit(() => { })}>
                         <ShouldRender if={this.props.monitors.length > 0}>
                             <div className="bs-ContentSection-content Box-root">
                                 <div>
