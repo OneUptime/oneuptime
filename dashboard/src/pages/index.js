@@ -36,6 +36,7 @@ import ApplicationDetail from './ApplicationDetail';
 import ContainerDetail from './ContainerDetail';
 import GitCredential from './GitCredential';
 import DockerCredential from './DockerCredential';
+import FyipeApi from './FyipeApi';
 
 export default {
     ChangePassword,
@@ -67,4 +68,5 @@ export default {
     ContainerDetail,
     GitCredential,
     DockerCredential,
+    FyipeApi,
 };

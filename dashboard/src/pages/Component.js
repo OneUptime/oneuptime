@@ -17,6 +17,7 @@ import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 
 class DashboardView extends Component {
     componentDidMount() {
@@ -144,6 +145,7 @@ class DashboardView extends Component {
         return (
             <Dashboard ready={this.ready}>
                 <BreadCrumbItem route={pathname} name="Components" />
+                <AlertDisabledWarning />
                 <div className="Box-root">
                     <div>
                         <div>

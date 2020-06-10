@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import Dashboard from '../components/Dashboard';
-import APISettings from '../components/settings/APISettings';
 import ProjectSettings from '../components/settings/ProjectSettings';
 import SubProjects from '../components/settings/SubProjects';
 import DeleteProject from '../components/settings/DeleteProject';
@@ -54,8 +53,6 @@ class Settings extends Component {
                                                 <RenderIfOwner>
                                                     <ProjectSettings />
                                                 </RenderIfOwner>
-
-                                                <APISettings />
 
                                                 <RenderIfOwner>
                                                     <SubProjects />
