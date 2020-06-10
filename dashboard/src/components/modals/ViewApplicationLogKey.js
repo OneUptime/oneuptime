@@ -141,7 +141,7 @@ class ViewApplicationLogKey extends Component {
                                     {/* <RenderIfAdmin> */}
                                         <button
                                             className="bs-Button bs-Button--blue"
-                                            onClick={this.props.resetApplicationLogKey}
+                                            onClick={this.props.confirmThisDialog}
                                         >
                                             <ShouldRender
                                                 if={!this.props.isRequesting}

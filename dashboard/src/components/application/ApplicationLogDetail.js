@@ -15,7 +15,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import { bindActionCreators } from 'redux';
 import { deleteApplicationLog } from '../../actions/applicationLog';
-import { fetchLogs } from '../../actions/applicationLog';
+import { fetchLogs, resetApplicationLogKey } from '../../actions/applicationLog';
 import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
 
 class ApplicationLogDetail extends Component {
@@ -53,6 +53,9 @@ class ApplicationLogDetail extends Component {
     };
     resetApplicationLogKey = () => {
         // todo method to reset key
+        const { applicationLog } = this.props;
+        const promise = this.props.resetApplicationLogKey(applicationLog._id)
+        return promise;
     };
     handleKeyBoard = e => {
         switch (e.key) {
@@ -251,7 +254,8 @@ const mapDispatchToProps = dispatch => {
             openModal,
             closeModal,
             deleteApplicationLog,
-            fetchLogs
+            fetchLogs,
+            resetApplicationLogKey
         },
         dispatch
     );
