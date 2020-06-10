@@ -11,6 +11,10 @@ import {
     DELETE_APPLICATION_LOG_REQUEST,
     DELETE_APPLICATION_LOG_SUCCESS,
     DELETE_COMPONENT_APPLICATION_LOGS,
+    FETCH_LOGS_FAILURE,
+    FETCH_LOGS_REQUEST,
+    FETCH_LOGS_RESET,
+    FETCH_LOGS_SUCCESS
 } from '../constants/applicationLog';
 import moment from 'moment';
 
@@ -30,6 +34,7 @@ const INITIAL_STATE = {
         startDate: moment().subtract(30, 'd'),
         endDate: moment(),
     },
+    logs: {},
 };
 export default function applicationLog(state = INITIAL_STATE, action) {
     let applicationLogs;
@@ -155,7 +160,74 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     loading: false,
                 },
             });
+        case FETCH_LOGS_SUCCESS:
+            return Object.assign({}, state, {
+                logs: {
+                    ...state.logs,
+                    [action.payload.applicationLogId]: {
+                        logs: action.payload.logs,
+                        error: null,
+                        requesting: false,
+                        success: false,
+                        skip: action.payload.skip,
+                        limit: action.payload.limit,
+                        count: action.payload.count,
+                    },
+                },
+            });
 
+        case FETCH_LOGS_FAILURE:
+            const failureLogs = {
+                ...state.logs,
+                [action.payload.applicationLogId]: state.logs[
+                    action.payload.applicationLogId
+                ]
+                    ? {
+                          ...state.logs[action.payload.applicationLogId],
+                          error: action.payload.error,
+                      }
+                    : {
+                          logs: [],
+                          error: action.payload.error,
+                          requesting: false,
+                          success: false,
+                          skip: 0,
+                          limit: 10,
+                          count: null,
+                      },
+            };
+            return Object.assign({}, state, {
+                logs: failureLogs,
+            });
+
+        case FETCH_LOGS_REQUEST:
+            const requestLogs = {
+                ...state.logs,
+                [action.payload.applicationLogId]: state.logs[
+                    action.payload.applicationLogId
+                ]
+                    ? {
+                          ...state.logs[action.payload.applicationLogId],
+                          requesting: true,
+                      }
+                    : {
+                          logs: [],
+                          error: null,
+                          requesting: true,
+                          success: false,
+                          skip: 0,
+                          limit: 10,
+                          count: null,
+                      },
+            };
+            return Object.assign({}, state, {
+                logs: requestLogs,
+            });
+
+        case FETCH_LOGS_RESET:
+            return Object.assign({}, state, {
+                logs: INITIAL_STATE.logs,
+            });
         default:
             return state;
     }

@@ -5,15 +5,15 @@ import errors from '../errors';
 //Create new application log
 //props -> {name: '', type, data -> { data.url}}
 export function createApplicationLog(componentId, values) {
-    return function(dispatch) {
+    return function (dispatch) {
         const promise = postApi(`application-log/${componentId}`, values);
         dispatch(createApplicationLogRequest());
 
         promise.then(
-            function(applicationLog) {
+            function (applicationLog) {
                 dispatch(createApplicationLogSuccess(applicationLog.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -60,15 +60,15 @@ export function resetCreateApplicationLog() {
 }
 
 export function fetchApplicationLogs(componentId) {
-    return function(dispatch) {
+    return function (dispatch) {
         const promise = getApi(`application-log/${componentId}`);
         dispatch(fetchApplicationLogsRequest());
 
         promise.then(
-            function(applicationLogs) {
+            function (applicationLogs) {
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -116,17 +116,20 @@ export function resetFetchApplicationLogs() {
 //Delete a applicationLog
 //props -> {name: '', type, data -> { data.url}}
 export function deleteApplicationLog(applicationLogId, componentId) {
-    return function(dispatch) {
-        const promise = deleteApi(`application-log/${componentId}/${applicationLogId}`, {
-            applicationLogId,
-        });
+    return function (dispatch) {
+        const promise = deleteApi(
+            `application-log/${componentId}/${applicationLogId}`,
+            {
+                applicationLogId,
+            }
+        );
         dispatch(deleteApplicationLogRequest(applicationLogId));
 
         promise.then(
-            function(applicationLog) {
+            function (applicationLog) {
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -138,7 +141,10 @@ export function deleteApplicationLog(applicationLogId, componentId) {
                     error = 'Network Error';
                 }
                 dispatch(
-                    deleteApplicationLogFailure({ error: errors(error), applicationLogId })
+                    deleteApplicationLogFailure({
+                        error: errors(error),
+                        applicationLogId,
+                    })
                 );
             }
         );
@@ -172,5 +178,72 @@ export function deleteComponentApplicationLogs(componentId) {
     return {
         type: types.DELETE_COMPONENT_APPLICATION_LOGS,
         payload: componentId,
+    };
+}
+
+export function fetchLogs(applicationLogId, skip, limit, startDate, endDate) {
+    return function (dispatch) {
+        const promise = postApi(`application-log/${applicationLogId}/logs`, {
+            skip,
+            limit,
+            startDate,
+            endDate,
+        });
+        dispatch(fetchLogsRequest({ applicationLogId }));
+
+        promise.then(
+            function (logs) {
+                dispatch(
+                    fetchLogsSuccess({
+                        applicationLogId,
+                        logs: logs.data.data,
+                        skip,
+                        limit,
+                        count: logs.data.count,
+                    })
+                );
+            },
+            function (error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchLogsFailure({ applicationLogId, error: errors(error) }));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchLogsSuccess(logs) {
+    return {
+        type: types.FETCH_LOGS_SUCCESS,
+        payload: logs ,
+    };
+}
+
+export function fetchLogsRequest(applicationLogId) {
+    return {
+        type: types.FETCH_LOGS_REQUEST,
+        payload: applicationLogId
+    };
+}
+
+export function fetchLogsFailure(error) {
+    return {
+        type: types.FETCH_LOGS_FAILURE,
+        payload: error,
+    };
+}
+export function resetFetchLogs() {
+    return {
+        type: types.FETCH_LOGS_RESET,
     };
 }
