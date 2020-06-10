@@ -6,8 +6,10 @@ const { Cluster } = require('puppeteer-cluster');
 require('should');
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const user = {
+    email: utils.generateRandomBusinessEmail(),
+    password: '1234567890',
+};
 const componentName = utils.generateRandomString();
 const newComponentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
@@ -33,10 +35,6 @@ describe('Components', () => {
         });
 
         return await cluster.execute(null, async ({ page }) => {
-            const user = {
-                email,
-                password,
-            };
             await init.registerUser(user, page);
             await init.loginUser(user, page);
         });
@@ -52,7 +50,9 @@ describe('Components', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
-                await page.goto(utils.DASHBOARD_URL);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
@@ -61,11 +61,11 @@ describe('Components', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.goto(utils.DASHBOARD_URL);
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    `span#${componentName}-text`
+                    `span#component-title-${componentName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
@@ -80,7 +80,9 @@ describe('Components', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
-                await page.goto(utils.DASHBOARD_URL);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
@@ -134,7 +136,9 @@ describe('Components', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
-                await page.goto(utils.DASHBOARD_URL);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
@@ -179,6 +183,35 @@ describe('Components', () => {
                 const countMonitors = monitorRows.length;
 
                 expect(countMonitors).toEqual(1);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should edit a component',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Components page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle2',
+                });
+
+                await page.waitForSelector(`#edit-component-${componentName}`);
+                await page.click(`#edit-component-${componentName}`);
+                await page.waitFor(2000);
+
+                await page.waitForSelector('#componentName');
+                await page.click('input[name=name]');
+                await page.type('input[name=name]', '-two', { delay: 100 });
+                await page.click('button[type=save]', { delay: 100 });
+
+                let spanElement = await page.waitForSelector(
+                    `span#component-title-${componentName}-two`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(`${componentName}-two`);
             });
         },
         operationTimeOut

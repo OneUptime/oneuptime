@@ -35,6 +35,7 @@ describe('Enterprise Dashboard API', () => {
         return await cluster.execute(null, async ({ page }) => {
             // user
             await init.registerEnterpriseUser(user, page);
+            await init.logout(page);
             await init.loginUser(user, page);
         });
 
@@ -51,21 +52,19 @@ describe('Enterprise Dashboard API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
-                await page.goto(utils.DASHBOARD_URL);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle2',
+                });
 
                 // Fill and submit New Component form
                 await page.waitForSelector('#form-new-component');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
-
-                // Navigate to details page of component created
-                await page.waitForSelector(`#more-details-${componentName}`);
-                await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#form-new-monitor');
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 // Fill and submit New Monitor form
-                await page.click('input[id=name]');
+                await page.click('input[id=name]', { visible: true });
                 await page.type('input[id=name]', monitorName);
                 await init.selectByText('#type', 'url', page);
                 await page.waitForSelector('#url');
@@ -75,7 +74,8 @@ describe('Enterprise Dashboard API', () => {
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    `#monitor-title-${monitorName}`
+                    `#monitor-title-${monitorName}`,
+                    { visible: true }
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
@@ -90,12 +90,16 @@ describe('Enterprise Dashboard API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
-                await page.goto(utils.DASHBOARD_URL);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle2',
+                });
 
                 // Navigate to details page of component created in previous test
                 await page.waitForSelector(`#more-details-${componentName}`);
                 await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#form-new-monitor');
+                await page.waitForSelector('#form-new-monitor', {
+                    visible: true,
+                });
 
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]');

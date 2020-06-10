@@ -216,7 +216,8 @@ describe('Monitor API', () => {
                 await page.waitFor(280000);
 
                 let sslStatusElement = await page.waitForSelector(
-                    `#ssl-status-${sslMonitorName}`
+                    `#ssl-status-${sslMonitorName}`,
+                    { visible: true }
                 );
                 sslStatusElement = await sslStatusElement.getProperty(
                     'innerText'
@@ -248,7 +249,8 @@ describe('Monitor API', () => {
                 await page.waitFor(280000);
 
                 let sslStatusElement = await page.waitForSelector(
-                    `#ssl-status-${testServerMonitorName}`
+                    `#ssl-status-${testServerMonitorName}`,
+                    { visible: true }
                 );
                 sslStatusElement = await sslStatusElement.getProperty(
                     'innerText'
@@ -280,7 +282,8 @@ describe('Monitor API', () => {
                 await page.waitFor(280000);
 
                 let sslStatusElement = await page.waitForSelector(
-                    `#ssl-status-${selfSignedMonitorName}`
+                    `#ssl-status-${selfSignedMonitorName}`,
+                    { visible: true }
                 );
                 sslStatusElement = await sslStatusElement.getProperty(
                     'innerText'
