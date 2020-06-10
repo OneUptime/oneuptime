@@ -233,7 +233,7 @@ class ApplicationLogDetail extends Component {
                                                     </div>
                                                 </div>
                                                 <LogList
-                                                    logs={applicationLog}
+                                                    applicationLog={applicationLog}
                                                     componentId={componentId}
                                                 />
                                             </div>
