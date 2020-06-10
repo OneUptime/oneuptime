@@ -12,9 +12,6 @@ import {
     DELETE_APPLICATION_LOG_SUCCESS,
     DELETE_COMPONENT_APPLICATION_LOGS,
 } from '../constants/applicationLog';
-import {
-    FETCH_LOGS_SUCCESS
-} from '../constants/log'
 import moment from 'moment';
 
 const INITIAL_STATE = {
@@ -156,27 +153,6 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     applicationLogs,
                     error: null,
                     loading: false,
-                },
-            });
-        case FETCH_LOGS_SUCCESS:
-            applicationLogs = state.applicationLogsList.applicationLogs.map(
-                applicationLog => {
-                    if (
-                        applicationLog._id ===
-                        action.payload.applicationLogId
-                    ) {
-                        applicationLog.logs = action.payload.logs;
-                    }
-                    return applicationLog;
-                }
-            )
-            return Object.assign({}, state, {
-                applicationLogsList: {
-                    ...state.applicationLogsList,
-                    requesting: false,
-                    error: null,
-                    success: false,
-                    applicationLogs: applicationLogs,
                 },
             });
 
