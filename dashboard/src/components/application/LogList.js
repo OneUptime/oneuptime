@@ -76,6 +76,20 @@ class LogList extends Component {
                                         </span>
                                     </div>
                                 </td>
+                                <td
+                                    id="placeholder-right"
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{
+                                        height: '1px',
+                                        maxWidth: '28px',
+                                        minWidth: '28px',
+                                        width: '28px',
+                                    }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                    </div>
+                                </td>
 
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -121,6 +135,7 @@ class LogList extends Component {
                                               }_${i}`}
                                               key={log._id}
                                               className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
+                                              style={{ 'borderBottom': '#f7f7f7 solid'}}
                                           >
                                               <td
                                                   className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -283,6 +298,20 @@ class LogList extends Component {
                                                       </div>
                                                   </div>
                                               </td>
+                                              <td
+                                    id="placeholder-right"
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{
+                                        height: '1px',
+                                        maxWidth: '28px',
+                                        minWidth: '28px',
+                                        width: '28px',
+                                    }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                    </div>
+                                </td>
                                               <td
                                                   className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                                   style={{
