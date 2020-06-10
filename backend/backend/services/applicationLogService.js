@@ -162,6 +162,31 @@ module.exports = {
             throw error;
         }
     },
+    updateOneBy: async function(query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            let applicationLog = await ApplicationLogModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
+
+            applicationLog = await this.findOneBy(query);
+
+            await RealTimeService.applicationLogKeyReset(applicationLog);
+
+            return applicationLog;
+        } catch (error) {
+            ErrorService.log('applicationLogService.updateOneBy', error);
+            throw error;
+        }
+    },
 };
 
 const ApplicationLogModel = require('../models/applicationLog');

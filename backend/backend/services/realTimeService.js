@@ -467,6 +467,21 @@ module.exports = {
             throw error;
         }
     },
+    applicationLogKeyReset: async applicationLog => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const componentId = applicationLog.componentId._id
+            
+
+            global.io.emit(`applicationLogKeyReset-${componentId}`, applicationLog);
+        } catch (error) {
+            ErrorService.log('realTimeService.applicationLogKeyReset', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');

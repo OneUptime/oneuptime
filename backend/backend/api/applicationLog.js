@@ -21,6 +21,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const uuid = require('uuid');
 
 
 // Route
@@ -166,6 +167,36 @@ router.post(
             );
             const count = await LogService.countBy(query);
             return sendListResponse(req, res, logs, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// Description: Reset Application Log Key by applicationLogId.
+router.post(
+    '/:applicationLogId/reset-key',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        const applicationLogId = req.params.applicationLogId;
+
+        const currentApplicationLog = await ApplicationLogService.findOneBy({ _id: applicationLogId});
+        if(!currentApplicationLog) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Application Log not found',
+            });
+        }
+
+        // application Log is valid 
+        const data = {
+            key: uuid.v4() // set new app log key
+        }
+
+        try {
+            const applicationLog = await ApplicationLogService.updateOneBy({_id: currentApplicationLog._id}, data);
+            return sendItemResponse(req, res, applicationLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
