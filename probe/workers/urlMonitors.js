@@ -139,7 +139,7 @@ const lighthouseFetch = (monitor, url) => {
                 data: { url },
                 error: { message: 'TIMEOUT' },
             });
-        }, 30000);
+        }, 60000);
 
         lighthouseWorker.send(url);
         lighthouseWorker.on('message', async result => {
