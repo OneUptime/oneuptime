@@ -50,6 +50,15 @@ let RenderMonitor = ({
 }) => {
   const currentMonitorForm = monitors[monitorIndex];
   const { id: currentMonitorID, type } = currentMonitorForm;
+  const resetSelectedCharts = () => {
+    dispatch(change('StatuspageMonitors', `${monitor}.uptime`, true))
+    dispatch(change('StatuspageMonitors', `${monitor}.memory`, false))
+    dispatch(change('StatuspageMonitors', `${monitor}.cpu`, false))
+    dispatch(change('StatuspageMonitors', `${monitor}.storage`, false))
+    dispatch(change('StatuspageMonitors', `${monitor}.responseTime`, false))
+    dispatch(change('StatuspageMonitors', `${monitor}.temperature`, false))
+    dispatch(change('StatuspageMonitors', `${monitor}.runtime`, false))
+  }
   return (
     <li style={{ margin: '5px 0px' }}>
       <div className="Card-root">
@@ -98,16 +107,10 @@ let RenderMonitor = ({
                 ]}
                 onChange={(value) => {
                   const selectMonitorID = Object.values(value).slice(0, 24).join('');
-                  const selectedMonitor = allMonitors.filter(monitor => monitor._id === selectMonitorID)[0]
+                  const selectedMonitor = allMonitors.filter(monitor => monitor._id === selectMonitorID)[0];
                   const { type } = selectedMonitor;
                   dispatch(change('StatuspageMonitors', `${monitor}.type`, type))
-                  dispatch(change('StatuspageMonitors', `${monitor}.uptime`, true))
-                  dispatch(change('StatuspageMonitors', `${monitor}.memory`, false))
-                  dispatch(change('StatuspageMonitors', `${monitor}.cpu`, false))
-                  dispatch(change('StatuspageMonitors', `${monitor}.storage`, false))
-                  dispatch(change('StatuspageMonitors', `${monitor}.responseTime`, false))
-                  dispatch(change('StatuspageMonitors', `${monitor}.temperature`, false))
-                  dispatch(change('StatuspageMonitors', `${monitor}.runtime`, false))
+                  resetSelectedCharts();
                 }
                 }
               />
