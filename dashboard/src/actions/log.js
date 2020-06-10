@@ -4,7 +4,7 @@ import errors from '../errors';
 
 export function fetchLogs(applicationLogId) {
     return function(dispatch) {
-        const promise = getApi(`application-log/${applicationLogId}/logs`);
+        const promise = getApi(`application-log/${applicationLogId}/log`);
         dispatch(fetchLogsRequest());
 
         promise.then(

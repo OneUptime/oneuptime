@@ -15,6 +15,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import { bindActionCreators } from 'redux';
 import { deleteApplicationLog } from '../../actions/applicationLog';
+import { fetchLogs } from '../../actions/log';
 import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
 
 class ApplicationLogDetail extends Component {
@@ -61,14 +62,23 @@ class ApplicationLogDetail extends Component {
                 return false;
         }
     };
+    // componentDidMount () {
+    //     const applicationLogId = this.props.match.params.applicationLogId
+    //         ? this.props.match.params.applicationLogId
+    //         : null;
+
+    //     this.props.fetchLogs(applicationLogId);
+    // };
     render() {
         const {
             startDate,
             deleting,
             deleteModalId,
-            openApplicationLogKeyModalId,
+            openApplicationLogKeyModalId
         } = this.state;
         const { applicationLog, componentId, currentProject } = this.props;
+        this.props.fetchLogs(applicationLog._id);
+
         if (currentProject) {
             document.title = currentProject.name + ' Dashboard';
         }
@@ -246,6 +256,7 @@ const mapDispatchToProps = dispatch => {
             openModal,
             closeModal,
             deleteApplicationLog,
+            fetchLogs
         },
         dispatch
     );

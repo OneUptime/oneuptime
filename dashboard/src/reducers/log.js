@@ -19,7 +19,6 @@ const INITIAL_STATE = {
 };
 
 export default function log(state = INITIAL_STATE, action) {
-    let logs;
     switch (action.type) {
         case FETCH_LOGS_SUCCESS:
             return Object.assign({}, state, {
