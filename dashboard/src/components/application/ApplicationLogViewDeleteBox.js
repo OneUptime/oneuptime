@@ -134,12 +134,16 @@ const mapStateToProps = state => {
 };
 
 ApplicationLogViewDeleteBox.propTypes = {
-    currentProject: PropTypes.object.isRequired,
-    componentId: PropTypes.object.isRequired,
+    currentProject: PropTypes.object,
+    componentId: PropTypes.string.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     applicationLogState: PropTypes.object.isRequired,
-    applicationLog: PropTypes.object.isRequired,
+    applicationLog: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
     deleteApplicationLog: PropTypes.func.isRequired,
 };
 

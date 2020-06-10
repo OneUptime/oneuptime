@@ -46,9 +46,7 @@ class ApplicationLogView extends Component {
                 />
                 <BreadCrumbItem route={pathname} name={applicationLogName} />
                 <div
-                    className="Box-root Card-shadow--medium"
-                    style={{ marginTop: '10px', marginBottom: '10px' }}
-                    tabIndex="0"
+                    
                 >
                     <ApplicationLogDetail
                         componentId={componentId}

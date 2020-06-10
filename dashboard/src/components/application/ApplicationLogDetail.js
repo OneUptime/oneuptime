@@ -52,7 +52,7 @@ class ApplicationLogDetail extends Component {
     };
     resetApplicationLogKey = () => {
         // todo method to reset key
-    }
+    };
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -74,113 +74,125 @@ class ApplicationLogDetail extends Component {
         }
         if (applicationLog) {
             return (
-                <div
-                    className="Box-root Card-shadow--medium"
-                    style={{ marginTop: '10px', marginBottom: '10px' }}
-                    tabIndex="0"
-                >
-                    <div className="db-Trends-header">
-                        <div className="db-Trends-title">
-                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                        <span
-                                            id="monitor-content-header"
-                                            className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
-                                        >
+                <div>
+                    <div
+                        className="Box-root Card-shadow--medium"
+                        style={{ marginTop: '10px', marginBottom: '10px' }}
+                        tabIndex="0"
+                    >
+                        <div className="db-Trends-header">
+                            <div className="db-Trends-title">
+                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                             <span
-                                                id={`application-log-title-${applicationLog.name}`}
+                                                id="monitor-content-header"
+                                                className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                             >
-                                                {applicationLog.name}
+                                                <span
+                                                    id={`application-log-title-${applicationLog.name}`}
+                                                >
+                                                    {applicationLog.name}
+                                                </span>
                                             </span>
-                                        </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="db-Trends-controls">
-                            <div className="db-Trends-timeControls">
-                                <DateRangeWrapper
-                                    selected={startDate}
-                                    onChange={this.handleDateChange}
-                                    dateRange={30}
-                                />
-                            </div>
-                            <div>
-                                {this.props.isDetails ? (
-                                    <div>
+                            <div className="db-Trends-controls">
+                                <div className="db-Trends-timeControls">
+                                    <DateRangeWrapper
+                                        selected={startDate}
+                                        onChange={this.handleDateChange}
+                                        dateRange={30}
+                                    />
+                                </div>
+                                <div>
+                                    {this.props.isDetails ? (
+                                        <div>
+                                            <button
+                                                id={`key_${applicationLog.name}`}
+                                                className={
+                                                    'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--key'
+                                                }
+                                                type="button"
+                                                onClick={() =>
+                                                    this.props.openModal({
+                                                        id: openApplicationLogKeyModalId,
+                                                        onClose: () => '',
+                                                        onConfirm: () =>
+                                                            this.resetApplicationLogKey(),
+                                                        content: DataPathHoC(
+                                                            ViewApplicationLogKey,
+                                                            { applicationLog }
+                                                        ),
+                                                    })
+                                                }
+                                            >
+                                                <span>Application Log Key</span>
+                                            </button>
+                                            <button
+                                                id={`delete_${applicationLog.name}`}
+                                                className={
+                                                    deleting
+                                                        ? 'bs-Button bs-Button--blue'
+                                                        : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'
+                                                }
+                                                type="button"
+                                                disabled={deleting}
+                                                onClick={() =>
+                                                    this.props.openModal({
+                                                        id: deleteModalId,
+                                                        onClose: () => '',
+                                                        onConfirm: () =>
+                                                            this.deleteApplicationLog(),
+                                                        content: DataPathHoC(
+                                                            DeleteApplicationLog,
+                                                            { applicationLog }
+                                                        ),
+                                                    })
+                                                }
+                                            >
+                                                <ShouldRender if={!deleting}>
+                                                    <span>Delete</span>
+                                                </ShouldRender>
+                                                <ShouldRender if={deleting}>
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                        </div>
+                                    ) : (
                                         <button
-                                            id={`key_${applicationLog.name}`}
-                                            className={
-                                                'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--key'
-                                            }
+                                            id={`more-details-${applicationLog.name}`}
+                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help"
                                             type="button"
-                                            onClick={() =>
-                                                this.props.openModal({
-                                                    id: openApplicationLogKeyModalId,
-                                                    onClose: () => '',
-                                                    onConfirm: () =>
-                                                        this.resetApplicationLogKey(),
-                                                    content: DataPathHoC(
-                                                        ViewApplicationLogKey,
-                                                        { applicationLog }
-                                                    ),
-                                                })
-                                            }
+                                            onClick={() => {
+                                                history.push(
+                                                    '/dashboard/project/' +
+                                                        currentProject._id +
+                                                        '/' +
+                                                        componentId +
+                                                        '/application-logs/' +
+                                                        applicationLog._id
+                                                );
+                                            }}
                                         >
-                                            <span>Application Log Key</span>
+                                            <span>More</span>
                                         </button>
-                                        <button
-                                            id={`delete_${applicationLog.name}`}
-                                            className={
-                                                deleting
-                                                    ? 'bs-Button bs-Button--blue'
-                                                    : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'
-                                            }
-                                            type="button"
-                                            disabled={deleting}
-                                            onClick={() =>
-                                                this.props.openModal({
-                                                    id: deleteModalId,
-                                                    onClose: () => '',
-                                                    onConfirm: () =>
-                                                        this.deleteApplicationLog(),
-                                                    content: DataPathHoC(
-                                                        DeleteApplicationLog,
-                                                        { applicationLog }
-                                                    ),
-                                                })
-                                            }
-                                        >
-                                            <ShouldRender if={!deleting}>
-                                                <span>Delete</span>
-                                            </ShouldRender>
-                                            <ShouldRender if={deleting}>
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        id={`more-details-${applicationLog.name}`}
-                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help"
-                                        type="button"
-                                        onClick={() => {
-                                            history.push(
-                                                '/dashboard/project/' +
-                                                    currentProject._id +
-                                                    '/' +
-                                                    componentId +
-                                                    '/application-log/' +
-                                                    applicationLog._id
-                                            );
-                                        }}
-                                    >
-                                        <span>More</span>
-                                    </button>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         </div>
+                    </div>
+                    <div
+                        className="Box-root Card-shadow--medium"
+                        style={{
+                            marginTop: '10px',
+                            marginBottom: '10px',
+                            paddingBottom: '10px',
+                        }}
+                        tabIndex="0"
+                    >
                         <div>
                             <div className="db-RadarRulesLists-page">
                                 <div className="Box-root Margin-bottom--12">
@@ -246,8 +258,8 @@ function mapStateToProps(state) {
 
 ApplicationLogDetail.propTypes = {
     componentId: PropTypes.string,
-    applicationLog: PropTypes.object.isRequired,
-    currentProject: PropTypes.object.isRequired,
+    applicationLog: PropTypes.object,
+    currentProject: PropTypes.object,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
 };
