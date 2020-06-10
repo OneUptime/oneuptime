@@ -27,7 +27,7 @@ export default function log(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: false,
-                    logs: action.payload,
+                    logs: state.logsList.logs.concat(action.payload),
                 },
             });
 
