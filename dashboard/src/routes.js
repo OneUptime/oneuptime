@@ -94,7 +94,7 @@ export const groups = [
                     {
                         title: 'Application Log View',
                         path:
-                            '/dashboard/project/:projectId/:componentId/application-log/:applicationLogId',
+                            '/dashboard/project/:projectId/:componentId/application-logs/:applicationLogId',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],
