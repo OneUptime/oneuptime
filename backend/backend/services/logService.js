@@ -100,6 +100,20 @@ module.exports = {
             throw error;
         }
     },
+    async countBy(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            const count = await LogModel.countDocuments(query);
+
+            return count;
+        } catch (error) {
+            ErrorService.log('logService.countBy', error);
+            throw error;
+        }
+    },
 };
 
 const LogModel = require('../models/log');

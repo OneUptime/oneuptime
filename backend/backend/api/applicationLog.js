@@ -19,6 +19,7 @@ const isApplicationLogValid = require('../middlewares/applicationLog').isApplica
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 
 
@@ -139,27 +140,36 @@ router.post(
     }
 );
 // Description: Get all Logs by applicationLogId.
-router.get('/:applicationLogId/log', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const applicationLogId = req.params.applicationLogId;
-        if (!applicationLogId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: "Application Log ID can't be null",
-            });
+router.post(
+    '/:applicationLogId/logs',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const {
+                skip,
+                limit,
+                startDate,
+                endDate,
+            } = req.body;
+            const applicationLogId = req.params.applicationLogId;
+            const query = {};
+            if (applicationLogId) query.applicationLogId = applicationLogId;
+            if (startDate && endDate)
+                query.createdAt = { $gte: startDate, $lte: endDate };
+
+            // Call the LogService.
+            const logs = await LogService.findBy(
+                query,
+                limit || 10,
+                skip || 0
+            );
+            const count = await LogService.countBy(query);
+            return sendListResponse(req, res, logs, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        const logs = await LogService.getLogsByApplicationLogId(
-            applicationLogId,
-            req.query.limit || 0,
-            req.query.skip || 0
-        )
-        return sendItemResponse(req, res, logs);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 module.exports = router;
