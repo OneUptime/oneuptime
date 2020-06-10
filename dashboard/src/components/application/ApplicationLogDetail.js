@@ -77,7 +77,9 @@ class ApplicationLogDetail extends Component {
             openApplicationLogKeyModalId
         } = this.state;
         const { applicationLog, componentId, currentProject } = this.props;
-        this.props.fetchLogs(applicationLog._id);
+        if(applicationLog) {
+            this.props.fetchLogs(applicationLog._id);
+        }
 
         if (currentProject) {
             document.title = currentProject.name + ' Dashboard';

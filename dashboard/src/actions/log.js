@@ -9,7 +9,7 @@ export function fetchLogs(applicationLogId) {
 
         promise.then(
             function(logs) {
-                dispatch(fetchLogsSuccess(logs.data));
+                dispatch(fetchLogsSuccess(logs.data, applicationLogId));
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -30,10 +30,10 @@ export function fetchLogs(applicationLogId) {
     };
 }
 
-export function fetchLogsSuccess(logs) {
+export function fetchLogsSuccess(logs, applicationLogId) {
     return {
         type: types.FETCH_LOGS_SUCCESS,
-        payload: logs,
+        payload: {logs, applicationLogId},
     };
 }
 

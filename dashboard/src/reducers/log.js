@@ -1,6 +1,5 @@
 import {
     FETCH_LOGS_FAILURE,
-    FETCH_LOGS_SUCCESS,
     FETCH_LOGS_REQUEST,
     FETCH_LOGS_RESET
 } from '../constants/log';
@@ -20,16 +19,16 @@ const INITIAL_STATE = {
 
 export default function log(state = INITIAL_STATE, action) {
     switch (action.type) {
-        case FETCH_LOGS_SUCCESS:
-            return Object.assign({}, state, {
-                logsList: {
-                    ...state.logsList,
-                    requesting: false,
-                    error: null,
-                    success: false,
-                    logs: state.logsList.logs.concat(action.payload),
-                },
-            });
+        // case FETCH_LOGS_SUCCESS:
+        //     return Object.assign({}, state, {
+        //         logsList: {
+        //             ...state.logsList,
+        //             requesting: false,
+        //             error: null,
+        //             success: false,
+        //             logs: state.logsList.logs.concat(action.payload),
+        //         },
+        //     });
 
         case FETCH_LOGS_FAILURE:
             return Object.assign({}, state, {

@@ -10,8 +10,11 @@ import {
     DELETE_APPLICATION_LOG_FAILURE,
     DELETE_APPLICATION_LOG_REQUEST,
     DELETE_APPLICATION_LOG_SUCCESS,
-    DELETE_COMPONENT_APPLICATION_LOGS
+    DELETE_COMPONENT_APPLICATION_LOGS,
 } from '../constants/applicationLog';
+import {
+    FETCH_LOGS_SUCCESS
+} from '../constants/log'
 import moment from 'moment';
 
 const INITIAL_STATE = {
@@ -39,8 +42,10 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                 newApplicationLog: INITIAL_STATE.newApplicationLog,
                 applicationLogsList: {
                     ...state.applicationLogsList,
-                    applicationLogs: state.applicationLogsList.applicationLogs.concat(action.payload)
-                }
+                    applicationLogs: state.applicationLogsList.applicationLogs.concat(
+                        action.payload
+                    ),
+                },
             });
         case CREATE_APPLICATION_LOG_FAILURE:
             return Object.assign({}, state, {
@@ -99,58 +104,83 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
+
+        case DELETE_APPLICATION_LOG_SUCCESS:
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    applicationLogs: state.applicationLogsList.applicationLogs.filter(
+                        ({ _id }) => _id !== action.payload
+                    ),
+                },
+                deleteApplicationLog: false,
+            });
+
+        case DELETE_APPLICATION_LOG_FAILURE:
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                deleteApplicationLog: false,
+            });
+
+        case DELETE_APPLICATION_LOG_REQUEST:
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                },
+                deleteApplicationLog: action.payload,
+            });
+
+        case DELETE_COMPONENT_APPLICATION_LOGS:
+            applicationLogs = Object.assign(
+                [],
+                state.applicationLogsList.applicationLogs
+            );
+            applicationLogs = applicationLogs.filter(
+                applicationLog => action.payload !== applicationLog.componentId
+            );
+
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    applicationLogs,
+                    error: null,
+                    loading: false,
+                },
+            });
+        case FETCH_LOGS_SUCCESS:
+            applicationLogs = state.applicationLogsList.applicationLogs.map(
+                applicationLog => {
+                    if (
+                        applicationLog._id ===
+                        action.payload.applicationLogId
+                    ) {
+                        applicationLog.logs = action.payload.logs;
+                    }
+                    return applicationLog;
+                }
+            )
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    applicationLogs: applicationLogs,
+                },
+            });
+
         default:
             return state;
-
-            case DELETE_APPLICATION_LOG_SUCCESS:
-                return Object.assign({}, state, {
-                    applicationLogsList: {
-                        ...state.applicationLogsList,
-                        requesting: false,
-                        error: null,
-                        success: false,
-                        applicationLogs: state.applicationLogsList.applicationLogs.filter(
-                            ({ _id }) => _id !== action.payload
-                        ),
-                    },
-                    deleteApplicationLog: false,
-                });
-    
-            case DELETE_APPLICATION_LOG_FAILURE:
-                return Object.assign({}, state, {
-                    applicationLogsList: {
-                        ...state.applicationLogsList,
-                        requesting: false,
-                        error: action.payload,
-                        success: false,
-                    },
-                    deleteApplicationLog: false,
-                });
-    
-            case DELETE_APPLICATION_LOG_REQUEST:
-                return Object.assign({}, state, {
-                    applicationLogsList: {
-                        ...state.applicationLogsList,
-                        requesting: false,
-                        error: null,
-                        success: false,
-                    },
-                    deleteApplicationLog: action.payload,
-                });
-    
-            case DELETE_COMPONENT_APPLICATION_LOGS:
-                applicationLogs = Object.assign([], state.applicationLogsList.applicationLogs);
-                applicationLogs = applicationLogs.filter(
-                    applicationLog => action.payload !== applicationLog.componentId
-                );
-    
-                return Object.assign({}, state, {
-                    applicationLogsList: {
-                        ...state.applicationLogsList,
-                        applicationLogs,
-                        error: null,
-                        loading: false,
-                    },
-                });
     }
 }
