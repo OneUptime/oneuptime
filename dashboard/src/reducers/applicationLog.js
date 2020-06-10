@@ -14,7 +14,11 @@ import {
     FETCH_LOGS_FAILURE,
     FETCH_LOGS_REQUEST,
     FETCH_LOGS_RESET,
-    FETCH_LOGS_SUCCESS
+    FETCH_LOGS_SUCCESS,
+    RESET_APPLICATION_LOG_KEY_FAILURE,
+    RESET_APPLICATION_LOG_KEY_REQUEST,
+    RESET_APPLICATION_LOG_KEY_RESET,
+    RESET_APPLICATION_LOG_KEY_SUCCESS,
 } from '../constants/applicationLog';
 import moment from 'moment';
 
@@ -228,6 +232,50 @@ export default function applicationLog(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 logs: INITIAL_STATE.logs,
             });
+        case RESET_APPLICATION_LOG_KEY_SUCCESS:
+            applicationLogs = state.applicationLogsList.applicationLogs.map(
+                applicationLog => {
+                    if (applicationLog._id === action.payload.id) {
+                        applicationLog = action.payload;
+                    }
+                    return applicationLog;
+                }
+            );
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    applicationLogs: applicationLogs,
+                },
+            });
+
+        case RESET_APPLICATION_LOG_KEY_FAILURE:
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case RESET_APPLICATION_LOG_KEY_RESET:
+            return Object.assign({}, state, {
+                applicationLogsList: INITIAL_STATE.applicationLogsList,
+            });
+
+        case RESET_APPLICATION_LOG_KEY_REQUEST:
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
         default:
             return state;
     }

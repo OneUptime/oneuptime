@@ -247,3 +247,57 @@ export function resetFetchLogs() {
         type: types.FETCH_LOGS_RESET,
     };
 }
+
+export function resetApplicationLogKey(componentId) {
+    return function (dispatch) {
+        const promise = postApi(`application-log/${componentId}/reset-key`);
+        dispatch(resetApplicationLogKeyRequest());
+
+        promise.then(
+            function (applicationLog) {
+                dispatch(resetApplicationLogKeySuccess(applicationLog.data));
+            },
+            function (error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(resetApplicationLogKeyFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function resetApplicationLogKeySuccess(applicationLog) {
+    return {
+        type: types.RESET_APPLICATION_LOG_KEY_SUCCESS,
+        payload: applicationLog,
+    };
+}
+
+export function resetApplicationLogKeyRequest() {
+    return {
+        type: types.RESET_APPLICATION_LOG_KEY_REQUEST,
+    };
+}
+
+export function resetApplicationLogKeyFailure(error) {
+    return {
+        type: types.RESET_APPLICATION_LOG_KEY_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetresetApplicationLogKey() {
+    return {
+        type: types.RESET_APPLICATION_LOG_KEY_RESET,
+    };
+}
