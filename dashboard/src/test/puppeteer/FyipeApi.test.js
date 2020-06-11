@@ -11,7 +11,7 @@ const user = {
     password: '1234567890',
 };
 
-describe('Fyipe API test', () => {
+describe('API test', () => {
     const operationTimeOut = 500000;
 
     let cluster;
@@ -44,7 +44,7 @@ describe('Fyipe API test', () => {
     });
 
     test(
-        'Should render the Fyipe API page',
+        'Should render the API page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL, {
@@ -60,7 +60,7 @@ describe('Fyipe API test', () => {
                 });
                 elementHandle = await elementHandle.getProperty('innerText');
                 elementHandle = await elementHandle.jsonValue();
-                elementHandle.should.be.exactly('Fyipe API Documentation');
+                elementHandle.should.be.exactly('API Documentation');
             });
         },
         operationTimeOut

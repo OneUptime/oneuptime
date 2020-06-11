@@ -38,8 +38,7 @@ class ResetAPIKey extends Component {
                                 <p>
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         Resetting the API Key will break all
-                                        your existing integrations with the
-                                        Fyipe API.
+                                        your existing integrations with the API.
                                     </span>
                                 </p>
                                 <p>

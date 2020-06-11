@@ -18,7 +18,7 @@ class FyipeApi extends Component {
                     route={getParentRoute(pathname)}
                     name="Project Settings"
                 />
-                <BreadCrumbItem route={pathname} name="Fyipe API" />
+                <BreadCrumbItem route={pathname} name="API" />
                 <div className="db-BackboneViewContainer">
                     <div className="react-settings-view react-view">
                         <TutorialBox type="api" />
