@@ -24,6 +24,7 @@ class ViewApplicationLogKey extends Component {
 
     render() {
         const { hidden } = this.state;
+        const { currentProject } = this.props;
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -138,7 +139,7 @@ class ViewApplicationLogKey extends Component {
                                     >
                                         <span>Cancel</span>
                                     </button>
-                                    {/* <RenderIfAdmin> */}
+                                    <RenderIfAdmin currentProject={currentProject}>
                                         <button
                                             className="bs-Button bs-Button--blue"
                                             onClick={this.props.confirmThisDialog}
@@ -156,7 +157,7 @@ class ViewApplicationLogKey extends Component {
                                                 <FormLoader />
                                             </ShouldRender>
                                         </button>
-                                    {/* </RenderIfAdmin> */}
+                                    </RenderIfAdmin>
                                 </div>
                             </div>
                         </div>
@@ -179,6 +180,7 @@ ViewApplicationLogKey.propTypes = {
 const mapStateToProps = state => {
     return {
         applicationLogState: state.applicationLog,
+        currentProject: state.project.currentProject
     };
 };
 
