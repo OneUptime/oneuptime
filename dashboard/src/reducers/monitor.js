@@ -30,6 +30,9 @@ import {
     FETCH_MONITOR_STATUSES_REQUEST,
     FETCH_MONITOR_STATUSES_SUCCESS,
     FETCH_MONITOR_STATUSES_FAILURE,
+    FETCH_LIGHTHOUSE_LOGS_REQUEST,
+    FETCH_LIGHTHOUSE_LOGS_SUCCESS,
+    FETCH_LIGHTHOUSE_LOGS_FAILURE,
     FETCH_MONITOR_CRITERIA_REQUEST,
     FETCH_MONITOR_CRITERIA_SUCCESS,
     FETCH_MONITOR_CRITERIA_FAILURE,
@@ -83,6 +86,7 @@ const INITIAL_STATE = {
     activeProbe: 0,
     fetchMonitorLogsRequest: false,
     fetchMonitorStatusesRequest: false,
+    fetchLighthouseLogsRequest: false,
     fetchMonitorCriteriaRequest: false,
     fetchMonitorsSubscriberRequest: false,
     deleteMonitor: false,
@@ -242,6 +246,9 @@ export default function monitor(state = INITIAL_STATE, action) {
                                     newMonitor.logs = oldMonitor.logs;
                                 if (!newMonitor.statuses)
                                     newMonitor.statuses = oldMonitor.statuses;
+                                if (!newMonitor.lighthouseLogs)
+                                    newMonitor.lighthouseLogs =
+                                        oldMonitor.lighthouseLogs;
                                 if (!newMonitor.incidents)
                                     newMonitor.incidents = oldMonitor.incidents;
                                 if (!newMonitor.subscribers)
@@ -525,6 +532,55 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: false,
                 },
                 fetchMonitorStatusesRequest: false,
+            });
+
+        case FETCH_LIGHTHOUSE_LOGS_REQUEST:
+            return Object.assign({}, state, {
+                fetchLighthouseLogsRequest: true,
+            });
+
+        case FETCH_LIGHTHOUSE_LOGS_SUCCESS:
+            return Object.assign({}, state, {
+                monitorsList: {
+                    ...state.monitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.monitorsList.monitors.map(monitor => {
+                        monitor.monitors =
+                            monitor._id === action.payload.projectId
+                                ? monitor.monitors.map(monitor => {
+                                      if (
+                                          monitor._id ===
+                                          action.payload.monitorId
+                                      ) {
+                                          monitor.lighthouseLogs = {
+                                              data: action.payload.logs.data,
+                                              skip: action.payload.skip,
+                                              limit: action.payload.limit,
+                                              count: action.payload.count,
+                                          };
+                                          return monitor;
+                                      } else {
+                                          return monitor;
+                                      }
+                                  })
+                                : monitor.monitors;
+                        return monitor;
+                    }),
+                },
+                fetchLighthouseLogsRequest: false,
+            });
+
+        case FETCH_LIGHTHOUSE_LOGS_FAILURE:
+            return Object.assign({}, state, {
+                monitorsList: {
+                    ...state.monitorsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                fetchLighthouseLogsRequest: false,
             });
 
         case 'UPDATE_DATE_RANGE':
@@ -882,6 +938,58 @@ export default function monitor(state = INITIAL_STATE, action) {
                     }),
                 },
                 fetchMonitorStatusesRequest: false,
+            });
+
+        case 'UPDATE_LIGHTHOUSE_LOG':
+            return Object.assign({}, state, {
+                monitorsList: {
+                    ...state.monitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.monitorsList.monitors.map(monitor => {
+                        monitor.monitors =
+                            monitor._id === action.payload.projectId
+                                ? monitor.monitors.map(monitor => {
+                                      if (
+                                          monitor._id ===
+                                          action.payload.monitorId
+                                      ) {
+                                          if (
+                                              monitor.lighthouseLogs &&
+                                              monitor.lighthouseLogs.data
+                                          ) {
+                                              monitor.lighthouseLogs = {
+                                                  ...monitor.lighthouseLogs,
+
+                                                  data: [
+                                                      action.payload.data,
+                                                      ...monitor.lighthouseLogs
+                                                          .data,
+                                                  ],
+                                                  count:
+                                                      monitor.lighthouseLogs
+                                                          .count + 1,
+                                              };
+                                          } else {
+                                              monitor.lighthouseLogs = {
+                                                  data: [action.payload.data],
+                                                  skip: 0,
+                                                  limit: 1,
+                                                  count: 1,
+                                              };
+                                          }
+
+                                          return monitor;
+                                      } else {
+                                          return monitor;
+                                      }
+                                  })
+                                : monitor.monitors;
+                        return monitor;
+                    }),
+                },
+                fetchLighthouseLogsRequest: false,
             });
 
         case FETCH_MONITOR_CRITERIA_REQUEST:

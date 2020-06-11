@@ -469,6 +469,28 @@ router.post(
     }
 );
 
+// Route
+// Description: Get all Lighthouse Logs by monitorId
+router.get(
+    '/:projectId/lighthouseLog/:monitorId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { skip, limit } = req.query;
+            const monitorId = req.params.monitorId;
+            const lighthouseLogs = await MonitorService.getLighthouseLogs(
+                monitorId,
+                limit || 10,
+                skip || 0
+            );
+            return sendListResponse(req, res, lighthouseLogs);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.post(
     '/:projectId/inbound/:deviceId',
     getUser,

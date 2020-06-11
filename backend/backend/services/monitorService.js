@@ -596,6 +596,24 @@ module.exports = {
         }
     },
 
+    async getLighthouseLogs(monitorId, limit, skip) {
+        try {
+            if (typeof limit === 'string') limit = parseInt(limit);
+            if (typeof skip === 'string') skip = parseInt(skip);
+
+            const lighthouseLogs = await LighthouseLogService.findBy(
+                { monitorId },
+                limit,
+                skip
+            );
+
+            return lighthouseLogs;
+        } catch (error) {
+            ErrorService.log('monitorService.getLighthouseLogs', error);
+            throw error;
+        }
+    },
+
     addSeat: async function(query) {
         try {
             const project = await ProjectService.findOneBy(query);
@@ -812,6 +830,7 @@ const MonitorModel = require('../models/monitor');
 const ProbeService = require('./probeService');
 const MonitorStatusService = require('./monitorStatusService');
 const MonitorLogService = require('./monitorLogService');
+const LighthouseLogService = require('./lighthouseLogService');
 const MonitorLogByHourService = require('./monitorLogByHourService');
 const MonitorLogByDayService = require('./monitorLogByDayService');
 const MonitorLogByWeekService = require('./monitorLogByWeekService');

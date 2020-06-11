@@ -5,7 +5,6 @@ const fetch = require('node-fetch');
 const sslCert = require('get-ssl-certificate');
 const { fork } = require('child_process');
 const moment = require('moment');
-const sitemap = require('sitemap-stream-parser');
 
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
@@ -25,55 +24,49 @@ module.exports = {
                           )
                         : -1;
                     if (
-                        (!monitor.lighthouseScannedAt ||
+                        (monitor.lighthouseScanStatus &&
+                            monitor.lighthouseScanStatus === 'failed') ||
+                        ((!monitor.lighthouseScannedAt ||
                             scanIntervalInDays > 0) &&
-                        (!monitor.lighthouseScanStatus ||
-                            monitor.lighthouseScanStatus !== 'scanning')
+                            (!monitor.lighthouseScanStatus ||
+                                monitor.lighthouseScanStatus !== 'scanning'))
                     ) {
                         await ApiService.ping(monitor._id, {
                             monitor,
                             resp: { lighthouseScanStatus: 'scanning' },
                         });
 
-                        const urlObject = new URL(monitor.data.url);
-                        const sites = [];
-
-                        sitemap.parseSitemaps(
-                            `${urlObject.origin}/sitemap.xml`,
-                            url => {
-                                sites.push(url);
-                            },
-                            async err => {
-                                if (err || sites.length === 0)
-                                    sites.push(monitor.data.url);
-
-                                let resp = {};
-                                for (const url of sites) {
-                                    try {
-                                        resp = await lighthouseFetch(
-                                            monitor,
-                                            url
-                                        );
-
-                                        await ApiService.ping(monitor._id, {
-                                            monitor,
-                                            resp,
-                                        });
-                                    } catch (error) {
-                                        resp = error;
-                                        ErrorService.log(
-                                            'lighthouseFetch',
-                                            error.error
-                                        );
-                                    }
-                                }
+                        const sites = [monitor.data.url, ...monitor.sitePages];
+                        let failedCount = 0;
+                        for (const url of sites) {
+                            try {
+                                const resp = await lighthouseFetch(
+                                    monitor,
+                                    url
+                                );
 
                                 await ApiService.ping(monitor._id, {
                                     monitor,
-                                    resp: { lighthouseScanStatus: 'scanned' },
+                                    resp,
                                 });
+                            } catch (error) {
+                                failedCount++;
+                                ErrorService.log(
+                                    'lighthouseFetch',
+                                    error.error
+                                );
                             }
-                        );
+                        }
+
+                        await ApiService.ping(monitor._id, {
+                            monitor,
+                            resp: {
+                                lighthouseScanStatus:
+                                    failedCount === sites.length
+                                        ? 'failed'
+                                        : 'scanned',
+                            },
+                        });
                     }
 
                     await ApiService.ping(monitor._id, {

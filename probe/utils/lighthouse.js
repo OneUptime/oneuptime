@@ -19,7 +19,7 @@ process.on('message', url => {
     launchChromeAndRunLighthouse(url)
         .then(results => {
             const result = {
-                data: { url },
+                lighthouseData: { url, issues: [] },
                 performance: Math.ceil(
                     results.categories.performance.score * 100
                 ),

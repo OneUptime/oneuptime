@@ -647,6 +647,66 @@ export function getMonitorLogsFailure(error) {
     };
 }
 
+// Fetch Lighthouse Logs list
+export function fetchLighthouseLogs(projectId, monitorId, skip, limit) {
+    return function(dispatch) {
+        const promise = getApi(
+            `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}`
+        );
+        dispatch(fetchLighthouseLogsRequest());
+
+        promise.then(
+            function(lighthouseLogs) {
+                dispatch(
+                    fetchLighthouseLogsSuccess({
+                        projectId,
+                        monitorId,
+                        logs: lighthouseLogs.data,
+                        skip,
+                        limit,
+                        count: lighthouseLogs.data.count,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchLighthouseLogsFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchLighthouseLogsRequest() {
+    return {
+        type: types.FETCH_LIGHTHOUSE_LOGS_REQUEST,
+    };
+}
+
+export function fetchLighthouseLogsSuccess(lighthouseLogs) {
+    return {
+        type: types.FETCH_LIGHTHOUSE_LOGS_SUCCESS,
+        payload: lighthouseLogs,
+    };
+}
+
+export function fetchLighthouseLogsFailure(error) {
+    return {
+        type: types.FETCH_LIGHTHOUSE_LOGS_FAILURE,
+        payload: error,
+    };
+}
+
 export function addSeat(projectId) {
     return function(dispatch) {
         const promise = postApi(`monitor/${projectId}/addseat`, {});

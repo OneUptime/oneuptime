@@ -136,7 +136,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             resp && resp.bestPractices ? resp.bestPractices : null;
         data.seo = resp && resp.seo ? resp.seo : null;
         data.pwa = resp && resp.pwa ? resp.pwa : null;
-        data.data = resp && resp.data ? resp.data : null;
+        data.lighthouseData =
+            resp && resp.lighthouseData ? resp.lighthouseData : null;
 
         if (data.lighthouseScanStatus) {
             if (data.lighthouseScanStatus === 'scanning') {
@@ -157,7 +158,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 );
             }
         } else {
-            if (data.data) {
+            if (data.lighthouseData) {
                 log = await ProbeService.saveLighthouseLog(data);
             } else {
                 log = await ProbeService.saveMonitorLog(data);

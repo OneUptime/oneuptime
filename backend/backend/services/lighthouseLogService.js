@@ -5,7 +5,8 @@ module.exports = {
 
             Log.monitorId = data.monitorId;
             Log.probeId = data.probeId;
-            Log.data = data.data;
+            Log.data = data.lighthouseData.issues;
+            Log.url = data.lighthouseData.url;
             Log.performance = data.performance;
             Log.accessibility = data.accessibility;
             Log.bestPractices = data.bestPractices;
