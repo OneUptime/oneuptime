@@ -30,6 +30,7 @@ const {
     ContainerDetail,
     GitCredential,
     DockerCredential,
+    FyipeApi,
 } = pages;
 
 export const groups = [
@@ -314,6 +315,15 @@ export const groups = [
                         subRoutes: [],
                         component: DockerCredential,
                         index: 8,
+                    },
+                    {
+                        title: 'Fyipe API',
+                        path: '/dashboard/project/:projectId/settings/api',
+                        icon: 'radar',
+                        visible: true,
+                        subRoutes: [],
+                        component: FyipeApi,
+                        index: 9,
                     },
                 ],
                 component: Settings,

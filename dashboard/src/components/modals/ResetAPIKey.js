@@ -51,6 +51,7 @@ class ResetAPIKey extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
+                                        id="resetApiKeySave"
                                         className="bs-Button bs-DeprecatedButton bs-Button--red"
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
