@@ -16,7 +16,7 @@ describe('Monitor API', () => {
     let cluster;
 
     beforeAll(async () => {
-        jest.setTimeout(100000);
+        jest.setTimeout(500000);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,

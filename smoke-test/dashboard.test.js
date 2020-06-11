@@ -18,12 +18,12 @@ describe('Monitor API', () => {
     let cluster;
 
     beforeAll(async () => {
-        jest.setTimeout(150000);
+        jest.setTimeout(500000);
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 120000,
+            timeout: 500000,
         });
 
         cluster.on('taskerror', err => {
