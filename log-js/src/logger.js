@@ -16,7 +16,7 @@ class Logger {
         this.#applicationLogKey = applicationLogKey;
     }
     #setApiUrl() {
-        this.#apiUrl = `${getApiUrl()}${this.#applicationLogId}/log`;
+        this.#apiUrl = `${getApiUrl()}application-log/${this.#applicationLogId}/log`;
     }
 
     async log(data) {
