@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/logger.js",
   "scripts": {
-    "test": "mocha --require babel-polyfill --require babel-register",
+    "test": "mocha --require @babel/polyfill --require @babel/register",
     "build": "webpack --mode production"
   },
   "keywords": [],
@@ -13,7 +13,9 @@
   "devDependencies": {
     "@babel/core": "^7.10.2",
     "@babel/node": "^7.10.1",
+    "@babel/plugin-proposal-private-methods": "^7.10.1",
     "@babel/preset-env": "^7.10.2",
+    "@babel/register": "^7.10.1",
     "babel-loader": "^8.1.0",
     "chai": "^4.2.0",
     "mocha": "^7.2.0",
@@ -21,9 +23,7 @@
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
-    "axios": "^0.19.2",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
-    "babel-register": "^6.26.0"
+    "@babel/polyfill": "^7.10.1",
+    "axios": "^0.19.2"
   }
 }

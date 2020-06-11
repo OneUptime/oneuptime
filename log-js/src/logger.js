@@ -2,8 +2,17 @@ import axios from '../node_modules/axios';
 import { getApiUrl } from './config';
 class Logger {
     constructor(applicationLogId, applicationLogKey) {
+        this.#setApplicationLogId(applicationLogId);
+        this.#setApplicationLogKey(applicationLogKey);
+        this.#setApiUrl();
+    }
+    #setApplicationLogId(applicationLogId) {
         this.applicationLogId = applicationLogId;
+    }
+    #setApplicationLogKey(applicationLogKey) {
         this.applicationLogKey = applicationLogKey;
+    }
+    #setApiUrl() {
         this.apiUrl = `${getApiUrl()}${this.applicationLogId}/log`;
     }
 
@@ -14,17 +23,17 @@ class Logger {
             return;
         }
         const logType = 'info';
-        // make api requeest to the server to save a log with the key, id and content
-        return await this.makeApiRequest(data, logType);
+        // make api request to the server to save a log with the key, id and content
+        return await this.#makeApiRequest(data, logType);
     }
 
-    makeApiRequest(data, logType) {
+    #makeApiRequest(data, logType) {
         return new Promise((resolve, reject) => {
             axios
                 .post(this.apiUrl, {
                     content: data,
                     applicationLogKey: this.applicationLogKey,
-                    type: logType
+                    type: logType,
                 })
                 .then(res => {
                     resolve(res);
