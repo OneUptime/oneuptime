@@ -43,7 +43,9 @@ describe('Logger', function () {
                                 request
                                     .post(`application-log/${componentId}`)
                                     .set('Authorization', `Basic ${token}`)
-                                    .send({ name: 'New Application Log' })
+                                    .send({
+                                        name: 'New Application Log'
+                                    })
                                     .end(function (err, res) {
                                         expect(res).to.have.status(200);
                                         expect(res.body).to.be.an('object');
@@ -86,9 +88,7 @@ describe('Logger', function () {
         });
     });
     it('should return a valid logged item of type string', function () {
-        const validLog = new Logger(
-            applicationLog._id,applicationLog.key
-        );
+        const validLog = new Logger(applicationLog._id, applicationLog.key);
         const logMessage = 'This is a simple log';
         validLog.log(logMessage).then(response => {
             expect(response.status).to.equal(200);
@@ -98,9 +98,7 @@ describe('Logger', function () {
         });
     });
     it('should return a valid logged item of type object', function () {
-        const validLog = new Logger(
-            applicationLog._id,applicationLog.key
-        );
+        const validLog = new Logger(applicationLog._id, applicationLog.key);
         const logMessage = {
             message: 'This is a simple log',
             user: { name: 'Jon', email: 'accurate@y.co.uk' },
