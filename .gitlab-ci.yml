@@ -116,3 +116,6 @@ include:
   #SMOKE TEST
   - '/ci/spec/smoke-tests/staging.yaml'
   - '/ci/spec/smoke-tests/production.yaml'
+
+  # LOG-JS
+  - '/ci/spec/log-js/audit.yaml'
