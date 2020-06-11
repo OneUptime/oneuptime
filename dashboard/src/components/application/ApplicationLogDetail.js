@@ -52,7 +52,6 @@ class ApplicationLogDetail extends Component {
         return promise;
     };
     resetApplicationLogKey = () => {
-        // todo method to reset key
         const { applicationLog } = this.props;
         const promise = this.props.resetApplicationLogKey(applicationLog._id)
         return promise;

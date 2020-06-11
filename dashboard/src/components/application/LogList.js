@@ -503,15 +503,11 @@ const mapDispatchToProps = dispatch => {
 };
 LogList.propTypes = {
     applicationLogId: PropTypes.string,
-    logs: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string,
-        })
-    ),
+    logs: PropTypes.object,
     openModal: PropTypes.func,
     fetchLogs: PropTypes.func,
-    prevClicked: PropTypes.func.isRequired,
-    nextClicked: PropTypes.func.isRequired,
+    prevClicked: PropTypes.func,
+    nextClicked: PropTypes.func,
 
 };
 function mapStateToProps(state, props) {
