@@ -59,7 +59,7 @@ export class APISettings extends Component {
                                 <p>
                                     <span>
                                         Access and integrate your apps and
-                                        services with Fyipe API.
+                                        services with API.
                                     </span>
                                 </p>
                             </div>

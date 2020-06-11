@@ -53,6 +53,7 @@ class DeleteIncident extends Component {
                                     </button>
                                     <ShouldRender if={!deleting}>
                                         <button
+                                            id="confirmDeleteIncident"
                                             className="bs-Button bs-DeprecatedButton bs-Button--red"
                                             type="button"
                                             onClick={

@@ -4,7 +4,7 @@ function ApiDoc() {
     return (
         <div className="Flex-flex Flex-alignContent--stretch tut-Main row">
             <div className="bs-u-justify--center col-sm-12 Flex-justifyContent--center Padding-all--20 Vertical">
-                <a href=" https://docs.fyipe.com" target="_blank">
+                
                     <div className="Flex-flex Flex-alignItems--center">
                         <img
                             src={
@@ -18,13 +18,13 @@ function ApiDoc() {
                         <div>
                             <article className="Text-wrap--wrap col-sm-12">
                                 Anything you do here on Fyipe Dashboard can also
-                                be done via the API. We have built an extensive
-                                RESTful API documentation for you. Please check
-                                it out here
+                                be done via the API. <br/>We have built an extensive
+                                RESTful API documentation for you.<br/> <a href=" https://fyipe.com/docs" target="_blank">Please check
+                                it out here.</a>
                             </article>
                         </div>
                     </div>
-                </a>
+                
             </div>
         </div>
     );

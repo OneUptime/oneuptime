@@ -328,7 +328,7 @@ export const groups = [
                         index: 8,
                     },
                     {
-                        title: 'Fyipe API',
+                        title: 'API',
                         path: '/dashboard/project/:projectId/settings/api',
                         icon: 'radar',
                         visible: true,
