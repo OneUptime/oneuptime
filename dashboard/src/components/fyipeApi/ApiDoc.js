@@ -4,7 +4,7 @@ function ApiDoc() {
     return (
         <div className="Flex-flex Flex-alignContent--stretch tut-Main row">
             <div className="bs-u-justify--center col-sm-12 Flex-justifyContent--center Padding-all--20 Vertical">
-                <a href=" https://docs.fyipe.com" target="_blank">
+                <a href=" https://fyipe.com/docs" target="_blank">
                     <div className="Flex-flex Flex-alignItems--center">
                         <img
                             src={
