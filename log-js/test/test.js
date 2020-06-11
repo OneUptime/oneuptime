@@ -1,52 +1,123 @@
-const chai = require('chai')
-const expect = chai.expect
+const chai = require('chai');
+chai.use(require('chai-http'));
+
+const expect = chai.expect;
+import { user, generateRandomBusinessEmail } from './util';
+import { getApiUrl } from '../src/config';
+const request = chai.request.agent(getApiUrl());
 
 import Logger from '../src/logger';
 
-describe('Logger', function() {
+describe('Logger', function () {
+    let projectId;
+    let token;
+    let componentId;
+    let applicationLog;
+    // create a new user
+    user.email = generateRandomBusinessEmail();
+    const component = { name: 'Our Component' };
+    before(function (done) {
+        this.timeout(40000);
+        request
+            .post('user/signup')
+            .send(user)
+            .end(function (err, res) {
+                const project = res.body.project;
 
-    it('should request for application log key', function(){
-        const firstLog = new Logger('53cb6b9b4f4ddef1ad47f943','');
+                projectId = project._id;
+
+                request
+                    .post('user/login')
+                    .send({
+                        email: user.email,
+                        password: user.password,
+                    })
+                    .end(function (err, res) {
+                        token = res.body.tokens.jwtAccessToken;
+                        request
+                            .post(`component/${projectId}`)
+                            .set('Authorization', `Basic ${token}`)
+                            .send(component)
+                            .end(function (err, res) {
+                                componentId = res.body._id;
+                                request
+                                    .post(`application-log/${componentId}`)
+                                    .set('Authorization', `Basic ${token}`)
+                                    .send({ name: 'New Application Log' })
+                                    .end(function (err, res) {
+                                        expect(res).to.have.status(200);
+                                        expect(res.body).to.be.an('object');
+                                        expect(res.body).to.have.property(
+                                            '_id'
+                                        );
+                                        applicationLog = res.body;
+                                        done();
+                                    });
+                            });
+                    });
+            });
+    });
+
+    it('should request for application log key', function () {
+        const firstLog = new Logger(applicationLog._id, '');
         firstLog.log('here').catch(error => {
             expect(error.response.status).to.equal(400);
-            expect(error.response.data.message).to.equal('Application Log Key is required.');
-        })
-    })
-    it('should request for content', function(){
-        const firstLog = new Logger('53cb6b9b4f4ddef1ad47f943','key');
+            expect(error.response.data.message).to.equal(
+                'Application Log Key is required.'
+            );
+        });
+    });
+    it('should request for content', function () {
+        const firstLog = new Logger(applicationLog._id, applicationLog.key);
         firstLog.log('').catch(error => {
             expect(error.response.status).to.equal(400);
-            expect(error.response.data.message).to.equal('Content to be logged is required.');
-        })
-    })
-    it('should return invalid application log', function(){
-        const firstLog = new Logger('53cb6b9b4f4ddef1ad47f943','key');
+            expect(error.response.data.message).to.equal(
+                'Content to be logged is required.'
+            );
+        });
+    });
+    it('should return invalid application log', function () {
+        const firstLog = new Logger(applicationLog._id, 'key');
         firstLog.log('content').catch(error => {
             expect(error.response.status).to.equal(400);
-            expect(error.response.data.message).to.equal('Application Log does not exist.');
-        })
-    })
-    it('should return a valid logged item of type string', function(){
-        const validLog = new Logger('5edf4d94a68af8016be57931','2003e4d7-ebe9-4e16-b254-b3ed4b75575a');
+            expect(error.response.data.message).to.equal(
+                'Application Log does not exist.'
+            );
+        });
+    });
+    it('should return a valid logged item of type string', function () {
+        const validLog = new Logger(
+            applicationLog._id,applicationLog.key
+        );
         const logMessage = 'This is a simple log';
         validLog.log(logMessage).then(response => {
             expect(response.status).to.equal(200);
-            expect(response.data).to.be.an('object')
-            expect(response.data.content).to.be.a('string')
-            expect(response.data).to.include({content:logMessage})            
-        })
-    })
-    it('should return a valid logged item of type object', function(){
-        const validLog = new Logger('5edf4d94a68af8016be57931','2003e4d7-ebe9-4e16-b254-b3ed4b75575a');
-        const logMessage = { message: 'This is a simple log', user: { name: 'Jon', email: 'accurate@y.co.uk'}};
+            expect(response.data).to.be.an('object');
+            expect(response.data.content).to.be.a('string');
+            expect(response.data).to.include({ content: logMessage });
+        });
+    });
+    it('should return a valid logged item of type object', function () {
+        const validLog = new Logger(
+            applicationLog._id,applicationLog.key
+        );
+        const logMessage = {
+            message: 'This is a simple log',
+            user: { name: 'Jon', email: 'accurate@y.co.uk' },
+        };
         validLog.log(logMessage).then(response => {
             expect(response.status).to.equal(200);
-            expect(response.data).to.be.an('object')
-            expect(response.data.content).to.be.an('object')
-            expect(response.data.content).to.include({ message: logMessage.message})  
-            expect(response.data.content.user).to.include({ name: logMessage.user.name})  
-            expect(response.data.content.user).to.include({ email: logMessage.user.email})         
-        })
-    })
-    
-})
+            expect(response.data).to.be.an('object');
+            expect(response.data.content).to.be.an('object');
+            expect(response.data.content).to.include({
+                message: logMessage.message,
+            });
+            expect(response.data.content.user).to.include({
+                name: logMessage.user.name,
+            });
+            expect(response.data.content.user).to.include({
+                email: logMessage.user.email,
+            });
+        });
+    });
+});
