@@ -137,6 +137,40 @@ describe('Monitor Detail API', () => {
     );
 
     test(
+        'Should delete an incident and redirect to the monitor page',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                await page.waitFor(5000);
+                const selector = 'tr.incidentListItem';
+                await page.waitForSelector(selector);
+                await page.click(selector);
+                await page.waitFor(5000);
+                await page.waitForSelector('button[id=deleteIncidentButton]');
+                await page.click('#deleteIncidentButton');
+                await page.waitFor(5000);
+                await page.waitForSelector('button[id=confirmDeleteIncident]', {
+                    visible: true,
+                });
+                await page.click('#confirmDeleteIncident');
+                await page.waitForNavigation();
+
+                const incidentList = 'tr.incidentListItem';
+                await page.waitForSelector(incidentList);
+                await page.waitFor(35000);
+
+                expect((await page.$$(incidentList)).length).toEqual(0);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should navigate to monitor details and create a scheduled event',
         async () => {
             expect.assertions(1);
