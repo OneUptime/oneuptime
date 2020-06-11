@@ -235,7 +235,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
         case RESET_APPLICATION_LOG_KEY_SUCCESS:
             applicationLogs = state.applicationLogsList.applicationLogs.map(
                 applicationLog => {
-                    if (applicationLog._id === action.payload.id) {
+                    if (applicationLog._id === action.payload._id) {
                         applicationLog = action.payload;
                     }
                     return applicationLog;
