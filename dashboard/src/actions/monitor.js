@@ -186,6 +186,39 @@ export function resetEditMonitor() {
     };
 }
 
+//Add new site url
+//props -> siteUrl
+export function addSiteUrl(monitorId, projectId, siteUrl) {
+    return function(dispatch) {
+        const promise = postApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
+            siteUrl,
+        });
+        dispatch(editMonitorRequest());
+
+        promise.then(
+            function(monitor) {
+                dispatch(editMonitorSuccess(monitor.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(editMonitorFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
 //Delete a monitor
 //props -> {name: '', type, data -> { data.url}}
 export function deleteMonitor(monitorId, projectId) {
@@ -648,10 +681,12 @@ export function getMonitorLogsFailure(error) {
 }
 
 // Fetch Lighthouse Logs list
-export function fetchLighthouseLogs(projectId, monitorId, skip, limit) {
+export function fetchLighthouseLogs(projectId, monitorId, skip, limit, url) {
     return function(dispatch) {
         const promise = getApi(
-            `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}`
+            url
+                ? `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}&url=${url}`
+                : `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}`
         );
         dispatch(fetchLighthouseLogsRequest());
 

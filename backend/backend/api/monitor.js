@@ -8,6 +8,7 @@ const express = require('express');
 const UserService = require('../services/userService');
 const MonitorService = require('../services/monitorService');
 const MonitorLogService = require('../services/monitorLogService');
+const LighthouseLogService = require('../services/lighthouseLogService');
 const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
 const ScheduleService = require('../services/scheduleService');
@@ -477,14 +478,19 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
-            const { skip, limit } = req.query;
+            const { skip, limit, url } = req.query;
             const monitorId = req.params.monitorId;
-            const lighthouseLogs = await MonitorService.getLighthouseLogs(
-                monitorId,
+
+            const query = url ? { monitorId, url } : { monitorId };
+
+            const lighthouseLogs = await LighthouseLogService.findBy(
+                query,
                 limit || 10,
                 skip || 0
             );
-            return sendListResponse(req, res, lighthouseLogs);
+            const count = await LighthouseLogService.countBy(query);
+
+            return sendListResponse(req, res, lighthouseLogs, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -559,5 +565,25 @@ router.post('/:projectId/addseat', getUser, isAuthorized, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.post(
+    '/:projectId/siteUrl/:monitorId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { siteUrl } = req.body;
+            const monitor = await MonitorService.addSiteUrl(
+                {
+                    _id: req.params.monitorId,
+                },
+                { siteUrl }
+            );
+            return sendItemResponse(req, res, monitor);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 module.exports = router;

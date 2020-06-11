@@ -596,24 +596,6 @@ module.exports = {
         }
     },
 
-    async getLighthouseLogs(monitorId, limit, skip) {
-        try {
-            if (typeof limit === 'string') limit = parseInt(limit);
-            if (typeof skip === 'string') skip = parseInt(skip);
-
-            const lighthouseLogs = await LighthouseLogService.findBy(
-                { monitorId },
-                limit,
-                skip
-            );
-
-            return lighthouseLogs;
-        } catch (error) {
-            ErrorService.log('monitorService.getLighthouseLogs', error);
-            throw error;
-        }
-    },
-
     addSeat: async function(query) {
         try {
             const project = await ProjectService.findOneBy(query);
@@ -633,6 +615,35 @@ module.exports = {
             return 'A new seat added. Now you can add a monitor';
         } catch (error) {
             ErrorService.log('monitorService.addSeat', error);
+            throw error;
+        }
+    },
+
+    addSiteUrl: async function(query, data) {
+        try {
+            let monitor = await this.findOneBy(query);
+
+            if (
+                (monitor.siteUrls &&
+                    monitor.siteUrls.length > 0 &&
+                    monitor.siteUrls.includes(data.siteUrl)) ||
+                (monitor.data &&
+                    monitor.data.url &&
+                    monitor.data.url === data.siteUrl)
+            ) {
+                const error = new Error('Site URL already exists.');
+                error.code = 400;
+                ErrorService.log('monitorService.addSiteUrl', error);
+                throw error;
+            }
+
+            const siteUrls = [data.siteUrl, ...monitor.siteUrls];
+
+            monitor = await this.updateOneBy(query, { siteUrls });
+
+            return monitor;
+        } catch (error) {
+            ErrorService.log('monitorService.addSiteUrl', error);
             throw error;
         }
     },
@@ -830,7 +841,6 @@ const MonitorModel = require('../models/monitor');
 const ProbeService = require('./probeService');
 const MonitorStatusService = require('./monitorStatusService');
 const MonitorLogService = require('./monitorLogService');
-const LighthouseLogService = require('./lighthouseLogService');
 const MonitorLogByHourService = require('./monitorLogByHourService');
 const MonitorLogByDayService = require('./monitorLogByDayService');
 const MonitorLogByWeekService = require('./monitorLogByWeekService');

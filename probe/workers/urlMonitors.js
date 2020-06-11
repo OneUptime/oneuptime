@@ -36,7 +36,7 @@ module.exports = {
                             resp: { lighthouseScanStatus: 'scanning' },
                         });
 
-                        const sites = [monitor.data.url, ...monitor.sitePages];
+                        const sites = [monitor.data.url, ...monitor.siteUrls];
                         let failedCount = 0;
                         for (const url of sites) {
                             try {
