@@ -19,7 +19,7 @@ export const user = {
     state: 'New York',
     zipCode: '111000111',
     country: 'Iceland',
-    planId: 'plan_EgTJMZULfh6THW',
+    planId: 'plan_GoWIYiX2L8hwzx',
     companyRole: 'Snr. Developer',
     companyPhoneNumber: '+919910568840',
     reference: 'Github',
