@@ -5,10 +5,10 @@ A fyipe application logger that can be used to send logs about your applications
 ## Installation
 
 ### Development
-    - Clone repository
-    - run `npm i` to install dependencies
-    - `npm run test` to run tests
-    - `npm run build` to build for production.
+- Clone repository
+- run `npm i` to install dependencies
+- run `npm run test` to run tests
+- run `npm run build` to build for production.
 
 <a name="module_api"></a>
 
