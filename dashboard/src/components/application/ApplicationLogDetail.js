@@ -34,7 +34,7 @@ class ApplicationLogDetail extends Component {
         const promise = this.props.deleteApplicationLog(
             this.props.currentProject._id,
             this.props.componentId,
-            this.props.applicationLog._id,
+            this.props.applicationLog._id
         );
         history.push(
             `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`
@@ -50,13 +50,23 @@ class ApplicationLogDetail extends Component {
         }
         return promise;
     };
-    onChange = () => {
-
-    }
     resetApplicationLogKey = () => {
-        const { applicationLog } = this.props;
-        const promise = this.props.resetApplicationLogKey(applicationLog._id);
-        return promise;
+       return this.props
+            .resetApplicationLogKey(
+                this.props.currentProject._id,
+                this.props.componentId,
+                this.props.applicationLog._id
+            ).then(() => {
+                this.props.closeModal({ id: this.state.openApplicationLogKeyModalId });
+                if (SHOULD_LOG_ANALYTICS) {
+                    logEvent(
+                        'EVENT: DASHBOARD > COMPONENTS > APPLICATION LOG > APPLICATION LOG DETAILS > RESET APPLICATION LOG KEY',
+                        {
+                            applicationLogId: this.props.applicationLog._id,
+                        }
+                    );
+                }
+            });
     };
     handleKeyBoard = e => {
         switch (e.key) {
@@ -72,14 +82,21 @@ class ApplicationLogDetail extends Component {
             deleteModalId,
             openApplicationLogKeyModalId,
         } = this.state;
-        const { applicationLog, componentId, currentProject, startDate, endDate } = this.props;
+        const {
+            applicationLog,
+            componentId,
+            currentProject,
+            startDate,
+            endDate,
+        } = this.props;
         if (applicationLog) {
             this.props.fetchLogs(
                 applicationLog._id,
                 0,
                 10,
                 startDate.clone().utc(),
-                endDate.clone().utc());
+                endDate.clone().utc()
+            );
         }
 
         if (currentProject) {

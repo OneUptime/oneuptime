@@ -11,7 +11,15 @@ class ViewApplicationLogKey extends Component {
         this.props = props;
         this.state = {
             hidden: true,
+            confirmBoxHidden: true,
         };
+    }
+    toggleConfirmationBox = () => {
+        this.setState(
+            state => ({
+                confirmBoxHidden: !state.confirmBoxHidden,
+            })
+        )
     }
     handleKeyBoard = e => {
         switch (e.key) {
@@ -49,8 +57,9 @@ class ViewApplicationLogKey extends Component {
                                     <p>
                                         <span>
                                             Use your Application Log ID and
-                                            Application Log Key to log requests from
-                                            your apps to your Fyipe Dashboard
+                                            Application Log Key to log requests
+                                            from your apps to your Fyipe
+                                            Dashboard
                                         </span>
                                     </p>
                                 </div>
@@ -129,6 +138,35 @@ class ViewApplicationLogKey extends Component {
                                         </div>
                                     </fieldset>
                                 </div>
+                                <ShouldRender if={!this.state.confirmBoxHidden}>
+                                    <div
+                                        style={{ backgroundColor: 'white' }}
+                                        className="Box-root"
+                                    >
+                                        <div className="bs-Fieldset-rows">
+                                            <div className="bs-Fieldset-row">
+                                                <p>
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                        Resetting the
+                                                        Application Log Key will
+                                                        break all your existing
+                                                        integrations with the
+                                                        Fyipe Application Logger
+                                                        Library
+                                                    </span>
+                                                </p>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <p>
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                        Are you sure you want to
+                                                        continue?
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ShouldRender>
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
@@ -139,24 +177,59 @@ class ViewApplicationLogKey extends Component {
                                     >
                                         <span>Cancel</span>
                                     </button>
-                                    <RenderIfAdmin currentProject={currentProject}>
-                                        <button
-                                            className="bs-Button bs-Button--blue"
-                                            onClick={this.props.confirmThisDialog}
+                                    <RenderIfAdmin
+                                        currentProject={currentProject}
+                                    >
+                                        <ShouldRender
+                                            if={this.state.confirmBoxHidden}
                                         >
-                                            <ShouldRender
-                                                if={!this.props.isRequesting}
+                                            <button
+                                                className="bs-Button bs-Button--blue"
+                                                onClick={
+                                                    this.toggleConfirmationBox
+                                                }
                                             >
-                                                <span>
-                                                    Reset Application Log Key
-                                                </span>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={this.props.isRequesting}
+                                                <ShouldRender
+                                                    if={
+                                                        !this.props.isRequesting
+                                                    }
+                                                >
+                                                    <span>
+                                                        Reset Application Log
+                                                        Key
+                                                    </span>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={this.props.isRequesting}
+                                                >
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={!this.state.confirmBoxHidden}
+                                        >
+                                            <button
+                                                className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                                type="button"
+                                                onClick={
+                                                    this.props.confirmThisDialog
+                                                }
                                             >
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
+                                                <ShouldRender
+                                                    if={
+                                                        !this.props.isRequesting
+                                                    }
+                                                >
+                                                    <span>YES, RESET</span>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={this.props.isRequesting}
+                                                >
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                        </ShouldRender>
                                     </RenderIfAdmin>
                                 </div>
                             </div>
@@ -180,7 +253,7 @@ ViewApplicationLogKey.propTypes = {
 const mapStateToProps = state => {
     return {
         applicationLogState: state.applicationLog,
-        currentProject: state.project.currentProject
+        currentProject: state.project.currentProject,
     };
 };
 
