@@ -80,6 +80,7 @@ class LogList extends Component {
             canNext = false;
             canPrev = false;
         }
+        
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>

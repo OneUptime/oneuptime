@@ -15,23 +15,23 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import { bindActionCreators } from 'redux';
 import { deleteApplicationLog } from '../../actions/applicationLog';
-import { fetchLogs, resetApplicationLogKey } from '../../actions/applicationLog';
+import {
+    fetchLogs,
+    resetApplicationLogKey,
+} from '../../actions/applicationLog';
 import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
+import DateTimeRangeWrapper from '../monitor/DateTimeRangeWrapper';
 
 class ApplicationLogDetail extends Component {
     constructor(props) {
         super(props);
         this.props = props;
         this.state = {
-            startDate: moment().subtract(30, 'd'),
             deleting: false,
             deleteModalId: uuid.v4(),
             openApplicationLogKeyModalId: uuid.v4(),
         };
     }
-    handleDateChange = startDate => {
-        this.setState({ startDate });
-    };
     deleteApplicationLog = () => {
         const promise = this.props.deleteApplicationLog(
             this.props.applicationLog._id,
@@ -51,9 +51,12 @@ class ApplicationLogDetail extends Component {
         }
         return promise;
     };
+    onChange = () => {
+        
+    }
     resetApplicationLogKey = () => {
         const { applicationLog } = this.props;
-        const promise = this.props.resetApplicationLogKey(applicationLog._id)
+        const promise = this.props.resetApplicationLogKey(applicationLog._id);
         return promise;
     };
     handleKeyBoard = e => {
@@ -66,14 +69,18 @@ class ApplicationLogDetail extends Component {
     };
     render() {
         const {
-            startDate,
             deleting,
             deleteModalId,
-            openApplicationLogKeyModalId
+            openApplicationLogKeyModalId,
         } = this.state;
-        const { applicationLog, componentId, currentProject } = this.props;
-        if(applicationLog) {
-            this.props.fetchLogs(applicationLog._id);
+        const { applicationLog, componentId, currentProject, startDate, endDate } = this.props;
+        if (applicationLog) {
+            this.props.fetchLogs(
+                applicationLog._id,
+                0,
+                10,
+                startDate.clone().utc(),
+                endDate.clone().utc());
         }
 
         if (currentProject) {
@@ -108,10 +115,9 @@ class ApplicationLogDetail extends Component {
                             </div>
                             <div className="db-Trends-controls">
                                 <div className="db-Trends-timeControls">
-                                    <DateRangeWrapper
-                                        selected={startDate}
-                                        onChange={this.handleDateChange}
+                                    <DateTimeRangeWrapper
                                         dateRange={30}
+                                        onChange={this.onChange}
                                     />
                                 </div>
                                 <div>
@@ -228,7 +234,9 @@ class ApplicationLogDetail extends Component {
                                                     </div>
                                                 </div>
                                                 <LogList
-                                                    applicationLog={applicationLog}
+                                                    applicationLog={
+                                                        applicationLog
+                                                    }
                                                     componentId={componentId}
                                                 />
                                             </div>
@@ -254,7 +262,7 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             deleteApplicationLog,
             fetchLogs,
-            resetApplicationLogKey
+            resetApplicationLogKey,
         },
         dispatch
     );
@@ -262,6 +270,8 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         currentProject: state.project.currentProject,
+        startDate: state.dateTime.dates.startDate,
+        endDate: state.dateTime.dates.endDate,
     };
 }
 
