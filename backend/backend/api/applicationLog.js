@@ -97,7 +97,7 @@ router.get('/:componentId', getUser, isAuthorized, async function(
 
 // Description: Delete an Application Log by applicationLogId and componentId.
 router.delete(
-    '/:componentId/:applicationLogId',
+    '/:projectId/:componentId/:applicationLogId',
     getUser,
     isAuthorized,
     isUserAdmin,
@@ -175,9 +175,10 @@ router.post(
 
 // Description: Reset Application Log Key by applicationLogId.
 router.post(
-    '/:applicationLogId/reset-key',
+    '/:projectId/:applicationLogId/reset-key',
     getUser,
     isAuthorized,
+    isUserAdmin,
     async function(req, res) {
         const applicationLogId = req.params.applicationLogId;
 
