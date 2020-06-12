@@ -3,8 +3,6 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 import LogList from './LogList';
-import DateRangeWrapper from '../monitor/DateRangeWrapper';
-import moment from 'moment';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
@@ -20,7 +18,7 @@ import {
     resetApplicationLogKey,
 } from '../../actions/applicationLog';
 import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
-import DateTimeRangeWrapper from '../monitor/DateTimeRangeWrapper';
+import DateRangeWrapper from './DateRangeWrapper';
 
 class ApplicationLogDetail extends Component {
     constructor(props) {
@@ -52,7 +50,7 @@ class ApplicationLogDetail extends Component {
         return promise;
     };
     onChange = () => {
-        
+
     }
     resetApplicationLogKey = () => {
         const { applicationLog } = this.props;
@@ -115,7 +113,7 @@ class ApplicationLogDetail extends Component {
                             </div>
                             <div className="db-Trends-controls">
                                 <div className="db-Trends-timeControls">
-                                    <DateTimeRangeWrapper
+                                    <DateRangeWrapper
                                         dateRange={30}
                                         onChange={this.onChange}
                                     />
