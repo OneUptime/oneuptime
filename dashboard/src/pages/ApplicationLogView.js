@@ -10,6 +10,8 @@ import { bindActionCreators } from 'redux';
 import { fetchApplicationLogs } from '../actions/applicationLog';
 import ApplicationLogDetail from '../components/application/ApplicationLogDetail';
 import ApplicationLogViewDeleteBox from '../components/application/ApplicationLogViewDeleteBox';
+import ShouldRender from '../components/basic/ShouldRender';
+import { LoadingState } from '../components/basic/Loader';
 
 class ApplicationLogView extends Component {
     componentDidMount() {
@@ -45,23 +47,26 @@ class ApplicationLogView extends Component {
                     name="Application Logs"
                 />
                 <BreadCrumbItem route={pathname} name={applicationLogName} />
-                <div
-                    
-                >
-                    <ApplicationLogDetail
-                        componentId={componentId}
-                        applicationLog={applicationLog[0]}
-                        index={applicationLog._id}
-                        isDetails={true}
-                    />
-                </div>
+                <ShouldRender if={!this.props.applicationLog[0]}>
+                    <LoadingState />
+                </ShouldRender>
+                <ShouldRender if={this.props.applicationLog[0]}>
+                    <div>
+                        <ApplicationLogDetail
+                            componentId={componentId}
+                            applicationLog={applicationLog[0]}
+                            index={applicationLog._id}
+                            isDetails={true}
+                        />
+                    </div>
 
-                <div className="Box-root Margin-bottom--12">
-                    <ApplicationLogViewDeleteBox
-                        componentId={this.props.componentId}
-                        applicationLog={this.props.applicationLog}
-                    />
-                </div>
+                    <div className="Box-root Margin-bottom--12">
+                        <ApplicationLogViewDeleteBox
+                            componentId={this.props.componentId}
+                            applicationLog={this.props.applicationLog}
+                        />
+                    </div>
+                </ShouldRender>
             </Dashboard>
         );
     }
