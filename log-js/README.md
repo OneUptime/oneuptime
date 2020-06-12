@@ -4,6 +4,9 @@ A fyipe application logger that can be used to send logs about your applications
 
 ## Installation
 
+### NPM Install
+TODO 
+
 ### Development
 - Clone repository
 - run `npm i` to install dependencies
@@ -54,6 +57,7 @@ Main API to send logs to the server.
 
 - [Fyipe Application Logger](#fyipe-application-logger)
   - [Installation](#installation)
+    - [NPM Install](#npm-install)
     - [Development](#development)
   - [Basic Usage](#basic-usage)
   - [API Documentation](#api-documentation)
