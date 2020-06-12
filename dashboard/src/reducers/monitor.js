@@ -246,6 +246,10 @@ export default function monitor(state = INITIAL_STATE, action) {
                                     newMonitor.logs = oldMonitor.logs;
                                 if (!newMonitor.statuses)
                                     newMonitor.statuses = oldMonitor.statuses;
+                                if (!newMonitor.currentLighthouseLog) {
+                                    newMonitor.currentLighthouseLog =
+                                        oldMonitor.currentLighthouseLog;
+                                }
                                 if (!newMonitor.lighthouseLogs)
                                     newMonitor.lighthouseLogs =
                                         oldMonitor.lighthouseLogs;
@@ -554,6 +558,18 @@ export default function monitor(state = INITIAL_STATE, action) {
                                           monitor._id ===
                                           action.payload.monitorId
                                       ) {
+                                          const mainSiteUrlLogs = action.payload.logs.data.filter(
+                                              log =>
+                                                  monitor.data &&
+                                                  monitor.data.url === log.url
+                                          );
+                                          if (
+                                              mainSiteUrlLogs &&
+                                              mainSiteUrlLogs.length > 0
+                                          ) {
+                                              monitor.currentLighthouseLog =
+                                                  mainSiteUrlLogs[0];
+                                          }
                                           monitor.lighthouseLogs = {
                                               data: action.payload.logs.data,
                                               skip: action.payload.skip,
@@ -955,6 +971,14 @@ export default function monitor(state = INITIAL_STATE, action) {
                                           monitor._id ===
                                           action.payload.monitorId
                                       ) {
+                                          if (
+                                              monitor.data &&
+                                              monitor.data.url ===
+                                                  action.payload.data.url
+                                          ) {
+                                              monitor.currentLighthouseLog =
+                                                  action.payload.data;
+                                          }
                                           if (
                                               monitor.lighthouseLogs &&
                                               monitor.lighthouseLogs.data

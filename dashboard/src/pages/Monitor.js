@@ -64,7 +64,8 @@ class DashboardView extends Component {
                             monitor.projectId._id || monitor.projectId,
                             monitor._id,
                             0,
-                            1
+                            1,
+                            monitor.data.url
                         );
                     });
                 }
@@ -106,7 +107,8 @@ class DashboardView extends Component {
                         monitor.projectId._id || monitor.projectId,
                         monitor._id,
                         0,
-                        1
+                        1,
+                        monitor.data.url
                     );
                 });
             }

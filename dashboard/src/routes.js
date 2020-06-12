@@ -63,7 +63,7 @@ export const groups = [
                         path:
                             '/dashboard/project/:projectId/:componentId/issues/:issueId',
                         icon: 'info',
-                        visible: true,
+                        visible: false,
                         subRoutes: [],
                         component: WebsiteMonitorIssues,
                         index: 2,

@@ -109,10 +109,7 @@ export function MonitorChart({
     const type = monitor.type;
     const checkLogs = data && data.length > 0;
 
-    const lighthouseLogs =
-        monitor.lighthouseLogs && monitor.lighthouseLogs.data
-            ? monitor.lighthouseLogs.data
-            : [];
+    const lighthouseLog = monitor.currentLighthouseLog;
 
     const sslCertificate = checkLogs ? data[0].sslCertificate : null;
     const sslCertExpiringIn = moment(
@@ -830,10 +827,9 @@ export function MonitorChart({
                                                     <small
                                                         id={`lighthouse-performance-${monitor.name}`}
                                                     >
-                                                        {lighthouseLogs[0] &&
-                                                        lighthouseLogs[0]
-                                                            .performance
-                                                            ? `${lighthouseLogs[0].performance}%`
+                                                        {lighthouseLog &&
+                                                        lighthouseLog.performance
+                                                            ? `${lighthouseLog.performance}%`
                                                             : '-'}
                                                     </small>
                                                 </span>
@@ -865,10 +861,9 @@ export function MonitorChart({
                                                     <small
                                                         id={`lighthouse-accessibility-${monitor.name}`}
                                                     >
-                                                        {lighthouseLogs[0] &&
-                                                        lighthouseLogs[0]
-                                                            .accessibility
-                                                            ? `${lighthouseLogs[0].accessibility}%`
+                                                        {lighthouseLog &&
+                                                        lighthouseLog.accessibility
+                                                            ? `${lighthouseLog.accessibility}%`
                                                             : '-'}
                                                     </small>
                                                 </span>
@@ -900,10 +895,9 @@ export function MonitorChart({
                                                     <small
                                                         id={`lighthouse-bestPractices-${monitor.name}`}
                                                     >
-                                                        {lighthouseLogs[0] &&
-                                                        lighthouseLogs[0]
-                                                            .bestPractices
-                                                            ? `${lighthouseLogs[0].bestPractices}%`
+                                                        {lighthouseLog &&
+                                                        lighthouseLog.bestPractices
+                                                            ? `${lighthouseLog.bestPractices}%`
                                                             : '-'}
                                                     </small>
                                                 </span>
@@ -935,9 +929,9 @@ export function MonitorChart({
                                                     <small
                                                         id={`lighthouse-seo-${monitor.name}`}
                                                     >
-                                                        {lighthouseLogs[0] &&
-                                                        lighthouseLogs[0].seo
-                                                            ? `${lighthouseLogs[0].seo}%`
+                                                        {lighthouseLog &&
+                                                        lighthouseLog.seo
+                                                            ? `${lighthouseLog.seo}%`
                                                             : '-'}
                                                     </small>
                                                 </span>
@@ -969,9 +963,9 @@ export function MonitorChart({
                                                     <small
                                                         id={`lighthouse-pwa-${monitor.name}`}
                                                     >
-                                                        {lighthouseLogs[0] &&
-                                                        lighthouseLogs[0].pwa
-                                                            ? `${lighthouseLogs[0].pwa}%`
+                                                        {lighthouseLog &&
+                                                        lighthouseLog.pwa
+                                                            ? `${lighthouseLog.pwa}%`
                                                             : '-'}
                                                     </small>
                                                 </span>

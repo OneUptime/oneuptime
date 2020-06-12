@@ -18,8 +18,19 @@ function launchChromeAndRunLighthouse(
 process.on('message', url => {
     launchChromeAndRunLighthouse(url)
         .then(results => {
+            const issues = [];
+            const audits = results.audits;
+            for (const property in audits) {
+                if (
+                    audits[property].score !== null &&
+                    audits[property].score < 1
+                ) {
+                    issues.push(audits[property]);
+                }
+            }
+
             const result = {
-                lighthouseData: { url, issues: [] },
+                lighthouseData: { url, issues },
                 performance: Math.ceil(
                     results.categories.performance.score * 100
                 ),
