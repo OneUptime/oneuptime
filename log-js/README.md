@@ -4,7 +4,11 @@ A fyipe application logger that can be used to send logs about your applications
 
 ## Installation
 
-Todo
+### Development
+    - Clone repository
+    - run `npm i` to install dependencies
+    - `npm run test` to run tests
+    - `npm run build` to build for production.
 
 <a name="module_api"></a>
 
@@ -50,6 +54,7 @@ Main API to send logs to the server.
 
 - [Fyipe Application Logger](#fyipe-application-logger)
   - [Installation](#installation)
+    - [Development](#development)
   - [Basic Usage](#basic-usage)
   - [API Documentation](#api-documentation)
     - [new Logger(applicationId, applicationKey)](#new-loggerapplicationid-applicationkey)
