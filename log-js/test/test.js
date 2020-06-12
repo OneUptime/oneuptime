@@ -1,5 +1,9 @@
+process.env.STRIPE_PRIVATE_KEY = 'sk_test_YxwnzywggtAd8jDaHecNmHiN';
+
 const chai = require('chai');
 chai.use(require('chai-http'));
+
+const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 
 const expect = chai.expect;
 import { user, generateRandomBusinessEmail } from './util';
@@ -9,54 +13,58 @@ const request = chai.request.agent(getApiUrl());
 import Logger from '../src/logger';
 
 describe('Logger', function () {
-    let projectId;
-    let token;
-    let componentId;
-    let applicationLog;
+    let projectId, token, componentId, applicationLog;
     // create a new user
     user.email = generateRandomBusinessEmail();
     const component = { name: 'Our Component' };
     before(function (done) {
-        this.timeout(40000);
+        this.timeout(20000);
         request
-            .post('user/signup')
-            .send(user)
+            .post('stripe/checkCard')
+            .send({
+                tokenId: 'tok_visa',
+                email: user.email,
+                companyName: user.companyName,
+            })
             .end(function (err, res) {
-                const project = res.body.project;
-
-                projectId = project._id;
-
-                request
-                    .post('user/login')
-                    .send({
-                        email: user.email,
-                        password: user.password,
-                    })
-                    .end(function (err, res) {
-                        token = res.body.tokens.jwtAccessToken;
-                        request
-                            .post(`component/${projectId}`)
-                            .set('Authorization', `Basic ${token}`)
-                            .send(component)
-                            .end(function (err, res) {
-                                componentId = res.body._id;
-                                request
-                                    .post(`application-log/${componentId}`)
-                                    .set('Authorization', `Basic ${token}`)
-                                    .send({
-                                        name: 'New Application Log'
-                                    })
-                                    .end(function (err, res) {
-                                        expect(res).to.have.status(200);
-                                        expect(res.body).to.be.an('object');
-                                        expect(res.body).to.have.property(
-                                            '_id'
-                                        );
-                                        applicationLog = res.body;
-                                        done();
-                                    });
-                            });
-                    });
+                stripe.paymentIntents.confirm(res.body.id, function (
+                    err,
+                    paymentIntent
+                ) {
+                    user.paymentIntent = {
+                        id: paymentIntent.id,
+                    };
+                    request
+                        .post('user/signup')
+                        .send(user)
+                        .end(function (err, res) {
+                            const project = res.body.project;
+                            projectId = project._id;
+                            token = res.body.tokens.jwtAccessToken;
+                            request
+                                .post(`component/${projectId}`)
+                                .set('Authorization', `Basic ${token}`)
+                                .send(component)
+                                .end(function (err, res) {
+                                    componentId = res.body._id;
+                                    request
+                                        .post(
+                                            `application-log/${projectId}/${componentId}/create`
+                                        )
+                                        .set('Authorization', `Basic ${token}`)
+                                        .send({ name: 'Application Logger' })
+                                        .end(function (err, res) {
+                                            expect(res).to.have.status(200);
+                                            expect(res.body).to.be.an('object');
+                                            expect(res.body).to.have.property(
+                                                '_id'
+                                            );
+                                            applicationLog = res.body;
+                                            done();
+                                        });
+                                });
+                        });
+                });
             });
     });
 
