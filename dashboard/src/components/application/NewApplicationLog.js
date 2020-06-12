@@ -28,7 +28,7 @@ class NewApplicationLog extends Component {
         const thisObj = this;
         const postObj = {};
         postObj.name = values[`name_${this.props.index}`];
-        this.props.createApplicationLog(this.props.componentId, postObj).then(
+        this.props.createApplicationLog(this.props.currentProject._id,this.props.componentId, postObj).then(
             () => {
                 thisObj.props.reset();
                 thisObj.props.closeCreateApplicationLogModal();
@@ -171,11 +171,13 @@ const mapStateToProps = (state, ownProps) => {
     const name = selector(state, 'name_2000');
     const componentId = ownProps.componentId;
     const requesting = state.applicationLog.newApplicationLog.requesting;
+    const currentProject = state.project.currentProject;
     return {
         applicationLog: state.applicationLog,
         name,
         componentId,
-        requesting
+        requesting,
+        currentProject
     };
 };
 

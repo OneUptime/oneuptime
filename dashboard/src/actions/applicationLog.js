@@ -4,9 +4,9 @@ import errors from '../errors';
 
 //Create new application log
 //props -> {name: '', type, data -> { data.url}}
-export function createApplicationLog(componentId, values) {
+export function createApplicationLog(projectId,componentId, values) {
     return function (dispatch) {
-        const promise = postApi(`application-log/${componentId}`, values);
+        const promise = postApi(`application-log/${projectId}/${componentId}/create`, values);
         dispatch(createApplicationLogRequest());
 
         promise.then(
