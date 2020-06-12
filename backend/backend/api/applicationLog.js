@@ -29,7 +29,7 @@ const uuid = require('uuid');
 // Params:
 // Param 1: req.params-> {componentId}; req.body -> {[_id], name}
 // Returns: response status, error message
-router.post('/:componentId', getUser, isAuthorized, isUserAdmin, async function(
+router.post('/:projectId/:componentId/create', getUser, isAuthorized, isUserAdmin, async function(
     req,
     res
 ) {
