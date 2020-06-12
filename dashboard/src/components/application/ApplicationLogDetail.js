@@ -32,8 +32,9 @@ class ApplicationLogDetail extends Component {
     }
     deleteApplicationLog = () => {
         const promise = this.props.deleteApplicationLog(
+            this.props.currentProject._id,
+            this.props.componentId,
             this.props.applicationLog._id,
-            this.props.componentId
         );
         history.push(
             `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`

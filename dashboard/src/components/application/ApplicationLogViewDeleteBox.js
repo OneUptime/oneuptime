@@ -21,9 +21,11 @@ class ApplicationLogViewDeleteBox extends Component {
     }
     deleteApplicationLog = () => {
         const componentId = this.props.applicationLog[0].componentId._id;
+        const currentProjectId = this.props.currentProject._id;
         const promise = this.props.deleteApplicationLog(
-            this.props.applicationLog[0]._id,
+            currentProjectId,
             componentId,
+            this.props.applicationLog[0]._id,
         );
         history.push(
             `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`

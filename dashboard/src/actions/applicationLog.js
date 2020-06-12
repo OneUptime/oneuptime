@@ -115,10 +115,10 @@ export function resetFetchApplicationLogs() {
 
 //Delete a applicationLog
 //props -> {name: '', type, data -> { data.url}}
-export function deleteApplicationLog(applicationLogId, componentId) {
+export function deleteApplicationLog(currentProjectId, componentId, applicationLogId) {
     return function (dispatch) {
         const promise = deleteApi(
-            `application-log/${componentId}/${applicationLogId}`,
+            `application-log/${currentProjectId}/${componentId}/${applicationLogId}`,
             {
                 applicationLogId,
             }
