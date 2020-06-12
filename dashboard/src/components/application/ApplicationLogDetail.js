@@ -30,6 +30,10 @@ class ApplicationLogDetail extends Component {
             openApplicationLogKeyModalId: uuid.v4(),
         };
     }
+    onDateChange = (startDate, endDate) => {
+        console.log(startDate)
+        console.log(endDate)
+    }
     deleteApplicationLog = () => {
         const promise = this.props.deleteApplicationLog(
             this.props.currentProject._id,
@@ -132,8 +136,9 @@ class ApplicationLogDetail extends Component {
                             <div className="db-Trends-controls">
                                 <div className="db-Trends-timeControls">
                                     <DateRangeWrapper
+                                        selected={this.props.startDate}
                                         dateRange={30}
-                                        onChange={this.onChange}
+                                        onChange={this.onDateChange}
                                     />
                                 </div>
                                 <div>
