@@ -14,6 +14,7 @@ import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { history } from '../../store';
 
 export class MonitorViewSubscriberBox extends Component {
     constructor(props) {
@@ -81,9 +82,18 @@ export class MonitorViewSubscriberBox extends Component {
                                 <span>External Subscribers</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                <span>
-                                    Here&#39;s a list of external subscribers to
-                                    this monitor.
+                                <span
+                                    onClick={() =>
+                                        history.push(
+                                            `/dashboard/project/${this.props.currentProject._id}/on-call`
+                                        )
+                                    }
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    These are your external customers who needs
+                                    to be notified, and not your team members.
+                                    If you like to send notification to team
+                                    members - use Call Schedules instead.
                                 </span>
                             </span>
                         </div>

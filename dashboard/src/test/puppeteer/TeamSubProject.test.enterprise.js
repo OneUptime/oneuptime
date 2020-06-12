@@ -11,17 +11,17 @@ const newEmail = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Enterprise Team SubProject API', () => {
-    const operationTimeOut = 200000;
+    const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(500000);
 
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             maxConcurrency: 2,
             puppeteer,
-            timeout: 120000,
+            timeout: 500000,
         });
 
         cluster.on('taskerror', err => {
@@ -53,14 +53,12 @@ describe('Enterprise Team SubProject API', () => {
     test(
         'Should add a new user to sub-project (role -> `Member`)',
         async done => {
-            expect.assertions(1);
-
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
                 maxConcurrency: 2,
                 puppeteer,
-                timeout: 200000,
+                timeout: 500000,
             });
 
             cluster.on('taskerror', err => {
