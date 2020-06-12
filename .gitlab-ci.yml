@@ -119,3 +119,4 @@ include:
 
   # LOG-JS
   - '/ci/spec/log-js/audit.yaml'
+  - '/ci/spec/log-js/build-n-test.yaml'
