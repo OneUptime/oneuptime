@@ -52,12 +52,13 @@ Main API to send logs to the server.
   - [Installation](#installation)
   - [Basic Usage](#basic-usage)
   - [API Documentation](#api-documentation)
-    - [new Logger(applicationId, applicationKey) ⇒ <code>Object</code> ⏏](#new-loggerapplicationid-applicationkey--object-)
+    - [new Logger(applicationId, applicationKey)](#new-loggerapplicationid-applicationkey)
       - [logger.log(log)](#loggerloglog)
+  - [TODO](#todo)
 
 <a name="logger_api--logger"></a>
 
-### new Logger(applicationId, applicationKey) ⇒ <code>Object</code> ⏏
+### new Logger(applicationId, applicationKey)
 
 Create a constructor from the class, which will be used to send logs to the server.
 
@@ -80,7 +81,8 @@ Logs a request of type `info` to the server.
 | --------- | -------------------------------------------- | ----------------------------------------------------------------------- |
 | log       | <code>string</code> \| <code>Object</code>   | The content to the logged on the server.                                |
 
-
-```
-
-```
+## TODO
+ - Error Logs
+ - Warning Logs
+ - Tags
+ - TBD 
