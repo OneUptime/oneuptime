@@ -45,12 +45,16 @@ let RenderMonitor = ({
   monitor,
   monitors,
   allMonitors,
+  allComponents,
   fields,
   dispatch,
   errors
 }) => {
   const currentMonitorForm = monitors[monitorIndex];
   const { id: currentMonitorID, type } = currentMonitorForm;
+  const getParentComponent=(monitor)=>
+  allComponents.filter(component=>component._id===monitor.componentId)[0]
+  
   const resetSelectedCharts = () => {
     dispatch(change('StatuspageMonitors', `${monitor}.uptime`, true))
     dispatch(change('StatuspageMonitors', `${monitor}.memory`, false))
@@ -103,7 +107,7 @@ let RenderMonitor = ({
                     allMonitors.map(
                       m => ({
                         value: m._id,
-                        label: m.name,
+                        label: `${getParentComponent(m).name} / ${m.name}`,
                       })
                     )
                   )
@@ -279,12 +283,15 @@ let RenderMonitor = ({
 const selector = formValueSelector('StatuspageMonitors');
 
 RenderMonitor = connect(state => {
+  const allComponents = state.component.componentList.components
+    .map(component => component.components)
+    .flat();
   const allMonitors = state.monitor.monitorsList.monitors
     .map(monitor => monitor.monitors)
     .flat();
   const monitors = selector(state, 'monitors');
   const { form: { StatuspageMonitors: { syncErrors: errors } } } = state
-  return { allMonitors, monitors, errors };
+  return { allComponents, allMonitors, monitors, errors, };
 }
 )(RenderMonitor);
 

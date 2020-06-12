@@ -139,8 +139,7 @@ export class Monitors extends Component {
                             </ShouldRender>
                         </div>
                     </div>
-                    {/* <form onSubmit={handleSubmit(this.submitForm)}> */}
-                    <form onSubmit={handleSubmit(() => { })}>
+                    <form onSubmit={handleSubmit(this.submitForm)}>
                         <ShouldRender if={this.props.monitors.length > 0}>
                             <div className="bs-ContentSection-content Box-root">
                                 <div>
