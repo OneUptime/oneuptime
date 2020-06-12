@@ -248,9 +248,9 @@ export function resetFetchLogs() {
     };
 }
 
-export function resetApplicationLogKey(applicationLogId) {
+export function resetApplicationLogKey(projectId, componentId, applicationLogId) {
     return function (dispatch) {
-        const promise = postApi(`application-log/${applicationLogId}/reset-key`);
+        const promise = postApi(`application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`);
         dispatch(resetApplicationLogKeyRequest());
 
         promise.then(

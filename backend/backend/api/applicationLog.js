@@ -175,7 +175,7 @@ router.post(
 
 // Description: Reset Application Log Key by applicationLogId.
 router.post(
-    '/:projectId/:applicationLogId/reset-key',
+    '/:projectId/:componentId/:applicationLogId/reset-key',
     getUser,
     isAuthorized,
     isUserAdmin,
