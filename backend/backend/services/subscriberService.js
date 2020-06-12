@@ -165,6 +165,39 @@ module.exports = {
         }
     },
 
+    subscribeFromCSVFile: async function(subscribers) {
+        try {
+            const _this = this;
+            const { data, projectId, monitorId } = subscribers;
+            const success = data.map(async subscriber => {
+                const newSubscriber = Object.assign({}, subscriber, {
+                    monitorId,
+                    projectId,
+                });
+                const hasSubscribed = await _this.subscriberCheck(
+                    newSubscriber
+                );
+                if (hasSubscribed) {
+                    const error = new Error(
+                        'You are already subscribed to this monitor.'
+                    );
+                    error.code = 400;
+                    ErrorService.log(
+                        'SubscriberService.subscribeFromCSVFile',
+                        error
+                    );
+                    throw error;
+                } else {
+                    return await _this.create(newSubscriber);
+                }
+            });
+            return await Promise.all(success);
+        } catch (error) {
+            ErrorService.log('SubscriberService.subscribeFromCSVFile', error);
+            throw error;
+        }
+    },
+
     subscriberCheck: async function(subscriber) {
         const _this = this;
         let existingSubscriber = null;

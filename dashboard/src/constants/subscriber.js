@@ -15,3 +15,11 @@ export const EXPORT_CSV_SUCCESS = 'subscriber/EXPORT_CSV_SUCCESS';
 export const EXPORT_CSV_FAILED = 'subscriber/EXPORT_CSV_FAILED';
 export const EXPORT_CSV_REQUEST = 'subscriber/EXPORT_CSV_REQUEST';
 export const EXPORT_CSV_RESET = 'subscriber/EXPORT_CSV_RESET';
+
+// Download CSV template
+export const DOWNLOAD_CSV_TEMPLATE_SUCCESS =
+    'subscriber/DOWNLOAD_CSV_TEMPLATE_SUCCESS';
+export const DOWNLOAD_CSV_TEMPLATE_FAILED =
+    'subscriber/DOWNLOAD_CSV_TEMPLATE_FAILED';
+export const DOWNLOAD_CSV_TEMPLATE_REQUEST =
+    'subscriber/DOWNLOAD_CSV_TEMPLATE_REQUEST';
