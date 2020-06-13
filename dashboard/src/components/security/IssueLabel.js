@@ -5,15 +5,19 @@ const IssueLabel = ({ level }) => {
     let color;
     switch (level) {
         case 'critical':
+        case 'CRITICAL':
             color = 'red';
             break;
         case 'high':
+        case 'HIGH':
             color = 'yellow';
             break;
         case 'moderate':
+        case 'MEDIUM':
             color = 'blue';
             break;
         case 'low':
+        case 'LOW':
             color = 'green';
             break;
         default:
@@ -31,7 +35,7 @@ const IssueLabel = ({ level }) => {
         >
             <span
                 className={`Badge-text Text-color--${color} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
-                style={level === 'moderate' ? colorStyle : {}}
+                style={(level === 'moderate' || level === 'MEDIUM') ? colorStyle : {}}
             >
                 <span>{level}</span>
             </span>
