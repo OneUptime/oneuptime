@@ -497,6 +497,23 @@ router.get(
     }
 );
 
+router.get(
+    '/:projectId/lighthouseIssue/:issueId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const lighthouseIssue = await LighthouseLogService.findOneBy({
+                _id: req.params.issueId,
+            });
+
+            return sendItemResponse(req, res, lighthouseIssue);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.post(
     '/:projectId/inbound/:deviceId',
     getUser,

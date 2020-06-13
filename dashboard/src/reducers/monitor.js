@@ -33,6 +33,9 @@ import {
     FETCH_LIGHTHOUSE_LOGS_REQUEST,
     FETCH_LIGHTHOUSE_LOGS_SUCCESS,
     FETCH_LIGHTHOUSE_LOGS_FAILURE,
+    FETCH_MONITOR_ISSUE_REQUEST,
+    FETCH_MONITOR_ISSUE_SUCCESS,
+    FETCH_MONITOR_ISSUE_FAILURE,
     FETCH_MONITOR_CRITERIA_REQUEST,
     FETCH_MONITOR_CRITERIA_SUCCESS,
     FETCH_MONITOR_CRITERIA_FAILURE,
@@ -58,6 +61,7 @@ const INITIAL_STATE = {
         startDate: moment().subtract(30, 'd'),
         endDate: moment(),
     },
+    monitorIssue: null,
     monitorLogs: {},
     newMonitor: {
         monitor: null,
@@ -597,6 +601,21 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: false,
                 },
                 fetchLighthouseLogsRequest: false,
+            });
+
+        case FETCH_MONITOR_ISSUE_REQUEST:
+            return Object.assign({}, state, {
+                monitorIssue: null,
+            });
+
+        case FETCH_MONITOR_ISSUE_SUCCESS:
+            return Object.assign({}, state, {
+                monitorIssue: action.payload,
+            });
+
+        case FETCH_MONITOR_ISSUE_FAILURE:
+            return Object.assign({}, state, {
+                monitorIssue: null,
             });
 
         case 'UPDATE_DATE_RANGE':

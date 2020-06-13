@@ -59,11 +59,11 @@ export const groups = [
                         index: 1,
                     },
                     {
-                        title: 'Website Monitor Issues',
+                        title: 'Website Issues',
                         path:
                             '/dashboard/project/:projectId/:componentId/issues/:issueId',
                         icon: 'info',
-                        visible: false,
+                        visible: true,
                         subRoutes: [],
                         component: WebsiteMonitorIssues,
                         index: 2,

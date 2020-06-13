@@ -742,6 +742,57 @@ export function fetchLighthouseLogsFailure(error) {
     };
 }
 
+// Fetch Monitor Issue list
+export function fetchMonitorIssue(projectId, issueId) {
+    return function(dispatch) {
+        const promise = getApi(
+            `monitor/${projectId}/lighthouseIssue/${issueId}`
+        );
+        dispatch(fetchMonitorIssueRequest());
+
+        promise.then(
+            function(monitorIssue) {
+                dispatch(fetchMonitorIssueSuccess(monitorIssue.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchMonitorIssueFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchMonitorIssueRequest() {
+    return {
+        type: types.FETCH_MONITOR_ISSUE_REQUEST,
+    };
+}
+
+export function fetchMonitorIssueSuccess(monitorIssue) {
+    return {
+        type: types.FETCH_MONITOR_ISSUE_SUCCESS,
+        payload: monitorIssue,
+    };
+}
+
+export function fetchMonitorIssueFailure(error) {
+    return {
+        type: types.FETCH_MONITOR_ISSUE_FAILURE,
+        payload: error,
+    };
+}
+
 export function addSeat(projectId) {
     return function(dispatch) {
         const promise = postApi(`monitor/${projectId}/addseat`, {});
