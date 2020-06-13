@@ -160,7 +160,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                         onChange={this.handleSiteChange}
                                         placeholder="All Site URLs"
                                         className="db-select-pr"
-                                        id="probe_selector"
+                                        id="url_selector"
                                         isDisabled={creating}
                                         style={{ height: '28px' }}
                                         options={siteUrls}

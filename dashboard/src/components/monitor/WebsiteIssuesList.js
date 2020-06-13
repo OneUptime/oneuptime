@@ -56,7 +56,7 @@ const WebsiteIssuesList = ({ monitorIssue }) => {
                         monitorIssue.data.map((issue, i) => {
                             return (
                                 <tr
-                                    id={`incident_timeline_${i}`}
+                                    id={`website_issues_${i}`}
                                     key={i}
                                     className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                 >
