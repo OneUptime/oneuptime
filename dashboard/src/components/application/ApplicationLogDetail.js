@@ -20,6 +20,7 @@ import {
 import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
 import DateRangeWrapper from './DateRangeWrapper';
 import TimeRangeSelector from '../basic/TimeRangeSelector';
+import Select from '../../components/basic/react-select-fyipe';
 
 class ApplicationLogDetail extends Component {
     constructor(props) {
@@ -29,6 +30,7 @@ class ApplicationLogDetail extends Component {
             deleting: false,
             deleteModalId: uuid.v4(),
             openApplicationLogKeyModalId: uuid.v4(),
+            logValue: '',
         };
     }
     onDateChange = (startDate, endDate) => {
@@ -94,6 +96,9 @@ class ApplicationLogDetail extends Component {
             endDate.clone().utc()
         );
     };
+    handleLogTypeChange = (logType) => {
+        // TODO make api request with the new logtyprr
+    }
     render() {
         const {
             deleting,
@@ -120,6 +125,12 @@ class ApplicationLogDetail extends Component {
         if (currentProject) {
             document.title = currentProject.name + ' Dashboard';
         }
+        const logOptions = [
+            { value: '', label: 'All Logs' },
+            { value: 'warning', label: 'Warning' },
+            { value: 'info', label: 'Info' },
+            { value: 'error', label: 'Error' },
+        ];
         if (applicationLog) {
             return (
                 <div>
@@ -302,6 +313,46 @@ class ApplicationLogDetail extends Component {
                                                                 onChange={
                                                                     this
                                                                         .handleTimeChange
+                                                                }
+                                                            />
+                                                        </div>
+
+                                                        <div
+                                                            style={{
+                                                                height: '28px',
+                                                                width: '250px',
+                                                            }}
+                                                        >
+                                                            <Select
+                                                                name="probe_selector"
+                                                                value={
+                                                                    this.state
+                                                                        .logValue
+                                                                }
+                                                                onChange={
+                                                                    this
+                                                                        .handleLogTypeChange
+                                                                }
+                                                                placeholder="Log Type"
+                                                                className="db-select-pr"
+                                                                id="log_type_selector"
+                                                                isDisabled={
+                                                                    !(
+                                                                        this
+                                                                            .props
+                                                                            .applicationLog &&
+                                                                        !this
+                                                                            .props
+                                                                            .applicationLog
+                                                                            .requesting
+                                                                    )
+                                                                }
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                }}
+                                                                options={
+                                                                    logOptions
                                                                 }
                                                             />
                                                         </div>
