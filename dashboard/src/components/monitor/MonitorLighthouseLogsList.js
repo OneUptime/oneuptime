@@ -46,7 +46,7 @@ export class MonitorLighthouseLogsList extends Component {
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
-                    <table className="Table">
+                    <table id="lighthouseLogsList" className="Table">
                         <thead className="Table-body">
                             <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                                 <td
@@ -123,7 +123,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                     : 'Unknown Monitor'
                                             }_${i}`}
                                             key={log._id}
-                                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
+                                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink lighthouseLogsListItem"
                                             onClick={() => {
                                                 history.push(
                                                     '/dashboard/project/' +
