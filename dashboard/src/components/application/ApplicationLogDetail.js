@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history } from '../../store';
-import LogList from './LogList';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
@@ -19,9 +18,7 @@ import {
 } from '../../actions/applicationLog';
 import { setStartDate, setEndDate } from '../../actions/dateTime';
 import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
-import DateRangeWrapper from './DateRangeWrapper';
-import TimeRangeSelector from '../basic/TimeRangeSelector';
-import Select from '../../components/basic/react-select-fyipe';
+import ApplicationLogDetailView from './ApplicationLogDetailView';
 
 class ApplicationLogDetail extends Component {
     constructor(props) {
@@ -42,7 +39,7 @@ class ApplicationLogDetail extends Component {
             endDate,
         }));
         this.props.setStartDate(startDate);
-        this.props.setEndDate(endDate)
+        this.props.setEndDate(endDate);
     };
     deleteApplicationLog = () => {
         const promise = this.props.deleteApplicationLog(
@@ -147,7 +144,7 @@ class ApplicationLogDetail extends Component {
                                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                             <span
-                                                id="monitor-content-header"
+                                                id="application-content-header"
                                                 className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                             >
                                                 <span
@@ -266,112 +263,15 @@ class ApplicationLogDetail extends Component {
                         }}
                         tabIndex="0"
                     >
-                        <div>
-                            <div className="db-RadarRulesLists-page">
-                                <div className="Box-root Margin-bottom--12">
-                                    <div className="">
-                                        <div className="Box-root">
-                                            <div>
-                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                            <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span>
-                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <span>
-                                                                    Here&apos;s
-                                                                    a list of
-                                                                    recent logs
-                                                                    which belong
-                                                                    to this
-                                                                    application
-                                                                    log.
-                                                                </span>
-                                                            </span>
-                                                        </div>
-
-                                                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                            <div></div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween Padding-top--8">
-                                                        <div className="db-Trends-timeControls">
-                                                            <DateRangeWrapper
-                                                                selected={
-                                                                    this.props
-                                                                        .startDate
-                                                                }
-                                                                dateRange={30}
-                                                                onChange={
-                                                                    this
-                                                                        .handleDateTimeChange
-                                                                }
-                                                            />
-                                                        </div>
-
-                                                        <div className="db-Trends-timeControls">
-                                                            <TimeRangeSelector
-                                                                name1="startTime"
-                                                                name2="endTime"
-                                                                onChange={
-                                                                    this
-                                                                        .handleDateTimeChange
-                                                                }
-                                                            />
-                                                        </div>
-
-                                                        <div
-                                                            style={{
-                                                                height: '28px',
-                                                                width: '250px',
-                                                            }}
-                                                        >
-                                                            <Select
-                                                                name="probe_selector"
-                                                                value={
-                                                                    this.state
-                                                                        .logValue
-                                                                }
-                                                                onChange={
-                                                                    this
-                                                                        .handleLogTypeChange
-                                                                }
-                                                                placeholder="Log Type"
-                                                                className="db-select-pr"
-                                                                id="log_type_selector"
-                                                                isDisabled={
-                                                                    !(
-                                                                        this
-                                                                            .props
-                                                                            .applicationLog &&
-                                                                        !this
-                                                                            .props
-                                                                            .applicationLog
-                                                                            .requesting
-                                                                    )
-                                                                }
-                                                                style={{
-                                                                    height:
-                                                                        '28px',
-                                                                }}
-                                                                options={
-                                                                    logOptions
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <LogList
-                                                    applicationLog={
-                                                        applicationLog
-                                                    }
-                                                    componentId={componentId}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <ApplicationLogDetailView
+                            startDate={this.state.startDate}
+                            logValue={this.state.logType}
+                            applicationLog={applicationLog}
+                            logOptions={logOptions}
+                            componentId={componentId}
+                            handleDateTimeChange={this.handleDateTimeChange}
+                            handleLogTypeChange={this.handleLogTypeChange}
+                        />
                     </div>
                 </div>
             );
@@ -391,7 +291,7 @@ const mapDispatchToProps = dispatch => {
             fetchLogs,
             resetApplicationLogKey,
             setStartDate,
-            setEndDate
+            setEndDate,
         },
         dispatch
     );
