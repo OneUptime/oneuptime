@@ -17,6 +17,7 @@ import {
     fetchLogs,
     resetApplicationLogKey,
 } from '../../actions/applicationLog';
+import { setStartDate, setEndDate } from '../../actions/dateTime';
 import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
 import DateRangeWrapper from './DateRangeWrapper';
 import TimeRangeSelector from '../basic/TimeRangeSelector';
@@ -30,12 +31,18 @@ class ApplicationLogDetail extends Component {
             deleting: false,
             deleteModalId: uuid.v4(),
             openApplicationLogKeyModalId: uuid.v4(),
-            logValue: '',
+            logType: '',
+            startDate: props.startDate,
+            endDate: props.endDate,
         };
     }
-    onDateChange = (startDate, endDate) => {
-        console.log(startDate);
-        console.log(endDate);
+    handleDateTimeChange = (startDate, endDate) => {
+        this.setState(state => ({
+            startDate,
+            endDate,
+        }));
+        this.props.setStartDate(startDate);
+        this.props.setEndDate(endDate)
     };
     deleteApplicationLog = () => {
         const promise = this.props.deleteApplicationLog(
@@ -86,39 +93,34 @@ class ApplicationLogDetail extends Component {
                 return false;
         }
     };
-    handleTimeChange = (startDate, endDate) => {
-        const { applicationLog, fetchLogs } = this.props;
-        fetchLogs(
-            applicationLog._id,
-            0,
-            10,
-            startDate.clone().utc(),
-            endDate.clone().utc()
-        );
+    handleLogTypeChange = logType => {
+        this.setState(state => ({
+            logType: logType.value,
+        }));
     };
-    handleLogTypeChange = (logType) => {
-        // TODO make api request with the new logtyprr
-    }
     render() {
         const {
             deleting,
             deleteModalId,
             openApplicationLogKeyModalId,
+            startDate,
+            endDate,
+            logType,
         } = this.state;
         const {
             applicationLog,
             componentId,
             currentProject,
-            startDate,
-            endDate,
+            fetchLogs,
         } = this.props;
         if (applicationLog) {
-            this.props.fetchLogs(
+            fetchLogs(
                 applicationLog._id,
                 0,
                 10,
                 startDate.clone().utc(),
-                endDate.clone().utc()
+                endDate.clone().utc(),
+                logType
             );
         }
 
@@ -301,7 +303,7 @@ class ApplicationLogDetail extends Component {
                                                                 dateRange={30}
                                                                 onChange={
                                                                     this
-                                                                        .onDateChange
+                                                                        .handleDateTimeChange
                                                                 }
                                                             />
                                                         </div>
@@ -312,7 +314,7 @@ class ApplicationLogDetail extends Component {
                                                                 name2="endTime"
                                                                 onChange={
                                                                     this
-                                                                        .handleTimeChange
+                                                                        .handleDateTimeChange
                                                                 }
                                                             />
                                                         </div>
@@ -388,6 +390,8 @@ const mapDispatchToProps = dispatch => {
             deleteApplicationLog,
             fetchLogs,
             resetApplicationLogKey,
+            setStartDate,
+            setEndDate
         },
         dispatch
     );
