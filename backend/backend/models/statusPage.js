@@ -16,7 +16,6 @@ const statusSchema = new Schema({
             },
         },
     ],
-    monitorIds: [{ type: String, ref: 'Monitor' }],
     monitors: [
         {
             monitor: { type: String, ref: 'Monitor' },
