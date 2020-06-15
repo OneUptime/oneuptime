@@ -32,9 +32,7 @@ class DateRangeWrapper extends Component {
     }
 
     onSelect = value => {
-        this.setState({ value });
-        this.props.setStartDate(value.start);
-        this.props.setEndDate(value.end);
+        this.setState({ value })
         this.props.onChange(this.state.value.start, this.state.value.end);
     };
 
