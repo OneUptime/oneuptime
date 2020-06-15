@@ -29,7 +29,7 @@ class ApplicationLogDetail extends Component {
             deleting: false,
             deleteModalId: uuid.v4(),
             openApplicationLogKeyModalId: uuid.v4(),
-            logType: '',
+            logType: {value: '', label: 'All Logs'},
             startDate: props.startDate,
             endDate: props.endDate,
         };
@@ -99,8 +99,8 @@ class ApplicationLogDetail extends Component {
         }
     };
     handleLogTypeChange = logType => {
-        this.setState(state => ({
-            logType: logType.value,
+        this.setState(() => ({
+            logType: logType,
         }));
     };
     render() {
@@ -125,7 +125,7 @@ class ApplicationLogDetail extends Component {
                 10,
                 startDate.clone().utc(),
                 endDate.clone().utc(),
-                logType
+                logType.value
             );
         }
 
