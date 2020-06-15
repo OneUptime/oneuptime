@@ -2,10 +2,11 @@ module.exports = {
     create: async function (data) {
         try {
             const _this = this;
-            
+
             // prepare  log model
             let log = new LogModel();
             log.content = data.content;
+            log.stringifiedContent = JSON.stringify(data.content)
             log.applicationLogId = data.applicationLogId;
             log.type = data.type;
             log.createdById = data.createdById;
@@ -26,9 +27,10 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const log = await LogModel.findOne(
-                query
-            ).populate('applicationLogId', 'name');
+            const log = await LogModel.findOne(query).populate(
+                'applicationLogId',
+                'name'
+            );
             return log;
         } catch (error) {
             ErrorService.log('logService.findOneBy', error);
@@ -74,10 +76,7 @@ module.exports = {
         if (!applicationLog) {
             const error = new Error('Application Log does not exist.');
             error.code = 400;
-            ErrorService.log(
-                'logService.getLogsByApplicationLogId',
-                error
-            );
+            ErrorService.log('logService.getLogsByApplicationLogId', error);
             throw error;
         }
 
@@ -93,10 +92,7 @@ module.exports = {
             );
             return logs;
         } catch (error) {
-            ErrorService.log(
-                'logService.getLogsByApplicationLogId',
-                error
-            );
+            ErrorService.log('logService.getLogsByApplicationLogId', error);
             throw error;
         }
     },
@@ -113,6 +109,14 @@ module.exports = {
             ErrorService.log('logService.countBy', error);
             throw error;
         }
+    },
+    search: async function (query, filter, skip, limit) {
+        const _this = this;
+        query.stringifiedContent = { $regex: new RegExp(filter), $options: 'i' };
+        const searchedLogs = await _this.findBy(query, skip, limit);
+        const totalSearchCount = await _this.countBy(query);
+
+        return { searchedLogs, totalSearchCount };
     },
 };
 
