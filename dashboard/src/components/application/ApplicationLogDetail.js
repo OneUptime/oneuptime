@@ -29,15 +29,15 @@ class ApplicationLogDetail extends Component {
             deleting: false,
             deleteModalId: uuid.v4(),
             openApplicationLogKeyModalId: uuid.v4(),
-            logType: {value: '', label: 'All Logs'},
+            logType: { value: '', label: 'All Logs' },
             startDate: props.startDate,
             endDate: props.endDate,
         };
     }
-    handleDateTimeChange = (value) => {
-        let startDate = value.startDate
-        let endDate = value.endDate
-        if(startDate && endDate) {
+    handleDateTimeChange = value => {
+        let startDate = value.startDate;
+        let endDate = value.endDate;
+        if (startDate && endDate) {
             startDate = moment(startDate);
             endDate = moment(endDate);
             this.setState(state => ({
@@ -47,7 +47,6 @@ class ApplicationLogDetail extends Component {
             this.props.setStartDate(startDate);
             this.props.setEndDate(endDate);
         }
-        
     };
     deleteApplicationLog = () => {
         const promise = this.props.deleteApplicationLog(
@@ -270,7 +269,9 @@ class ApplicationLogDetail extends Component {
                                 componentId={componentId}
                                 handleDateTimeChange={this.handleDateTimeChange}
                                 handleLogTypeChange={this.handleLogTypeChange}
-                                handleNewDateTimeChange={this.handleNewDateTimeChange}
+                                handleNewDateTimeChange={
+                                    this.handleNewDateTimeChange
+                                }
                             />
                         </ShouldRender>
                     </div>
