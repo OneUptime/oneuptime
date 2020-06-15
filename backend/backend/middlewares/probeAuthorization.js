@@ -46,23 +46,6 @@ module.exports = {
                 });
             }
 
-            if (req.params.probeName) {
-                probeName = req.params.probeName;
-            } else if (req.query.probeName) {
-                probeName = req.query.probeName;
-            } else if (req.headers['probeName']) {
-                probeName = req.headers['probeName'];
-            } else if (req.headers['probename']) {
-                probeName = req.headers['probename'];
-            } else if (req.body.probeName) {
-                probeName = req.body.probeName;
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Probe Name not found.',
-                });
-            }
-
             if (req.params.clusterKey) {
                 clusterKey = req.params.clusterKey;
             } else if (req.query.clusterKey) {
