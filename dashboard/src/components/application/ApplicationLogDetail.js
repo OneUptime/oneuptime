@@ -19,6 +19,7 @@ import {
 import { setStartDate, setEndDate } from '../../actions/dateTime';
 import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
 import ApplicationLogDetailView from './ApplicationLogDetailView';
+import * as moment from 'moment';
 
 class ApplicationLogDetail extends Component {
     constructor(props) {
@@ -40,6 +41,21 @@ class ApplicationLogDetail extends Component {
         }));
         this.props.setStartDate(startDate);
         this.props.setEndDate(endDate);
+    };
+    handleNewDateTimeChange = (value) => {
+        let startDate = value.startDate
+        let endDate = value.endDate
+        if(startDate && endDate) {
+            startDate = moment(startDate);
+            endDate = moment(endDate);
+            this.setState(state => ({
+                startDate,
+                endDate,
+            }));
+            this.props.setStartDate(startDate);
+            this.props.setEndDate(endDate);
+        }
+        
     };
     deleteApplicationLog = () => {
         const promise = this.props.deleteApplicationLog(
@@ -262,6 +278,7 @@ class ApplicationLogDetail extends Component {
                                 componentId={componentId}
                                 handleDateTimeChange={this.handleDateTimeChange}
                                 handleLogTypeChange={this.handleLogTypeChange}
+                                handleNewDateTimeChange={this.handleNewDateTimeChange}
                             />
                         </ShouldRender>
                     </div>
@@ -283,6 +300,7 @@ class ApplicationLogDetail extends Component {
                                 componentId={componentId}
                                 handleDateTimeChange={this.handleDateTimeChange}
                                 handleLogTypeChange={this.handleLogTypeChange}
+                                handleNewDateTimeChange={this.handleNewDateTimeChange}
                             />
                         </div>
                     </ShouldRender>

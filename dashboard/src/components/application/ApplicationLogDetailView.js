@@ -3,6 +3,7 @@ import LogList from './LogList';
 import DateRangeWrapper from './DateRangeWrapper';
 import TimeRangeSelector from '../basic/TimeRangeSelector';
 import Select from '../../components/basic/react-select-fyipe';
+import DateTimeWrapper from './DateTimeWrapper';
 
 class ApplicationLogDetailView extends Component {
     render() {
@@ -14,6 +15,7 @@ class ApplicationLogDetailView extends Component {
             componentId,
             handleDateTimeChange,
             handleLogTypeChange,
+            handleNewDateTimeChange,
         } = this.props;
         return (
             <div>
@@ -40,22 +42,27 @@ class ApplicationLogDetailView extends Component {
                                             </div>
                                         </div>
                                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween Padding-top--8">
+                                            
+
                                             <div className="db-Trends-timeControls">
-                                                <DateRangeWrapper
-                                                    selected={startDate}
-                                                    dateRange={30}
+                                                <DateTimeWrapper
+                                                    name="startDate"
+                                                    label="Set a start date and time"
+                                                    currentDate={startDate}
+                                                    id={applicationLog._id + 'start'}
                                                     onChange={
-                                                        handleDateTimeChange
+                                                        handleNewDateTimeChange
                                                     }
                                                 />
                                             </div>
-
                                             <div className="db-Trends-timeControls">
-                                                <TimeRangeSelector
-                                                    name1="startTime"
-                                                    name2="endTime"
+                                                <DateTimeWrapper
+                                                    name="endDate"
+                                                    label="Set an end date and time"
+                                                    currentDate={startDate}
+                                                    id={applicationLog._id + 'end'}
                                                     onChange={
-                                                        handleDateTimeChange
+                                                        handleNewDateTimeChange
                                                     }
                                                 />
                                             </div>
@@ -63,8 +70,8 @@ class ApplicationLogDetailView extends Component {
                                             <div
                                                 style={{
                                                     height: '28px',
-                                                    width: '250px',
                                                 }}
+                                                className="db-Trends-timeControls"
                                             >
                                                 <Select
                                                     name="probe_selector"

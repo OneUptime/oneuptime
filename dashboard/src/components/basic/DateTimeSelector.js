@@ -49,6 +49,7 @@ const DateTimeSelector = ({
     style,
     classes,
     minDate,
+    id
 }) => {
     if (!input.value) {
         input.value = null;
@@ -76,7 +77,7 @@ const DateTimeSelector = ({
                         <DateTimePicker
                             name={input.name}
                             margin="normal"
-                            id="time-picker"
+                            id={ id ? id+"time-picker" : "time-picker"}
                             value={value}
                             error={false}
                             invalidDateMessage={false}
