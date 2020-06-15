@@ -4,6 +4,7 @@ import DateRangeWrapper from './DateRangeWrapper';
 import TimeRangeSelector from '../basic/TimeRangeSelector';
 import Select from '../../components/basic/react-select-fyipe';
 import DateTimeWrapper from './DateTimeWrapper';
+import FilterSelect from './FilterSelect';
 
 class ApplicationLogDetailView extends Component {
     render() {
@@ -14,7 +15,10 @@ class ApplicationLogDetailView extends Component {
             logOptions,
             componentId,
             handleDateTimeChange,
-            handleLogTypeChange
+            handleLogTypeChange,
+            handleLogFilterChange,
+            filter,
+            filters
         } = this.props;
         return (
             <div>
@@ -41,14 +45,15 @@ class ApplicationLogDetailView extends Component {
                                             </div>
                                         </div>
                                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween Padding-top--8">
-                                            
-
                                             <div className="db-Trends-timeControls">
                                                 <DateTimeWrapper
                                                     name="startDate"
                                                     label="Set a start date and time"
                                                     currentDate={startDate}
-                                                    id={applicationLog._id + 'start'}
+                                                    id={
+                                                        applicationLog._id +
+                                                        'start'
+                                                    }
                                                     onChange={
                                                         handleDateTimeChange
                                                     }
@@ -59,14 +64,42 @@ class ApplicationLogDetailView extends Component {
                                                     name="endDate"
                                                     label="Set an end date and time"
                                                     currentDate={startDate}
-                                                    id={applicationLog._id + 'end'}
+                                                    id={
+                                                        applicationLog._id +
+                                                        'end'
+                                                    }
                                                     onChange={
                                                         handleDateTimeChange
                                                     }
                                                 />
                                             </div>
+                                            <div style={{
+                                                    height: '28px',
+                                                }}
+                                                className="db-Trends-timeControls">
+                                                <FilterSelect
+                                                    name="probe_selector"
+                                                    value={filter}
+                                                    onChange={
+                                                        handleLogFilterChange
+                                                    }
+                                                    placeholder="Filter By"
+                                                    className="db-select-pr"
+                                                    id="log_type_selector"
+                                                    isDisabled={
+                                                        !(
+                                                            applicationLog &&
+                                                            !applicationLog.requesting
+                                                        )
+                                                    }
+                                                    style={{
+                                                        height: '28px',
+                                                    }}
+                                                    options={filters}
+                                                />
+                                            </div>
 
-                                            <div
+                                            {/* <div
                                                 style={{
                                                     height: '28px',
                                                 }}
@@ -92,7 +125,7 @@ class ApplicationLogDetailView extends Component {
                                                     }}
                                                     options={logOptions}
                                                 />
-                                            </div>
+                                            </div> */}
                                         </div>
                                     </div>
                                     <LogList

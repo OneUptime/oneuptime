@@ -181,14 +181,15 @@ export function deleteComponentApplicationLogs(componentId) {
     };
 }
 
-export function fetchLogs(applicationLogId, skip, limit, startDate, endDate, type) {
+export function fetchLogs(applicationLogId, skip, limit, startDate, endDate, type, filter) {
     return function (dispatch) {
         const promise = postApi(`application-log/${applicationLogId}/logs`, {
             skip,
             limit,
             startDate,
             endDate,
-            type
+            type,
+            filter
         });
         dispatch(fetchLogsRequest({ applicationLogId }));
 
