@@ -57,19 +57,19 @@ export class Monitors extends Component {
                 _id: status._id,
                 monitors,
             })
-        // .then(() => {
-        //     this.props.fetchProjectStatusPage(
-        //         this.props.currentProject._id,
-        //         true,
-        //         0,
-        //         10
-        //     );
-        // });
-        // if (SHOULD_LOG_ANALYTICS) {
-        //     logEvent(
-        //         'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > MONITOR UPDATED'
-        //     );
-        // }
+            .then(() => {
+                this.props.fetchProjectStatusPage(
+                    this.props.currentProject._id,
+                    true,
+                    0,
+                    10
+                );
+            });
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > MONITOR UPDATED'
+            );
+        }
     };
 
     render() {
