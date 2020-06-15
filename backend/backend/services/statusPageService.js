@@ -65,19 +65,6 @@ module.exports = {
             statusPageModel.isSubscriberEnabled =
                 data.isSubscriberEnabled || false;
 
-            if (!data.monitorIds) {
-                statusPageModel.monitorIds = null;
-            } else {
-                // if monitorIds is array
-                if (data.monitorIds.length !== undefined) {
-                    statusPageModel.monitorIds = [];
-                    for (const monitorId of data.monitorIds) {
-                        statusPageModel.monitorIds.push(monitorId);
-                    }
-                } else {
-                    statusPageModel.monitorIds = data.monitorIds;
-                }
-            }
             const statusPage = await statusPageModel.save();
             return statusPage;
         } catch (error) {
