@@ -53,8 +53,8 @@ describe('API test', () => {
 
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#fyipeApi');
-                await page.click('#fyipeApi a');
+                await page.waitForSelector('#api');
+                await page.click('#api a');
                 let elementHandle = await page.$('#boxTitle', {
                     visible: true,
                 });
@@ -76,8 +76,8 @@ describe('API test', () => {
 
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#fyipeApi');
-                await page.click('#fyipeApi a');
+                await page.waitForSelector('#api');
+                await page.click('#api a');
                 let label = await page.$('#apiKey', { visible: true });
                 label = await label.getProperty('innerText');
                 label = await label.jsonValue();
@@ -102,8 +102,8 @@ describe('API test', () => {
 
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#fyipeApi');
-                await page.click('#fyipeApi a');
+                await page.waitForSelector('#api');
+                await page.click('#api a');
 
                 await page.click('#apiKey');
                 let oldApiKey = await page.$('#apiKey', { visible: true });

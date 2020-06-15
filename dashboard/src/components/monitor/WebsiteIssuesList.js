@@ -69,7 +69,10 @@ const WebsiteIssuesList = ({ monitorIssue }) => {
                                     >
                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                             <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                {issue.title}
+                                                {issue.title}{' '}
+                                                {issue.displayValue
+                                                    ? `(${issue.displayValue})`
+                                                    : null}
                                             </span>
                                         </div>
                                     </td>
