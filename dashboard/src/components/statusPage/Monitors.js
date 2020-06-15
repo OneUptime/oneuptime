@@ -22,8 +22,8 @@ const validate = values => {
     const { monitors } = values;
     for (let i = 0; i < monitors.length; i++) {
         const monitor = monitors[i];
-        if (!monitor.id)
-            monitorFormsErrors[i] = { id: 'A monitor must be selected.' }
+        if (!monitor.monitor)
+            monitorFormsErrors[i] = { monitor: 'A monitor must be selected.' }
         const {
             uptime,
             memory,
@@ -105,7 +105,7 @@ export class Monitors extends Component {
                                                 'StatuspageMonitors',
                                                 'monitors',
                                                 {
-                                                    id: null,
+                                                    monitor: null,
                                                     description: '',
                                                     uptime: true,
                                                     memory: false,

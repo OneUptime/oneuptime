@@ -51,7 +51,7 @@ let RenderMonitor = ({
   errors
 }) => {
   const currentMonitorForm = monitors[monitorIndex];
-  const { id: currentMonitorID } = currentMonitorForm;
+  const { monitor: currentMonitorID } = currentMonitorForm;
   const getParentComponent = (monitor) =>
     allComponents.filter(component => component._id === monitor.componentId)[0]
 
@@ -103,7 +103,7 @@ let RenderMonitor = ({
               </label>
               <Field
                 className="db-select-nw"
-                name={`${monitor}.id`}
+                name={`${monitor}.monitor`}
                 component={RenderSelect}
                 options={[
                   ...(
