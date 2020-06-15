@@ -39,21 +39,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         const data = req.body;
         data.projectId = req.params.projectId;
 
-        // Sanitize
-        if (!data.monitorIds) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor ids are required.',
-            });
-        }
-
-        if (!Array.isArray(data.monitorIds)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor IDs are not stored in an array.',
-            });
-        }
-
         if (!data.name) {
             return sendErrorResponse(req, res, {
                 code: 400,
