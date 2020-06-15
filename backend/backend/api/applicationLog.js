@@ -152,10 +152,12 @@ router.post(
                 limit,
                 startDate,
                 endDate,
+                type
             } = req.body;
             const applicationLogId = req.params.applicationLogId;
             const query = {};
             if (applicationLogId) query.applicationLogId = applicationLogId;
+            if (type) query.type = type;
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
