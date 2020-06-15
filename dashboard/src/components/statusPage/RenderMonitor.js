@@ -2,8 +2,11 @@ import React, { Fragment } from 'react';
 import { Field, formValueSelector, change } from 'redux-form';
 import { connect } from 'react-redux';
 import { RenderSelect } from '../basic/RenderSelect';
+import ShouldRender from '../basic/ShouldRender';
+import IsOwnerSubProject from '../basic/IsOwnerSubProject';
+import IsAdminSubProject from '../basic/IsAdminSubProject';
 
-const Checkbox = ({ label, name }) => (
+const Checkbox = ({ label, name, disabled }) => (
     <div className="bs-Fieldset-fields" style={{ maxHeight: '20px' }}>
         <div className="Box-root" style={{ height: '5px' }}></div>
         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
@@ -14,6 +17,7 @@ const Checkbox = ({ label, name }) => (
                     data-test="RetrySettings-failedPaymentsCheckbox"
                     name={name}
                     className="Checkbox-source"
+                    disabled={disabled}
                 />
                 <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                     <div className="Checkbox-target Box-root">
@@ -31,6 +35,7 @@ const Checkbox = ({ label, name }) => (
 );
 
 let RenderMonitor = ({
+    subProject,
     monitorIndex,
     monitor,
     monitors,
@@ -63,6 +68,10 @@ let RenderMonitor = ({
         dispatch(change('StatuspageMonitors', `${monitor}.temperature`, false));
         dispatch(change('StatuspageMonitors', `${monitor}.runtime`, false));
     };
+
+    const shouldEdit =
+        IsAdminSubProject(subProject) || IsOwnerSubProject(subProject);
+
     return (
         <li style={{ margin: '5px 0px' }}>
             <div className="Card-root">
@@ -140,10 +149,12 @@ let RenderMonitor = ({
                                             <Checkbox
                                                 label="Uptime"
                                                 name={`${monitor}.uptime`}
+                                                disabled={!shouldEdit}
                                             />
                                             <Checkbox
                                                 label="Response Time"
                                                 name={`${monitor}.responseTime`}
+                                                disabled={!shouldEdit}
                                             />
                                         </Fragment>
                                     )}
@@ -152,10 +163,12 @@ let RenderMonitor = ({
                                             <Checkbox
                                                 label="Uptime"
                                                 name={`${monitor}.uptime`}
+                                                disabled={!shouldEdit}
                                             />
                                             <Checkbox
                                                 label="Script running time"
                                                 name={`${monitor}.runtime`}
+                                                disabled={!shouldEdit}
                                             />
                                         </Fragment>
                                     )}
@@ -163,6 +176,7 @@ let RenderMonitor = ({
                                         <Checkbox
                                             label="Uptime"
                                             name={`${monitor}.uptime`}
+                                            disabled={!shouldEdit}
                                         />
                                     )}
                                     {type === 'server-monitor' && (
@@ -170,22 +184,27 @@ let RenderMonitor = ({
                                             <Checkbox
                                                 label="Uptime"
                                                 name={`${monitor}.uptime`}
+                                                disabled={!shouldEdit}
                                             />
                                             <Checkbox
                                                 label="Memory"
                                                 name={`${monitor}.memory`}
+                                                disabled={!shouldEdit}
                                             />
                                             <Checkbox
                                                 label="CPU"
                                                 name={`${monitor}.cpu`}
+                                                disabled={!shouldEdit}
                                             />
                                             <Checkbox
                                                 label="Storage"
                                                 name={`${monitor}.storage`}
+                                                disabled={!shouldEdit}
                                             />
                                             <Checkbox
                                                 label="Temperature"
                                                 name={`${monitor}.temperature`}
+                                                disabled={!shouldEdit}
                                             />
                                         </Fragment>
                                     )}
@@ -193,6 +212,7 @@ let RenderMonitor = ({
                                         <Checkbox
                                             label="Uptime"
                                             name={`${monitor}.uptime`}
+                                            disabled={!shouldEdit}
                                         />
                                     )}
                                     {type === 'api' && (
@@ -200,10 +220,12 @@ let RenderMonitor = ({
                                             <Checkbox
                                                 label="Uptime"
                                                 name={`${monitor}.uptime`}
+                                                disabled={!shouldEdit}
                                             />
                                             <Checkbox
                                                 label="Response Time"
                                                 name={`${monitor}.responseTime`}
+                                                disabled={!shouldEdit}
                                             />
                                         </Fragment>
                                     )}
@@ -223,20 +245,22 @@ let RenderMonitor = ({
                     </div>
                 </div>
             </div>
-            <div
-                className="bs-ContentSection-footer bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12"
-                style={{ backgroundColor: '#f7f7f7' }}
-            >
-                <div>
-                    <button
-                        className="bs-Button bs-DeprecatedButton"
-                        onClick={() => fields.remove(monitorIndex)}
-                        type="button"
-                    >
-                        Remove Monitor
-                    </button>
+            <ShouldRender if={shouldEdit}>
+                <div
+                    className="bs-ContentSection-footer bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12"
+                    style={{ backgroundColor: '#f7f7f7' }}
+                >
+                    <div>
+                        <button
+                            className="bs-Button bs-DeprecatedButton"
+                            onClick={() => fields.remove(monitorIndex)}
+                            type="button"
+                        >
+                            Remove Monitor
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </ShouldRender>
         </li>
     );
 };

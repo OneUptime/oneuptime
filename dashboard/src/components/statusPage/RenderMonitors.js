@@ -1,7 +1,7 @@
 import React from 'react';
 import { RenderMonitor } from './RenderMonitor';
 
-const RenderMonitors = ({ fields }) => (
+const RenderMonitors = ({ fields, subProject }) => (
     <ul>
         {fields.map((monitor, index) => (
             <RenderMonitor
@@ -9,6 +9,7 @@ const RenderMonitors = ({ fields }) => (
                 monitorIndex={index}
                 monitor={monitor}
                 fields={fields}
+                subProject={subProject}
             />
         ))}
     </ul>

@@ -16,6 +16,8 @@ import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { RenderMonitors } from './RenderMonitors';
+import IsAdminSubProject from '../basic/IsAdminSubProject';
+import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 
 const validate = values => {
     const monitorFormsErrors = {};
@@ -78,7 +80,16 @@ export class Monitors extends Component {
     render() {
         const { handleSubmit, subProjects } = this.props;
         const { status } = this.props.statusPage;
-
+        const subProject = !status.projectId
+            ? null
+            : this.props.currentProject._id === status.projectId._id ||
+              this.props.currentProject._id === status.projectId
+            ? this.props.currentProject
+            : subProjects.filter(
+                  subProject =>
+                      subProject._id === status.projectId._id ||
+                      subProject._id === status.projectId
+              )[0];
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -97,7 +108,13 @@ export class Monitors extends Component {
                                     </span>
                                 </span>
                             </div>
-                            <ShouldRender if={this.props.monitors.length > 0}>
+                            <ShouldRender
+                                if={
+                                    this.props.monitors.length > 0 &&
+                                    (IsAdminSubProject(subProject) ||
+                                        IsOwnerSubProject(subProject))
+                                }
+                            >
                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                     <div className="Box-root">
                                         <button
@@ -147,7 +164,14 @@ export class Monitors extends Component {
                                         >
                                             <FieldArray
                                                 name="monitors"
-                                                component={RenderMonitors}
+                                                component={({ ...props }) => (
+                                                    <RenderMonitors
+                                                        {...{
+                                                            ...props,
+                                                            subProject,
+                                                        }}
+                                                    />
+                                                )}
                                             />
                                         </fieldset>
                                     </div>
@@ -226,7 +250,11 @@ export class Monitors extends Component {
                             </div>
                             <div>
                                 <ShouldRender
-                                    if={this.props.monitors.length > 0}
+                                    if={
+                                        this.props.monitors.length > 0 &&
+                                        (IsAdminSubProject(subProject) ||
+                                            IsOwnerSubProject(subProject))
+                                    }
                                 >
                                     <button
                                         id="btnAddStatusPageMonitors"
