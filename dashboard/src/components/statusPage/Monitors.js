@@ -50,32 +50,26 @@ export class Monitors extends Component {
     submitForm = values => {
         const { status } = this.props.statusPage;
         const { projectId } = status;
-        const monitorIds = [];
-        /* eslint-disable no-unused-vars */
-        for (const id in values) {
-            if (Object.prototype.hasOwnProperty.call(values, id)) {
-                values[id] && monitorIds.push(id);
-            }
-        }
+        const { monitors } = values;
 
         this.props
             .updateStatusPageMonitors(projectId._id || projectId, {
                 _id: status._id,
-                monitorIds,
+                monitors,
             })
-            .then(() => {
-                this.props.fetchProjectStatusPage(
-                    this.props.currentProject._id,
-                    true,
-                    0,
-                    10
-                );
-            });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > MONITOR UPDATED'
-            );
-        }
+        // .then(() => {
+        //     this.props.fetchProjectStatusPage(
+        //         this.props.currentProject._id,
+        //         true,
+        //         0,
+        //         10
+        //     );
+        // });
+        // if (SHOULD_LOG_ANALYTICS) {
+        //     logEvent(
+        //         'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > MONITOR UPDATED'
+        //     );
+        // }
     };
 
     render() {
@@ -112,7 +106,6 @@ export class Monitors extends Component {
                                                 'monitors',
                                                 {
                                                     id: null,
-                                                    type: '',
                                                     description: '',
                                                     uptime: true,
                                                     memory: false,

@@ -51,10 +51,13 @@ let RenderMonitor = ({
   errors
 }) => {
   const currentMonitorForm = monitors[monitorIndex];
-  const { id: currentMonitorID, type } = currentMonitorForm;
-  const getParentComponent=(monitor)=>
-  allComponents.filter(component=>component._id===monitor.componentId)[0]
-  
+  const { id: currentMonitorID } = currentMonitorForm;
+  const getParentComponent = (monitor) =>
+    allComponents.filter(component => component._id === monitor.componentId)[0]
+
+  const selectedMonitor = allMonitors.filter(monitor => monitor._id === currentMonitorID)[0];
+  const { type = null } = !!selectedMonitor && selectedMonitor;
+
   const resetSelectedCharts = () => {
     dispatch(change('StatuspageMonitors', `${monitor}.uptime`, true))
     dispatch(change('StatuspageMonitors', `${monitor}.memory`, false))
@@ -112,14 +115,7 @@ let RenderMonitor = ({
                     )
                   )
                 ]}
-                onChange={(value) => {
-                  const selectMonitorID = Object.values(value).slice(0, 24).join('');
-                  const selectedMonitor = allMonitors.filter(monitor => monitor._id === selectMonitorID)[0];
-                  const { type } = selectedMonitor;
-                  dispatch(change('StatuspageMonitors', `${monitor}.type`, type))
-                  resetSelectedCharts();
-                }
-                }
+                onChange={() => resetSelectedCharts()}
               />
             </div>
             {

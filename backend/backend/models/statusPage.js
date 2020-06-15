@@ -17,6 +17,18 @@ const statusSchema = new Schema({
         },
     ],
     monitorIds: [{ type: String, ref: 'Monitor' }],
+    monitors: [{
+        monitor: { type: String, ref: 'Monitor' },
+        description: String,
+        uptime: Boolean,
+        memory: Boolean,
+        cpu: Boolean,
+        storage: Boolean,
+        responseTime: Boolean,
+        temperature: Boolean,
+        runtime: Boolean,
+    }
+    ],
     links: Array,
     title: String,
     name: String,
