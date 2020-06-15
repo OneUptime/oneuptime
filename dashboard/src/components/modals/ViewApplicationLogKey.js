@@ -15,12 +15,10 @@ class ViewApplicationLogKey extends Component {
         };
     }
     toggleConfirmationBox = () => {
-        this.setState(
-            state => ({
-                confirmBoxHidden: !state.confirmBoxHidden,
-            })
-        )
-    }
+        this.setState(state => ({
+            confirmBoxHidden: !state.confirmBoxHidden,
+        }));
+    };
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -66,15 +64,16 @@ class ViewApplicationLogKey extends Component {
                                 <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
-                                            <div className="bs-Fieldset-row">
+                                            <div className="bs-Fieldset-row Flex-flex Flex-direction--column">
                                                 <label className="bs-Fieldset-label">
                                                     Application Log ID
                                                 </label>
-                                                <div className="bs-Fieldset-fields">
+                                                <div>
                                                     <span
                                                         className="value"
                                                         style={{
                                                             marginTop: '6px',
+                                                            fontWeight: 'bold'
                                                         }}
                                                     >
                                                         {this.props.data
@@ -87,12 +86,12 @@ class ViewApplicationLogKey extends Component {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="bs-Fieldset-row">
+                                            <div className="bs-Fieldset-row Flex-flex Flex-direction--column">
                                                 <label className="bs-Fieldset-label">
                                                     Application Log Key
                                                 </label>
                                                 <div
-                                                    className="bs-Fieldset-fields"
+                                                    
                                                     onClick={() =>
                                                         this.setState(
                                                             state => ({
@@ -119,8 +118,8 @@ class ViewApplicationLogKey extends Component {
                                                         <span
                                                             className="value"
                                                             style={{
-                                                                marginTop:
-                                                                    '6px',
+                                                                marginTop: '6px',
+                                                                fontWeight: 'bold'
                                                             }}
                                                         >
                                                             {this.props.data
