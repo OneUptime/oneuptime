@@ -285,7 +285,6 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = state => {
-    const initialValues = { 'monitors': [] };
     const { currentProject } = state.project;
 
     const monitors = state.monitor.monitorsList.monitors
@@ -293,8 +292,9 @@ const mapStateToProps = state => {
         .flat();
     const {
         statusPage,
-        statusPage: { status },
+        statusPage: { status: { monitors: selectedMonitors } },
     } = state;
+    const initialValues = { monitors: selectedMonitors || [] };
 
     const subProjects = state.subProject.subProjects.subProjects;
     return { initialValues, monitors, statusPage, currentProject, subProjects };
