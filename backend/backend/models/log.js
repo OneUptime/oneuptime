@@ -8,6 +8,7 @@ const logSchema = new Schema({
         alias: 'applicationLog',
     }, //which application log this content log belongs to.
     content: Object,
+    stringifiedContent: String,
     type: {
         type: String,
         enum: ['info', 'warning', 'error'],
