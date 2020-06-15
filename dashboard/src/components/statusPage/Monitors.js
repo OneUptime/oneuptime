@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { reduxForm, FieldArray, arrayPush, } from 'redux-form';
+import { reduxForm, FieldArray, arrayPush } from 'redux-form';
 import {
     updateStatusPageMonitors,
     updateStatusPageMonitorsRequest,
@@ -23,7 +23,7 @@ const validate = values => {
     for (let i = 0; i < monitors.length; i++) {
         const monitor = monitors[i];
         if (!monitor.monitor)
-            monitorFormsErrors[i] = { monitor: 'A monitor must be selected.' }
+            monitorFormsErrors[i] = { monitor: 'A monitor must be selected.' };
         const {
             uptime,
             memory,
@@ -33,7 +33,8 @@ const validate = values => {
             temperature,
             runtime,
         } = monitor;
-        if (!uptime &&
+        if (
+            !uptime &&
             !memory &&
             !cpu &&
             !storage &&
@@ -41,10 +42,12 @@ const validate = values => {
             !temperature &&
             !runtime
         )
-            monitorFormsErrors[i] = { error: 'You must select at least one bar chart' };
+            monitorFormsErrors[i] = {
+                error: 'You must select at least one bar chart',
+            };
     }
     return { monitors: monitorFormsErrors };
-}
+};
 
 export class Monitors extends Component {
     submitForm = values => {
@@ -101,21 +104,22 @@ export class Monitors extends Component {
                                             id="addMoreDomain"
                                             className="Button bs-ButtonLegacy ActionIconParent"
                                             type="button"
-                                            onClick={() => this.props.pushArray(
-                                                'StatuspageMonitors',
-                                                'monitors',
-                                                {
-                                                    monitor: null,
-                                                    description: '',
-                                                    uptime: true,
-                                                    memory: false,
-                                                    cpu: false,
-                                                    storage: false,
-                                                    responseTime: false,
-                                                    temperature: false,
-                                                    runtime: false,
-                                                }
-                                            )
+                                            onClick={() =>
+                                                this.props.pushArray(
+                                                    'StatuspageMonitors',
+                                                    'monitors',
+                                                    {
+                                                        monitor: null,
+                                                        description: '',
+                                                        uptime: true,
+                                                        memory: false,
+                                                        cpu: false,
+                                                        storage: false,
+                                                        responseTime: false,
+                                                        temperature: false,
+                                                        runtime: false,
+                                                    }
+                                                )
                                             }
                                         >
                                             <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
@@ -235,8 +239,8 @@ export class Monitors extends Component {
                                     >
                                         {!this.props.statusPage.monitors
                                             .requesting && (
-                                                <span>Save Changes </span>
-                                            )}
+                                            <span>Save Changes </span>
+                                        )}
                                         {this.props.statusPage.monitors
                                             .requesting && <FormLoader />}
                                     </button>
@@ -292,7 +296,9 @@ const mapStateToProps = state => {
         .flat();
     const {
         statusPage,
-        statusPage: { status: { monitors: selectedMonitors } },
+        statusPage: {
+            status: { monitors: selectedMonitors },
+        },
     } = state;
     const initialValues = { monitors: selectedMonitors || [] };
 
