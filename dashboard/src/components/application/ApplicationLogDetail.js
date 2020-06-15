@@ -34,15 +34,7 @@ class ApplicationLogDetail extends Component {
             endDate: props.endDate,
         };
     }
-    handleDateTimeChange = (startDate, endDate) => {
-        this.setState(state => ({
-            startDate,
-            endDate,
-        }));
-        this.props.setStartDate(startDate);
-        this.props.setEndDate(endDate);
-    };
-    handleNewDateTimeChange = (value) => {
+    handleDateTimeChange = (value) => {
         let startDate = value.startDate
         let endDate = value.endDate
         if(startDate && endDate) {
@@ -300,7 +292,6 @@ class ApplicationLogDetail extends Component {
                                 componentId={componentId}
                                 handleDateTimeChange={this.handleDateTimeChange}
                                 handleLogTypeChange={this.handleLogTypeChange}
-                                handleNewDateTimeChange={this.handleNewDateTimeChange}
                             />
                         </div>
                     </ShouldRender>

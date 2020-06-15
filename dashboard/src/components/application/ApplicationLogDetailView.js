@@ -14,8 +14,7 @@ class ApplicationLogDetailView extends Component {
             logOptions,
             componentId,
             handleDateTimeChange,
-            handleLogTypeChange,
-            handleNewDateTimeChange,
+            handleLogTypeChange
         } = this.props;
         return (
             <div>
@@ -51,7 +50,7 @@ class ApplicationLogDetailView extends Component {
                                                     currentDate={startDate}
                                                     id={applicationLog._id + 'start'}
                                                     onChange={
-                                                        handleNewDateTimeChange
+                                                        handleDateTimeChange
                                                     }
                                                 />
                                             </div>
@@ -62,7 +61,7 @@ class ApplicationLogDetailView extends Component {
                                                     currentDate={startDate}
                                                     id={applicationLog._id + 'end'}
                                                     onChange={
-                                                        handleNewDateTimeChange
+                                                        handleDateTimeChange
                                                     }
                                                 />
                                             </div>

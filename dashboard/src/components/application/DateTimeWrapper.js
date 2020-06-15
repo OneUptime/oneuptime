@@ -14,12 +14,7 @@ class DateTimeWrapper extends Component {
                                 className="bs-Fieldset-row Flex-flex Flex-direction--column"
                                 style={{ padding: 0 }}
                             >
-                                <label
-                                    className="bs-Fieldset-label Text-align--left"
-                                    htmlFor="monitorIds"
-                                >
-                                    <span> {label}</span>
-                                </label>
+                                
                                 <div className="bs-Fieldset-field">
                                     <Field
                                         className="bs-TextInput"
@@ -33,6 +28,7 @@ class DateTimeWrapper extends Component {
                                         }}
                                         value={currentDate}
                                         id={id}
+                                        label={label}
                                     />
                                 </div>
                             </div>
