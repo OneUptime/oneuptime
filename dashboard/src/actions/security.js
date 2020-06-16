@@ -444,3 +444,122 @@ export const deleteApplicationSecurity = ({
         dispatch(deleteApplicationSecurityFailure(errorMsg));
     }
 };
+
+// Scan Application Security
+export const scanApplicationSecurityRequest = () => ({
+    type: types.SCAN_APPLICATION_SECURITY_REQUEST,
+});
+
+export const scanApplicationSecuritySuccess = payload => ({
+    type: types.SCAN_APPLICATION_SECURITY_SUCCESS,
+    payload,
+});
+
+export const scanApplicationSecurityFailure = error => ({
+    type: types.SCAN_APPLICATION_SECURITY_FAILURE,
+    payload: error,
+});
+
+export const scanApplicationSecurity = ({
+    projectId,
+    applicationSecurityId,
+}) => async dispatch => {
+    dispatch(scanApplicationSecurityRequest());
+
+    try {
+        const response = await postApi(
+            `security/${projectId}/application/scan/${applicationSecurityId}`
+        );
+        dispatch(scanApplicationSecuritySuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(scanApplicationSecurityFailure(errorMsg));
+    }
+};
+
+// Get a particular Application Security Log
+export const getApplicationSecurityLogRequest = () => ({
+    type: types.GET_APPLICATION_SECURITY_LOG_REQUEST,
+});
+
+export const getApplicationSecurityLogSuccess = payload => ({
+    type: types.GET_APPLICATION_SECURITY_LOG_SUCCESS,
+    payload,
+});
+
+export const getApplicationSecurityLogFailure = error => ({
+    type: types.GET_APPLICATION_SECURITY_LOG_FAILURE,
+    payload: error,
+});
+
+export const getApplicationSecurityLog = ({
+    projectId,
+    componentId,
+    applicationSecurityId,
+}) => async dispatch => {
+    dispatch(getApplicationSecurityLogRequest());
+
+    try {
+        const response = await getApi(
+            `securityLog/${projectId}/${componentId}/application/logs/${applicationSecurityId}`
+        );
+        dispatch(getApplicationSecurityLogSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(getApplicationSecurityLogFailure(errorMsg));
+    }
+};
+
+// Get Application Security Logs in a component
+export const getApplicationSecurityLogsRequest = () => ({
+    type: types.GET_APPLICATION_SECURITY_LOGS_REQUEST,
+});
+
+export const getApplicationSecurityLogsSuccess = payload => ({
+    type: types.GET_APPLICATION_SECURITY_LOGS_SUCCESS,
+    payload,
+});
+
+export const getApplicationSecurityLogsFailure = error => ({
+    type: types.GET_APPLICATION_SECURITY_LOGS_FAILURE,
+    payload: error,
+});
+
+export const getApplicationSecurityLogs = ({
+    projectId,
+    componentId,
+}) => async dispatch => {
+    dispatch(getApplicationSecurityLogsRequest());
+
+    try {
+        // dispatch(getApplicationSecurityLogsSuccess([]));
+        const response = await getApi(
+            `securityLog/${projectId}/${componentId}/application/logs`
+        );
+        dispatch(getApplicationSecurityLogsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(getApplicationSecurityLogsFailure(errorMsg));
+    }
+};
