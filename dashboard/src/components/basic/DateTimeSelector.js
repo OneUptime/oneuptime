@@ -67,10 +67,10 @@ const DateTimeSelector = ({
         <span>
             <div
                 style={{
-                    width: '10px',
+                    //width: '10px',
                     height: '28px',
                     marginTop: '-15px',
-                    zIndex: 1000,
+                    // zIndex: 1000,
                 }}
             >
                 <MuiThemeProvider theme={theme}>
