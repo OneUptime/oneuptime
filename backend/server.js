@@ -197,6 +197,14 @@ app.use(
     ['/credential', '/api/credential'],
     require('./backend/api/dockerCredential')
 );
+app.use(
+    ['/securityLog', '/api/securityLog'],
+    require('./backend/api/applicationSecurityLog')
+);
+app.use(
+    ['/securityLog', '/api/securityLog'],
+    require('./backend/api/containerSecurityLog')
+);
 
 app.set('port', process.env.PORT || 3002);
 
