@@ -68,8 +68,21 @@ describe('Logger', function () {
             });
     });
 
+    it('should throw error for wrong url', function () {
+        let errorMessage = null;
+        try {
+            new Logger(
+                'anyserverapi.com',
+                applicationLog._id,
+                ''
+            );
+        } catch (e) {
+            errorMessage = e.message;
+        } 
+        expect(errorMessage).to.be.equal('Invalid Server URl');
+    });
     it('should request for application log key', function () {
-        const firstLog = new Logger(API_URL,applicationLog._id, '');
+        const firstLog = new Logger(API_URL, applicationLog._id, '');
         firstLog.log('here').catch(error => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
@@ -78,7 +91,11 @@ describe('Logger', function () {
         });
     });
     it('should request for content', function () {
-        const firstLog = new Logger(API_URL,applicationLog._id, applicationLog.key);
+        const firstLog = new Logger(
+            API_URL,
+            applicationLog._id,
+            applicationLog.key
+        );
         firstLog.log('').catch(error => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
@@ -87,7 +104,7 @@ describe('Logger', function () {
         });
     });
     it('should return invalid application log', function () {
-        const firstLog = new Logger(API_URL,applicationLog._id, 'key');
+        const firstLog = new Logger(API_URL, applicationLog._id, 'key');
         firstLog.log('content').catch(error => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
@@ -96,7 +113,11 @@ describe('Logger', function () {
         });
     });
     it('should return a valid logged item of type string', function () {
-        const validLog = new Logger(API_URL,applicationLog._id, applicationLog.key);
+        const validLog = new Logger(
+            API_URL,
+            applicationLog._id,
+            applicationLog.key
+        );
         const logMessage = 'This is a simple log';
         validLog.log(logMessage).then(response => {
             expect(response.status).to.equal(200);
@@ -106,7 +127,11 @@ describe('Logger', function () {
         });
     });
     it('should return a valid logged item of type object', function () {
-        const validLog = new Logger(API_URL,applicationLog._id, applicationLog.key);
+        const validLog = new Logger(
+            API_URL,
+            applicationLog._id,
+            applicationLog.key
+        );
         const logMessage = {
             message: 'This is a simple log',
             user: { name: 'Jon', email: 'accurate@y.co.uk' },
@@ -127,7 +152,11 @@ describe('Logger', function () {
         });
     });
     it('should return a valid logged item with log type of error', function () {
-        const validLog = new Logger(API_URL,applicationLog._id, applicationLog.key);
+        const validLog = new Logger(
+            API_URL,
+            applicationLog._id,
+            applicationLog.key
+        );
         const logMessage = 'This is a simple log';
         validLog.error(logMessage).then(response => {
             expect(response.status).to.equal(200);
@@ -137,7 +166,11 @@ describe('Logger', function () {
         });
     });
     it('should return a valid logged item with log type of warning', function () {
-        const validLog = new Logger(API_URL,applicationLog._id, applicationLog.key);
+        const validLog = new Logger(
+            API_URL,
+            applicationLog._id,
+            applicationLog.key
+        );
         const logMessage = 'This is a simple log';
         validLog.warning(logMessage).then(response => {
             expect(response.status).to.equal(200);

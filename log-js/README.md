@@ -21,7 +21,7 @@ TODO
 import Logger from 'log-js';
 
 // consturctor
-const logger = new Logger('APPLICATION_LOG_ID','APPLICATION_LOG_KEY')
+const logger = new Logger('API_URL','APPLICATION_LOG_ID','APPLICATION_LOG_KEY')
 
 // Sending a string log to the server
 const item = 'This is a simple log';
@@ -61,13 +61,15 @@ Main API to send logs to the server.
     - [Development](#development)
   - [Basic Usage](#basic-usage)
   - [API Documentation](#api-documentation)
-    - [new Logger(applicationId, applicationKey)](#new-loggerapplicationid-applicationkey)
+    - [new Logger(apiUrl, applicationId, applicationKey)](#new-loggerapiurl-applicationid-applicationkey)
       - [logger.log(log)](#loggerloglog)
+      - [logger.warning(log)](#loggerwarninglog)
+      - [logger.error(log)](#loggererrorlog)
   - [TODO](#todo)
 
 <a name="logger_api--logger"></a>
 
-### new Logger(applicationId, applicationKey)
+### new Logger(apiUrl, applicationId, applicationKey)
 
 Create a constructor from the class, which will be used to send logs to the server.
 
@@ -76,6 +78,7 @@ Create a constructor from the class, which will be used to send logs to the serv
 
 | Param             | Type                    | Description                |
 | ----------------- | ----------------------- | -------------------------- |
+| apiUrl            | <code>string</code>     | The Server URL.            |
 | applicationId     | <code>string</code>     | The Application Log ID.    |
 | applicationKey    | <code>string</code>     | The Application Log Key.   |
 
@@ -90,8 +93,28 @@ Logs a request of type `info` to the server.
 | --------- | -------------------------------------------- | ----------------------------------------------------------------------- |
 | log       | <code>string</code> \| <code>Object</code>   | The content to the logged on the server.                                |
 
+#### logger.warning(log)
+
+Logs a request of type `warning` to the server.
+
+**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
+**Returns**: <code>Promise</code> - A promise response of a success or failure.
+
+| Param     | Type                                         | Description                                                             |
+| --------- | -------------------------------------------- | ----------------------------------------------------------------------- |
+| warning   | <code>string</code> \| <code>Object</code>   | The content to the logged on the server.                                |
+
+#### logger.error(log)
+
+Logs a request of type `error` to the server.
+
+**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
+**Returns**: <code>Promise</code> - A promise response of a success or failure.
+
+| Param     | Type                                         | Description                                                             |
+| --------- | -------------------------------------------- | ----------------------------------------------------------------------- |
+| error     | <code>string</code> \| <code>Object</code>   | The content to the logged on the server.                                |
+
 ## TODO
- - Error Logs
- - Warning Logs
  - Tags
  - TBD 

@@ -4,9 +4,20 @@ class Logger {
     #applicationLogKey;
     #apiUrl;
     constructor(apiUrl, applicationLogId, applicationLogKey) {
+        this.#verifyUrlExist(apiUrl);
+        this.#setApiUrl(apiUrl);
         this.#setApplicationLogId(applicationLogId);
         this.#setApplicationLogKey(applicationLogKey);
-        this.#setApiUrl(apiUrl);
+    }
+    #verifyUrlExist(apiUrl){
+        const allowedServerUrl = [
+            'http://localhost:3002/api/',
+            'https://fyipe.com/api'
+        ];
+        if(!allowedServerUrl.includes(apiUrl)){
+            throw new Error('Invalid Server URl')
+        }
+        return true;
     }
     #setApplicationLogId(applicationLogId) {
         this.#applicationLogId = applicationLogId;
