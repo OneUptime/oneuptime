@@ -444,7 +444,6 @@ module.exports = {
                 const events = await ScheduledEventsService.findBy(
                     {
                         monitorId: { $in: monitorIds },
-                        showEventOnStatusPage: true,
                     },
                     limit,
                     skip
