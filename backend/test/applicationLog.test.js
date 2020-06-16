@@ -9,6 +9,12 @@ let GlobalConfig = require('./utils/globalConfig');
 let request = chai.request.agent(app);
 let { createUser } = require('./utils/userSignUp');
 let VerificationTokenModel = require('../backend/models/verificationToken');
+let ApplicationLogService = require('../backend/services/applicationLogService');
+let UserService = require('../backend/services/userService');
+let ProjectService = require('../backend/services/projectService');
+let NotificationService = require('../backend/services/notificationService');
+let AirtableService = require('../backend/services/airtableService');
+
 
 let token, userId, airtableId, projectId, componentId, applicationLog;
 let log = {
@@ -284,7 +290,7 @@ describe('Application Log API', function () {
                 `/application-log/${projectId}/${componentId}/${applicationLog._id}/logs`
             )
             .set('Authorization', authorization)
-            .send({ type: 'error' }) // filter by error 
+            .send({ type: 'error' }) // filter by error
             .end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('array');
@@ -302,5 +308,34 @@ describe('Application Log API', function () {
                 expect(res.body.count).to.be.equal(1);
                 done();
             });
+    });
+    it('should delete an application log', function (done) {
+        let authorization = `Basic ${token}`;
+        request
+            .delete(
+                `/application-log/${projectId}/${componentId}/${applicationLog._id}`
+            )
+            .set('Authorization', authorization)
+            .end(function (err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.id).to.be.equal(applicationLog.id);
+                expect(res.body.deleted).to.be.equal(true);
+                done();
+            });
+    });
+
+    after(async function() {
+        await GlobalConfig.removeTestConfig();
+        await ProjectService.hardDeleteBy({ _id: projectId });
+        await ApplicationLogService.hardDeleteBy({ _id: {$in: [applicationLog._id]} }),
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [
+                    userData.user.email,
+                ],
+            },
+        });
+        await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
     });
 });
