@@ -1,7 +1,8 @@
-// const bcrypt = require('bcrypt');
-// const constants = require('../config/constants.json');
 const ApplicationSecurityModel = require('../models/applicationSecurity');
 const ErrorService = require('./errorService');
+const moment = require('moment');
+const { decrypt } = require('../config/encryptDecrypt');
+const ApplicationSecurityLogService = require('./applicationSecurityLogService');
 
 module.exports = {
     create: async function(data) {
@@ -18,13 +19,9 @@ module.exports = {
                 throw error;
             }
 
-            // encrypt password
-            /* data.gitPassword = await bcrypt.hash(
-                data.gitPassword,
-                constants.saltRounds
-            ); */
-
-            const applicationSecurity = ApplicationSecurityModel.create(data);
+            const applicationSecurity = await ApplicationSecurityModel.create(
+                data
+            );
             return applicationSecurity;
         } catch (error) {
             ErrorService.log('applicationSecurityService.create', error);
@@ -39,7 +36,9 @@ module.exports = {
 
             const applicationSecurity = await ApplicationSecurityModel.findOne(
                 query
-            ).populate('componentId');
+            )
+                .populate('componentId')
+                .populate('gitCredential');
 
             return applicationSecurity;
         } catch (error) {
@@ -67,7 +66,8 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('componentId');
+                .populate('componentId')
+                .populate('gitCredential');
 
             return applicationSecurities;
         } catch (error) {
@@ -81,7 +81,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const applicationSecurity = ApplicationSecurityModel.findOneAndUpdate(
+            const applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -105,7 +105,7 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let applicationSecurity = this.findOneBy(query);
+            let applicationSecurity = await this.findOneBy(query);
 
             if (!applicationSecurity) {
                 const error = new Error(
@@ -115,7 +115,18 @@ module.exports = {
                 throw error;
             }
 
-            applicationSecurity = this.updateOneBy(query, {
+            const securityLog = await ApplicationSecurityLogService.findOneBy({
+                securityId: applicationSecurity._id,
+            });
+
+            // delete log associated with this application security
+            if (securityLog) {
+                await ApplicationSecurityLogService.deleteBy({
+                    _id: securityLog._id,
+                });
+            }
+
+            applicationSecurity = await this.updateOneBy(query, {
                 deleted: true,
                 deletedAt: Date.now(),
             });
@@ -132,6 +143,53 @@ module.exports = {
             return 'Application Securities deleted successfully';
         } catch (error) {
             ErrorService.log('applicationSecurityService.hardDelete', error);
+            throw error;
+        }
+    },
+    getSecuritiesToScan: async function() {
+        try {
+            const oneDay = moment()
+                .subtract(1, 'days')
+                .toDate();
+            const securities = await this.findBy({
+                $or: [{ lastScan: { $lt: oneDay } }, { scanned: false }],
+            });
+            return securities;
+        } catch (error) {
+            ErrorService.log(
+                'applicationSecurityService.getSecuritiesToScan',
+                error
+            );
+            throw error;
+        }
+    },
+    decryptPassword: async function(security) {
+        try {
+            security.gitCredential.gitPassword = await decrypt(
+                security.gitCredential.gitPassword
+            );
+            return security;
+        } catch (error) {
+            ErrorService.log(
+                'applicatioinSecurityService.decryptPassword',
+                error
+            );
+            throw error;
+        }
+    },
+    updateScanTime: async function(query) {
+        try {
+            const newDate = new Date();
+            const applicationSecurity = await this.updateOneBy(query, {
+                lastScan: newDate,
+                scanned: true,
+            });
+            return applicationSecurity;
+        } catch (error) {
+            ErrorService.log(
+                'applicationSecurityService.updateScanTime',
+                error
+            );
             throw error;
         }
     },
