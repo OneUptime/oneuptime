@@ -7,9 +7,9 @@ import ViewJsonLogs from '../modals/ViewJsonLogs';
 import DataPathHoC from '../DataPathHoC';
 import { bindActionCreators } from 'redux';
 import { ListLoader } from '../basic/Loader';
-import { fetchLogs } from '../../actions/applicationLog'
+import { fetchLogs } from '../../actions/applicationLog';
 import PropTypes from 'prop-types';
-
+import ShouldRender from '../basic/ShouldRender';
 
 class LogList extends Component {
     constructor(props) {
@@ -19,7 +19,7 @@ class LogList extends Component {
     prevClicked = (applicationLogId, skip, limit) => {
         const start = this.props.startDate.clone().utc();
         const end = this.props.endDate.clone().utc();
-        const { fetchLogs } = this.props
+        const { fetchLogs } = this.props;
         fetchLogs(
             applicationLogId,
             skip ? parseInt(skip, 10) - 10 : 10,
@@ -32,7 +32,7 @@ class LogList extends Component {
     nextClicked = (applicationLogId, skip, limit) => {
         const start = this.props.startDate.clone().utc();
         const end = this.props.endDate.clone().utc();
-        const { fetchLogs } = this.props
+        const { fetchLogs } = this.props;
         fetchLogs(
             applicationLogId,
             skip ? parseInt(skip, 10) + 10 : 10,
@@ -44,14 +44,14 @@ class LogList extends Component {
 
     handleDateChange = (startDate, endDate) => {
         const { applicationLogId } = this.props;
-        const { fetchLogs } = this.props
+        const { fetchLogs } = this.props;
 
         fetchLogs(
             applicationLogId,
             0,
             10,
             startDate.clone().utc(),
-            endDate.clone().utc(),
+            endDate.clone().utc()
         );
     };
     render() {
@@ -80,7 +80,7 @@ class LogList extends Component {
             canNext = false;
             canPrev = false;
         }
-        
+
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -223,54 +223,67 @@ class LogList extends Component {
                                                                                     </pre>
                                                                                 </span>
                                                                             ) : (
-                                                                                <button
-                                                                                    title="viewJson"
-                                                                                    id={`application_log_json_${log._id}`}
-                                                                                    disabled={
-                                                                                        !(
-                                                                                            logs &&
-                                                                                            !logs.requesting
-                                                                                        )
-                                                                                    }
-                                                                                    className="bs-Button bs-DeprecatedButton Margin-left--8"
-                                                                                    type="button"
-                                                                                    onClick={() =>
-                                                                                        this.props.openModal(
-                                                                                            {
-                                                                                                id: this
-                                                                                                    .state
-                                                                                                    .viewJsonModalId,
-                                                                                                content: DataPathHoC(
-                                                                                                    ViewJsonLogs,
-                                                                                                    {
-                                                                                                        viewJsonModalId: this
-                                                                                                            .state
-                                                                                                            .viewJsonModalId,
-                                                                                                        jsonLog:
-                                                                                                            log.content,
-                                                                                                        title: `Logs for ${
-                                                                                                            this
-                                                                                                                .props
-                                                                                                                .applicationLog
-                                                                                                                ? this
-                                                                                                                      .props
-                                                                                                                      .applicationLog
-                                                                                                                      .name
-                                                                                                                : 'Unknown'
-                                                                                                        } application log`,
-                                                                                                        rootName:
-                                                                                                            'content',
-                                                                                                    }
-                                                                                                ),
-                                                                                            }
-                                                                                        )
-                                                                                    }
-                                                                                >
-                                                                                    <span>
-                                                                                        View
-                                                                                        JSON
-                                                                                    </span>
-                                                                                </button>
+                                                                                <div style={{ display:'flex', flexDirection: 'column', alignItems:'center'}}>
+                                                                                    <ShouldRender if={log.stringifiedContent}>
+                                                                                        <div style={{color:'black', backgroundColor:'#d2cfcf', padding: '10px', marginBottom: '5px'}} >
+                                                                                        <pre>
+                                                                                            {JSON.stringify(
+                                                                                                log.stringifiedContent,
+                                                                                                null,
+                                                                                                2
+                                                                                            ).substring(0,50)}
+                                                                                        </pre>
+                                                                                        </div>
+                                                                                    </ShouldRender>
+                                                                                    <button
+                                                                                        title="viewJson"
+                                                                                        id={`application_log_json_${log._id}`}
+                                                                                        disabled={
+                                                                                            !(
+                                                                                                logs &&
+                                                                                                !logs.requesting
+                                                                                            )
+                                                                                        }
+                                                                                        className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                                                        type="button"
+                                                                                        onClick={() =>
+                                                                                            this.props.openModal(
+                                                                                                {
+                                                                                                    id: this
+                                                                                                        .state
+                                                                                                        .viewJsonModalId,
+                                                                                                    content: DataPathHoC(
+                                                                                                        ViewJsonLogs,
+                                                                                                        {
+                                                                                                            viewJsonModalId: this
+                                                                                                                .state
+                                                                                                                .viewJsonModalId,
+                                                                                                            jsonLog:
+                                                                                                                log.content,
+                                                                                                            title: `Logs for ${
+                                                                                                                this
+                                                                                                                    .props
+                                                                                                                    .applicationLog
+                                                                                                                    ? this
+                                                                                                                          .props
+                                                                                                                          .applicationLog
+                                                                                                                          .name
+                                                                                                                    : 'Unknown'
+                                                                                                            } application log`,
+                                                                                                            rootName:
+                                                                                                                'content',
+                                                                                                        }
+                                                                                                    ),
+                                                                                                }
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        <span>
+                                                                                            View
+                                                                                            JSON
+                                                                                        </span>
+                                                                                    </button>
+                                                                                </div>
                                                                             )}
                                                                         </div>
                                                                     </div>
@@ -509,7 +522,6 @@ LogList.propTypes = {
     fetchLogs: PropTypes.func,
     prevClicked: PropTypes.func,
     nextClicked: PropTypes.func,
-
 };
 function mapStateToProps(state, props) {
     const applicationLogId = props.applicationLog._id;
