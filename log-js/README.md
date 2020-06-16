@@ -20,7 +20,7 @@ TODO
 ```javascript
 import Logger from 'log-js';
 
-// consturctor
+// constructor
 const logger = new Logger('API_URL','APPLICATION_LOG_ID','APPLICATION_LOG_KEY')
 
 // Sending a string log to the server
@@ -71,7 +71,7 @@ Main API to send logs to the server.
 
 ### new Logger(apiUrl, applicationId, applicationKey)
 
-Create a constructor from the class, which will be used to send logs to the server.
+Create a constructor from the class, which will be used to send logs to the server. Throws an error when the wrong Server URL is passed
 
 **Kind**: Constructor 
 **Returns**: <code>null</code>

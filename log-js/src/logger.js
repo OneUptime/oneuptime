@@ -15,7 +15,7 @@ class Logger {
             'https://fyipe.com/api'
         ];
         if(!allowedServerUrl.includes(apiUrl)){
-            throw new Error('Invalid Server URl')
+            throw new Error('Invalid Server URL')
         }
         return true;
     }

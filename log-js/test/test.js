@@ -79,7 +79,7 @@ describe('Logger', function () {
         } catch (e) {
             errorMessage = e.message;
         } 
-        expect(errorMessage).to.be.equal('Invalid Server URl');
+        expect(errorMessage).to.be.equal('Invalid Server URL');
     });
     it('should request for application log key', function () {
         const firstLog = new Logger(API_URL, applicationLog._id, '');
