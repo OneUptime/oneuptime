@@ -59,9 +59,9 @@ export function resetCreateApplicationLog() {
     };
 }
 
-export function fetchApplicationLogs(componentId) {
+export function fetchApplicationLogs(projectId, componentId) {
     return function (dispatch) {
-        const promise = getApi(`application-log/${componentId}`);
+        const promise = getApi(`application-log/${projectId}/${componentId}`);
         dispatch(fetchApplicationLogsRequest());
 
         promise.then(
@@ -115,10 +115,10 @@ export function resetFetchApplicationLogs() {
 
 //Delete a applicationLog
 //props -> {name: '', type, data -> { data.url}}
-export function deleteApplicationLog(currentProjectId, componentId, applicationLogId) {
+export function deleteApplicationLog(projectId, componentId, applicationLogId) {
     return function (dispatch) {
         const promise = deleteApi(
-            `application-log/${currentProjectId}/${componentId}/${applicationLogId}`,
+            `application-log/${projectId}/${componentId}/${applicationLogId}`,
             {
                 applicationLogId,
             }
@@ -181,9 +181,9 @@ export function deleteComponentApplicationLogs(componentId) {
     };
 }
 
-export function fetchLogs(applicationLogId, skip, limit, startDate, endDate, type, filter) {
+export function fetchLogs(projectId, componentId, applicationLogId, skip, limit, startDate, endDate, type, filter) {
     return function (dispatch) {
-        const promise = postApi(`application-log/${applicationLogId}/logs`, {
+        const promise = postApi(`application-log/${projectId}/${componentId}/${applicationLogId}/logs`, {
             skip,
             limit,
             startDate,
