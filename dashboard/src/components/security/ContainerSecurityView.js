@@ -2,16 +2,21 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+import moment from 'moment';
 import { history } from '../../store';
-import { deleteContainerSecurity } from '../../actions/security';
+import {
+    deleteContainerSecurity,
+    scanContainerSecurity,
+} from '../../actions/security';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteContainerSecurity from '../modals/DeleteContainerSecurity';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
 import IssueIndicator from './IssueIndicator';
+import { Spinner } from '../basic/Loader';
+import ShouldRender from '../basic/ShouldRender';
 
 const ContainerSecurityView = ({
-    name,
     deleteContainerSecurity,
     isRequesting,
     containerSecurityId,
@@ -20,6 +25,10 @@ const ContainerSecurityView = ({
     openModal,
     closeModal,
     deleteContainerError,
+    scanContainerSecurity,
+    securityLog,
+    scanning,
+    containerSecurity,
 }) => {
     const handleDelete = data => {
         const thisObj = this;
@@ -69,13 +78,16 @@ const ContainerSecurityView = ({
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                         <span
                                             id="monitor-content-header"
-                                            className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
+                                            className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
                                             <IssueIndicator status={1} />
                                             <span
-                                                id={`container-title-${name}`}
+                                                id={`container-title-${containerSecurity.name}`}
+                                                style={{
+                                                    textTransform: 'capitalize',
+                                                }}
                                             >
-                                                {name}
+                                                {containerSecurity.name}
                                             </span>
                                         </span>
                                     </div>
@@ -89,35 +101,80 @@ const ContainerSecurityView = ({
                                 </div>
                             </div>
                         </div>
-                        <div className="bs-u-flex Flex-wrap--wrap bs-u-justify--end">
-                            <button
-                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye"
-                                type="button"
-                                onClick={() => {}}
+                        <div className="bs-u-flex Flex-wrap--wrap bs-u-justify--between">
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0 }}
                             >
-                                <span>Scan</span>
-                            </button>
-                            <button
-                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
-                                type="button"
-                                onClick={() => {}}
-                            >
-                                <span>Edit</span>
-                            </button>
-                            <button
-                                id="deleteContainerSecurityBtn"
-                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                disabled={isRequesting}
-                                onClick={() =>
-                                    handleDelete({
-                                        projectId,
-                                        componentId,
-                                        containerSecurityId,
-                                    })
-                                }
-                            >
-                                <span>Delete</span>
-                            </button>
+                                <label className="Text-fontWeight--medium">
+                                    Last Scan:
+                                </label>
+                                <ShouldRender if={containerSecurity.lastScan}>
+                                    <div className="Margin-left--2">
+                                        <span className="value">{`${moment(
+                                            containerSecurity.lastScan
+                                        ).fromNow()} (${moment(
+                                            containerSecurity.lastScan
+                                        ).format(
+                                            'MMMM Do YYYY, h:mm:ss a'
+                                        )})`}</span>
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender if={!containerSecurity.lastScan}>
+                                    <div className="Margin-left--2">
+                                        <span>will display soon</span>
+                                    </div>
+                                </ShouldRender>
+                            </div>
+                            <div>
+                                <ShouldRender if={scanning}>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton"
+                                        disabled={scanning}
+                                    >
+                                        <Spinner
+                                            style={{ stroke: '#8898aa' }}
+                                        />
+                                        <span>Scanning</span>
+                                    </button>
+                                </ShouldRender>
+                                <ShouldRender if={!scanning}>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye"
+                                        type="button"
+                                        onClick={() =>
+                                            scanContainerSecurity({
+                                                projectId,
+                                                containerSecurityId,
+                                            })
+                                        }
+                                        disabled={scanning}
+                                    >
+                                        <span>Scan</span>
+                                    </button>
+                                </ShouldRender>
+                                <button
+                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                    type="button"
+                                    onClick={() => {}}
+                                >
+                                    <span>Edit</span>
+                                </button>
+                                <button
+                                    id="deleteContainerSecurityBtn"
+                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                    disabled={isRequesting}
+                                    onClick={() =>
+                                        handleDelete({
+                                            projectId,
+                                            componentId,
+                                            containerSecurityId,
+                                        })
+                                    }
+                                >
+                                    <span>Delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div
@@ -126,7 +183,10 @@ const ContainerSecurityView = ({
                     >
                         <div>
                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                <SecurityDetail />
+                                <SecurityDetail
+                                    containerSecurityLog={securityLog}
+                                    type="container"
+                                />
                             </div>
                         </div>
                     </div>
@@ -141,10 +201,9 @@ const ContainerSecurityView = ({
     );
 };
 
-ContainerSecurityView.displayName = 'Application Security View';
+ContainerSecurityView.displayName = 'Container Security View';
 
 ContainerSecurityView.propTypes = {
-    name: PropTypes.string,
     deleteContainerSecurity: PropTypes.func,
     isRequesting: PropTypes.bool,
     containerSecurityId: PropTypes.string,
@@ -156,11 +215,20 @@ ContainerSecurityView.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    scanContainerSecurity: PropTypes.func,
+    scanning: PropTypes.bool,
+    securityLog: PropTypes.object,
+    containerSecurity: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { deleteContainerSecurity, openModal, closeModal },
+        {
+            deleteContainerSecurity,
+            openModal,
+            closeModal,
+            scanContainerSecurity,
+        },
         dispatch
     );
 
@@ -168,6 +236,8 @@ const mapStateToProps = state => {
     return {
         isRequesting: state.security.deleteContainer.requesting,
         deleteContainerError: state.security.deleteContainer.error,
+        scanning: state.security.scanContainerSecurity.requesting,
+        securityLog: state.security.containerSecurityLog,
     };
 };
 

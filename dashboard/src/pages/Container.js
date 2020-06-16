@@ -7,7 +7,12 @@ import ContainerSecurityForm from '../components/security/ContainerSecurityForm'
 import ContainerSecurity from '../components/security/ContainerSecurity';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
-import { getContainerSecurities } from '../actions/security';
+import {
+    getContainerSecurities,
+    getContainerSecurityLogs,
+} from '../actions/security';
+import { LargeSpinner } from '../components/basic/Loader';
+import ShouldRender from '../components/basic/ShouldRender';
 
 class Container extends Component {
     constructor(props) {
@@ -16,18 +21,32 @@ class Container extends Component {
     }
 
     componentDidMount() {
-        const { projectId, componentId, getContainerSecurities } = this.props;
+        const {
+            projectId,
+            componentId,
+            getContainerSecurities,
+            getContainerSecurityLogs,
+        } = this.props;
 
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('Container Security page Loaded');
         }
+
+        // load container security logs
+        getContainerSecurityLogs({ projectId, componentId });
 
         // load container security
         getContainerSecurities({ projectId, componentId });
     }
 
     render() {
-        const { componentId, projectId, containerSecurities } = this.props;
+        const {
+            componentId,
+            projectId,
+            containerSecurities,
+            gettingContainerSecurities,
+            gettingSecurityLogs,
+        } = this.props;
 
         return (
             <Dashboard>
@@ -35,41 +54,60 @@ class Container extends Component {
                     <div>
                         <div className="db-BackboneViewContainer">
                             <div className="react-settings-view react-view">
-                                {containerSecurities.length > 0 &&
-                                    containerSecurities.map(
-                                        containerSecurity => {
-                                            return (
-                                                <span
-                                                    key={containerSecurity._id}
-                                                >
-                                                    <div>
+                                <ShouldRender
+                                    if={
+                                        gettingContainerSecurities &&
+                                        gettingSecurityLogs
+                                    }
+                                >
+                                    <div style={{ textAlign: 'center' }}>
+                                        <LargeSpinner />
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender
+                                    if={
+                                        !gettingContainerSecurities &&
+                                        !gettingSecurityLogs
+                                    }
+                                >
+                                    {containerSecurities.length > 0 &&
+                                        containerSecurities.map(
+                                            containerSecurity => {
+                                                return (
+                                                    <span
+                                                        key={
+                                                            containerSecurity._id
+                                                        }
+                                                    >
                                                         <div>
-                                                            <ContainerSecurity
-                                                                name={
-                                                                    containerSecurity.name
-                                                                }
-                                                                dockerRegistryUrl={
-                                                                    containerSecurity.dockerRegistryUrl
-                                                                }
-                                                                imagePath={
-                                                                    containerSecurity.imagePath
-                                                                }
-                                                                containerSecurityId={
-                                                                    containerSecurity._id
-                                                                }
-                                                                projectId={
-                                                                    projectId
-                                                                }
-                                                                componentId={
-                                                                    componentId
-                                                                }
-                                                            />
+                                                            <div>
+                                                                <ContainerSecurity
+                                                                    name={
+                                                                        containerSecurity.name
+                                                                    }
+                                                                    dockerRegistryUrl={
+                                                                        containerSecurity.dockerRegistryUrl
+                                                                    }
+                                                                    imagePath={
+                                                                        containerSecurity.imagePath
+                                                                    }
+                                                                    containerSecurityId={
+                                                                        containerSecurity._id
+                                                                    }
+                                                                    projectId={
+                                                                        projectId
+                                                                    }
+                                                                    componentId={
+                                                                        componentId
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </span>
-                                            );
-                                        }
-                                    )}
+                                                    </span>
+                                                );
+                                            }
+                                        )}
+                                </ShouldRender>
                                 <span>
                                     <div>
                                         <div>
@@ -96,6 +134,9 @@ Container.propTypes = {
     componentId: PropTypes.string,
     containerSecurities: PropTypes.array,
     getContainerSecurities: PropTypes.func,
+    getContainerSecurityLogs: PropTypes.func,
+    gettingSecurityLogs: PropTypes.bool,
+    gettingContainerSecurities: PropTypes.bool,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -106,10 +147,15 @@ const mapStateToProps = (state, ownProps) => {
         projectId,
         componentId,
         containerSecurities: state.security.containerSecurities,
+        gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,
+        gettingContainerSecurities: state.security.getContainer.requesting,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ getContainerSecurities }, dispatch);
+    bindActionCreators(
+        { getContainerSecurities, getContainerSecurityLogs },
+        dispatch
+    );
 
 export default connect(mapStateToProps, mapDispatchToProps)(Container);

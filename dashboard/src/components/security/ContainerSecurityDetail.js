@@ -5,7 +5,10 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
-import { getContainerSecurity } from '../../actions/security';
+import {
+    getContainerSecurity,
+    getContainerSecurityLog,
+} from '../../actions/security';
 import ContainerSecurityView from './ContainerSecurityView';
 import ContainerSecurityDeleteBox from './ContainerSecurityDeleteBox';
 import SecurityLog from './SecurityLog';
@@ -17,10 +20,18 @@ class ContainerSecurityDetail extends Component {
             componentId,
             containerSecurityId,
             getContainerSecurity,
+            getContainerSecurityLog,
         } = this.props;
 
-        // get a particular application security
+        // get a particular container security
         getContainerSecurity({
+            projectId,
+            componentId,
+            containerSecurityId,
+        });
+
+        // get a container security log
+        getContainerSecurityLog({
             projectId,
             componentId,
             containerSecurityId,
@@ -35,33 +46,50 @@ class ContainerSecurityDetail extends Component {
             containerSecurityId,
             isRequesting,
             getContainerError,
+            containerSecurityLog,
+            gettingSecurityLog,
         } = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
-                <ShouldRender if={this.props.isRequesting}>
+                <ShouldRender if={isRequesting && gettingSecurityLog}>
                     <ListLoader />
                 </ShouldRender>
-                <ShouldRender if={containerSecurity.name}>
+                <ShouldRender
+                    if={containerSecurity.name && !gettingSecurityLog}
+                >
                     <ContainerSecurityView
-                        name={containerSecurity.name}
                         projectId={projectId}
                         componentId={componentId}
                         containerSecurityId={containerSecurityId}
                         isRequesting={isRequesting}
+                        containerSecurity={containerSecurity}
                     />
                 </ShouldRender>
-                <ShouldRender if={containerSecurity.name}>
-                    <SecurityLog type="Container" />
+                <ShouldRender
+                    if={containerSecurity.name && !gettingSecurityLog}
+                >
+                    <SecurityLog
+                        type="Container"
+                        containerSecurityLog={containerSecurityLog}
+                    />
                 </ShouldRender>
-                <ShouldRender if={containerSecurity.name}>
+                <ShouldRender
+                    if={containerSecurity.name && !gettingSecurityLog}
+                >
                     <ContainerSecurityDeleteBox
                         projectId={projectId}
                         componentId={componentId}
                         containerSecurityId={containerSecurityId}
                     />
                 </ShouldRender>
-                <ShouldRender if={!isRequesting && getContainerError}>
+                <ShouldRender
+                    if={
+                        !isRequesting &&
+                        !gettingSecurityLog &&
+                        getContainerError
+                    }
+                >
                     {getContainerError}
                 </ShouldRender>
             </div>
@@ -82,10 +110,16 @@ ContainerSecurityDetail.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    getContainerSecurityLog: PropTypes.func,
+    containerSecurityLog: PropTypes.object,
+    gettingSecurityLog: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ getContainerSecurity }, dispatch);
+    bindActionCreators(
+        { getContainerSecurity, getContainerSecurityLog },
+        dispatch
+    );
 
 const mapStateToProps = (state, ownProps) => {
     const {
@@ -101,6 +135,8 @@ const mapStateToProps = (state, ownProps) => {
         containerSecurity: state.security.containerSecurity,
         isRequesting: state.security.getContainer.requesting,
         getContainerError: state.security.getContainer.error,
+        containerSecurityLog: state.security.containerSecurityLog,
+        gettingSecurityLog: state.security.getContainerSecurityLog.requesting,
     };
 };
 
