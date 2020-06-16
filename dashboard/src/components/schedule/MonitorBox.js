@@ -25,11 +25,14 @@ function submitMonitorForm(values, dispatch, props) {
     }
     props.addMonitors(subProjectId, scheduleId, { monitorIds: monitors });
     if (SHOULD_LOG_ANALYTICS) {
-        logEvent('Attached Monitor To Schedule', {
-            subProjectId,
-            scheduleId,
-            monitors,
-        });
+        logEvent(
+            'EVENT: DASHBOARD > PROJECT > SCHEDULE > MONITOR ADDED TO SCHEDULE',
+            {
+                subProjectId,
+                scheduleId,
+                monitors,
+            }
+        );
     }
 }
 
@@ -92,7 +95,7 @@ export function MonitorBox(props) {
                                                         this schedule.{' '}
                                                     </span>
                                                     <Link
-                                                        to={`/dashboard/project/${props.projectId}/monitoring`}
+                                                        to={`/dashboard/project/${props.projectId}/components`}
                                                     >
                                                         <span className="Text-fontWeight--medium">
                                                             Please add one to

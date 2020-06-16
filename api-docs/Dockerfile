@@ -1,6 +1,8 @@
 # Pull base image nodejs image.
 FROM node:12.16.1
 
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 RUN mkdir -p /usr/src/app
 
 WORKDIR /usr/src/app

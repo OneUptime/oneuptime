@@ -32,9 +32,12 @@ export class APISettings extends Component {
                     .resetProjectToken(this.props.currentProject._id)
                     .then(() => {
                         if (SHOULD_LOG_ANALYTICS) {
-                            logEvent('Project Token Reset', {
-                                projectId: this.props.currentProject._id,
-                            });
+                            logEvent(
+                                'EVENT: DASHBOARD > PROJECT > SETTINGS > RESET API TOKEN',
+                                {
+                                    projectId: this.props.currentProject._id,
+                                }
+                            );
                         }
                     });
             },
@@ -56,7 +59,7 @@ export class APISettings extends Component {
                                 <p>
                                     <span>
                                         Access and integrate your apps and
-                                        services with Fyipe API.
+                                        services with API.
                                     </span>
                                 </p>
                             </div>
@@ -103,6 +106,7 @@ export class APISettings extends Component {
                                                 >
                                                     <ShouldRender if={hidden}>
                                                         <span
+                                                            id="apiKey"
                                                             className="value"
                                                             style={{
                                                                 marginTop:
@@ -117,6 +121,7 @@ export class APISettings extends Component {
                                                     </ShouldRender>
                                                     <ShouldRender if={!hidden}>
                                                         <span
+                                                            id="apiKey"
                                                             className="value"
                                                             style={{
                                                                 marginTop:
@@ -145,6 +150,7 @@ export class APISettings extends Component {
                             <div>
                                 <RenderIfAdmin>
                                     <button
+                                        id="resetApiKey"
                                         className="bs-Button bs-Button--blue"
                                         onClick={this.apiResetModal}
                                     >

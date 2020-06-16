@@ -1,9 +1,12 @@
 import React, { Component } from 'react';
+import { PropTypes } from 'prop-types';
 import Dashboard from '../components/Dashboard';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import ZapierBox from '../components/zapier/ZapierBox';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class Integrations extends Component {
     constructor(props) {
@@ -13,13 +16,22 @@ class Integrations extends Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Integration page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > INTEGRATION');
         }
     }
 
     render() {
+        const {
+            location: { pathname },
+        } = this.props;
+
         return (
             <Dashboard>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Integrations" />
                 {/* <Slack />*/}
                 <WebHookBox />
                 <ZapierBox />
@@ -27,6 +39,12 @@ class Integrations extends Component {
         );
     }
 }
+
+Integrations.propTypes = {
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+};
 
 Integrations.displayName = 'Integrations';
 

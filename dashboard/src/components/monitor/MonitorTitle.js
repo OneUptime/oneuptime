@@ -90,7 +90,7 @@ export class MonitorTitle extends Component {
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <span
                                 id="monitor-content-header"
-                                className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
+                                className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                             >
                                 <StatusIndicator status={status} />
                                 <span id={`monitor-title-${monitor.name}`}>

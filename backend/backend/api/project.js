@@ -5,6 +5,7 @@ const router = express.Router();
 const PaymentService = require('../services/paymentService');
 const UserService = require('../services/userService');
 const MailService = require('../services/mailService');
+const AirtableService = require('../services/airtableService');
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
@@ -372,6 +373,7 @@ router.delete(
         try {
             const projectId = req.params.projectId;
             const userId = req.user.id;
+            const feedback = req.body.feedback;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -383,6 +385,17 @@ router.delete(
                 { _id: projectId },
                 userId
             );
+
+            const user = await UserService.findOneBy({ _id: userId });
+            const record = await AirtableService.logProjectDeletionFeedback({
+                reason: feedback
+                    ? feedback
+                    : 'Feedback was not provided by the user',
+                project: project.name,
+                name: user.name,
+                email: user.email,
+            });
+            project.airtableId = record.id || null;
             return sendItemResponse(req, res, project);
         } catch (error) {
             return sendErrorResponse(req, res, error);

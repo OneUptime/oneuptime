@@ -16,6 +16,7 @@ import {
     fetchMonitorLogs,
     fetchMonitorsIncidents,
     fetchMonitorStatuses,
+    fetchLighthouseLogs,
 } from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
@@ -24,12 +25,15 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Monitors');
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Main monitor page Loaded');
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR LIST'
+            );
         }
     }
 
@@ -55,6 +59,13 @@ class DashboardView extends Component {
                             monitor._id,
                             this.props.startDate,
                             this.props.endDate
+                        );
+                        this.props.fetchLighthouseLogs(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            0,
+                            1,
+                            monitor.data.url
                         );
                     });
                 }
@@ -91,6 +102,13 @@ class DashboardView extends Component {
                         monitor._id,
                         this.props.startDate,
                         this.props.endDate
+                    );
+                    this.props.fetchLighthouseLogs(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        0,
+                        1,
+                        monitor.data.url
                     );
                 });
             }
@@ -138,7 +156,13 @@ class DashboardView extends Component {
                 });
         }
 
-        const { componentId, subProjects, currentProject } = this.props;
+        const {
+            componentId,
+            subProjects,
+            currentProject,
+            location: { pathname },
+            component,
+        } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
 
         // SubProject Monitors List
@@ -220,9 +244,17 @@ class DashboardView extends Component {
             );
 
         monitors && monitors.unshift(projectMonitor);
+        const componentName =
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : null
+                : null;
 
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem route={pathname} name={componentName} />
+                <BreadCrumbItem route={pathname + '#'} name="Monitors" />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -363,6 +395,7 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorLogs,
             fetchMonitorsIncidents,
             fetchMonitorStatuses,
+            fetchLighthouseLogs,
             loadPage,
             fetchTutorial,
             getProbes,
@@ -374,6 +407,10 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = (state, props) => {
     const componentId = props.match.params.componentId;
     const monitor = state.monitor;
+
+    const component = state.component.componentList.components.map(item => {
+        return item.components.find(component => component._id === componentId);
+    });
 
     monitor.monitorsList.monitors.forEach(item => {
         item.monitors = item.monitors.filter(
@@ -403,6 +440,7 @@ const mapStateToProps = (state, props) => {
         monitorTutorial: state.tutorial.monitor,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
+        component,
     };
 };
 
@@ -429,11 +467,20 @@ DashboardView.propTypes = {
     fetchMonitorLogs: PropTypes.func,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorStatuses: PropTypes.func.isRequired,
+    fetchLighthouseLogs: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     monitorTutorial: PropTypes.object,
     getProbes: PropTypes.func,
     startDate: PropTypes.object,
     endDate: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+    component: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 DashboardView.displayName = 'DashboardView';

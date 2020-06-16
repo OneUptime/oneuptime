@@ -25,6 +25,7 @@ import EmailTemplates from './EmailTemplates';
 import SmsTemplates from './SmsTemplates';
 
 import MonitorView from './MonitorView';
+import WebsiteMonitorIssues from './WebsiteMonitorIssues';
 import Reports from './Reports';
 
 import Probe from './Probe';
@@ -36,6 +37,7 @@ import ApplicationDetail from './ApplicationDetail';
 import ContainerDetail from './ContainerDetail';
 import GitCredential from './GitCredential';
 import DockerCredential from './DockerCredential';
+import FyipeApi from './FyipeApi';
 
 export default {
     ChangePassword,
@@ -59,6 +61,7 @@ export default {
     SmsTemplates,
     Reports,
     MonitorView,
+    WebsiteMonitorIssues,
     Probe,
     ProfileBilling,
     Container,
@@ -67,4 +70,5 @@ export default {
     ContainerDetail,
     GitCredential,
     DockerCredential,
+    FyipeApi,
 };

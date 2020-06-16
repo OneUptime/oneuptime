@@ -16,12 +16,14 @@ import { loadPage } from '../actions/page';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 
 class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Components');
         if (IS_SAAS_SERVICE) {
-            logEvent('Main component page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > COMPONENT');
         }
     }
 
@@ -48,7 +50,11 @@ class DashboardView extends Component {
             document.head.appendChild(scriptElement);
         }
 
-        const { subProjects, currentProject } = this.props;
+        const {
+            subProjects,
+            currentProject,
+            location: { pathname },
+        } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
         let allComponents = this.props.component.componentList.components
             .map(component => component.components)
@@ -138,6 +144,8 @@ class DashboardView extends Component {
 
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem route={pathname} name="Components" />
+                <AlertDisabledWarning />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -319,6 +327,9 @@ DashboardView.propTypes = {
     fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     componentTutorial: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 DashboardView.displayName = 'DashboardView';

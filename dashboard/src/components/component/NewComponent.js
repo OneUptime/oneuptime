@@ -28,6 +28,7 @@ import 'brace/mode/javascript';
 import 'brace/theme/github';
 import { logEvent } from '../../analytics';
 import { IS_SAAS_SERVICE } from '../../config';
+import { history } from '../../store';
 
 const selector = formValueSelector('NewComponent');
 
@@ -60,6 +61,12 @@ class NewComponent extends Component {
         }
     }
 
+    viewCreatedComponent = (projectId, componentId) => {
+        history.push(
+            `/dashboard/project/${projectId}/${componentId}/monitoring`
+        );
+    };
+
     submitForm = values => {
         const thisObj = this;
 
@@ -76,16 +83,23 @@ class NewComponent extends Component {
             this.props.editComponent(postObj.projectId, postObj).then(() => {
                 thisObj.props.destroy();
                 if (IS_SAAS_SERVICE) {
-                    logEvent('Component Edit', values);
+                    logEvent(
+                        'EVENT: DASHBOARD > COMPONENT > EDIT COMPONENT',
+                        values
+                    );
                 }
             });
         } else {
             this.props.createComponent(postObj.projectId, postObj).then(
-                () => {
+                ({ data: { _id: componentId, projectId } }) => {
                     thisObj.props.reset();
                     if (IS_SAAS_SERVICE) {
-                        logEvent('Add New Component', values);
+                        logEvent(
+                            'EVENT: DASHBOARD > COMPONENT > NEW COMPONENT',
+                            values
+                        );
                     }
+                    this.viewCreatedComponent(projectId._id, componentId);
                 },
                 error => {
                     if (
@@ -125,9 +139,6 @@ class NewComponent extends Component {
 
     cancelEdit = () => {
         this.props.editComponentSwitch(this.props.index);
-        if (IS_SAAS_SERVICE) {
-            logEvent('Component Edit Cancelled', {});
-        }
     };
 
     render() {

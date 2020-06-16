@@ -38,8 +38,7 @@ class ResetAPIKey extends Component {
                                 <p>
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         Resetting the API Key will break all
-                                        your existing integrations with the
-                                        Fyipe API.
+                                        your existing integrations with the API.
                                     </span>
                                 </p>
                                 <p>
@@ -51,6 +50,7 @@ class ResetAPIKey extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
+                                        id="resetApiKeySave"
                                         className="bs-Button bs-DeprecatedButton bs-Button--red"
                                         type="button"
                                         onClick={this.props.confirmThisDialog}

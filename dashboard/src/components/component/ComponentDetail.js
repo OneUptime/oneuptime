@@ -15,6 +15,7 @@ import Badge from '../common/Badge';
 import { history } from '../../store';
 import { logEvent } from '../../analytics';
 import { IS_SAAS_SERVICE } from '../../config';
+import EditComponent from '../modals/EditComponent';
 
 export class ComponentDetail extends Component {
     constructor(props) {
@@ -22,6 +23,7 @@ export class ComponentDetail extends Component {
         this.props = props;
         this.state = {
             deleteComponentModalId: uuid.v4(),
+            editComponentModalId: uuid.v4(),
         };
     }
 
@@ -35,13 +37,16 @@ export class ComponentDetail extends Component {
             3
         );
         if (IS_SAAS_SERVICE) {
-            logEvent('Previous Monitor Requested', {
-                ProjectId: this.props.component.projectId._id,
-                componentId: this.props.component._id,
-                skip: this.props.component.skip
-                    ? parseInt(this.props.component.skip, 10) - 3
-                    : 3,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > COMPONENT > MONITOR PREVIOUS BUTTON CLICKED',
+                {
+                    ProjectId: this.props.component.projectId._id,
+                    componentId: this.props.component._id,
+                    skip: this.props.component.skip
+                        ? parseInt(this.props.component.skip, 10) - 3
+                        : 3,
+                }
+            );
         }
     };
 
@@ -55,13 +60,16 @@ export class ComponentDetail extends Component {
             3
         );
         if (IS_SAAS_SERVICE) {
-            logEvent('Next Monitor Requested', {
-                ProjectId: this.props.component.projectId._id,
-                componentId: this.props.component._id,
-                skip: this.props.component.skip
-                    ? parseInt(this.props.component.skip, 10) + 3
-                    : 3,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > COMPONENT > MONITOR PREVIOUS BUTTON CLICKED',
+                {
+                    ProjectId: this.props.component.projectId._id,
+                    componentId: this.props.component._id,
+                    skip: this.props.component.skip
+                        ? parseInt(this.props.component.skip, 10) + 3
+                        : 3,
+                }
+            );
         }
     };
 
@@ -96,7 +104,7 @@ export class ComponentDetail extends Component {
             `/dashboard/project/${this.props.currentProject._id}/components`
         );
         if (IS_SAAS_SERVICE) {
-            logEvent('Component Deleted', {
+            logEvent('EVENT: DASHBOARD > COMPONENT > COMPONENT DELETED', {
                 ProjectId: this.props.currentProject._id,
                 componentId,
             });
@@ -105,7 +113,7 @@ export class ComponentDetail extends Component {
     };
 
     render() {
-        const { deleteComponentModalId } = this.state;
+        const { deleteComponentModalId, editComponentModalId } = this.state;
         const { component, componentState, currentProject } = this.props;
 
         component.error = null;
@@ -151,12 +159,18 @@ export class ComponentDetail extends Component {
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                     <span
                                         id="component-content-header"
-                                        className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
+                                        className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                     >
                                         <span
                                             id={`component-title-${component.name}`}
                                         >
                                             {component.name}
+                                        </span>
+                                    </span>
+                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            Here&apos;s a list of resources
+                                            which belong to this component.
                                         </span>
                                     </span>
                                 </div>
@@ -165,7 +179,7 @@ export class ComponentDetail extends Component {
                         <div>
                             <button
                                 id={`more-details-${component.name}`}
-                                className="bs-Button bs-Button--icon bs-Button--help"
+                                className="bs-Button bs-Button--icon bs-Button--more"
                                 type="button"
                                 onClick={() => {
                                     history.push(
@@ -177,7 +191,22 @@ export class ComponentDetail extends Component {
                                     );
                                 }}
                             >
-                                <span>View</span>
+                                <span>More</span>
+                            </button>
+                            <button
+                                id={`edit-component-${component.name}`}
+                                className="bs-Button bs-Button--icon bs-Button--settings"
+                                type="button"
+                                onClick={() => {
+                                    this.props.openModal({
+                                        id: editComponentModalId,
+                                        content: DataPathHoC(EditComponent, {
+                                            componentId: component._id,
+                                        }),
+                                    });
+                                }}
+                            >
+                                <span>Edit</span>
                             </button>
                             <button
                                 id={`delete-component-${component.name}`}
@@ -207,22 +236,6 @@ export class ComponentDetail extends Component {
                                 <div className="">
                                     <div className="Box-root">
                                         <div>
-                                            <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-bottom--16">
-                                                <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                        <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span>
-                                                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <span>
-                                                                Here&apos;s a
-                                                                list of
-                                                                resources which
-                                                                belong to this
-                                                                component.
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
                                             <MonitorTabularList
                                                 componentId={
                                                     this.props.component._id

@@ -143,7 +143,7 @@ class AreaChart extends Component {
                         <h3>
                             We&apos;re currently in the process of collecting
                             data for this monitor. <br />
-                            More info will be available soon.
+                            More info will be available in few minutes.
                         </h3>
                     )}
                 </div>

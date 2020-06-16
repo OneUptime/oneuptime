@@ -24,18 +24,23 @@ export class IncidentDeleteBox extends Component {
         const projectId =
             this.props.incident.projectId._id || this.props.incident.projectId;
         const incidentId = this.props.incident._id;
+        const componentId = this.props.component._id;
+        const monitorId = this.props.incident.monitorId._id;
 
         const promise = this.props.deleteIncident(projectId, incidentId);
         promise.then(() => {
-            history.push(
-                `/dashboard/project/${this.props.currentProject._id}/monitoring`
-            );
             if (SHOULD_LOG_ANALYTICS) {
-                logEvent('Incident Deleted', {
-                    projectId,
-                    incidentId,
-                });
+                logEvent(
+                    'EVENT: DASHBOARD > PROJECT > INCIDENT > DELETE INCIDENT',
+                    {
+                        projectId,
+                        incidentId,
+                    }
+                );
             }
+            history.push(
+                `/dashboard/project/${projectId}/${componentId}/monitoring/${monitorId}`
+            );
         });
         return promise;
     };
@@ -76,6 +81,7 @@ export class IncidentDeleteBox extends Component {
                                 <span className="db-SettingsForm-footerMessage"></span>
                                 <div>
                                     <button
+                                        id="deleteIncidentButton"
                                         className="bs-Button bs-Button--red Box-background--red"
                                         disabled={deleting}
                                         onClick={() =>
@@ -116,12 +122,12 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators({ openModal, closeModal, deleteIncident }, dispatch);
 
 IncidentDeleteBox.propTypes = {
-    currentProject: PropTypes.object.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     incident: PropTypes.object.isRequired,
     deleteIncident: PropTypes.func.isRequired,
     deleting: PropTypes.bool.isRequired,
+    component: PropTypes.shape({ _id: PropTypes.string }),
 };
 
 export default withRouter(

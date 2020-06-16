@@ -219,6 +219,8 @@ class Main extends Component {
     }
 
     render() {
+        const { headerHTML, footerHTML, customCSS } = this.props.statusData;
+        const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
         const probes = this.props.probes;
         let view = false;
         let status = '';
@@ -244,15 +246,15 @@ class Main extends Component {
 
             if (serviceStatus === 'all') {
                 status = 'status-bubble status-up';
-                statusMessage = 'All Services are Online';
+                statusMessage = 'All services are online';
                 faviconurl = '/status-page/greenfavicon.ico';
             } else if (serviceStatus === 'none') {
                 status = 'status-bubble status-down';
-                statusMessage = 'All Services are Offline';
+                statusMessage = 'All services are offline';
                 faviconurl = '/status-page/redfavicon.ico';
             } else if (serviceStatus === 'some') {
                 status = 'status-bubble status-paused';
-                statusMessage = 'Some Services are Offline';
+                statusMessage = 'Some services are offline';
                 faviconurl = '/status-page/yellowfavicon.ico';
             }
             view = true;
@@ -299,7 +301,7 @@ class Main extends Component {
         }
 
         return (
-            <div style={backgroundMain}>
+            <div className="page-main-wrapper" style={backgroundMain}>
                 {this.props.statusData && this.props.statusData.bannerPath ? (
                     <span>
                         <img
@@ -313,22 +315,34 @@ class Main extends Component {
                 )}
                 {view ? (
                     <div className="innernew">
-                        <div className="header clearfix">
-                            <div className="heading">
-                                {this.props.statusData &&
-                                this.props.statusData.logoPath ? (
-                                    <span>
-                                        <img
-                                            src={`${API_URL}/file/${this.props.statusData.logoPath}`}
-                                            alt=""
-                                            className="logo"
-                                        />
-                                    </span>
-                                ) : (
-                                    ''
-                                )}
+                        {headerHTML ? (
+                            <React.Fragment>
+                                <style>{sanitizedCSS}</style>
+                                <div
+                                    id="customHeaderHTML"
+                                    dangerouslySetInnerHTML={{
+                                        __html: headerHTML,
+                                    }}
+                                />
+                            </React.Fragment>
+                        ) : (
+                            <div className="header clearfix">
+                                <div className="heading">
+                                    {this.props.statusData &&
+                                    this.props.statusData.logoPath ? (
+                                        <span>
+                                            <img
+                                                src={`${API_URL}/file/${this.props.statusData.logoPath}`}
+                                                alt=""
+                                                className="logo"
+                                            />
+                                        </span>
+                                    ) : (
+                                        ''
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        )}
                         <div className="content">
                             <div
                                 className="white box"
@@ -505,64 +519,73 @@ class Main extends Component {
                                 />
                             </ShouldRender>
                         </ShouldRender>
-                        <div id="footer">
-                            <ul>
-                                <ShouldRender
-                                    if={
-                                        this.props.statusData &&
-                                        this.props.statusData.copyright
-                                    }
-                                >
-                                    <li>
-                                        {' '}
-                                        <span style={primaryText}>
-                                            &copy;
-                                        </span>{' '}
-                                        {this.props.statusData &&
-                                        this.props.statusData.copyright ? (
+                        {footerHTML ? (
+                            <div
+                                id="customFooterHTML"
+                                dangerouslySetInnerHTML={{ __html: footerHTML }}
+                            />
+                        ) : (
+                            <div id="footer">
+                                <ul>
+                                    <ShouldRender
+                                        if={
+                                            this.props.statusData &&
+                                            this.props.statusData.copyright
+                                        }
+                                    >
+                                        <li>
+                                            {' '}
                                             <span style={primaryText}>
-                                                {
-                                                    this.props.statusData
-                                                        .copyright
-                                                }
-                                            </span>
-                                        ) : (
-                                            ''
-                                        )}
-                                    </li>
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={
-                                        this.props.statusData &&
-                                        this.props.statusData.links &&
-                                        this.props.statusData.links.length
-                                    }
-                                >
-                                    {this.props.statusData &&
-                                        this.props.statusData.links &&
-                                        this.props.statusData.links.map(
-                                            (link, i) => (
-                                                <Footer
-                                                    link={link}
-                                                    key={i}
-                                                    textColor={secondaryText}
-                                                />
-                                            )
-                                        )}
-                                </ShouldRender>
-                            </ul>
+                                                &copy;
+                                            </span>{' '}
+                                            {this.props.statusData &&
+                                            this.props.statusData.copyright ? (
+                                                <span style={primaryText}>
+                                                    {
+                                                        this.props.statusData
+                                                            .copyright
+                                                    }
+                                                </span>
+                                            ) : (
+                                                ''
+                                            )}
+                                        </li>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={
+                                            this.props.statusData &&
+                                            this.props.statusData.links &&
+                                            this.props.statusData.links.length
+                                        }
+                                    >
+                                        {this.props.statusData &&
+                                            this.props.statusData.links &&
+                                            this.props.statusData.links.map(
+                                                (link, i) => (
+                                                    <Footer
+                                                        link={link}
+                                                        key={i}
+                                                        textColor={
+                                                            secondaryText
+                                                        }
+                                                    />
+                                                )
+                                            )}
+                                    </ShouldRender>
+                                </ul>
 
-                            <p>
-                                <a
-                                    href="https://fyipe.com"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={secondaryText}
-                                >
-                                    Powered by Fyipe
-                                </a>
-                            </p>
-                        </div>
+                                <p>
+                                    <a
+                                        href="https://fyipe.com"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={secondaryText}
+                                    >
+                                        Powered by Fyipe
+                                    </a>
+                                </p>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     ''

@@ -21,10 +21,23 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.page-main-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  max-height: fit-content;
+  display: flex;
+  flex-direction: column;
+  justify-items: center;
+}
+
+/* .innernew responsive styles */
 .innernew {
-  width: 614px;
+  width: 605px;
   margin: auto;
 }
+
+/* end */
 .center{
   text-align: center;
 }
@@ -227,6 +240,7 @@ div.block-chart {
   border: 0;
   position: relative;
   z-index: 10;
+  width: fit-content;
 
   padding: 0 36px;
   padding-left: 84px;

@@ -74,7 +74,9 @@ export class Links extends Component {
                 });
             });
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Links Updated', values);
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > LINKS UPDATED'
+            );
         }
     };
 
@@ -109,7 +111,7 @@ export class Links extends Component {
                     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                     <span
                                         style={{ textTransform: 'capitalize' }}
                                     >

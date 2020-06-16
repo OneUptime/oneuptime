@@ -3,6 +3,12 @@
     <h1>Health Insurance Portability and Accountability Act</h1>
 
     <p>Request our Requirements for HIPAA Entities</p>
+    <script>
+        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (IS_SAAS_SERVICE) {
+          amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > HIPAA');
+        }
+      </script>
 </header>
 
 <section>

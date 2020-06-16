@@ -8,6 +8,7 @@
 -   Subproject Description [docs/project-description](/docs/project-description.md)
 -   Running Fyipe [docs/run](/docs/run.md)
 -   Running tests [docs/running-test](/docs/running-tests.md)
+-   Deployment [docs/deployment](/docs/deployment.md)
 
 ## LISENCE
 

@@ -43,7 +43,9 @@ export class Monitors extends Component {
                 );
             });
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('StatusPage Monitors Updated', values);
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > MONITOR UPDATED'
+            );
         }
     };
 
@@ -197,7 +199,7 @@ export class Monitors extends Component {
                                                         this.props
                                                             .currentProject
                                                             ._id +
-                                                        '/monitoring'
+                                                        '/components'
                                                     }
                                                 >
                                                     {' '}

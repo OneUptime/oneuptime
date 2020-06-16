@@ -2589,7 +2589,7 @@ html.db-NewChrome body {
 }
 .db-MultiEmailInput .db-MultiEmailInput-email {
     border-radius: 100px;
-    background-color: #fdfdfd;
+    background-color: white;
     color: #4c4c4c;
     padding: 4px 8px 5px;
 }
@@ -2838,7 +2838,7 @@ html.db-NewChrome body {
 .db-Copilot-messageContainer--agent .db-Copilot-message {
     align-self: flex-start;
     color: #1f2d3d;
-    background-color: #fdfdfd;
+    background-color: white;
 }
 .db-Copilot-messageContainer--agent + .db-Copilot-messageContainer--visitor,
 .db-Copilot-messageContainer--visitor + .db-Copilot-messageContainer--agent {
@@ -4020,7 +4020,7 @@ div.db-Trend-groupChart {
     background-color: #f7f7f7;
 }
 .db-ListViewItem-actionsSeparator {
-    background-color: #fdfdfd;
+    background-color: white;
 }
 .db-ListViewItem .db-ListViewItem-actions {
     max-height: 20px;
@@ -6165,7 +6165,7 @@ div.db-Trend-groupChart {
 }
 .CodeMirror-hint-active,
 .CodeMirror-hint:nth-child(2n).CodeMirror-hint-active {
-    background-color: #fdfdfd;
+    background-color: white;
     border-bottom-color: #0e74c3;
     border-top-color: #369ad9;
     color: #4c4c4c;
@@ -6442,7 +6442,7 @@ div.db-Trend-groupChart {
 .db-ResultsTable .fixedDataTableCellLayout_columnResizerKnob:after {
     content: '';
     display: block;
-    background-color: #fdfdfd;
+    background-color: white;
     position: relative;
     width: 1px;
     margin: 6px auto;
@@ -6897,7 +6897,7 @@ div.db-Trend-groupChart {
 .db-SigmaUpgradeModal-divider {
     height: 2px;
     width: 100%;
-    background-color: #fdfdfd;
+    background-color: white;
     margin-bottom: 20px;
 }
 .db-SigmaUpgradeModal-question {
@@ -9932,7 +9932,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     overflow-y: hidden;
 }
 .db-World-scrollWrapper {
-    background-color: #fdfdfd;
+    background-color: white;
     height: 100%;
     min-width: auto;
     position: relative;
@@ -10642,6 +10642,20 @@ table {
     width: 100%;
     outline: none;
 }
+.script-editor-wrapper {
+    max-width: 50%;
+    width: 50%;
+}
+
+.script-label {
+    flex: 20% 0 0;
+}
+
+@media only screen and (min-width: 761px) and (max-width: 1000px) {
+    .bs-Fieldset-fields {
+        max-width: 70%;
+    }
+}
 
 @media only screen and (max-width: 760px) {
     .db-MenuContainer {
@@ -10652,7 +10666,7 @@ table {
         left: 0;
         width: 0;
         padding-left: 0;
-        background-color: #fdfdfd;
+        background-color: white;
     }
     .db-World-sideNavContainer.open {
         width: initial;
@@ -10691,6 +10705,13 @@ table {
     .ace_editor {
         width: 250px !important;
     }
+    .script-editor-wrapper {
+        max-width: 80%;
+        width: 80%;
+    }
+    .script-editor-wrapper .ace_editor {
+        width: 100% !important;
+    }
 }
 @media screen and (max-width: 500px) {
     .db-FeedbackInput-container {
@@ -10716,6 +10737,10 @@ table {
     }
     .bs-Fieldset-fields {
         padding-left: 0;
+    }
+    .script-editor-wrapper {
+        width: 80%;
+        max-width: 80%;
     }
     .ContentHeader-end {
         margin: 0 !important;

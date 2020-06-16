@@ -90,7 +90,9 @@ export class Setting extends Component {
             function() {}
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('StatusPage Domain Updated', values);
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > DOMAIN UPDATED'
+            );
         }
     };
 
@@ -113,7 +115,9 @@ export class Setting extends Component {
             function() {}
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('StatusPage Domain Updated', values);
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > DOMAIN UPDATED'
+            );
         }
     };
 
@@ -326,7 +330,10 @@ export class Setting extends Component {
                                                                         }
                                                                         placeholder="domain"
                                                                     />
-                                                                    <p className="bs-Fieldset-explanation">
+                                                                    <p
+                                                                        className="bs-Fieldset-explanation"
+                                                                        id="publicStatusPageUrl"
+                                                                    >
                                                                         {IS_LOCALHOST && (
                                                                             <span>
                                                                                 If
@@ -627,7 +634,10 @@ export class Setting extends Component {
                                                                     </div>
                                                                 </div>
                                                             </ShouldRender>
-                                                            <p className="bs-Fieldset-explanation">
+                                                            <p
+                                                                className="bs-Fieldset-explanation"
+                                                                id="publicStatusPageUrl"
+                                                            >
                                                                 {IS_LOCALHOST && (
                                                                     <span>
                                                                         If you

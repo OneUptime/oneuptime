@@ -182,8 +182,17 @@ module.exports = {
             //catch
         }
     },
+    logout: async function(page) {
+        await page.goto(utils.ADMIN_DASHBOARD_URL);
+        await page.waitForSelector('button#profile-menu', { visible: true });
+        await page.click('button#profile-menu');
+        await page.waitForSelector('button#logout-button');
+        await page.click('button#logout-button');
+        await page.reload();
+        await page.waitFor(3000);
+    },
     selectByText: async function(selector, text, page) {
-        await page.click(selector);
+        await page.click(selector, { delay: 100 });
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
         if (!noOption) {

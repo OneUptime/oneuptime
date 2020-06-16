@@ -21,7 +21,7 @@ const AlertProjectBox = ({
             <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                        <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                        <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                             <span style={{ textTransform: 'capitalize' }}>
                                 {currentProjectId !== subProjectAlert._id
                                     ? subProjectName
@@ -31,16 +31,15 @@ const AlertProjectBox = ({
                                 Alert Log
                             </span>
                         </span>
-                        <span
-                            style={{ textTransform: 'lowercase' }}
-                            className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                        >
+                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 Here&#39;s a log of all the alerts that were
                                 sent to{' '}
-                                {currentProjectId !== subProjectAlert._id
-                                    ? `${subProjectName} sub-project`
-                                    : `${subProjectName} project`}{' '}
+                                <span style={{ textTransform: 'lowercase' }}>
+                                    {currentProjectId !== subProjectAlert._id
+                                        ? `${subProjectName} sub-project`
+                                        : `${subProjectName} project`}
+                                </span>{' '}
                                 team.
                             </span>
                         </span>

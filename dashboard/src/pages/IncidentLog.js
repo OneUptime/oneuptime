@@ -21,6 +21,8 @@ import TutorialBox from '../components/tutorial/TutorialBox';
 import { LoadingState } from '../components/basic/Loader';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class IncidentLog extends React.Component {
     constructor(props) {
@@ -31,15 +33,12 @@ class IncidentLog extends React.Component {
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Log Page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT LOG');
         }
     }
 
     ready = () => {
         this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Log Page Ready, Data Requested');
-        }
     };
 
     prevClicked = (projectId, skip, limit) => {
@@ -49,18 +48,18 @@ class IncidentLog extends React.Component {
             10
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Incident Requested', {
-                projectId: projectId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT LOG > PREVIOUS BUTTON CLICKED'
+            );
         }
     };
 
     nextClicked = (projectId, skip, limit) => {
         this.props.getProjectIncidents(projectId, skip + limit, 10);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Incident Requested', {
-                projectId: projectId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT LOG > NEXT BUTTON CLICKED'
+            );
         }
     };
 
@@ -73,6 +72,8 @@ class IncidentLog extends React.Component {
             subProjectIncidents,
             incidents,
             componentId,
+            location: { pathname },
+            component,
         } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
 
@@ -179,9 +180,20 @@ class IncidentLog extends React.Component {
             );
 
         allIncidents && allIncidents.unshift(projectIncident);
+        const componentName =
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : null
+                : null;
 
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name={componentName}
+                />
+                <BreadCrumbItem route={pathname} name="Incident Log" />
                 <div>
                     <div>
                         <div className="db-RadarRulesLists-page">
@@ -205,6 +217,10 @@ const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
     let subProjects = state.subProject.subProjects.subProjects;
 
+    const component = state.component.componentList.components.map(item => {
+        return item.components.find(component => component._id === componentId);
+    });
+
     // sort subprojects names for display in alphabetical order
     const subProjectNames =
         subProjects && subProjects.map(subProject => subProject.name);
@@ -222,6 +238,7 @@ const mapStateToProps = (state, props) => {
         subProjects,
         subProjectIncidents: state.incident.incidents.incidents,
         incidentTutorial: state.tutorial.incident,
+        component,
     };
 };
 
@@ -255,6 +272,14 @@ IncidentLog.propTypes = {
         PropTypes.array,
     ]),
     incidentTutorial: PropTypes.object,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+    component: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 IncidentLog.displayName = 'IncidentLog';

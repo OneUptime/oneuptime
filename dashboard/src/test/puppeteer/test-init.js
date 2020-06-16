@@ -88,6 +88,7 @@ module.exports = {
         await page.type('input[name=email]', email);
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
+        await page.waitForSelector('button[type=submit]', { visible: true });
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'networkidle0' }),
             page.click('button[type=submit]'),
@@ -95,6 +96,16 @@ module.exports = {
     },
     logout: async function(page) {
         await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('button#profile-menu', { visible: true });
+        await page.click('button#profile-menu');
+        await page.waitForSelector('button#logout-button');
+        await page.click('button#logout-button');
+        await page.reload();
+        await page.waitFor(3000);
+    },
+    adminLogout: async function(page) {
+        await page.goto(utils.ADMIN_DASHBOARD_URL);
+        await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await page.click('button#logout-button');
@@ -102,13 +113,8 @@ module.exports = {
         await page.waitFor(3000);
     },
     addComponent: async function(component, page, projectName = null) {
-        const componentsMenuItem = await page.$('#components');
-
-        if (componentsMenuItem == null) {
-            // Navigate to Components page
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components');
-        }
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#components', { visible: true });
 
         await page.click('#components');
 
@@ -122,6 +128,7 @@ module.exports = {
         }
 
         await page.click('button[type=submit]');
+        await page.waitForNavigation();
     },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
@@ -242,7 +249,7 @@ module.exports = {
     },
     switchProject: async function(projectName, page) {
         await page.goto(utils.DASHBOARD_URL);
-        // await page.waitForSelector('#AccountSwitcherId');
+        await page.waitForSelector('#AccountSwitcherId', { visible: true });
         await page.click('#AccountSwitcherId');
         await page.waitFor(2000);
         await page.waitForSelector(`#accountSwitcher div#${projectName}`);
@@ -283,15 +290,10 @@ module.exports = {
         } else {
             await page.keyboard.press('Enter');
         }
+        await page.waitFor(5000);
     },
     addMonitorToComponent: async function(component, monitorName, page) {
-        if (component) {
-            await this.addComponent(component, page);
-            // Navigate to details page of component created in previous test
-            await page.waitForSelector(`#more-details-${component}`);
-            await page.click(`#more-details-${component}`);
-            await page.waitFor(5000);
-        }
+        component && (await this.addComponent(component, page));
 
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
@@ -308,10 +310,10 @@ module.exports = {
         componentName,
         page
     ) {
-        // await page.reload({ waitUntil: 'domcontentloaded' });
-        // await page.waitForSelector('#monitors');
-        // await page.click('#monitors'); // Fix this
-        await this.navigateToComponentDetails(componentName, page);
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('#monitors');
+        await page.click('#monitors'); // Fix this
+        // await this.navigateToComponentDetails(componentName, page);
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
@@ -327,7 +329,8 @@ module.exports = {
     },
     addIncidentToProject: async function(monitorName, projectName, page) {
         const createIncidentSelector = await page.$(
-            `#btnCreateIncident_${projectName}`
+            `#btnCreateIncident_${projectName}`,
+            { visible: true }
         );
         if (createIncidentSelector) {
             await page.waitForSelector(`#btnCreateIncident_${projectName}`);

@@ -9,6 +9,8 @@ import ShouldRender from '../components/basic/ShouldRender';
 import { User } from '../config';
 
 import { getTeamMember } from '../actions/team';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 const noDataStyle = {
     display: 'flex',
@@ -54,6 +56,14 @@ function TeamMemberProfile({
 
     return (
         <Dashboard>
+            <BreadCrumbItem
+                route={getParentRoute(match.url, projectId)}
+                name="Team Members"
+            />
+            <BreadCrumbItem
+                route={match.url}
+                name={teamMember ? teamMember.name : ''}
+            />
             <div>
                 <div>
                     <div className="db-BackboneViewContainer">

@@ -27,11 +27,11 @@ export class ResendTokenForm extends Component {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
         const query = queryString.parse(this.props.location.search).status;
-        if (query === 'Lc5orxwR5nKxTANs8jfNsCvGD8Us9ltq') {
+        if (query === 'link-expired') {
             this.setState({
                 serverResponse: 'Verification link expired.',
             });
-        } else if (query === 'eG5aFRDeZXgOkjEfdhOYbFb2lA3Z0OJm') {
+        } else if (query === 'invalid-verification-link') {
             this.setState({
                 serverResponse: 'Invalid Verification link.',
             });

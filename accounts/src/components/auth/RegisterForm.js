@@ -26,6 +26,12 @@ export class RegisterForm extends Component {
         this.props = props;
     }
 
+    componentDidMount() {
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('PAGE VIEW: SIGN UP');
+        }
+    }
+
     userFormSubmitted = values => {
         const thisObj = this;
         this.props.saveUserState(values);
@@ -44,13 +50,7 @@ export class RegisterForm extends Component {
                                         Created: new Date(),
                                         Email: user.data.email,
                                     });
-                                    logEvent(
-                                        'Sign up completed for invited user',
-                                        {
-                                            'First Time': 'TRUE',
-                                            id: user.data.id,
-                                        }
-                                    );
+                                    logEvent('EVENT: SIGNED UP');
                                 }
                             }
                         });
@@ -66,10 +66,7 @@ export class RegisterForm extends Component {
                                         Created: new Date(),
                                         Email: user.data.email,
                                     });
-                                    logEvent('Sign up completed for user', {
-                                        'First Time': 'TRUE',
-                                        id: user.data.id,
-                                    });
+                                    logEvent('EVENT: SIGNED UP');
                                 }
                             }
                         });
@@ -85,9 +82,7 @@ export class RegisterForm extends Component {
                                 CompanyName: values.companyName,
                                 CompanyPhoneNumber: values.companyPhoneNumber,
                             });
-                            logEvent('Sign up step one completed', {
-                                'First Time': 'TRUE',
-                            });
+                            logEvent('EVENT: SIGN UP STEP 1 COMPLETE');
                         }
                     }
                 }

@@ -42,6 +42,9 @@ const statusSchema = new Schema({
     logoPath: String,
     bannerPath: String,
     colors: Object,
+    headerHTML: String,
+    footerHTML: String,
+    customCSS: String,
     createdAt: {
         type: Date,
         default: Date.now,

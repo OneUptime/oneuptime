@@ -24,7 +24,7 @@ class NotificationMenu extends Component {
     markAllAsRead(projectId) {
         this.props.markAllAsRead(projectId);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Notification Marked All As Read', {
+            logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED ALL AS READ', {
                 projectId: projectId,
             });
         }
@@ -33,10 +33,7 @@ class NotificationMenu extends Component {
     markAsRead(notification) {
         this.props.markAsRead(notification.projectId, notification._id);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Notification Marked As Read', {
-                projectId: notification.projectId,
-                notificationId: notification._id,
-            });
+            logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
         }
     }
 
@@ -136,7 +133,7 @@ class NotificationMenu extends Component {
                                                 color: '#24b47e',
                                                 paddingLeft: '15px',
                                                 fontSize: '14px',
-                                                fontWeight: 'medium',
+                                                fontWeight: 'bold',
                                             }}
                                         >
                                             NOTIFICATIONS

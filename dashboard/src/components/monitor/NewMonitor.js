@@ -277,7 +277,10 @@ class NewMonitor extends Component {
                     );
                 }
                 if (SHOULD_LOG_ANALYTICS) {
-                    logEvent('Monitor Edit', values);
+                    logEvent(
+                        'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > EDIT MONITOR',
+                        values
+                    );
                 }
             });
         } else {
@@ -286,7 +289,10 @@ class NewMonitor extends Component {
                     thisObj.props.reset();
                     thisObj.props.closeCreateMonitorModal();
                     if (SHOULD_LOG_ANALYTICS) {
-                        logEvent('Add New Monitor', values);
+                        logEvent(
+                            'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEW MONITOR',
+                            values
+                        );
                     }
                 },
                 error => {
@@ -322,9 +328,6 @@ class NewMonitor extends Component {
 
     cancelEdit = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Monitor Edit Cancelled', {});
-        }
     };
 
     openAdvance = () => {
@@ -355,7 +358,7 @@ class NewMonitor extends Component {
             <>
                 Manual monitors do not monitor any resource. You can change
                 monitor status by using{' '}
-                <a href="https://docs.fyipe.com">Fyipe’s API</a>. This is
+                <a href="https://fyipe.com/docs">Fyipe’s API</a>. This is
                 helpful when you use different monitoring tool but want to
                 record monitor status on Fyipe.
             </>
@@ -782,7 +785,7 @@ class NewMonitor extends Component {
                                                                                 status
                                                                                 by
                                                                                 using{' '}
-                                                                                <a href="https://docs.fyipe.com">
+                                                                                <a href="https://fyipe.com/docs">
                                                                                     Fyipe’s
                                                                                     API
                                                                                 </a>
@@ -971,56 +974,7 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-                                                <ShouldRender
-                                                    if={
-                                                        schedules &&
-                                                        schedules.length > 0
-                                                    }
-                                                >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Call Schedule
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-select-nw"
-                                                                component={
-                                                                    RenderSelect
-                                                                }
-                                                                name={`callSchedule_${this.props.index}`}
-                                                                id="callSchedule"
-                                                                placeholder="Call Schedule"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                style={{
-                                                                    height:
-                                                                        '28px',
-                                                                }}
-                                                                options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select call schedule',
-                                                                    },
-                                                                    ...(schedules &&
-                                                                    schedules.length >
-                                                                        0
-                                                                        ? schedules.map(
-                                                                              schedule => ({
-                                                                                  value:
-                                                                                      schedule._id,
-                                                                                  label:
-                                                                                      schedule.name,
-                                                                              })
-                                                                          )
-                                                                        : []),
-                                                                ]}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </ShouldRender>
+
                                                 <ShouldRender
                                                     if={type === 'api'}
                                                 >
@@ -1199,6 +1153,56 @@ class NewMonitor extends Component {
                                                                     />
                                                                 </span>
                                                             </span>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
+                                                        schedules &&
+                                                        schedules.length > 0
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Call Schedule
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name={`callSchedule_${this.props.index}`}
+                                                                id="callSchedule"
+                                                                placeholder="Call Schedule"
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                }}
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select call schedule',
+                                                                    },
+                                                                    ...(schedules &&
+                                                                    schedules.length >
+                                                                        0
+                                                                        ? schedules.map(
+                                                                              schedule => ({
+                                                                                  value:
+                                                                                      schedule._id,
+                                                                                  label:
+                                                                                      schedule.name,
+                                                                              })
+                                                                          )
+                                                                        : []),
+                                                                ]}
+                                                            />
                                                         </div>
                                                     </div>
                                                 </ShouldRender>

@@ -90,7 +90,9 @@ export class Branding extends Component {
             return;
         }
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('New Logo Selected');
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > LOGO UPDATED'
+            );
         }
     };
 
@@ -108,7 +110,11 @@ export class Branding extends Component {
             return;
         }
 
-        if (!SHOULD_LOG_ANALYTICS) logEvent('New Banner Selected');
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > BANNER UPDATED'
+            );
+        }
     };
 
     changefavicon = e => {
@@ -126,7 +132,9 @@ export class Branding extends Component {
             return;
         }
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('New Favicon Selected');
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > FAVICON SELECTED'
+            );
         }
     };
 
@@ -161,8 +169,10 @@ export class Branding extends Component {
             },
             function() {}
         );
-        if (!SHOULD_LOG_ANALYTICS)
-            logEvent('Updating status page Branding', values);
+        if (SHOULD_LOG_ANALYTICS)
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > BRANDING UPDATED'
+            );
     };
 
     submitForm = values => {
@@ -189,7 +199,9 @@ export class Branding extends Component {
             function() {}
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Changed Logo, Style, Branding', values);
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > BRANDING UPDATED'
+            );
         }
     };
 

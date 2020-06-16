@@ -4,13 +4,13 @@
 <head>
   <title>Fyipe | Pricing</title>
   <meta name="description"
-    content="Les tarifs de fyipe sont simple et transparents et facturés à l'utilisation. Il n'y a pas de frais d'installation, pas de frais mensuels, et pas non plus de frais cachés. Vous n'êtes liés par aucun engagement.">
+    content="Simple, transparent pricing. Compare different pricing plans. Choose the one which suits your buisness best.">
   <% include ./head %>
   <script src="/js/amplitude.js"></script>
   <script async>
     var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
     if (IS_SAAS_SERVICE) {
-      amplitude.getInstance().logEvent('Pricing page viewed');
+      amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRICING');
     }
   </script>
   <link rel="stylesheet" href="/css/flexbox-grid.css">
@@ -257,7 +257,7 @@
                 <div class="Plan-cardRate-description" style="text-align: left;
                       padding: 20px;">
                   Email Support, Alerts charged at $1/call, Assign monitors to team members
-                  and more.
+                  <a href="#compare">and more.</a>
                 </div>
               </div>
 
@@ -320,7 +320,7 @@
                 <div class="Plan-cardRate-description" style="text-align: left;
                       padding: 20px;">
                   Priority Email Support, Alerts charged at $1/call, Subprojects, Private Status Pages
-                  and more.
+                  <a href="#compare">and more.</a>
                 </div>
               </div>
 
@@ -381,8 +381,7 @@
 
                 <div class="Plan-cardRate-description" style="text-align: left;
       padding: 20px;">
-                  Priority Email and Phone Support, Advanced on-cal features, Subprojects, Private Status Pages and
-                  more.
+                  Priority Email and Phone Support, Advanced on-cal features, Subprojects, Private Status Pages  <a href="#compare">and more.</a>
                 </div>
               </div>
 
@@ -408,11 +407,11 @@
                             col-sm-12
                             col-md-9">
 
-              <img src="/img/v3/pricing/header/transfers.svg" width="48" height="53" alt="transfers logo">
-              <p class="common-BodyText TransfersAside-body">
-                <strong class="TransfersAside-title">14 Day Free Trial.</strong>
-                All Fyipe plans come with a 14-day free trial. Annual plans come with a 17% discount. You can also
-                cancel anytime you like.
+              <img src="/img/v3/pricing/header/transfers.svg" height="63" alt="transfers logo">
+              <p class="common-BodyText TransfersAside-body" style="text-align: left">
+                <strong class="TransfersAside-title"><a style="font-weight: 800;" href="#compare">COMPARE PRICING PLANS:</a></strong><br/>
+                <a href="#compare" style="color: #797979">All Fyipe plans come with a 14-day free trial. Annual plans come with a 17% discount. You can also
+                cancel anytime you like. <span style="text-decoration: underline">Compare different plans here.</span></a>
               </p>
 
             </div>
@@ -447,7 +446,7 @@
               <div class="Plan-description">
                 Unlimited monitors, 1000+ Enterprise Integrations, On-premise Install, Invoicing, Custom HTML, CSS
                 and JS, Enterprise SLA, Dedicated Operations Engineer,
-                and more.
+                <a href="#compare" style="color: white; text-decoration: underline;">and more.</a> Compare pricing pla
               </div>
             </div>
             <a href="/enterprise/demo" class="Plan-button Plan-Button--enterprise common-Uppercase common-Link--arrow"
@@ -472,7 +471,7 @@
 
     <!-- DIRTY Responsive pricing table HTML -->
     <div class="comparision-heading">
-      <h3 class="black">Compare different pricing plans.</h3>
+      <h3 class="black"><a name="compare">Compare different pricing plans.</a></h3>
       <h4 class="common-BodyText">We have different pricing plans to suit your needs. If you feel you need a customized
         plan, please come talk to us.</h4>
     </div>

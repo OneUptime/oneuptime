@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import Dashboard from '../components/Dashboard';
-import APISettings from '../components/settings/APISettings';
 import ProjectSettings from '../components/settings/ProjectSettings';
 import SubProjects from '../components/settings/SubProjects';
 import DeleteProject from '../components/settings/DeleteProject';
@@ -13,11 +12,12 @@ import { hideDeleteModal } from '../actions/project';
 import PropTypes from 'prop-types';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class Settings extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Project Settings Page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS');
         }
     }
 
@@ -32,8 +32,13 @@ class Settings extends Component {
     };
 
     render() {
+        const {
+            location: { pathname },
+        } = this.props;
+
         return (
             <Dashboard>
+                <BreadCrumbItem route={pathname} name="Project Settings" />
                 <div
                     onKeyDown={this.handleKeyBoard}
                     className="Margin-vertical--12"
@@ -48,8 +53,6 @@ class Settings extends Component {
                                                 <RenderIfOwner>
                                                     <ProjectSettings />
                                                 </RenderIfOwner>
-
-                                                <APISettings />
 
                                                 <RenderIfOwner>
                                                     <SubProjects />
@@ -80,6 +83,9 @@ const mapDispatchToProps = dispatch =>
 
 Settings.propTypes = {
     hideDeleteModal: PropTypes.func.isRequired,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 Settings.displayName = 'Settings';

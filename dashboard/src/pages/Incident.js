@@ -27,6 +27,8 @@ import IncidentTimelineBox from '../components/incident/IncidentTimelineBox';
 import { getMonitorLogs } from '../actions/monitor';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -35,7 +37,7 @@ class Incident extends React.Component {
     }
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Page Loaded');
+            logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
     }
     internalNote = note => {
@@ -45,10 +47,13 @@ class Incident extends React.Component {
             note
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Internal Note Added', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > INTERNAL NOTE ADDED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -59,10 +64,13 @@ class Incident extends React.Component {
             note
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Note Added', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > PUBLIC NOTE ADDED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -74,10 +82,13 @@ class Incident extends React.Component {
             parseInt(this.props.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Incident Alert Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT ALERT CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -89,10 +100,13 @@ class Incident extends React.Component {
             parseInt(this.props.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Incident Alert Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS ALERT CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -105,10 +119,13 @@ class Incident extends React.Component {
             parseInt(this.props.incidentTimeline.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Incident Timeline Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT TIMELINE CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -121,10 +138,13 @@ class Incident extends React.Component {
             parseInt(this.props.incidentTimeline.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Incident Timeline Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS TIMELINE CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -137,10 +157,13 @@ class Incident extends React.Component {
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Subscriber Alert Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT SUBSCRIBER CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -153,10 +176,13 @@ class Incident extends React.Component {
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Subscriber Alert Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS SUBSCRIBER CLICKED',
+                {
+                    projectId: this.props.match.params.projectId,
+                    incidentId: this.props.match.params.incidentId,
+                }
+            );
         }
     };
 
@@ -203,12 +229,6 @@ class Incident extends React.Component {
             null,
             this.props.match.params.incidentId
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Incident Page Ready, Data Requested', {
-                projectId: this.props.match.params.projectId,
-                incidentId: this.props.match.params.incidentId,
-            });
-        }
     };
 
     render() {
@@ -269,6 +289,7 @@ class Incident extends React.Component {
                             incident={this.props.incident}
                             deleting={this.props.deleting}
                             currentProject={this.props.currentProject}
+                            component={this.props.component[0]}
                         />
                     </RenderIfSubProjectAdmin>
                 </div>
@@ -308,8 +329,25 @@ class Incident extends React.Component {
                 </div>
             );
         }
+        const {
+            component,
+            location: { pathname },
+        } = this.props;
+        const componentName =
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : null
+                : null;
+
         return (
             <Dashboard ready={this.ready}>
+                <BreadCrumbItem route="#" name={componentName} />
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Incident Log"
+                />
+                <BreadCrumbItem route={pathname} name="Incident" />
                 <div>
                     <div>
                         <div className="db-BackboneViewContainer">
@@ -328,7 +366,12 @@ class Incident extends React.Component {
     }
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
+    const { componentId } = props.match.params;
+    const component = state.component.componentList.components.map(item => {
+        return item.components.find(component => component._id === componentId);
+    });
+
     return {
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
@@ -340,6 +383,7 @@ const mapStateToProps = state => {
         deleting: state.incident.incident.deleteIncident
             ? state.incident.incident.deleteIncident.requesting
             : false,
+        component,
     };
 };
 
@@ -378,6 +422,14 @@ Incident.propTypes = {
     setinternalNote: PropTypes.func,
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     subscribersAlerts: PropTypes.object.isRequired,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+    component: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 Incident.displayName = 'Incident';

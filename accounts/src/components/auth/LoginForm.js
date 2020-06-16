@@ -27,9 +27,9 @@ export class LoginForm extends Component {
     componentDidMount() {
         const query = queryString.parse(this.props.location.search).status;
         let serverResponse = '';
-        if (query === 'IIYQNdn4impaXQeeteTBEBmz0If1rlwC') {
+        if (query === 'already-verified') {
             serverResponse = 'Email already verified. You can now login.';
-        } else if (query === 'V0JvLGX4U0lgO9Z9ulrOXFW9pNSGLSnP') {
+        } else if (query === 'verified') {
             serverResponse =
                 'Thank you for verifying your email. You can now login.';
         }
@@ -115,6 +115,7 @@ export class LoginForm extends Component {
                                 <p className="text">
                                     {this.props.loginMethod === 'standard' ? (
                                         <span
+                                            id="sso-login"
                                             className="loginoption"
                                             onClick={() => {
                                                 this.handleClick('sso');
@@ -124,6 +125,7 @@ export class LoginForm extends Component {
                                         </span>
                                     ) : (
                                         <span
+                                            id="standard-login"
                                             className="loginoption"
                                             onClick={() => {
                                                 this.handleClick('standard');

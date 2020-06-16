@@ -293,6 +293,30 @@ module.exports = {
         }
     },
 
+    updateLighthouseLog: async (data, projectId) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            const parentProjectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : projectId;
+
+            global.io.emit(`updateLighthouseLog-${parentProjectId}`, {
+                projectId,
+                monitorId: data.monitorId,
+                data,
+            });
+        } catch (error) {
+            ErrorService.log('realTimeService.updateLighthouseLog', error);
+            throw error;
+        }
+    },
+
     updateMonitorStatus: async (data, projectId) => {
         try {
             if (!global || !global.io) {

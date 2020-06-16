@@ -20,7 +20,7 @@ const stripe = require('stripe')(payment.paymentPrivateKey);
 let token, userId, airtableId, projectId, stripeCustomerId, testPlan;
 
 describe('Invoice API', function() {
-    this.timeout(20000);
+    this.timeout(200000);
 
     before(async function() {
         this.timeout(30000);
@@ -120,6 +120,57 @@ describe('Invoice API', function() {
         expect(invoices.body.count)
             .to.be.an('number')
             .to.be.equal(3);
+        expect(invoices.body).not.to.have.property('total_count');
         expect(invoices.body.data.data[0].total).to.be.equal(5000);
+    });
+
+    it('should paginate invoices', async function() {
+        for (let i = 0; i < 10; i++) {
+            await stripe.subscriptions.create({
+                customer: stripeCustomerId,
+                items: [
+                    {
+                        quantity: 1,
+                        plan: testPlan.id,
+                    },
+                ],
+            });
+        }
+
+        const authorization = `Basic ${token}`;
+        let invoices = await request
+            .post(`/invoice/${userId}`)
+            .set('Authorization', authorization);
+        expect(invoices.status).to.be.equal(200);
+        expect(invoices.body).to.be.an('object');
+        expect(invoices.body).to.have.property('data');
+        expect(invoices.body.data).to.be.an('object');
+        expect(invoices.body.data).to.have.property('data');
+        expect(invoices.body.data.data).to.be.an('array');
+        expect(invoices.body.data.data).to.have.length(10);
+        expect(invoices.body).to.have.property('count');
+        expect(invoices.body.count)
+            .to.be.an('number')
+            .to.be.equal(10);
+        expect(invoices.body.data).to.have.property('has_more');
+        expect(invoices.body.data.has_more).to.be.equal(true);
+        invoices = await request
+            .post(
+                `/invoice/${userId}?startingAfter=${invoices.body.data.data[9].id}`
+            )
+            .set('Authorization', authorization);
+        expect(invoices.status).to.be.equal(200);
+        expect(invoices.body).to.be.an('object');
+        expect(invoices.body).to.have.property('data');
+        expect(invoices.body.data).to.be.an('object');
+        expect(invoices.body.data).to.have.property('data');
+        expect(invoices.body.data.data).to.be.an('array');
+        expect(invoices.body.data.data).to.have.length(3);
+        expect(invoices.body).to.have.property('count');
+        expect(invoices.body.count)
+            .to.be.an('number')
+            .to.be.equal(3);
+        expect(invoices.body.data).to.have.property('has_more');
+        expect(invoices.body.data.has_more).to.be.equal(false);
     });
 });

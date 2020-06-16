@@ -68,6 +68,7 @@ export class SidebarNavItem extends Component {
                 /:projectId/,
                 match.params.projectId
             );
+            newPath = newPath.replace(/:issueId/, match.params.issueId);
             newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);
             newPath = newPath.replace(/:monitorId/, match.params.monitorId);
@@ -131,7 +132,10 @@ export class SidebarNavItem extends Component {
                                                 : ' Text-color--dark')
                                         }
                                     >
-                                        <span style={route.textStyle}>
+                                        <span
+                                            id={`${route.title}-text`}
+                                            style={route.textStyle}
+                                        >
                                             {route.title}
                                         </span>
                                     </span>
@@ -168,6 +172,7 @@ export class SidebarNavItem extends Component {
                 'Schedule',
                 'Incident',
                 'Monitor View',
+                'Website Issues',
                 'Component View',
                 'Status Page',
                 'Application Detail',

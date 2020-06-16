@@ -1,4 +1,10 @@
 <header id="pagmt">
+    <script>
+        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (IS_SAAS_SERVICE) {
+          amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > PRIVACY POLICY');
+        }
+      </script>
     <% if (section === "privacy") { %>
     <h1>Privacy Policy</h1>
     <% } %>
@@ -35,7 +41,7 @@
 
     <% } %>
 
-    <p>You can read full text of GDPR <a href="https://gdpr-info.eu">here</a></p>
+    <p>You can read full text of <a href="https://gdpr-info.eu">GDPR</a> from the GDPR official website</p>
 
     <h3>Introduction</h3>
 

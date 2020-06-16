@@ -32,9 +32,12 @@ export class MonitorViewIncidentBox extends Component {
             5
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Incident Requested', {
-                projectId: this.props.monitor.projectId._id,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
+                {
+                    projectId: this.props.monitor.projectId._id,
+                }
+            );
         }
     };
 
@@ -48,9 +51,12 @@ export class MonitorViewIncidentBox extends Component {
             5
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Incident Requested', {
-                projectId: this.props.monitor.projectId._id,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
+                {
+                    projectId: this.props.monitor.projectId._id,
+                }
+            );
         }
     };
 
@@ -76,7 +82,7 @@ export class MonitorViewIncidentBox extends Component {
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                            <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                 <span>Incident Log</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">

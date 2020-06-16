@@ -101,7 +101,7 @@ export class EmailSmtpBox extends Component {
             );
         }
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Changed smtp configuration', {});
+            logEvent('EVENT: DASHBOARD > SETTINGS > SMTP CONFIG CHANGED');
         }
     };
 

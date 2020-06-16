@@ -38,7 +38,10 @@ export class Plans extends Component {
         const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
         this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Plan Changed', { oldPlan, newPlan });
+            logEvent('EVENT: DASHBOARD > PROJECT > PLAN CHANGED', {
+                oldPlan,
+                newPlan,
+            });
         }
     };
 

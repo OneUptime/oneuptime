@@ -27,7 +27,7 @@ export class FeedbackModal extends Component {
                 );
 
             if (SHOULD_LOG_ANALYTICS) {
-                logEvent('Feedback Values', values);
+                logEvent('EVENT: DASHBOARD > FEEDBACK FORM SUBMIT', values);
             }
             this.props.closeFeedbackModal();
 

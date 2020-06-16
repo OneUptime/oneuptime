@@ -14,6 +14,7 @@ import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { history } from '../../store';
 
 export class MonitorViewSubscriberBox extends Component {
     constructor(props) {
@@ -35,9 +36,12 @@ export class MonitorViewSubscriberBox extends Component {
             5
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Previous Subscriber Requested', {
-                projectId: subProjectId,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS SUBSCRIBER CLICKED',
+                {
+                    projectId: subProjectId,
+                }
+            );
         }
     };
 
@@ -53,9 +57,12 @@ export class MonitorViewSubscriberBox extends Component {
             5
         );
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Next Subscriber Requested', {
-                projectId: this.props.currentProject._id,
-            });
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT SUBSCRIBER CLICKED',
+                {
+                    projectId: this.props.currentProject._id,
+                }
+            );
         }
     };
 
@@ -71,13 +78,22 @@ export class MonitorViewSubscriberBox extends Component {
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                            <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                <span>Subscribers</span>
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span>External Subscribers</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                <span>
-                                    Here&#39;s a list of subscribers to this
-                                    monitor.
+                                <span
+                                    onClick={() =>
+                                        history.push(
+                                            `/dashboard/project/${this.props.currentProject._id}/on-call`
+                                        )
+                                    }
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    These are your external customers who needs
+                                    to be notified, and not your team members.
+                                    If you like to send notification to team
+                                    members - use Call Schedules instead.
                                 </span>
                             </span>
                         </div>
