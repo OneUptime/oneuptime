@@ -5,6 +5,8 @@ import CreatableSelect from 'react-select/creatable';
 const FilterSelect = props => (
     <CreatableSelect
         {...props}
+        formatCreateLabel={ (val) => `Filter logs by ${val}`}
+        noOptionsMessage={ () => `No filter options yet...`}
         styles={{
             control: provided => ({
                 ...provided,

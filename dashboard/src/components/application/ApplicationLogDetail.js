@@ -282,7 +282,7 @@ class ApplicationLogDetail extends Component {
                                 startDate={this.state.startDate}
                                 logValue={this.state.logType}
                                 filter={this.state.filter}
-                                filters={this.state.filters}
+                                filters={filters}
                                 applicationLog={applicationLog}
                                 logOptions={logOptions}
                                 componentId={componentId}
@@ -309,7 +309,7 @@ class ApplicationLogDetail extends Component {
                                 startDate={this.state.startDate}
                                 logValue={this.state.logType}
                                 filter={this.state.filter}
-                                filters={this.state.filters}
+                                filters={filters}
                                 applicationLog={applicationLog}
                                 logOptions={logOptions}
                                 componentId={componentId}
