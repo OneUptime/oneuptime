@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
 import LogList from './LogList';
-import DateRangeWrapper from './DateRangeWrapper';
-import TimeRangeSelector from '../basic/TimeRangeSelector';
 import Select from '../../components/basic/react-select-fyipe';
 import DateTimeWrapper from './DateTimeWrapper';
 import FilterSelect from './FilterSelect';
