@@ -323,18 +323,20 @@ describe('Application Log API', function () {
             });
     });
 
-    after(async function () {
-        await GlobalConfig.removeTestConfig();
-        await ProjectService.hardDeleteBy({ _id: projectId });
-        await ApplicationLogService.hardDeleteBy({
-            _id: { $in: [applicationLog._id] },
-        }),
-            await UserService.hardDeleteBy({
-                email: {
-                    $in: [userData.user.email],
-                },
-            });
-        await NotificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
-    });
+    // Yet to figure out how thi works
+    
+    // after(async function () {
+    //     await GlobalConfig.removeTestConfig();
+    //     await ProjectService.hardDeleteBy({ _id: projectId });
+    //     await ApplicationLogService.hardDeleteBy({
+    //         _id: { $in: [applicationLog._id] },
+    //     }),
+    //         await UserService.hardDeleteBy({
+    //             email: {
+    //                 $in: [userData.user.email],
+    //             },
+    //         });
+    //     await NotificationService.hardDeleteBy({ projectId: projectId });
+    //     await AirtableService.deleteUser(airtableId);
+    // });
 });
