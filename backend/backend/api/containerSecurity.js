@@ -4,6 +4,7 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ContainerSecurityService = require('../services/containerSecurityService');
+const ProbeService = require('../services/probeService');
 
 const router = express.Router();
 
@@ -170,6 +171,44 @@ router.get(
             });
 
             return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+//Route: POST
+//Description: scan a particular container
+//Params: req.params -> {projectId, containerSecurityId}
+//returns: response -> {sendItemResponse, sendErrorResponse}
+router.post(
+    '/:projectId/container/scan/:containerSecurityId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { containerSecurityId } = req.params;
+            let containerSecurity = await ContainerSecurityService.findOneBy({
+                _id: containerSecurityId,
+            });
+
+            if (!containerSecurity) {
+                const error = new Error(
+                    'Container Security not found or does not exist'
+                );
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
+
+            // decrypt password
+            containerSecurity = await ContainerSecurityService.decryptPassword(
+                containerSecurity
+            );
+
+            const securityLog = await ProbeService.scanContainerSecurity(
+                containerSecurity
+            );
+            return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
