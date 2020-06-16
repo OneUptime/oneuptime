@@ -358,7 +358,7 @@ class NewMonitor extends Component {
             <>
                 Manual monitors do not monitor any resource. You can change
                 monitor status by using{' '}
-                <a href="https://docs.fyipe.com">Fyipe’s API</a>. This is
+                <a href="https://fyipe.com/docs">Fyipe’s API</a>. This is
                 helpful when you use different monitoring tool but want to
                 record monitor status on Fyipe.
             </>
@@ -785,7 +785,7 @@ class NewMonitor extends Component {
                                                                                 status
                                                                                 by
                                                                                 using{' '}
-                                                                                <a href="https://docs.fyipe.com">
+                                                                                <a href="https://fyipe.com/docs">
                                                                                     Fyipe’s
                                                                                     API
                                                                                 </a>

@@ -5,11 +5,13 @@ import {
     fetchMonitorsIncidents,
     fetchMonitorsSubscribers,
     getMonitorLogs,
+    fetchLighthouseLogs,
 } from '../actions/monitor';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import MonitorViewHeader from '../components/monitor/MonitorViewHeader';
 import MonitorViewIncidentBox from '../components/monitor/MonitorViewIncidentBox';
+import MonitorViewLighthouseLogsBox from '../components/monitor/MonitorViewLighthouseLogsBox';
 import MonitorViewSubscriberBox from '../components/monitor/MonitorViewSubscriberBox';
 import MonitorAddScheduleBox from '../components/monitor/MonitorAddScheduleBox';
 import MonitorViewDeleteBox from '../components/monitor/MonitorViewDeleteBox';
@@ -41,6 +43,12 @@ class MonitorView extends React.Component {
     ready = () => {
         const subProjectId =
             this.props.monitor.projectId._id || this.props.monitor.projectId;
+        this.props.fetchLighthouseLogs(
+            subProjectId,
+            this.props.monitor._id,
+            0,
+            10
+        ); //0 -> skip, 10-> limit.
         this.props.fetchMonitorsIncidents(
             subProjectId,
             this.props.monitor._id,
@@ -169,6 +177,34 @@ class MonitorView extends React.Component {
                                                                 />
                                                             </ShouldRender>
                                                         </div>
+                                                        <ShouldRender
+                                                            if={
+                                                                this.props
+                                                                    .monitor &&
+                                                                this.props
+                                                                    .monitor
+                                                                    .type &&
+                                                                this.props
+                                                                    .monitor
+                                                                    .type ===
+                                                                    'url'
+                                                            }
+                                                        >
+                                                            <div className="Box-root Margin-bottom--12">
+                                                                <MonitorViewLighthouseLogsBox
+                                                                    componentId={
+                                                                        this
+                                                                            .props
+                                                                            .componentId
+                                                                    }
+                                                                    monitor={
+                                                                        this
+                                                                            .props
+                                                                            .monitor
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </ShouldRender>
                                                         <div className="Box-root Margin-bottom--12">
                                                             <MonitorViewIncidentBox
                                                                 componentId={
@@ -380,7 +416,12 @@ const mapStateToProps = (state, props) => {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { fetchMonitorsIncidents, fetchMonitorsSubscribers, getMonitorLogs },
+        {
+            fetchMonitorsIncidents,
+            fetchMonitorsSubscribers,
+            getMonitorLogs,
+            fetchLighthouseLogs,
+        },
         dispatch
     );
 };
@@ -392,6 +433,7 @@ MonitorView.propTypes = {
     fetchMonitorsSubscribers: PropTypes.func.isRequired,
     initialValues: PropTypes.object.isRequired,
     getMonitorLogs: PropTypes.func.isRequired,
+    fetchLighthouseLogs: PropTypes.func.isRequired,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),

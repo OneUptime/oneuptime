@@ -187,4 +187,33 @@ describe('Components', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Should edit a component',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Components page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle2',
+                });
+
+                await page.waitForSelector(`#edit-component-${componentName}`);
+                await page.click(`#edit-component-${componentName}`);
+                await page.waitFor(2000);
+
+                await page.waitForSelector('#componentName');
+                await page.click('input[name=name]');
+                await page.type('input[name=name]', '-two', { delay: 100 });
+                await page.click('button[type=save]', { delay: 100 });
+
+                let spanElement = await page.waitForSelector(
+                    `span#component-title-${componentName}-two`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(`${componentName}-two`);
+            });
+        },
+        operationTimeOut
+    );
 });

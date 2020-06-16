@@ -10,7 +10,20 @@ user.message = 'Test message';
 
 const puppeteerLaunchConfig = {
     headless: true,
-    args: ['--proxy-server=', '--no-sandbox', '--disable-setuid-sandbox'],
+    args: [
+        '--proxy-server=',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+        '--window-size=1920x1080',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+    ],
 };
 
 const HOME_URL = process.env.HOME_URL || 'http://localhost:1444';

@@ -6,16 +6,19 @@ const { Cluster } = require('puppeteer-cluster');
 require('should');
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const user = {
+    email: utils.generateRandomBusinessEmail(),
+    password: '1234567890',
+};
 
 describe('Enterprise Component API', () => {
     const operationTimeOut = 100000;
+    let cluster;
 
-    beforeAll(async done => {
+    beforeAll(async () => {
         jest.setTimeout(200000);
 
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
@@ -27,72 +30,46 @@ describe('Enterprise Component API', () => {
         });
 
         // Register user
-        await cluster.task(async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
+        return await cluster.execute(async ({ page }) => {
             // user
             await init.registerEnterpriseUser(user, page);
+            await init.adminLogout(page);
+            await init.loginUser(user, page);
         });
-
-        await cluster.queue({ email, password });
-
-        await cluster.idle();
-        await cluster.close();
-        done();
     });
 
-    afterAll(async done => {
-        done();
+    afterAll(async () => {
+        await cluster.idle();
+        await cluster.close();
     });
 
     test(
         'Should create new component',
-        async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
+        async () => {
             const componentName = utils.generateRandomString();
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#components');
-                await page.click('#components');
+            return await cluster.execute(async ({ page }) => {
+                // Navigate to Components page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
 
                 // Fill and submit New Component form
                 await page.waitForSelector('#form-new-component');
                 await page.click('input[id=name]');
-                await page.type('input[id=name]', data.componentName);
+                await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    `span#${componentName}-text`
+                    `span#component-title-${componentName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(componentName);
             });
-
-            cluster.queue({ email, password, componentName });
-            await cluster.idle();
-            await cluster.close();
-            done();
         },
         operationTimeOut
     );

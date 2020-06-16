@@ -16,7 +16,7 @@ describe('Monitor API', () => {
     let cluster;
 
     beforeAll(async () => {
-        jest.setTimeout(100000);
+        jest.setTimeout(500000);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -72,6 +72,68 @@ describe('Monitor API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should display lighthouse scores',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                await page.waitFor(280000);
+
+                let lighthousePerformanceElement = await page.waitForSelector(
+                    `#lighthouse-performance-${monitorName}`
+                );
+                lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
+                    'innerText'
+                );
+                lighthousePerformanceElement = await lighthousePerformanceElement.jsonValue();
+                lighthousePerformanceElement.should.endWith('%');
+
+                let lighthouseAccessibilityElement = await page.waitForSelector(
+                    `#lighthouse-accessibility-${monitorName}`
+                );
+                lighthouseAccessibilityElement = await lighthouseAccessibilityElement.getProperty(
+                    'innerText'
+                );
+                lighthouseAccessibilityElement = await lighthouseAccessibilityElement.jsonValue();
+                lighthouseAccessibilityElement.should.endWith('%');
+
+                let lighthouseBestPracticesElement = await page.waitForSelector(
+                    `#lighthouse-bestPractices-${monitorName}`
+                );
+                lighthouseBestPracticesElement = await lighthouseBestPracticesElement.getProperty(
+                    'innerText'
+                );
+                lighthouseBestPracticesElement = await lighthouseBestPracticesElement.jsonValue();
+                lighthouseBestPracticesElement.should.endWith('%');
+
+                let lighthouseSeoElement = await page.waitForSelector(
+                    `#lighthouse-seo-${monitorName}`
+                );
+                lighthouseSeoElement = await lighthouseSeoElement.getProperty(
+                    'innerText'
+                );
+                lighthouseSeoElement = await lighthouseSeoElement.jsonValue();
+                lighthouseSeoElement.should.endWith('%');
+
+                let lighthousePwaElement = await page.waitForSelector(
+                    `#lighthouse-pwa-${monitorName}`
+                );
+                lighthousePwaElement = await lighthousePwaElement.getProperty(
+                    'innerText'
+                );
+                lighthousePwaElement = await lighthousePwaElement.jsonValue();
+                lighthousePwaElement.should.endWith('%');
             });
         },
         operationTimeOut
@@ -151,10 +213,11 @@ describe('Monitor API', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitFor(240000);
+                await page.waitFor(280000);
 
                 let sslStatusElement = await page.waitForSelector(
-                    `#ssl-status-${sslMonitorName}`
+                    `#ssl-status-${sslMonitorName}`,
+                    { visible: true }
                 );
                 sslStatusElement = await sslStatusElement.getProperty(
                     'innerText'
@@ -183,10 +246,11 @@ describe('Monitor API', () => {
                 await page.click('#url');
                 await page.type('#url', 'http://localhost:3010');
                 await page.click('button[type=submit]');
-                await page.waitFor(240000);
+                await page.waitFor(280000);
 
                 let sslStatusElement = await page.waitForSelector(
-                    `#ssl-status-${testServerMonitorName}`
+                    `#ssl-status-${testServerMonitorName}`,
+                    { visible: true }
                 );
                 sslStatusElement = await sslStatusElement.getProperty(
                     'innerText'
@@ -215,10 +279,11 @@ describe('Monitor API', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://self-signed.badssl.com');
                 await page.click('button[type=submit]');
-                await page.waitFor(240000);
+                await page.waitFor(280000);
 
                 let sslStatusElement = await page.waitForSelector(
-                    `#ssl-status-${selfSignedMonitorName}`
+                    `#ssl-status-${selfSignedMonitorName}`,
+                    { visible: true }
                 );
                 sslStatusElement = await sslStatusElement.getProperty(
                     'innerText'

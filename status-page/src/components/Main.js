@@ -246,15 +246,15 @@ class Main extends Component {
 
             if (serviceStatus === 'all') {
                 status = 'status-bubble status-up';
-                statusMessage = 'All Services are online';
+                statusMessage = 'All services are online';
                 faviconurl = '/status-page/greenfavicon.ico';
             } else if (serviceStatus === 'none') {
                 status = 'status-bubble status-down';
-                statusMessage = 'All Services are offline';
+                statusMessage = 'All services are offline';
                 faviconurl = '/status-page/redfavicon.ico';
             } else if (serviceStatus === 'some') {
                 status = 'status-bubble status-paused';
-                statusMessage = 'Some Services are offline';
+                statusMessage = 'Some services are offline';
                 faviconurl = '/status-page/yellowfavicon.ico';
             }
             view = true;

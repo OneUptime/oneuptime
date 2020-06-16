@@ -400,7 +400,6 @@ describe('Incident API', function() {
                 });
             }
         }
-
         expect(alert).to.be.an('object');
         expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
     });

@@ -169,6 +169,16 @@ module.exports = {
         }
     },
 
+    saveLighthouseLog: async function(data) {
+        try {
+            const log = await LighthouseLogService.create(data);
+            return log;
+        } catch (error) {
+            ErrorService.log('ProbeService.saveLighthouseScan', error);
+            throw error;
+        }
+    },
+
     saveMonitorLog: async function(data) {
         try {
             const _this = this;
@@ -1870,6 +1880,7 @@ const uuidv1 = require('uuid/v1');
 const MonitorService = require('./monitorService');
 const MonitorStatusService = require('./monitorStatusService');
 const MonitorLogService = require('./monitorLogService');
+const LighthouseLogService = require('./lighthouseLogService');
 const IncidentService = require('./incidentService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const moment = require('moment');

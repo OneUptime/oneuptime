@@ -210,7 +210,7 @@ export class Monitors extends Component {
                                                         this.props
                                                             .currentProject
                                                             ._id +
-                                                        '/monitoring'
+                                                        '/components'
                                                     }
                                                 >
                                                     {' '}

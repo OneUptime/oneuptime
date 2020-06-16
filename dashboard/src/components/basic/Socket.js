@@ -17,6 +17,7 @@ import {
     incidentcreatedbysocket,
     updatemonitorlogbysocket,
     updatemonitorstatusbysocket,
+    updatelighthouselogbysocket,
     updateprobebysocket,
     addnotifications,
     teamMemberRoleUpdate,
@@ -57,6 +58,9 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `updateMonitorStatus-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `updateLighthouseLog-${this.props.project._id}`
                 );
                 socket.removeListener(`updateProbe-${this.props.project._id}`);
                 socket.removeListener(
@@ -332,6 +336,29 @@ class SocketApp extends Component {
                         );
                 }
             });
+            socket.on(`updateLighthouseLog-${this.props.project._id}`, function(
+                data
+            ) {
+                const isUserInProject = thisObj.props.project
+                    ? thisObj.props.project.users.some(
+                          user => user.userId === loggedInUser
+                      )
+                    : false;
+                if (isUserInProject) {
+                    thisObj.props.updatelighthouselogbysocket(data);
+                } else {
+                    const subProject = thisObj.props.subProjects.find(
+                        subProject => subProject._id === data.projectId
+                    );
+                    const isUserInSubProject = subProject
+                        ? subProject.users.some(
+                              user => user.userId === loggedInUser
+                          )
+                        : false;
+                    if (isUserInSubProject)
+                        thisObj.props.updatelighthouselogbysocket(data);
+                }
+            });
             socket.on(`updateProbe-${this.props.project._id}`, function(data) {
                 const isUserInProject = thisObj.props.project
                     ? thisObj.props.project.users.some(
@@ -502,6 +529,7 @@ const mapDispatchToProps = dispatch =>
             incidentcreatedbysocket,
             updatemonitorlogbysocket,
             updatemonitorstatusbysocket,
+            updatelighthouselogbysocket,
             updateprobebysocket,
             addnotifications,
             teamMemberRoleUpdate,
