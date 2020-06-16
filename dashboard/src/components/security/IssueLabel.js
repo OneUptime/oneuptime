@@ -35,7 +35,9 @@ const IssueLabel = ({ level }) => {
         >
             <span
                 className={`Badge-text Text-color--${color} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
-                style={(level === 'moderate' || level === 'MEDIUM') ? colorStyle : {}}
+                style={
+                    level === 'moderate' || level === 'MEDIUM' ? colorStyle : {}
+                }
             >
                 <span>{level}</span>
             </span>
