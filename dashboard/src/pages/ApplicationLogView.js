@@ -25,8 +25,11 @@ class ApplicationLogView extends Component {
         const componentId = this.props.match.params.componentId
             ? this.props.match.params.componentId
             : null;
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : null;
 
-        this.props.fetchApplicationLogs(componentId);
+        this.props.fetchApplicationLogs(projectId, componentId);
     };
     render() {
         const {
@@ -87,6 +90,7 @@ const mapStateToProps = (state, props) => {
         componentId,
         applicationLog,
         component,
+        currentProject: state.project.currentProject
     };
 };
 
