@@ -76,7 +76,7 @@ router.post(
 );
 
 // Description: Get all Application Logs by componentId.
-router.get('/:componentId', getUser, isAuthorized, async function (req, res) {
+router.get('/:projectId/:componentId', getUser, isAuthorized, async function (req, res) {
     try {
         const componentId = req.params.componentId;
         if (!componentId) {
@@ -144,7 +144,7 @@ router.post('/:applicationLogId/log', isApplicationLogValid, async function (
     }
 });
 // Description: Get all Logs by applicationLogId.
-router.post('/:applicationLogId/logs', getUser, isAuthorized, async function (
+router.post('/:projectId/:componentId/:applicationLogId/logs', getUser, isAuthorized, async function (
     req,
     res
 ) {
