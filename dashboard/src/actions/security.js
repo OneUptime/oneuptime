@@ -164,6 +164,124 @@ export const deleteContainerSecurity = ({
     }
 };
 
+// Scan Container Security
+export const scanContainerSecurityRequest = () => ({
+    type: types.SCAN_CONTAINER_SECURITY_REQUEST,
+});
+
+export const scanContainerSecuritySuccess = payload => ({
+    type: types.SCAN_CONTAINER_SECURITY_SUCCESS,
+    payload,
+});
+
+export const scanContainerSecurityFailure = error => ({
+    type: types.SCAN_CONTAINER_SECURITY_FAILURE,
+    payload: error,
+});
+
+export const scanContainerSecurity = ({
+    projectId,
+    containerSecurityId,
+}) => async dispatch => {
+    dispatch(scanContainerSecurityRequest());
+
+    try {
+        const response = await postApi(
+            `security/${projectId}/container/scan/${containerSecurityId}`
+        );
+        dispatch(scanContainerSecuritySuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(scanContainerSecurityFailure(errorMsg));
+    }
+};
+
+// Get a particular Container Security Log
+export const getContainerSecurityLogRequest = () => ({
+    type: types.GET_CONTAINER_SECURITY_LOG_REQUEST,
+});
+
+export const getContainerSecurityLogSuccess = payload => ({
+    type: types.GET_CONTAINER_SECURITY_LOG_SUCCESS,
+    payload,
+});
+
+export const getContainerSecurityLogFailure = error => ({
+    type: types.GET_CONTAINER_SECURITY_LOG_FAILURE,
+    payload: error,
+});
+
+export const getContainerSecurityLog = ({
+    projectId,
+    componentId,
+    containerSecurityId,
+}) => async dispatch => {
+    dispatch(getContainerSecurityLogRequest());
+
+    try {
+        const response = await getApi(
+            `securityLog/${projectId}/${componentId}/container/logs/${containerSecurityId}`
+        );
+        dispatch(getContainerSecurityLogSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(getContainerSecurityLogFailure(errorMsg));
+    }
+};
+
+// Get Container Security Logs in a component
+export const getContainerSecurityLogsRequest = () => ({
+    type: types.GET_CONTAINER_SECURITY_LOGS_REQUEST,
+});
+
+export const getContainerSecurityLogsSuccess = payload => ({
+    type: types.GET_CONTAINER_SECURITY_LOGS_SUCCESS,
+    payload,
+});
+
+export const getContainerSecurityLogsFailure = error => ({
+    type: types.GET_CONTAINER_SECURITY_LOGS_FAILURE,
+    payload: error,
+});
+
+export const getContainerSecurityLogs = ({
+    projectId,
+    componentId,
+}) => async dispatch => {
+    dispatch(getContainerSecurityLogsRequest());
+
+    try {
+        const response = await getApi(
+            `securityLog/${projectId}/${componentId}/container/logs`
+        );
+        dispatch(getContainerSecurityLogsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(getContainerSecurityLogsFailure(errorMsg));
+    }
+};
+
 // Add Application Security
 export const addApplicationSecurityRequest = () => ({
     type: types.ADD_APPLICATION_SECURITY_REQUEST,
