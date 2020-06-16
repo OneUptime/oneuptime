@@ -288,6 +288,7 @@ Monitors.propTypes = {
     updateStatusPageMonitors: PropTypes.func.isRequired,
     statusPage: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
+    pushArray: PropTypes.func.isRequired,
     currentProject: PropTypes.oneOfType([
         PropTypes.object.isRequired,
         PropTypes.oneOf([null, undefined]),

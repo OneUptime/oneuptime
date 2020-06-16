@@ -1,6 +1,7 @@
 import React, { Fragment } from 'react';
 import { Field, formValueSelector, change } from 'redux-form';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 import { RenderSelect } from '../basic/RenderSelect';
 import ShouldRender from '../basic/ShouldRender';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
@@ -33,6 +34,13 @@ const Checkbox = ({ label, name, disabled }) => (
         </div>
     </div>
 );
+
+Checkbox.displayName = 'Checkbox';
+Checkbox.propTypes = {
+    label: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    disabled: PropTypes.bool.isRequired,
+};
 
 let RenderMonitor = ({
     subProject,
@@ -282,5 +290,18 @@ RenderMonitor = connect(state => {
     } = state;
     return { allComponents, allMonitors, monitors, errors };
 })(RenderMonitor);
+
+RenderMonitor.displayName = 'RenderMonitor';
+RenderMonitor.propTypes = {
+    subProject: PropTypes.object.isRequired,
+    monitorIndex: PropTypes.number.isRequired,
+    monitor: PropTypes.string.isRequired,
+    monitors: PropTypes.array.isRequired,
+    allMonitors: PropTypes.array.isRequired,
+    allComponents: PropTypes.array.isRequired,
+    fields: PropTypes.object.isRequired,
+    dispatch: PropTypes.func.isRequired,
+    errors: PropTypes.object.isRequired,
+};
 
 export { RenderMonitor };

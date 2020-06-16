@@ -539,7 +539,6 @@ module.exports = {
                     ErrorService.log('statusPageService.getStatusPage', error);
                     throw error;
                 }
-
             } else {
                 if (statusPages.length > 0) {
                     const error = new Error('Domain not verified');
