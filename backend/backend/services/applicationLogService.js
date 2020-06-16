@@ -187,6 +187,15 @@ module.exports = {
             throw error;
         }
     },
+    hardDeleteBy: async function(query) {
+        try {
+            await ApplicationLogModel.deleteMany(query);
+            return 'Application Log(s) removed successfully!';
+        } catch (error) {
+            ErrorService.log('applicationLogService.hardDeleteBy', error);
+            throw error;
+        }
+    },
 };
 
 const ApplicationLogModel = require('../models/applicationLog');
