@@ -70,6 +70,15 @@ export function updatemonitorstatusbysocket(status, probes) {
     };
 }
 
+export function updatelighthouselogbysocket(log) {
+    return function(dispatch) {
+        dispatch({
+            type: 'UPDATE_LIGHTHOUSE_LOG',
+            payload: log,
+        });
+    };
+}
+
 export function updateprobebysocket(probe) {
     return function(dispatch) {
         dispatch({

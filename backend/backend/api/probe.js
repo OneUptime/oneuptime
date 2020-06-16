@@ -79,7 +79,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 ) {
     try {
         const { monitor, res, resp, type } = req.body;
-        let status;
+        let status, log;
 
         if (type === 'api' || type === 'url') {
             const validUp = await (monitor &&
@@ -125,7 +125,46 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
         data.monitorId = req.params.monitorId;
         data.sslCertificate =
             resp && resp.sslCertificate ? resp.sslCertificate : null;
-        const log = await ProbeService.saveMonitorLog(data);
+        data.lighthouseScanStatus =
+            resp && resp.lighthouseScanStatus
+                ? resp.lighthouseScanStatus
+                : null;
+        data.performance = resp && resp.performance ? resp.performance : null;
+        data.accessibility =
+            resp && resp.accessibility ? resp.accessibility : null;
+        data.bestPractices =
+            resp && resp.bestPractices ? resp.bestPractices : null;
+        data.seo = resp && resp.seo ? resp.seo : null;
+        data.pwa = resp && resp.pwa ? resp.pwa : null;
+        data.lighthouseData =
+            resp && resp.lighthouseData ? resp.lighthouseData : null;
+
+        if (data.lighthouseScanStatus) {
+            if (data.lighthouseScanStatus === 'scanning') {
+                await MonitorService.updateOneBy(
+                    { _id: data.monitorId },
+                    {
+                        lighthouseScanStatus: data.lighthouseScanStatus,
+                    }
+                );
+            } else {
+                await MonitorService.updateOneBy(
+                    { _id: data.monitorId },
+                    {
+                        lighthouseScannedAt: Date.now(),
+                        lighthouseScanStatus: data.lighthouseScanStatus, // scanned || failed
+                        lighthouseScannedBy: data.probeId,
+                    }
+                );
+            }
+        } else {
+            if (data.lighthouseData) {
+                log = await ProbeService.saveLighthouseLog(data);
+            } else {
+                log = await ProbeService.saveMonitorLog(data);
+            }
+        }
+
         return sendItemResponse(req, response, log);
     } catch (error) {
         return sendErrorResponse(req, response, error);

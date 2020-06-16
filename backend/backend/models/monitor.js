@@ -51,6 +51,11 @@ const monitorSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User' },
+
+    lighthouseScannedAt: { type: Date },
+    lighthouseScanStatus: String,
+    lighthouseScannedBy: { type: String, ref: 'Probe' },
+    siteUrls: [String],
 });
 
 monitorSchema.virtual('project', {

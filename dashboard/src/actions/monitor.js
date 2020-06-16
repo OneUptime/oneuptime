@@ -186,6 +186,39 @@ export function resetEditMonitor() {
     };
 }
 
+//Add new site url
+//props -> siteUrl
+export function addSiteUrl(monitorId, projectId, siteUrl) {
+    return function(dispatch) {
+        const promise = postApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
+            siteUrl,
+        });
+        dispatch(editMonitorRequest());
+
+        promise.then(
+            function(monitor) {
+                dispatch(editMonitorSuccess(monitor.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(editMonitorFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
 //Delete a monitor
 //props -> {name: '', type, data -> { data.url}}
 export function deleteMonitor(monitorId, projectId) {
@@ -643,6 +676,119 @@ export function getMonitorLogsRequest(logs) {
 export function getMonitorLogsFailure(error) {
     return {
         type: types.GET_MONITOR_LOGS_FAILURE,
+        payload: error,
+    };
+}
+
+// Fetch Lighthouse Logs list
+export function fetchLighthouseLogs(projectId, monitorId, skip, limit, url) {
+    return function(dispatch) {
+        const promise = getApi(
+            url
+                ? `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}&url=${url}`
+                : `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}`
+        );
+        dispatch(fetchLighthouseLogsRequest());
+
+        promise.then(
+            function(lighthouseLogs) {
+                dispatch(
+                    fetchLighthouseLogsSuccess({
+                        projectId,
+                        monitorId,
+                        logs: lighthouseLogs.data,
+                        skip,
+                        limit,
+                        count: lighthouseLogs.data.count,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchLighthouseLogsFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchLighthouseLogsRequest() {
+    return {
+        type: types.FETCH_LIGHTHOUSE_LOGS_REQUEST,
+    };
+}
+
+export function fetchLighthouseLogsSuccess(lighthouseLogs) {
+    return {
+        type: types.FETCH_LIGHTHOUSE_LOGS_SUCCESS,
+        payload: lighthouseLogs,
+    };
+}
+
+export function fetchLighthouseLogsFailure(error) {
+    return {
+        type: types.FETCH_LIGHTHOUSE_LOGS_FAILURE,
+        payload: error,
+    };
+}
+
+// Fetch Monitor Issue list
+export function fetchMonitorIssue(projectId, issueId) {
+    return function(dispatch) {
+        const promise = getApi(
+            `monitor/${projectId}/lighthouseIssue/${issueId}`
+        );
+        dispatch(fetchMonitorIssueRequest());
+
+        promise.then(
+            function(monitorIssue) {
+                dispatch(fetchMonitorIssueSuccess(monitorIssue.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchMonitorIssueFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchMonitorIssueRequest() {
+    return {
+        type: types.FETCH_MONITOR_ISSUE_REQUEST,
+    };
+}
+
+export function fetchMonitorIssueSuccess(monitorIssue) {
+    return {
+        type: types.FETCH_MONITOR_ISSUE_SUCCESS,
+        payload: monitorIssue,
+    };
+}
+
+export function fetchMonitorIssueFailure(error) {
+    return {
+        type: types.FETCH_MONITOR_ISSUE_FAILURE,
         payload: error,
     };
 }

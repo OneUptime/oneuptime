@@ -171,6 +171,22 @@ describe('Monitor API', function() {
             });
     });
 
+    it('should add a new site url to a monitor', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/monitor/${projectId}/siteUrl/${monitorId}`)
+            .set('Authorization', authorization)
+            .send({
+                siteUrl: 'https://twitter.com',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body._id).to.be.equal(monitorId);
+                expect(res.body.siteUrls).to.contain('https://twitter.com');
+                done();
+            });
+    });
+
     it('should not create a new monitor with invalid call schedule', function(done) {
         let scheduleId = 20;
         let authorization = `Basic ${token}`;

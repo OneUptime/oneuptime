@@ -10,6 +10,7 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const monitorName = utils.generateRandomString();
 const newMonitorName = utils.generateRandomString();
+const urlMonitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
@@ -502,6 +503,45 @@ describe('Monitor Detail API', () => {
                 countWebhooks = webhookRows.length;
 
                 expect(countWebhooks).toEqual(10);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and get list of website issues',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', urlMonitorName);
+                await init.selectByText('#type', 'url', page);
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', 'https://google.com');
+                await page.click('button[type=submit]');
+
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    urlMonitorName,
+                    page
+                );
+
+                await page.waitFor(200000);
+
+                const createdLighthouseLogsSelector =
+                    '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
+                await page.waitForSelector(createdLighthouseLogsSelector);
+
+                const lighthouseLogsRows = await page.$$(
+                    createdLighthouseLogsSelector
+                );
+                const countLighthouseLogs = lighthouseLogsRows.length;
+
+                expect(countLighthouseLogs).toEqual(1);
             });
         },
         operationTimeOut

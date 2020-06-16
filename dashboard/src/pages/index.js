@@ -25,6 +25,7 @@ import EmailTemplates from './EmailTemplates';
 import SmsTemplates from './SmsTemplates';
 
 import MonitorView from './MonitorView';
+import WebsiteMonitorIssues from './WebsiteMonitorIssues';
 import Reports from './Reports';
 
 import Probe from './Probe';
@@ -60,6 +61,7 @@ export default {
     SmsTemplates,
     Reports,
     MonitorView,
+    WebsiteMonitorIssues,
     Probe,
     ProfileBilling,
     Container,
