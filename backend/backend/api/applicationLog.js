@@ -152,27 +152,22 @@ router.post('/:applicationLogId/logs', getUser, isAuthorized, async function (
         const { skip, limit, startDate, endDate, type, filter } = req.body;
         const applicationLogId = req.params.applicationLogId;
         const query = {};
+
         if (applicationLogId) query.applicationLogId = applicationLogId;
+
         if (type) query.type = type;
+
         if (startDate && endDate)
             query.createdAt = { $gte: startDate, $lte: endDate };
 
-        let logs = [];
-        let count = 0;
-        if (filter) {
-            const { searchedLogs, totalSearchCount } = await LogService.search(
-                query,
-                filter,
-                skip || 0,
-                limit || 0
-            );
-            logs = searchedLogs;
-            count = totalSearchCount;
-        } else {
-            // Call the LogService.
-            logs = await LogService.findBy(query, limit || 10, skip || 0);
-            count = await LogService.countBy(query);
-        }
+        if (filter)
+            query.stringifiedContent = {
+                $regex: new RegExp(filter),
+                $options: 'i',
+            };
+
+        const logs = await LogService.findBy(query, limit || 10, skip || 0);
+        const count = await LogService.countBy(query);
         return sendListResponse(req, res, logs, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
