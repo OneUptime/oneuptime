@@ -1,13 +1,12 @@
 import axios from '../node_modules/axios';
-import { getApiUrl } from './config';
 class Logger {
     #applicationLogId;
     #applicationLogKey;
     #apiUrl;
-    constructor(applicationLogId, applicationLogKey) {
+    constructor(apiUrl, applicationLogId, applicationLogKey) {
         this.#setApplicationLogId(applicationLogId);
         this.#setApplicationLogKey(applicationLogKey);
-        this.#setApiUrl();
+        this.#setApiUrl(apiUrl);
     }
     #setApplicationLogId(applicationLogId) {
         this.#applicationLogId = applicationLogId;
@@ -15,8 +14,8 @@ class Logger {
     #setApplicationLogKey(applicationLogKey) {
         this.#applicationLogKey = applicationLogKey;
     }
-    #setApiUrl() {
-        this.#apiUrl = `${getApiUrl()}application-log/${this.#applicationLogId}/log`;
+    #setApiUrl(apiUrl) {
+        this.#apiUrl = `${apiUrl}application-log/${this.#applicationLogId}/log`;
     }
 
     async log(data) {

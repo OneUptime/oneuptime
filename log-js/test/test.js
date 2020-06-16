@@ -7,8 +7,8 @@ const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 
 const expect = chai.expect;
 import { user, generateRandomBusinessEmail } from './util';
-import { getApiUrl } from '../src/config';
-const request = chai.request.agent(getApiUrl());
+const API_URL = 'http://localhost:3002/api/';
+const request = chai.request.agent(API_URL);
 
 import Logger from '../src/logger';
 
@@ -69,7 +69,7 @@ describe('Logger', function () {
     });
 
     it('should request for application log key', function () {
-        const firstLog = new Logger(applicationLog._id, '');
+        const firstLog = new Logger(API_URL,applicationLog._id, '');
         firstLog.log('here').catch(error => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
@@ -78,7 +78,7 @@ describe('Logger', function () {
         });
     });
     it('should request for content', function () {
-        const firstLog = new Logger(applicationLog._id, applicationLog.key);
+        const firstLog = new Logger(API_URL,applicationLog._id, applicationLog.key);
         firstLog.log('').catch(error => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
@@ -87,7 +87,7 @@ describe('Logger', function () {
         });
     });
     it('should return invalid application log', function () {
-        const firstLog = new Logger(applicationLog._id, 'key');
+        const firstLog = new Logger(API_URL,applicationLog._id, 'key');
         firstLog.log('content').catch(error => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
@@ -96,7 +96,7 @@ describe('Logger', function () {
         });
     });
     it('should return a valid logged item of type string', function () {
-        const validLog = new Logger(applicationLog._id, applicationLog.key);
+        const validLog = new Logger(API_URL,applicationLog._id, applicationLog.key);
         const logMessage = 'This is a simple log';
         validLog.log(logMessage).then(response => {
             expect(response.status).to.equal(200);
@@ -106,7 +106,7 @@ describe('Logger', function () {
         });
     });
     it('should return a valid logged item of type object', function () {
-        const validLog = new Logger(applicationLog._id, applicationLog.key);
+        const validLog = new Logger(API_URL,applicationLog._id, applicationLog.key);
         const logMessage = {
             message: 'This is a simple log',
             user: { name: 'Jon', email: 'accurate@y.co.uk' },
