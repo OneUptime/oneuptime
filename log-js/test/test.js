@@ -126,4 +126,24 @@ describe('Logger', function () {
             });
         });
     });
+    it('should return a valid logged item with log type of error', function () {
+        const validLog = new Logger(API_URL,applicationLog._id, applicationLog.key);
+        const logMessage = 'This is a simple log';
+        validLog.error(logMessage).then(response => {
+            expect(response.status).to.equal(200);
+            expect(response.data).to.be.an('object');
+            expect(response.data.content).to.be.a('string');
+            expect(response.data).to.include({ type: 'error' });
+        });
+    });
+    it('should return a valid logged item with log type of warning', function () {
+        const validLog = new Logger(API_URL,applicationLog._id, applicationLog.key);
+        const logMessage = 'This is a simple log';
+        validLog.warning(logMessage).then(response => {
+            expect(response.status).to.equal(200);
+            expect(response.data).to.be.an('object');
+            expect(response.data.content).to.be.a('string');
+            expect(response.data).to.include({ type: 'warning' });
+        });
+    });
 });

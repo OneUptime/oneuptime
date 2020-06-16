@@ -28,6 +28,26 @@ class Logger {
         // make api request to the server to save a log with the key, id and content
         return await this.#makeApiRequest(data, logType);
     }
+    async warning(data) {
+        var type = typeof data;
+
+        if (!data || !(type === 'object' || type === 'string')) {
+            return;
+        }
+        const logType = 'warning';
+        // make api request to the server to save a log with the key, id and content
+        return await this.#makeApiRequest(data, logType);
+    }
+    async error(data) {
+        var type = typeof data;
+
+        if (!data || !(type === 'object' || type === 'string')) {
+            return;
+        }
+        const logType = 'error';
+        // make api request to the server to save a log with the key, id and content
+        return await this.#makeApiRequest(data, logType);
+    }
 
     #makeApiRequest(data, logType) {
         return new Promise((resolve, reject) => {
