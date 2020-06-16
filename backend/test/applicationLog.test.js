@@ -15,7 +15,6 @@ let ProjectService = require('../backend/services/projectService');
 let NotificationService = require('../backend/services/notificationService');
 let AirtableService = require('../backend/services/airtableService');
 
-
 let token, userId, airtableId, projectId, componentId, applicationLog;
 let log = {
     applicationLogKey: 'Wrong-key',
@@ -324,17 +323,17 @@ describe('Application Log API', function () {
             });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
-        await ApplicationLogService.hardDeleteBy({ _id: {$in: [applicationLog._id]} }),
-        await UserService.hardDeleteBy({
-            email: {
-                $in: [
-                    userData.user.email,
-                ],
-            },
-        });
+        await ApplicationLogService.hardDeleteBy({
+            _id: { $in: [applicationLog._id] },
+        }),
+            await UserService.hardDeleteBy({
+                email: {
+                    $in: [userData.user.email],
+                },
+            });
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
     });
