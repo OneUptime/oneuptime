@@ -98,7 +98,7 @@ export const groups = [
                 title: 'Security',
                 path:
                     '/dashboard/project/:projectId/:componentId/security/container',
-                icon: 'atlas',
+                icon: 'security',
                 visible: true,
                 component: Container,
                 exact: true,
