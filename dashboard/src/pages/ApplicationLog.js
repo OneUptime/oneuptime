@@ -28,8 +28,11 @@ class ApplicationLog extends Component {
         const componentId = this.props.match.params.componentId
             ? this.props.match.params.componentId
             : null;
+        const projectId = this.props.currentProject 
+        ? this.props.currentProject._id
+        : null;
 
-        this.props.fetchApplicationLogs(componentId);
+        this.props.fetchApplicationLogs(projectId, componentId);
     };
     render() {
         if (this.props.currentProject) {

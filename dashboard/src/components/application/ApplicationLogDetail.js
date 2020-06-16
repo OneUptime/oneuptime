@@ -135,6 +135,8 @@ class ApplicationLogDetail extends Component {
         } = this.props;
         if (applicationLog) {
             fetchLogs(
+                currentProject._id,
+                componentId,
                 applicationLog._id,
                 0,
                 10,
