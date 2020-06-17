@@ -13,11 +13,7 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 # Install trivy for container scanning
-RUN apt-get install wget apt-transport-https gnupg lsb-release \
-    && wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add - \
-    && echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | tee -a /etc/apt/sources.list.d/trivy.list \
-    && apt-get update \
-    && apt-get install trivy
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Install app dependencies
 COPY package*.json /usr/src/app/
