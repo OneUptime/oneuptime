@@ -223,16 +223,43 @@ class LogList extends Component {
                                                                                     </pre>
                                                                                 </span>
                                                                             ) : (
-                                                                                <div style={{ display:'flex', flexDirection: 'column', alignItems:'center'}}>
-                                                                                    <ShouldRender if={log.stringifiedContent}>
-                                                                                        <div style={{color:'black', backgroundColor:'#d2cfcf', padding: '10px', marginBottom: '5px'}} >
-                                                                                        <pre>
-                                                                                            {JSON.stringify(
-                                                                                                log.stringifiedContent,
-                                                                                                null,
-                                                                                                2
-                                                                                            ).substring(0,50)}
-                                                                                        </pre>
+                                                                                <div
+                                                                                    style={{
+                                                                                        display:
+                                                                                            'flex',
+                                                                                        flexDirection:
+                                                                                            'column',
+                                                                                        alignItems:
+                                                                                            'center',
+                                                                                    }}
+                                                                                >
+                                                                                    <ShouldRender
+                                                                                        if={
+                                                                                            log.stringifiedContent
+                                                                                        }
+                                                                                    >
+                                                                                        <div
+                                                                                            style={{
+                                                                                                color:
+                                                                                                    'black',
+                                                                                                backgroundColor:
+                                                                                                    '#d2cfcf',
+                                                                                                padding:
+                                                                                                    '10px',
+                                                                                                marginBottom:
+                                                                                                    '5px',
+                                                                                            }}
+                                                                                        >
+                                                                                            <pre>
+                                                                                                {JSON.stringify(
+                                                                                                    log.stringifiedContent,
+                                                                                                    null,
+                                                                                                    2
+                                                                                                ).substring(
+                                                                                                    0,
+                                                                                                    50
+                                                                                                )}
+                                                                                            </pre>
                                                                                         </div>
                                                                                     </ShouldRender>
                                                                                     <button

@@ -28,9 +28,9 @@ class ApplicationLog extends Component {
         const componentId = this.props.match.params.componentId
             ? this.props.match.params.componentId
             : null;
-        const projectId = this.props.currentProject 
-        ? this.props.currentProject._id
-        : null;
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : null;
 
         this.props.fetchApplicationLogs(projectId, componentId);
     };
@@ -58,7 +58,9 @@ class ApplicationLog extends Component {
                     >
                         <ApplicationLogList
                             componentId={componentId}
-                            applicationLogs={this.props.applicationLog.applicationLogs}
+                            applicationLogs={
+                                this.props.applicationLog.applicationLogs
+                            }
                         />
                     </div>
                 </div>
@@ -76,17 +78,11 @@ class ApplicationLog extends Component {
                 <BreadCrumbItem route={pathname} name="Application Log" />
                 <div>
                     <div>
-                        <ShouldRender
-                            if={
-                                this.props.applicationLog.requesting
-                            }
-                        >
+                        <ShouldRender if={this.props.applicationLog.requesting}>
                             <LoadingState />
                         </ShouldRender>
                         <ShouldRender
-                            if={
-                                !this.props.applicationLog.requesting
-                            }
+                            if={!this.props.applicationLog.requesting}
                         >
                             <div className="db-RadarRulesLists-page">
                                 <ShouldRender
@@ -120,8 +116,7 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
 
-    const applicationLog =
-        state.applicationLog.applicationLogsList;
+    const applicationLog = state.applicationLog.applicationLogsList;
 
     const currentProject = state.project.currentProject;
 

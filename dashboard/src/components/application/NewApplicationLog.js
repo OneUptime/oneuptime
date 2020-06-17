@@ -28,23 +28,29 @@ class NewApplicationLog extends Component {
         const thisObj = this;
         const postObj = {};
         postObj.name = values[`name_${this.props.index}`];
-        this.props.createApplicationLog(this.props.currentProject._id,this.props.componentId, postObj).then(
-            () => {
-                thisObj.props.reset();
-                thisObj.props.closeCreateApplicationLogModal();
-                if (SHOULD_LOG_ANALYTICS) {
-                    logEvent(
-                        'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > NEW APPLICATION LOG',
-                        values
-                    );
+        this.props
+            .createApplicationLog(
+                this.props.currentProject._id,
+                this.props.componentId,
+                postObj
+            )
+            .then(
+                () => {
+                    thisObj.props.reset();
+                    thisObj.props.closeCreateApplicationLogModal();
+                    if (SHOULD_LOG_ANALYTICS) {
+                        logEvent(
+                            'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > NEW APPLICATION LOG',
+                            values
+                        );
+                    }
+                },
+                error => {
+                    if (error && error.message) {
+                        return error;
+                    }
                 }
-            },
-            error => {
-                if (error && error.message) {
-                    return error;
-                }
-            }
-        );
+            );
     };
     render() {
         const { handleSubmit, requesting } = this.props;
@@ -177,7 +183,7 @@ const mapStateToProps = (state, ownProps) => {
         name,
         componentId,
         requesting,
-        currentProject
+        currentProject,
     };
 };
 
@@ -191,7 +197,7 @@ NewApplicationLog.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     name: PropTypes.string,
     componentId: PropTypes.string,
-    requesting: PropTypes.bool
+    requesting: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewApplicationLog);

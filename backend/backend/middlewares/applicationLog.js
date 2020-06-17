@@ -2,7 +2,6 @@ const ErrorService = require('../services/errorService');
 const ApplicationLogService = require('../services/applicationLogService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
-
 const _this = {
     isApplicationLogValid: async function(req, res, next) {
         try {
@@ -39,8 +38,10 @@ const _this = {
                     message: 'Log Type is required.',
                 });
             }
-            const allowedLogType = ['info', 'warning', 'error'].filter(elem => elem === data.type)
-            if(allowedLogType.length < 1){
+            const allowedLogType = ['info', 'warning', 'error'].filter(
+                elem => elem === data.type
+            );
+            if (allowedLogType.length < 1) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Log Type must be of the allowed types.',
@@ -48,9 +49,9 @@ const _this = {
             }
 
             // try to get the application log by the ID and key
-            let applicationLog = await ApplicationLogService.findOneBy({
+            const applicationLog = await ApplicationLogService.findOneBy({
                 _id: applicationLogId,
-                key: data.applicationLogKey
+                key: data.applicationLogKey,
             });
             // send an error if the application log doesnt exist
             if (!applicationLog) {
@@ -67,6 +68,6 @@ const _this = {
             throw error;
         }
     },
-}
+};
 
 module.exports = _this;

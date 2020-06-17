@@ -12,12 +12,12 @@ const request = chai.request.agent(API_URL);
 
 import Logger from '../src/logger';
 
-describe('Logger', function () {
+describe('Logger', function() {
     let projectId, token, componentId, applicationLog;
     // create a new user
     user.email = generateRandomBusinessEmail();
     const component = { name: 'Our Component' };
-    before(function (done) {
+    before(function(done) {
         this.timeout(20000);
         request
             .post('stripe/checkCard')
@@ -26,8 +26,8 @@ describe('Logger', function () {
                 email: user.email,
                 companyName: user.companyName,
             })
-            .end(function (err, res) {
-                stripe.paymentIntents.confirm(res.body.id, function (
+            .end(function(err, res) {
+                stripe.paymentIntents.confirm(res.body.id, function(
                     err,
                     paymentIntent
                 ) {
@@ -37,7 +37,7 @@ describe('Logger', function () {
                     request
                         .post('user/signup')
                         .send(user)
-                        .end(function (err, res) {
+                        .end(function(err, res) {
                             const project = res.body.project;
                             projectId = project._id;
                             token = res.body.tokens.jwtAccessToken;
@@ -45,7 +45,7 @@ describe('Logger', function () {
                                 .post(`component/${projectId}`)
                                 .set('Authorization', `Basic ${token}`)
                                 .send(component)
-                                .end(function (err, res) {
+                                .end(function(err, res) {
                                     componentId = res.body._id;
                                     request
                                         .post(
@@ -53,7 +53,7 @@ describe('Logger', function () {
                                         )
                                         .set('Authorization', `Basic ${token}`)
                                         .send({ name: 'Application Logger' })
-                                        .end(function (err, res) {
+                                        .end(function(err, res) {
                                             expect(res).to.have.status(200);
                                             expect(res.body).to.be.an('object');
                                             expect(res.body).to.have.property(
@@ -68,20 +68,16 @@ describe('Logger', function () {
             });
     });
 
-    it('should throw error for wrong url', function () {
+    it('should throw error for wrong url', function() {
         let errorMessage = null;
         try {
-            new Logger(
-                'anyserverapi.com',
-                applicationLog._id,
-                ''
-            );
+            new Logger('anyserverapi.com', applicationLog._id, '');
         } catch (e) {
             errorMessage = e.message;
-        } 
+        }
         expect(errorMessage).to.be.equal('Invalid Server URL');
     });
-    it('should request for application log key', function () {
+    it('should request for application log key', function() {
         const firstLog = new Logger(API_URL, applicationLog._id, '');
         firstLog.log('here').catch(error => {
             expect(error.response.status).to.equal(400);
@@ -90,7 +86,7 @@ describe('Logger', function () {
             );
         });
     });
-    it('should request for content', function () {
+    it('should request for content', function() {
         const firstLog = new Logger(
             API_URL,
             applicationLog._id,
@@ -103,7 +99,7 @@ describe('Logger', function () {
             );
         });
     });
-    it('should return invalid application log', function () {
+    it('should return invalid application log', function() {
         const firstLog = new Logger(API_URL, applicationLog._id, 'key');
         firstLog.log('content').catch(error => {
             expect(error.response.status).to.equal(400);
@@ -112,7 +108,7 @@ describe('Logger', function () {
             );
         });
     });
-    it('should return a valid logged item of type string', function () {
+    it('should return a valid logged item of type string', function() {
         const validLog = new Logger(
             API_URL,
             applicationLog._id,
@@ -126,7 +122,7 @@ describe('Logger', function () {
             expect(response.data).to.include({ content: logMessage });
         });
     });
-    it('should return a valid logged item of type object', function () {
+    it('should return a valid logged item of type object', function() {
         const validLog = new Logger(
             API_URL,
             applicationLog._id,
@@ -151,7 +147,7 @@ describe('Logger', function () {
             });
         });
     });
-    it('should return a valid logged item with log type of error', function () {
+    it('should return a valid logged item with log type of error', function() {
         const validLog = new Logger(
             API_URL,
             applicationLog._id,
@@ -165,7 +161,7 @@ describe('Logger', function () {
             expect(response.data).to.include({ type: 'error' });
         });
     });
-    it('should return a valid logged item with log type of warning', function () {
+    it('should return a valid logged item with log type of warning', function() {
         const validLog = new Logger(
             API_URL,
             applicationLog._id,
