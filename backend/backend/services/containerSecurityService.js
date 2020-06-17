@@ -83,7 +83,7 @@ module.exports = {
                     $set: data,
                 },
                 { new: true }
-            );
+            ).populate('dockerCredential');
 
             if (!containerSecurity) {
                 const error = new Error(

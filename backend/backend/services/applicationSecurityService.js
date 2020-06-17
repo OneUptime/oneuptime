@@ -87,7 +87,7 @@ module.exports = {
                     $set: data,
                 },
                 { new: true }
-            );
+            ).populate('gitCredential');
 
             if (!applicationSecurity) {
                 const error = new Error(
