@@ -9,11 +9,24 @@ module.exports = {
         try {
             const containerNameExist = await this.findOneBy({
                 name: data.name,
+                componentId: data.componentId,
+            });
+            const imagePathExist = await this.findOneBy({
+                imagePath: data.imagePath,
+                componentId: data.componentId,
             });
 
             if (containerNameExist) {
                 const error = new Error(
-                    'Container security with this name already exist'
+                    'Container security with this name already exist in this component'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            if (imagePathExist) {
+                const error = new Error(
+                    'Container security with this image path already exist in this component'
                 );
                 error.code = 400;
                 throw error;
