@@ -59,7 +59,7 @@ export class APISettings extends Component {
                                 <p>
                                     <span>
                                         Access and integrate your apps and
-                                        services with Fyipe API.
+                                        services with API.
                                     </span>
                                 </p>
                             </div>
@@ -106,6 +106,7 @@ export class APISettings extends Component {
                                                 >
                                                     <ShouldRender if={hidden}>
                                                         <span
+                                                            id="apiKey"
                                                             className="value"
                                                             style={{
                                                                 marginTop:
@@ -120,6 +121,7 @@ export class APISettings extends Component {
                                                     </ShouldRender>
                                                     <ShouldRender if={!hidden}>
                                                         <span
+                                                            id="apiKey"
                                                             className="value"
                                                             style={{
                                                                 marginTop:
@@ -148,6 +150,7 @@ export class APISettings extends Component {
                             <div>
                                 <RenderIfAdmin>
                                     <button
+                                        id="resetApiKey"
                                         className="bs-Button bs-Button--blue"
                                         onClick={this.apiResetModal}
                                     >

@@ -1,12 +1,12 @@
 module.exports = {
-    create: async function (data) {
+    create: async function(data) {
         try {
             const _this = this;
 
             // prepare  log model
             let log = new LogModel();
             log.content = data.content;
-            log.stringifiedContent = JSON.stringify(data.content)
+            log.stringifiedContent = JSON.stringify(data.content);
             log.applicationLogId = data.applicationLogId;
             log.type = data.type;
             log.createdById = data.createdById;
@@ -69,7 +69,7 @@ module.exports = {
     },
     async getLogsByApplicationLogId(applicationLogId, limit, skip) {
         // try to get the application log by the ID
-        let applicationLog = await ApplicationLogService.findOneBy({
+        const applicationLog = await ApplicationLogService.findOneBy({
             _id: applicationLogId,
         });
         // send an error if the component doesnt exist
@@ -110,9 +110,12 @@ module.exports = {
             throw error;
         }
     },
-    search: async function (query, filter, skip, limit) {
+    search: async function(query, filter, skip, limit) {
         const _this = this;
-        query.stringifiedContent = { $regex: new RegExp(filter), $options: 'i' };
+        query.stringifiedContent = {
+            $regex: new RegExp(filter),
+            $options: 'i',
+        };
         const searchedLogs = await _this.findBy(query, skip, limit);
         const totalSearchCount = await _this.countBy(query);
 

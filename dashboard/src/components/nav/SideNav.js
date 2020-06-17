@@ -45,6 +45,9 @@ class SideNav extends Component {
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/monitoring/
             ) ||
             location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/issues/
+            ) ||
+            location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/incident-log/
             ) ||
             location.pathname.match(
@@ -233,7 +236,7 @@ class SideNav extends Component {
 
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function (state, props) {
+const mapStateToProps = function(state, props) {
     const { componentId } = props.match.params;
     const allIndividualComponents = state.component.componentList.components.reduce(
         (acc, curr) => acc.concat(curr.components || []),
@@ -249,7 +252,7 @@ const mapStateToProps = function (state, props) {
     };
 };
 
-const mapDispatchToProps = function (dispatch) {
+const mapDispatchToProps = function(dispatch) {
     return bindActionCreators(
         {
             openModal,

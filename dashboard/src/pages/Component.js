@@ -11,12 +11,17 @@ import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMemb
 import { LoadingState } from '../components/basic/Loader';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
-import { fetchMonitors } from '../actions/monitor';
+import {
+    fetchMonitors,
+    fetchMonitorsIncidents,
+    fetchMonitorLogs,
+} from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 
 class DashboardView extends Component {
     componentDidMount() {
@@ -34,7 +39,26 @@ class DashboardView extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-        this.props.fetchMonitors(projectId);
+        this.props.fetchMonitors(projectId).then(() => {
+            this.props.monitor.monitorsList.monitors.forEach(subProject => {
+                if (subProject.monitors.length > 0) {
+                    subProject.monitors.forEach(monitor => {
+                        this.props.fetchMonitorLogs(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            this.props.startDate,
+                            this.props.endDate
+                        );
+                        this.props.fetchMonitorsIncidents(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            0,
+                            1
+                        );
+                    });
+                }
+            });
+        });
     };
 
     render() {
@@ -144,6 +168,7 @@ class DashboardView extends Component {
         return (
             <Dashboard ready={this.ready}>
                 <BreadCrumbItem route={pathname} name="Components" />
+                <AlertDisabledWarning />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -276,6 +301,8 @@ const mapDispatchToProps = dispatch => {
             destroy,
             fetchMonitors,
             loadPage,
+            fetchMonitorsIncidents,
+            fetchMonitorLogs,
         },
         dispatch
     );
@@ -302,8 +329,9 @@ const mapStateToProps = state => {
         components: state.component.componentList.components,
         subProjects,
         componentTutorial: state.tutorial.component,
-        startDate: state.component.componentList.startDate,
-        endDate: state.component.componentList.endDate,
+        monitor: state.monitor,
+        startDate: state.monitor.monitorsList.startDate,
+        endDate: state.monitor.monitorsList.endDate,
     };
 };
 
@@ -328,6 +356,11 @@ DashboardView.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    fetchMonitorsIncidents: PropTypes.func,
+    fetchMonitorLogs: PropTypes.func,
+    monitor: PropTypes.object,
+    startDate: PropTypes.object,
+    endDate: PropTypes.object,
 };
 
 DashboardView.displayName = 'DashboardView';

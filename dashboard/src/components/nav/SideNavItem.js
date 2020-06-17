@@ -58,10 +58,10 @@ export class SidebarNavItem extends Component {
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/monitoring*/
             ) &&
                 route.title === 'Monitors') ||
-                (location.pathname.match(
-                    /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/application-log*/
-                ) &&
-                    route.title === 'Application Logs') ||
+            (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/application-log*/
+            ) &&
+                route.title === 'Application Logs') ||
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security/
             ) &&
@@ -72,11 +72,15 @@ export class SidebarNavItem extends Component {
                 /:projectId/,
                 match.params.projectId
             );
+            newPath = newPath.replace(/:issueId/, match.params.issueId);
             newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);
             newPath = newPath.replace(/:monitorId/, match.params.monitorId);
             newPath = newPath.replace(/:componentId/, match.params.componentId);
-            newPath = newPath.replace(/:applicationLogId/, match.params.applicationLogId);
+            newPath = newPath.replace(
+                /:applicationLogId/,
+                match.params.applicationLogId
+            );
 
             const response =
                 newPath === match.url
@@ -176,6 +180,7 @@ export class SidebarNavItem extends Component {
                 'Schedule',
                 'Incident',
                 'Monitor View',
+                'Website Issues',
                 'Component View',
                 'Application Log View',
                 'Status Page',

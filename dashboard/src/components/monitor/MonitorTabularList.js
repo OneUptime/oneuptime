@@ -6,6 +6,7 @@ import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
 import {
+    filterProbeData,
     getMonitorStatus,
     getMonitorStatusColor,
     replaceDashWithSpace,
@@ -145,8 +146,26 @@ export class MonitorTabularList extends Component {
                             this.props.monitors &&
                             this.props.monitors.length > 0 ? (
                                 this.props.monitors.map((monitor, i) => {
+                                    const probe =
+                                        monitor &&
+                                        this.props.probes &&
+                                        this.props.probes.length > 0
+                                            ? this.props.probes[
+                                                  this.props.probes.length < 2
+                                                      ? 0
+                                                      : this.props.activeProbe
+                                              ]
+                                            : null;
+
+                                    const { logs } = filterProbeData(
+                                        monitor,
+                                        probe,
+                                        this.props.startDate,
+                                        this.props.endDate
+                                    );
                                     const status = getMonitorStatus(
-                                        monitor.incidents
+                                        monitor.incidents,
+                                        logs
                                     );
                                     const statusColor = getMonitorStatusColor(
                                         status
@@ -430,6 +449,10 @@ function mapStateToProps(state) {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
+        activeProbe: state.monitor.activeProbe,
+        probes: state.probe.probes.data,
+        startDate: state.monitor.monitorsList.startDate,
+        endDate: state.monitor.monitorsList.endDate,
     };
 }
 
@@ -445,6 +468,10 @@ MonitorTabularList.propTypes = {
     ]),
     monitorState: PropTypes.object.isRequired,
     currentProject: PropTypes.object,
+    activeProbe: PropTypes.number,
+    probes: PropTypes.array,
+    startDate: PropTypes.object,
+    endDate: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorTabularList);

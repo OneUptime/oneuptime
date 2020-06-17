@@ -22,6 +22,7 @@ const {
     SmsTemplates,
     Reports,
     MonitorView,
+    WebsiteMonitorIssues,
     Probe,
     ProfileBilling,
     ApplicationLog,
@@ -32,6 +33,7 @@ const {
     ContainerDetail,
     GitCredential,
     DockerCredential,
+    FyipeApi,
 } = pages;
 
 export const groups = [
@@ -57,6 +59,16 @@ export const groups = [
                         subRoutes: [],
                         component: MonitorView,
                         index: 1,
+                    },
+                    {
+                        title: 'Website Issues',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/issues/:issueId',
+                        icon: 'info',
+                        visible: true,
+                        subRoutes: [],
+                        component: WebsiteMonitorIssues,
+                        index: 2,
                     },
                 ],
                 index: 2,
@@ -338,6 +350,15 @@ export const groups = [
                         subRoutes: [],
                         component: DockerCredential,
                         index: 8,
+                    },
+                    {
+                        title: 'API',
+                        path: '/dashboard/project/:projectId/settings/api',
+                        icon: 'radar',
+                        visible: true,
+                        subRoutes: [],
+                        component: FyipeApi,
+                        index: 9,
                     },
                 ],
                 component: Settings,

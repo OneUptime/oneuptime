@@ -32,7 +32,7 @@ In 2017, Fyipe launched an update with let's customers build beautiful and custo
 * {{Official Website|https://www.fyipe.com}}
 * [https://hackerbay.io HackerBay]
 * [https://blog.fyipe.com Official Blog]
-* [https://docs.fyipe.com API Reference]
+* [https://fyipe.com/docs API Reference]
 * [https://fyipe.com/customers Customers]
 
 {{authority control}}

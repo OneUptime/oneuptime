@@ -90,7 +90,7 @@ const mapStateToProps = (state, props) => {
         componentId,
         applicationLog,
         component,
-        currentProject: state.project.currentProject
+        currentProject: state.project.currentProject,
     };
 };
 

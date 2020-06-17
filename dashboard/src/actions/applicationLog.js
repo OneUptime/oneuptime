@@ -4,16 +4,19 @@ import errors from '../errors';
 
 //Create new application log
 //props -> {name: '', type, data -> { data.url}}
-export function createApplicationLog(projectId,componentId, values) {
-    return function (dispatch) {
-        const promise = postApi(`application-log/${projectId}/${componentId}/create`, values);
+export function createApplicationLog(projectId, componentId, values) {
+    return function(dispatch) {
+        const promise = postApi(
+            `application-log/${projectId}/${componentId}/create`,
+            values
+        );
         dispatch(createApplicationLogRequest());
 
         promise.then(
-            function (applicationLog) {
+            function(applicationLog) {
                 dispatch(createApplicationLogSuccess(applicationLog.data));
             },
-            function (error) {
+            function(error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -60,15 +63,15 @@ export function resetCreateApplicationLog() {
 }
 
 export function fetchApplicationLogs(projectId, componentId) {
-    return function (dispatch) {
+    return function(dispatch) {
         const promise = getApi(`application-log/${projectId}/${componentId}`);
         dispatch(fetchApplicationLogsRequest());
 
         promise.then(
-            function (applicationLogs) {
+            function(applicationLogs) {
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
-            function (error) {
+            function(error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -116,7 +119,7 @@ export function resetFetchApplicationLogs() {
 //Delete a applicationLog
 //props -> {name: '', type, data -> { data.url}}
 export function deleteApplicationLog(projectId, componentId, applicationLogId) {
-    return function (dispatch) {
+    return function(dispatch) {
         const promise = deleteApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}`,
             {
@@ -126,10 +129,10 @@ export function deleteApplicationLog(projectId, componentId, applicationLogId) {
         dispatch(deleteApplicationLogRequest(applicationLogId));
 
         promise.then(
-            function (applicationLog) {
+            function(applicationLog) {
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
-            function (error) {
+            function(error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -181,20 +184,33 @@ export function deleteComponentApplicationLogs(componentId) {
     };
 }
 
-export function fetchLogs(projectId, componentId, applicationLogId, skip, limit, startDate, endDate, type, filter) {
-    return function (dispatch) {
-        const promise = postApi(`application-log/${projectId}/${componentId}/${applicationLogId}/logs`, {
-            skip,
-            limit,
-            startDate,
-            endDate,
-            type,
-            filter
-        });
+export function fetchLogs(
+    projectId,
+    componentId,
+    applicationLogId,
+    skip,
+    limit,
+    startDate,
+    endDate,
+    type,
+    filter
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `application-log/${projectId}/${componentId}/${applicationLogId}/logs`,
+            {
+                skip,
+                limit,
+                startDate,
+                endDate,
+                type,
+                filter,
+            }
+        );
         dispatch(fetchLogsRequest({ applicationLogId }));
 
         promise.then(
-            function (logs) {
+            function(logs) {
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
@@ -205,7 +221,7 @@ export function fetchLogs(projectId, componentId, applicationLogId, skip, limit,
                     })
                 );
             },
-            function (error) {
+            function(error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -216,7 +232,9 @@ export function fetchLogs(projectId, componentId, applicationLogId, skip, limit,
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchLogsFailure({ applicationLogId, error: errors(error) }));
+                dispatch(
+                    fetchLogsFailure({ applicationLogId, error: errors(error) })
+                );
             }
         );
 
@@ -227,14 +245,14 @@ export function fetchLogs(projectId, componentId, applicationLogId, skip, limit,
 export function fetchLogsSuccess(logs) {
     return {
         type: types.FETCH_LOGS_SUCCESS,
-        payload: logs ,
+        payload: logs,
     };
 }
 
 export function fetchLogsRequest(applicationLogId) {
     return {
         type: types.FETCH_LOGS_REQUEST,
-        payload: applicationLogId
+        payload: applicationLogId,
     };
 }
 
@@ -250,16 +268,22 @@ export function resetFetchLogs() {
     };
 }
 
-export function resetApplicationLogKey(projectId, componentId, applicationLogId) {
-    return function (dispatch) {
-        const promise = postApi(`application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`);
+export function resetApplicationLogKey(
+    projectId,
+    componentId,
+    applicationLogId
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`
+        );
         dispatch(resetApplicationLogKeyRequest());
 
         promise.then(
-            function (applicationLog) {
+            function(applicationLog) {
                 dispatch(resetApplicationLogKeySuccess(applicationLog.data));
             },
-            function (error) {
+            function(error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

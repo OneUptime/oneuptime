@@ -53,11 +53,6 @@ describe('Alert Warning', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#projectSettings');
-                await page.click('#projectSettings');
-                await page.waitForSelector('#billing');
-                await page.click('#billing a');
-
                 const element = await page.waitForSelector('#alertWarning');
                 expect(element).not.toBe(null);
             });

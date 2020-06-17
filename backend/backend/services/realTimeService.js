@@ -293,6 +293,30 @@ module.exports = {
         }
     },
 
+    updateLighthouseLog: async (data, projectId) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            const parentProjectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : projectId;
+
+            global.io.emit(`updateLighthouseLog-${parentProjectId}`, {
+                projectId,
+                monitorId: data.monitorId,
+                data,
+            });
+        } catch (error) {
+            ErrorService.log('realTimeService.updateLighthouseLog', error);
+            throw error;
+        }
+    },
+
     updateMonitorStatus: async (data, projectId) => {
         try {
             if (!global || !global.io) {
@@ -434,9 +458,15 @@ module.exports = {
             }
             const componentId = applicationLog.componentId._id;
 
-            global.io.emit(`createApplicationLog-${componentId}`, applicationLog);
+            global.io.emit(
+                `createApplicationLog-${componentId}`,
+                applicationLog
+            );
         } catch (error) {
-            ErrorService.log('realTimeService.sendApplicationLogCreated', error);
+            ErrorService.log(
+                'realTimeService.sendApplicationLogCreated',
+                error
+            );
             throw error;
         }
     },
@@ -448,7 +478,10 @@ module.exports = {
 
             const componentId = applicationLog.componentId._id;
 
-            global.io.emit(`deleteApplicationLog-${componentId}`, applicationLog);
+            global.io.emit(
+                `deleteApplicationLog-${componentId}`,
+                applicationLog
+            );
         } catch (error) {
             ErrorService.log('realTimeService.sendApplicationLogDelete', error);
             throw error;
@@ -473,10 +506,12 @@ module.exports = {
                 return;
             }
 
-            const componentId = applicationLog.componentId._id
-            
+            const componentId = applicationLog.componentId._id;
 
-            global.io.emit(`applicationLogKeyReset-${componentId}`, applicationLog);
+            global.io.emit(
+                `applicationLogKeyReset-${componentId}`,
+                applicationLog
+            );
         } catch (error) {
             ErrorService.log('realTimeService.applicationLogKeyReset', error);
             throw error;

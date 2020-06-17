@@ -4,7 +4,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import MonitorTabularList from '../monitor/MonitorTabularList';
 import uuid from 'uuid';
-import { fetchMonitorLogs } from '../../actions/monitor';
 import { fetchComponents } from '../../actions/component';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteComponent from '../modals/DeleteComponent';
@@ -167,6 +166,12 @@ export class ComponentDetail extends Component {
                                             {component.name}
                                         </span>
                                     </span>
+                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            Here&apos;s a list of resources
+                                            which belong to this component.
+                                        </span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -230,22 +235,6 @@ export class ComponentDetail extends Component {
                                 <div className="">
                                     <div className="Box-root">
                                         <div>
-                                            <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-bottom--16">
-                                                <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                        <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span>
-                                                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <span>
-                                                                Here&apos;s a
-                                                                list of
-                                                                resources which
-                                                                belong to this
-                                                                component.
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
                                             <MonitorTabularList
                                                 componentId={
                                                     this.props.component._id
@@ -277,7 +266,6 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             deleteComponent,
             fetchComponents,
-            fetchMonitorLogs,
         },
         dispatch
     );

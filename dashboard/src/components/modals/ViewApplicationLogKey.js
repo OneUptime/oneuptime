@@ -73,7 +73,7 @@ class ViewApplicationLogKey extends Component {
                                                         className="value"
                                                         style={{
                                                             marginTop: '6px',
-                                                            fontWeight: 'bold'
+                                                            fontWeight: 'bold',
                                                         }}
                                                     >
                                                         {this.props.data
@@ -91,7 +91,6 @@ class ViewApplicationLogKey extends Component {
                                                     Application Log Key
                                                 </label>
                                                 <div
-                                                    
                                                     onClick={() =>
                                                         this.setState(
                                                             state => ({
@@ -118,8 +117,10 @@ class ViewApplicationLogKey extends Component {
                                                         <span
                                                             className="value"
                                                             style={{
-                                                                marginTop: '6px',
-                                                                fontWeight: 'bold'
+                                                                marginTop:
+                                                                    '6px',
+                                                                fontWeight:
+                                                                    'bold',
                                                             }}
                                                         >
                                                             {this.props.data

@@ -50,7 +50,7 @@ const DateTimeSelector = ({
     classes,
     minDate,
     id,
-    label
+    label,
 }) => {
     if (!input.value) {
         input.value = null;
@@ -78,7 +78,7 @@ const DateTimeSelector = ({
                         <DateTimePicker
                             name={input.name}
                             margin="normal"
-                            id={ id ? id+"time-picker" : "time-picker"}
+                            id={id ? id + 'time-picker' : 'time-picker'}
                             value={value}
                             error={false}
                             invalidDateMessage={false}
@@ -87,7 +87,7 @@ const DateTimeSelector = ({
                             KeyboardButtonProps={{
                                 'aria-label': 'change time',
                             }}
-                            emptyLabel={label ? label : "Select Date and Time"}
+                            emptyLabel={label ? label : 'Select Date and Time'}
                             initialFocusedDate={null}
                             InputProps={{
                                 className: classes.input,

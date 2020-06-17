@@ -19,7 +19,6 @@ import { closeNotificationMenu } from '../actions/notification';
 import UnVerifiedEmailBox from '../components/auth/UnVerifiedEmail';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
-import AlertDisabledWarning from './settings/AlertDisabledWarning';
 import BreadCrumbItem from './breadCrumb/BreadCrumbItem';
 import BreadCrumbs from './breadCrumb/BreadCrumbs';
 
@@ -200,7 +199,6 @@ export class DashboardApp extends Component {
                                             >
                                                 <UnVerifiedEmailBox />
                                             </ShouldRender>
-                                            <AlertDisabledWarning />
                                             {children}
                                         </div>
                                     </div>

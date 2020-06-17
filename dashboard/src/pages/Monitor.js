@@ -16,6 +16,7 @@ import {
     fetchMonitorLogs,
     fetchMonitorsIncidents,
     fetchMonitorStatuses,
+    fetchLighthouseLogs,
 } from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
@@ -59,6 +60,13 @@ class DashboardView extends Component {
                             this.props.startDate,
                             this.props.endDate
                         );
+                        this.props.fetchLighthouseLogs(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            0,
+                            1,
+                            monitor.data.url
+                        );
                     });
                 }
             });
@@ -94,6 +102,13 @@ class DashboardView extends Component {
                         monitor._id,
                         this.props.startDate,
                         this.props.endDate
+                    );
+                    this.props.fetchLighthouseLogs(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        0,
+                        1,
+                        monitor.data.url
                     );
                 });
             }
@@ -380,6 +395,7 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorLogs,
             fetchMonitorsIncidents,
             fetchMonitorStatuses,
+            fetchLighthouseLogs,
             loadPage,
             fetchTutorial,
             getProbes,
@@ -451,6 +467,7 @@ DashboardView.propTypes = {
     fetchMonitorLogs: PropTypes.func,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorStatuses: PropTypes.func.isRequired,
+    fetchLighthouseLogs: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     monitorTutorial: PropTypes.object,
     getProbes: PropTypes.func,

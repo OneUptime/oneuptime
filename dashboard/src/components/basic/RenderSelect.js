@@ -58,7 +58,15 @@ const RenderSelect = ({
                 />
                 {message && message.length && (
                     <>
-                        <span style={{ marginLeft: '5px', display: 'flex', alignItems: 'center' }}>{message}</span>
+                        <span
+                            style={{
+                                marginLeft: '5px',
+                                display: 'flex',
+                                alignItems: 'center',
+                            }}
+                        >
+                            {message}
+                        </span>
                         <br />
                     </>
                 )}

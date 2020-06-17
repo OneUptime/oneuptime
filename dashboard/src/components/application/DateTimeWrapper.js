@@ -4,7 +4,7 @@ import { Field, reduxForm } from 'redux-form';
 
 class DateTimeWrapper extends Component {
     render() {
-        const { name, label, currentDate, id} = this.props;
+        const { name, label, currentDate, id } = this.props;
         return (
             <div>
                 <form>
@@ -14,7 +14,6 @@ class DateTimeWrapper extends Component {
                                 className="bs-Fieldset-row Flex-flex Flex-direction--column"
                                 style={{ padding: 0 }}
                             >
-                                
                                 <div className="bs-Fieldset-field">
                                     <Field
                                         className="bs-TextInput"
