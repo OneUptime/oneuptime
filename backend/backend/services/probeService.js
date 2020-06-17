@@ -642,10 +642,14 @@ module.exports = {
                             },
                             { scanned: false }
                         );
+                        deleteFolderRecursive(securityDir);
                         ErrorService.log(
                             'probeService.scanApplicationSecurity',
                             error
                         );
+                        error.code = 400;
+                        error.message =
+                            'Something bad happened, please check your git credentials or git repository url';
                         return reject(error);
                     });
             });
@@ -688,6 +692,8 @@ module.exports = {
                     error => {
                         if (error) {
                             error.code = 400;
+                            error.message =
+                                'Something bad happened, please check your docker credential or image path/tag';
                             scanError = error;
                         }
                     }
@@ -711,6 +717,8 @@ module.exports = {
                         error => {
                             if (error) {
                                 error.code = 400;
+                                error.message =
+                                    'Unable to clear cache, try again later';
                                 clearCacheError = error;
                             }
                         }
