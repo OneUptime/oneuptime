@@ -12,6 +12,7 @@ import {
 } from '../../actions/security';
 import ApplicationSecurityDeleteBox from './ApplicationSecurityDeleteBox';
 import SecurityLog from './SecurityLog';
+import { getGitCredentials } from '../../actions/credential';
 
 class ApplicationSecurityDetail extends Component {
     componentDidMount() {
@@ -21,6 +22,7 @@ class ApplicationSecurityDetail extends Component {
             applicationSecurityId,
             getApplicationSecurity,
             getApplicationSecurityLog,
+            getGitCredentials,
         } = this.props;
 
         // get a particular application security
@@ -35,6 +37,8 @@ class ApplicationSecurityDetail extends Component {
             componentId,
             applicationSecurityId,
         });
+
+        getGitCredentials({ projectId });
     }
 
     render() {
@@ -47,15 +51,26 @@ class ApplicationSecurityDetail extends Component {
             getApplicationError,
             gettingSecurityLog,
             applicationSecurityLog,
+            gettingCredentials,
+            fetchCredentialError,
+            fetchLogError,
         } = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
-                <ShouldRender if={isRequesting && gettingSecurityLog}>
+                <ShouldRender
+                    if={
+                        isRequesting && gettingSecurityLog && gettingCredentials
+                    }
+                >
                     <ListLoader />
                 </ShouldRender>
                 <ShouldRender
-                    if={applicationSecurity.name && !gettingSecurityLog}
+                    if={
+                        applicationSecurity.name &&
+                        !gettingSecurityLog &&
+                        !gettingCredentials
+                    }
                 >
                     <ApplicationSecurityView
                         projectId={projectId}
@@ -66,7 +81,11 @@ class ApplicationSecurityDetail extends Component {
                     />
                 </ShouldRender>
                 <ShouldRender
-                    if={applicationSecurity.name && !gettingSecurityLog}
+                    if={
+                        applicationSecurity.name &&
+                        !gettingSecurityLog &&
+                        !gettingCredentials
+                    }
                 >
                     <SecurityLog
                         type="Application"
@@ -74,7 +93,11 @@ class ApplicationSecurityDetail extends Component {
                     />
                 </ShouldRender>
                 <ShouldRender
-                    if={applicationSecurity.name && !gettingSecurityLog}
+                    if={
+                        applicationSecurity.name &&
+                        !gettingSecurityLog &&
+                        !gettingCredentials
+                    }
                 >
                     <ApplicationSecurityDeleteBox
                         projectId={projectId}
@@ -86,10 +109,15 @@ class ApplicationSecurityDetail extends Component {
                     if={
                         !isRequesting &&
                         !gettingSecurityLog &&
-                        getApplicationError
+                        !gettingCredentials &&
+                        (getApplicationError ||
+                            fetchCredentialError ||
+                            fetchLogError)
                     }
                 >
-                    {getApplicationError}
+                    {getApplicationError ||
+                        fetchCredentialError ||
+                        fetchLogError}
                 </ShouldRender>
             </div>
         );
@@ -112,11 +140,25 @@ ApplicationSecurityDetail.propTypes = {
     gettingSecurityLog: PropTypes.bool,
     applicationSecurityLog: PropTypes.object,
     getApplicationSecurityLog: PropTypes.func,
+    getGitCredentials: PropTypes.func,
+    gettingCredentials: PropTypes.bool,
+    fetchLogError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    fetchCredentialError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { getApplicationSecurity, getApplicationSecurityLog },
+        {
+            getApplicationSecurity,
+            getApplicationSecurityLog,
+            getGitCredentials,
+        },
         dispatch
     );
 
@@ -136,6 +178,9 @@ const mapStateToProps = (state, ownProps) => {
         getApplicationError: state.security.getApplication.error,
         gettingSecurityLog: state.security.getApplicationSecurityLog.requesting,
         applicationSecurityLog: state.security.applicationSecurityLog,
+        gettingCredentials: state.credential.getCredential.requesting,
+        fetchLogError: state.security.getApplicationSecurityLog.error,
+        fetchCredentialError: state.credential.getCredential.error,
     };
 };
 
