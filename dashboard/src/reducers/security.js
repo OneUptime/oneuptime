@@ -20,6 +20,7 @@ const initialState = {
         success: false,
         error: null,
     },
+    editApplicationSecurity: { requesting: false, success: false, error: null },
     applicationSecurities: [],
     applicationSecurity: {},
     applicationSecurityLog: {},
@@ -524,6 +525,37 @@ export default function security(state = initialState, action) {
             return {
                 ...state,
                 getApplicationSecurityLog: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.EDIT_APPLICATION_SECURITY_REQUEST:
+            return {
+                ...state,
+                editApplicationSecurity: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.EDIT_APPLICATION_SECURITY_SUCCESS:
+            return {
+                ...state,
+                editApplicationSecurity: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                applicationSecurity: action.payload,
+            };
+
+        case types.EDIT_APPLICATION_SECURITY_FAILURE:
+            return {
+                ...state,
+                editApplicationSecurity: {
                     requesting: false,
                     success: false,
                     error: action.payload,
