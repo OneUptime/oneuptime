@@ -71,7 +71,7 @@ class GitCredentialModal extends Component {
                     <div className="bs-BIM">
                         <div
                             className="bs-Modal bs-Modal--medium"
-                            style={{ minWidth: 600 }}
+                            style={{ width: 600 }}
                         >
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
