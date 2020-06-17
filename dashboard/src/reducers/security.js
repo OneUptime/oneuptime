@@ -6,6 +6,7 @@ const initialState = {
     deleteContainer: { requesting: false, success: false, error: null },
     scanContainerSecurity: { requesting: false, success: false, error: null },
     getContainerSecurityLog: { requesting: false, success: false, error: null },
+    editContainerSecurity: { requesting: false, success: false, error: null },
     containerSecurities: [],
     containerSecurity: {},
     containerSecurityLog: {},
@@ -256,6 +257,37 @@ export default function security(state = initialState, action) {
             return {
                 ...state,
                 getContainerSecurityLog: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.EDIT_CONTAINER_SECURITY_REQUEST:
+            return {
+                ...state,
+                editContainerSecurity: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.EDIT_CONTAINER_SECURITY_SUCCESS:
+            return {
+                ...state,
+                editContainerSecurity: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                containerSecurity: action.payload,
+            };
+
+        case types.EDIT_CONTAINER_SECURITY_FAILURE:
+            return {
+                ...state,
+                editContainerSecurity: {
                     requesting: false,
                     success: false,
                     error: action.payload,
