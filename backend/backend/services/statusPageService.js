@@ -539,6 +539,28 @@ module.exports = {
                     ErrorService.log('statusPageService.getStatusPage', error);
                     throw error;
                 }
+
+                const monitorIds = statusPage.monitors.map(monitor =>
+                    monitor.monitor.toString()
+                );
+                const projectId = statusPage.projectId._id;
+                const subProjects = await ProjectService.findBy({
+                    $or: [{ parentProjectId: projectId }, { _id: projectId }],
+                });
+                const subProjectIds = subProjects
+                    ? subProjects.map(project => project._id)
+                    : null;
+                const monitors = await MonitorService.getMonitorsBySubprojects(
+                    subProjectIds,
+                    0,
+                    0
+                );
+                const filteredMonitorData = monitors.map(subProject => {
+                    return subProject.monitors.filter(monitor =>
+                        monitorIds.includes(monitor._id.toString())
+                    );
+                });
+                statusPage.monitorsData = _.flatten(filteredMonitorData);
             } else {
                 if (statusPages.length > 0) {
                     const error = new Error('Domain not verified');
