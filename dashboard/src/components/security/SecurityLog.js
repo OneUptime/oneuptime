@@ -13,13 +13,13 @@ export class SecurityLog extends Component {
         } = this.props;
 
         let advisories = [];
-        if (applicationSecurityLog) {
+        if (applicationSecurityLog && applicationSecurityLog.data) {
             const data = applicationSecurityLog.data;
             advisories = data.advisories || [];
         }
 
         let containerLogs = [];
-        if (containerSecurityLog) {
+        if (containerSecurityLog && containerSecurityLog.data) {
             containerLogs = containerSecurityLog.data.vulnerabilityData;
         }
         return (
