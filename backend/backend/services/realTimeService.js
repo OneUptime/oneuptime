@@ -450,6 +450,73 @@ module.exports = {
             throw error;
         }
     },
+
+    sendApplicationLogCreated: async applicationLog => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const componentId = applicationLog.componentId._id;
+
+            global.io.emit(
+                `createApplicationLog-${componentId}`,
+                applicationLog
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.sendApplicationLogCreated',
+                error
+            );
+            throw error;
+        }
+    },
+    sendApplicationLogDelete: async applicationLog => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const componentId = applicationLog.componentId._id;
+
+            global.io.emit(
+                `deleteApplicationLog-${componentId}`,
+                applicationLog
+            );
+        } catch (error) {
+            ErrorService.log('realTimeService.sendApplicationLogDelete', error);
+            throw error;
+        }
+    },
+    sendLogCreated: async contentLog => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const applicationLogId = contentLog.applicationLogId._id;
+
+            global.io.emit(`createLog-${applicationLogId}`, contentLog);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendLogCreated', error);
+            throw error;
+        }
+    },
+    applicationLogKeyReset: async applicationLog => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const componentId = applicationLog.componentId._id;
+
+            global.io.emit(
+                `applicationLogKeyReset-${componentId}`,
+                applicationLog
+            );
+        } catch (error) {
+            ErrorService.log('realTimeService.applicationLogKeyReset', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');

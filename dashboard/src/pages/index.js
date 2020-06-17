@@ -31,6 +31,8 @@ import Reports from './Reports';
 import Probe from './Probe';
 import ProfileBilling from './ProfileBilling';
 
+import ApplicationLog from './ApplicationLog';
+import ApplicationLogView from './ApplicationLogView';
 import Container from './Container';
 import Application from './Application';
 import ApplicationDetail from './ApplicationDetail';
@@ -64,6 +66,8 @@ export default {
     WebsiteMonitorIssues,
     Probe,
     ProfileBilling,
+    ApplicationLog,
+    ApplicationLogView,
     Container,
     Application,
     ApplicationDetail,

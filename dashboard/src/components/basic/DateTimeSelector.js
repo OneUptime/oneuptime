@@ -49,6 +49,8 @@ const DateTimeSelector = ({
     style,
     classes,
     minDate,
+    id,
+    label,
 }) => {
     if (!input.value) {
         input.value = null;
@@ -65,10 +67,10 @@ const DateTimeSelector = ({
         <span>
             <div
                 style={{
-                    width: '10px',
+                    //width: '10px',
                     height: '28px',
                     marginTop: '-15px',
-                    zIndex: 1000,
+                    // zIndex: 1000,
                 }}
             >
                 <MuiThemeProvider theme={theme}>
@@ -76,7 +78,7 @@ const DateTimeSelector = ({
                         <DateTimePicker
                             name={input.name}
                             margin="normal"
-                            id="time-picker"
+                            id={id ? id + 'time-picker' : 'time-picker'}
                             value={value}
                             error={false}
                             invalidDateMessage={false}
@@ -85,7 +87,7 @@ const DateTimeSelector = ({
                             KeyboardButtonProps={{
                                 'aria-label': 'change time',
                             }}
-                            emptyLabel="Select Date and Time"
+                            emptyLabel={label ? label : 'Select Date and Time'}
                             initialFocusedDate={null}
                             InputProps={{
                                 className: classes.input,

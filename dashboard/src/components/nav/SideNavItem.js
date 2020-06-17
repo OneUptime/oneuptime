@@ -36,8 +36,8 @@ export class SidebarNavItem extends Component {
             )
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
-            .replace(':monitorId', match.params.monitorId);
-
+            .replace(':monitorId', match.params.monitorId)
+            .replace(':applicationLogId', match.params.applicationLogId);
         const isLinkActive =
             location.pathname === path ||
             (location.pathname.match(
@@ -59,6 +59,10 @@ export class SidebarNavItem extends Component {
             ) &&
                 route.title === 'Monitors') ||
             (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/application-log*/
+            ) &&
+                route.title === 'Application Logs') ||
+            (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security/
             ) &&
                 route.title === 'Security');
@@ -73,6 +77,10 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);
             newPath = newPath.replace(/:monitorId/, match.params.monitorId);
             newPath = newPath.replace(/:componentId/, match.params.componentId);
+            newPath = newPath.replace(
+                /:applicationLogId/,
+                match.params.applicationLogId
+            );
 
             const response =
                 newPath === match.url
@@ -174,6 +182,7 @@ export class SidebarNavItem extends Component {
                 'Monitor View',
                 'Website Issues',
                 'Component View',
+                'Application Log View',
                 'Status Page',
                 'Application Detail',
                 'Container Detail',

@@ -30,6 +30,7 @@ import probe from './probe';
 import version from './version';
 import tutorial from './tutorial';
 import dateTime from './dateTime';
+import applicationLog from './applicationLog';
 import security from './security';
 import credential from './credential';
 
@@ -65,6 +66,7 @@ const appReducer = combineReducers({
     version,
     tutorial,
     dateTime,
+    applicationLog,
     security,
     credential,
 });

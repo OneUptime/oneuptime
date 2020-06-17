@@ -9169,6 +9169,9 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 .db-SideNav-icon--info {
     background-image: url('../icons/info-light.svg');
 }
+.db-SideNav-icon--appLog {
+    background-image: url('../icons/app-log-light.svg');
+}
 .db-SideNav-icon--square {
     background-image: url('../icons/square-light.svg');
 }
@@ -9232,6 +9235,9 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 .db-SideNav-icon--info.db-SideNav-icon--highlighted {
     background-image: url('../icons/info.svg');
 }
+.db-SideNav-icon--appLog.db-SideNav-icon--highlighted {
+    background-image: url('../icons/app-log.svg');
+}
 .db-SideNav-icon--square.db-SideNav-icon--highlighted {
     background-image: url('../icons/square.svg');
 }
@@ -9294,6 +9300,9 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 }
 .db-SideNav-icon--info.db-SideNav-icon--selected {
     background-image: url('../icons/info.svg');
+}
+.db-SideNav-icon--appLog.db-SideNav-icon--selected {
+    background-image: url('../icons/app-log.svg');
 }
 .db-SideNav-icon--square.db-SideNav-icon--selected {
     background-image: url('../icons/square.svg');

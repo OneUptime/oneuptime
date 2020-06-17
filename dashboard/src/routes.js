@@ -25,6 +25,8 @@ const {
     WebsiteMonitorIssues,
     Probe,
     ProfileBilling,
+    ApplicationLog,
+    ApplicationLogView,
     Container,
     Application,
     ApplicationDetail,
@@ -92,6 +94,28 @@ export const groups = [
                 index: 3,
             },
             {
+                title: 'Application Logs',
+                path:
+                    '/dashboard/project/:projectId/:componentId/application-log',
+                icon: 'appLog',
+                visible: true,
+                exact: true,
+                component: ApplicationLog,
+                index: 4,
+                subRoutes: [
+                    {
+                        title: 'Application Log View',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/application-logs/:applicationLogId',
+                        icon: 'radar',
+                        visible: true,
+                        subRoutes: [],
+                        component: ApplicationLogView,
+                        index: 1,
+                    },
+                ],
+            },
+            {
                 title: 'Security',
                 path:
                     '/dashboard/project/:projectId/:componentId/security/container',
@@ -145,7 +169,7 @@ export const groups = [
                         exact: true,
                     },
                 ],
-                index: 4,
+                index: 5,
             },
             {
                 title: 'Back to Dashboard',
@@ -154,7 +178,7 @@ export const groups = [
                 component: Component,
                 visible: true,
                 subRoutes: [],
-                index: 5,
+                index: 6,
             },
         ],
     },
