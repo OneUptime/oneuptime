@@ -4,7 +4,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import MonitorTabularList from '../monitor/MonitorTabularList';
 import uuid from 'uuid';
-import { fetchMonitorLogs } from '../../actions/monitor';
 import { fetchComponents } from '../../actions/component';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteComponent from '../modals/DeleteComponent';
@@ -267,7 +266,6 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             deleteComponent,
             fetchComponents,
-            fetchMonitorLogs,
         },
         dispatch
     );
