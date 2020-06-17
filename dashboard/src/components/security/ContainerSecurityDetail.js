@@ -171,7 +171,7 @@ const mapStateToProps = (state, ownProps) => {
         containerSecurity: state.security.containerSecurity,
         isRequesting: state.security.getContainer.requesting,
         getContainerError: state.security.getContainer.error,
-        containerSecurityLog: state.security.containerSecurityLog,
+        containerSecurityLog: state.security.containerSecurityLog || {},
         gettingSecurityLog: state.security.getContainerSecurityLog.requesting,
         fetchLogError: state.security.getContainerSecurityLog.error,
         gettingCredentials: state.credential.getCredential.requesting,

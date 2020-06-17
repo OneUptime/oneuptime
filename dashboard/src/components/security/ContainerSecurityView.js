@@ -252,7 +252,7 @@ const mapStateToProps = state => {
         isRequesting: state.security.deleteContainer.requesting,
         deleteContainerError: state.security.deleteContainer.error,
         scanning: state.security.scanContainerSecurity.requesting,
-        securityLog: state.security.containerSecurityLog,
+        securityLog: state.security.containerSecurityLog || {},
     };
 };
 

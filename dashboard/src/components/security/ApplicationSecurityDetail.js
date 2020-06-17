@@ -177,7 +177,7 @@ const mapStateToProps = (state, ownProps) => {
         isRequesting: state.security.getApplication.requesting,
         getApplicationError: state.security.getApplication.error,
         gettingSecurityLog: state.security.getApplicationSecurityLog.requesting,
-        applicationSecurityLog: state.security.applicationSecurityLog,
+        applicationSecurityLog: state.security.applicationSecurityLog || {},
         gettingCredentials: state.credential.getCredential.requesting,
         fetchLogError: state.security.getApplicationSecurityLog.error,
         fetchCredentialError: state.credential.getCredential.error,
