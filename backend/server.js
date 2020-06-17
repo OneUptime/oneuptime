@@ -173,6 +173,7 @@ app.use(['/version', '/api/version'], require('./backend/api/version'));
 app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
 app.use(['/audit-logs', '/api/audit-logs'], require('./backend/api/auditLogs'));
 app.use(['/component', '/api/component'], require('./backend/api/component'));
+app.use(['/application-log', '/api/application-log'], require('./backend/api/applicationLog'));
 app.use(
     ['/globalConfig', '/api/globalConfig'],
     require('./backend/api/globalConfig')

@@ -4,7 +4,7 @@ function getParentRoute(childRoute, projectId = null) {
     if (lastNode === 'alert-log') {
         return urlParts.join('/').concat('/on-call');
     }
-    if (lastNode === 'incident-log') {
+    if (lastNode === 'incident-log' || lastNode === 'application-log') {
         return urlParts.join('/').concat('/monitoring');
     }
     if (childRoute.includes('sub-project') && childRoute.includes('schedule')) {
@@ -27,6 +27,12 @@ function getParentRoute(childRoute, projectId = null) {
         urlParts.pop();
         urlParts.pop();
         return urlParts.join('/').concat('/incident-log');
+    }
+    if (childRoute.includes('application-logs')) {
+        const urlParts = childRoute.split('/');
+        urlParts.pop();
+        urlParts.pop();
+        return urlParts.join('/').concat('/application-log');
     }
     return urlParts.join('/');
 }
