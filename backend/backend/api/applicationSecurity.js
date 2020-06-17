@@ -11,7 +11,7 @@ const router = express.Router();
 //Route: POST
 //Description: creates a new application security
 //Param: req.params -> {projectId, componentId}
-//Param: req.body -> {name, gitRepositoryUrl, gitUsername, gitPassword}
+//Param: req.body -> {name, gitRepositoryUrl, gitCredential}
 //returns: response -> {applicationSecurity, error}
 router.post(
     '/:projectId/:componentId/application',
@@ -51,6 +51,44 @@ router.post(
             }
 
             const applicationSecurity = await ApplicationSecurityService.create(
+                data
+            );
+            return sendItemResponse(req, res, applicationSecurity);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+//Route: PUT
+//Description: updates a particular application security
+//Param: req.params -> {projectId, componentId, applicationSecurityId}
+//Param: req.body -> {name?, gitRepositoryUrl?, gitCredential?}
+//returns: response -> {applicationSecurity, error}
+router.put(
+    '/:projectId/:componentId/application/:applicationSecurityId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { componentId, applicationSecurityId } = req.params;
+            const { name, gitRepositoryUrl, gitCredential } = req.body;
+            let data = {};
+
+            if (name) {
+                data.name = name;
+            }
+
+            if (gitRepositoryUrl) {
+                data.gitRepositoryUrl = gitRepositoryUrl;
+            }
+
+            if (gitCredential) {
+                data.gitCredential = gitCredential;
+            }
+
+            const applicationSecurity = await ApplicationSecurityService.updateOneBy(
+                { _id: applicationSecurityId, componentId },
                 data
             );
             return sendItemResponse(req, res, applicationSecurity);
