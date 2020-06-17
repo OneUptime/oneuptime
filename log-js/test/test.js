@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 process.env.STRIPE_PRIVATE_KEY = 'sk_test_YxwnzywggtAd8jDaHecNmHiN';
 
 const chai = require('chai');

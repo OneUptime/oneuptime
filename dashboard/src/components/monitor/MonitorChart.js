@@ -1121,12 +1121,12 @@ MonitorChart.propTypes = {
     start: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.object,
-        PropTypes.instanceOf(Date),
+        PropTypes.instanceOf(moment),
     ]),
     end: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.object,
-        PropTypes.instanceOf(Date),
+        PropTypes.instanceOf(moment),
     ]),
     monitor: PropTypes.object,
     data: PropTypes.array,

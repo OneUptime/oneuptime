@@ -66,7 +66,7 @@ class ApplicationLogView extends Component {
                     <div className="Box-root Margin-bottom--12">
                         <ApplicationLogViewDeleteBox
                             componentId={this.props.componentId}
-                            applicationLog={this.props.applicationLog}
+                            applicationLog={this.props.applicationLog[0]}
                         />
                     </div>
                 </ShouldRender>
@@ -74,6 +74,8 @@ class ApplicationLogView extends Component {
         );
     }
 }
+
+ApplicationLogView.displayName = 'ApplicationLogView';
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators({ fetchApplicationLogs }, dispatch);
@@ -104,7 +106,8 @@ ApplicationLogView.propTypes = {
         })
     ),
     componentId: PropTypes.string,
-    loadPage: PropTypes.func,
+    match: PropTypes.object,
+    fetchApplicationLogs: PropTypes.func,
     currentProject: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),

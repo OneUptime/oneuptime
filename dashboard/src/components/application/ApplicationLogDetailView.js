@@ -3,6 +3,8 @@ import LogList from './LogList';
 import Select from '../../components/basic/react-select-fyipe';
 import DateTimeWrapper from './DateTimeWrapper';
 import FilterSelect from './FilterSelect';
+import PropTypes from 'prop-types';
+import * as moment from 'moment';
 
 class ApplicationLogDetailView extends Component {
     render() {
@@ -146,4 +148,28 @@ class ApplicationLogDetailView extends Component {
         );
     }
 }
+ApplicationLogDetailView.displayName = 'ApplicationLogDetailView';
+
+ApplicationLogDetailView.propTypes = {
+    componentId: PropTypes.string,
+    applicationLog: PropTypes.object,
+    logValue: PropTypes.object,
+    logOptions: PropTypes.arrayOf(
+        PropTypes.shape({
+            label: PropTypes.string,
+            value: PropTypes.string,
+        })
+    ),
+    filter: PropTypes.object,
+    filters: PropTypes.arrayOf(
+        PropTypes.shape({
+            label: PropTypes.string,
+            value: PropTypes.string,
+        })
+    ),
+    handleDateTimeChange: PropTypes.func,
+    handleLogTypeChange: PropTypes.func,
+    handleLogFilterChange: PropTypes.func,
+    startDate: PropTypes.instanceOf(moment),
+};
 export default ApplicationLogDetailView;

@@ -9,13 +9,13 @@ class Logger {
         this.#setApplicationLogId(applicationLogId);
         this.#setApplicationLogKey(applicationLogKey);
     }
-    #verifyUrlExist(apiUrl){
+    #verifyUrlExist(apiUrl) {
         const allowedServerUrl = [
             'http://localhost:3002/api/',
-            'https://fyipe.com/api'
+            'https://fyipe.com/api',
         ];
-        if(!allowedServerUrl.includes(apiUrl)){
-            throw new Error('Invalid Server URL')
+        if (!allowedServerUrl.includes(apiUrl)) {
+            throw new Error('Invalid Server URL');
         }
         return true;
     }
@@ -30,7 +30,7 @@ class Logger {
     }
 
     async log(data) {
-        var type = typeof data;
+        const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
             return;
@@ -40,7 +40,7 @@ class Logger {
         return await this.#makeApiRequest(data, logType);
     }
     async warning(data) {
-        var type = typeof data;
+        const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
             return;
@@ -50,7 +50,7 @@ class Logger {
         return await this.#makeApiRequest(data, logType);
     }
     async error(data) {
-        var type = typeof data;
+        const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
             return;

@@ -11,9 +11,6 @@ const user = {
     password: '1234567890',
 };
 const componentName = utils.generateRandomString();
-const newComponentName = utils.generateRandomString();
-const applicationLogName = utils.generateRandomString();
-const newApplicationLogName = utils.generateRandomString();
 
 describe('Components', () => {
     const operationTimeOut = 200000;
@@ -53,7 +50,7 @@ describe('Components', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                await page.waitForSelector('#components', { timeout:120000});
+                await page.waitForSelector('#components', { timeout: 120000 });
                 await page.click('#components');
 
                 // Fill and submit New Component form
@@ -74,5 +71,4 @@ describe('Components', () => {
         },
         operationTimeOut
     );
-
 });

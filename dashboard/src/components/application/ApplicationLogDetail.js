@@ -42,7 +42,7 @@ class ApplicationLogDetail extends Component {
         if (startDate && endDate) {
             startDate = moment(startDate);
             endDate = moment(endDate);
-            this.setState(state => ({
+            this.setState(() => ({
                 startDate,
                 endDate,
             }));
@@ -362,6 +362,14 @@ ApplicationLogDetail.propTypes = {
     currentProject: PropTypes.object,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
+    resetApplicationLogKey: PropTypes.func,
+    deleteApplicationLog: PropTypes.func,
+    setStartDate: PropTypes.func,
+    setEndDate: PropTypes.func,
+    fetchLogs: PropTypes.func,
+    isDetails: PropTypes.bool,
+    startDate: PropTypes.instanceOf(moment),
+    endDate: PropTypes.instanceOf(moment),
 };
 
 export default connect(
