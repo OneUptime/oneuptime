@@ -1,5 +1,5 @@
 import * as types from '../constants/security';
-import { postApi, getApi, deleteApi } from '../api';
+import { postApi, getApi, deleteApi, putApi } from '../api';
 
 // Add Container Security
 export const addContainerSecurityRequest = () => ({
@@ -279,6 +279,48 @@ export const getContainerSecurityLogs = ({
                 ? error.message
                 : 'Network Error';
         dispatch(getContainerSecurityLogsFailure(errorMsg));
+    }
+};
+
+// Edit container security
+export const editContainerSecurityRequest = () => ({
+    type: types.EDIT_CONTAINER_SECURITY_REQUEST,
+});
+
+export const editContainerSecuritySuccess = payload => ({
+    type: types.EDIT_CONTAINER_SECURITY_SUCCESS,
+    payload,
+});
+
+export const editContainerSecurityFailure = error => ({
+    type: types.EDIT_CONTAINER_SECURITY_FAILURE,
+    payload: error,
+});
+
+export const editContainerSecurity = ({
+    projectId,
+    componentId,
+    containerSecurityId,
+    data,
+}) => async dispatch => {
+    dispatch(editContainerSecurityRequest());
+
+    try {
+        const response = await putApi(
+            `security/${projectId}/${componentId}/container/${containerSecurityId}`,
+            data
+        );
+        dispatch(editContainerSecuritySuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(editContainerSecurityFailure(errorMsg));
     }
 };
 
