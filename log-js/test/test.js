@@ -68,16 +68,6 @@ describe('Logger', function() {
                 });
             });
     });
-
-    it('should throw error for wrong url', function() {
-        let errorMessage = null;
-        try {
-            new Logger('anyserverapi.com', applicationLog._id, '');
-        } catch (e) {
-            errorMessage = e.message;
-        }
-        expect(errorMessage).to.be.equal('Invalid Server URL');
-    });
     it('should request for application log key', function() {
         const firstLog = new Logger(API_URL, applicationLog._id, '');
         firstLog.log('here').catch(error => {
