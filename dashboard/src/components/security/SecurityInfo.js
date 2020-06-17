@@ -144,13 +144,14 @@ const SecurityInfo = ({
                             </ShouldRender>
                         </div>
                         <div>
-                            <ShouldRender
-                                if={
-                                    (applicationSecurityId &&
-                                        scanningApplication) ||
-                                    (containerSecurityId && scanningContainer)
-                                }
-                            >
+                            {(applicationSecurityId &&
+                                scanningApplication &&
+                                String(applicationSecurityId) ===
+                                    String(activeApplicationSecurity)) ||
+                            (containerSecurityId &&
+                                scanningContainer &&
+                                String(containerSecurityId) ===
+                                    String(activeContainerSecurity)) ? (
                                 <button
                                     className="bs-Button bs-DeprecatedButton"
                                     disabled={
@@ -163,14 +164,7 @@ const SecurityInfo = ({
                                     <Spinner style={{ stroke: '#8898aa' }} />
                                     <span>Scanning</span>
                                 </button>
-                            </ShouldRender>
-                            <ShouldRender
-                                if={
-                                    (applicationSecurityId &&
-                                        !scanningApplication) ||
-                                    (containerSecurityId && !scanningContainer)
-                                }
-                            >
+                            ) : (
                                 <button
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye"
                                     type="button"
@@ -178,7 +172,7 @@ const SecurityInfo = ({
                                 >
                                     <span>Scan</span>
                                 </button>
-                            </ShouldRender>
+                            )}
                             <button
                                 className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help"
                                 type="button"

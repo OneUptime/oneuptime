@@ -138,7 +138,13 @@ const ContainerSecurityView = ({
                                 </ShouldRender>
                             </div>
                             <div>
-                                <ShouldRender if={scanning}>
+                                <ShouldRender
+                                    if={
+                                        scanning &&
+                                        String(containerSecurityId) ===
+                                            String(activeContainerSecurity)
+                                    }
+                                >
                                     <button
                                         className="bs-Button bs-DeprecatedButton"
                                         disabled={scanning}
@@ -149,7 +155,13 @@ const ContainerSecurityView = ({
                                         <span>Scanning</span>
                                     </button>
                                 </ShouldRender>
-                                <ShouldRender if={!scanning}>
+                                <ShouldRender
+                                    if={
+                                        !scanning ||
+                                        String(containerSecurityId) !==
+                                            String(activeContainerSecurity)
+                                    }
+                                >
                                     <button
                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye"
                                         type="button"
@@ -159,7 +171,11 @@ const ContainerSecurityView = ({
                                                 containerSecurityId,
                                             })
                                         }
-                                        disabled={scanning}
+                                        disabled={
+                                            scanning &&
+                                            String(containerSecurityId) ===
+                                                String(activeContainerSecurity)
+                                        }
                                     >
                                         <span>Scan</span>
                                     </button>

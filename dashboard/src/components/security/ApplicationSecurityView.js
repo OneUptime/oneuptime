@@ -140,7 +140,13 @@ const ApplicationSecurityView = ({
                                 </ShouldRender>
                             </div>
                             <div>
-                                <ShouldRender if={scanning}>
+                                <ShouldRender
+                                    if={
+                                        scanning &&
+                                        String(applicationSecurityId) ===
+                                            String(activeApplicationSecurity)
+                                    }
+                                >
                                     <button
                                         className="bs-Button bs-DeprecatedButton"
                                         disabled={scanning}
@@ -151,7 +157,13 @@ const ApplicationSecurityView = ({
                                         <span>Scanning</span>
                                     </button>
                                 </ShouldRender>
-                                <ShouldRender if={!scanning}>
+                                <ShouldRender
+                                    if={
+                                        !scanning ||
+                                        String(applicationSecurityId) !==
+                                            String(activeApplicationSecurity)
+                                    }
+                                >
                                     <button
                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye"
                                         type="button"
@@ -161,7 +173,13 @@ const ApplicationSecurityView = ({
                                                 applicationSecurityId,
                                             })
                                         }
-                                        disabled={scanning}
+                                        disabled={
+                                            scanning &&
+                                            String(applicationSecurityId) ===
+                                                String(
+                                                    activeApplicationSecurity
+                                                )
+                                        }
                                     >
                                         <span>Scan</span>
                                     </button>
