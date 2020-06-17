@@ -15,6 +15,7 @@ import Badge from '../common/Badge';
 import IssueIndicator from './IssueIndicator';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import EditApplicationSecurity from '../modals/EditApplicationSecurity';
 
 const ApplicationSecurityView = ({
     deleteApplicationSecurity,
@@ -53,6 +54,14 @@ const ApplicationSecurityView = ({
             },
             content: DeleteApplicationSecurity,
             propArr: [],
+        });
+    };
+
+    const handleEdit = ({ projectId, componentId, applicationSecurityId }) => {
+        openModal({
+            id: applicationSecurityId,
+            content: EditApplicationSecurity,
+            propArr: [{ projectId, componentId, applicationSecurityId }],
         });
     };
 
@@ -158,7 +167,13 @@ const ApplicationSecurityView = ({
                                 <button
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                     type="button"
-                                    onClick={() => {}}
+                                    onClick={() =>
+                                        handleEdit({
+                                            projectId,
+                                            componentId,
+                                            applicationSecurityId,
+                                        })
+                                    }
                                 >
                                     <span>Edit</span>
                                 </button>
