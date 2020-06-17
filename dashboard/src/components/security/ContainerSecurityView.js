@@ -15,6 +15,7 @@ import Badge from '../common/Badge';
 import IssueIndicator from './IssueIndicator';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import EditContainerSecurity from '../modals/EditContainerSecurity';
 
 const ContainerSecurityView = ({
     deleteContainerSecurity,
@@ -65,6 +66,14 @@ const ContainerSecurityView = ({
             default:
                 return false;
         }
+    };
+
+    const handleEdit = ({ projectId, componentId, containerSecurityId }) => {
+        openModal({
+            id: containerSecurityId,
+            content: EditContainerSecurity,
+            propArr: [{ projectId, componentId, containerSecurityId }],
+        });
     };
 
     return (
@@ -156,7 +165,13 @@ const ContainerSecurityView = ({
                                 <button
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                     type="button"
-                                    onClick={() => {}}
+                                    onClick={() =>
+                                        handleEdit({
+                                            projectId,
+                                            componentId,
+                                            containerSecurityId,
+                                        })
+                                    }
                                 >
                                     <span>Edit</span>
                                 </button>
