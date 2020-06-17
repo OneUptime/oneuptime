@@ -184,6 +184,7 @@ export const scanContainerSecurity = ({
     containerSecurityId,
 }) => async dispatch => {
     dispatch(scanContainerSecurityRequest());
+    dispatch(setActiveContainerSecurity(containerSecurityId));
 
     try {
         const response = await postApi(
@@ -507,6 +508,7 @@ export const scanApplicationSecurity = ({
     applicationSecurityId,
 }) => async dispatch => {
     dispatch(scanApplicationSecurityRequest());
+    dispatch(setActiveApplicationSecurity(applicationSecurityId));
 
     try {
         const response = await postApi(
@@ -646,3 +648,13 @@ export const editApplicationSecurity = ({
         dispatch(editApplicationSecurityFailure(errorMsg));
     }
 };
+
+export const setActiveApplicationSecurity = payload => ({
+    type: types.SET_ACTIVE_APPLICATION_SECURITY,
+    payload,
+});
+
+export const setActiveContainerSecurity = payload => ({
+    type: types.SET_ACTIVE_CONTAINER_SECURITY,
+    payload,
+});

@@ -11,6 +11,7 @@ const initialState = {
     containerSecurity: {},
     containerSecurityLog: {},
     containerSecurityLogs: [],
+    activeContainerSecurity: '',
     addApplication: { requesting: false, success: false, error: null },
     getApplication: { requesting: false, success: false, error: null },
     deleteApplication: { requesting: false, success: false, error: null },
@@ -25,6 +26,7 @@ const initialState = {
     applicationSecurity: {},
     applicationSecurityLog: {},
     applicationSecurityLogs: [],
+    activeApplicationSecurity: '',
 };
 
 export default function security(state = initialState, action) {
@@ -560,6 +562,18 @@ export default function security(state = initialState, action) {
                     success: false,
                     error: action.payload,
                 },
+            };
+
+        case types.SET_ACTIVE_APPLICATION_SECURITY:
+            return {
+                ...state,
+                activeApplicationSecurity: action.payload,
+            };
+
+        case types.SET_ACTIVE_CONTAINER_SECURITY:
+            return {
+                ...state,
+                activeContainerSecurity: action.payload,
             };
 
         default:
