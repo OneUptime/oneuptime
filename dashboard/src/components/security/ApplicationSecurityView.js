@@ -30,6 +30,8 @@ const ApplicationSecurityView = ({
     scanApplicationSecurity,
     scanning,
     applicationSecurity,
+    scanError,
+    activeApplicationSecurity,
 }) => {
     const handleDelete = data => {
         const thisObj = this;
@@ -209,7 +211,25 @@ const ApplicationSecurityView = ({
                     </div>
                     <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                         <div className="bs-Tail-copy">
-                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"></div>
+                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                <ShouldRender
+                                    if={
+                                        !isRequesting &&
+                                        scanError &&
+                                        String(applicationSecurityId) ===
+                                            String(activeApplicationSecurity)
+                                    }
+                                >
+                                    <div className="Box-root Margin-right--8">
+                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                    </div>
+                                    <div className="Box-root">
+                                        <span style={{ color: 'red' }}>
+                                            {scanError}
+                                        </span>
+                                    </div>
+                                </ShouldRender>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -236,6 +256,11 @@ ApplicationSecurityView.propTypes = {
     scanApplicationSecurity: PropTypes.func,
     scanning: PropTypes.bool,
     applicationSecurity: PropTypes.object,
+    scanError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    activeApplicationSecurity: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -255,6 +280,8 @@ const mapStateToProps = state => {
         deleteApplicationError: state.security.deleteApplication.error,
         securityLog: state.security.applicationSecurityLog || {},
         scanning: state.security.scanApplicationSecurity.requesting,
+        scanError: state.security.scanApplicationSecurity.error,
+        activeApplicationSecurity: state.security.activeApplicationSecurity,
     };
 };
 

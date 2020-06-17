@@ -30,6 +30,8 @@ const ContainerSecurityView = ({
     securityLog,
     scanning,
     containerSecurity,
+    scanError,
+    activeContainerSecurity,
 }) => {
     const handleDelete = data => {
         const thisObj = this;
@@ -207,7 +209,25 @@ const ContainerSecurityView = ({
                     </div>
                     <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                         <div className="bs-Tail-copy">
-                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"></div>
+                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                <ShouldRender
+                                    if={
+                                        !isRequesting &&
+                                        scanError &&
+                                        String(containerSecurityId) ===
+                                            String(activeContainerSecurity)
+                                    }
+                                >
+                                    <div className="Box-root Margin-right--8">
+                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                    </div>
+                                    <div className="Box-root">
+                                        <span style={{ color: 'red' }}>
+                                            {scanError}
+                                        </span>
+                                    </div>
+                                </ShouldRender>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -234,6 +254,11 @@ ContainerSecurityView.propTypes = {
     scanning: PropTypes.bool,
     securityLog: PropTypes.object,
     containerSecurity: PropTypes.object,
+    scanError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    activeContainerSecurity: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -253,6 +278,8 @@ const mapStateToProps = state => {
         deleteContainerError: state.security.deleteContainer.error,
         scanning: state.security.scanContainerSecurity.requesting,
         securityLog: state.security.containerSecurityLog || {},
+        scanError: state.security.scanContainerSecurity.error,
+        activeContainerSecurity: state.security.activeContainerSecurity,
     };
 };
 

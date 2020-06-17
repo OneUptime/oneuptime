@@ -29,6 +29,10 @@ const SecurityInfo = ({
     scanningContainer,
     applicationSecurities,
     containerSecurities,
+    scanApplicationError,
+    scanContainerError,
+    activeApplicationSecurity,
+    activeContainerSecurity,
 }) => {
     const scanSecurity = () => {
         if (applicationSecurityId) {
@@ -201,7 +205,44 @@ const SecurityInfo = ({
                 </div>
                 <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                     <div className="bs-Tail-copy">
-                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"></div>
+                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                            <ShouldRender
+                                if={
+                                    applicationSecurityId &&
+                                    !scanningApplication &&
+                                    scanApplicationError &&
+                                    String(activeApplicationSecurity) ===
+                                        String(applicationSecurityId)
+                                }
+                            >
+                                <div className="Box-root Margin-right--8">
+                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                </div>
+                                <div className="Box-root">
+                                    <span style={{ color: 'red' }}>
+                                        {scanApplicationError}
+                                    </span>
+                                </div>
+                            </ShouldRender>
+                            <ShouldRender
+                                if={
+                                    containerSecurityId &&
+                                    !scanningContainer &&
+                                    scanContainerError &&
+                                    String(activeContainerSecurity) ===
+                                        String(containerSecurityId)
+                                }
+                            >
+                                <div className="Box-root Margin-right--8">
+                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                </div>
+                                <div className="Box-root">
+                                    <span style={{ color: 'red' }}>
+                                        {scanContainerError}
+                                    </span>
+                                </div>
+                            </ShouldRender>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -238,6 +279,16 @@ SecurityInfo.propTypes = {
     scanningContainer: PropTypes.bool,
     containerSecurities: PropTypes.array,
     applicationSecurities: PropTypes.array,
+    scanApplicationError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    scanContainerError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    activeApplicationSecurity: PropTypes.string,
+    activeContainerSecurity: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -252,6 +303,10 @@ const mapStateToProps = state => {
         scanningContainer: state.security.scanContainerSecurity.requesting,
         applicationSecurities: state.security.applicationSecurities,
         containerSecurities: state.security.containerSecurities,
+        scanApplicationError: state.security.scanApplicationSecurity.error,
+        scanContainerError: state.security.scanContainerSecurity.error,
+        activeApplicationSecurity: state.security.activeApplicationSecurity,
+        activeContainerSecurity: state.security.activeContainerSecurity,
     };
 };
 
