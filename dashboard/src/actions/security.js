@@ -588,7 +588,6 @@ export const getApplicationSecurityLogs = ({
     dispatch(getApplicationSecurityLogsRequest());
 
     try {
-        // dispatch(getApplicationSecurityLogsSuccess([]));
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/application/logs`
         );
@@ -603,5 +602,47 @@ export const getApplicationSecurityLogs = ({
                 ? error.message
                 : 'Network Error';
         dispatch(getApplicationSecurityLogsFailure(errorMsg));
+    }
+};
+
+// Edit application security
+export const editApplicationSecurityRequest = () => ({
+    type: types.EDIT_APPLICATION_SECURITY_REQUEST,
+});
+
+export const editApplicationSecuritySuccess = payload => ({
+    type: types.EDIT_APPLICATION_SECURITY_SUCCESS,
+    payload,
+});
+
+export const editApplicationSecurityFailure = error => ({
+    type: types.EDIT_APPLICATION_SECURITY_FAILURE,
+    payload: error,
+});
+
+export const editApplicationSecurity = ({
+    projectId,
+    componentId,
+    applicationSecurityId,
+    data,
+}) => async dispatch => {
+    dispatch(editApplicationSecurityRequest());
+
+    try {
+        const response = await putApi(
+            `security/${projectId}/${componentId}/application/${applicationSecurityId}`,
+            data
+        );
+        dispatch(editApplicationSecuritySuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(editApplicationSecurityFailure(errorMsg));
     }
 };
