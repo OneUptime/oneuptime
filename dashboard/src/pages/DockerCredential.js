@@ -26,7 +26,7 @@ class DockerCredential extends Component {
     }
 
     render() {
-        const { projectId, dockerCredentials, getError } = this.props;
+        const { projectId, dockerCredentials, getError, isRequesting } = this.props;
 
         return (
             <Dashboard>
@@ -39,6 +39,7 @@ class DockerCredential extends Component {
                                         dockerCredentials={dockerCredentials}
                                         error={getError}
                                         projectId={projectId}
+                                        isRequesting={isRequesting}
                                     />
                                 </span>
                             </div>
@@ -60,6 +61,7 @@ DockerCredential.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    isRequesting: PropTypes.bool,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -69,6 +71,7 @@ const mapStateToProps = (state, ownProps) => {
         projectId,
         dockerCredentials: state.credential.dockerCredentials,
         getError: state.credential.getCredential.error,
+        isRequesting: state.credential.getCredential.requesting,
     };
 };
 
