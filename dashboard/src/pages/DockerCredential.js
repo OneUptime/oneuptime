@@ -26,7 +26,12 @@ class DockerCredential extends Component {
     }
 
     render() {
-        const { projectId, dockerCredentials, getError, isRequesting } = this.props;
+        const {
+            projectId,
+            dockerCredentials,
+            getError,
+            isRequesting,
+        } = this.props;
 
         return (
             <Dashboard>

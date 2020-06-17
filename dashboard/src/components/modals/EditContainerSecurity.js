@@ -306,7 +306,8 @@ const mapStateToProps = state => {
         editError: state.security.editContainerSecurity.error,
         initialValues: {
             name: state.security.containerSecurity.name,
-            dockerCredential: state.security.containerSecurity.dockerCredential._id,
+            dockerCredential:
+                state.security.containerSecurity.dockerCredential._id,
             imagePath: state.security.containerSecurity.imagePath,
             imageTags: state.security.containerSecurity.imageTags,
         },

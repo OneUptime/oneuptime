@@ -26,7 +26,12 @@ class GitCredential extends Component {
     }
 
     render() {
-        const { projectId, gitCredentials, getError, isRequesting } = this.props;
+        const {
+            projectId,
+            gitCredentials,
+            getError,
+            isRequesting,
+        } = this.props;
 
         return (
             <Dashboard>

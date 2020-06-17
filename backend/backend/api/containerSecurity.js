@@ -73,7 +73,7 @@ router.put(
         try {
             const { componentId, containerSecurityId } = req.params;
             const { name, dockerCredential, imagePath, imageTags } = req.body;
-            let data = {};
+            const data = {};
 
             if (name) {
                 data.name = name;

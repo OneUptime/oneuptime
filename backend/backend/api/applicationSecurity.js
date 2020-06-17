@@ -73,7 +73,7 @@ router.put(
         try {
             const { componentId, applicationSecurityId } = req.params;
             const { name, gitRepositoryUrl, gitCredential } = req.body;
-            let data = {};
+            const data = {};
 
             if (name) {
                 data.name = name;
