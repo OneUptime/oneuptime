@@ -12,6 +12,7 @@ import {
 import ContainerSecurityView from './ContainerSecurityView';
 import ContainerSecurityDeleteBox from './ContainerSecurityDeleteBox';
 import SecurityLog from './SecurityLog';
+import { getDockerCredentials } from '../../actions/credential';
 
 class ContainerSecurityDetail extends Component {
     componentDidMount() {
@@ -21,6 +22,7 @@ class ContainerSecurityDetail extends Component {
             containerSecurityId,
             getContainerSecurity,
             getContainerSecurityLog,
+            getDockerCredentials,
         } = this.props;
 
         // get a particular container security
@@ -36,6 +38,8 @@ class ContainerSecurityDetail extends Component {
             componentId,
             containerSecurityId,
         });
+
+        getDockerCredentials({ projectId });
     }
 
     render() {
@@ -48,15 +52,26 @@ class ContainerSecurityDetail extends Component {
             getContainerError,
             containerSecurityLog,
             gettingSecurityLog,
+            gettingCredentials,
+            fetchCredentialError,
+            fetchLogError,
         } = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
-                <ShouldRender if={isRequesting && gettingSecurityLog}>
+                <ShouldRender
+                    if={
+                        isRequesting && gettingSecurityLog && gettingCredentials
+                    }
+                >
                     <ListLoader />
                 </ShouldRender>
                 <ShouldRender
-                    if={containerSecurity.name && !gettingSecurityLog}
+                    if={
+                        containerSecurity.name &&
+                        !gettingSecurityLog &&
+                        !gettingCredentials
+                    }
                 >
                     <ContainerSecurityView
                         projectId={projectId}
@@ -67,7 +82,11 @@ class ContainerSecurityDetail extends Component {
                     />
                 </ShouldRender>
                 <ShouldRender
-                    if={containerSecurity.name && !gettingSecurityLog}
+                    if={
+                        containerSecurity.name &&
+                        !gettingSecurityLog &&
+                        !gettingCredentials
+                    }
                 >
                     <SecurityLog
                         type="Container"
@@ -75,7 +94,11 @@ class ContainerSecurityDetail extends Component {
                     />
                 </ShouldRender>
                 <ShouldRender
-                    if={containerSecurity.name && !gettingSecurityLog}
+                    if={
+                        containerSecurity.name &&
+                        !gettingSecurityLog &&
+                        !gettingCredentials
+                    }
                 >
                     <ContainerSecurityDeleteBox
                         projectId={projectId}
@@ -87,10 +110,13 @@ class ContainerSecurityDetail extends Component {
                     if={
                         !isRequesting &&
                         !gettingSecurityLog &&
-                        getContainerError
+                        !gettingCredentials &&
+                        (getContainerError ||
+                            fetchLogError ||
+                            fetchCredentialError)
                     }
                 >
-                    {getContainerError}
+                    {getContainerError || fetchLogError || fetchCredentialError}
                 </ShouldRender>
             </div>
         );
@@ -113,11 +139,21 @@ ContainerSecurityDetail.propTypes = {
     getContainerSecurityLog: PropTypes.func,
     containerSecurityLog: PropTypes.object,
     gettingSecurityLog: PropTypes.bool,
+    getDockerCredentials: PropTypes.func,
+    gettingCredentials: PropTypes.bool,
+    fetchLogError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    fetchCredentialError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { getContainerSecurity, getContainerSecurityLog },
+        { getContainerSecurity, getContainerSecurityLog, getDockerCredentials },
         dispatch
     );
 
@@ -137,6 +173,9 @@ const mapStateToProps = (state, ownProps) => {
         getContainerError: state.security.getContainer.error,
         containerSecurityLog: state.security.containerSecurityLog,
         gettingSecurityLog: state.security.getContainerSecurityLog.requesting,
+        fetchLogError: state.security.getContainerSecurityLog.error,
+        gettingCredentials: state.credential.getCredential.requesting,
+        fetchCredentialError: state.credential.getCredential.error,
     };
 };
 
