@@ -11,7 +11,7 @@ const router = express.Router();
 //Route: POST
 //Description: creates a new container security
 //Param: req.params -> {projectId, componentId}
-//Param: req.body -> {name, dockerRegistryUrl, dockerUsername, dockerPassword, imagePath, imageTags}
+//Param: req.body -> {name, dockerCredential, imagePath, imageTags}
 //returns: response -> {containerSecurity, error}
 router.post(
     '/:projectId/:componentId/container',
@@ -51,6 +51,48 @@ router.post(
             }
 
             const containerSecurity = await ContainerSecurityService.create(
+                data
+            );
+            return sendItemResponse(req, res, containerSecurity);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+//Route: PUT
+//Description: updates a container security
+//Param: req.params -> {projectId, componentId, containerSecurityId}
+//Param: req.body -> {name?, dockerCredential?, imagePath?, imageTags?}
+//returns: response -> {containerSecurity, error}
+router.put(
+    '/:projectId/:componentId/container/:containerSecurityId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { componentId, containerSecurityId } = req.params;
+            const { name, dockerCredential, imagePath, imageTags } = req.body;
+            let data = {};
+
+            if (name) {
+                data.name = name;
+            }
+
+            if (dockerCredential) {
+                data.dockerCredential = dockerCredential;
+            }
+
+            if (imagePath) {
+                data.imagePath = imagePath;
+            }
+
+            if (imageTags) {
+                data.imageTags = imageTags;
+            }
+
+            const containerSecurity = await ContainerSecurityService.updateOneBy(
+                { _id: containerSecurityId, componentId },
                 data
             );
             return sendItemResponse(req, res, containerSecurity);
