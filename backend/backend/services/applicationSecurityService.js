@@ -9,11 +9,24 @@ module.exports = {
         try {
             const applicationNameExist = await this.findOneBy({
                 name: data.name,
+                componentId: data.componentId,
+            });
+            const gitRepositoryUrlExist = await this.findOneBy({
+                gitRepositoryUrl: data.gitRepositoryUrl,
+                componentId: data.componentId,
             });
 
             if (applicationNameExist) {
                 const error = new Error(
-                    'Application security with this name already exist'
+                    'Application security with this name already exist in this component'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            if (gitRepositoryUrlExist) {
+                const error = new Error(
+                    'Application security with this git repository url already exist in this component'
                 );
                 error.code = 400;
                 throw error;
