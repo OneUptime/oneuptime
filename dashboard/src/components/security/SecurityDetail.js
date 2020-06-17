@@ -146,7 +146,7 @@ const SecurityDetail = ({
                                 style={{
                                     textAlign: 'center',
                                     width: '100%',
-                                    fontSize: 16,
+                                    fontSize: 14,
                                 }}
                             >
                                 We are currently scanning this{' '}
