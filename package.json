@@ -5,6 +5,9 @@
     "main": "index.js",
     "dependencies": {},
     "devDependencies": {
+        "@babel/core": "^7.10.2",
+        "@babel/plugin-proposal-class-properties": "^7.10.1",
+        "@babel/plugin-proposal-private-methods": "^7.10.1",
         "babel-eslint": "^10.1.0",
         "eslint": "^6.8.0",
         "eslint-config-prettier": "^6.10.0",

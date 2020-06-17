@@ -157,7 +157,10 @@ class NewApplicationLog extends Component {
         );
     }
 }
-NewApplicationLog = new reduxForm({
+
+NewApplicationLog.displayName = 'NewApplicationLog';
+
+const NewApplicationLogForm = new reduxForm({
     form: 'NewApplicationLog',
     destroyOnUnmount: true,
     enableReinitialize: true,
@@ -195,9 +198,12 @@ NewApplicationLog.propTypes = {
     createApplicationLog: PropTypes.func.isRequired,
     applicationLog: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
-    name: PropTypes.string,
     componentId: PropTypes.string,
     requesting: PropTypes.bool,
+    currentProject: PropTypes.object,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(NewApplicationLog);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(NewApplicationLogForm);

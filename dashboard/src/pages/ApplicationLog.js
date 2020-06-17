@@ -104,6 +104,9 @@ class ApplicationLog extends Component {
         );
     }
 }
+
+ApplicationLog.displayName = 'ApplicationLog';
+
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
@@ -133,6 +136,8 @@ const mapStateToProps = (state, props) => {
 };
 ApplicationLog.propTypes = {
     applicationLogTutorial: PropTypes.object,
+    applicationLog: PropTypes.object,
+    match: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -143,6 +148,7 @@ ApplicationLog.propTypes = {
     ),
     componentId: PropTypes.string,
     loadPage: PropTypes.func,
+    fetchApplicationLogs: PropTypes.func,
     currentProject: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),

@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import DateTimeSelector from '../basic/DateTimeSelector';
 import { Field, reduxForm } from 'redux-form';
+import PropTypes from 'prop-types';
+import * as moment from 'moment';
 
 class DateTimeWrapper extends Component {
     render() {
@@ -38,6 +40,15 @@ class DateTimeWrapper extends Component {
         );
     }
 }
+
+DateTimeWrapper.displayName = 'DateTimeWrapper';
+
+DateTimeWrapper.propTypes = {
+    name: PropTypes.string,
+    label: PropTypes.string,
+    id: PropTypes.string,
+    currentDate: PropTypes.instanceOf(moment),
+};
 
 export default reduxForm({
     form: 'dateTimeWrapper',

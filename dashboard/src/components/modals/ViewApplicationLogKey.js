@@ -246,7 +246,8 @@ ViewApplicationLogKey.displayName = 'ViewApplicationLogKeyModal';
 ViewApplicationLogKey.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
-    applicationLogState: PropTypes.object,
+    isRequesting: PropTypes.bool,
+    currentProject: PropTypes.object,
     data: PropTypes.object,
 };
 

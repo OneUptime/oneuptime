@@ -38,7 +38,7 @@ ProbeStatus.displayName = 'ProbeStatus';
 
 ProbeStatus.propTypes = {
     lastAlive: PropTypes.oneOfType([
-        PropTypes.instanceOf(Date),
+        PropTypes.instanceOf(moment),
         PropTypes.string,
         PropTypes.object,
     ]),

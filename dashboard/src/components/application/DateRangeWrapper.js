@@ -108,8 +108,6 @@ DateRangeWrapper.propTypes = {
     dateRange: PropTypes.oneOfType([PropTypes.object, PropTypes.number]),
     endDate: PropTypes.object,
     onChange: PropTypes.func,
-    setEndDate: PropTypes.func,
-    setStartDate: PropTypes.func,
     startDate: PropTypes.object,
 };
 
