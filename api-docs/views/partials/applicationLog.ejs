@@ -287,3 +287,253 @@
     </div>
   </section>
 </article>
+<article id="create-log-with-application-log" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Create Log <span class="requestType">POST</span></h3>
+    <p>
+    <p>Create Log by Application Log ID and Application Log Key.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://fyipe.com/api/application-log/:applicationLogId/log</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>applicationLogId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The application log id of the application log.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://fyipe.com/api/application-log/5eeb3bf08888bffbfcae2bc0/log
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+                <code class="language-json">
+                  <p>    
+{
+  "content":{
+    "error_page": "inside Page",
+    "time_taken": "45s",
+    "ghost": {
+      "who": "me here"
+    }
+  },
+  "applicationLogKey": "7f5405df-6af5-440e-9dce-4d42303ffd52",
+  "type": "warning"
+}
+                  </p>
+                </code>
+              </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                <code class="language-json">
+                  <p>
+                    {
+                      "deleted": false,
+                      "_id": "5eeb43e38888bffbfcae2bc5",
+                      "createdAt": "2020-06-18T10:37:23.014Z",
+                      "content": {
+                          "error_page": "inside Page",
+                          "time_taken": "45s",
+                          "ghost": {
+                              "who": "me here"
+                          }
+                      },
+                      "stringifiedContent": "{\"error_page\":\"inside Page\",\"time_taken\":\"45s\",\"ghost\":{\"who\":\"me here\"}}",
+                      "applicationLogId": {
+                          "_id": "5eeb3bf08888bffbfcae2bc0",
+                          "name": "Rodeo"
+                      },
+                      "type": "warning",
+                      "createdById": null,
+                      "__v": 0
+                  }
+                  </p>
+                </code>
+              </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+<article id="get-logs-under-application-log" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Get All Logs  <span class="requestType">POST</span></h3>
+    <p>
+    <p>Get All Logs by Project ID, Component ID and Application Log ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://fyipe.com/api/application-log/:projectId/:componentId/:applicationLogId/logs</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>componentId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The component id of the component.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>applicationLogId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The application log id of the application log.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://fyipe.com/api/application-log/5eea4077924a3c80a476c185/5eea4077924a3c80a476c188/5eeb3bf08888bffbfcae2bc0/logs
+          </p>
+
+          <p>Request Body</p>
+          <pre>
+                <code class="language-json">
+                  <p>    
+{
+  "endDate": "2020-06-18T20:31:59.420Z",
+  "limit": 0,
+  "skip": 0,
+  "startDate": "2020-06-09T15:31:59.420Z",
+  "type": "",
+  "filter":""
+}
+                  </p>
+                </code>
+              </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+                <code class="language-json">
+                  <p>
+                    {
+                      "data": [
+                          {
+                              "_id": "5eeb43e38888bffbfcae2bc5",
+                              "createdAt": "2020-06-18T10:37:23.014Z",
+                              "content": {
+                                  "error_page": "inside Page",
+                                  "time_taken": "45s",
+                                  "ghost": {
+                                      "who": "me here"
+                                  }
+                              },
+                              "stringifiedContent": "{\"error_page\":\"inside Page\",\"time_taken\":\"45s\",\"ghost\":{\"who\":\"me here\"}}",
+                              "applicationLogId": {
+                                  "_id": "5eeb3bf08888bffbfcae2bc0",
+                                  "name": "Rodeo"
+                              },
+                              "type": "warning",
+                              "createdById": null
+                          }
+                      ],
+                      "count": 1
+                  }
+                  </p>
+                </code>
+              </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
