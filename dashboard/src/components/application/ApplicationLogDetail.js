@@ -2,12 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history } from '../../store';
-import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
 import uuid from 'uuid';
-import DataPathHoC from '../DataPathHoC';
-import DeleteApplicationLog from '../modals/DeleteApplicationLog';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import { bindActionCreators } from 'redux';
@@ -18,9 +15,10 @@ import {
     editApplicationLogSwitch,
 } from '../../actions/applicationLog';
 import { setStartDate, setEndDate } from '../../actions/dateTime';
-import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
 import ApplicationLogDetailView from './ApplicationLogDetailView';
 import * as moment from 'moment';
+import ApplicationLogHeader from './ApplicationLogHeader';
+import NewApplicationLog from './NewApplicationLog';
 
 class ApplicationLogDetail extends Component {
     constructor(props) {
@@ -55,7 +53,7 @@ class ApplicationLogDetail extends Component {
         const promise = this.props.deleteApplicationLog(
             this.props.currentProject._id,
             this.props.componentId,
-            this.props.applicationLog._id
+            this.props.index
         );
         history.push(
             `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`
@@ -65,7 +63,7 @@ class ApplicationLogDetail extends Component {
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > APPLICATION LOG DELETED',
                 {
                     ProjectId: this.props.currentProject._id,
-                    applicationLogId: this.props.applicationLog._id,
+                    applicationLogId: this.props.index,
                 }
             );
         }
@@ -76,7 +74,7 @@ class ApplicationLogDetail extends Component {
             .resetApplicationLogKey(
                 this.props.currentProject._id,
                 this.props.componentId,
-                this.props.applicationLog._id
+                this.props.index
             )
             .then(() => {
                 this.props.closeModal({
@@ -86,7 +84,7 @@ class ApplicationLogDetail extends Component {
                     logEvent(
                         'EVENT: DASHBOARD > COMPONENTS > APPLICATION LOG > APPLICATION LOG DETAILS > RESET APPLICATION LOG KEY',
                         {
-                            applicationLogId: this.props.applicationLog._id,
+                            applicationLogId: this.props.index,
                         }
                     );
                 }
@@ -120,12 +118,24 @@ class ApplicationLogDetail extends Component {
     editApplicationLog = () => {
         const { applicationLog } = this.props;
         this.props.editApplicationLogSwitch(applicationLog._id);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > EDIT APPLICATION LOG CLICKED',
-                {}
-            );
-        }
+        // This is crashing
+        // if (SHOULD_LOG_ANALYTICS) {
+        //     logEvent(
+        //         'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > EDIT APPLICATION LOG CLICKED',
+        //         {}
+        //     );
+        // }
+    };
+    viewMore = () => {
+        const { currentProject, componentId, applicationLog } = this.props;
+        history.push(
+            '/dashboard/project/' +
+                currentProject._id +
+                '/' +
+                componentId +
+                '/application-logs/' +
+                applicationLog._id
+        );
     };
     render() {
         const {
@@ -143,6 +153,7 @@ class ApplicationLogDetail extends Component {
             componentId,
             currentProject,
             fetchLogs,
+            editMode,
         } = this.props;
         if (applicationLog) {
             fetchLogs(
@@ -175,132 +186,33 @@ class ApplicationLogDetail extends Component {
                         style={{ marginTop: '10px', marginBottom: '10px' }}
                         tabIndex="0"
                     >
-                        <div className="db-Trends-header">
-                            <div className="db-Trends-title">
-                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                            <span
-                                                id="application-content-header"
-                                                className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
-                                            >
-                                                <span
-                                                    id={`application-log-title-${applicationLog.name}`}
-                                                >
-                                                    {applicationLog.name}
-                                                </span>
-                                            </span>
-                                        </div>
-                                        <div className="db-Trends-control Flex-justifyContent--flexEnd Flex-flex">
-                                            <div>
-                                                {this.props.isDetails ? (
-                                                    <div>
-                                                        <button
-                                                            id={`key_${applicationLog.name}`}
-                                                            className={
-                                                                'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--key'
-                                                            }
-                                                            type="button"
-                                                            onClick={() =>
-                                                                this.props.openModal(
-                                                                    {
-                                                                        id: openApplicationLogKeyModalId,
-                                                                        onClose: () =>
-                                                                            '',
-                                                                        onConfirm: () =>
-                                                                            this.resetApplicationLogKey(),
-                                                                        content: DataPathHoC(
-                                                                            ViewApplicationLogKey,
-                                                                            {
-                                                                                applicationLog,
-                                                                            }
-                                                                        ),
-                                                                    }
-                                                                )
-                                                            }
-                                                        >
-                                                            <span>
-                                                                Application Log
-                                                                Key
-                                                            </span>
-                                                        </button>
-                                                        <button
-                                                            id={`edit_${applicationLog.name}`}
-                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
-                                                            type="button"
-                                                            onClick={
-                                                                this
-                                                                    .editApplicationLog
-                                                            }
-                                                        >
-                                                            <span>Edit</span>
-                                                        </button>
-                                                        <button
-                                                            id={`delete_${applicationLog.name}`}
-                                                            className={
-                                                                deleting
-                                                                    ? 'bs-Button bs-Button--blue'
-                                                                    : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'
-                                                            }
-                                                            type="button"
-                                                            disabled={deleting}
-                                                            onClick={() =>
-                                                                this.props.openModal(
-                                                                    {
-                                                                        id: deleteModalId,
-                                                                        onClose: () =>
-                                                                            '',
-                                                                        onConfirm: () =>
-                                                                            this.deleteApplicationLog(),
-                                                                        content: DataPathHoC(
-                                                                            DeleteApplicationLog,
-                                                                            {
-                                                                                applicationLog,
-                                                                            }
-                                                                        ),
-                                                                    }
-                                                                )
-                                                            }
-                                                        >
-                                                            <ShouldRender
-                                                                if={!deleting}
-                                                            >
-                                                                <span>
-                                                                    Delete
-                                                                </span>
-                                                            </ShouldRender>
-                                                            <ShouldRender
-                                                                if={deleting}
-                                                            >
-                                                                <FormLoader />
-                                                            </ShouldRender>
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        id={`more-details-${applicationLog.name}`}
-                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help"
-                                                        type="button"
-                                                        onClick={() => {
-                                                            history.push(
-                                                                '/dashboard/project/' +
-                                                                    currentProject._id +
-                                                                    '/' +
-                                                                    componentId +
-                                                                    '/application-logs/' +
-                                                                    applicationLog._id
-                                                            );
-                                                        }}
-                                                    >
-                                                        <span>More</span>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <ShouldRender if={!applicationLog.editMode}>
+                            <ApplicationLogHeader
+                                applicationLog={applicationLog}
+                                isDetails={this.props.isDetails}
+                                openModal={this.props.openModal}
+                                openApplicationLogKeyModalId={
+                                    openApplicationLogKeyModalId
+                                }
+                                editApplicationLog={this.editApplicationLog}
+                                deleteModalId={deleteModalId}
+                                deleteApplicationLog={this.deleteApplicationLog}
+                                deleting={deleting}
+                                viewMore={this.viewMore}
+                            />
+                        </ShouldRender>
+                        <ShouldRender if={applicationLog.editMode}>
+                            <NewApplicationLog
+                                edit={applicationLog.editMode}
+                                applicationLog={applicationLog}
+                                {...this.props}
+                                editApplicationLogProp={applicationLog}
+                                index={applicationLog._id}
+                                key={applicationLog._id}
+                                formKey={applicationLog._id}
+                            />
+                        </ShouldRender>
+
                         <ShouldRender if={!this.props.isDetails}>
                             <ApplicationLogDetailView
                                 startDate={this.state.startDate}
@@ -371,16 +283,24 @@ const mapDispatchToProps = dispatch => {
         dispatch
     );
 };
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
+    const applicationLogs =
+        state.applicationLog.applicationLogsList.applicationLogs;
+    const applicationLogFromRedux = applicationLogs.filter(
+        applicationLog => applicationLog._id === ownProps.index
+    );
     return {
         currentProject: state.project.currentProject,
         startDate: state.dateTime.dates.startDate,
         endDate: state.dateTime.dates.endDate,
+        applicationLog: applicationLogFromRedux[0],
+        editMode: applicationLogFromRedux[0].editMode,
     };
 }
 
 ApplicationLogDetail.propTypes = {
     componentId: PropTypes.string,
+    index: PropTypes.string,
     applicationLog: PropTypes.object,
     currentProject: PropTypes.object,
     openModal: PropTypes.func,
