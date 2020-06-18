@@ -57,8 +57,7 @@ class ApplicationLogView extends Component {
                     <div>
                         <ApplicationLogDetail
                             componentId={componentId}
-                            applicationLog={applicationLog[0]}
-                            index={applicationLog._id}
+                            index={this.props.applicationLog[0]?._id}
                             isDetails={true}
                         />
                     </div>
@@ -114,6 +113,7 @@ ApplicationLogView.propTypes = {
     ]),
     applicationLog: PropTypes.arrayOf(
         PropTypes.shape({
+            _id: PropTypes.string,
             name: PropTypes.string,
         })
     ),
