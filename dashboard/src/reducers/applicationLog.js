@@ -19,6 +19,7 @@ import {
     RESET_APPLICATION_LOG_KEY_REQUEST,
     RESET_APPLICATION_LOG_KEY_RESET,
     RESET_APPLICATION_LOG_KEY_SUCCESS,
+    EDIT_APPLICATION_LOG_SWITCH,
 } from '../constants/applicationLog';
 import moment from 'moment';
 
@@ -39,6 +40,11 @@ const INITIAL_STATE = {
         endDate: moment(),
     },
     logs: {},
+    editApplicationLog: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
 export default function applicationLog(state = INITIAL_STATE, action) {
     let applicationLogs, failureLogs, requestLogs;
@@ -271,6 +277,33 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                 applicationLogsList: {
                     ...state.applicationLogsList,
                     requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case EDIT_APPLICATION_LOG_SWITCH:
+            applicationLogs = state.applicationLogsList.applicationLogs.map(
+                applicationLog => {
+                    if (applicationLog._id === action.payload) {
+                        if (!applicationLog.editMode)
+                            applicationLog.editMode = true;
+                        else applicationLog.editMode = false;
+                    } else {
+                        applicationLog.editMode = false;
+                    }
+                    return applicationLog;
+                }
+            );
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    applicationLogs: applicationLogs,
+                },
+                editApplicationLog: {
+                    requesting: false,
                     error: null,
                     success: false,
                 },

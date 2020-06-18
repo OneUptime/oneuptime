@@ -327,3 +327,9 @@ export function resetresetApplicationLogKey() {
         type: types.RESET_APPLICATION_LOG_KEY_RESET,
     };
 }
+export function editApplicationLogSwitch(index) {
+    return {
+        type: types.EDIT_APPLICATION_LOG_SWITCH,
+        payload: index,
+    };
+}

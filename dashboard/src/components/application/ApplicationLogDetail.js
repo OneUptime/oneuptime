@@ -15,6 +15,7 @@ import { deleteApplicationLog } from '../../actions/applicationLog';
 import {
     fetchLogs,
     resetApplicationLogKey,
+    editApplicationLogSwitch,
 } from '../../actions/applicationLog';
 import { setStartDate, setEndDate } from '../../actions/dateTime';
 import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
@@ -116,6 +117,16 @@ class ApplicationLogDetail extends Component {
             filter,
         }));
     };
+    editApplicationLog = () => {
+        const { applicationLog } = this.props;
+        this.props.editApplicationLogSwitch(applicationLog._id);
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > EDIT APPLICATION LOG CLICKED',
+                {}
+            );
+        }
+    };
     render() {
         const {
             deleting,
@@ -212,6 +223,17 @@ class ApplicationLogDetail extends Component {
                                                                 Application Log
                                                                 Key
                                                             </span>
+                                                        </button>
+                                                        <button
+                                                            id={`edit_${applicationLog.name}`}
+                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
+                                                            type="button"
+                                                            onClick={
+                                                                this
+                                                                    .editApplicationLog
+                                                            }
+                                                        >
+                                                            <span>Edit</span>
                                                         </button>
                                                         <button
                                                             id={`delete_${applicationLog.name}`}
@@ -344,6 +366,7 @@ const mapDispatchToProps = dispatch => {
             resetApplicationLogKey,
             setStartDate,
             setEndDate,
+            editApplicationLogSwitch,
         },
         dispatch
     );
@@ -370,6 +393,7 @@ ApplicationLogDetail.propTypes = {
     isDetails: PropTypes.bool,
     startDate: PropTypes.instanceOf(moment),
     endDate: PropTypes.instanceOf(moment),
+    editApplicationLogSwitch: PropTypes.func,
 };
 
 export default connect(
