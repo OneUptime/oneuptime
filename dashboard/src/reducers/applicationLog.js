@@ -20,6 +20,10 @@ import {
     RESET_APPLICATION_LOG_KEY_RESET,
     RESET_APPLICATION_LOG_KEY_SUCCESS,
     EDIT_APPLICATION_LOG_SWITCH,
+    EDIT_APPLICATION_LOG_FAILURE,
+    EDIT_APPLICATION_LOG_REQUEST,
+    EDIT_APPLICATION_LOG_RESET,
+    EDIT_APPLICATION_LOG_SUCCESS,
 } from '../constants/applicationLog';
 import moment from 'moment';
 
@@ -304,6 +308,46 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                 },
                 editApplicationLog: {
                     requesting: false,
+                    error: null,
+                    success: false,
+                },
+            });
+        case EDIT_APPLICATION_LOG_SUCCESS:
+            applicationLogs = state.applicationLogsList.applicationLogs.map(
+                applicationLog => {
+                    if (applicationLog._id === action.payload._id) {
+                        applicationLog = action.payload;
+                    }
+                    return applicationLog;
+                }
+            );
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    applicationLogs: applicationLogs,
+                },
+            });
+        case EDIT_APPLICATION_LOG_FAILURE:
+            return Object.assign({}, state, {
+                editApplicationLog: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case EDIT_APPLICATION_LOG_RESET:
+            return Object.assign({}, state, {
+                editApplicationLog: INITIAL_STATE.editApplicationLog,
+            });
+
+        case EDIT_APPLICATION_LOG_REQUEST:
+            return Object.assign({}, state, {
+                editApplicationLog: {
+                    requesting: true,
                     error: null,
                     success: false,
                 },
