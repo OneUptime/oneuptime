@@ -235,7 +235,7 @@ router.put(
         if (!data.name) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Application Log Name is required.',
+                message: 'New Application Log Name is required.',
             });
         }
 
@@ -246,6 +246,18 @@ router.put(
             return sendErrorResponse(req, res, {
                 code: 404,
                 message: 'Application Log not found',
+            });
+        }
+
+        // try to find in the application log if the name already exist for that component
+        const existingApplicationLog = await ApplicationLogService.findBy({
+            name: data.name,
+            componentId: req.params.componentId,
+        });
+        if (existingApplicationLog && existingApplicationLog.length > 0) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Application Log with that name already exists.',
             });
         }
 
