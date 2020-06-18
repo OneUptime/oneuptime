@@ -205,6 +205,7 @@ class ApplicationLogDetail extends Component {
                                 edit={applicationLog.editMode}
                                 applicationLog={applicationLog}
                                 index={applicationLog._id}
+                                componentId={componentId}
                             />
                         </ShouldRender>
 
