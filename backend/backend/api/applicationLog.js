@@ -215,4 +215,55 @@ router.post(
     }
 );
 
+// Description: Update Application Log by applicationLogId.
+router.put(
+    '/:projectId/:componentId/:applicationLogId',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function(req, res) {
+        const applicationLogId = req.params.applicationLogId;
+
+        const data = req.body;
+        if (!data) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "values can't be null",
+            });
+        }
+        data.createdById = req.user ? req.user.id : null;
+        if (!data.name) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Application Log Name is required.',
+            });
+        }
+
+        const currentApplicationLog = await ApplicationLogService.findOneBy({
+            _id: applicationLogId,
+        });
+        if (!currentApplicationLog) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Application Log not found',
+            });
+        }
+
+        // application Log is valid
+        const newName = {
+            name: data.name,
+        };
+
+        try {
+            const applicationLog = await ApplicationLogService.updateOneBy(
+                { _id: currentApplicationLog._id },
+                newName
+            );
+            return sendItemResponse(req, res, applicationLog);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;
