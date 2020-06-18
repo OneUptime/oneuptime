@@ -153,7 +153,6 @@ class ApplicationLogDetail extends Component {
             componentId,
             currentProject,
             fetchLogs,
-            editMode,
         } = this.props;
         if (applicationLog) {
             fetchLogs(
@@ -205,11 +204,7 @@ class ApplicationLogDetail extends Component {
                             <NewApplicationLog
                                 edit={applicationLog.editMode}
                                 applicationLog={applicationLog}
-                                {...this.props}
-                                editApplicationLogProp={applicationLog}
                                 index={applicationLog._id}
-                                key={applicationLog._id}
-                                formKey={applicationLog._id}
                             />
                         </ShouldRender>
 
