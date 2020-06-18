@@ -1,0 +1,136 @@
+<article id="applicationLog" class="cf-grid-container dev-doc-item-container">
+    <section class="col-lg-half col-md-half dev-doc-item">
+      <b>
+        <h1>Application Log</h1>
+      </b>
+      <p>
+        <p>Application Log API will allow you to create application logs and send logs from your third party application using the fyipe-logger library</p>
+      </p>
+
+      <div class="attribute-parameter-container">
+        <h3>Path</h3>
+        <ul class="doc-item-detail-container">
+          <li>
+            <div class="cf-grid-row">
+              <div class="col-full">
+                <div class="item-title">
+                  <span>https://fyipe.com/api/application-log/</span>
+                </div>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+  
+      <div class="attribute-parameter-container"></div>
+
+      </section>
+      <section class="col-lg-half col-md-half dev-doc-example">
+    </section>
+  </article>
+  <article id="create-application-log" class="cf-grid-container dev-doc-item-container">
+    <section class="col-lg-half col-md-half dev-doc-item">
+      <h3>Create Application Log<span class="requestType">POST</span></h3>
+      <p>
+        <p>Create Application Log by Project ID and Component ID.</p>
+      </p>
+  
+      <div class="attribute-parameter-container">
+        <h3>Path</h3>
+  
+        <ul class="doc-item-detail-container">
+          <li>
+            <div class="cf-grid-row">
+              <div class="col-full">
+                <div class="item-title">
+                  <span>https://fyipe.com/api/application-log/:projectId/:componentId/create</span>
+                </div>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+  
+      <div class="attribute-parameter-container">
+        <h3>Path Variables</h3>
+  
+        <ul class="doc-item-detail-container">
+          <li data-location="path">
+            <div class="cf-grid-row">
+              <div class="col-lg-third-1 pull-left">
+                <div class="item-title">
+                  <span>projectId</span>
+                  <span class="item-type">string</span>
+                </div>
+              </div>
+              <div class="col-lg-third-2 pull-left">
+                <div class="item-description">
+                  <p>The project id of the project.</p>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li data-location="path">
+            <div class="cf-grid-row">
+              <div class="col-lg-third-1 pull-left">
+                <div class="item-title">
+                  <span>componentId</span>
+                  <span class="item-type">string</span>
+                </div>
+              </div>
+              <div class="col-lg-third-2 pull-left">
+                <div class="item-description">
+                  <p>The component id of the component.</p>
+                </div>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+    <section class="col-lg-half col-md-half dev-doc-example">
+        <div class="sample-type type-curl">
+          <div id="exampleRequest" class="doc-example-item doc-example-request">
+            <h1>Example Request</h1>
+    
+            <div class="example-code example-response">
+              <p>Request URL</p>
+              <p class="url">https://fyipe.com/api/application-log/5eea4077924a3c80a476c185/5eea4077924a3c80a476c188/create</p>
+    
+              <p>Request Body</p>
+              <pre>
+                <code class="language-json">
+                  <p>{"name":"Rodeo"}
+                  </p>
+                </code>
+              </pre>
+            </div>
+          </div>
+    
+          <div class="doc-example-item">
+            <h1>Example Response (200)</h1>
+            <div class="example-code example-response">
+              <pre>
+                <code class="language-json">
+                  <p>
+                    {
+                        "deleted": false,
+                        "_id": "5eeb3bf08888bffbfcae2bc0",
+                        "createdAt": "2020-06-18T10:03:28.468Z",
+                        "name": "Rodeo",
+                        "key": "7f5405df-6af5-440e-9dce-4d42303ffd52",
+                        "componentId": {
+                            "_id": "5eea4077924a3c80a476c188",
+                            "name": "Our Component"
+                        },
+                        "createdById": "5eea4076924a3c80a476c183",
+                        "__v": 0
+                    }        
+                  </p>
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </article>
