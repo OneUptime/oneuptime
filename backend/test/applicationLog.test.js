@@ -370,6 +370,23 @@ describe('Application Log API', function() {
                 done();
             });
     });
+    it('should edit an application log but not change application log key', function(done) {
+        const newName = 'Rodeo II';
+        const authorization = `Basic ${token}`;
+        request
+            .put(
+                `/application-log/${projectId}/${componentId}/${applicationLog._id}`
+            )
+            .set('Authorization', authorization)
+            .send({ name: newName })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.id).to.be.equal(applicationLog.id);
+                expect(res.body.name).to.be.equal(newName);
+                expect(res.body.key).to.be.equal(applicationLog.key);
+                done();
+            });
+    });
     it('should delete an application log', function(done) {
         const authorization = `Basic ${token}`;
         request
