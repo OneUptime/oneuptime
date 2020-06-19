@@ -684,12 +684,19 @@ router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
     }
 });
 
-router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(req, res) {
-    try{
-        const {monitorId}=req.params;
-        const endDate=moment(Date.now());
-        const startDate =moment(endDate).subtract(90,'days');
-        const monitorLogs=await MonitorService.getMonitorLogsByDay(monitorId,startDate,endDate);
+router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { monitorId } = req.params;
+        const endDate = moment(Date.now());
+        const startDate = moment(endDate).subtract(90, 'days');
+        const monitorLogs = await MonitorService.getMonitorLogsByDay(
+            monitorId,
+            startDate,
+            endDate
+        );
         return sendListResponse(req, res, monitorLogs);
     } catch (error) {
         return sendErrorResponse(req, res, error);
