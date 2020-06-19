@@ -1,44 +1,58 @@
 import React, { Fragment } from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import { fetchMonitorLogs } from '../actions/status';
-import AreaChart from './areachart'
+import AreaChart from './areachart';
 
-class ChartContainer extends React.Component {
-  constructor() {
-    super();
-    this.state = {
-      loading: true,
-      data: []
+class LineChartsContainer extends React.Component {
+    async componentDidMount() {
+        const {
+            _id: monitorId,
+            projectId: { _id: projectId },
+        } = this.props.monitor;
+        this.props.fetchMonitorLogs(projectId, monitorId);
     }
-  }
-  async componentDidMount() {
-    const { _id: monitorId, projectId: { _id: projectId } } = this.props.monitor
-    const result = await fetchMonitorLogs(projectId, monitorId, 100)()
-    const data = (result.data[0] && result.data[0].logs) || []
-    console.log(data)
-    this.setState({
-      // loading: false,
-      data,
-    })
-  }
-  render() {
-    const { loading, data } = this.state
-    if (loading) {
-      return (
-        <div>
-        </div>
-      )
-    } else {
-      return (
-        <Fragment>
-          {this.props.name}
-          <AreaChart
-            data={data}
-            name={this.props.name}
-          />
-        </Fragment>
-      )
+    render() {
+        const { _id: monitorId } = this.props.monitor;
+        const monitorLogs = {
+            requesting: true,
+            name: this.props.name,
+            data: [],
+        };
+        for (const log of this.props.logs) {
+            if (log.monitorId === monitorId) {
+                monitorLogs.requesting = log.requesting;
+                monitorLogs.data = log.logs;
+                break;
+            }
+        }
+
+        return (
+            <Fragment>
+                {this.props.name}
+                <AreaChart {...monitorLogs} />
+            </Fragment>
+        );
     }
-  }
 }
 
-export default ChartContainer;
+LineChartsContainer.displayName = 'LineChartsContainer';
+
+const mapStateToProps = state => {
+    const {
+        status: { logs },
+    } = state;
+    return { logs };
+};
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            fetchMonitorLogs,
+        },
+        dispatch
+    );
+
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(LineChartsContainer);
