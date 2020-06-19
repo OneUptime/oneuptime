@@ -692,16 +692,41 @@ router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(
         const { monitorId } = req.params;
         const endDate = moment(Date.now());
         const startDate = moment(endDate).subtract(90, 'days');
+        const { memory, cpu, storage, responseTime, temperature } = req.body;
+        const filter = {
+            ...(!memory && {
+                maxMemoryUsed: 0,
+                memoryUsed: 0,
+            }),
+            ...(cpu && {
+                maxCpuLoad: 0,
+                cpuLoad: 0,
+            }),
+            ...(storage && {
+                maxStorageUsed: 0,
+                storageUsed: 0,
+            }),
+            ...(responseTime && {
+                maxResponseTime: 0,
+                responseTime: 0,
+            }),
+            ...(temperature && {
+                maxMainTemp: 0,
+                mainTemp: 0,
+            }),
+        };
+
         const monitorLogs = await MonitorService.getMonitorLogsByDay(
             monitorId,
             startDate,
-            endDate
+            endDate,
+            filter
         );
         return sendListResponse(req, res, monitorLogs);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
-})
+});
 
 router.get('/:projectId/probes', checkUser, async function(req, res) {
     try {
