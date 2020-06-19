@@ -147,6 +147,22 @@ module.exports = {
         await page.click(`#more-details-${monitor}`);
         await page.waitForSelector(`#monitor-title-${monitor}`);
     },
+    navigateToApplicationLogDetails: async function(
+        component,
+        applicationLog,
+        page
+    ) {
+        // Navigate to Components page
+        await this.navigateToComponentDetails(component, page);
+
+        // then goto list of application logs
+        await page.click('#applicationLogs');
+
+        // Navigate to details page of application log assumed created
+        await page.waitForSelector(`#more-details-${applicationLog}`);
+        await page.click(`#more-details-${applicationLog}`);
+        await page.waitForSelector(`#application-log-title-${applicationLog}`);
+    },
     registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
             email: 'masteradmin@hackerbay.io',
