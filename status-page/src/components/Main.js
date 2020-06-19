@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import UptimeLegend from './UptimeLegend';
 import NoMonitor from './NoMonitor';
@@ -14,6 +14,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { getStatusPage, selectedProbe } from '../actions/status';
 import { getProbes } from '../actions/probe';
+import ChartContainer from './ChartContainer';
 
 const greenBackground = {
     display: 'inline-block',
@@ -445,11 +446,100 @@ class Main extends Component {
                                             this.props.statusData.monitorsData.map(
                                                 (monitor, i) => {
                                                     return (
-                                                        <UptimeGraphs
-                                                            monitor={monitor}
-                                                            key={i}
-                                                            id={`monitor${i}`}
-                                                        />
+                                                        this.props.monitors
+                                                        &&
+                                                        <Fragment>
+                                                        {
+                                                            this.props.monitors.filter(
+                                                                m=>monitor._id ===m.monitor
+                                                                && m.uptime
+                                                            ).length>0
+                                                            &&
+                                                            <UptimeGraphs
+                                                                monitor={monitor}
+                                                                key={`uptime-${i}`}
+                                                                id={`monitor${i}`}
+                                                            />
+                                                        }
+                                                        {
+                                                            this.props.monitors.filter(
+                                                                m=>monitor._id ===m.monitor
+                                                                && m.memory
+                                                            ).length>0
+                                                            &&
+                                                            <ChartContainer
+                                                                monitor={monitor}
+                                                                key={`memory-${i}`}
+                                                                id={`monitor${i}`}
+                                                                name='memory'
+                                                            />
+                                                        }
+                                                        {
+                                                            this.props.monitors.filter(
+                                                                m=>monitor._id ===m.monitor
+                                                                && m.cpu
+                                                            ).length>0
+                                                            &&
+                                                            <ChartContainer
+                                                                monitor={monitor}
+                                                                key={`load-${i}`}
+                                                                id={`monitor${i}`}
+                                                                name='load'
+                                                            />
+                                                        }
+                                                        {
+                                                            this.props.monitors.filter(
+                                                                m=>monitor._id ===m.monitor
+                                                                && m.storage
+                                                            ).length>0
+                                                            &&
+                                                            <ChartContainer
+                                                                monitor={monitor}
+                                                                key={`disk-${i}`}
+                                                                id={`monitor${i}`}
+                                                                name='disk'
+                                                            />
+                                                        }
+                                                        {
+                                                            this.props.monitors.filter(
+                                                                m=>monitor._id ===m.monitor
+                                                                && m.responseTime
+                                                            ).length>0
+                                                            &&
+                                                            <ChartContainer
+                                                                monitor={monitor}
+                                                                key={`responseTime-${i}`}
+                                                                id={`monitor${i}`}
+                                                                name='response time'
+                                                            />
+                                                        }
+                                                        {
+                                                            this.props.monitors.filter(
+                                                                m=>monitor._id ===m.monitor
+                                                                && m.temperature
+                                                            ).length>0
+                                                            &&
+                                                            <ChartContainer
+                                                                monitor={monitor}
+                                                                key={`temperature-${i}`}
+                                                                id={`monitor${i}`}
+                                                                name='temperature'
+                                                            />
+                                                        }
+                                                        {
+                                                            this.props.monitors.filter(
+                                                                m=>monitor._id ===m.monitor
+                                                                && m.runtime
+                                                            ).length>0
+                                                            &&
+                                                            <ChartContainer
+                                                                monitor={monitor}
+                                                                key={`runtime-${i}`}
+                                                                id={`monitor${i}`}
+                                                                name='runtime'
+                                                            />
+                                                        }
+                                                        </Fragment>
                                                     );
                                                 }
                                             )
@@ -645,6 +735,7 @@ const mapStateToProps = state => ({
     login: state.login,
     activeProbe: state.status.activeProbe,
     monitorState: state.status.statusPage.monitorsData,
+    monitors:state.status.statusPage.monitors,
     probes: state.probe.probes,
 });
 
@@ -665,6 +756,7 @@ Main.propTypes = {
     getProbes: PropTypes.func,
     login: PropTypes.object.isRequired,
     monitorState: PropTypes.array,
+    monitors: PropTypes.array,
     selectedProbe: PropTypes.func,
     activeProbe: PropTypes.number,
     probes: PropTypes.array,
