@@ -23,6 +23,7 @@
         "react-router-dom": "^4.3.1",
         "react-router-redux": "^4.0.8",
         "react-scripts": "^3.4.1",
+        "recharts": "^1.8.5",
         "redux": "^4.0.0",
         "redux-form": "^7.4.2",
         "redux-logger": "^3.0.6",
