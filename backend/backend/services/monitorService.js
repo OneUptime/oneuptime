@@ -542,6 +542,42 @@ module.exports = {
         }
     },
 
+    async getMonitorLogsByDay(monitorId, startDate, endDate){
+        try {
+            const start = moment(startDate).toDate();
+            const end = moment(endDate).toDate();
+            const monitor = await this.findOneBy({ _id: monitorId });
+            let probes;
+            if (monitor.type === 'server-monitor') {
+                probes = [undefined];
+            } else {
+                probes = await ProbeService.findBy({});
+            }
+            const probeLogs = [];
+            for (const probe of probes) {
+                const query = {
+                    monitorId,
+                    createdAt: { $gte: start, $lte: end },
+                };
+                if (typeof probe !== 'undefined') {
+                    query.probeId = probe._id;
+                }
+                const monitorLogs= await MonitorLogByDayService.findBy(query);
+                if (monitorLogs && monitorLogs.length > 0) {
+                    probeLogs.push({
+                        _id: typeof probe !== 'undefined' ? probe._id : null,
+                        logs: monitorLogs,
+                    });
+                }
+            }
+            return probeLogs;
+        } catch (error) {
+            ErrorService.log('monitorService.getMonitorLogs', error);
+            throw error;
+        }
+
+    },
+
     async getMonitorStatuses(monitorId, startDate, endDate) {
         try {
             const start = moment(startDate).toDate();
