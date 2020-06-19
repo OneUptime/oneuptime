@@ -469,3 +469,54 @@ export function fetchMonitorStatusesFailure(error) {
         payload: error,
     };
 }
+
+export function fetchMonitorLogs(projectId, monitorId) {
+    return async function(dispatch) {
+        try {
+            dispatch(fetchMonitorLogsRequest(monitorId));
+            const monitorLogs = await postApi(
+                `statusPage/${projectId}/${monitorId}/monitorLogs`
+            );
+            dispatch(
+                fetchMonitorLogsSuccess({
+                    monitorId,
+                    logs: monitorLogs.data,
+                })
+            );
+        } catch (error) {
+            if (error && error.response && error.response.data) {
+                error = error.response.data;
+            }
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            } else {
+                error = 'Network Error';
+            }
+            dispatch(fetchMonitorLogsFailure(errors(error)));
+        }
+    };
+}
+
+function fetchMonitorLogsRequest(monitorId) {
+    return {
+        type: types.FETCH_MONITOR_LOGS_REQUEST,
+        payload: monitorId,
+    };
+}
+
+function fetchMonitorLogsSuccess({ monitorId, logs }) {
+    return {
+        type: types.FETCH_MONITOR_LOGS_SUCCESS,
+        payload: { monitorId, logs },
+    };
+}
+
+function fetchMonitorLogsFailure(error) {
+    return {
+        type: types.FETCH_MONITOR_LOGS_FAILURE,
+        payload: error,
+    };
+}
