@@ -70,10 +70,17 @@ class ApplicationSecurityDetail extends Component {
                     name={componentName}
                 />
                 <BreadCrumbItem
-                    route={getParentRoute(pathname, null, 'applicationSecurityId')}
+                    route={getParentRoute(
+                        pathname,
+                        null,
+                        'applicationSecurityId'
+                    )}
                     name="Application Security"
                 />
-                <BreadCrumbItem route={pathname} name={applicationSecurity.name || 'loading...'} />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={applicationSecurity.name || 'loading...'}
+                />
                 <ShouldRender
                     if={
                         isRequesting && gettingSecurityLog && gettingCredentials
