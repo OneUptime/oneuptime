@@ -63,26 +63,6 @@ export const Spinner = () => (
 
 Spinner.displayName = 'Spinner';
 
-export const LargeSpinner = () => (
-    <div className="Spinner bs-SpinnerLegacy Spinner--size--large Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center">
-        <svg
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            className="Spinner-svg"
-        >
-            <ellipse
-                cx={12}
-                cy={12}
-                rx={10}
-                ry={10}
-                className="Spinner-ellipse"
-            />
-        </svg>
-    </div>
-);
-
-LargeSpinner.displayName = 'LargeSpinner';
-
 export const LoadingState = () => (
     <div className="Box-root Margin-bottom--12">
         <div className="bs-ContentSection Card-root Card-shadow--medium">
