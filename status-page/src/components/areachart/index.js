@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Spinner as Loader } from '../basic/Loader';
 import {
     ResponsiveContainer,
     AreaChart as Chart,
@@ -135,15 +134,13 @@ class AreaChart extends Component {
         } else {
             return (
                 <div style={noDataStyle}>
-                    {requesting ? (
-                        <Loader />
-                    ) : (
+                    {
                         <h3>
                             We&apos;re currently in the process of collecting
                             data for this monitor. <br />
                             More info will be available in few minutes.
                         </h3>
-                    )}
+                    }
                 </div>
             );
         }
@@ -157,7 +154,6 @@ AreaChart.propTypes = {
     type: PropTypes.string.isRequired,
     name: PropTypes.string,
     symbol: PropTypes.string,
-    requesting: PropTypes.bool,
 };
 
 export default AreaChart;
