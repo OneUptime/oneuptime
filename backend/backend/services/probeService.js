@@ -554,6 +554,9 @@ module.exports = {
             const cloneDirectory = `${uuidv1()}security`; // always create unique paths
             const repoPath = Path.resolve(securityDir, cloneDirectory);
 
+            // update application security to scanned true
+            // to prevent pulling an applicaiton security multiple times by running cron job
+            // due to network delay
             await ApplicationSecurityService.updateOneBy(
                 {
                     _id: security._id,
@@ -570,7 +573,6 @@ module.exports = {
                             cwd: repoPath,
                         });
                         output.on('error', error => {
-                            deleteFolderRecursive(securityDir);
                             error.code = 500;
                             throw error;
                         });
@@ -582,7 +584,6 @@ module.exports = {
                             });
 
                             audit.on('error', error => {
-                                deleteFolderRecursive(securityDir);
                                 error.code = 500;
                                 throw error;
                             });
@@ -649,7 +650,7 @@ module.exports = {
                         );
                         error.code = 400;
                         error.message =
-                            'Something bad happened, please check your git credentials or git repository url';
+                            'Authentication failed please check your git credentials or git repository url';
                         return reject(error);
                     });
             });
@@ -693,7 +694,7 @@ module.exports = {
                         if (error) {
                             error.code = 400;
                             error.message =
-                                'Something bad happened, please check your docker credential or image path/tag';
+                                'Scanning failed please check your docker credential or image path/tag';
                             scanError = error;
                         }
                     }
