@@ -88,6 +88,8 @@ const SecurityInfo = ({
         return security;
     };
 
+    const security = getSecurityInfo();
+
     return (
         <Fragment>
             <div className="Box-root">
@@ -126,18 +128,18 @@ const SecurityInfo = ({
                             <label className="Text-fontWeight--medium">
                                 Last Scan:
                             </label>
-                            <ShouldRender if={getSecurityInfo().lastScan}>
+                            <ShouldRender if={security.lastScan}>
                                 <div className="Margin-left--2">
                                     <span className="value">{`${moment(
-                                        getSecurityInfo().lastScan
+                                        security.lastScan
                                     ).fromNow()} (${moment(
-                                        getSecurityInfo().lastScan
+                                        security.lastScan
                                     ).format(
                                         'MMMM Do YYYY, h:mm:ss a'
                                     )})`}</span>
                                 </div>
                             </ShouldRender>
-                            <ShouldRender if={!getSecurityInfo().lastScan}>
+                            <ShouldRender if={!security.lastScan}>
                                 <div className="Margin-left--2">
                                     <span>will display soon</span>
                                 </div>
