@@ -10,7 +10,21 @@ class LineChartsContainer extends React.Component {
             _id: monitorId,
             projectId: { _id: projectId },
         } = this.props.monitor;
-        this.props.fetchMonitorLogs(projectId, monitorId);
+        const {
+            memory,
+            cpu,
+            storage,
+            responseTime,
+            temperature,
+        } = this.props.selectedCharts;
+        const data = {
+            memory,
+            cpu,
+            storage,
+            responseTime,
+            temperature,
+        };
+        this.props.fetchMonitorLogs(projectId, monitorId, data);
     }
     render() {
         const { _id: monitorId } = this.props.monitor;

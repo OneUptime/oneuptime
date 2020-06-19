@@ -470,12 +470,13 @@ export function fetchMonitorStatusesFailure(error) {
     };
 }
 
-export function fetchMonitorLogs(projectId, monitorId) {
+export function fetchMonitorLogs(projectId, monitorId, data) {
     return async function(dispatch) {
         try {
             dispatch(fetchMonitorLogsRequest(monitorId));
             const monitorLogs = await postApi(
-                `statusPage/${projectId}/${monitorId}/monitorLogs`
+                `statusPage/${projectId}/${monitorId}/monitorLogs`,
+                data
             );
             dispatch(
                 fetchMonitorLogsSuccess({
