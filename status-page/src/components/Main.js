@@ -14,7 +14,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { getStatusPage, selectedProbe } from '../actions/status';
 import { getProbes } from '../actions/probe';
-import ChartContainer from './ChartContainer';
+import LineChartsContainer from './LineChartsContainer';
 
 const greenBackground = {
     display: 'inline-block',
@@ -467,7 +467,7 @@ class Main extends Component {
                                                                 && m.memory
                                                             ).length>0
                                                             &&
-                                                            <ChartContainer
+                                                            <LineChartsContainer
                                                                 monitor={monitor}
                                                                 key={`memory-${i}`}
                                                                 id={`monitor${i}`}
@@ -480,7 +480,7 @@ class Main extends Component {
                                                                 && m.cpu
                                                             ).length>0
                                                             &&
-                                                            <ChartContainer
+                                                            <LineChartsContainer
                                                                 monitor={monitor}
                                                                 key={`load-${i}`}
                                                                 id={`monitor${i}`}
@@ -493,7 +493,7 @@ class Main extends Component {
                                                                 && m.storage
                                                             ).length>0
                                                             &&
-                                                            <ChartContainer
+                                                            <LineChartsContainer
                                                                 monitor={monitor}
                                                                 key={`disk-${i}`}
                                                                 id={`monitor${i}`}
@@ -506,7 +506,7 @@ class Main extends Component {
                                                                 && m.responseTime
                                                             ).length>0
                                                             &&
-                                                            <ChartContainer
+                                                            <LineChartsContainer
                                                                 monitor={monitor}
                                                                 key={`responseTime-${i}`}
                                                                 id={`monitor${i}`}
@@ -519,7 +519,7 @@ class Main extends Component {
                                                                 && m.temperature
                                                             ).length>0
                                                             &&
-                                                            <ChartContainer
+                                                            <LineChartsContainer
                                                                 monitor={monitor}
                                                                 key={`temperature-${i}`}
                                                                 id={`monitor${i}`}
@@ -532,7 +532,7 @@ class Main extends Component {
                                                                 && m.runtime
                                                             ).length>0
                                                             &&
-                                                            <ChartContainer
+                                                            <LineChartsContainer
                                                                 monitor={monitor}
                                                                 key={`runtime-${i}`}
                                                                 id={`monitor${i}`}
