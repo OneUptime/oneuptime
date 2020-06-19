@@ -698,19 +698,19 @@ router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(
                 maxMemoryUsed: 0,
                 memoryUsed: 0,
             }),
-            ...(cpu && {
+            ...(!cpu && {
                 maxCpuLoad: 0,
                 cpuLoad: 0,
             }),
-            ...(storage && {
+            ...(!storage && {
                 maxStorageUsed: 0,
                 storageUsed: 0,
             }),
-            ...(responseTime && {
+            ...(!responseTime && {
                 maxResponseTime: 0,
                 responseTime: 0,
             }),
-            ...(temperature && {
+            ...(!temperature && {
                 maxMainTemp: 0,
                 mainTemp: 0,
             }),
