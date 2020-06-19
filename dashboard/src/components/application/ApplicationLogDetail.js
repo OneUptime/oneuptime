@@ -198,6 +198,9 @@ class ApplicationLogDetail extends Component {
                                 deleteApplicationLog={this.deleteApplicationLog}
                                 deleting={deleting}
                                 viewMore={this.viewMore}
+                                resetApplicationLogKey={
+                                    this.resetApplicationLogKey
+                                }
                             />
                         </ShouldRender>
                         <ShouldRender if={applicationLog.editMode}>

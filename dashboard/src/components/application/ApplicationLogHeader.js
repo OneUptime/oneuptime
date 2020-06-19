@@ -18,6 +18,7 @@ class ApplicationLogHeader extends Component {
             deleteApplicationLog,
             deleting,
             viewMore,
+            resetApplicationLogKey,
         } = this.props;
         return (
             <div className="db-Trends-header">
@@ -51,7 +52,7 @@ class ApplicationLogHeader extends Component {
                                                         id: openApplicationLogKeyModalId,
                                                         onClose: () => '',
                                                         onConfirm: () =>
-                                                            this.resetApplicationLogKey(),
+                                                            resetApplicationLogKey(),
                                                         content: DataPathHoC(
                                                             ViewApplicationLogKey,
                                                             {
@@ -135,6 +136,7 @@ ApplicationLogHeader.propTypes = {
     deleteModalId: PropTypes.string,
     deleting: PropTypes.bool,
     viewMore: PropTypes.func,
+    resetApplicationLogKey: PropTypes.func,
 };
 
 export default ApplicationLogHeader;
