@@ -1,4 +1,4 @@
-function getParentRoute(childRoute, projectId = null) {
+function getParentRoute(childRoute, projectId = null, type) {
     const urlParts = childRoute.split('/');
     const lastNode = urlParts.pop();
     if (lastNode === 'alert-log') {
@@ -33,6 +33,28 @@ function getParentRoute(childRoute, projectId = null) {
         urlParts.pop();
         urlParts.pop();
         return urlParts.join('/').concat('/application-log');
+    }
+    if (type === 'component') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(
+            urlParts.indexOf('security'),
+            urlParts.length,
+            'monitoring'
+        );
+        return urlParts.join('/');
+    }
+    if (lastNode === 'container' || lastNode === 'application') {
+        return urlParts.join('/').concat('/container');
+    }
+    if (type === 'applicationSecurityId') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(urlParts.indexOf('application') + 1, urlParts.length);
+        return urlParts.join('/');
+    }
+    if (type === 'containerSecurityId') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(urlParts.indexOf('container') + 1, urlParts.length);
+        return urlParts.join('/');
     }
     return urlParts.join('/');
 }

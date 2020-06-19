@@ -13,6 +13,8 @@ import {
 } from '../actions/security';
 import { LargeSpinner } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class Application extends Component {
     constructor(props) {
@@ -21,6 +23,12 @@ class Application extends Component {
     }
 
     componentDidMount() {
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('Application Security page Loaded');
+        }
+    }
+
+    ready = () => {
         const {
             componentId,
             projectId,
@@ -28,15 +36,12 @@ class Application extends Component {
             getApplicationSecurityLogs,
         } = this.props;
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Application Security page Loaded');
-        }
         // load all the available logs
         getApplicationSecurityLogs({ projectId, componentId });
 
         // load all the application securities
         getApplicationSecurities({ projectId, componentId });
-    }
+    };
 
     render() {
         const {
@@ -45,10 +50,20 @@ class Application extends Component {
             applicationSecurities,
             gettingApplicationSecurities,
             gettingSecurityLogs,
+            location: { pathname },
+            component,
         } = this.props;
 
+        const componentName =
+            component.length > 0 ? component[0].name : 'loading...';
+
         return (
-            <Dashboard>
+            <Dashboard ready={this.ready}>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'component')}
+                    name={componentName}
+                />
+                <BreadCrumbItem route={pathname} name="Application Security" />
                 <div className="Margin-vertical--12">
                     <div>
                         <div className="db-BackboneViewContainer">
@@ -130,10 +145,23 @@ Application.propTypes = {
     getApplicationSecurityLogs: PropTypes.func,
     gettingSecurityLogs: PropTypes.bool,
     gettingApplicationSecurities: PropTypes.bool,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+    component: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 const mapStateToProps = (state, ownProps) => {
     const { componentId, projectId } = ownProps.match.params;
+    const component = state.component.componentList.components.map(item => {
+        return item.components.find(
+            component => String(component._id) === String(componentId)
+        );
+    });
 
     return {
         componentId,
@@ -142,6 +170,7 @@ const mapStateToProps = (state, ownProps) => {
         gettingSecurityLogs:
             state.security.getApplicationSecurityLog.requesting,
         gettingApplicationSecurities: state.security.getApplication.requesting,
+        component,
     };
 };
 

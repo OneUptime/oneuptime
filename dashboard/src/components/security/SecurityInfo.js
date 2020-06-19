@@ -166,7 +166,7 @@ const SecurityInfo = ({
                                 </button>
                             ) : (
                                 <button
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye"
+                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--security-scan"
                                     type="button"
                                     onClick={scanSecurity}
                                 >
@@ -193,6 +193,7 @@ const SecurityInfo = ({
                                 applicationSecurityLog={applicationSecurityLog}
                                 containerSecurityLog={containerSecurityLog}
                                 type={type}
+                                more={more}
                             />
                         </div>
                     </div>

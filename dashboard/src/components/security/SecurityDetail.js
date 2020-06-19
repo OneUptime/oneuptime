@@ -6,6 +6,7 @@ const SecurityDetail = ({
     applicationSecurityLog,
     containerSecurityLog,
     type,
+    more,
 }) => {
     let vulnerabilities = null;
     if (applicationSecurityLog && applicationSecurityLog.data) {
@@ -25,13 +26,17 @@ const SecurityDetail = ({
     return (
         <Fragment>
             <div className="db-Trend" style={{ height: '100%' }}>
-                <div className="block-chart-side line-chart">
+                <div
+                    className="block-chart-side line-chart"
+                    style={{ cursor: 'pointer' }}
+                    onClick={more}
+                >
                     {vulnerabilities ? (
                         <div className="db-TrendRow">
                             <div className="db-Trend-colInformation">
                                 <div
                                     className="db-Trend-rowTitle"
-                                    title="Storage Used"
+                                    title="Critical Issues"
                                 >
                                     <div className="db-Trend-title">
                                         <span className="chart-font">
@@ -53,7 +58,7 @@ const SecurityDetail = ({
                             <div className="db-Trend-colInformation">
                                 <div
                                     className="db-Trend-rowTitle"
-                                    title="Storage Used"
+                                    title="High Priority Issues"
                                 >
                                     <div className="db-Trend-title">
                                         <span className="chart-font">
@@ -75,7 +80,7 @@ const SecurityDetail = ({
                             <div className="db-Trend-colInformation">
                                 <div
                                     className="db-Trend-rowTitle"
-                                    title="Storage Used"
+                                    title="Moderate Issues"
                                 >
                                     <div className="db-Trend-title">
                                         <span className="chart-font">
@@ -97,7 +102,7 @@ const SecurityDetail = ({
                             <div className="db-Trend-colInformation">
                                 <div
                                     className="db-Trend-rowTitle"
-                                    title="Storage Used"
+                                    title="Low Priority Issue"
                                 >
                                     <div className="db-Trend-title">
                                         <span className="chart-font">
@@ -111,28 +116,6 @@ const SecurityDetail = ({
                                             {' '}
                                             <span className="chart-font">
                                                 {vulnerabilities.low}
-                                            </span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="db-Trend-colInformation">
-                                <div
-                                    className="db-Trend-rowTitle"
-                                    title="Storage Used"
-                                >
-                                    <div className="db-Trend-title">
-                                        <span className="chart-font">
-                                            License Compliance
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue">
-                                        <span>
-                                            {' '}
-                                            <span className="chart-font">
-                                                0
                                             </span>
                                         </span>
                                     </div>
@@ -173,6 +156,7 @@ SecurityDetail.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     type: PropTypes.string.isRequired,
+    more: PropTypes.func,
 };
 
 export default connect(null)(SecurityDetail);

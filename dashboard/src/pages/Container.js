@@ -13,6 +13,8 @@ import {
 } from '../actions/security';
 import { LargeSpinner } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class Container extends Component {
     constructor(props) {
@@ -21,6 +23,12 @@ class Container extends Component {
     }
 
     componentDidMount() {
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('Container Security page Loaded');
+        }
+    }
+
+    ready = () => {
         const {
             projectId,
             componentId,
@@ -28,16 +36,12 @@ class Container extends Component {
             getContainerSecurityLogs,
         } = this.props;
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Container Security page Loaded');
-        }
-
         // load container security logs
         getContainerSecurityLogs({ projectId, componentId });
 
         // load container security
         getContainerSecurities({ projectId, componentId });
-    }
+    };
 
     render() {
         const {
@@ -46,10 +50,20 @@ class Container extends Component {
             containerSecurities,
             gettingContainerSecurities,
             gettingSecurityLogs,
+            location: { pathname },
+            component,
         } = this.props;
 
+        const componentName =
+            component.length > 0 ? component[0].name : 'loading...';
+
         return (
-            <Dashboard>
+            <Dashboard ready={this.ready}>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'component')}
+                    name={componentName}
+                />
+                <BreadCrumbItem route={pathname} name="Container Security" />
                 <div className="Margin-vertical--12">
                     <div>
                         <div className="db-BackboneViewContainer">
@@ -137,11 +151,24 @@ Container.propTypes = {
     getContainerSecurityLogs: PropTypes.func,
     gettingSecurityLogs: PropTypes.bool,
     gettingContainerSecurities: PropTypes.bool,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+    component: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 const mapStateToProps = (state, ownProps) => {
     // ids from url
     const { componentId, projectId } = ownProps.match.params;
+    const component = state.component.componentList.components.map(item => {
+        return item.components.find(
+            component => String(component._id) === String(componentId)
+        );
+    });
 
     return {
         projectId,
@@ -149,6 +176,7 @@ const mapStateToProps = (state, ownProps) => {
         containerSecurities: state.security.containerSecurities,
         gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,
         gettingContainerSecurities: state.security.getContainer.requesting,
+        component,
     };
 };
 

@@ -13,6 +13,8 @@ import ContainerSecurityView from './ContainerSecurityView';
 import ContainerSecurityDeleteBox from './ContainerSecurityDeleteBox';
 import SecurityLog from './SecurityLog';
 import { getDockerCredentials } from '../../actions/credential';
+import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
+import getParentRoute from '../../utils/getParentRoute';
 
 class ContainerSecurityDetail extends Component {
     componentDidMount() {
@@ -55,10 +57,31 @@ class ContainerSecurityDetail extends Component {
             gettingCredentials,
             fetchCredentialError,
             fetchLogError,
+            location: { pathname },
+            component,
         } = this.props;
+
+        const componentName =
+            component.length > 0 ? component[0].name : 'loading...';
 
         return (
             <div className="Box-root Margin-bottom--12">
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'component')}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={getParentRoute(
+                        pathname,
+                        null,
+                        'containerSecurityId'
+                    )}
+                    name="Container Security"
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={containerSecurity.name || 'loading...'}
+                />
                 <ShouldRender
                     if={
                         isRequesting && gettingSecurityLog && gettingCredentials
@@ -149,6 +172,14 @@ ContainerSecurityDetail.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+    component: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 const mapDispatchToProps = dispatch =>
@@ -164,6 +195,12 @@ const mapStateToProps = (state, ownProps) => {
         containerSecurityId,
     } = ownProps.match.params;
 
+    const component = state.component.componentList.components.map(item => {
+        return item.components.find(
+            component => String(component._id) === String(componentId)
+        );
+    });
+
     return {
         projectId,
         componentId,
@@ -176,6 +213,7 @@ const mapStateToProps = (state, ownProps) => {
         fetchLogError: state.security.getContainerSecurityLog.error,
         gettingCredentials: state.credential.getCredential.requesting,
         fetchCredentialError: state.credential.getCredential.error,
+        component,
     };
 };
 

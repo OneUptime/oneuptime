@@ -13,6 +13,8 @@ import {
 import ApplicationSecurityDeleteBox from './ApplicationSecurityDeleteBox';
 import SecurityLog from './SecurityLog';
 import { getGitCredentials } from '../../actions/credential';
+import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
+import getParentRoute from '../../utils/getParentRoute';
 
 class ApplicationSecurityDetail extends Component {
     componentDidMount() {
@@ -54,10 +56,24 @@ class ApplicationSecurityDetail extends Component {
             gettingCredentials,
             fetchCredentialError,
             fetchLogError,
+            location: { pathname },
+            component,
         } = this.props;
+
+        const componentName =
+            component.length > 0 ? component[0].name : 'loading...';
 
         return (
             <div className="Box-root Margin-bottom--12">
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'component')}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'applicationSecurityId')}
+                    name="Application Security"
+                />
+                <BreadCrumbItem route={pathname} name={applicationSecurity.name || 'loading...'} />
                 <ShouldRender
                     if={
                         isRequesting && gettingSecurityLog && gettingCredentials
@@ -150,6 +166,14 @@ ApplicationSecurityDetail.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+    component: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string,
+        })
+    ),
 };
 
 const mapDispatchToProps = dispatch =>
@@ -169,6 +193,11 @@ const mapStateToProps = (state, ownProps) => {
         applicationSecurityId,
     } = ownProps.match.params;
 
+    const component = state.component.componentList.components.map(item => {
+        return item.components.find(
+            component => String(component._id) === String(componentId)
+        );
+    });
     return {
         projectId,
         componentId,
@@ -181,6 +210,7 @@ const mapStateToProps = (state, ownProps) => {
         gettingCredentials: state.credential.getCredential.requesting,
         fetchLogError: state.security.getApplicationSecurityLog.error,
         fetchCredentialError: state.credential.getCredential.error,
+        component,
     };
 };
 
