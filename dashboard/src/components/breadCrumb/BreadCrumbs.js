@@ -13,7 +13,7 @@ function BreadCrumbs({ styles }) {
                         fontWeight: 'bold',
                     },
                 }}
-                compare={(a, b) => 0}
+                compare={() => 0}
             />
         </div>
     );
