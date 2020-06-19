@@ -1,6 +1,7 @@
 import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import { Spinner } from '../basic/Loader';
 
 const SecurityDetail = ({
     applicationSecurityLog,
@@ -132,6 +133,8 @@ const SecurityDetail = ({
                                     fontSize: 14,
                                 }}
                             >
+                                <Spinner style={{ stroke: '#8898aa' }} />{' '}
+                                <span style={{ width: 10 }} />
                                 We are currently scanning this{' '}
                                 {(type === 'container' && ' docker image') ||
                                     (type === 'application' && ' repository')}
