@@ -58,8 +58,8 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                 newApplicationLog: INITIAL_STATE.newApplicationLog,
                 applicationLogsList: {
                     ...state.applicationLogsList,
-                    applicationLogs: state.applicationLogsList.applicationLogs.concat(
-                        action.payload
+                    applicationLogs: [action.payload].concat(
+                        state.applicationLogsList.applicationLogs
                     ),
                 },
             });
