@@ -542,7 +542,7 @@ module.exports = {
         }
     },
 
-    async getMonitorLogsByDay(monitorId, startDate, endDate) {
+    async getMonitorLogsByDay(monitorId, startDate, endDate, filter) {
         try {
             const start = moment(startDate).toDate();
             const end = moment(endDate).toDate();
@@ -562,7 +562,12 @@ module.exports = {
                 if (typeof probe !== 'undefined') {
                     query.probeId = probe._id;
                 }
-                const monitorLogs = await MonitorLogByDayService.findBy(query);
+                const monitorLogs = await MonitorLogByDayService.findBy(
+                    query,
+                    null,
+                    null,
+                    filter
+                );
                 if (monitorLogs && monitorLogs.length > 0) {
                     probeLogs.push({
                         _id: typeof probe !== 'undefined' ? probe._id : null,
