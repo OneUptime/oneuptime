@@ -189,6 +189,40 @@ describe('Components', () => {
     );
 
     test(
+        'Should create an incident in monitor details and change monitor status in component list',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                await page.waitForSelector(`#createIncident_${monitorName}`);
+                await page.click(`#createIncident_${monitorName}`);
+                await page.waitForSelector('#createIncident');
+                await init.selectByText('#incidentType', 'Offline', page);
+                await page.click('#createIncident');
+                await page.waitFor(2000);
+
+                await page.waitForSelector('#backToDashboard');
+                await page.click('#backToDashboard');
+                await page.waitFor(5000);
+
+                let spanElement = await page.waitForSelector(
+                    '#component1 table > tbody > tr#monitor_0 span#monitor_status_0'
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+
+                expect(spanElement).toMatch('OFFLINE');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should edit a component',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
