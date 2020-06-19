@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { LargeSpinner as Loader } from '../basic/Loader';
+import { Spinner as Loader } from '../basic/Loader';
 import {
     ResponsiveContainer,
     AreaChart as Chart,
@@ -161,10 +160,4 @@ AreaChart.propTypes = {
     requesting: PropTypes.bool,
 };
 
-function mapStateToProps(state) {
-    return {
-        requesting: false//state.monitor.fetchMonitorLogsRequest,
-    };
-}
-
-export default connect(mapStateToProps)(AreaChart);
+export default AreaChart;
