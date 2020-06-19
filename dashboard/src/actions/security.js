@@ -191,6 +191,12 @@ export const scanContainerSecurity = ({
             `security/${projectId}/container/scan/${containerSecurityId}`
         );
         dispatch(scanContainerSecuritySuccess(response.data));
+        dispatch(
+            getContainerSecurities({
+                projectId,
+                componentId: response.data.componentId,
+            })
+        );
     } catch (error) {
         const errorMsg =
             error.response && error.response.data
