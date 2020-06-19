@@ -110,7 +110,9 @@ class NewApplicationLog extends Component {
                                         <span>Edit Application</span>
                                     </span>
                                     <p>
-                                        <span>
+                                        <span
+                                            id={`application-log-edit-title-${applicationLog?.name}`}
+                                        >
                                             {`Edit Application Log ${applicationLog?.name}`}
                                         </span>
                                     </p>
