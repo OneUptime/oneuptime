@@ -465,91 +465,19 @@ class Main extends Component {
                                                                 {this.props.monitors.some(
                                                                     m =>
                                                                         monitor._id ===
-                                                                            m.monitor &&
-                                                                        m.memory
+                                                                        m.monitor
                                                                 ) && (
                                                                     <LineChartsContainer
                                                                         monitor={
                                                                             monitor
                                                                         }
-                                                                        key={`memory-${i}`}
-                                                                        id={`monitor${i}`}
-                                                                        name="memory"
-                                                                    />
-                                                                )}
-                                                                {this.props.monitors.some(
-                                                                    m =>
-                                                                        monitor._id ===
-                                                                            m.monitor &&
-                                                                        m.cpu
-                                                                ) && (
-                                                                    <LineChartsContainer
-                                                                        monitor={
-                                                                            monitor
+                                                                        selectedCharts={
+                                                                            this.props.monitors.filter(
+                                                                                m =>
+                                                                                    monitor._id ===
+                                                                                    m.monitor
+                                                                            )[0]
                                                                         }
-                                                                        key={`load-${i}`}
-                                                                        id={`monitor${i}`}
-                                                                        name="load"
-                                                                    />
-                                                                )}
-                                                                {this.props.monitors.some(
-                                                                    m =>
-                                                                        monitor._id ===
-                                                                            m.monitor &&
-                                                                        m.storage
-                                                                ) && (
-                                                                    <LineChartsContainer
-                                                                        monitor={
-                                                                            monitor
-                                                                        }
-                                                                        key={`disk-${i}`}
-                                                                        id={`monitor${i}`}
-                                                                        name="disk"
-                                                                    />
-                                                                )}
-                                                                {this.props.monitors.some(
-                                                                    m =>
-                                                                        monitor._id ===
-                                                                            m.monitor &&
-                                                                        m.responseTime
-                                                                ) && (
-                                                                    <LineChartsContainer
-                                                                        monitor={
-                                                                            monitor
-                                                                        }
-                                                                        key={`responseTime-${i}`}
-                                                                        id={`monitor${i}`}
-                                                                        name="response time"
-                                                                    />
-                                                                )}
-                                                                {this.props.monitors.some(
-                                                                    m =>
-                                                                        monitor._id ===
-                                                                            m.monitor &&
-                                                                        m.temperature
-                                                                ) && (
-                                                                    <LineChartsContainer
-                                                                        monitor={
-                                                                            monitor
-                                                                        }
-                                                                        key={`temperature-${i}`}
-                                                                        id={`monitor${i}`}
-                                                                        name="temperature"
-                                                                    />
-                                                                )}
-                                                                {this.props.monitors.some(
-                                                                    m =>
-                                                                        monitor._id ===
-                                                                            m.monitor &&
-                                                                        m.runtime
-                                                                ) && (
-                                                                    <LineChartsContainer
-                                                                        monitor={
-                                                                            monitor
-                                                                        }
-                                                                        key={`runtime-${i}`}
-                                                                        id={`monitor${i}`}
-                                                                        name="runtime"
                                                                     />
                                                                 )}
                                                             </Fragment>
