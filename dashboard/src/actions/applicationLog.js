@@ -334,7 +334,6 @@ export function editApplicationLogSwitch(index) {
     };
 }
 //Edit new applicationLog
-//props -> {name: '', type, data -> { data.url}}
 export function editApplicationLog(
     projectId,
     componentId,
