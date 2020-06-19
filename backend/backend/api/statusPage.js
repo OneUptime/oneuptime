@@ -17,6 +17,7 @@ const validUrl = require('valid-url');
 const multer = require('multer');
 const ErrorService = require('../services/errorService');
 const { toXML } = require('jstoxml');
+const moment = require('moment');
 
 const { getUser, checkUser } = require('../middlewares/user');
 const { getSubProjects } = require('../middlewares/subProject');
@@ -686,7 +687,8 @@ router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
 router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(req, res) {
     try{
         const {monitorId}=req.params;
-        const {startDate,endDate}=req.body;
+        const endDate=moment(Date.now());
+        const startDate =moment(endDate).subtract(90,'days');
         const monitorLogs=await MonitorService.getMonitorLogsByDay(monitorId,startDate,endDate);
         return sendListResponse(req, res, monitorLogs);
     } catch (error) {
