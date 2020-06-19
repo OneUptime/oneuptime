@@ -4,6 +4,7 @@ import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import { fetchMonitorLogs } from '../actions/status';
 import AreaChart from './areachart';
+import { ListLoader } from './basic/Loader';
 
 const ChartContainer = ({ label, name, data }) => (
     <Fragment>
@@ -45,7 +46,7 @@ class LineChartsContainer extends React.Component {
                 break;
             }
         }
-        if (requesting) return <div>Loading</div>;
+        if (requesting) return  <ListLoader/>;
         
         let earliestDate = data.length===0? Date.now():data[data.length-1].createdAt
         while(data.length<90){
