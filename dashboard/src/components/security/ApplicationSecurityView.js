@@ -165,7 +165,7 @@ const ApplicationSecurityView = ({
                                     }
                                 >
                                     <button
-                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye"
+                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--security-scan"
                                         type="button"
                                         onClick={() =>
                                             scanApplicationSecurity({
