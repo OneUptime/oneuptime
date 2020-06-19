@@ -34,7 +34,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const data = req.body;
             const componentId = req.params.componentId;
@@ -76,7 +76,10 @@ router.post(
 );
 
 // Description: Get all Application Logs by componentId.
-router.get('/:projectId/:componentId', getUser, isAuthorized, async function (req, res) {
+router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
+    req,
+    res
+) {
     try {
         const componentId = req.params.componentId;
         if (!componentId) {
@@ -102,7 +105,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const applicationLog = await ApplicationLogService.deleteBy(
                 {
@@ -125,7 +128,7 @@ router.delete(
     }
 );
 
-router.post('/:applicationLogId/log', isApplicationLogValid, async function (
+router.post('/:applicationLogId/log', isApplicationLogValid, async function(
     req,
     res
 ) {
@@ -144,35 +147,37 @@ router.post('/:applicationLogId/log', isApplicationLogValid, async function (
     }
 });
 // Description: Get all Logs by applicationLogId.
-router.post('/:projectId/:componentId/:applicationLogId/logs', getUser, isAuthorized, async function (
-    req,
-    res
-) {
-    try {
-        const { skip, limit, startDate, endDate, type, filter } = req.body;
-        const applicationLogId = req.params.applicationLogId;
-        const query = {};
+router.post(
+    '/:projectId/:componentId/:applicationLogId/logs',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { skip, limit, startDate, endDate, type, filter } = req.body;
+            const applicationLogId = req.params.applicationLogId;
+            const query = {};
 
-        if (applicationLogId) query.applicationLogId = applicationLogId;
+            if (applicationLogId) query.applicationLogId = applicationLogId;
 
-        if (type) query.type = type;
+            if (type) query.type = type;
 
-        if (startDate && endDate)
-            query.createdAt = { $gte: startDate, $lte: endDate };
+            if (startDate && endDate)
+                query.createdAt = { $gte: startDate, $lte: endDate };
 
-        if (filter)
-            query.stringifiedContent = {
-                $regex: new RegExp(filter),
-                $options: 'i',
-            };
+            if (filter)
+                query.stringifiedContent = {
+                    $regex: new RegExp(filter),
+                    $options: 'i',
+                };
 
-        const logs = await LogService.findBy(query, limit || 10, skip || 0);
-        const count = await LogService.countBy(query);
-        return sendListResponse(req, res, logs, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const logs = await LogService.findBy(query, limit || 10, skip || 0);
+            const count = await LogService.countBy(query);
+            return sendListResponse(req, res, logs, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Description: Reset Application Log Key by applicationLogId.
 router.post(
@@ -180,7 +185,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res) {
+    async function(req, res) {
         const applicationLogId = req.params.applicationLogId;
 
         const currentApplicationLog = await ApplicationLogService.findOneBy({

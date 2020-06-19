@@ -41,7 +41,7 @@ const INITIAL_STATE = {
     logs: {},
 };
 export default function applicationLog(state = INITIAL_STATE, action) {
-    let applicationLogs;
+    let applicationLogs, failureLogs, requestLogs;
     switch (action.type) {
         case CREATE_APPLICATION_LOG_SUCCESS:
             return Object.assign({}, state, {
@@ -181,7 +181,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
             });
 
         case FETCH_LOGS_FAILURE:
-            const failureLogs = {
+            failureLogs = {
                 ...state.logs,
                 [action.payload.applicationLogId]: state.logs[
                     action.payload.applicationLogId
@@ -205,7 +205,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
             });
 
         case FETCH_LOGS_REQUEST:
-            const requestLogs = {
+            requestLogs = {
                 ...state.logs,
                 [action.payload.applicationLogId]: state.logs[
                     action.payload.applicationLogId

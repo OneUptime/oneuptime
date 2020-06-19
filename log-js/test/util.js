@@ -28,6 +28,6 @@ export function generateRandomBusinessEmail() {
     return `${Math.random()
         .toString(36)
         .substring(7)}@${Math.random()
-            .toString(36)
-            .substring(5)}.com`;
+        .toString(36)
+        .substring(5)}.com`;
 }

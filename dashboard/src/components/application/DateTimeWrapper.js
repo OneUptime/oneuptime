@@ -1,10 +1,12 @@
 import React, { Component } from 'react';
 import DateTimeSelector from '../basic/DateTimeSelector';
 import { Field, reduxForm } from 'redux-form';
+import PropTypes from 'prop-types';
+import * as moment from 'moment';
 
 class DateTimeWrapper extends Component {
     render() {
-        const { name, label, currentDate, id} = this.props;
+        const { name, label, currentDate, id } = this.props;
         return (
             <div>
                 <form>
@@ -14,7 +16,6 @@ class DateTimeWrapper extends Component {
                                 className="bs-Fieldset-row Flex-flex Flex-direction--column"
                                 style={{ padding: 0 }}
                             >
-                                
                                 <div className="bs-Fieldset-field">
                                     <Field
                                         className="bs-TextInput"
@@ -39,6 +40,15 @@ class DateTimeWrapper extends Component {
         );
     }
 }
+
+DateTimeWrapper.displayName = 'DateTimeWrapper';
+
+DateTimeWrapper.propTypes = {
+    name: PropTypes.string,
+    label: PropTypes.string,
+    id: PropTypes.string,
+    currentDate: PropTypes.instanceOf(moment),
+};
 
 export default reduxForm({
     form: 'dateTimeWrapper',

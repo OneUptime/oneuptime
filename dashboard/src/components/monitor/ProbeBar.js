@@ -97,7 +97,7 @@ ProbeBar.propTypes = {
     selectbutton: PropTypes.func,
     activeProbe: PropTypes.number,
     lastAlive: PropTypes.oneOfType([
-        PropTypes.instanceOf(Date),
+        PropTypes.instanceOf(moment),
         PropTypes.string,
     ]),
 };

@@ -28,9 +28,9 @@ class ApplicationLog extends Component {
         const componentId = this.props.match.params.componentId
             ? this.props.match.params.componentId
             : null;
-        const projectId = this.props.currentProject 
-        ? this.props.currentProject._id
-        : null;
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : null;
 
         this.props.fetchApplicationLogs(projectId, componentId);
     };
@@ -58,7 +58,9 @@ class ApplicationLog extends Component {
                     >
                         <ApplicationLogList
                             componentId={componentId}
-                            applicationLogs={this.props.applicationLog.applicationLogs}
+                            applicationLogs={
+                                this.props.applicationLog.applicationLogs
+                            }
                         />
                     </div>
                 </div>
@@ -76,17 +78,11 @@ class ApplicationLog extends Component {
                 <BreadCrumbItem route={pathname} name="Application Log" />
                 <div>
                     <div>
-                        <ShouldRender
-                            if={
-                                this.props.applicationLog.requesting
-                            }
-                        >
+                        <ShouldRender if={this.props.applicationLog.requesting}>
                             <LoadingState />
                         </ShouldRender>
                         <ShouldRender
-                            if={
-                                !this.props.applicationLog.requesting
-                            }
+                            if={!this.props.applicationLog.requesting}
                         >
                             <div className="db-RadarRulesLists-page">
                                 <ShouldRender
@@ -108,6 +104,9 @@ class ApplicationLog extends Component {
         );
     }
 }
+
+ApplicationLog.displayName = 'ApplicationLog';
+
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
@@ -120,8 +119,7 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
 
-    const applicationLog =
-        state.applicationLog.applicationLogsList;
+    const applicationLog = state.applicationLog.applicationLogsList;
 
     const currentProject = state.project.currentProject;
 
@@ -138,6 +136,8 @@ const mapStateToProps = (state, props) => {
 };
 ApplicationLog.propTypes = {
     applicationLogTutorial: PropTypes.object,
+    applicationLog: PropTypes.object,
+    match: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -148,6 +148,7 @@ ApplicationLog.propTypes = {
     ),
     componentId: PropTypes.string,
     loadPage: PropTypes.func,
+    fetchApplicationLogs: PropTypes.func,
     currentProject: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),

@@ -20,12 +20,13 @@ class ApplicationLogViewDeleteBox extends Component {
         this.state = { deleteModalId: uuid.v4() };
     }
     deleteApplicationLog = () => {
-        const componentId = this.props.applicationLog[0].componentId._id;
+        const applicationLog = this.props.applicationLog;
+        const componentId = applicationLog.componentId._id;
         const currentProjectId = this.props.currentProject._id;
         const promise = this.props.deleteApplicationLog(
             currentProjectId,
             componentId,
-            this.props.applicationLog[0]._id,
+            this.props.applicationLog._id
         );
         history.push(
             `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`
@@ -35,7 +36,7 @@ class ApplicationLogViewDeleteBox extends Component {
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > APPLICATION LOG DELETED',
                 {
                     ProjectId: this.props.currentProject._id,
-                    applicationLogId: this.props.applicationLog[0]._id,
+                    applicationLogId: this.props.applicationLog._id,
                 }
             );
         }
@@ -98,7 +99,7 @@ class ApplicationLogViewDeleteBox extends Component {
                                                     {
                                                         applicationLog: this
                                                             .props
-                                                            .applicationLog[0],
+                                                            .applicationLog,
                                                     }
                                                 ),
                                             })
@@ -137,15 +138,12 @@ const mapStateToProps = state => {
 
 ApplicationLogViewDeleteBox.propTypes = {
     currentProject: PropTypes.object,
+    data: PropTypes.object,
     componentId: PropTypes.string.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     applicationLogState: PropTypes.object.isRequired,
-    applicationLog: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string,
-        })
-    ),
+    applicationLog: PropTypes.object,
     deleteApplicationLog: PropTypes.func.isRequired,
 };
 

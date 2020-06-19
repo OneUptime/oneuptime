@@ -1,9 +1,9 @@
 module.exports = {
-    create: async function (data) {
+    create: async function(data) {
         try {
             const _this = this;
             // try to get the component by the ID
-            let component = await ComponentService.findOneBy({
+            const component = await ComponentService.findOneBy({
                 _id: data.componentId,
             });
             // send an error if the component doesnt exist
@@ -93,7 +93,7 @@ module.exports = {
 
     async getApplicationLogsByComponentId(componentId, limit, skip) {
         // try to get the component by the ID
-        let component = await ComponentService.findOneBy({
+        const component = await ComponentService.findOneBy({
             _id: componentId,
         });
         // send an error if the component doesnt exist
@@ -144,8 +144,10 @@ module.exports = {
                 },
                 { new: true }
             ).populate('deletedById', 'name');
-            if(applicationLog) {
-                const component = ComponentService.findOneBy({_id: applicationLog.componentId._id});
+            if (applicationLog) {
+                const component = ComponentService.findOneBy({
+                    _id: applicationLog.componentId._id,
+                });
                 await NotificationService.create(
                     component.projectId,
                     `An Application Log ${applicationLog.name} was deleted from the component ${applicationLog.componentId.name} by ${applicationLog.deletedById.name}`,

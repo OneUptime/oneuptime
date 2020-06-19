@@ -168,10 +168,10 @@ class LogList extends Component {
                                                 log.applicationLogId &&
                                                 log.applicationLogId.name
                                                     ? log.applicationLogId.name
-                                                    : this.props
-                                                          .applicationLogName
-                                                    ? this.props
-                                                          .applicationLogName
+                                                    : this.props.applicationLog
+                                                          .name
+                                                    ? this.props.applicationLog
+                                                          .name
                                                     : 'Unknown Application Log'
                                             }_${i}`}
                                             key={log._id}
@@ -223,16 +223,43 @@ class LogList extends Component {
                                                                                     </pre>
                                                                                 </span>
                                                                             ) : (
-                                                                                <div style={{ display:'flex', flexDirection: 'column', alignItems:'center'}}>
-                                                                                    <ShouldRender if={log.stringifiedContent}>
-                                                                                        <div style={{color:'black', backgroundColor:'#d2cfcf', padding: '10px', marginBottom: '5px'}} >
-                                                                                        <pre>
-                                                                                            {JSON.stringify(
-                                                                                                log.stringifiedContent,
-                                                                                                null,
-                                                                                                2
-                                                                                            ).substring(0,50)}
-                                                                                        </pre>
+                                                                                <div
+                                                                                    style={{
+                                                                                        display:
+                                                                                            'flex',
+                                                                                        flexDirection:
+                                                                                            'column',
+                                                                                        alignItems:
+                                                                                            'center',
+                                                                                    }}
+                                                                                >
+                                                                                    <ShouldRender
+                                                                                        if={
+                                                                                            log.stringifiedContent
+                                                                                        }
+                                                                                    >
+                                                                                        <div
+                                                                                            style={{
+                                                                                                color:
+                                                                                                    'black',
+                                                                                                backgroundColor:
+                                                                                                    '#d2cfcf',
+                                                                                                padding:
+                                                                                                    '10px',
+                                                                                                marginBottom:
+                                                                                                    '5px',
+                                                                                            }}
+                                                                                        >
+                                                                                            <pre>
+                                                                                                {JSON.stringify(
+                                                                                                    log.stringifiedContent,
+                                                                                                    null,
+                                                                                                    2
+                                                                                                ).substring(
+                                                                                                    0,
+                                                                                                    50
+                                                                                                )}
+                                                                                            </pre>
                                                                                         </div>
                                                                                     </ShouldRender>
                                                                                     <button
@@ -512,16 +539,20 @@ class LogList extends Component {
         );
     }
 }
+
+LogList.displayName = 'LogList';
+
 const mapDispatchToProps = dispatch => {
     return bindActionCreators({ openModal, closeModal, fetchLogs }, dispatch);
 };
 LogList.propTypes = {
     applicationLogId: PropTypes.string,
+    applicationLog: PropTypes.object,
     logs: PropTypes.object,
     openModal: PropTypes.func,
     fetchLogs: PropTypes.func,
-    prevClicked: PropTypes.func,
-    nextClicked: PropTypes.func,
+    startDate: PropTypes.instanceOf(moment),
+    endDate: PropTypes.instanceOf(moment),
 };
 function mapStateToProps(state, props) {
     const applicationLogId = props.applicationLog._id;

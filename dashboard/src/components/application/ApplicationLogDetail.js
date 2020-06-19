@@ -33,7 +33,7 @@ class ApplicationLogDetail extends Component {
             startDate: props.startDate,
             endDate: props.endDate,
             filters: [],
-            filter: {}
+            filter: {},
         };
     }
     handleDateTimeChange = value => {
@@ -42,7 +42,7 @@ class ApplicationLogDetail extends Component {
         if (startDate && endDate) {
             startDate = moment(startDate);
             endDate = moment(endDate);
-            this.setState(state => ({
+            this.setState(() => ({
                 startDate,
                 endDate,
             }));
@@ -105,15 +105,15 @@ class ApplicationLogDetail extends Component {
         }));
     };
     handleLogFilterChange = filter => {
-        if(!filter) return ;
+        if (!filter) return;
         let filters = this.state.filters;
         const exist = filters.filter(elem => elem.value === filter.value);
-        if(exist.length < 1) {
-            filters = [...this.state.filters, filter]
+        if (exist.length < 1) {
+            filters = [...this.state.filters, filter];
         }
-        this.setState(()=>({
+        this.setState(() => ({
             filters,
-            filter
+            filter,
         }));
     };
     render() {
@@ -125,7 +125,7 @@ class ApplicationLogDetail extends Component {
             endDate,
             logType,
             filters,
-            filter
+            filter,
         } = this.state;
         const {
             applicationLog,
@@ -290,7 +290,9 @@ class ApplicationLogDetail extends Component {
                                 componentId={componentId}
                                 handleDateTimeChange={this.handleDateTimeChange}
                                 handleLogTypeChange={this.handleLogTypeChange}
-                                handleLogFilterChange={this.handleLogFilterChange}
+                                handleLogFilterChange={
+                                    this.handleLogFilterChange
+                                }
                                 handleNewDateTimeChange={
                                     this.handleNewDateTimeChange
                                 }
@@ -317,7 +319,9 @@ class ApplicationLogDetail extends Component {
                                 componentId={componentId}
                                 handleDateTimeChange={this.handleDateTimeChange}
                                 handleLogTypeChange={this.handleLogTypeChange}
-                                handleLogFilterChange={this.handleLogFilterChange}
+                                handleLogFilterChange={
+                                    this.handleLogFilterChange
+                                }
                             />
                         </div>
                     </ShouldRender>
@@ -358,6 +362,14 @@ ApplicationLogDetail.propTypes = {
     currentProject: PropTypes.object,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
+    resetApplicationLogKey: PropTypes.func,
+    deleteApplicationLog: PropTypes.func,
+    setStartDate: PropTypes.func,
+    setEndDate: PropTypes.func,
+    fetchLogs: PropTypes.func,
+    isDetails: PropTypes.bool,
+    startDate: PropTypes.instanceOf(moment),
+    endDate: PropTypes.instanceOf(moment),
 };
 
 export default connect(
