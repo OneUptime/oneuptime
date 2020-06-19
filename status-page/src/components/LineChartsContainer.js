@@ -1,8 +1,16 @@
 import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import moment from 'moment';
 import { fetchMonitorLogs } from '../actions/status';
 import AreaChart from './areachart';
+
+const ChartContainer = ({ label, name, data }) => (
+    <Fragment>
+        {label}
+        <AreaChart name={name} data={data} />
+    </Fragment>
+);
 
 class LineChartsContainer extends React.Component {
     async componentDidMount() {
@@ -28,15 +36,12 @@ class LineChartsContainer extends React.Component {
     }
     render() {
         const { _id: monitorId } = this.props.monitor;
-        const monitorLogs = {
-            requesting: true,
-            name: this.props.name,
-            data: [],
-        };
+        let requesting = true;
+        let data = [];
         for (const log of this.props.logs) {
             if (log.monitorId === monitorId) {
-                monitorLogs.requesting = log.requesting;
-                monitorLogs.data = log.logs;
+                requesting = log.requesting;
+                data = log.logs;
                 break;
             }
         }
@@ -57,8 +62,36 @@ class LineChartsContainer extends React.Component {
 
         return (
             <Fragment>
-                {this.props.name}
-                <AreaChart {...monitorLogs} />
+                {this.props.selectedCharts.memory && (
+                    <ChartContainer label="Memory" name="memory" data={data} />
+                )}
+                {this.props.selectedCharts.cpu && (
+                    <ChartContainer label="Cpu" name="load" data={data} />
+                )}
+                {this.props.selectedCharts.storage && (
+                    <ChartContainer label="Storage" name="disk" data={data} />
+                )}
+                {this.props.selectedCharts.responseTime && (
+                    <ChartContainer
+                        label="Response time"
+                        name="response time"
+                        data={data}
+                    />
+                )}
+                {this.props.selectedCharts.temperature && (
+                    <ChartContainer
+                        label="Temperature"
+                        name="temperature"
+                        data={data}
+                    />
+                )}
+                {this.props.selectedCharts.runtime && (
+                    <ChartContainer
+                        label="Runtime"
+                        name="runtime"
+                        data={data}
+                    />
+                )}
             </Fragment>
         );
     }
