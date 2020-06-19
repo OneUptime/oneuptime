@@ -683,6 +683,17 @@ router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
     }
 });
 
+router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(req, res) {
+    try{
+        const {monitorId}=req.params;
+        const {startDate,endDate}=req.body;
+        const monitorLogs=await MonitorService.getMonitorLogsByDay(monitorId,startDate,endDate);
+        return sendListResponse(req, res, monitorLogs);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+})
+
 router.get('/:projectId/probes', checkUser, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
