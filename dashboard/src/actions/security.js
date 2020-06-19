@@ -515,6 +515,12 @@ export const scanApplicationSecurity = ({
             `security/${projectId}/application/scan/${applicationSecurityId}`
         );
         dispatch(scanApplicationSecuritySuccess(response.data));
+        dispatch(
+            getApplicationSecurities({
+                projectId,
+                componentId: response.data.componentId,
+            })
+        );
     } catch (error) {
         const errorMsg =
             error.response && error.response.data
