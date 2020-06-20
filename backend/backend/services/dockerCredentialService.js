@@ -99,17 +99,18 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let dockerCredential = this.findOneBy(query);
+            let dockerCredential = await this.findOneBy(query);
 
             if (!dockerCredential) {
                 const error = new Error(
                     'Docker Credential not found or does not exist'
                 );
                 error.code = 400;
+                ErrorService.log('dockerCredentialService.deleteBy', error);
                 throw error;
             }
 
-            dockerCredential = this.updateOneBy(query, {
+            dockerCredential = await this.updateOneBy(query, {
                 deleted: true,
                 deletedAt: Date.now(),
             });
