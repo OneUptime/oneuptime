@@ -182,4 +182,19 @@ describe('Application Security API', function() {
                 done();
             });
     });
+
+    it('should delete a particular application security', function(done) {
+        const authorization = `Basic ${token}`;
+
+        request
+            .delete(
+                `/security/${projectId}/${componentId}/application/${applicationSecurityId}`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.deleted).to.be.true;
+                done();
+            });
+    });
 });
