@@ -4,13 +4,14 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ApplicationSecurityService = require('../services/applicationSecurityService');
+const ProbeService = require('../services/probeService');
 
 const router = express.Router();
 
 //Route: POST
 //Description: creates a new application security
 //Param: req.params -> {projectId, componentId}
-//Param: req.body -> {name, gitRepositoryUrl, gitUsername, gitPassword}
+//Param: req.body -> {name, gitRepositoryUrl, gitCredential}
 //returns: response -> {applicationSecurity, error}
 router.post(
     '/:projectId/:componentId/application',
@@ -50,6 +51,44 @@ router.post(
             }
 
             const applicationSecurity = await ApplicationSecurityService.create(
+                data
+            );
+            return sendItemResponse(req, res, applicationSecurity);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+//Route: PUT
+//Description: updates a particular application security
+//Param: req.params -> {projectId, componentId, applicationSecurityId}
+//Param: req.body -> {name?, gitRepositoryUrl?, gitCredential?}
+//returns: response -> {applicationSecurity, error}
+router.put(
+    '/:projectId/:componentId/application/:applicationSecurityId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { componentId, applicationSecurityId } = req.params;
+            const { name, gitRepositoryUrl, gitCredential } = req.body;
+            const data = {};
+
+            if (name) {
+                data.name = name;
+            }
+
+            if (gitRepositoryUrl) {
+                data.gitRepositoryUrl = gitRepositoryUrl;
+            }
+
+            if (gitCredential) {
+                data.gitCredential = gitCredential;
+            }
+
+            const applicationSecurity = await ApplicationSecurityService.updateOneBy(
+                { _id: applicationSecurityId, componentId },
                 data
             );
             return sendItemResponse(req, res, applicationSecurity);
@@ -174,6 +213,44 @@ router.get(
             });
 
             return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+//Route: POST
+//Description: scan a particular application
+//Params: req.params -> {projectId, applicationSecurityId}
+//returns: response -> {sendItemResponse, sendErrorResponse}
+router.post(
+    '/:projectId/application/scan/:applicationSecurityId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { applicationSecurityId } = req.params;
+            let applicationSecurity = await ApplicationSecurityService.findOneBy(
+                { _id: applicationSecurityId }
+            );
+
+            if (!applicationSecurity) {
+                const error = new Error(
+                    'Application Security not found or does not exist'
+                );
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
+
+            // decrypt password
+            applicationSecurity = await ApplicationSecurityService.decryptPassword(
+                applicationSecurity
+            );
+
+            const securityLog = await ProbeService.scanApplicationSecurity(
+                applicationSecurity
+            );
+            return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

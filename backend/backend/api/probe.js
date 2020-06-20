@@ -7,6 +7,8 @@
 const express = require('express');
 const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
+const ApplicationSecurityService = require('../services/applicationSecurityService');
+const ContainerSecurityService = require('../services/containerSecurityService');
 const router = express.Router();
 const isAuthorizedAdmin = require('../middlewares/clusterAuthorization')
     .isAuthorizedAdmin;
@@ -209,5 +211,66 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.get('/applicationSecurities', isAuthorizedProbe, async function(
+    req,
+    res
+) {
+    try {
+        const response = await ApplicationSecurityService.getSecuritiesToScan();
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post(
+    '/scan/git/:applicationSecurityId',
+    isAuthorizedProbe,
+    async function(req, res) {
+        try {
+            let { security } = req.body;
+
+            security = await ApplicationSecurityService.decryptPassword(
+                security
+            );
+
+            const securityLog = await ProbeService.scanApplicationSecurity(
+                security
+            );
+            return sendItemResponse(req, res, securityLog);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get('/containerSecurities', isAuthorizedProbe, async function(req, res) {
+    try {
+        const response = await ContainerSecurityService.getSecuritiesToScan();
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post(
+    '/scan/docker/:containerSecurityId',
+    isAuthorizedProbe,
+    async function(req, res) {
+        try {
+            let { security } = req.body;
+
+            security = await ContainerSecurityService.decryptPassword(security);
+
+            const securityLog = await ProbeService.scanContainerSecurity(
+                security
+            );
+            return sendItemResponse(req, res, securityLog);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 module.exports = router;

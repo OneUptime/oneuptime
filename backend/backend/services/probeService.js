@@ -540,6 +540,281 @@ module.exports = {
         }
         return stat;
     },
+
+    scanApplicationSecurity: async security => {
+        try {
+            let securityDir = '/application_security_dir';
+            securityDir = createDir(securityDir);
+
+            const USER = security.gitCredential.gitUsername;
+            const PASS = security.gitCredential.gitPassword;
+            // format the url
+            const REPO = formatUrl(security.gitRepositoryUrl);
+            const remote = `https://${USER}:${PASS}@${REPO}`;
+            const cloneDirectory = `${uuidv1()}security`; // always create unique paths
+            const repoPath = Path.resolve(securityDir, cloneDirectory);
+
+            // update application security to scanned true
+            // to prevent pulling an applicaiton security multiple times by running cron job
+            // due to network delay
+            await ApplicationSecurityService.updateOneBy(
+                {
+                    _id: security._id,
+                },
+                { scanned: true }
+            );
+
+            return new Promise((resolve, reject) => {
+                git(securityDir)
+                    .silent(true)
+                    .clone(remote, cloneDirectory)
+                    .then(() => {
+                        const output = spawn('npm', ['install'], {
+                            cwd: repoPath,
+                        });
+                        output.on('error', error => {
+                            error.code = 500;
+                            throw error;
+                        });
+
+                        output.on('close', () => {
+                            let auditOutput = '';
+                            const audit = spawn('npm', ['audit', '--json'], {
+                                cwd: repoPath,
+                            });
+
+                            audit.on('error', error => {
+                                error.code = 500;
+                                throw error;
+                            });
+
+                            audit.stdout.on('data', data => {
+                                const strData = data.toString();
+                                auditOutput += strData;
+                            });
+
+                            audit.on('close', async () => {
+                                const advisories = [];
+                                auditOutput = JSON.parse(auditOutput); // parse the stringified json
+                                for (const key in auditOutput.advisories) {
+                                    advisories.push(
+                                        auditOutput.advisories[key]
+                                    );
+                                }
+
+                                const auditData = {
+                                    dependencies:
+                                        auditOutput.metadata.dependencies,
+                                    devDependencies:
+                                        auditOutput.metadata.devDependencies,
+                                    optionalDependencies:
+                                        auditOutput.metadata
+                                            .optionalDependencies,
+                                    totalDependencies:
+                                        auditOutput.metadata.totalDependencies,
+                                    vulnerabilities:
+                                        auditOutput.metadata.vulnerabilities,
+                                    advisories,
+                                };
+
+                                const securityLog = await ApplicationSecurityLogService.create(
+                                    {
+                                        securityId: security._id,
+                                        componentId: security.componentId._id,
+                                        data: auditData,
+                                    }
+                                );
+
+                                await ApplicationSecurityService.updateScanTime(
+                                    {
+                                        _id: security._id,
+                                    }
+                                );
+
+                                deleteFolderRecursive(securityDir);
+                                return resolve(securityLog);
+                            });
+                        });
+                    })
+                    .catch(async error => {
+                        await ApplicationSecurityService.updateOneBy(
+                            {
+                                _id: security._id,
+                            },
+                            { scanned: false }
+                        );
+                        deleteFolderRecursive(securityDir);
+                        ErrorService.log(
+                            'probeService.scanApplicationSecurity',
+                            error
+                        );
+                        error.code = 400;
+                        error.message =
+                            'Authentication failed please check your git credentials or git repository url';
+                        return reject(error);
+                    });
+            });
+        } catch (error) {
+            ErrorService.log('probeService.scanApplicationSecurity', error);
+            throw error;
+        }
+    },
+
+    scanContainerSecurity: async security => {
+        try {
+            const { imagePath, imageTags } = security;
+            const testPath = imageTags
+                ? `${imagePath}:${imageTags}`
+                : imagePath;
+            const outputFile = `${uuidv1()}results.json`;
+            let securityDir = '/container_security_dir';
+            securityDir = createDir(securityDir);
+
+            // update container security to scanned true
+            // so the cron job does not pull it multiple times due to network delays
+            // since the cron job runs every minute
+            await ContainerSecurityService.updateOneBy(
+                {
+                    _id: security._id,
+                },
+                { scanned: true }
+            );
+
+            return new Promise((resolve, reject) => {
+                // use trivy open source package to audit a container
+                const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
+                const clearCommand = `trivy image --clear-cache ${testPath}`;
+                let scanError = null;
+                let clearCacheError = null;
+
+                const output = exec(
+                    scanCommand,
+                    { cwd: securityDir },
+                    error => {
+                        if (error) {
+                            error.code = 400;
+                            error.message =
+                                'Scanning failed please check your docker credential or image path/tag';
+                            scanError = error;
+                        }
+                    }
+                );
+
+                output.on('close', async () => {
+                    if (scanError) {
+                        await ContainerSecurityService.updateOneBy(
+                            {
+                                _id: security._id,
+                            },
+                            { scanned: false }
+                        );
+                        deleteFolderRecursive(securityDir);
+                        return reject(scanError);
+                    }
+
+                    const clearCache = exec(
+                        clearCommand,
+                        { cwd: securityDir },
+                        error => {
+                            if (error) {
+                                error.code = 400;
+                                error.message =
+                                    'Unable to clear cache, try again later';
+                                clearCacheError = error;
+                            }
+                        }
+                    );
+
+                    clearCache.on('close', async () => {
+                        if (clearCacheError) {
+                            await ContainerSecurityService.updateOneBy(
+                                {
+                                    _id: security._id,
+                                },
+                                { scanned: false }
+                            );
+                            deleteFolderRecursive(securityDir);
+                            return reject(clearCacheError);
+                        }
+
+                        const filePath = Path.resolve(securityDir, outputFile);
+                        let auditLogs = await readFileContent(filePath);
+
+                        const auditData = {
+                            vulnerabilityInfo: {},
+                            vulnerabilityData: [],
+                        };
+                        const counter = {
+                            low: 0,
+                            moderate: 0,
+                            high: 0,
+                            critical: 0,
+                        };
+
+                        auditLogs = JSON.parse(auditLogs); // parse the stringified logs
+                        auditLogs.map(auditLog => {
+                            const log = {
+                                type: auditLog.Type,
+                                vulnerabilities: [],
+                            };
+
+                            auditLog.Vulnerabilities.map(vulnerability => {
+                                const vulObj = {
+                                    vulnerabilityId:
+                                        vulnerability.VulnerabilityID,
+                                    library: vulnerability.PkgName,
+                                    installedVersion:
+                                        vulnerability.InstalledVersion,
+                                    fixedVersions: vulnerability.FixedVersion,
+                                    title: vulnerability.Title,
+                                    description: vulnerability.Description,
+                                    severity: vulnerability.Severity,
+                                };
+                                log.vulnerabilities.push(vulObj);
+
+                                if (vulnerability.Severity === 'LOW') {
+                                    counter.low += 1;
+                                }
+                                if (vulnerability.Severity === 'MEDIUM') {
+                                    counter.moderate += 1;
+                                }
+                                if (vulnerability.Severity === 'HIGH') {
+                                    counter.high += 1;
+                                }
+                                if (vulnerability.Severity === 'CRITICAL') {
+                                    counter.critical += 1;
+                                }
+
+                                return vulnerability;
+                            });
+
+                            auditData.vulnerabilityData.push(log);
+                            return auditLog;
+                        });
+
+                        auditData.vulnerabilityInfo = counter;
+                        const securityLog = await ContainerSecurityLogService.create(
+                            {
+                                securityId: security._id,
+                                componentId: security.componentId._id,
+                                data: auditData,
+                            }
+                        );
+
+                        await ContainerSecurityService.updateScanTime({
+                            _id: security._id,
+                        });
+
+                        deleteFolderRecursive(securityDir);
+                        resolve(securityLog);
+                    });
+                });
+            });
+        } catch (error) {
+            ErrorService.log('probeService.scanContainerSecurity', error);
+            throw error;
+        }
+    },
 };
 
 const _ = require('lodash');
@@ -1873,6 +2148,72 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
     return validity;
 };
 
+function createDir(dirPath) {
+    const workPath = process.cwd() + dirPath;
+
+    if (fs.existsSync(workPath)) {
+        return workPath;
+    }
+
+    fs.mkdir(workPath, { recursive: true }, error => {
+        if (error) throw error;
+    });
+
+    return workPath;
+}
+
+function deleteFolderRecursive(path) {
+    if (fs.existsSync(path)) {
+        fs.readdirSync(path).forEach(file => {
+            const curPath = Path.join(path, file);
+            if (fs.lstatSync(curPath).isDirectory()) {
+                // recurse
+                deleteFolderRecursive(curPath);
+            } else {
+                // delete file
+                fs.unlinkSync(curPath);
+            }
+        });
+        fs.rmdirSync(path);
+    }
+}
+
+function readFileContent(filePath) {
+    return new Promise((resolve, reject) => {
+        fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
+            if (error) {
+                reject(error);
+            }
+            resolve(data);
+        });
+    });
+}
+
+function formatUrl(url) {
+    // remove https://www. from url
+    if (url.indexOf('https://www.') === 0) {
+        return url.slice(12);
+    }
+    // remove http://www. from url
+    if (url.indexOf('http://www.') === 0) {
+        return url.slice(11);
+    }
+    // remove https:// from url
+    if (url.indexOf('https://') === 0) {
+        return url.slice(8);
+    }
+    // remove http:// from url
+    if (url.indexOf('http://') === 0) {
+        return url.slice(7);
+    }
+    // remove www. from url
+    if (url.indexOf('www.') === 0) {
+        return url.slice(4);
+    }
+
+    return url;
+}
+
 const ProbeModel = require('../models/probe');
 const RealTimeService = require('./realTimeService');
 const ErrorService = require('./errorService');
@@ -1884,3 +2225,11 @@ const LighthouseLogService = require('./lighthouseLogService');
 const IncidentService = require('./incidentService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const moment = require('moment');
+const git = require('simple-git/promise');
+const fs = require('fs');
+const { spawn, exec } = require('child_process');
+const Path = require('path');
+const ApplicationSecurityLogService = require('./applicationSecurityLogService');
+const ApplicationSecurityService = require('./applicationSecurityService');
+const ContainerSecurityService = require('./containerSecurityService');
+const ContainerSecurityLogService = require('./containerSecurityLogService');

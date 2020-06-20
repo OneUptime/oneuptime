@@ -26,7 +26,12 @@ class GitCredential extends Component {
     }
 
     render() {
-        const { projectId, gitCredentials, getError } = this.props;
+        const {
+            projectId,
+            gitCredentials,
+            getError,
+            isRequesting,
+        } = this.props;
 
         return (
             <Dashboard>
@@ -39,6 +44,7 @@ class GitCredential extends Component {
                                         gitCredentials={gitCredentials}
                                         error={getError}
                                         projectId={projectId}
+                                        isRequesting={isRequesting}
                                     />
                                 </span>
                             </div>
@@ -60,6 +66,7 @@ GitCredential.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    isRequesting: PropTypes.bool,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -69,6 +76,7 @@ const mapStateToProps = (state, ownProps) => {
         projectId,
         gitCredentials: state.credential.gitCredentials,
         getError: state.credential.getCredential.error,
+        isRequesting: state.credential.getCredential.requesting,
     };
 };
 

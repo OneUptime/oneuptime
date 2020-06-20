@@ -20,7 +20,7 @@ function Badge({ children, color = 'green', ...props }) {
 Badge.displayName = 'Badge';
 
 Badge.propTypes = {
-    children: PropTypes.string,
+    children: PropTypes.oneOfType([PropTypes.string, PropTypes.array]),
     color: PropTypes.string,
     id: PropTypes.string,
 };

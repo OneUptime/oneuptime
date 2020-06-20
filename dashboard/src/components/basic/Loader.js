@@ -59,7 +59,8 @@ export const TeamListLoader = () => (
 
 TeamListLoader.displayName = 'TeamListLoader';
 
-export const Spinner = () => (
+// eslint-disable-next-line react/prop-types
+export const Spinner = ({ style }) => (
     <div className="Spinner bs-SpinnerLegacy Spinner--color--white Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center">
         <svg
             viewBox="0 0 24 24"
@@ -72,6 +73,7 @@ export const Spinner = () => (
                 rx={10}
                 ry={10}
                 className="Spinner-ellipse"
+                style={{ ...style }}
             />
         </svg>
     </div>

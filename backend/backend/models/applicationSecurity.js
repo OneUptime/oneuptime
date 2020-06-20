@@ -16,6 +16,8 @@ const applicationSecuritySchema = new Schema(
             default: false,
         },
         deletedAt: Date,
+        lastScan: Date,
+        scanned: { type: Boolean, default: false },
     },
     { timestamps: true } //automatically adds createdAt and updatedAt to the schema
 );
