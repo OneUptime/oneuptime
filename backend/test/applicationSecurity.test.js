@@ -5,6 +5,7 @@ process.env.IS_SAAS_SERVICE = true;
 const chai = require('chai');
 const expect = require('chai').expect;
 const userData = require('./data/user');
+const gitCredential = require('./data/gitCredential');
 const app = require('../server');
 chai.use(require('chai-http'));
 const request = chai.request.agent(app);
@@ -89,14 +90,14 @@ describe('Application Security API', function() {
         const authorization = `Basic ${token}`;
 
         GitCredentialService.create({
-            gitUsername: 'username',
-            gitPassword: 'password',
+            gitUsername: gitCredential.gitUsername,
+            gitPassword: gitCredential.gitPassword,
             projectId,
         }).then(function(credential) {
             credentialId = credential._id;
             const data = {
                 name: 'Test',
-                gitRepositoryUrl: 'https://github.com',
+                gitRepositoryUrl: gitCredential.gitRepositoryUrl,
                 gitCredential: credential._id,
             };
 
@@ -179,6 +180,21 @@ describe('Application Security API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
+                done();
+            });
+    });
+
+    it('should scan an application security', function(done) {
+        this.timeout(300000);
+        const authorization = `Basic ${token}`;
+
+        request
+            .post(
+                `/security/${projectId}/application/scan/${applicationSecurityId}`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
                 done();
             });
     });
