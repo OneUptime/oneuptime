@@ -63,7 +63,7 @@ module.exports = {
 
             const encryptedPassword = await encrypt(gitPassword);
 
-            const response = GitCredentialModel.create({
+            const response = await GitCredentialModel.create({
                 gitUsername,
                 gitPassword: encryptedPassword,
                 projectId,
@@ -80,7 +80,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const gitCredential = GitCredentialModel.findOneAndUpdate(
+            const gitCredential = await GitCredentialModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -104,7 +104,7 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let gitCredential = this.findOneBy(query);
+            let gitCredential = await this.findOneBy(query);
 
             if (!gitCredential) {
                 const error = new Error(
@@ -114,7 +114,7 @@ module.exports = {
                 throw error;
             }
 
-            gitCredential = this.updateOneBy(query, {
+            gitCredential = await this.updateOneBy(query, {
                 deleted: true,
                 deletedAt: Date.now(),
             });
