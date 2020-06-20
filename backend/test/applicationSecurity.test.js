@@ -15,6 +15,7 @@ const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const ComponentService = require('../backend/services/componentService');
 const GitCredentialService = require('../backend/services/gitCredentialService');
+const ApplicationSecurities = require('../backend/services/applicationSecurityService');
 
 describe('Application Security API', function() {
     const timeout = 30000;
@@ -75,9 +76,8 @@ describe('Application Security API', function() {
             email: userData.user.email,
         });
         await ComponentService.hardDeleteBy({ projectId });
-        await GitCredentialService.hardDeleteBy({
-            projectId,
-        });
+        await GitCredentialService.hardDeleteBy({ projectId });
+        await ApplicationSecurities.hardDelete({ componentId });
     });
 
     it('should create an application security', function(done) {
@@ -99,7 +99,7 @@ describe('Application Security API', function() {
                 .set('Authorization', authorization)
                 .send(data)
                 .end(function(err, res) {
-                    projectId = res.body._id;
+                    applicationSecurityId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body.componentId).to.be.equal(componentId);
                     expect(res.body.name).to.be.equal(data.name);
@@ -112,5 +112,22 @@ describe('Application Security API', function() {
                     done();
                 });
         });
+    });
+
+    it('should update an application security', function(done) {
+        const authorization = `Basic ${token}`;
+        const update = { name: 'newname' };
+
+        request
+            .put(
+                `/security/${projectId}/${componentId}/application/${applicationSecurityId}`
+            )
+            .set('Authorization', authorization)
+            .send(update)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal(update.name);
+                done();
+            });
     });
 });
