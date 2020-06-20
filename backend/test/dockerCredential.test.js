@@ -57,7 +57,10 @@ describe('Docker Credential API', function() {
         await UserService.hardDeleteBy({
             email: userData.user.email,
         });
-        await DockerCredentialService.hardDeleteBy({ _id: credentialId });
+        await DockerCredentialService.hardDeleteBy({
+            _id: credentialId,
+            dockerUsername: 'username',
+        });
     });
 
     it('should add docker credential', function(done) {
@@ -95,6 +98,32 @@ describe('Docker Credential API', function() {
                 expect(res.body._id).to.be.equal(credentialId);
                 expect(res.body.deleted).to.be.true;
                 done();
+            });
+    });
+
+    it('should get all the docker credentials in a project', function(done) {
+        const authorization = `Basic ${token}`;
+        const dockerRegistryUrl = 'https://dockerhub.com/reactjs';
+        const dockerUsername = 'username';
+        const dockerPassword = 'password';
+
+        request
+            .post(`/credential/${projectId}/dockerCredential`)
+            .set('Authorization', authorization)
+            .send({
+                dockerRegistryUrl,
+                dockerUsername,
+                dockerPassword,
+            })
+            .end(function() {
+                request
+                    .get(`/credential/${projectId}/dockerCredential`)
+                    .set('Authorization', authorization)
+                    .end(function(err, res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.be.an('array');
+                        done();
+                    });
             });
     });
 });
