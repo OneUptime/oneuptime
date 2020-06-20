@@ -130,4 +130,24 @@ describe('Application Security API', function() {
                 done();
             });
     });
+
+    it('should get a particular application security in a component', function(done) {
+        const authorization = `Basic ${token}`;
+
+        request
+            .get(
+                `/security/${projectId}/${componentId}/application/${applicationSecurityId}`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(String(res.body._id)).to.be.equal(
+                    String(applicationSecurityId)
+                );
+                expect(String(res.body.componentId._id)).to.be.equal(
+                    String(componentId)
+                );
+                done();
+            });
+    });
 });
