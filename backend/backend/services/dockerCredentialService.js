@@ -120,4 +120,13 @@ module.exports = {
             throw error;
         }
     },
+    hardDeleteBy: async function({ query }) {
+        try {
+            await DockerCredentialModel.deleteMany(query);
+            return 'Docker credential(s) successfully deleted';
+        } catch (error) {
+            ErrorService.log('dockerCredentialService.hardDeleteBy', error);
+            throw error;
+        }
+    },
 };
