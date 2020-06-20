@@ -192,3 +192,78 @@ export function deleteSubscriber(projectId, subscriberId) {
         return promise;
     };
 }
+
+// Import subscriber from csv
+export const downloadCsvTemplateRequest = () => {
+    return {
+        type: types.DOWNLOAD_CSV_TEMPLATE_REQUEST,
+    };
+};
+
+export const downloadCsvTemplateError = error => {
+    return {
+        type: types.DOWNLOAD_CSV_TEMPLATE_FAILED,
+        payload: error,
+    };
+};
+
+export const downloadCsvTemplateSuccess = () => {
+    return {
+        type: types.DOWNLOAD_CSV_TEMPLATE_SUCCESS,
+    };
+};
+
+/**
+ * Downloads a CSV template
+ */
+export function downloadCsvTemplate() {
+    const fields =
+        'alertVia,contactEmail,contactPhone,countryCode,contactWebhook\nsms,,123456700,us,\nemail,sampleemail@sample.com,,,\nwebhook,sampleemail1@sample.com,,,samplewebhook.com';
+    return function(dispatch) {
+        dispatch(downloadCsvTemplateRequest());
+        try {
+            saveFile(fields, 'subscribers.csv');
+            dispatch(downloadCsvTemplateSuccess());
+        } catch (error) {
+            dispatch(downloadCsvTemplateError(error));
+        }
+    };
+}
+
+/**
+ * Imports data from a csv file
+ * @param {*} data
+ * @param {*} projectId
+ * @param {*} monitorId
+ */
+export function importSubscribersFromCsvFile(data, projectId, monitorId) {
+    return function(dispatch) {
+        const promise = postApi(
+            `subscriber/${projectId}/${monitorId}/csv`,
+            data
+        );
+
+        dispatch(createSubscriberRequest(promise));
+
+        promise.then(
+            function(createSubscriber) {
+                dispatch(createSubscriberSuccess(createSubscriber.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(createSubscriberError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}

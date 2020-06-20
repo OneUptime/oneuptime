@@ -339,4 +339,23 @@ router.delete('/:projectId/:subscriberId', getUser, async function(req, res) {
     }
 });
 
+router.post('/:projectId/:monitorId/csv', async function(req, res) {
+    try {
+        const data = req.body;
+        data.projectId = req.params.projectId;
+        data.monitorId = req.params.monitorId;
+
+        if (data.data.length === 0) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Empty files submitted',
+            });
+        }
+        const result = await SubscriberService.subscribeFromCSVFile(data);
+        return sendItemResponse(req, res, result);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;

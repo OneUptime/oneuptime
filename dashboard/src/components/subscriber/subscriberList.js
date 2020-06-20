@@ -7,8 +7,18 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { deleteSubscriber } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
+import { fetchMonitorsSubscribers } from '../../actions/monitor';
 
 export class SubscriberList extends Component {
+    componentDidMount() {
+        const {
+            subProjectId,
+            monitorId,
+            fetchMonitorsSubscribers,
+        } = this.props;
+        fetchMonitorsSubscribers(subProjectId, monitorId, 0, 5);
+    }
+
     render() {
         const monitor = this.props.monitorState.monitorsList.monitors
             .map(monitor =>
@@ -451,7 +461,10 @@ export class SubscriberList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ deleteSubscriber }, dispatch);
+    return bindActionCreators(
+        { deleteSubscriber, fetchMonitorsSubscribers },
+        dispatch
+    );
 };
 
 function mapStateToProps(state) {
@@ -471,6 +484,8 @@ SubscriberList.propTypes = {
     monitorId: PropTypes.string.isRequired,
     delete: PropTypes.bool.isRequired,
     deleteSubscriber: PropTypes.func.isRequired,
+    fetchMonitorsSubscribers: PropTypes.func,
+    subProjectId: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubscriberList);
