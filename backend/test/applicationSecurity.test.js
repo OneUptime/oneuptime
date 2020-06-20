@@ -199,6 +199,50 @@ describe('Application Security API', function() {
             });
     });
 
+    it('should not create an application security if name already exist in the component', function(done) {
+        const authorization = `Basic ${token}`;
+
+        const data = {
+            name: 'newname',
+            gitRepositoryUrl: 'https://github.com',
+            gitCredential: credentialId,
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/application`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Application security with this name already exist in this component'
+                );
+                done();
+            });
+    });
+
+    it('should not create an application security if git repository url already exist in the component', function(done) {
+        const authorization = `Basic ${token}`;
+
+        const data = {
+            name: 'anothername',
+            gitRepositoryUrl: gitCredential.gitRepositoryUrl,
+            gitCredential: credentialId,
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/application`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Application security with this git repository url already exist in this component'
+                );
+                done();
+            });
+    });
+
     it('should delete a particular application security', function(done) {
         const authorization = `Basic ${token}`;
 
@@ -210,6 +254,72 @@ describe('Application Security API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.deleted).to.be.true;
+                done();
+            });
+    });
+
+    it('should not create an application security if name is missing', function(done) {
+        const authorization = `Basic ${token}`;
+
+        const data = {
+            name: '',
+            gitRepositoryUrl: gitCredential.gitRepositoryUrl,
+            gitCredential: credentialId,
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/application`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Application Security Name is required'
+                );
+                done();
+            });
+    });
+
+    it('should not create an application security if git repository url is missing', function(done) {
+        const authorization = `Basic ${token}`;
+
+        const data = {
+            name: 'AnotherTest',
+            gitRepositoryUrl: '',
+            gitCredential: credentialId,
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/application`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Git Repository URL is required'
+                );
+                done();
+            });
+    });
+
+    it('should not create an application security if git credential is missing', function(done) {
+        const authorization = `Basic ${token}`;
+
+        const data = {
+            name: 'AnotherTest',
+            gitRepositoryUrl: gitCredential.gitRepositoryUrl,
+            gitCredential: '',
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/application`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Git Credential is required'
+                );
                 done();
             });
     });
