@@ -224,7 +224,6 @@ describe('Docker Credential API', function() {
             .delete(`/credential/${projectId}/dockerCredential/${newCredentialId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                console.log(res.body);
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Docker Credential not found or does not exist'
