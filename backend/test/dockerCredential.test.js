@@ -23,7 +23,7 @@ describe('Docker Credential API', function() {
     before(function(done) {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
-                let project = res.body.project;
+                const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
@@ -221,7 +221,9 @@ describe('Docker Credential API', function() {
         const newCredentialId = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id
 
         request
-            .delete(`/credential/${projectId}/dockerCredential/${newCredentialId}`)
+            .delete(
+                `/credential/${projectId}/dockerCredential/${newCredentialId}`
+            )
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(400);

@@ -23,7 +23,7 @@ describe('Git Credential API', function() {
     before(function(done) {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
-                let project = res.body.project;
+                const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
