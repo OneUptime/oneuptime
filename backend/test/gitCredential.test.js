@@ -58,7 +58,7 @@ describe('Git Credential API', function() {
             email: userData.user.email,
         });
         await GitCredentialService.hardDeleteBy({
-            gitUsername: 'username',
+            projectId,
         });
     });
 

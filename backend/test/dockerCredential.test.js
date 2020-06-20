@@ -58,7 +58,7 @@ describe('Docker Credential API', function() {
             email: userData.user.email,
         });
         await DockerCredentialService.hardDeleteBy({
-            dockerUsername: 'username',
+            projectId,
         });
     });
 
