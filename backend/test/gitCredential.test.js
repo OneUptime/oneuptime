@@ -77,10 +77,32 @@ describe('Docker Credential API', function() {
             .end(function(err, res) {
                 credentialId = res.body._id;
                 expect(res).to.have.status(200);
-                expect(res.body.gitUsername).to.be.equal(
-                    gitUsername
-                );
+                expect(res.body.gitUsername).to.be.equal(gitUsername);
                 done();
+            });
+    });
+
+    it('should get all the git credentials in a project', function(done) {
+        const authorization = `Basic ${token}`;
+        const gitUsername = 'anotherUsername';
+        const gitPassword = 'password';
+
+        request
+            .post(`/credential/${projectId}/gitCredential`)
+            .set('Authorization', authorization)
+            .send({
+                gitUsername,
+                gitPassword,
+            })
+            .end(function() {
+                request
+                    .get(`/credential/${projectId}/gitCredential`)
+                    .set('Authorization', authorization)
+                    .end(function(err, res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.be.an('array');
+                        done();
+                    });
             });
     });
 });
