@@ -105,4 +105,18 @@ describe('Docker Credential API', function() {
                     });
             });
     });
+
+    it('should remove a git credential', function(done) {
+        const authorization = `Basic ${token}`;
+
+        request
+            .delete(`/credential/${projectId}/gitCredential/${credentialId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body._id).to.be.equal(credentialId);
+                expect(res.body.deleted).to.be.true;
+                done();
+            });
+    });
 });
