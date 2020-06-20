@@ -2,6 +2,7 @@ try {
     require('./alert.test');
     require('./dockerCredential.test');
     require('./gitCredential.test');
+    require('./applicationSecurity.test');
     require('./adminCredentials.test');
     require('./auditLogs.test');
     require('./emailSmtp.test');
