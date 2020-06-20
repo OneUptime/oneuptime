@@ -19,7 +19,12 @@ const ApplicationSecurities = require('../backend/services/applicationSecuritySe
 
 describe('Application Security API', function() {
     const timeout = 30000;
-    let projectId, componentId, userId, token, applicationSecurityId;
+    let projectId,
+        componentId,
+        userId,
+        token,
+        applicationSecurityId,
+        credentialId;
 
     this.timeout(timeout);
     before(function(done) {
@@ -88,6 +93,7 @@ describe('Application Security API', function() {
             gitPassword: 'password',
             projectId,
         }).then(function(credential) {
+            credentialId = credential._id;
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: 'https://github.com',
@@ -155,9 +161,20 @@ describe('Application Security API', function() {
         const authorization = `Basic ${token}`;
 
         request
-            .get(
-                `/security/${projectId}/${componentId}/application`
-            )
+            .get(`/security/${projectId}/${componentId}/application`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                done();
+            });
+    });
+
+    it('should get all the application security with a particular credential', function(done) {
+        const authorization = `Basic ${token}`;
+
+        request
+            .get(`/security/${projectId}/application/${credentialId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
