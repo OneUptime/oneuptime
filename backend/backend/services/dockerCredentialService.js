@@ -121,7 +121,7 @@ module.exports = {
             throw error;
         }
     },
-    hardDeleteBy: async function({ query }) {
+    hardDeleteBy: async function(query) {
         try {
             await DockerCredentialModel.deleteMany(query);
             return 'Docker credential(s) successfully deleted';

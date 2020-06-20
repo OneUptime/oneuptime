@@ -125,7 +125,7 @@ module.exports = {
             throw error;
         }
     },
-    hardDeleteBy: async function({ query }) {
+    hardDeleteBy: async function(query) {
         try {
             await GitCredentialModel.deleteMany(query);
             return 'Git credential(s) successfully deleted';
