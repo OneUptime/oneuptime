@@ -117,10 +117,10 @@ const ApplicationSecurityView = ({
                                 className="bs-Fieldset-row"
                                 style={{ padding: 0 }}
                             >
-                                <label className="Text-fontWeight--medium">
-                                    Last Scan:
-                                </label>
                                 <ShouldRender if={applicationSecurity.lastScan}>
+                                    <label className="Text-fontWeight--medium">
+                                        Last Scan:
+                                    </label>
                                     <div className="Margin-left--2">
                                         <span className="value">{`${moment(
                                             applicationSecurity.lastScan
@@ -129,13 +129,6 @@ const ApplicationSecurityView = ({
                                         ).format(
                                             'MMMM Do YYYY, h:mm:ss a'
                                         )})`}</span>
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={!applicationSecurity.lastScan}
-                                >
-                                    <div className="Margin-left--2">
-                                        <span>will display soon</span>
                                     </div>
                                 </ShouldRender>
                             </div>

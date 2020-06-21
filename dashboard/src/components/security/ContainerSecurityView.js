@@ -117,10 +117,10 @@ const ContainerSecurityView = ({
                                 className="bs-Fieldset-row"
                                 style={{ padding: 0 }}
                             >
-                                <label className="Text-fontWeight--medium">
-                                    Last Scan:
-                                </label>
                                 <ShouldRender if={containerSecurity.lastScan}>
+                                    <label className="Text-fontWeight--medium">
+                                        Last Scan:
+                                    </label>
                                     <div className="Margin-left--2">
                                         <span className="value">{`${moment(
                                             containerSecurity.lastScan
@@ -129,11 +129,6 @@ const ContainerSecurityView = ({
                                         ).format(
                                             'MMMM Do YYYY, h:mm:ss a'
                                         )})`}</span>
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender if={!containerSecurity.lastScan}>
-                                    <div className="Margin-left--2">
-                                        <span>will display soon</span>
                                     </div>
                                 </ShouldRender>
                             </div>
