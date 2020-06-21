@@ -191,7 +191,7 @@ class ContainerSecurityForm extends Component {
                                                             type="text"
                                                             name="imagePath"
                                                             id="imagePath"
-                                                            placeholder="Image path"
+                                                            placeholder="fyipeproject/home"
                                                             disabled={
                                                                 addingContainer
                                                             }
@@ -214,7 +214,7 @@ class ContainerSecurityForm extends Component {
                                                             type="text"
                                                             name="imageTags"
                                                             id="imageTags"
-                                                            placeholder="Image tags"
+                                                            placeholder="latest"
                                                             disabled={
                                                                 addingContainer
                                                             }
