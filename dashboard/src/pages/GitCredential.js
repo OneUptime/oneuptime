@@ -7,6 +7,8 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { getGitCredentials } from '../actions/credential';
 import GitCredentialList from '../components/credential/GitCredentialList';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class GitCredential extends Component {
     constructor(props) {
@@ -31,10 +33,16 @@ class GitCredential extends Component {
             gitCredentials,
             getError,
             isRequesting,
+            location: { pathname },
         } = this.props;
 
         return (
             <Dashboard>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Git Credentials" />
                 <div className="Margin-vertical--12">
                     <div>
                         <div className="db-BackboneViewContainer">
@@ -67,6 +75,9 @@ GitCredential.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     isRequesting: PropTypes.bool,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 const mapStateToProps = (state, ownProps) => {
