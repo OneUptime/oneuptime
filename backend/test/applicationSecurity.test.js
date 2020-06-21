@@ -323,4 +323,22 @@ describe('Application Security API', function() {
                 done();
             });
     });
+
+    it('should not scan an application security if it does not exist', function(done) {
+        const authorization = `Basic ${token}`;
+        const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
+
+        request
+            .post(
+                `/security/${projectId}/application/scan/${applicationSecurityId}`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Application Security not found or does not exist'
+                );
+                done();
+            });
+    });
 });
