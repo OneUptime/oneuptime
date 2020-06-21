@@ -176,7 +176,7 @@ const SecurityInfo = ({
                                 </button>
                             )}
                             <button
-                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help"
+                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--more"
                                 type="button"
                                 onClick={more}
                             >
