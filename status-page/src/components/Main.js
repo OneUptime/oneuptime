@@ -624,9 +624,12 @@ class Main extends Component {
                 )}
 
                 <ShouldRender
-                    if={this.props.status && this.props.status.requesting}
+                    if={
+                        this.props.status &&
+                        (this.props.status.requesting ||
+                            this.props.status.logs.some(log => log.requesting))
+                    }
                 >
-                    <div> error</div>
                     <div
                         id="app-loading"
                         style={{
