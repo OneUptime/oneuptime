@@ -8,7 +8,7 @@ import AreaChart from './areachart';
 
 const ChartContainer = ({ label, name, data }) => (
     <Fragment>
-        {label}
+        <span style={{ fontSize: '13px' }}>{label}</span>
         <AreaChart name={name} data={data} />
     </Fragment>
 );

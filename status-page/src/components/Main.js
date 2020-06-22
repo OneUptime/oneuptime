@@ -2,7 +2,7 @@ import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import UptimeLegend from './UptimeLegend';
 import NoMonitor from './NoMonitor';
-import UptimeGraphs from './UptimeGraphs';
+import MonitorInfo from './MonitorInfo';
 import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
@@ -185,7 +185,7 @@ class Main extends Component {
                         </div>
                         {groupedMonitors.map((monitor, i) => {
                             return (
-                                <UptimeGraphs
+                                <MonitorInfo
                                     monitor={monitor}
                                     key={i}
                                     id={`monitor${i}`}
@@ -451,12 +451,18 @@ class Main extends Component {
                                                                 {this.props.monitors.some(
                                                                     m =>
                                                                         monitor._id ===
-                                                                            m.monitor &&
-                                                                        m.uptime
+                                                                        m.monitor
                                                                 ) && (
-                                                                    <UptimeGraphs
+                                                                    <MonitorInfo
                                                                         monitor={
                                                                             monitor
+                                                                        }
+                                                                        selectedCharts={
+                                                                            this.props.monitors.filter(
+                                                                                m =>
+                                                                                    monitor._id ===
+                                                                                    m.monitor
+                                                                            )[0]
                                                                         }
                                                                         key={`uptime-${i}`}
                                                                         id={`monitor${i}`}
