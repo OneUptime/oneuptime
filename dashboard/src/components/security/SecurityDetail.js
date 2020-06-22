@@ -49,7 +49,7 @@ const SecurityDetail = ({
                                     <div className="db-Trend-col db-Trend-colValue">
                                         <span>
                                             {' '}
-                                            <span className="chart-font">
+                                            <span className="chart-font Text-color--red">
                                                 {vulnerabilities.critical}
                                             </span>
                                         </span>
@@ -71,7 +71,7 @@ const SecurityDetail = ({
                                     <div className="db-Trend-col db-Trend-colValue">
                                         <span>
                                             {' '}
-                                            <span className="chart-font">
+                                            <span className="chart-font Text-color--red">
                                                 {vulnerabilities.high}
                                             </span>
                                         </span>
@@ -93,7 +93,7 @@ const SecurityDetail = ({
                                     <div className="db-Trend-col db-Trend-colValue">
                                         <span>
                                             {' '}
-                                            <span className="chart-font">
+                                            <span className="chart-font Text-color--yellow">
                                                 {vulnerabilities.moderate}
                                             </span>
                                         </span>
@@ -115,7 +115,7 @@ const SecurityDetail = ({
                                     <div className="db-Trend-col db-Trend-colValue">
                                         <span>
                                             {' '}
-                                            <span className="chart-font">
+                                            <span className="chart-font Text-color--green">
                                                 {vulnerabilities.low}
                                             </span>
                                         </span>
