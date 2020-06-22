@@ -196,4 +196,109 @@ describe('Container Security API', function() {
                 done();
             });
     });
+
+    it('should not create a container security if name already exist in the component', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = {
+            name: 'Container Test',
+            dockerCredential: credentialId,
+            imagePath: dockerCredential.imagePath,
+            imageTags: dockerCredential.imageTags,
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/container`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Container security with this name already exist in this component'
+                );
+                done();
+            });
+    });
+
+    it('should not create a container security if image path already exist in the component', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = {
+            name: 'Another Container',
+            dockerCredential: credentialId,
+            imagePath: dockerCredential.imagePath,
+            imageTags: dockerCredential.imageTags,
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/container`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Container security with this image path already exist in this component'
+                );
+                done();
+            });
+    });
+
+    it('should not create a container security if name is missing or undefined in the request body', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = {
+            dockerCredential: credentialId,
+            imagePath: dockerCredential.imagePath,
+            imageTags: dockerCredential.imageTags,
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/container`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Container Security Name is required'
+                );
+                done();
+            });
+    });
+
+    it('should not create a container security if image path is missing or undefined in the request body', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = {
+            name: 'Another Container',
+            dockerCredential: credentialId,
+            imageTags: dockerCredential.imageTags,
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/container`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('Image Path is required');
+                done();
+            });
+    });
+
+    it('should not create a container security if dockerCredential is missing or undefined in the request body', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = {
+            name: 'Another Container',
+            imagePath: dockerCredential.imagePath,
+            imageTags: dockerCredential.imageTags,
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/container`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Docker Credential is required'
+                );
+                done();
+            });
+    });
 });
