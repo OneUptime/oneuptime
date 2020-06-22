@@ -143,9 +143,8 @@ export class SecurityLog extends Component {
                                                         >
                                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                                 <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    {
-                                                                        advisory.recommendation
-                                                                    }
+                                                                    {advisory.recommendation ||
+                                                                        'No resolution available at this point in time'}
                                                                 </span>
                                                             </div>
                                                         </td>
