@@ -43,7 +43,7 @@ class DateTimeRangeSelector extends React.Component {
                                 className="db-DateRangeInput-start"
                                 style={{ padding: '3px' }}
                             >
-                                {this.state.start.format('ll')}
+                                {this.state.start.format('lll')}
                             </span>
                             <span
                                 className="db-DateRangeInput-input-arrow"
@@ -53,7 +53,7 @@ class DateTimeRangeSelector extends React.Component {
                                 className="db-DateRangeInput-end"
                                 style={{ padding: '3px' }}
                             >
-                                {this.state.end.format('ll')}
+                                {this.state.end.format('lll')}
                             </span>
                         </div>
                     </div>

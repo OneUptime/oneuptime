@@ -4,6 +4,7 @@ import Select from '../../components/basic/react-select-fyipe';
 import FilterSelect from './FilterSelect';
 import PropTypes from 'prop-types';
 import DateTimeRangeSelector from '../basic/DateTimeRangeSelector';
+import SearchBox from '../basic/SearchBox';
 
 class ApplicationLogDetailView extends Component {
     render() {
@@ -42,65 +43,73 @@ class ApplicationLogDetailView extends Component {
                                                 <div></div>
                                             </div>
                                         </div>
-
-                                        <div className="Box-root Flex-flex Flex-justifyContent--spaceBetween Padding-top--8">
-                                            <DateTimeRangeSelector
-                                                onChange={handleDateTimeChange}
-                                            />
-                                            <div
-                                                style={{
-                                                    height: '28px',
-                                                }}
-                                                className="db-Trends-timeControls"
-                                            >
-                                                <FilterSelect
-                                                    name="probe_selector"
-                                                    value={filter}
+                                        <div className="db-Trends-controls">
+                                            <SearchBox />
+                                        </div>
+                                        <div className="db-Trends-controls">
+                                            <div className="db-Trends-timeControls Padding-all--4 Margin-all--2">
+                                                <DateTimeRangeSelector
                                                     onChange={
-                                                        handleLogFilterChange
+                                                        handleDateTimeChange
                                                     }
-                                                    placeholder="Filter By"
-                                                    className="db-select-pr"
-                                                    id="log_type_selector"
-                                                    isDisabled={
-                                                        !(
-                                                            applicationLog &&
-                                                            !applicationLog.requesting
-                                                        )
-                                                    }
-                                                    style={{
-                                                        height: '28px',
-                                                    }}
-                                                    options={filters}
                                                 />
                                             </div>
-
-                                            <div
-                                                style={{
-                                                    height: '28px',
-                                                }}
-                                                className="db-Trends-timeControls"
-                                            >
-                                                <Select
-                                                    name="probe_selector"
-                                                    value={logValue}
-                                                    onChange={
-                                                        handleLogTypeChange
-                                                    }
-                                                    placeholder="Log Type"
-                                                    className="db-select-pr"
-                                                    id="log_type_selector"
-                                                    isDisabled={
-                                                        !(
-                                                            applicationLog &&
-                                                            !applicationLog.requesting
-                                                        )
-                                                    }
+                                            <div className="Flex-flex action-bar-holder Padding-all--4">
+                                                <div
                                                     style={{
                                                         height: '28px',
+                                                        margin: '5px',
                                                     }}
-                                                    options={logOptions}
-                                                />
+                                                >
+                                                    <FilterSelect
+                                                        name="probe_selector"
+                                                        value={filter}
+                                                        onChange={
+                                                            handleLogFilterChange
+                                                        }
+                                                        placeholder="Filter By"
+                                                        className="db-select-pr"
+                                                        id="log_type_selector"
+                                                        isDisabled={
+                                                            !(
+                                                                applicationLog &&
+                                                                !applicationLog.requesting
+                                                            )
+                                                        }
+                                                        style={{
+                                                            height: '28px',
+                                                        }}
+                                                        options={filters}
+                                                    />
+                                                </div>
+
+                                                <div
+                                                    style={{
+                                                        height: '28px',
+                                                        margin: '5px',
+                                                    }}
+                                                >
+                                                    <Select
+                                                        name="probe_selector"
+                                                        value={logValue}
+                                                        onChange={
+                                                            handleLogTypeChange
+                                                        }
+                                                        placeholder="Log Type"
+                                                        className="db-select-pr"
+                                                        id="log_type_selector"
+                                                        isDisabled={
+                                                            !(
+                                                                applicationLog &&
+                                                                !applicationLog.requesting
+                                                            )
+                                                        }
+                                                        style={{
+                                                            height: '28px',
+                                                        }}
+                                                        options={logOptions}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
