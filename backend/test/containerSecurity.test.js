@@ -181,4 +181,19 @@ describe('Container Security API', function() {
                 done();
             });
     });
+
+    it('should scan a container security', function(done) {
+        this.timeout(300000);
+        const authorization = `Basic ${token}`;
+
+        request
+            .post(
+                `/security/${projectId}/container/scan/${containerSecurityId}`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                done();
+            });
+    });
 });
