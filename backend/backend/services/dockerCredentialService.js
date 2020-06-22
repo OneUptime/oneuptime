@@ -62,7 +62,7 @@ module.exports = {
 
             data.dockerPassword = await encrypt(data.dockerPassword);
 
-            const response = DockerCredentialModel.create(data);
+            const response = await DockerCredentialModel.create(data);
             return response;
         } catch (error) {
             ErrorService.log('dockerCredentialService.create', error);
@@ -75,7 +75,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const dockerCredential = DockerCredentialModel.findOneAndUpdate(
+            const dockerCredential = await DockerCredentialModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
