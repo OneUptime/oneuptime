@@ -373,7 +373,7 @@ div.block-chart {
 }
 
 .uptime-graph-section {
-  margin-bottom: 1.7em;
+  /* margin-bottom: 1.7em; */
 }
 
     .uptime-graph-section.warning em.warning {
