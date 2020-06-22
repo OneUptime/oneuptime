@@ -85,19 +85,23 @@ export class MonitorViewSubscriberBox extends Component {
                                 <span>External Subscribers</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                These are your external customers who needs to
+                                be notified, and not your team members. If you
+                                like to send notification to team members - use{' '}
                                 <span
                                     onClick={() =>
                                         history.push(
                                             `/dashboard/project/${this.props.currentProject._id}/on-call`
                                         )
                                     }
-                                    style={{ cursor: 'pointer' }}
+                                    style={{
+                                        cursor: 'pointer',
+                                        textDecoration: 'underline',
+                                    }}
                                 >
-                                    These are your external customers who needs
-                                    to be notified, and not your team members.
-                                    If you like to send notification to team
-                                    members - use Call Schedules instead.
-                                </span>
+                                    Call Schedules
+                                </span>{' '}
+                                instead.
                             </span>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
