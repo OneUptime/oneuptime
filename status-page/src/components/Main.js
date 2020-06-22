@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from 'react';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import UptimeLegend from './UptimeLegend';
 import NoMonitor from './NoMonitor';
@@ -447,7 +447,7 @@ class Main extends Component {
                                                 (monitor, i) => {
                                                     return (
                                                         this.props.monitors && (
-                                                            <Fragment>
+                                                            <>
                                                                 {this.props.monitors.some(
                                                                     m =>
                                                                         monitor._id ===
@@ -486,7 +486,18 @@ class Main extends Component {
                                                                         }
                                                                     />
                                                                 )}
-                                                            </Fragment>
+                                                                {
+                                                                    i<this.props.statusData.monitorsData.length-1
+                                                                    &&
+                                                                    <div
+                                                                        style={{
+                                                                            margin:'30px 0px',
+                                                                            backgroundColor:'#8898aa',
+                                                                            height:'1px',
+                                                                        }}
+                                                                    />
+                                                                }
+                                                            </>
                                                         )
                                                     );
                                                 }

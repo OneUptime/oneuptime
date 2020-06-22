@@ -372,9 +372,9 @@ div.block-chart {
   z-index: 10;
 }
 
-.uptime-graph-section {
-  /* margin-bottom: 1.7em; */
-}
+/* .uptime-graph-section {
+  margin-bottom: 1.7em;
+} */
 
     .uptime-graph-section.warning em.warning {
       display: inline-block;
