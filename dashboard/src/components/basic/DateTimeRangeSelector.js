@@ -1,9 +1,7 @@
 import React from 'react';
 import DateTimeRangeContainer from 'react-advanced-datetimerange-picker';
 import moment from 'moment';
-import { setStartDate, setEndDate } from '../../actions/dateTime';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 class DateTimeRangeSelector extends React.Component {
@@ -22,9 +20,7 @@ class DateTimeRangeSelector extends React.Component {
             start: startDate,
             end: endDate,
         });
-        // Send the date time update to redux
-        this.props.setStartDate(startDate);
-        this.props.setEndDate(endDate);
+        this.props.onChange(startDate, endDate);
     }
     renderSelectionValue = () => {
         return (
@@ -137,14 +133,10 @@ class DateTimeRangeSelector extends React.Component {
 }
 DateTimeRangeSelector.displayName = 'DateTimeRangeSelector';
 DateTimeRangeSelector.propTypes = {
-    setEndDate: PropTypes.func,
-    setStartDate: PropTypes.func,
+    onChange: PropTypes.func,
     startDate: PropTypes.instanceOf(moment),
     endDate: PropTypes.instanceOf(moment),
 };
-
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ setStartDate, setEndDate }, dispatch);
 
 function mapStateToProps(state) {
     return {
@@ -153,7 +145,4 @@ function mapStateToProps(state) {
     };
 }
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(DateTimeRangeSelector);
+export default connect(mapStateToProps)(DateTimeRangeSelector);
