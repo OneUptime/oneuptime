@@ -1,10 +1,10 @@
 import React, { Fragment } from 'react';
+import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import { fetchMonitorLogs } from '../actions/status';
 import AreaChart from './areachart';
-import { ListLoader } from './basic/Loader';
 
 const ChartContainer = ({ label, name, data }) => (
     <Fragment>
@@ -12,6 +12,14 @@ const ChartContainer = ({ label, name, data }) => (
         <AreaChart name={name} data={data} />
     </Fragment>
 );
+
+ChartContainer.displayName = 'ChartContainer';
+
+ChartContainer.propTypes = {
+    label: PropTypes.string,
+    name: PropTypes.string,
+    data: PropTypes.array.isRequired,
+};
 
 class LineChartsContainer extends React.Component {
     async componentDidMount() {
@@ -103,6 +111,13 @@ class LineChartsContainer extends React.Component {
 }
 
 LineChartsContainer.displayName = 'LineChartsContainer';
+
+LineChartsContainer.propTypes = {
+    monitor: PropTypes.object,
+    selectedCharts: PropTypes.object.isRequired,
+    fetchMonitorLogs: PropTypes.func.isRequired,
+    logs: PropTypes.array.isRequired,
+};
 
 const mapStateToProps = state => {
     const {

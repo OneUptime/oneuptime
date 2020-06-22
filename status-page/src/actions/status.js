@@ -471,33 +471,38 @@ export function fetchMonitorStatusesFailure(error) {
 }
 
 export function fetchMonitorLogs(projectId, monitorId, data) {
-    return async function(dispatch) {
-        try {
-            dispatch(fetchMonitorLogsRequest(monitorId));
-            const monitorLogs = await postApi(
-                `statusPage/${projectId}/${monitorId}/monitorLogs`,
-                data
-            );
-            dispatch(
-                fetchMonitorLogsSuccess({
-                    monitorId,
-                    logs: monitorLogs.data,
-                })
-            );
-        } catch (error) {
-            if (error && error.response && error.response.data) {
-                error = error.response.data;
+    return function(dispatch) {
+        const promise = postApi(
+            `statusPage/${projectId}/${monitorId}/monitorLogs`,
+            data
+        );
+        dispatch(fetchMonitorLogsRequest(monitorId));
+
+        promise.then(
+            function(monitorLogs) {
+                dispatch(
+                    fetchMonitorLogsSuccess({
+                        monitorId,
+                        logs: monitorLogs.data,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchMonitorLogsFailure(errors(error)));
             }
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            } else {
-                error = 'Network Error';
-            }
-            dispatch(fetchMonitorLogsFailure(errors(error)));
-        }
+        );
+        return promise;
     };
 }
 

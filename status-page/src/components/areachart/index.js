@@ -80,7 +80,7 @@ class AreaChart extends Component {
     }
 
     render() {
-        const { type, data, name, symbol, requesting } = this.props;
+        const { type, data, name, symbol } = this.props;
 
         if (data && data.length > 0) {
             const processedData = (type === 'manual'
