@@ -135,4 +135,24 @@ describe('Container Security API', function() {
                 done();
             });
     });
+
+    it('should get a particular container security in a component', function(done) {
+        const authorization = `Basic ${token}`;
+
+        request
+            .get(
+                `/security/${projectId}/${componentId}/container/${containerSecurityId}`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(String(res.body._id)).to.be.equal(
+                    String(containerSecurityId)
+                );
+                expect(String(res.body.componentId._id)).to.be.equal(
+                    String(componentId)
+                );
+                done();
+            });
+    });
 });
