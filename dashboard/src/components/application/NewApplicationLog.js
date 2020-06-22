@@ -95,7 +95,7 @@ class NewApplicationLog extends Component {
                             <div className="Box-root">
                                 <ShouldRender if={!edit}>
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>New Application Log</span>
+                                        <span>New Log Container</span>
                                     </span>
                                     <p>
                                         <span>
@@ -107,13 +107,13 @@ class NewApplicationLog extends Component {
                                 </ShouldRender>
                                 <ShouldRender if={edit}>
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Edit Application</span>
+                                        <span>Edit Log Container</span>
                                     </span>
                                     <p>
                                         <span
                                             id={`application-log-edit-title-${applicationLog?.name}`}
                                         >
-                                            {`Edit Application Log ${applicationLog?.name}`}
+                                            {`Edit Log Container ${applicationLog?.name}`}
                                         </span>
                                     </p>
                                 </ShouldRender>
