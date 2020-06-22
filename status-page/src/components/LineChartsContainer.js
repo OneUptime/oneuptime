@@ -46,19 +46,23 @@ class LineChartsContainer extends React.Component {
                 break;
             }
         }
-        if (requesting) return  <ListLoader/>;
-        
-        let earliestDate = data.length===0? Date.now():data[data.length-1].createdAt
-        while(data.length<90){
-          earliestDate=moment(earliestDate).subtract(1,'day').format();
-          data.push({
-            createdAt:earliestDate,
-            cpuLoad:0,
-            memoryUsed:0,
-            storageUsed:0,
-            mainTemp:0,
-            responseTime:0,
-          })
+
+        if (requesting) return null;
+
+        let earliestDate =
+            data.length === 0 ? Date.now() : data[data.length - 1].createdAt;
+        while (data.length < 90) {
+            earliestDate = moment(earliestDate)
+                .subtract(1, 'day')
+                .format();
+            data.push({
+                createdAt: earliestDate,
+                cpuLoad: 0,
+                memoryUsed: 0,
+                storageUsed: 0,
+                mainTemp: 0,
+                responseTime: 0,
+            });
         }
 
         return (
