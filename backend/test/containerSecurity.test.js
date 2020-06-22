@@ -155,4 +155,17 @@ describe('Container Security API', function() {
                 done();
             });
     });
+
+    it('should get all the container security in a component', function(done) {
+        const authorization = `Basic ${token}`;
+
+        request
+            .get(`/security/${projectId}/${componentId}/container`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                done();
+            });
+    });
 });
