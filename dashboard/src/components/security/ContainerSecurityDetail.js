@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { ListLoader } from '../basic/Loader';
+import { LargeSpinner } from '../basic/Loader';
 import {
     getContainerSecurity,
     getContainerSecurityLog,
@@ -87,7 +87,9 @@ class ContainerSecurityDetail extends Component {
                         isRequesting && gettingSecurityLog && gettingCredentials
                     }
                 >
-                    <ListLoader />
+                    <div style={{ textAlign: 'center' }}>
+                        <LargeSpinner />
+                    </div>
                 </ShouldRender>
                 <ShouldRender
                     if={
