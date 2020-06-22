@@ -195,13 +195,17 @@ class MonitorInfo extends Component {
                         justifyContent: 'space-between',
                     }}
                 >
-                    <div>
-                        <span style={status}></span>
-                        <span className="uptime-stat-name" style={subheading}>
-                            {monitor.name}
-                        </span>
-                        <br />
-                        <span className="url">
+                    <div 
+                        style={{display:"flex"}}
+                    >
+                            <div>
+                            <span style={status}></span>
+                        </div>
+                        <div>
+                            <span className="uptime-stat-name" style={subheading}>
+                                {monitor.name}
+                            </span>
+                            <br />
                             <span
                                 style={{
                                     color: '#8898aa',
@@ -211,7 +215,7 @@ class MonitorInfo extends Component {
                             >
                                 {selectedCharts.description}
                             </span>
-                        </span>
+                        </div>
                     </div>
                     <div>
                         <span className="percentage" style={primaryText}>
