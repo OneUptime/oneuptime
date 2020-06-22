@@ -168,4 +168,17 @@ describe('Container Security API', function() {
                 done();
             });
     });
+
+    it('should get all the container security with a particular credential', function(done) {
+        const authorization = `Basic ${token}`;
+
+        request
+            .get(`/security/${projectId}/container/${credentialId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                done();
+            });
+    });
 });
