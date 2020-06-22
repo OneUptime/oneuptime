@@ -4,13 +4,29 @@ const initialState = {
     addContainer: { requesting: false, success: false, error: null },
     getContainer: { requesting: false, success: false, error: null },
     deleteContainer: { requesting: false, success: false, error: null },
+    scanContainerSecurity: { requesting: false, success: false, error: null },
+    getContainerSecurityLog: { requesting: false, success: false, error: null },
+    editContainerSecurity: { requesting: false, success: false, error: null },
     containerSecurities: [],
     containerSecurity: {},
+    containerSecurityLog: {},
+    containerSecurityLogs: [],
+    activeContainerSecurity: '',
     addApplication: { requesting: false, success: false, error: null },
     getApplication: { requesting: false, success: false, error: null },
     deleteApplication: { requesting: false, success: false, error: null },
+    scanApplicationSecurity: { requesting: false, success: false, error: null },
+    getApplicationSecurityLog: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    editApplicationSecurity: { requesting: false, success: false, error: null },
     applicationSecurities: [],
     applicationSecurity: {},
+    applicationSecurityLog: {},
+    applicationSecurityLogs: [],
+    activeApplicationSecurity: '',
 };
 
 export default function security(state = initialState, action) {
@@ -145,6 +161,136 @@ export default function security(state = initialState, action) {
             return {
                 ...state,
                 deleteContainer: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.SCAN_CONTAINER_SECURITY_REQUEST:
+            return {
+                ...state,
+                scanContainerSecurity: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.SCAN_CONTAINER_SECURITY_SUCCESS: {
+            const containerSecurityLogs = [
+                ...state.containerSecurityLogs,
+                action.payload,
+            ];
+            return {
+                ...state,
+                scanContainerSecurity: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                containerSecurityLog: action.payload,
+                containerSecurityLogs,
+            };
+        }
+
+        case types.SCAN_CONTAINER_SECURITY_FAILURE:
+            return {
+                ...state,
+                scanContainerSecurity: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.GET_CONTAINER_SECURITY_LOG_REQUEST:
+            return {
+                ...state,
+                getContainerSecurityLog: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.GET_CONTAINER_SECURITY_LOG_SUCCESS:
+            return {
+                ...state,
+                getContainerSecurityLog: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                containerSecurityLog: action.payload,
+            };
+
+        case types.GET_CONTAINER_SECURITY_LOG_FAILURE:
+            return {
+                ...state,
+                getContainerSecurityLog: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.GET_CONTAINER_SECURITY_LOGS_REQUEST:
+            return {
+                ...state,
+                getContainerSecurityLog: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.GET_CONTAINER_SECURITY_LOGS_SUCCESS:
+            return {
+                ...state,
+                getContainerSecurityLog: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                containerSecurityLogs: action.payload,
+            };
+
+        case types.GET_CONTAINER_SECURITY_LOGS_FAILURE:
+            return {
+                ...state,
+                getContainerSecurityLog: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.EDIT_CONTAINER_SECURITY_REQUEST:
+            return {
+                ...state,
+                editContainerSecurity: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.EDIT_CONTAINER_SECURITY_SUCCESS:
+            return {
+                ...state,
+                editContainerSecurity: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                containerSecurity: action.payload,
+            };
+
+        case types.EDIT_CONTAINER_SECURITY_FAILURE:
+            return {
+                ...state,
+                editContainerSecurity: {
                     requesting: false,
                     success: false,
                     error: action.payload,
@@ -286,6 +432,148 @@ export default function security(state = initialState, action) {
                     success: false,
                     error: action.payload,
                 },
+            };
+
+        case types.SCAN_APPLICATION_SECURITY_REQUEST:
+            return {
+                ...state,
+                scanApplicationSecurity: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.SCAN_APPLICATION_SECURITY_SUCCESS: {
+            const applicationSecurityLogs = [
+                ...state.applicationSecurityLogs,
+                action.payload,
+            ];
+            return {
+                ...state,
+                scanApplicationSecurity: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                applicationSecurityLog: action.payload,
+                applicationSecurityLogs,
+            };
+        }
+
+        case types.SCAN_APPLICATION_SECURITY_FAILURE:
+            return {
+                ...state,
+                scanApplicationSecurity: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.GET_APPLICATION_SECURITY_LOG_REQUEST:
+            return {
+                ...state,
+                getApplicationSecurityLog: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.GET_APPLICATION_SECURITY_LOG_SUCCESS:
+            return {
+                ...state,
+                getApplicationSecurityLog: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                applicationSecurityLog: action.payload,
+            };
+
+        case types.GET_APPLICATION_SECURITY_LOG_FAILURE:
+            return {
+                ...state,
+                getApplicationSecurityLog: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.GET_APPLICATION_SECURITY_LOGS_REQUEST:
+            return {
+                ...state,
+                getApplicationSecurityLog: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.GET_APPLICATION_SECURITY_LOGS_SUCCESS:
+            return {
+                ...state,
+                getApplicationSecurityLog: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                applicationSecurityLogs: action.payload,
+            };
+
+        case types.GET_APPLICATION_SECURITY_LOGS_FAILURE:
+            return {
+                ...state,
+                getApplicationSecurityLog: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.EDIT_APPLICATION_SECURITY_REQUEST:
+            return {
+                ...state,
+                editApplicationSecurity: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.EDIT_APPLICATION_SECURITY_SUCCESS:
+            return {
+                ...state,
+                editApplicationSecurity: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                applicationSecurity: action.payload,
+            };
+
+        case types.EDIT_APPLICATION_SECURITY_FAILURE:
+            return {
+                ...state,
+                editApplicationSecurity: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.SET_ACTIVE_APPLICATION_SECURITY:
+            return {
+                ...state,
+                activeApplicationSecurity: action.payload,
+            };
+
+        case types.SET_ACTIVE_CONTAINER_SECURITY:
+            return {
+                ...state,
+                activeContainerSecurity: action.payload,
             };
 
         default:

@@ -7,56 +7,58 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
+import { RenderSelect } from '../basic/RenderSelect';
 import { closeModal } from '../../actions/modal';
-import { addGitCredential } from '../../actions/credential';
+import { editApplicationSecurity } from '../../actions/security';
 
-class GitCredentialModal extends Component {
+class EditApplicationSecurity extends Component {
     componentDidUpdate(prevProps) {
-        const {
-            propArr,
-            isRequesting,
-            closeModal,
-            addCredentialError,
-        } = this.props;
-        const { projectId } = propArr[0];
+        const { propArr, isRequesting, closeModal, editError } = this.props;
+        const { applicationSecurityId } = propArr[0];
 
         if (prevProps.isRequesting !== isRequesting) {
-            if (!isRequesting && !addCredentialError) {
-                closeModal({ id: projectId });
+            if (!isRequesting && !editError) {
+                closeModal({ id: applicationSecurityId });
             }
         }
     }
 
     handleKeyBoard = e => {
         const { closeModal, propArr } = this.props;
-        const { projectId } = propArr[0];
+        const { applicationSecurityId } = propArr[0];
 
         switch (e.key) {
             case 'Escape':
-                return closeModal({ id: projectId });
+                return closeModal({ id: applicationSecurityId });
             default:
                 return false;
         }
     };
 
     submitForm = values => {
-        const { addGitCredential, propArr } = this.props;
-        const { projectId } = propArr[0];
+        const { editApplicationSecurity, propArr } = this.props;
+        const { projectId, componentId, applicationSecurityId } = propArr[0];
 
         if (!values) return;
 
-        addGitCredential({ projectId, data: values });
+        editApplicationSecurity({
+            projectId,
+            componentId,
+            applicationSecurityId,
+            data: values,
+        });
     };
 
     render() {
         const {
             isRequesting,
             closeModal,
-            addCredentialError,
+            editError,
             handleSubmit,
             propArr,
+            gitCredentials,
         } = this.props;
-        const { projectId } = propArr[0];
+        const { applicationSecurityId } = propArr[0];
 
         return (
             <div
@@ -76,12 +78,12 @@ class GitCredentialModal extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Add Git Credentials</span>
+                                        <span>Edit Application Security</span>
                                     </span>
                                 </div>
                             </div>
                             <form
-                                id="gitCredentialForm"
+                                id="editApplicationSecurityForm"
                                 onSubmit={handleSubmit(this.submitForm)}
                             >
                                 <div className="bs-Modal-content">
@@ -95,7 +97,7 @@ class GitCredentialModal extends Component {
                                                     <div className="bs-Fieldset-rows">
                                                         <div className="bs-Fieldset-row bs-u-justify--center">
                                                             <label className="bs-Fieldset-label">
-                                                                Git Username
+                                                                Name
                                                             </label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
@@ -104,9 +106,9 @@ class GitCredentialModal extends Component {
                                                                         RenderField
                                                                     }
                                                                     type="text"
-                                                                    name="gitUsername"
-                                                                    id="gitUsername"
-                                                                    placeholder="Git Username"
+                                                                    name="name"
+                                                                    id="name"
+                                                                    placeholder="Application name"
                                                                     disabled={
                                                                         isRequesting
                                                                     }
@@ -118,7 +120,8 @@ class GitCredentialModal extends Component {
                                                         </div>
                                                         <div className="bs-Fieldset-row bs-u-justify--center">
                                                             <label className="bs-Fieldset-label">
-                                                                Git Password
+                                                                Git Repository
+                                                                Url
                                                             </label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
@@ -126,16 +129,57 @@ class GitCredentialModal extends Component {
                                                                     component={
                                                                         RenderField
                                                                     }
-                                                                    type="password"
-                                                                    name="gitPassword"
-                                                                    id="gitPassword"
-                                                                    placeholder="Git Password"
+                                                                    type="text"
+                                                                    name="gitRepositoryUrl"
+                                                                    id="gitRepositoryUrl"
+                                                                    placeholder="Git repository url"
                                                                     disabled={
                                                                         isRequesting
                                                                     }
                                                                     validate={
                                                                         ValidateField.required
                                                                     }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row bs-u-justify--center">
+                                                            <label className="bs-Fieldset-label">
+                                                                Git Credential
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="gitCredential"
+                                                                    id="gitCredential"
+                                                                    placeholder="Git Credential"
+                                                                    required="required"
+                                                                    style={{
+                                                                        height:
+                                                                            '28px',
+                                                                    }}
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select a Git Credential',
+                                                                        },
+                                                                        ...(gitCredentials &&
+                                                                        gitCredentials.length >
+                                                                            0
+                                                                            ? gitCredentials.map(
+                                                                                  gitCredential => ({
+                                                                                      value:
+                                                                                          gitCredential._id,
+                                                                                      label:
+                                                                                          gitCredential.gitUsername,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
                                                                 />
                                                             </div>
                                                         </div>
@@ -151,10 +195,7 @@ class GitCredentialModal extends Component {
                                         style={{ width: 280 }}
                                     >
                                         <ShouldRender
-                                            if={
-                                                !isRequesting &&
-                                                addCredentialError
-                                            }
+                                            if={!isRequesting && editError}
                                         >
                                             <div
                                                 id="addCredentialError"
@@ -175,7 +216,7 @@ class GitCredentialModal extends Component {
                                                                 color: 'red',
                                                             }}
                                                         >
-                                                            {addCredentialError}
+                                                            {editError}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -189,21 +230,24 @@ class GitCredentialModal extends Component {
                                             onClick={e => {
                                                 e.preventDefault();
                                                 closeModal({
-                                                    id: projectId,
+                                                    id: applicationSecurityId,
                                                 });
                                             }}
-                                            id="cancelCredentialModalBtn"
+                                            id="cancelEditApplicationBtn"
+                                            disabled={isRequesting}
                                         >
                                             <span>Cancel</span>
                                         </button>
                                         <button
-                                            id="addCredentialModalBtn"
+                                            id="editApplicationBtn"
                                             className="bs-Button bs-Button bs-Button--blue"
                                             type="submit"
                                             disabled={isRequesting}
                                         >
                                             {!isRequesting && (
-                                                <span>Add Git Credential</span>
+                                                <span>
+                                                    Update Application Security
+                                                </span>
                                             )}
                                             {isRequesting && <FormLoader />}
                                         </button>
@@ -218,35 +262,45 @@ class GitCredentialModal extends Component {
     }
 }
 
-GitCredentialModal.displayName = 'GitCredentialModal';
+EditApplicationSecurity.displayName = 'EditApplicationSecurity';
 
-GitCredentialModal.propTypes = {
+EditApplicationSecurity.propTypes = {
     isRequesting: PropTypes.bool,
-    addCredentialError: PropTypes.oneOfType([
+    editError: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
     propArr: PropTypes.array,
-    projectId: PropTypes.string,
-    addGitCredential: PropTypes.func,
     closeModal: PropTypes.func,
     handleSubmit: PropTypes.func,
+    editApplicationSecurity: PropTypes.func,
+    gitCredentials: PropTypes.array,
 };
 
 const mapStateToProps = state => {
     return {
-        isRequesting: state.credential.addCredential.requesting,
-        addCredentialError: state.credential.addCredential.error,
+        isRequesting: state.security.editApplicationSecurity.requesting,
+        editError: state.security.editApplicationSecurity.error,
+        initialValues: {
+            name: state.security.applicationSecurity.name,
+            gitRepositoryUrl:
+                state.security.applicationSecurity.gitRepositoryUrl,
+            gitCredential: state.security.applicationSecurity.gitCredential._id,
+        },
+        gitCredentials: state.credential.gitCredentials,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, addGitCredential }, dispatch);
+    bindActionCreators({ closeModal, editApplicationSecurity }, dispatch);
 
-const GitCredentialForm = reduxForm({
-    form: 'GitCredentialForm',
+const EditApplicationSecurityForm = reduxForm({
+    form: 'EditApplicationSecurityForm',
     enableReinitialize: true,
     destroyOnUnmount: true,
-})(GitCredentialModal);
+})(EditApplicationSecurity);
 
-export default connect(mapStateToProps, mapDispatchToProps)(GitCredentialForm);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(EditApplicationSecurityForm);

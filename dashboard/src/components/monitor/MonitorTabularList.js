@@ -256,6 +256,7 @@ export class MonitorTabularList extends Component {
                                                             className={`Badge Badge--color--${statusColor} Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                         >
                                                             <span
+                                                                id={`monitor_status_${i}`}
                                                                 className={`Badge-text Text-typeface--upper Text-color--${statusColor} Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper`}
                                                             >
                                                                 ⁣{status}

@@ -119,8 +119,8 @@ export const groups = [
                 title: 'Security',
                 path:
                     '/dashboard/project/:projectId/:componentId/security/container',
-                icon: 'atlas',
-                visible: false,
+                icon: 'security',
+                visible: true,
                 component: Container,
                 exact: true,
                 subRoutes: [

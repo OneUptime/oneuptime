@@ -47,4 +47,12 @@ cron.schedule('* * * * *', () => {
     }, cronMinuteStartTime * 1000);
 });
 
+cron.schedule('* * * * *', () => {
+    Main.runApplicationScan();
+});
+
+cron.schedule('* * * * *', () => {
+    Main.runContainerScan();
+});
+
 module.exports = app;
