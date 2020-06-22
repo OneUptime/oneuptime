@@ -9,6 +9,7 @@ import {
     YAxis,
 } from 'recharts';
 import * as _ from 'lodash';
+import {connect } from 'react-redux';
 import { formatDecimal, formatBytes } from '../../config';
 
 const noDataStyle = {
@@ -80,8 +81,18 @@ class AreaChart extends Component {
     }
 
     render() {
-        const { type, data, name, symbol } = this.props;
-
+        const { type, data, name, symbol,colors } = this.props;
+        const {strokeChart,fillChart}= colors;
+        const stroke = `rgb(
+            ${strokeChart.r},
+            ${strokeChart.g},
+            ${strokeChart.b}
+        )`
+        const fill = `rgb(
+            ${fillChart.r},
+            ${fillChart.g},
+            ${fillChart.b}
+        )`
         if (data && data.length > 0) {
             const processedData = (type === 'manual'
                 ? data.map(a => {
@@ -124,9 +135,9 @@ class AreaChart extends Component {
                                 )
                             )}
                             dataKey="v"
-                            stroke="#000000"
+                            stroke={stroke}
                             strokeWidth={1.5}
-                            fill="#e2e1f2"
+                            fill={fill}
                         />
                     </Chart>
                 </ResponsiveContainer>
@@ -154,6 +165,13 @@ AreaChart.propTypes = {
     type: PropTypes.string.isRequired,
     name: PropTypes.string,
     symbol: PropTypes.string,
+    colors: PropTypes.object,
 };
 
-export default AreaChart;
+export default connect(
+    state=>{
+        const {status:{statusPage:{colors}}}=state;
+        return {colors}
+    }
+)(AreaChart)
+
