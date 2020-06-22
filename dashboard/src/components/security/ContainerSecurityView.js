@@ -118,24 +118,49 @@ const ContainerSecurityView = ({
                             </div>
                         </div>
                         <div className="bs-u-flex Flex-wrap--wrap bs-u-justify--between">
-                            <div
-                                className="bs-Fieldset-row"
-                                style={{ padding: 0 }}
-                            >
-                                <ShouldRender if={containerSecurity.lastScan}>
-                                    <label className="Text-fontWeight--medium">
-                                        Last Scan:
-                                    </label>
-                                    <div className="Margin-left--2">
-                                        <span className="value">{`${moment(
-                                            containerSecurity.lastScan
-                                        ).fromNow()} (${moment(
-                                            containerSecurity.lastScan
-                                        ).format(
-                                            'MMMM Do YYYY, h:mm:ss a'
-                                        )})`}</span>
-                                    </div>
-                                </ShouldRender>
+                            <div>
+                                <div
+                                    className="bs-Fieldset-row"
+                                    style={{ padding: 0 }}
+                                >
+                                    <ShouldRender
+                                        if={containerSecurity.lastScan}
+                                    >
+                                        <label className="Text-fontWeight--medium">
+                                            Last Scan:
+                                        </label>
+                                        <div className="Margin-left--2">
+                                            <span className="value">{`${moment(
+                                                containerSecurity.lastScan
+                                            ).fromNow()} (${moment(
+                                                containerSecurity.lastScan
+                                            ).format(
+                                                'MMMM Do YYYY, h:mm:ss a'
+                                            )})`}</span>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
+                                <div
+                                    className="bs-Fieldset-row"
+                                    style={{ padding: 0 }}
+                                >
+                                    <ShouldRender
+                                        if={containerSecurity.lastScan}
+                                    >
+                                        <label className="Text-fontWeight--medium">
+                                            Next Scan:
+                                        </label>
+                                        <div className="Margin-left--2">
+                                            <span className="value">{`${moment(
+                                                containerSecurity.lastScan
+                                            )
+                                                .add(24, 'hours')
+                                                .format(
+                                                    'MMMM Do YYYY, h:mm:ss a'
+                                                )}`}</span>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
                             </div>
                             <div>
                                 <ShouldRender

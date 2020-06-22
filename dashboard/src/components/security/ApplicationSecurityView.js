@@ -118,24 +118,49 @@ const ApplicationSecurityView = ({
                             </div>
                         </div>
                         <div className="bs-u-flex Flex-wrap--wrap bs-u-justify--between">
-                            <div
-                                className="bs-Fieldset-row"
-                                style={{ padding: 0 }}
-                            >
-                                <ShouldRender if={applicationSecurity.lastScan}>
-                                    <label className="Text-fontWeight--medium">
-                                        Last Scan:
-                                    </label>
-                                    <div className="Margin-left--2">
-                                        <span className="value">{`${moment(
-                                            applicationSecurity.lastScan
-                                        ).fromNow()} (${moment(
-                                            applicationSecurity.lastScan
-                                        ).format(
-                                            'MMMM Do YYYY, h:mm:ss a'
-                                        )})`}</span>
-                                    </div>
-                                </ShouldRender>
+                            <div>
+                                <div
+                                    className="bs-Fieldset-row"
+                                    style={{ padding: 0 }}
+                                >
+                                    <ShouldRender
+                                        if={applicationSecurity.lastScan}
+                                    >
+                                        <label className="Text-fontWeight--medium">
+                                            Last Scan:
+                                        </label>
+                                        <div className="Margin-left--2">
+                                            <span className="value">{`${moment(
+                                                applicationSecurity.lastScan
+                                            ).fromNow()} (${moment(
+                                                applicationSecurity.lastScan
+                                            ).format(
+                                                'MMMM Do YYYY, h:mm:ss a'
+                                            )})`}</span>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
+                                <div
+                                    className="bs-Fieldset-row"
+                                    style={{ padding: 0 }}
+                                >
+                                    <ShouldRender
+                                        if={applicationSecurity.lastScan}
+                                    >
+                                        <label className="Text-fontWeight--medium">
+                                            Next Scan:
+                                        </label>
+                                        <div className="Margin-left--2">
+                                            <span className="value">{`${moment(
+                                                applicationSecurity.lastScan
+                                            )
+                                                .add(24, 'hours')
+                                                .format(
+                                                    'MMMM Do YYYY, h:mm:ss a'
+                                                )}`}</span>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
                             </div>
                             <div>
                                 <ShouldRender

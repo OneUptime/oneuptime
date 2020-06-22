@@ -135,21 +135,45 @@ const SecurityInfo = ({
                         </div>
                     </div>
                     <div className="bs-u-flex Flex-wrap--wrap bs-u-justify--between">
-                        <div className="bs-Fieldset-row" style={{ padding: 0 }}>
-                            <ShouldRender if={security.lastScan}>
-                                <label className="Text-fontWeight--medium">
-                                    Last Scan:
-                                </label>
-                                <div className="Margin-left--2">
-                                    <span className="value">{`${moment(
-                                        security.lastScan
-                                    ).fromNow()} (${moment(
-                                        security.lastScan
-                                    ).format(
-                                        'MMMM Do YYYY, h:mm:ss a'
-                                    )})`}</span>
-                                </div>
-                            </ShouldRender>
+                        <div>
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0 }}
+                            >
+                                <ShouldRender if={security.lastScan}>
+                                    <label className="Text-fontWeight--medium">
+                                        Last Scan:
+                                    </label>
+                                    <div className="Margin-left--2">
+                                        <span className="value">{`${moment(
+                                            security.lastScan
+                                        ).fromNow()} (${moment(
+                                            security.lastScan
+                                        ).format(
+                                            'MMMM Do YYYY, h:mm:ss a'
+                                        )})`}</span>
+                                    </div>
+                                </ShouldRender>
+                            </div>
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0 }}
+                            >
+                                <ShouldRender if={security.lastScan}>
+                                    <label className="Text-fontWeight--medium">
+                                        Next Scan:
+                                    </label>
+                                    <div className="Margin-left--2">
+                                        <span className="value">{`${moment(
+                                            security.lastScan
+                                        )
+                                            .add(24, 'hours')
+                                            .format(
+                                                'MMMM Do YYYY, h:mm:ss a'
+                                            )}`}</span>
+                                    </div>
+                                </ShouldRender>
+                            </div>
                         </div>
                         <div>
                             {(applicationSecurityId &&
