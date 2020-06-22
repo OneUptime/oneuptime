@@ -1,7 +1,12 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { reduxForm, FieldArray, arrayPush } from 'redux-form';
+import {
+    reduxForm,
+    FieldArray,
+    arrayPush,
+    formValueSelector,
+} from 'redux-form';
 import {
     updateStatusPageMonitors,
     updateStatusPageMonitorsRequest,
@@ -180,8 +185,10 @@ export class Monitors extends Component {
                         </ShouldRender>
                         <ShouldRender
                             if={
-                                !this.props.monitors.length > 0 &&
-                                !this.props.monitors.requesting
+                                (!this.props.monitors.length > 0 &&
+                                    !this.props.monitors.requesting) ||
+                                (this.props.monitorsInForm &&
+                                    this.props.monitorsInForm.length === 0)
                             }
                         >
                             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -202,20 +209,34 @@ export class Monitors extends Component {
                                                     marginBottom: '20px',
                                                 }}
                                             >
-                                                No monitors are added to this
-                                                project.{' '}
-                                                <Link
-                                                    to={
-                                                        '/dashboard/project/' +
-                                                        this.props
-                                                            .currentProject
-                                                            ._id +
-                                                        '/components'
-                                                    }
-                                                >
-                                                    {' '}
-                                                    Please create one.{' '}
-                                                </Link>
+                                                {!this.props.monitors.length >
+                                                    0 &&
+                                                !this.props.monitors
+                                                    .requesting ? (
+                                                    <>
+                                                        No monitors are added to
+                                                        this project.{' '}
+                                                        <Link
+                                                            to={
+                                                                '/dashboard/project/' +
+                                                                this.props
+                                                                    .currentProject
+                                                                    ._id +
+                                                                '/components'
+                                                            }
+                                                        >
+                                                            {' '}
+                                                            Please create one.{' '}
+                                                        </Link>
+                                                    </>
+                                                ) : this.props.monitorsInForm &&
+                                                  this.props.monitorsInForm
+                                                      .length === 0 ? (
+                                                    <>
+                                                        No monitors are added to
+                                                        this status page.
+                                                    </>
+                                                ) : null}
                                             </div>
                                         </div>
                                     </div>
@@ -296,6 +317,7 @@ Monitors.propTypes = {
     monitors: PropTypes.array.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
     subProjects: PropTypes.array.isRequired,
+    monitorsInForm: PropTypes.array,
 };
 
 const MonitorsForm = reduxForm({
@@ -317,6 +339,8 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
+const selector = formValueSelector('StatuspageMonitors');
+
 const mapStateToProps = state => {
     const { currentProject } = state.project;
 
@@ -330,9 +354,16 @@ const mapStateToProps = state => {
         },
     } = state;
     const initialValues = { monitors: selectedMonitors || [] };
-
+    const monitorsInForm = selector(state, 'monitors');
     const subProjects = state.subProject.subProjects.subProjects;
-    return { initialValues, monitors, statusPage, currentProject, subProjects };
+    return {
+        initialValues,
+        monitors,
+        statusPage,
+        currentProject,
+        subProjects,
+        monitorsInForm,
+    };
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorsForm);
