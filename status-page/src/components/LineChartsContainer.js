@@ -79,7 +79,7 @@ class LineChartsContainer extends React.Component {
                     <ChartContainer label="Memory" name="memory" data={data} />
                 )}
                 {this.props.selectedCharts.cpu && (
-                    <ChartContainer label="Cpu" name="load" data={data} />
+                    <ChartContainer label="CPU" name="load" data={data} />
                 )}
                 {this.props.selectedCharts.storage && (
                     <ChartContainer label="Storage" name="disk" data={data} />
