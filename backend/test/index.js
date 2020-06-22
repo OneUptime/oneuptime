@@ -3,6 +3,7 @@ try {
     require('./dockerCredential.test');
     require('./gitCredential.test');
     require('./applicationSecurity.test');
+    require('./containerSecurity.test');
     require('./adminCredentials.test');
     require('./auditLogs.test');
     require('./emailSmtp.test');
