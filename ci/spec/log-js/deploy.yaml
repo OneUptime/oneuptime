@@ -1,0 +1,14 @@
+## DEPLOYMENT STAGE - Log JS
+deploy_staging_log-js:
+    stage: Deploy
+    allow_failure: true
+    script:
+        - cd log-js
+        - git push https://github.com/Fyipe/log-js.git master --force
+        - cd ..
+    only:
+        refs:
+            - master
+            - hotfix-master
+    environment:
+        name: staging
