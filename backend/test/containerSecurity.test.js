@@ -301,4 +301,19 @@ describe('Container Security API', function() {
                 done();
             });
     });
+
+    it('should delete a particular container security', function(done) {
+        const authorization = `Basic ${token}`;
+
+        request
+            .delete(
+                `/security/${projectId}/${componentId}/container/${containerSecurityId}`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.deleted).to.be.true;
+                done();
+            });
+    });
 });
