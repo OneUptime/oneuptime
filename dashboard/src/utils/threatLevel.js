@@ -17,6 +17,7 @@ const threatLevel = vulnerability => {
     if (vulnerability.low > 0) {
         return 'low';
     }
+    return 'low';
 };
 
 export default threatLevel;
