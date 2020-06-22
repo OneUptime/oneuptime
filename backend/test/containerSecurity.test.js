@@ -334,4 +334,22 @@ describe('Container Security API', function() {
                 done();
             });
     });
+
+    it('should not delete a non-existing container security', function(done) {
+        const authorization = `Basic ${token}`;
+        const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
+
+        request
+            .delete(
+                `/security/${projectId}/${componentId}/container/${containerSecurityId}`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Container Security not found or does not exist'
+                );
+                done();
+            });
+    });
 });
