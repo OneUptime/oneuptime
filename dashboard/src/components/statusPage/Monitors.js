@@ -187,8 +187,7 @@ export class Monitors extends Component {
                             if={
                                 (!this.props.monitors.length > 0 &&
                                     !this.props.monitors.requesting) ||
-                                (this.props.monitorsInForm &&
-                                    this.props.monitorsInForm.length === 0)
+                                !this.props.monitorsInForm
                             }
                         >
                             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -229,9 +228,8 @@ export class Monitors extends Component {
                                                             Please create one.{' '}
                                                         </Link>
                                                     </>
-                                                ) : this.props.monitorsInForm &&
-                                                  this.props.monitorsInForm
-                                                      .length === 0 ? (
+                                                ) : !this.props
+                                                      .monitorsInForm ? (
                                                     <>
                                                         No monitors are added to
                                                         this status page.
@@ -354,7 +352,9 @@ const mapStateToProps = state => {
         },
     } = state;
     const initialValues = { monitors: selectedMonitors || [] };
-    const monitorsInForm = selector(state, 'monitors');
+    //Description field rendering becomes slow if the array is assigned to monitorsInForm instead of the array's lenght.
+    const monitorsInForm =
+        selector(state, 'monitors') && selector(state, 'monitors').length;
     const subProjects = state.subProject.subProjects.subProjects;
     return {
         initialValues,
