@@ -118,4 +118,21 @@ describe('Container Security API', function() {
                 });
         });
     });
+
+    it('should update a container security', function(done) {
+        const authorization = `Basic ${token}`;
+        const update = { name: 'Container Test' };
+
+        request
+            .put(
+                `/security/${projectId}/${componentId}/container/${containerSecurityId}`
+            )
+            .set('Authorization', authorization)
+            .send(update)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal(update.name);
+                done();
+            });
+    });
 });
