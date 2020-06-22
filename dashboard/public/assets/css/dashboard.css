@@ -3594,6 +3594,7 @@ figure.bs-Number > figcaption {
   .bs-Modal {
     margin: 0 10px 20px;
     width: auto;
+    max-width: 320px;
   }
 }
 .bs-Modal:focus {

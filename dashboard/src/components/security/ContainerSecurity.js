@@ -8,7 +8,22 @@ const ContainerSecurity = ({
     containerSecurityId,
     projectId,
     componentId,
+    containerSecurityLogs,
 }) => {
+    let securityLog = {};
+    containerSecurityLogs.length > 0 &&
+        containerSecurityLogs.map(containerSecurityLog => {
+            if (
+                String(
+                    containerSecurityLog.securityId._id ||
+                        containerSecurityLog.securityId
+                ) === String(containerSecurityId)
+            ) {
+                securityLog = containerSecurityLog;
+            }
+            return containerSecurityLog;
+        });
+
     return (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -18,6 +33,7 @@ const ContainerSecurity = ({
                     componentId={componentId}
                     containerSecurityId={containerSecurityId}
                     type="container"
+                    containerSecurityLog={securityLog}
                 />
             </div>
         </div>
@@ -31,6 +47,13 @@ ContainerSecurity.propTypes = {
     containerSecurityId: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    containerSecurityLogs: PropTypes.array,
 };
 
-export default connect(null, null)(ContainerSecurity);
+const mapStateToProps = state => {
+    return {
+        containerSecurityLogs: state.security.containerSecurityLogs,
+    };
+};
+
+export default connect(mapStateToProps)(ContainerSecurity);

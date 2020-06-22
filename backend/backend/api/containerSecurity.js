@@ -4,13 +4,14 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ContainerSecurityService = require('../services/containerSecurityService');
+const ProbeService = require('../services/probeService');
 
 const router = express.Router();
 
 //Route: POST
 //Description: creates a new container security
 //Param: req.params -> {projectId, componentId}
-//Param: req.body -> {name, dockerRegistryUrl, dockerUsername, dockerPassword, imagePath, imageTags}
+//Param: req.body -> {name, dockerCredential, imagePath, imageTags}
 //returns: response -> {containerSecurity, error}
 router.post(
     '/:projectId/:componentId/container',
@@ -50,6 +51,48 @@ router.post(
             }
 
             const containerSecurity = await ContainerSecurityService.create(
+                data
+            );
+            return sendItemResponse(req, res, containerSecurity);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+//Route: PUT
+//Description: updates a container security
+//Param: req.params -> {projectId, componentId, containerSecurityId}
+//Param: req.body -> {name?, dockerCredential?, imagePath?, imageTags?}
+//returns: response -> {containerSecurity, error}
+router.put(
+    '/:projectId/:componentId/container/:containerSecurityId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { componentId, containerSecurityId } = req.params;
+            const { name, dockerCredential, imagePath, imageTags } = req.body;
+            const data = {};
+
+            if (name) {
+                data.name = name;
+            }
+
+            if (dockerCredential) {
+                data.dockerCredential = dockerCredential;
+            }
+
+            if (imagePath) {
+                data.imagePath = imagePath;
+            }
+
+            if (imageTags) {
+                data.imageTags = imageTags;
+            }
+
+            const containerSecurity = await ContainerSecurityService.updateOneBy(
+                { _id: containerSecurityId, componentId },
                 data
             );
             return sendItemResponse(req, res, containerSecurity);
@@ -170,6 +213,44 @@ router.get(
             });
 
             return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+//Route: POST
+//Description: scan a particular container
+//Params: req.params -> {projectId, containerSecurityId}
+//returns: response -> {sendItemResponse, sendErrorResponse}
+router.post(
+    '/:projectId/container/scan/:containerSecurityId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { containerSecurityId } = req.params;
+            let containerSecurity = await ContainerSecurityService.findOneBy({
+                _id: containerSecurityId,
+            });
+
+            if (!containerSecurity) {
+                const error = new Error(
+                    'Container Security not found or does not exist'
+                );
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
+
+            // decrypt password
+            containerSecurity = await ContainerSecurityService.decryptPassword(
+                containerSecurity
+            );
+
+            const securityLog = await ProbeService.scanContainerSecurity(
+                containerSecurity
+            );
+            return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

@@ -13,6 +13,7 @@ function BreadCrumbs({ styles }) {
                         fontWeight: 'bold',
                     },
                 }}
+                compare={() => 0}
             />
         </div>
     );
@@ -21,7 +22,7 @@ function BreadCrumbs({ styles }) {
 BreadCrumbs.displayName = 'BreadCrumbs';
 
 BreadCrumbs.propTypes = {
-    styles: PropTypes.object.isRequired,
+    styles: PropTypes.string.isRequired,
 };
 
 export default BreadCrumbs;

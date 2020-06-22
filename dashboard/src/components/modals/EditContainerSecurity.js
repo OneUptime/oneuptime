@@ -7,56 +7,58 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
+import { RenderSelect } from '../basic/RenderSelect';
 import { closeModal } from '../../actions/modal';
-import { addGitCredential } from '../../actions/credential';
+import { editContainerSecurity } from '../../actions/security';
 
-class GitCredentialModal extends Component {
+class EditContainerSecurity extends Component {
     componentDidUpdate(prevProps) {
-        const {
-            propArr,
-            isRequesting,
-            closeModal,
-            addCredentialError,
-        } = this.props;
-        const { projectId } = propArr[0];
+        const { propArr, isRequesting, closeModal, editError } = this.props;
+        const { containerSecurityId } = propArr[0];
 
         if (prevProps.isRequesting !== isRequesting) {
-            if (!isRequesting && !addCredentialError) {
-                closeModal({ id: projectId });
+            if (!isRequesting && !editError) {
+                closeModal({ id: containerSecurityId });
             }
         }
     }
 
     handleKeyBoard = e => {
         const { closeModal, propArr } = this.props;
-        const { projectId } = propArr[0];
+        const { containerSecurityId } = propArr[0];
 
         switch (e.key) {
             case 'Escape':
-                return closeModal({ id: projectId });
+                return closeModal({ id: containerSecurityId });
             default:
                 return false;
         }
     };
 
     submitForm = values => {
-        const { addGitCredential, propArr } = this.props;
-        const { projectId } = propArr[0];
+        const { editContainerSecurity, propArr } = this.props;
+        const { projectId, componentId, containerSecurityId } = propArr[0];
 
         if (!values) return;
 
-        addGitCredential({ projectId, data: values });
+        editContainerSecurity({
+            projectId,
+            componentId,
+            containerSecurityId,
+            data: values,
+        });
     };
 
     render() {
         const {
             isRequesting,
             closeModal,
-            addCredentialError,
+            editError,
             handleSubmit,
             propArr,
+            dockerCredentials,
         } = this.props;
-        const { projectId } = propArr[0];
+        const { containerSecurityId } = propArr[0];
 
         return (
             <div
@@ -76,12 +78,12 @@ class GitCredentialModal extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Add Git Credentials</span>
+                                        <span>Edit Container Security</span>
                                     </span>
                                 </div>
                             </div>
                             <form
-                                id="gitCredentialForm"
+                                id="editContainerSecurityForm"
                                 onSubmit={handleSubmit(this.submitForm)}
                             >
                                 <div className="bs-Modal-content">
@@ -95,7 +97,7 @@ class GitCredentialModal extends Component {
                                                     <div className="bs-Fieldset-rows">
                                                         <div className="bs-Fieldset-row bs-u-justify--center">
                                                             <label className="bs-Fieldset-label">
-                                                                Git Username
+                                                                Name
                                                             </label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
@@ -104,9 +106,9 @@ class GitCredentialModal extends Component {
                                                                         RenderField
                                                                     }
                                                                     type="text"
-                                                                    name="gitUsername"
-                                                                    id="gitUsername"
-                                                                    placeholder="Git Username"
+                                                                    name="name"
+                                                                    id="name"
+                                                                    placeholder="Container name"
                                                                     disabled={
                                                                         isRequesting
                                                                     }
@@ -118,7 +120,49 @@ class GitCredentialModal extends Component {
                                                         </div>
                                                         <div className="bs-Fieldset-row bs-u-justify--center">
                                                             <label className="bs-Fieldset-label">
-                                                                Git Password
+                                                                Docker
+                                                                Credential
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="dockerCredential"
+                                                                    id="dockerCredential"
+                                                                    placeholder="Docker Credential"
+                                                                    required="required"
+                                                                    style={{
+                                                                        height:
+                                                                            '28px',
+                                                                    }}
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select a Docker Credential',
+                                                                        },
+                                                                        ...(dockerCredentials &&
+                                                                        dockerCredentials.length >
+                                                                            0
+                                                                            ? dockerCredentials.map(
+                                                                                  dockerCredential => ({
+                                                                                      value:
+                                                                                          dockerCredential._id,
+                                                                                      label:
+                                                                                          dockerCredential.dockerRegistryUrl,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row bs-u-justify--center">
+                                                            <label className="bs-Fieldset-label">
+                                                                Image Path
                                                             </label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
@@ -126,15 +170,38 @@ class GitCredentialModal extends Component {
                                                                     component={
                                                                         RenderField
                                                                     }
-                                                                    type="password"
-                                                                    name="gitPassword"
-                                                                    id="gitPassword"
-                                                                    placeholder="Git Password"
+                                                                    type="text"
+                                                                    name="imagePath"
+                                                                    id="imagePath"
+                                                                    placeholder="Image path"
                                                                     disabled={
                                                                         isRequesting
                                                                     }
                                                                     validate={
-                                                                        ValidateField.required
+                                                                        ValidateField.text
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row bs-u-justify--center">
+                                                            <label className="bs-Fieldset-label">
+                                                                Image Tags
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    type="text"
+                                                                    name="imageTags"
+                                                                    id="imageTags"
+                                                                    placeholder="Image tags"
+                                                                    disabled={
+                                                                        isRequesting
+                                                                    }
+                                                                    validate={
+                                                                        ValidateField.text
                                                                     }
                                                                 />
                                                             </div>
@@ -151,10 +218,7 @@ class GitCredentialModal extends Component {
                                         style={{ width: 280 }}
                                     >
                                         <ShouldRender
-                                            if={
-                                                !isRequesting &&
-                                                addCredentialError
-                                            }
+                                            if={!isRequesting && editError}
                                         >
                                             <div
                                                 id="addCredentialError"
@@ -175,7 +239,7 @@ class GitCredentialModal extends Component {
                                                                 color: 'red',
                                                             }}
                                                         >
-                                                            {addCredentialError}
+                                                            {editError}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -189,21 +253,24 @@ class GitCredentialModal extends Component {
                                             onClick={e => {
                                                 e.preventDefault();
                                                 closeModal({
-                                                    id: projectId,
+                                                    id: containerSecurityId,
                                                 });
                                             }}
-                                            id="cancelCredentialModalBtn"
+                                            id="cancelEditContainerBtn"
+                                            disabled={isRequesting}
                                         >
                                             <span>Cancel</span>
                                         </button>
                                         <button
-                                            id="addCredentialModalBtn"
+                                            id="editContainerBtn"
                                             className="bs-Button bs-Button bs-Button--blue"
                                             type="submit"
                                             disabled={isRequesting}
                                         >
                                             {!isRequesting && (
-                                                <span>Add Git Credential</span>
+                                                <span>
+                                                    Update Container Security
+                                                </span>
                                             )}
                                             {isRequesting && <FormLoader />}
                                         </button>
@@ -218,35 +285,46 @@ class GitCredentialModal extends Component {
     }
 }
 
-GitCredentialModal.displayName = 'GitCredentialModal';
+EditContainerSecurity.displayName = 'EditContainerSecurity';
 
-GitCredentialModal.propTypes = {
+EditContainerSecurity.propTypes = {
     isRequesting: PropTypes.bool,
-    addCredentialError: PropTypes.oneOfType([
+    editError: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
     propArr: PropTypes.array,
-    projectId: PropTypes.string,
-    addGitCredential: PropTypes.func,
     closeModal: PropTypes.func,
     handleSubmit: PropTypes.func,
+    editContainerSecurity: PropTypes.func,
+    dockerCredentials: PropTypes.array,
 };
 
 const mapStateToProps = state => {
     return {
-        isRequesting: state.credential.addCredential.requesting,
-        addCredentialError: state.credential.addCredential.error,
+        isRequesting: state.security.editContainerSecurity.requesting,
+        editError: state.security.editContainerSecurity.error,
+        initialValues: {
+            name: state.security.containerSecurity.name,
+            dockerCredential:
+                state.security.containerSecurity.dockerCredential._id,
+            imagePath: state.security.containerSecurity.imagePath,
+            imageTags: state.security.containerSecurity.imageTags,
+        },
+        dockerCredentials: state.credential.dockerCredentials,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, addGitCredential }, dispatch);
+    bindActionCreators({ closeModal, editContainerSecurity }, dispatch);
 
-const GitCredentialForm = reduxForm({
-    form: 'GitCredentialForm',
+const EditContainerSecurityForm = reduxForm({
+    form: 'EditContainerSecurityForm',
     enableReinitialize: true,
     destroyOnUnmount: true,
-})(GitCredentialModal);
+})(EditContainerSecurity);
 
-export default connect(mapStateToProps, mapDispatchToProps)(GitCredentialForm);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(EditContainerSecurityForm);
