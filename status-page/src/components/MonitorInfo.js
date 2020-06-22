@@ -195,14 +195,15 @@ class MonitorInfo extends Component {
                         justifyContent: 'space-between',
                     }}
                 >
-                    <div 
-                        style={{display:"flex"}}
-                    >
-                            <div>
+                    <div style={{ display: 'flex' }}>
+                        <div>
                             <span style={status}></span>
                         </div>
                         <div>
-                            <span className="uptime-stat-name" style={subheading}>
+                            <span
+                                className="uptime-stat-name"
+                                style={subheading}
+                            >
                                 {monitor.name}
                             </span>
                             <br />

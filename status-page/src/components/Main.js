@@ -486,17 +486,23 @@ class Main extends Component {
                                                                         }
                                                                     />
                                                                 )}
-                                                                {
-                                                                    i<this.props.statusData.monitorsData.length-1
-                                                                    &&
+                                                                {i <
+                                                                    this.props
+                                                                        .statusData
+                                                                        .monitorsData
+                                                                        .length -
+                                                                        1 && (
                                                                     <div
                                                                         style={{
-                                                                            margin:'30px 0px',
-                                                                            backgroundColor:'#8898aa',
-                                                                            height:'1px',
+                                                                            margin:
+                                                                                '30px 0px',
+                                                                            backgroundColor:
+                                                                                '#8898aa',
+                                                                            height:
+                                                                                '1px',
                                                                         }}
                                                                     />
-                                                                }
+                                                                )}
                                                             </>
                                                         )
                                                     );
