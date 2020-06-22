@@ -247,7 +247,7 @@ export class SecurityLog extends Component {
                                                                             {vulnerability.fixedVersions &&
                                                                                 'Upgrade to version'}{' '}
                                                                             {vulnerability.fixedVersions ||
-                                                                                'N/A'}{' '}
+                                                                                'No resolution available at this point in time'}{' '}
                                                                             {vulnerability.fixedVersions &&
                                                                                 'or later'}
                                                                         </span>
