@@ -9,24 +9,9 @@ import { connect } from 'react-redux';
 class DateTimeRangeSelector extends React.Component {
     constructor(props) {
         super(props);
-        const now = new Date();
-        const start = moment(
-            new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                now.getDate(),
-                0,
-                0,
-                0,
-                0
-            )
-        );
-        const end = moment(start)
-            .add(1, 'days')
-            .subtract(1, 'seconds');
         this.state = {
-            start: start,
-            end: end,
+            start: props.startDate,
+            end: props.endDate,
         };
 
         this.applyCallback = this.applyCallback.bind(this);
@@ -154,6 +139,8 @@ DateTimeRangeSelector.displayName = 'DateTimeRangeSelector';
 DateTimeRangeSelector.propTypes = {
     setEndDate: PropTypes.func,
     setStartDate: PropTypes.func,
+    startDate: PropTypes.instanceOf(moment),
+    endDate: PropTypes.instanceOf(moment),
 };
 
 const mapDispatchToProps = dispatch =>
