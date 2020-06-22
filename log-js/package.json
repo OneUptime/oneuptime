@@ -1,7 +1,7 @@
 {
-    "name": "log-js",
+    "name": "fyipe-log-js",
     "version": "1.0.0",
-    "description": "",
+    "description": "A fyipe JS package that send logs from your applications to your fyipe dashboard.",
     "main": "dist/logger.js",
     "scripts": {
         "test": "mocha --require @babel/polyfill --require @babel/register",
@@ -9,8 +9,13 @@
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli'"
     },
-    "keywords": [],
-    "author": "",
+    "keywords": [
+        "fyipe",
+        "logger",
+        "activities",
+        "logs"
+    ],
+    "author": "HackerBay, Inc.",
     "license": "ISC",
     "devDependencies": {
         "@babel/core": "^7.10.2",
@@ -31,5 +36,9 @@
     "dependencies": {
         "@babel/polyfill": "^7.10.1",
         "axios": "^0.19.2"
+    },
+    "directories": {
+        "lib": "src",
+        "test": "test"
     }
 }
