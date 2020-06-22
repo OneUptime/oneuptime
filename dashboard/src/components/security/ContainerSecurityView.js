@@ -16,6 +16,7 @@ import IssueIndicator from './IssueIndicator';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import EditContainerSecurity from '../modals/EditContainerSecurity';
+import threatLevel from '../../utils/threatLevel';
 
 const ContainerSecurityView = ({
     deleteContainerSecurity,
@@ -78,6 +79,10 @@ const ContainerSecurityView = ({
         });
     };
 
+    const status = securityLog.data
+        ? threatLevel(securityLog.data.vulnerabilityInfo)
+        : 'no data';
+
     return (
         <div onKeyDown={handleKeyBoard} className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -91,7 +96,7 @@ const ContainerSecurityView = ({
                                             id="monitor-content-header"
                                             className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            <IssueIndicator status={1} />
+                                            <IssueIndicator status={status} />
                                             <span
                                                 id={`container-title-${containerSecurity.name}`}
                                                 style={{

@@ -16,6 +16,7 @@ import IssueIndicator from './IssueIndicator';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import EditApplicationSecurity from '../modals/EditApplicationSecurity';
+import threatLevel from '../../utils/threatLevel';
 
 const ApplicationSecurityView = ({
     deleteApplicationSecurity,
@@ -78,6 +79,10 @@ const ApplicationSecurityView = ({
         }
     };
 
+    const status = securityLog.data
+        ? threatLevel(securityLog.data.vulnerabilities)
+        : 'no data';
+
     return (
         <div onKeyDown={handleKeyBoard} className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -91,7 +96,7 @@ const ApplicationSecurityView = ({
                                             id="monitor-content-header"
                                             className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            <IssueIndicator status={1} />
+                                            <IssueIndicator status={status} />
                                             <span
                                                 id={`application-title-${applicationSecurity.name}`}
                                                 style={{

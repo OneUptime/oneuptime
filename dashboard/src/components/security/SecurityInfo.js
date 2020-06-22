@@ -13,6 +13,7 @@ import {
 } from '../../actions/security';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import threatLevel from '../../utils/threatLevel';
 
 const SecurityInfo = ({
     name,
@@ -90,6 +91,16 @@ const SecurityInfo = ({
 
     const security = getSecurityInfo();
 
+    const status =
+        type === 'application'
+            ? applicationSecurityLog.data
+                ? threatLevel(applicationSecurityLog.data.vulnerabilities)
+                : 'no data'
+            : type === 'container' &&
+              (containerSecurityLog.data
+                  ? threatLevel(containerSecurityLog.data.vulnerabilityInfo)
+                  : 'no data');
+
     return (
         <Fragment>
             <div className="Box-root">
@@ -102,7 +113,7 @@ const SecurityInfo = ({
                                         id="monitor-content-header"
                                         className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                     >
-                                        <IssueIndicator status={1} />
+                                        <IssueIndicator status={status} />
                                         <span
                                             id={`monitor-title-${name}`}
                                             style={{
