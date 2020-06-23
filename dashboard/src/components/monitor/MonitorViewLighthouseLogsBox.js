@@ -105,8 +105,15 @@ export class MonitorViewLighthouseLogsBox extends Component {
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span>
-                                    Here&#39;s all of the logs of your website
-                                    issues for this monitor.
+                                    Here&apos;s a summary of{' '}
+                                    <a
+                                        href="https://developers.google.com/web/tools/lighthouse"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        lighthouse
+                                    </a>{' '}
+                                    scans we&apos;ve done on your website.
                                 </span>
                             </span>
                         </div>
