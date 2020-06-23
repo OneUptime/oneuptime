@@ -93,6 +93,7 @@ const SecurityLog = ({
                             style={{
                                 height: '28px',
                             }}
+                            onChange={() => setPage(1)}
                             options={[
                                 {
                                     value: '',
