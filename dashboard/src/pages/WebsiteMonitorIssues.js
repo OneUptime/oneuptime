@@ -17,7 +17,9 @@ class WebsiteMonitorIssues extends React.Component {
     }
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > WEBSITE ISSUES');
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR > WEBSITE ISSUES > URL'
+            );
         }
     }
 
@@ -30,7 +32,7 @@ class WebsiteMonitorIssues extends React.Component {
 
     render() {
         let variable;
-        if (this.props.monitor.monitorIssue) {
+        if (this.props.monitorState.monitorIssue) {
             variable = (
                 <div className="Box-root Card-shadow--medium">
                     <div className="db-Trends-header Box-background--white Box-divider--surface-bottom-1">
@@ -40,10 +42,10 @@ class WebsiteMonitorIssues extends React.Component {
                                     <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                         <span>
                                             Website Issues (
-                                            {this.props.monitor.monitorIssue
-                                                .data &&
-                                                this.props.monitor.monitorIssue
-                                                    .data.length}
+                                            {this.props.monitorState
+                                                .monitorIssue.data &&
+                                                this.props.monitorState
+                                                    .monitorIssue.data.length}
                                             )
                                         </span>
                                     </span>
@@ -51,8 +53,8 @@ class WebsiteMonitorIssues extends React.Component {
                                         <span>
                                             Here&#39;s the list of issues for{' '}
                                             {
-                                                this.props.monitor.monitorIssue
-                                                    .url
+                                                this.props.monitorState
+                                                    .monitorIssue.url
                                             }
                                             .
                                         </span>
@@ -63,7 +65,7 @@ class WebsiteMonitorIssues extends React.Component {
                     </div>
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
                         <WebsiteIssuesList
-                            monitorIssue={this.props.monitor.monitorIssue}
+                            monitorIssue={this.props.monitorState.monitorIssue}
                         />
                     </div>
                 </div>
@@ -104,8 +106,10 @@ class WebsiteMonitorIssues extends React.Component {
             );
         }
         const {
-            component,
             location: { pathname },
+            component,
+            monitor,
+            monitorState,
         } = this.props;
         const componentName =
             component.length > 0
@@ -113,15 +117,33 @@ class WebsiteMonitorIssues extends React.Component {
                     ? component[0].name
                     : null
                 : null;
+        const monitorName = monitor ? monitor.name : null;
+        const url =
+            monitorState &&
+            monitorState.monitorIssue &&
+            monitorState.monitorIssue.url
+                ? monitorState.monitorIssue.url
+                : 'URL';
+
+        const monitorDetailRoute = getParentRoute(pathname);
+        const componentMonitorsRoute = getParentRoute(monitorDetailRoute);
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem route="#" name={componentName} />
                 <BreadCrumbItem
-                    route={getParentRoute(pathname)}
+                    route={componentMonitorsRoute}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={`${componentMonitorsRoute}/#`}
+                    name="Monitors"
+                />
+                <BreadCrumbItem route={monitorDetailRoute} name={monitorName} />
+                <BreadCrumbItem
+                    route={`${monitorDetailRoute}/#`}
                     name="Website Issues"
                 />
-                <BreadCrumbItem route={pathname} name="Website Issues" />
+                <BreadCrumbItem route={pathname} name={url} />
                 <div>
                     <div>
                         <div className="db-BackboneViewContainer">
@@ -141,14 +163,20 @@ class WebsiteMonitorIssues extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+    const { componentId, monitorId } = props.match.params;
     const component = state.component.componentList.components.map(item => {
         return item.components.find(component => component._id === componentId);
     });
+    const monitor = state.monitor.monitorsList.monitors
+        .map(monitor =>
+            monitor.monitors.find(monitor => monitor._id === monitorId)
+        )
+        .filter(monitor => monitor)[0];
 
     return {
         component,
-        monitor: state.monitor,
+        monitor,
+        monitorState: state.monitor,
     };
 };
 
@@ -164,7 +192,6 @@ const mapDispatchToProps = dispatch => {
 WebsiteMonitorIssues.propTypes = {
     fetchMonitorIssue: PropTypes.func,
     match: PropTypes.object,
-    monitor: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -173,6 +200,8 @@ WebsiteMonitorIssues.propTypes = {
             name: PropTypes.string,
         })
     ),
+    monitor: PropTypes.object,
+    monitorState: PropTypes.object,
 };
 
 WebsiteMonitorIssues.displayName = 'WebsiteMonitorIssues';

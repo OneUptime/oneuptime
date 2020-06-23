@@ -132,6 +132,8 @@ export class MonitorLighthouseLogsList extends Component {
                                                             ._id +
                                                         '/' +
                                                         this.props.componentId +
+                                                        '/monitoring/' +
+                                                        monitor._id +
                                                         '/issues/' +
                                                         log._id
                                                 );
@@ -158,7 +160,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                         <div className="Box-root Flex">
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                    <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                    <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-vertical--2">
                                                                         <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                             <span>
                                                                                 {moment(
@@ -171,7 +173,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                             </div>
                                                             <div>
                                                                 <div
-                                                                    className="Box-root Flex Padding-horizontal--8"
+                                                                    className="Box-root Flex"
                                                                     style={{
                                                                         paddingTop:
                                                                             '5px',
@@ -367,8 +369,8 @@ export class MonitorLighthouseLogsList extends Component {
                                     {lighthouseLogs && lighthouseLogs.count
                                         ? lighthouseLogs.count +
                                           (lighthouseLogs.count > 1
-                                              ? ' Logs'
-                                              : ' Log')
+                                              ? ' URLs'
+                                              : ' URL')
                                         : null}
                                 </span>
                             </span>
