@@ -60,13 +60,19 @@ class DashboardView extends Component {
                             this.props.startDate,
                             this.props.endDate
                         );
-                        this.props.fetchLighthouseLogs(
-                            monitor.projectId._id || monitor.projectId,
-                            monitor._id,
-                            0,
-                            1,
+                        if (
+                            monitor.type === 'url' &&
+                            monitor.data &&
                             monitor.data.url
-                        );
+                        ) {
+                            this.props.fetchLighthouseLogs(
+                                monitor.projectId._id || monitor.projectId,
+                                monitor._id,
+                                0,
+                                1,
+                                monitor.data.url
+                            );
+                        }
                     });
                 }
             });
@@ -103,13 +109,19 @@ class DashboardView extends Component {
                         this.props.startDate,
                         this.props.endDate
                     );
-                    this.props.fetchLighthouseLogs(
-                        monitor.projectId._id || monitor.projectId,
-                        monitor._id,
-                        0,
-                        1,
+                    if (
+                        monitor.type === 'url' &&
+                        monitor.data &&
                         monitor.data.url
-                    );
+                    ) {
+                        this.props.fetchLighthouseLogs(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            0,
+                            1,
+                            monitor.data.url
+                        );
+                    }
                 });
             }
         });
