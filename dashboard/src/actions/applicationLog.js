@@ -390,3 +390,70 @@ export function editApplicationLogFailure(error) {
         payload: error,
     };
 }
+
+export function fetchStats(projectId, componentId, applicationLogId) {
+    return function(dispatch) {
+        const promise = postApi(
+            `application-log/${projectId}/${componentId}/${applicationLogId}/stats`,
+            {}
+        );
+        dispatch(fetchStatsRequest({ applicationLogId }));
+
+        promise.then(
+            function(logs) {
+                dispatch(
+                    fetchStatsSuccess({
+                        applicationLogId,
+                        stats: logs.data.data,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    fetchStatsFailure({
+                        applicationLogId,
+                        error: errors(error),
+                    })
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchStatsSuccess(stats) {
+    return {
+        type: types.FETCH_LOG_STAT_SUCCESS,
+        payload: stats,
+    };
+}
+
+export function fetchStatsRequest(applicationLogId) {
+    return {
+        type: types.FETCH_LOG_STAT_REQUEST,
+        payload: applicationLogId,
+    };
+}
+
+export function fetchStatsFailure(error) {
+    return {
+        type: types.FETCH_LOG_STAT_FAILURE,
+        payload: error,
+    };
+}
+export function resetFetchStats() {
+    return {
+        type: types.FETCH_LOG_STAT_RESET,
+    };
+}
