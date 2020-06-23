@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, createRef } from 'react';
 import PropTypes from 'prop-types';
 import BlockChart from './BlockChart';
 import moment from 'moment';
@@ -80,7 +80,30 @@ const calculateTime = (statuses, start, range) => {
     return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
 };
 
+
+function debounce(fn, ms) {
+    let timer;
+    // eslint-disable-next-line no-unused-vars
+    return _ => {
+        clearTimeout(timer);
+        // eslint-disable-next-line no-unused-vars
+        timer = setTimeout(_ => {
+            timer = null;
+            fn.apply(this, arguments);
+        }, ms);
+    };
+}
+
 class MonitorInfo extends Component {
+    constructor(props) {
+        super(props);
+
+        this.container = createRef();
+        this.scrollWrapper = createRef();
+        this.scrollContent = createRef();
+        this.resizeHandler = this.resizeHandler.bind(this);
+    }
+
     componentDidMount() {
         const { monitor } = this.props;
 
@@ -94,6 +117,9 @@ class MonitorInfo extends Component {
                 endDate
             );
         }
+
+        this.resizeHandler();
+        window.addEventListener('resize', debounce(this.resizeHandler, 100));
     }
 
     componentDidUpdate(prevProps) {
@@ -111,6 +137,33 @@ class MonitorInfo extends Component {
                 );
             }
         }
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('resize', debounce(this.resizeHandler, 100));
+    }
+
+    resizeHandler() {
+        // block chart scroll wrapper
+        const scrollWrapper = this.scrollWrapper.current;
+        scrollWrapper.style.width = 'auto';
+
+        // block chart scroll content
+        const scrollContent = this.scrollContent.current;
+        scrollContent.style.width = 'auto';
+
+        // uptime graph container
+        const container = this.container.current;
+
+        setTimeout(() => {
+            // adjust width
+            scrollWrapper.style.width = `${container.clientWidth}px`;
+            scrollContent.style.width = 'max-content';
+
+            // scroll to end of chart
+            scrollWrapper.scrollLeft =
+                scrollContent.clientWidth - scrollWrapper.clientWidth;
+        }, 400);
     }
 
     render() {
@@ -187,6 +240,7 @@ class MonitorInfo extends Component {
             <div
                 className="uptime-graph-section dashboard-uptime-graph"
                 id={this.props.id}
+                ref={this.container}
             >
                 <div
                     className="uptime-graph-header"
@@ -227,7 +281,15 @@ class MonitorInfo extends Component {
                     </div>
                 </div>
                 {selectedCharts.uptime && (
-                    <div className="block-chart">{block}</div>
+                <div
+                    ref={this.scrollWrapper}
+                    className="block-chart"
+                    style={{ overflowX: 'scroll' }}
+                >
+                    <div ref={this.scrollContent} className="scroll-content">
+                        {block}
+                    </div>
+                </div>
                 )}
             </div>
         );
