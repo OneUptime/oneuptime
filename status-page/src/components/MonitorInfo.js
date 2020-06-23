@@ -80,7 +80,6 @@ const calculateTime = (statuses, start, range) => {
     return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
 };
 
-
 function debounce(fn, ms) {
     let timer;
     // eslint-disable-next-line no-unused-vars
@@ -281,15 +280,18 @@ class MonitorInfo extends Component {
                     </div>
                 </div>
                 {selectedCharts.uptime && (
-                <div
-                    ref={this.scrollWrapper}
-                    className="block-chart"
-                    style={{ overflowX: 'scroll' }}
-                >
-                    <div ref={this.scrollContent} className="scroll-content">
-                        {block}
+                    <div
+                        ref={this.scrollWrapper}
+                        className="block-chart"
+                        style={{ overflowX: 'scroll' }}
+                    >
+                        <div
+                            ref={this.scrollContent}
+                            className="scroll-content"
+                        >
+                            {block}
+                        </div>
                     </div>
-                </div>
                 )}
             </div>
         );
