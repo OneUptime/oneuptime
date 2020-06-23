@@ -79,7 +79,7 @@ describe('Components', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.click('#applicationLogs');
+                await page.click('#logs');
 
                 // Fill and submit New Application  log form
                 await page.waitForSelector('#form-new-application-log');
@@ -105,7 +105,7 @@ describe('Components', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.click('#applicationLogs');
+                await page.click('#logs');
 
                 // Fill and submit New Application  log form
                 await page.waitForSelector('#form-new-application-log');
@@ -163,7 +163,7 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(
-                    `Edit Application Log ${applicationLogName}`
+                    `Edit Log Container ${applicationLogName}`
                 );
             });
         },
@@ -315,7 +315,7 @@ describe('Components', () => {
                 await page.type('input[id=name]', '-new');
                 await page.click('button[type=submit]');
 
-                await page.click('#applicationLogs');
+                await page.click('#logs');
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
