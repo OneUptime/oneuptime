@@ -594,13 +594,40 @@ module.exports = {
                             });
 
                             audit.on('close', async () => {
-                                const advisories = [];
+                                let advisories = [];
                                 auditOutput = JSON.parse(auditOutput); // parse the stringified json
                                 for (const key in auditOutput.advisories) {
                                     advisories.push(
                                         auditOutput.advisories[key]
                                     );
                                 }
+
+                                let criticalArr = [],
+                                    highArr = [],
+                                    moderateArr = [],
+                                    lowArr = [];
+                                advisories.map(advisory => {
+                                    if (advisory.severity === 'critical') {
+                                        criticalArr.push(advisory);
+                                    }
+                                    if (advisory.severity === 'high') {
+                                        highArr.push(advisory);
+                                    }
+                                    if (advisory.severity === 'moderate') {
+                                        moderateArr.push(advisory);
+                                    }
+                                    if (advisory.severity === 'low') {
+                                        lowArr.push(advisory);
+                                    }
+                                });
+
+                                // restructure advisories from the most critical case to the least critical(low)
+                                advisories = [
+                                    ...criticalArr,
+                                    ...highArr,
+                                    ...moderateArr,
+                                    ...lowArr,
+                                ];
 
                                 const auditData = {
                                     dependencies:
@@ -805,6 +832,39 @@ module.exports = {
                         });
 
                         auditData.vulnerabilityInfo = counter;
+
+                        const arrayData = auditData.vulnerabilityData.map(
+                            log => log.vulnerabilities
+                        );
+
+                        auditData.vulnerabilityData = flattenArray(arrayData);
+
+                        let criticalArr = [],
+                            highArr = [],
+                            moderateArr = [],
+                            lowArr = [];
+                        auditData.vulnerabilityData.map(vulnerability => {
+                            if (vulnerability.severity === 'critical') {
+                                criticalArr.push(vulnerability);
+                            }
+                            if (vulnerability.severity === 'high') {
+                                highArr.push(vulnerability);
+                            }
+                            if (vulnerability.severity === 'moderate') {
+                                moderateArr.push(vulnerability);
+                            }
+                            if (vulnerability.severity === 'low') {
+                                lowArr.push(vulnerability);
+                            }
+                        });
+
+                        auditData.vulnerabilityData = [
+                            ...criticalArr,
+                            ...highArr,
+                            ...moderateArr,
+                            ...lowArr,
+                        ];
+
                         const securityLog = await ContainerSecurityLogService.create(
                             {
                                 securityId: security._id,
@@ -2245,3 +2305,4 @@ const ApplicationSecurityLogService = require('./applicationSecurityLogService')
 const ApplicationSecurityService = require('./applicationSecurityService');
 const ContainerSecurityService = require('./containerSecurityService');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
+const flattenArray = require('../utils/flattenArray');
