@@ -126,7 +126,7 @@ describe('Docker Credential API', function() {
             });
     });
 
-    it('should not create docker credential with an existing docker registry url in a project', function(done) {
+    it('should not create docker credential with an existing docker registry url and docker username in a project', function(done) {
         const authorization = `Basic ${token}`;
         const dockerRegistryUrl = 'https://dockerhub.com/reactjs';
         const dockerUsername = 'username';
