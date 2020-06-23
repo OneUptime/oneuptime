@@ -3,6 +3,7 @@ const ErrorService = require('./errorService');
 const moment = require('moment');
 const { decrypt } = require('../config/encryptDecrypt');
 const ApplicationSecurityLogService = require('./applicationSecurityLogService');
+const GitCredentialService = require('./gitCredentialService');
 
 module.exports = {
     create: async function(data) {
@@ -14,6 +15,9 @@ module.exports = {
             const gitRepositoryUrlExist = await this.findOneBy({
                 gitRepositoryUrl: data.gitRepositoryUrl,
                 componentId: data.componentId,
+            });
+            const gitCredentialExist = await GitCredentialService.findOneBy({
+                _id: data.gitCredential,
             });
 
             if (applicationNameExist) {
@@ -27,6 +31,14 @@ module.exports = {
             if (gitRepositoryUrlExist) {
                 const error = new Error(
                     'Application security with this git repository url already exist in this component'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            if (!gitCredentialExist) {
+                const error = new Error(
+                    'Git Credential not found or does not exist'
                 );
                 error.code = 400;
                 throw error;
