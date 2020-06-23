@@ -766,6 +766,24 @@ module.exports = {
                             };
 
                             auditLog.Vulnerabilities.map(vulnerability => {
+                                let severity;
+                                if (vulnerability.Severity === 'LOW') {
+                                    counter.low += 1;
+                                    severity = 'low';
+                                }
+                                if (vulnerability.Severity === 'MEDIUM') {
+                                    counter.moderate += 1;
+                                    severity = 'moderate';
+                                }
+                                if (vulnerability.Severity === 'HIGH') {
+                                    counter.high += 1;
+                                    severity = 'high';
+                                }
+                                if (vulnerability.Severity === 'CRITICAL') {
+                                    counter.critical += 1;
+                                    severity = 'critical';
+                                }
+
                                 const vulObj = {
                                     vulnerabilityId:
                                         vulnerability.VulnerabilityID,
@@ -775,22 +793,9 @@ module.exports = {
                                     fixedVersions: vulnerability.FixedVersion,
                                     title: vulnerability.Title,
                                     description: vulnerability.Description,
-                                    severity: vulnerability.Severity,
+                                    severity,
                                 };
                                 log.vulnerabilities.push(vulObj);
-
-                                if (vulnerability.Severity === 'LOW') {
-                                    counter.low += 1;
-                                }
-                                if (vulnerability.Severity === 'MEDIUM') {
-                                    counter.moderate += 1;
-                                }
-                                if (vulnerability.Severity === 'HIGH') {
-                                    counter.high += 1;
-                                }
-                                if (vulnerability.Severity === 'CRITICAL') {
-                                    counter.critical += 1;
-                                }
 
                                 return vulnerability;
                             });
