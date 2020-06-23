@@ -127,10 +127,7 @@ class ApplicationLogHeader extends Component {
                 </div>
                 <div className="db-TrendRow db-ListViewItem-header db-Trends-header">
                     <div className="db-Trend-colInformation">
-                        <div
-                            className="db-Trend-rowTitle"
-                            title="Critical Issues"
-                        >
+                        <div className="db-Trend-rowTitle" title="All Logs">
                             <div className="db-Trend-title">
                                 <span className="chart-font">All Logs</span>
                             </div>
@@ -145,10 +142,7 @@ class ApplicationLogHeader extends Component {
                         </div>
                     </div>
                     <div className="db-Trend-colInformation">
-                        <div
-                            className="db-Trend-rowTitle"
-                            title="High Priority Issues"
-                        >
+                        <div className="db-Trend-rowTitle" title="Error Logs">
                             <div className="db-Trend-title">
                                 <span className="chart-font">Error Logs</span>
                             </div>
@@ -163,10 +157,7 @@ class ApplicationLogHeader extends Component {
                         </div>
                     </div>
                     <div className="db-Trend-colInformation">
-                        <div
-                            className="db-Trend-rowTitle"
-                            title="Moderate Issues"
-                        >
+                        <div className="db-Trend-rowTitle" title="Warning Logs">
                             <div className="db-Trend-title">
                                 <span className="chart-font">Warning Logs</span>
                             </div>
@@ -181,10 +172,7 @@ class ApplicationLogHeader extends Component {
                         </div>
                     </div>
                     <div className="db-Trend-colInformation">
-                        <div
-                            className="db-Trend-rowTitle"
-                            title="Low Priority Issue"
-                        >
+                        <div className="db-Trend-rowTitle" title="Info Logs">
                             <div className="db-Trend-title">
                                 <span className="chart-font">Info Logs</span>
                             </div>
