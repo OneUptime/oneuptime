@@ -133,12 +133,12 @@ class ApplicationLogHeader extends Component {
                     <div className="db-TrendRow db-ListViewItem-header db-Trends-header">
                         <div className="db-Trend-colInformation">
                             <div className="db-Trend-rowTitle" title="All Logs">
-                                <div className="db-Trend-title">
+                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
                                     <span className="chart-font">All Logs</span>
                                 </div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue">
+                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
                                     <span>
                                         {' '}
                                         <span className="chart-font">
@@ -155,14 +155,14 @@ class ApplicationLogHeader extends Component {
                                 className="db-Trend-rowTitle"
                                 title="Error Logs"
                             >
-                                <div className="db-Trend-title">
+                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
                                     <span className="chart-font">
                                         Error Logs
                                     </span>
                                 </div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue">
+                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
                                     <span>
                                         {' '}
                                         <span className="chart-font">
@@ -179,14 +179,14 @@ class ApplicationLogHeader extends Component {
                                 className="db-Trend-rowTitle"
                                 title="Warning Logs"
                             >
-                                <div className="db-Trend-title">
+                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
                                     <span className="chart-font">
                                         Warning Logs
                                     </span>
                                 </div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue">
+                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
                                     <span>
                                         {' '}
                                         <span className="chart-font">
@@ -203,14 +203,14 @@ class ApplicationLogHeader extends Component {
                                 className="db-Trend-rowTitle"
                                 title="Info Logs"
                             >
-                                <div className="db-Trend-title">
+                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
                                     <span className="chart-font">
                                         Info Logs
                                     </span>
                                 </div>
                             </div>
                             <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue">
+                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
                                     <span>
                                         {' '}
                                         <span className="chart-font">
