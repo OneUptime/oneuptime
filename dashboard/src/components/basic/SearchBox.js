@@ -12,15 +12,18 @@ class SearchBox extends Component {
         this.onChange$ = new Subject();
         this.onChange = this.onChange.bind(this);
     }
+    // update the state locally here
     onChange = event => {
         const keyword = event.target.value;
         this.setState({
             keyword,
         });
+        // send updated word to the listener
         this.onChange$.next(keyword);
     };
     componentDidMount() {
         this.onChange$.pipe(debounceTime(700)).subscribe(updatedWord => {
+            // wait a while for the user to complete typing, then send the word to the calling component
             this.props.onChange(updatedWord);
         });
     }

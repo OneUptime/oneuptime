@@ -138,6 +138,7 @@ class ApplicationLogDetail extends Component {
             componentId,
             currentProject,
             fetchLogs,
+            isDetails,
         } = this.props;
         if (applicationLog) {
             fetchLogs(
@@ -197,7 +198,7 @@ class ApplicationLogDetail extends Component {
                             />
                         </ShouldRender>
 
-                        <ShouldRender if={!this.props.isDetails}>
+                        <ShouldRender if={!isDetails}>
                             <ApplicationLogDetailView
                                 logValue={this.state.logType}
                                 filter={this.state.filter}
@@ -209,6 +210,7 @@ class ApplicationLogDetail extends Component {
                                     this.handleLogFilterChange
                                 }
                                 handleDateTimeChange={this.handleDateTimeChange}
+                                isDetails={isDetails}
                             />
                         </ShouldRender>
                     </div>
@@ -233,6 +235,7 @@ class ApplicationLogDetail extends Component {
                                     this.handleLogFilterChange
                                 }
                                 handleDateTimeChange={this.handleDateTimeChange}
+                                isDetails={isDetails}
                             />
                         </div>
                     </ShouldRender>
