@@ -21,100 +21,180 @@ class ApplicationLogHeader extends Component {
             resetApplicationLogKey,
         } = this.props;
         return (
-            <div className="db-Trends-header">
-                <div className="db-Trends-title">
-                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                <span
-                                    id="application-content-header"
-                                    className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
-                                >
+            <div>
+                <div className="db-Trends-header">
+                    <div className="db-Trends-title">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                     <span
-                                        id={`application-log-title-${applicationLog.name}`}
+                                        id="application-content-header"
+                                        className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                     >
-                                        {applicationLog.name}
+                                        <span
+                                            id={`application-log-title-${applicationLog.name}`}
+                                        >
+                                            {applicationLog.name}
+                                        </span>
                                     </span>
+                                </div>
+                                <div className="db-Trends-control Flex-justifyContent--flexEnd Flex-flex">
+                                    <div>
+                                        {isDetails ? (
+                                            <div>
+                                                <button
+                                                    id={`key_${applicationLog.name}`}
+                                                    className={
+                                                        'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--key'
+                                                    }
+                                                    type="button"
+                                                    onClick={() =>
+                                                        openModal({
+                                                            id: openApplicationLogKeyModalId,
+                                                            onClose: () => '',
+                                                            onConfirm: () =>
+                                                                resetApplicationLogKey(),
+                                                            content: DataPathHoC(
+                                                                ViewApplicationLogKey,
+                                                                {
+                                                                    applicationLog,
+                                                                }
+                                                            ),
+                                                        })
+                                                    }
+                                                >
+                                                    <span>
+                                                        Application Log Key
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    id={`edit_${applicationLog.name}`}
+                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
+                                                    type="button"
+                                                    onClick={editApplicationLog}
+                                                >
+                                                    <span>Edit</span>
+                                                </button>
+                                                <button
+                                                    id={`delete_${applicationLog.name}`}
+                                                    className={
+                                                        deleting
+                                                            ? 'bs-Button bs-Button--blue'
+                                                            : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'
+                                                    }
+                                                    type="button"
+                                                    disabled={deleting}
+                                                    onClick={() =>
+                                                        openModal({
+                                                            id: deleteModalId,
+                                                            onClose: () => '',
+                                                            onConfirm: () =>
+                                                                deleteApplicationLog(),
+                                                            content: DataPathHoC(
+                                                                DeleteApplicationLog,
+                                                                {
+                                                                    applicationLog,
+                                                                }
+                                                            ),
+                                                        })
+                                                    }
+                                                >
+                                                    <ShouldRender
+                                                        if={!deleting}
+                                                    >
+                                                        <span>Delete</span>
+                                                    </ShouldRender>
+                                                    <ShouldRender if={deleting}>
+                                                        <FormLoader />
+                                                    </ShouldRender>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                id={`more-details-${applicationLog.name}`}
+                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--more"
+                                                type="button"
+                                                onClick={viewMore}
+                                            >
+                                                <span>More</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="db-TrendRow db-ListViewItem-header db-Trends-header">
+                    <div className="db-Trend-colInformation">
+                        <div
+                            className="db-Trend-rowTitle"
+                            title="Critical Issues"
+                        >
+                            <div className="db-Trend-title">
+                                <span className="chart-font">All Logs</span>
+                            </div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue">
+                                <span>
+                                    {' '}
+                                    <span className="chart-font">{100}</span>
                                 </span>
                             </div>
-                            <div className="db-Trends-control Flex-justifyContent--flexEnd Flex-flex">
-                                <div>
-                                    {isDetails ? (
-                                        <div>
-                                            <button
-                                                id={`key_${applicationLog.name}`}
-                                                className={
-                                                    'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--key'
-                                                }
-                                                type="button"
-                                                onClick={() =>
-                                                    openModal({
-                                                        id: openApplicationLogKeyModalId,
-                                                        onClose: () => '',
-                                                        onConfirm: () =>
-                                                            resetApplicationLogKey(),
-                                                        content: DataPathHoC(
-                                                            ViewApplicationLogKey,
-                                                            {
-                                                                applicationLog,
-                                                            }
-                                                        ),
-                                                    })
-                                                }
-                                            >
-                                                <span>Application Log Key</span>
-                                            </button>
-                                            <button
-                                                id={`edit_${applicationLog.name}`}
-                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
-                                                type="button"
-                                                onClick={editApplicationLog}
-                                            >
-                                                <span>Edit</span>
-                                            </button>
-                                            <button
-                                                id={`delete_${applicationLog.name}`}
-                                                className={
-                                                    deleting
-                                                        ? 'bs-Button bs-Button--blue'
-                                                        : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'
-                                                }
-                                                type="button"
-                                                disabled={deleting}
-                                                onClick={() =>
-                                                    openModal({
-                                                        id: deleteModalId,
-                                                        onClose: () => '',
-                                                        onConfirm: () =>
-                                                            deleteApplicationLog(),
-                                                        content: DataPathHoC(
-                                                            DeleteApplicationLog,
-                                                            {
-                                                                applicationLog,
-                                                            }
-                                                        ),
-                                                    })
-                                                }
-                                            >
-                                                <ShouldRender if={!deleting}>
-                                                    <span>Delete</span>
-                                                </ShouldRender>
-                                                <ShouldRender if={deleting}>
-                                                    <FormLoader />
-                                                </ShouldRender>
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <button
-                                            id={`more-details-${applicationLog.name}`}
-                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--more"
-                                            type="button"
-                                            onClick={viewMore}
-                                        >
-                                            <span>More</span>
-                                        </button>
-                                    )}
-                                </div>
+                        </div>
+                    </div>
+                    <div className="db-Trend-colInformation">
+                        <div
+                            className="db-Trend-rowTitle"
+                            title="High Priority Issues"
+                        >
+                            <div className="db-Trend-title">
+                                <span className="chart-font">Error Logs</span>
+                            </div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue">
+                                <span>
+                                    {' '}
+                                    <span className="chart-font">{35}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="db-Trend-colInformation">
+                        <div
+                            className="db-Trend-rowTitle"
+                            title="Moderate Issues"
+                        >
+                            <div className="db-Trend-title">
+                                <span className="chart-font">Warning Logs</span>
+                            </div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue">
+                                <span>
+                                    {' '}
+                                    <span className="chart-font">{6}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="db-Trend-colInformation">
+                        <div
+                            className="db-Trend-rowTitle"
+                            title="Low Priority Issue"
+                        >
+                            <div className="db-Trend-title">
+                                <span className="chart-font">Info Logs</span>
+                            </div>
+                        </div>
+                        <div className="db-Trend-row">
+                            <div className="db-Trend-col db-Trend-colValue">
+                                <span>
+                                    {' '}
+                                    <span className="chart-font">{51}</span>
+                                </span>
                             </div>
                         </div>
                     </div>
