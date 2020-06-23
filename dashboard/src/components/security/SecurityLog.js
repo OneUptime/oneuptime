@@ -22,13 +22,13 @@ export class SecurityLog extends Component {
             levelToFilter,
         } = this.props;
 
-        let advisories = [];
+        let applicationLogs = [];
         if (applicationSecurityLog && applicationSecurityLog.data) {
             const data = applicationSecurityLog.data;
-            advisories = data.advisories;
-            
+            applicationLogs = data.advisories;
+
             if (levelToFilter) {
-                advisories = data.advisories.filter(
+                applicationLogs = data.advisories.filter(
                     advisory => advisory.severity === levelToFilter
                 );
             }
@@ -36,15 +36,11 @@ export class SecurityLog extends Component {
 
         let containerLogs = [];
         if (containerSecurityLog && containerSecurityLog.data) {
-            let outArr = containerSecurityLog.data.vulnerabilityData.map(
-                log => {
-                    return log.vulnerabilities;
-                }
-            );
+            const data = containerSecurityLog.data;
+            containerLogs = data.vulnerabilityData;
 
-            containerLogs = flattenArray(outArr);
             if (levelToFilter) {
-                containerLogs = containerLogs.filter(
+                containerLogs = data.vulnerabilityData.filter(
                     log => log.severity === levelToFilter
                 );
             }
@@ -132,8 +128,8 @@ export class SecurityLog extends Component {
                                 <tbody className="Table-body">
                                     <ShouldRender if={applicationSecurityLog}>
                                         {applicationSecurityLog &&
-                                        advisories.length > 0 ? (
-                                            advisories.map(advisory => {
+                                        applicationLogs.length > 0 ? (
+                                            applicationLogs.map(advisory => {
                                                 return (
                                                     <tr
                                                         className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
