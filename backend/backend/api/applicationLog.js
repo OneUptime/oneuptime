@@ -155,6 +155,19 @@ router.post(
         try {
             const { skip, limit, startDate, endDate, type, filter } = req.body;
             const applicationLogId = req.params.applicationLogId;
+
+            const currentApplicationLog = await ApplicationLogService.findOneBy(
+                {
+                    _id: applicationLogId,
+                }
+            );
+            if (!currentApplicationLog) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Application Log not found',
+                });
+            }
+
             const query = {};
 
             if (applicationLogId) query.applicationLogId = applicationLogId;
@@ -173,6 +186,56 @@ router.post(
             const logs = await LogService.findBy(query, limit || 10, skip || 0);
             const count = await LogService.countBy(query);
             return sendListResponse(req, res, logs, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+// Description: Get all Logs stat by applicationLogId.
+router.post(
+    '/:projectId/:componentId/:applicationLogId/stats',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const applicationLogId = req.params.applicationLogId;
+
+            const currentApplicationLog = await ApplicationLogService.findOneBy(
+                {
+                    _id: applicationLogId,
+                }
+            );
+            if (!currentApplicationLog) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Application Log not found',
+                });
+            }
+
+            const query = {};
+
+            if (applicationLogId) query.applicationLogId = applicationLogId;
+
+            const stat = {};
+            let count = 0;
+
+            //query.type = '';
+            count = await LogService.countBy(query);
+            stat.all = count;
+
+            query.type = 'error';
+            count = await LogService.countBy(query);
+            stat.error = count;
+
+            query.type = 'info';
+            count = await LogService.countBy(query);
+            stat.info = count;
+
+            query.type = 'warning';
+            count = await LogService.countBy(query);
+            stat.warning = count;
+
+            return sendListResponse(req, res, stat);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
