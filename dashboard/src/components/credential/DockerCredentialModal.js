@@ -107,7 +107,7 @@ class DockerCredentialModal extends Component {
                                                                     type="text"
                                                                     name="dockerRegistryUrl"
                                                                     id="dockerRegistryUrl"
-                                                                    placeholder="Docker Registry URL"
+                                                                    placeholder="https://registry.hub.docker.com"
                                                                     disabled={
                                                                         isRequesting
                                                                     }
