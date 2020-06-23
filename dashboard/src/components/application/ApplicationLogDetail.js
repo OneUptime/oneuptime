@@ -13,6 +13,7 @@ import {
     fetchLogs,
     resetApplicationLogKey,
     editApplicationLogSwitch,
+    fetchStats,
 } from '../../actions/applicationLog';
 import { setStartDate, setEndDate } from '../../actions/dateTime';
 import ApplicationLogDetailView from './ApplicationLogDetailView';
@@ -123,6 +124,15 @@ class ApplicationLogDetail extends Component {
                 applicationLog._id
         );
     };
+    componentDidMount() {
+        const {
+            fetchStats,
+            currentProject,
+            applicationLog,
+            componentId,
+        } = this.props;
+        fetchStats(currentProject._id, componentId, applicationLog._id);
+    }
     render() {
         const {
             deleting,
@@ -139,6 +149,7 @@ class ApplicationLogDetail extends Component {
             currentProject,
             fetchLogs,
             isDetails,
+            stats,
         } = this.props;
         if (applicationLog) {
             fetchLogs(
@@ -187,6 +198,7 @@ class ApplicationLogDetail extends Component {
                                 resetApplicationLogKey={
                                     this.resetApplicationLogKey
                                 }
+                                stats={stats}
                             />
                         </ShouldRender>
                         <ShouldRender if={applicationLog.editMode}>
@@ -259,6 +271,7 @@ const mapDispatchToProps = dispatch => {
             setStartDate,
             setEndDate,
             editApplicationLogSwitch,
+            fetchStats,
         },
         dispatch
     );
@@ -269,12 +282,14 @@ function mapStateToProps(state, ownProps) {
     const applicationLogFromRedux = applicationLogs.filter(
         applicationLog => applicationLog._id === ownProps.index
     );
+    const stats = state.applicationLog.stats[ownProps.index];
     return {
         currentProject: state.project.currentProject,
         startDate: state.dateTime.dates.startDate,
         endDate: state.dateTime.dates.endDate,
         applicationLog: applicationLogFromRedux[0],
         editMode: applicationLogFromRedux[0].editMode,
+        stats,
     };
 }
 
@@ -294,6 +309,8 @@ ApplicationLogDetail.propTypes = {
     startDate: PropTypes.instanceOf(moment),
     endDate: PropTypes.instanceOf(moment),
     editApplicationLogSwitch: PropTypes.func,
+    fetchStats: PropTypes.func,
+    stats: PropTypes.object,
 };
 
 export default connect(
