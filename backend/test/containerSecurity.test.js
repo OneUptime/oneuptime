@@ -17,6 +17,7 @@ const ProjectService = require('../backend/services/projectService');
 const ComponentService = require('../backend/services/componentService');
 const DockerCredentialService = require('../backend/services/dockerCredentialService');
 const ContainerSecurityService = require('../backend/services/containerSecurityService');
+const ContainerSecurityLogService = require('../backend/services/containerSecurityLogService');
 
 describe('Container Security API', function() {
     const timeout = 30000;
@@ -84,6 +85,7 @@ describe('Container Security API', function() {
         await ComponentService.hardDeleteBy({ projectId });
         await DockerCredentialService.hardDeleteBy({ projectId });
         await ContainerSecurityService.hardDelete({ componentId });
+        await ContainerSecurityLogService.hardDelete({ componentId });
     });
 
     it('should create a container security', function(done) {
@@ -366,6 +368,28 @@ describe('Container Security API', function() {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container security not found or does not exist'
+                );
+                done();
+            });
+    });
+
+    it('should not create a container security if dockerCredential does not exist', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = {
+            name: 'Another Container',
+            imagePath: dockerCredential.imagePath,
+            imageTags: dockerCredential.imageTags,
+            dockerCredential: '5e8db9752cc46e3a229ebc51',
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/container`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Docker Credential not found or does not exist'
                 );
                 done();
             });
