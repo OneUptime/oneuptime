@@ -152,7 +152,7 @@ describe('Status API', function() {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should not add status page if monitor ids is missing', function(done) {
+    it('should not add status page if the page name is missing', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(`/statusPage/${projectId}`)
