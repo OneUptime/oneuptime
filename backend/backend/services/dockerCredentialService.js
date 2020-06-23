@@ -45,10 +45,11 @@ module.exports = {
     },
     create: async function(data) {
         try {
-            // no more than one dockerRegistryUrl in a project
+            // no more than one docker credential with the same details in a project
             const dockerCredential = await this.findOneBy({
                 dockerRegistryUrl: data.dockerRegistryUrl,
                 projectId: data.projectId,
+                dockerUsername: data.dockerUsername,
             });
 
             if (dockerCredential) {
