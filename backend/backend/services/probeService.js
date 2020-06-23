@@ -602,7 +602,7 @@ module.exports = {
                                     );
                                 }
 
-                                let criticalArr = [],
+                                const criticalArr = [],
                                     highArr = [],
                                     moderateArr = [],
                                     lowArr = [];
@@ -619,6 +619,7 @@ module.exports = {
                                     if (advisory.severity === 'low') {
                                         lowArr.push(advisory);
                                     }
+                                    return advisory;
                                 });
 
                                 // restructure advisories from the most critical case to the least critical(low)
@@ -839,7 +840,7 @@ module.exports = {
 
                         auditData.vulnerabilityData = flattenArray(arrayData);
 
-                        let criticalArr = [],
+                        const criticalArr = [],
                             highArr = [],
                             moderateArr = [],
                             lowArr = [];
@@ -856,6 +857,7 @@ module.exports = {
                             if (vulnerability.severity === 'low') {
                                 lowArr.push(vulnerability);
                             }
+                            return vulnerability;
                         });
 
                         auditData.vulnerabilityData = [

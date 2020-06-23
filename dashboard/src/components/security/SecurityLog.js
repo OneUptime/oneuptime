@@ -58,7 +58,7 @@ const SecurityLog = ({
     };
 
     function paginator(items, page = 1, limit = 10) {
-        let offset = (page - 1) * limit,
+        const offset = (page - 1) * limit,
             paginatedItems = items.slice(offset).slice(0, limit),
             total_pages = Math.ceil(items.length / limit);
         return {

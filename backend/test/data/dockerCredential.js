@@ -4,4 +4,4 @@ module.exports = {
     dockerRegistryUrl: process.env.DOCKER_REGISTRY_URL,
     imagePath: process.env.IMAGE_PATH,
     imageTags: process.env.IMAGE_TAGS,
-}
+};
