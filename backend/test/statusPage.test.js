@@ -170,25 +170,6 @@ describe('Status API', function() {
             });
     });
 
-    it('should not add status page if monitor is not an array', function(done) {
-        const authorization = `Basic ${token}`;
-        request
-            .post(`/statusPage/${projectId}`)
-            .set('Authorization', authorization)
-            .send({
-                links: [],
-                title: 'Status title',
-                description: 'status description',
-                copyright: 'status copyright',
-                projectId,
-                monitorsId: { _id: '2121' },
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                done();
-            });
-    });
-
     it('should add status page', function(done) {
         const authorization = `Basic ${token}`;
         request
