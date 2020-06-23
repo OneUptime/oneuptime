@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import LogList from './LogList';
 import Select from '../../components/basic/react-select-fyipe';
-import FilterSelect from './FilterSelect';
 import PropTypes from 'prop-types';
 import DateTimeRangeSelector from '../basic/DateTimeRangeSelector';
 import SearchBox from '../basic/SearchBox';
@@ -17,7 +16,6 @@ class ApplicationLogDetailView extends Component {
             handleLogTypeChange,
             handleLogFilterChange,
             filter,
-            filters,
         } = this.props;
         return (
             <div>
@@ -44,9 +42,6 @@ class ApplicationLogDetailView extends Component {
                                             </div>
                                         </div>
                                         <div className="db-Trends-controls">
-                                            <SearchBox />
-                                        </div>
-                                        <div className="db-Trends-controls">
                                             <div className="db-Trends-timeControls Padding-all--4 Margin-all--2">
                                                 <DateTimeRangeSelector
                                                     onChange={
@@ -61,15 +56,15 @@ class ApplicationLogDetailView extends Component {
                                                         margin: '5px',
                                                     }}
                                                 >
-                                                    <FilterSelect
-                                                        name="probe_selector"
+                                                    <SearchBox
+                                                        name="log_filter"
                                                         value={filter}
                                                         onChange={
                                                             handleLogFilterChange
                                                         }
-                                                        placeholder="Filter By"
+                                                        placeholder="Filter logs by ..."
                                                         className="db-select-pr"
-                                                        id="log_type_selector"
+                                                        id="log_filter_selector"
                                                         isDisabled={
                                                             !(
                                                                 applicationLog &&
@@ -78,8 +73,11 @@ class ApplicationLogDetailView extends Component {
                                                         }
                                                         style={{
                                                             height: '28px',
+                                                            padding: '5px',
+                                                            border:
+                                                                '#CCCCCC 1px solid',
+                                                            borderRadius: '5px',
                                                         }}
-                                                        options={filters}
                                                     />
                                                 </div>
 
@@ -139,12 +137,6 @@ ApplicationLogDetailView.propTypes = {
         })
     ),
     filter: PropTypes.object,
-    filters: PropTypes.arrayOf(
-        PropTypes.shape({
-            label: PropTypes.string,
-            value: PropTypes.string,
-        })
-    ),
     handleDateTimeChange: PropTypes.func,
     handleLogTypeChange: PropTypes.func,
     handleLogFilterChange: PropTypes.func,

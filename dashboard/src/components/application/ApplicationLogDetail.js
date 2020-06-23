@@ -31,8 +31,7 @@ class ApplicationLogDetail extends Component {
             logType: { value: '', label: 'All Logs' },
             startDate: props.startDate,
             endDate: props.endDate,
-            filters: [],
-            filter: {},
+            filter: '',
         };
     }
     deleteApplicationLog = () => {
@@ -97,21 +96,10 @@ class ApplicationLogDetail extends Component {
         }
     };
     handleLogTypeChange = logType => {
-        this.setState(() => ({
-            logType: logType,
-        }));
+        this.setState({ logType });
     };
     handleLogFilterChange = filter => {
-        if (!filter) return;
-        let filters = this.state.filters;
-        const exist = filters.filter(elem => elem.value === filter.value);
-        if (exist.length < 1) {
-            filters = [...this.state.filters, filter];
-        }
-        this.setState(() => ({
-            filters,
-            filter,
-        }));
+        this.setState({ filter });
     };
     editApplicationLog = () => {
         const { applicationLog } = this.props;
@@ -143,7 +131,6 @@ class ApplicationLogDetail extends Component {
             startDate,
             endDate,
             logType,
-            filters,
             filter,
         } = this.state;
         const {
@@ -162,7 +149,7 @@ class ApplicationLogDetail extends Component {
                 startDate.clone().utc(),
                 endDate.clone().utc(),
                 logType.value,
-                filter.value
+                filter
             );
         }
 
@@ -214,7 +201,6 @@ class ApplicationLogDetail extends Component {
                             <ApplicationLogDetailView
                                 logValue={this.state.logType}
                                 filter={this.state.filter}
-                                filters={filters}
                                 applicationLog={applicationLog}
                                 logOptions={logOptions}
                                 componentId={componentId}
@@ -239,7 +225,6 @@ class ApplicationLogDetail extends Component {
                             <ApplicationLogDetailView
                                 logValue={this.state.logType}
                                 filter={this.state.filter}
-                                filters={filters}
                                 applicationLog={applicationLog}
                                 logOptions={logOptions}
                                 componentId={componentId}
