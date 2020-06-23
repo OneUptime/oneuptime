@@ -204,7 +204,6 @@ describe('Status API', function() {
                 description: 'private status page description',
                 copyright: 'private status page copyright',
                 projectId,
-                monitorIds: [monitorId],
             })
             .end(function(err, res) {
                 privateStatusPageId = res.body._id;
