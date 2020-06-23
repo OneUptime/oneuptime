@@ -36,6 +36,7 @@ export class FormModal extends Component {
         } = this.props;
         const { notificationModalId } = this.state;
         values.projectId = data.subProjectId;
+
         if (
             subProjects &&
             subProjects.length >= 1 &&

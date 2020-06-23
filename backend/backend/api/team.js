@@ -143,7 +143,31 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         });
     }
 
+    const numberOfNewMembers = data.emails.split(',').length;
+    if (data.role !== 'Viewer' && numberOfNewMembers > 100) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Invited members should not exceed 100 on a project.',
+        });
+    }
+
     try {
+        // If members are not Viewers, we make sure they don't exceed 100
+        if (data.role !== 'Viewers') {
+            const teamMembers = await TeamService.getTeamMembers(
+                req.params.projectId
+            );
+            const withoutViewers = teamMembers
+                ? teamMembers.filter(teamMember => teamMember.role !== 'Viewer')
+                : [];
+            const totalTeamMembers = withoutViewers.length + numberOfNewMembers;
+            if (totalTeamMembers > 100 && data.role !== 'Viewer') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: `This project already has ${teamMembers.length} members, you can only add upto 100 members`,
+                });
+            }
+        }
         // Call the TeamService
         const users = await TeamService.inviteTeamMembers(
             req.user.id,
