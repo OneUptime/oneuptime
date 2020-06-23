@@ -182,7 +182,6 @@ describe('Status API', function() {
                 description: 'status page description',
                 copyright: 'status page copyright',
                 projectId,
-                monitorIds: [monitorId],
             })
             .end(function(err, res) {
                 statusPageId = res.body._id;
