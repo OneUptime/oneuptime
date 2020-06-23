@@ -17,6 +17,7 @@ const ProjectService = require('../backend/services/projectService');
 const ComponentService = require('../backend/services/componentService');
 const GitCredentialService = require('../backend/services/gitCredentialService');
 const ApplicationSecurities = require('../backend/services/applicationSecurityService');
+const ApplicationSecurityLogService = require('../backend/services/applicationSecurityLogService');
 
 describe('Application Security API', function() {
     const timeout = 30000;
@@ -84,6 +85,7 @@ describe('Application Security API', function() {
         await ComponentService.hardDeleteBy({ projectId });
         await GitCredentialService.hardDeleteBy({ projectId });
         await ApplicationSecurities.hardDelete({ componentId });
+        await ApplicationSecurityLogService.hardDelete({ componentId });
     });
 
     it('should create an application security', function(done) {
@@ -373,6 +375,28 @@ describe('Application Security API', function() {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Application security not found or does not exist'
+                );
+                done();
+            });
+    });
+
+    it('should not create an application security if git credential does not exist', function(done) {
+        const authorization = `Basic ${token}`;
+
+        const data = {
+            name: 'AnotherTest',
+            gitRepositoryUrl: gitCredential.gitRepositoryUrl,
+            gitCredential: '5e8db9752cc46e3a229ebc51',
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/application`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Git Credential not found or does not exist'
                 );
                 done();
             });
