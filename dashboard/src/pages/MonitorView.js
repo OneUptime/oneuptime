@@ -43,12 +43,14 @@ class MonitorView extends React.Component {
     ready = () => {
         const subProjectId =
             this.props.monitor.projectId._id || this.props.monitor.projectId;
-        this.props.fetchLighthouseLogs(
-            subProjectId,
-            this.props.monitor._id,
-            0,
-            10
-        ); //0 -> skip, 10-> limit.
+        if (this.props.monitor.type === 'url') {
+            this.props.fetchLighthouseLogs(
+                subProjectId,
+                this.props.monitor._id,
+                0,
+                10
+            ); //0 -> skip, 10-> limit.
+        }
         this.props.fetchMonitorsIncidents(
             subProjectId,
             this.props.monitor._id,

@@ -26,6 +26,24 @@ const monitor = {
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
+const csvData = {
+    data: [
+        {
+            alertVia: 'sms',
+            contactEmail: 'sample@sample.com',
+            contactPhone: '123456788',
+            contactWebhook: 'samplehook.com',
+            countryCode: 'us',
+        },
+        {
+            alertVia: 'email',
+            contactEmail: 'sample1@sample.com',
+            contactPhone: '123456789',
+            contactWebhook: 'samplehook.com',
+            countryCode: 'us',
+        },
+    ],
+};
 
 describe('Subscriber API', function() {
     this.timeout(20000);
@@ -199,6 +217,42 @@ describe('Subscriber API', function() {
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
+                done();
+            });
+    });
+
+    it('Should upload subscribers from a csv file', done => {
+        request
+            .post(`/subscriber/${projectId}/${monitorId}/csv`)
+            .send(csvData)
+            .end((_err, res) => {
+                expect(res).to.have.status(200);
+                expect(res.body).to.have.lengthOf(2);
+                done();
+            });
+    });
+
+    it('Should not register subscriber twice on the same monitor', done => {
+        request
+            .post(`/subscriber/${projectId}/${monitorId}/csv`)
+            .send(csvData)
+            .end((_err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.equal(
+                    'You are already subscribed to this monitor.'
+                );
+                done();
+            });
+    });
+
+    it('Should not register subscribers if scv file is blank', done => {
+        csvData.data = [];
+        request
+            .post(`/subscriber/${projectId}/${monitorId}/csv`)
+            .send(csvData)
+            .end((_err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.equal('Empty files submitted');
                 done();
             });
     });

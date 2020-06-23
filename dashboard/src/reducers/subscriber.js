@@ -26,6 +26,16 @@ const initialState = {
         error: null,
         success: false,
     },
+    csvDownload: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
+    csvImport: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
 
 export default function subscriber(state = initialState, action) {
@@ -137,6 +147,28 @@ export default function subscriber(state = initialState, action) {
                     success: false,
                 },
             });
+
+        case types.DOWNLOAD_CSV_TEMPLATE_REQUEST:
+            return Object.assign({}, state, {
+                requesting: true,
+                error: null,
+                success: false,
+            });
+
+        case types.DOWNLOAD_CSV_TEMPLATE_SUCCESS:
+            return Object.assign({}, state, {
+                requesting: false,
+                error: null,
+                success: true,
+            });
+
+        case types.DOWNLOAD_CSV_TEMPLATE_FAILED:
+            return Object.assign({}, state, {
+                requesting: false,
+                error: action.payload,
+                success: false,
+            });
+
         default:
             return state;
     }

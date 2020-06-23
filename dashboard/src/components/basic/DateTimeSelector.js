@@ -127,6 +127,8 @@ DateTimeSelector.propTypes = {
     meta: PropTypes.object.isRequired,
     classes: PropTypes.object,
     minDate: PropTypes.object,
+    id: PropTypes.string,
+    label: PropTypes.string,
 };
 
 export default withStyles(styles)(DateTimeSelector);
