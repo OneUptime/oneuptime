@@ -543,7 +543,7 @@ module.exports = {
 
     scanApplicationSecurity: async security => {
         try {
-            let securityDir = '/application_security_dir';
+            let securityDir = 'application_security_dir';
             securityDir = createDir(securityDir);
 
             const USER = security.gitCredential.gitUsername;
@@ -662,12 +662,12 @@ module.exports = {
 
     scanContainerSecurity: async security => {
         try {
-            const { imagePath, imageTags } = security;
+            const { imagePath, imageTags, dockerCredential } = security;
             const testPath = imageTags
                 ? `${imagePath}:${imageTags}`
                 : imagePath;
             const outputFile = `${uuidv1()}results.json`;
-            let securityDir = '/container_security_dir';
+            let securityDir = 'container_security_dir';
             securityDir = createDir(securityDir);
 
             // update container security to scanned true
@@ -689,7 +689,14 @@ module.exports = {
 
                 const output = exec(
                     scanCommand,
-                    { cwd: securityDir },
+                    {
+                        cwd: securityDir,
+                        env: {
+                            TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
+                            TRIVY_USERNAME: dockerCredential.dockerUsername,
+                            TRIVY_PASSWORD: dockerCredential.dockerPassword,
+                        },
+                    },
                     error => {
                         if (error) {
                             error.code = 400;
@@ -2149,7 +2156,7 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
 };
 
 function createDir(dirPath) {
-    const workPath = process.cwd() + dirPath;
+    const workPath = Path.resolve(process.cwd(), dirPath);
 
     if (fs.existsSync(workPath)) {
         return workPath;
