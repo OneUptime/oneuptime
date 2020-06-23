@@ -654,7 +654,7 @@ export default (state = INITIAL_STATE, action) => {
                         ? log
                         : {
                               monitorId: action.payload.monitorId,
-                              logs: action.payload.logs.data[0].logs,
+                              logs: action.payload.logs.data.length === 0 ? []:action.payload.logs.data[0].logs,
                               requesting: false,
                               error: null,
                           }
