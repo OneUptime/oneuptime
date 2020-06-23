@@ -24,6 +24,10 @@ import {
     EDIT_APPLICATION_LOG_REQUEST,
     EDIT_APPLICATION_LOG_RESET,
     EDIT_APPLICATION_LOG_SUCCESS,
+    FETCH_LOG_STAT_FAILURE,
+    FETCH_LOG_STAT_REQUEST,
+    FETCH_LOG_STAT_RESET,
+    FETCH_LOG_STAT_SUCCESS,
 } from '../constants/applicationLog';
 import moment from 'moment';
 
@@ -49,9 +53,10 @@ const INITIAL_STATE = {
         error: null,
         success: false,
     },
+    stats: {},
 };
 export default function applicationLog(state = INITIAL_STATE, action) {
-    let applicationLogs, failureLogs, requestLogs;
+    let applicationLogs, failureLogs, requestLogs, failureStats, requestStats;
     switch (action.type) {
         case CREATE_APPLICATION_LOG_SUCCESS:
             return Object.assign({}, state, {
@@ -351,6 +356,66 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     error: null,
                     success: false,
                 },
+            });
+
+        case FETCH_LOG_STAT_SUCCESS:
+            return Object.assign({}, state, {
+                stats: {
+                    ...state.stats,
+                    [action.payload.applicationLogId]: {
+                        stats: action.payload.stats,
+                        error: null,
+                        requesting: false,
+                        success: false,
+                    },
+                },
+            });
+
+        case FETCH_LOG_STAT_FAILURE:
+            failureStats = {
+                ...state.stats,
+                [action.payload.applicationLogId]: state.stats[
+                    action.payload.applicationLogId
+                ]
+                    ? {
+                          ...state.stats[action.payload.applicationLogId],
+                          error: action.payload.error,
+                      }
+                    : {
+                          stats: [],
+                          error: action.payload.error,
+                          requesting: false,
+                          success: false,
+                      },
+            };
+            return Object.assign({}, state, {
+                stats: failureStats,
+            });
+
+        case FETCH_LOG_STAT_REQUEST:
+            requestStats = {
+                ...state.stats,
+                [action.payload.applicationLogId]: state.stats[
+                    action.payload.applicationLogId
+                ]
+                    ? {
+                          ...state.stats[action.payload.applicationLogId],
+                          requesting: true,
+                      }
+                    : {
+                          stats: [],
+                          error: null,
+                          requesting: true,
+                          success: false,
+                      },
+            };
+            return Object.assign({}, state, {
+                logs: requestStats,
+            });
+
+        case FETCH_LOG_STAT_RESET:
+            return Object.assign({}, state, {
+                stats: INITIAL_STATE.stats,
             });
 
         default:
