@@ -931,7 +931,17 @@ describe('StatusPage API with Sub-Projects', function() {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitorIds: [monitorId],
+                monitors: [{
+                    monitor: monitorId,
+                    description:'Monitor Description.',
+                    uptime:true,
+                    memory:false,
+                    cpu:false,
+                    storage:false,
+                    responseTime:false,
+                    temperature:false,
+                    runtime:false,
+                }],
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
