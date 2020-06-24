@@ -40,5 +40,9 @@
     "directories": {
         "lib": "src",
         "test": "test"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Fyipe/log-js"
     }
 }
