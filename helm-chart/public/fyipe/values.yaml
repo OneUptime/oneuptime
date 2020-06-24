@@ -17,8 +17,6 @@ saas:
       key: 
       baseId: 
     tokenSecret: # Encrypting lisense with tokens to send them to clients. 
-  support: 
-    slackToken: # Slack token for Fyipe-help workspace
 
 ###################################################################################
 
@@ -150,7 +148,6 @@ nginx-ingress-controller:
 host: 
   backendPort: 3002
   homePort: 1444
-  slackPort: 1267
   licensingPort: 3004
   statusPagePort: 3006
   dashboardPort: 3000
@@ -162,7 +159,6 @@ host:
   backendServicePort: 80
   homeServicePort: 80
   apiDocsServicePort: 80
-  slackServicePort: 80
   statusPageServicePort: 80
   dashboardServicePort: 80
   accountsServicePort: 80

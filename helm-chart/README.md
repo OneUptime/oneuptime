@@ -35,8 +35,8 @@ helm upgrade --reuse-values -f ./kubernetes/values-saas-staging.yaml fi ./helm-c
 Production: 
 
 ```
-kubectl delete job fi-init-script
-helm upgrade --reuse-values -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
+sudo kubectl delete job fi-init-script
+sudo helm upgrade --reuse-values -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
 ```
 
 If you introduce values, you can set 
