@@ -19,105 +19,106 @@ include:
   - '/ci/spec/global/cleanup.yaml'
   - '/ci/spec/global/rollback.yaml'
 
-  # ACCOUNTS
-  - '/ci/spec/accounts/audit.yaml'
-  - '/ci/spec/accounts/build-n-test.yaml'
-  - '/ci/spec/accounts/deploy.yaml'
-  - '/ci/spec/accounts/rollback.yaml'
-  - '/ci/spec/accounts/lighthouse.yaml'
+  # # ACCOUNTS
+  # - '/ci/spec/accounts/audit.yaml'
+  # - '/ci/spec/accounts/build-n-test.yaml'
+  # - '/ci/spec/accounts/deploy.yaml'
+  # - '/ci/spec/accounts/rollback.yaml'
+  # - '/ci/spec/accounts/lighthouse.yaml'
 
-  # ADMIN DASHBOARD
-  - '/ci/spec/admin-dashboard/audit.yaml'
-  - '/ci/spec/admin-dashboard/build-n-test.yaml'
-  - '/ci/spec/admin-dashboard/deploy.yaml'
-  - '/ci/spec/admin-dashboard/rollback.yaml'
+  # # ADMIN DASHBOARD
+  # - '/ci/spec/admin-dashboard/audit.yaml'
+  # - '/ci/spec/admin-dashboard/build-n-test.yaml'
+  # - '/ci/spec/admin-dashboard/deploy.yaml'
+  # - '/ci/spec/admin-dashboard/rollback.yaml'
 
-  # API-DOCS DASHBOARD
-  - '/ci/spec/api-docs/audit.yaml'
-  - '/ci/spec/api-docs/build-n-test.yaml'
-  - '/ci/spec/api-docs/deploy.yaml'
-  - '/ci/spec/api-docs/rollback.yaml'
+  # # API-DOCS DASHBOARD
+  # - '/ci/spec/api-docs/audit.yaml'
+  # - '/ci/spec/api-docs/build-n-test.yaml'
+  # - '/ci/spec/api-docs/deploy.yaml'
+  # - '/ci/spec/api-docs/rollback.yaml'
 
-  # BACKEND
-  - '/ci/spec/backend/audit.yaml'
-  - '/ci/spec/backend/build-n-test.yaml'
-  - '/ci/spec/backend/deploy.yaml'
-  - '/ci/spec/backend/rollback.yaml'
+  # # BACKEND
+  # - '/ci/spec/backend/audit.yaml'
+  # - '/ci/spec/backend/build-n-test.yaml'
+  # - '/ci/spec/backend/deploy.yaml'
+  # - '/ci/spec/backend/rollback.yaml'
 
-  # DASHBOARD
-  - '/ci/spec/dashboard/audit.yaml'
-  - '/ci/spec/dashboard/build-n-test.yaml'
-  - '/ci/spec/dashboard/deploy.yaml'
-  - '/ci/spec/dashboard/rollback.yaml'
+  # # DASHBOARD
+  # - '/ci/spec/dashboard/audit.yaml'
+  # - '/ci/spec/dashboard/build-n-test.yaml'
+  # - '/ci/spec/dashboard/deploy.yaml'
+  # - '/ci/spec/dashboard/rollback.yaml'
 
-  # HELM-CHART
-  - '/ci/spec/helm-chart/audit.yaml'
-  - '/ci/spec/helm-chart/build-n-test.yaml'
-  - '/ci/spec/helm-chart/deploy.yaml'
-  - '/ci/spec/helm-chart/rollback.yaml'
+  # # HELM-CHART
+  # - '/ci/spec/helm-chart/audit.yaml'
+  # - '/ci/spec/helm-chart/build-n-test.yaml'
+  # - '/ci/spec/helm-chart/deploy.yaml'
+  # - '/ci/spec/helm-chart/rollback.yaml'
 
-  # HOME
-  - '/ci/spec/home/audit.yaml'
-  - '/ci/spec/home/build-n-test.yaml'
-  - '/ci/spec/home/deploy.yaml'
-  - '/ci/spec/home/rollback.yaml'
-  - '/ci/spec/home/lighthouse.yaml'
+  # # HOME
+  # - '/ci/spec/home/audit.yaml'
+  # - '/ci/spec/home/build-n-test.yaml'
+  # - '/ci/spec/home/deploy.yaml'
+  # - '/ci/spec/home/rollback.yaml'
+  # - '/ci/spec/home/lighthouse.yaml'
 
-  # HTTP-TEST-SERVER
-  - '/ci/spec/http-test-server/audit.yaml'
-  - '/ci/spec/http-test-server/build-n-test.yaml'
-  - '/ci/spec/http-test-server/deploy.yaml'
-  - '/ci/spec/http-test-server/rollback.yaml'
+  # # HTTP-TEST-SERVER
+  # - '/ci/spec/http-test-server/audit.yaml'
+  # - '/ci/spec/http-test-server/build-n-test.yaml'
+  # - '/ci/spec/http-test-server/deploy.yaml'
+  # - '/ci/spec/http-test-server/rollback.yaml'
 
-  # INIT-SCRIPT
-  - '/ci/spec/init-script/audit.yaml'
-  - '/ci/spec/init-script/build-n-test.yaml'
-  - '/ci/spec/init-script/deploy.yaml'
+  # # INIT-SCRIPT
+  # - '/ci/spec/init-script/audit.yaml'
+  # - '/ci/spec/init-script/build-n-test.yaml'
+  # - '/ci/spec/init-script/deploy.yaml'
 
-  # LICENSING
-  - '/ci/spec/licensing/audit.yaml'
-  - '/ci/spec/licensing/build-n-test.yaml'
-  - '/ci/spec/licensing/deploy.yaml'
-  - '/ci/spec/licensing/rollback.yaml'
+  # # LICENSING
+  # - '/ci/spec/licensing/audit.yaml'
+  # - '/ci/spec/licensing/build-n-test.yaml'
+  # - '/ci/spec/licensing/deploy.yaml'
+  # - '/ci/spec/licensing/rollback.yaml'
 
-  # PROBE
-  - '/ci/spec/probe/audit.yaml'
-  - '/ci/spec/probe/build-n-test.yaml'
-  - '/ci/spec/probe/deploy.yaml'
-  - '/ci/spec/probe/rollback.yaml'
+  # # PROBE
+  # - '/ci/spec/probe/audit.yaml'
+  # - '/ci/spec/probe/build-n-test.yaml'
+  # - '/ci/spec/probe/deploy.yaml'
+  # - '/ci/spec/probe/rollback.yaml'
 
-  # SERVER-MONITOR
-  - '/ci/spec/server-monitor/audit.yaml'
-  - '/ci/spec/server-monitor/build-n-test.yaml'
-  - '/ci/spec/server-monitor/deploy.yaml'
+  # # SERVER-MONITOR
+  # - '/ci/spec/server-monitor/audit.yaml'
+  # - '/ci/spec/server-monitor/build-n-test.yaml'
+  # - '/ci/spec/server-monitor/deploy.yaml'
 
-  # SLACK
-  - '/ci/spec/slack/audit.yaml'
-  - '/ci/spec/slack/build-n-test.yaml'
-  - '/ci/spec/slack/deploy.yaml'
-  - '/ci/spec/slack/rollback.yaml'
+  # # SLACK
+  # - '/ci/spec/slack/audit.yaml'
+  # - '/ci/spec/slack/build-n-test.yaml'
+  # - '/ci/spec/slack/deploy.yaml'
+  # - '/ci/spec/slack/rollback.yaml'
 
-  # STATUS-PAGE
-  - '/ci/spec/status-page/audit.yaml'
-  - '/ci/spec/status-page/build-n-test.yaml'
-  - '/ci/spec/status-page/deploy.yaml'
-  - '/ci/spec/status-page/rollback.yaml'
+  # # STATUS-PAGE
+  # - '/ci/spec/status-page/audit.yaml'
+  # - '/ci/spec/status-page/build-n-test.yaml'
+  # - '/ci/spec/status-page/deploy.yaml'
+  # - '/ci/spec/status-page/rollback.yaml'
 
-  # ZAPIER
-  - '/ci/spec/zapier/audit.yaml'
-  - '/ci/spec/zapier/build-n-test.yaml'
+  # # ZAPIER
+  # - '/ci/spec/zapier/audit.yaml'
+  # - '/ci/spec/zapier/build-n-test.yaml'
 
-  # E2E
-  - '/ci/spec/e2e/docker-compose-entreprise-test.yaml'
-  - '/ci/spec/e2e/docker-compose-test.yaml'
-  - '/ci/spec/e2e/kubernetes-enterprise-test.yaml'
-  - '/ci/spec/e2e/kubernetes-test.yaml'
+  # # E2E
+  # - '/ci/spec/e2e/docker-compose-entreprise-test.yaml'
+  # - '/ci/spec/e2e/docker-compose-test.yaml'
+  # - '/ci/spec/e2e/kubernetes-enterprise-test.yaml'
+  # - '/ci/spec/e2e/kubernetes-test.yaml'
 
-  #SMOKE TEST
-  - '/ci/spec/smoke-tests/staging.yaml'
-  - '/ci/spec/smoke-tests/production.yaml'
+  # #SMOKE TEST
+  # - '/ci/spec/smoke-tests/staging.yaml'
+  # - '/ci/spec/smoke-tests/production.yaml'
 
   # LOG-JS
   - '/ci/spec/log-js/audit.yaml'
   - '/ci/spec/log-js/build-n-test.yaml'
+  - '/ci/spec/log-js/deploy.yaml'
 
