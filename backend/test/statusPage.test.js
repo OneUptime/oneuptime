@@ -182,6 +182,17 @@ describe('Status API', function() {
                 description: 'status page description',
                 copyright: 'status page copyright',
                 projectId,
+                monitors: [{
+                    monitor: monitorId,
+                    description:'Monitor Description.',
+                    uptime:false,
+                    memory:false,
+                    cpu:false,
+                    storage:false,
+                    responseTime:false,
+                    temperature:false,
+                    runtime:false,
+                }]
             })
             .end(function(err, res) {
                 statusPageId = res.body._id;
@@ -204,6 +215,17 @@ describe('Status API', function() {
                 description: 'private status page description',
                 copyright: 'private status page copyright',
                 projectId,
+                monitors: [{
+                    monitor: monitorId,
+                    description:'Monitor Description.',
+                    uptime:false,
+                    memory:false,
+                    cpu:false,
+                    storage:false,
+                    responseTime:false,
+                    temperature:false,
+                    runtime:false,
+                }]
             })
             .end(function(err, res) {
                 privateStatusPageId = res.body._id;
