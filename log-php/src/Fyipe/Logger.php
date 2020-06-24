@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author bunday
  */
@@ -37,11 +38,13 @@ class Logger
         $this->applicationLogKey = $applicationLogKey;
     }
 
-    private function setApiUrl($apiUrl) {
-        $this->apiUrl = $apiUrl.'application-log/'.$this->applicationLogId.'/logs';
+    private function setApiUrl($apiUrl)
+    {
+        $this->apiUrl = $apiUrl . 'application-log/' . $this->applicationLogId . '/log';
     }
 
-    private function makeApiRequest($data, $type) {
+    private function makeApiRequest($data, $type)
+    {
         // make api request and return response
         $client = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
         $body = [
@@ -51,22 +54,23 @@ class Logger
         ];
         try {
             $response = $client->request('POST', '',  ['form_params' => $body]);
-            
+
             $responseBody = json_decode($response->getBody()->getContents());
-            var_dump($responseBody);
-        } catch (\Exception $e) {
-            var_dump($e);
+            return $responseBody;
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $exception = (string) $e->getResponse()->getBody();
+            $exception = json_decode($exception);
+            return $exception;
         }
     }
 
-    public function log($content) {
-        if(!is_object($content) || !is_string($content)) {
+    public function log($content)
+    {
+        if (!(is_object($content) || is_string($content))) {
             throw new \Exception("Invalid Content to be logged");
         }
 
         $logType = "info";
         return $this->makeApiRequest($content, $logType);
     }
-
-
 }
