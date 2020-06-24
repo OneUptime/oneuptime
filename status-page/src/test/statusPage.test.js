@@ -111,7 +111,17 @@ describe('Status page monitors check', function() {
         scheduledEventId = scheduledEventRequest.body._id;
 
         statusPage.projectId = projectId;
-        statusPage.monitorIds = [monitorId];
+        statusPage.monitors = [{
+            monitor:monitorId,
+            description:"Monitor description",
+            uptime:true,
+            memory:false,
+            cpu:false,
+            storage:false,
+            responseTime:false,
+            temperature:false,
+            runtime:false,
+        }];
 
         const statusPageRequest = await request
             .post(`/statusPage/${projectId}`)
