@@ -6,20 +6,25 @@ const { Cluster } = require('puppeteer-cluster');
 require('should');
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
-const newEmail = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const user = {
+    email: utils.generateRandomBusinessEmail(),
+    password: '1234567890',
+};
+const newUser = {
+    email: utils.generateRandomBusinessEmail(),
+    password: '1234567890',
+};
 
 describe('Enterprise Team SubProject API', () => {
     const operationTimeOut = 500000;
+    let cluster;
 
-    beforeAll(async done => {
+    beforeAll(async () => {
         jest.setTimeout(500000);
 
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
-            maxConcurrency: 2,
             puppeteer,
             timeout: 500000,
         });
@@ -28,122 +33,41 @@ describe('Enterprise Team SubProject API', () => {
             throw err;
         });
 
-        // Register user
-        await cluster.task(async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-            // user
+        // Register users
+        return await cluster.execute(null, async ({ page }) => {
             await init.registerEnterpriseUser(user, page);
+            await init.createUserFromAdminDashboard(newUser, page);
+            await init.adminLogout(page);
         });
+    });
 
-        await cluster.queue({ email, password });
-        await cluster.queue({ email: newEmail, password });
-
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
         done();
     });
 
-    afterAll(async done => {
-        done();
-    });
-
     test(
         'Should add a new user to sub-project (role -> `Member`)',
-        async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                maxConcurrency: 2,
-                puppeteer,
-                timeout: 500000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            const projectName = utils.generateRandomString();
-            const subProjectName = utils.generateRandomString();
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const subProjectName = utils.generateRandomString();
 
                 await init.loginUser(user, page);
+                await init.addSubProject(subProjectName, page);
+                const role = 'Member';
 
-                if (data.isParentUser) {
-                    // rename default project
-                    await init.renameProject(data.projectName, page);
-                    // add sub-project
-                    await init.addSubProject(data.subProjectName, page);
-                }
-
-                if (data.isParentUser) {
-                    const role = 'Member';
-
-                    await page.waitForSelector('#teamMembers');
-                    await page.click('#teamMembers');
-                    await page.waitForSelector(`#btn_${data.subProjectName}`);
-                    await page.click(`#btn_${data.subProjectName}`);
-                    await page.waitForSelector(`#frm_${data.subProjectName}`);
-                    await page.click(`#emails_${data.subProjectName}`);
-                    await page.type(
-                        `#emails_${data.subProjectName}`,
-                        data.newEmail
-                    );
-                    await page.click(`#${role}_${data.subProjectName}`);
-                    await page.click(`#btn_modal_${data.subProjectName}`);
-                    await page.waitFor(5000);
-                } else {
-                    await cluster.waitForOne();
-                    await page.reload({ waitUntil: 'networkidle2' });
-                    await page.waitForSelector('#AccountSwitcherId');
-                    await page.click('#AccountSwitcherId');
-                    await page.waitForSelector('#accountSwitcher');
-
-                    const projectSpanSelector = await page.$(
-                        `#span_${projectName}`
-                    );
-                    let textContent = await projectSpanSelector.getProperty(
-                        'innerText'
-                    );
-
-                    textContent = await textContent.jsonValue();
-                    expect(textContent).toEqual(projectName);
-
-                    const element = await page.$(
-                        `#accountSwitcher > div[title="${projectName}"]`
-                    );
-
-                    await element.click();
-                    await page.waitFor(5000);
-                }
+                await page.waitForSelector('#teamMembers');
+                await page.click('#teamMembers');
+                await page.waitForSelector(`#btn_${subProjectName}`);
+                await page.click(`#btn_${subProjectName}`);
+                await page.waitForSelector(`#frm_${subProjectName}`);
+                await page.click(`#emails_${subProjectName}`);
+                await page.type(`#emails_${subProjectName}`, newUser.email);
+                await page.click(`#${role}_${subProjectName}`);
+                await page.click(`#btn_modal_${subProjectName}`);
+                await page.waitFor(5000);
             });
-
-            cluster.queue({
-                email,
-                newEmail,
-                password,
-                projectName,
-                subProjectName,
-                isParentUser: true,
-            });
-            cluster.queue({
-                email,
-                newEmail,
-                password,
-                projectName,
-                subProjectName,
-                isParentUser: false,
-            });
-            await cluster.idle();
-            await cluster.close();
-            done();
         },
         operationTimeOut
     );
