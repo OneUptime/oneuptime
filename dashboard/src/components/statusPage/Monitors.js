@@ -123,7 +123,7 @@ export class Monitors extends Component {
                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                     <div className="Box-root">
                                         <button
-                                            id="addMoreDomain"
+                                            id="addMoreMonitors"
                                             className="Button bs-ButtonLegacy ActionIconParent"
                                             type="button"
                                             onClick={() =>
