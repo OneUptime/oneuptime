@@ -135,12 +135,12 @@ class WebsiteMonitorIssues extends React.Component {
                     name={componentName}
                 />
                 <BreadCrumbItem
-                    route={`${componentMonitorsRoute}/#`}
+                    route={`${componentMonitorsRoute}#`}
                     name="Monitors"
                 />
                 <BreadCrumbItem route={monitorDetailRoute} name={monitorName} />
                 <BreadCrumbItem
-                    route={`${monitorDetailRoute}/#`}
+                    route={`${monitorDetailRoute}#`}
                     name="Website Issues"
                 />
                 <BreadCrumbItem route={pathname} name={url} />

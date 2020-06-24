@@ -131,11 +131,16 @@ class MonitorView extends React.Component {
             component.length > 0 ? (component[0] ? component[0].name : '') : '';
         const monitorName = monitor ? monitor.name : '';
 
+        const componentMonitorsRoute = getParentRoute(pathname);
+
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem route="#" name={componentName} />
                 <BreadCrumbItem
-                    route={getParentRoute(pathname)}
+                    route={componentMonitorsRoute}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={`${componentMonitorsRoute}#`}
                     name="Monitors"
                 />
                 <BreadCrumbItem route={pathname} name={monitorName} />
