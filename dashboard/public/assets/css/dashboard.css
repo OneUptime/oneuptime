@@ -6298,6 +6298,9 @@ pre.bs-PropertyList-property {
 .bs-Fieldset-fields--wide {
   max-width: 700px;
 }
+.bs-Fieldset-fields--desc {
+  margin-top: -15px;
+}
 .bs-Fieldset-field {
   display: flex;
   flex-direction: row;

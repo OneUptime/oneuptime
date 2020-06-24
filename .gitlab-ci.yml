@@ -91,12 +91,6 @@ include:
   - '/ci/spec/server-monitor/build-n-test.yaml'
   - '/ci/spec/server-monitor/deploy.yaml'
 
-  # SLACK
-  - '/ci/spec/slack/audit.yaml'
-  - '/ci/spec/slack/build-n-test.yaml'
-  - '/ci/spec/slack/deploy.yaml'
-  - '/ci/spec/slack/rollback.yaml'
-
   # STATUS-PAGE
   - '/ci/spec/status-page/audit.yaml'
   - '/ci/spec/status-page/build-n-test.yaml'

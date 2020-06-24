@@ -278,8 +278,8 @@ export class SubscriberList extends Component {
                                         >
                                             <div className="db-ListViewItem-link">
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                        <span className="Badge-text Text-color--blue Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <div className="Badge Badge--color--green Box-background--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                        <span className="Badge-text Text-color--white Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                             <span>
                                                                 {
                                                                     subscriber.alertVia

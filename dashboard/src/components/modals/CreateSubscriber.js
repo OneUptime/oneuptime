@@ -146,7 +146,7 @@ class CreateSubscriber extends Component {
                                                             },
                                                             {
                                                                 value: 'email',
-                                                                label: 'E-Mail',
+                                                                label: 'Email',
                                                             },
                                                             {
                                                                 value:
@@ -180,24 +180,42 @@ class CreateSubscriber extends Component {
                                             {(this.props.type === 'email' ||
                                                 this.props.type ===
                                                     'webhook') && (
-                                                <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">
-                                                        E-Mail
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            type="text"
-                                                            name="email"
-                                                            id="emailId"
-                                                            placeholder="user@mail.com"
-                                                            required="required"
-                                                        />
+                                                <>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Email
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name="email"
+                                                                id="emailId"
+                                                                placeholder="user@mail.com"
+                                                                required="required"
+                                                            />
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props.type ===
+                                                            'webhook'
+                                                        }
+                                                    >
+                                                        <div className="bs-Fieldset-row bs-Fieldset-fields--desc">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <div className="bs-Fieldset-fields">
+                                                                We notify you on
+                                                                this email when
+                                                                this wehbook
+                                                                stops working
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
+                                                </>
                                             )}
                                             {this.props.type === 'sms' && (
                                                 <div className="bs-Fieldset-row">
