@@ -47,10 +47,6 @@ spec:
               serviceName: {{ printf "%s-%s" $.Release.Name "status"  }}
               servicePort: 80
           {{- if $.Values.saas.isSaasService }}
-          - path: /slack
-            backend:
-              serviceName: {{ printf "%s-%s" $.Release.Name "slack"  }}
-              servicePort: 80
           - path: /
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "home"  }}

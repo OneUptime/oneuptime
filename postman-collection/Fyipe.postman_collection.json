@@ -13840,7 +13840,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"smssmtpswitch\": true,\n    \"accountSid\": \"AC0a2295b7745a7ddc57fc73e77f9b72a0\",\n    \"authToken\": \"09336be1b05ab5b2c1a6870202d9b769\",\n    \"phoneNumber\": \"14143958232\"\n}",
+                            "raw": "{\n    \"smssmtpswitch\": true,\n    \"accountSid\": \"<YOUR-TWILIO-ACCOUNT-SID>\",\n    \"authToken\": \"<YOUR-TWILIO-AUTH-TOKEN>\",\n    \"phoneNumber\": \"<TWILIO-PHONE-NUMBER>\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -13882,7 +13882,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"smssmtpswitch\": true,\n    \"accountSid\": \"AC0a2295b7745a7ddc57fc73e77f9b72a0\",\n    \"authToken\": \"09336be1b05ab5b2c1a6870202d9b769\",\n    \"phoneNumber\": \"14143958232\"\n}",
+                                    "raw": "{\n    \"smssmtpswitch\": true,\n    \"accountSid\": \"<YOUR-TWILIO-ACCOUNT-SID>\",\n    \"authToken\": \"<YOUR-TWILIO-AUTH-TOKEN>\",\n    \"phoneNumber\": \"<TWILIO-PHONE-NUMBER>\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -13949,7 +13949,7 @@
                                 }
                             ],
                             "cookie": [],
-                            "body": "{\n    \"enabled\": true,\n    \"deleted\": false,\n    \"_id\": \"5e1f65e0823e774e4a3aaf52\",\n    \"createdAt\": \"2020-01-15T19:20:00.335Z\",\n    \"projectId\": \"5e089f94b400211639928c94\",\n    \"accountSid\": \"AC0a2295b7745a7ddc57fc73e77f9b72a0\",\n    \"authToken\": \"09336be1b05ab5b2c1a6870202d9b769\",\n    \"phoneNumber\": \"14143958232\",\n    \"__v\": 0\n}"
+                            "body": "{\n    \"enabled\": true,\n    \"deleted\": false,\n    \"_id\": \"5e1f65e0823e774e4a3aaf52\",\n    \"createdAt\": \"2020-01-15T19:20:00.335Z\",\n    \"projectId\": \"5e089f94b400211639928c94\",\n    \"accountSid\": \"<YOUR-TWILIO-ACCOUNT-SID>\",\n    \"authToken\": \"<YOUR-TWILIO-AUTH-TOKEN>\",\n    \"phoneNumber\": \"<TWILIO-PHONE-NUMBER>\",\n    \"__v\": 0\n}"
                         }
                     ]
                 },
@@ -14051,7 +14051,7 @@
                                 }
                             ],
                             "cookie": [],
-                            "body": "{\n    \"_id\": \"5e1f65e0823e774e4a3aaf52\",\n    \"enabled\": true,\n    \"deleted\": false,\n    \"createdAt\": \"2020-01-15T19:20:00.335Z\",\n    \"projectId\": {\n        \"_id\": \"5e089f94b400211639928c94\",\n        \"name\": \"Bello\"\n    },\n    \"accountSid\": \"AC0a2295b7745a7ddc57fc73e77f9b72a0\",\n    \"authToken\": \"09336be1b05ab5b2c1a6870202d9b769\",\n    \"phoneNumber\": \"14143958232\",\n    \"__v\": 0\n}"
+                            "body": "{\n    \"_id\": \"5e1f65e0823e774e4a3aaf52\",\n    \"enabled\": true,\n    \"deleted\": false,\n    \"createdAt\": \"2020-01-15T19:20:00.335Z\",\n    \"projectId\": {\n        \"_id\": \"5e089f94b400211639928c94\",\n        \"name\": \"Bello\"\n    },\n    \"accountSid\": \"<YOUR-TWILIO-ACCOUNT-SID>\",\n    \"authToken\": \"<YOUR-TWILIO-AUTH-TOKEN>\",\n    \"phoneNumber\": \"<TWILIO-PHONE-NUMBER>\",\n    \"__v\": 0\n}"
                         }
                     ]
                 },
@@ -14074,7 +14074,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"smssmtpswitch\": true,\n    \"accountSid\": \"AC0a2295b7745a7ddc57fc73e77f9b72a0\",\n    \"authToken\": \"09336be1b05ab5b2c1a6870202d9b769\",\n    \"phoneNumber\": \"14143958232\"\n}",
+                            "raw": "{\n    \"smssmtpswitch\": true,\n    \"accountSid\": \"<YOUR-TWILIO-ACCOUNT-SID>\",\n    \"authToken\": \"<YOUR-TWILIO-AUTH-TOKEN>\",\n    \"phoneNumber\": \"<TWILIO-PHONE-NUMBER>\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -14120,7 +14120,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"smssmtpswitch\": true,\n    \"accountSid\": \"AC0a2295b7745a7ddc57fc73e77f9b72a0\",\n    \"authToken\": \"09336be1b05ab5b2c1a6870202d9b769\",\n    \"phoneNumber\": \"14143958232\"\n}",
+                                    "raw": "{\n    \"smssmtpswitch\": true,\n    \"accountSid\": \"<YOUR-TWILIO-ACCOUNT-SID>\",\n    \"authToken\": \"<YOUR-TWILIO-AUTH-TOKEN>\",\n    \"phoneNumber\": \"<TWILIO-PHONE-NUMBER>\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -14195,7 +14195,7 @@
                                 }
                             ],
                             "cookie": [],
-                            "body": "{\n    \"_id\": \"5e1f65e0823e774e4a3aaf52\",\n    \"enabled\": true,\n    \"deleted\": false,\n    \"createdAt\": \"2020-01-15T19:20:00.335Z\",\n    \"projectId\": \"5e089f94b400211639928c94\",\n    \"accountSid\": \"AC0a2295b7745a7ddc57fc73e77f9b72a0\",\n    \"authToken\": \"09336be1b05ab5b2c1a6870202d9b769\",\n    \"phoneNumber\": \"14143958232\",\n    \"__v\": 0\n}"
+                            "body": "{\n    \"_id\": \"5e1f65e0823e774e4a3aaf52\",\n    \"enabled\": true,\n    \"deleted\": false,\n    \"createdAt\": \"2020-01-15T19:20:00.335Z\",\n    \"projectId\": \"5e089f94b400211639928c94\",\n    \"accountSid\": \"<YOUR-TWILIO-ACCOUNT-SID>\",\n    \"authToken\": \"<YOUR-TWILIO-AUTH-TOKEN>\",\n    \"phoneNumber\": \"<TWILIO-PHONE-NUMBER>\",\n    \"__v\": 0\n}"
                         }
                     ]
                 },
@@ -14309,7 +14309,7 @@
                                 }
                             ],
                             "cookie": [],
-                            "body": "{\n    \"_id\": \"5e1f65e0823e774e4a3aaf52\",\n    \"enabled\": true,\n    \"deleted\": false,\n    \"createdAt\": \"2020-01-15T19:20:00.335Z\",\n    \"projectId\": \"5e089f94b400211639928c94\",\n    \"accountSid\": \"AC0a2295b7745a7ddc57fc73e77f9b72a0\",\n    \"authToken\": \"09336be1b05ab5b2c1a6870202d9b769\",\n    \"phoneNumber\": \"14143958232\",\n    \"__v\": 0\n}"
+                            "body": "{\n    \"_id\": \"5e1f65e0823e774e4a3aaf52\",\n    \"enabled\": true,\n    \"deleted\": false,\n    \"createdAt\": \"2020-01-15T19:20:00.335Z\",\n    \"projectId\": \"5e089f94b400211639928c94\",\n    \"accountSid\": \"<YOUR-TWILIO-ACCOUNT-SID>\",\n    \"authToken\": \"<YOUR-TWILIO-AUTH-TOKEN>\",\n    \"phoneNumber\": \"<TWILIO-PHONE-NUMBER>\",\n    \"__v\": 0\n}"
                         }
                     ]
                 }
@@ -20403,7 +20403,7 @@
                                 }
                             ],
                             "cookie": [],
-                            "body": "{\n    \"sid\": \"VEb0a22780c5f5241be72f196cdeed040e\",\n    \"serviceSid\": \"VA0832f242a8d417136df936f3e12af8c1\",\n    \"accountSid\": \"AC0a2295b7745a7ddc57fc73e77f9b72a0\",\n    \"to\": \"+2348058486168\",\n    \"channel\": \"sms\",\n    \"status\": \"pending\",\n    \"valid\": false,\n    \"lookup\": {\n        \"carrier\": {\n            \"mobile_country_code\": \"621\",\n            \"type\": \"mobile\",\n            \"error_code\": null,\n            \"mobile_network_code\": \"50\",\n            \"name\": \"Globacom Ltd\"\n        }\n    },\n    \"amount\": null,\n    \"payee\": null,\n    \"dateCreated\": \"2020-01-14T21:36:59.000Z\",\n    \"dateUpdated\": \"2020-01-14T21:36:59.000Z\",\n    \"url\": \"https://verify.twilio.com/v2/Services/VA0832f242a8d417136df936f3e12af8c1/Verifications/VEb0a22780c5f5241be72f196cdeed040e\"\n}"
+                            "body": "{\n    \"sid\": \"VEb0a22780c5f5241be72f196cdeed040e\",\n    \"serviceSid\": \"<TWILIO-VERIFICATION-SID>\",\n    \"accountSid\": \"<YOUR-TWILIO-ACCOUNT-SID>\",\n    \"to\": \"+2348058486168\",\n    \"channel\": \"sms\",\n    \"status\": \"pending\",\n    \"valid\": false,\n    \"lookup\": {\n        \"carrier\": {\n            \"mobile_country_code\": \"621\",\n            \"type\": \"mobile\",\n            \"error_code\": null,\n            \"mobile_network_code\": \"50\",\n            \"name\": \"Globacom Ltd\"\n        }\n    },\n    \"amount\": null,\n    \"payee\": null,\n    \"dateCreated\": \"2020-01-14T21:36:59.000Z\",\n    \"dateUpdated\": \"2020-01-14T21:36:59.000Z\",\n    \"url\": \"https://verify.twilio.com/v2/Services/<TWILIO-VERIFICATION-SID>/Verifications/VEb0a22780c5f5241be72f196cdeed040e\"\n}"
                         }
                     ]
                 },
@@ -20535,7 +20535,7 @@
                                 }
                             ],
                             "cookie": [],
-                            "body": "{\n    \"sid\": \"VEb0a22780c5f5241be72f196cdeed040e\",\n    \"serviceSid\": \"VA0832f242a8d417136df936f3e12af8c1\",\n    \"accountSid\": \"AC0a2295b7745a7ddc57fc73e77f9b72a0\",\n    \"to\": \"+2348058486168\",\n    \"channel\": \"sms\",\n    \"status\": \"approved\",\n    \"valid\": true,\n    \"amount\": null,\n    \"payee\": null,\n    \"dateCreated\": \"2020-01-14T21:36:59.000Z\",\n    \"dateUpdated\": \"2020-01-14T21:37:56.000Z\"\n}"
+                            "body": "{\n    \"sid\": \"VEb0a22780c5f5241be72f196cdeed040e\",\n    \"serviceSid\": \"<TWILIO-VERIFICATION-SID>\",\n    \"accountSid\": \"<YOUR-TWILIO-ACCOUNT-SID>\",\n    \"to\": \"+2348058486168\",\n    \"channel\": \"sms\",\n    \"status\": \"approved\",\n    \"valid\": true,\n    \"amount\": null,\n    \"payee\": null,\n    \"dateCreated\": \"2020-01-14T21:36:59.000Z\",\n    \"dateUpdated\": \"2020-01-14T21:37:56.000Z\"\n}"
                         }
                     ]
                 }

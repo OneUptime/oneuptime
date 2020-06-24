@@ -1,4 +1,4 @@
 module.exports = {
-    testphoneNumber: '+1‪9173976235‬',
+    testphoneNumber: '+15853641376',
     testemail: 'fyipetest@qa.team',
 };

@@ -83,3 +83,29 @@ Example:
 
 Get into a MongoDB container with mongo shell: 
 `kubectl exec -it fi-mongodb-primary-0 mongo`
+
+## Change / Rotate MongoDB Password
+
+Change root password: 
+
+```
+kubectl exec -it fi-mongodb-primary-0 mongo     # get into mongodb container.
+db = db.getSiblingDB('admin')                   # Change to admin db
+db.auth("root", "<OLD-PASSWORD>")
+db.changeUserPassword("root", "<NEW-PASSWORD>")
+exit                                            # This is important.
+```
+
+
+Change user password: 
+
+```
+kubectl exec -it fi-mongodb-primary-0 mongo     # get into mongodb container.
+db = db.getSiblingDB('admin')                   # Change to admin db
+db.auth("root", "<OLD-PASSWORD>")
+use fyipedb
+db.changeUserPassword("<USER-PASSWORD>", "<NEW-PASSWORD>")
+exit                                            # This is important.
+```
+
+
