@@ -16,7 +16,7 @@ saas:
         key: 4b76c47248f969446af69dfdbf687d90
     licensing:
         airtable:
-            key: key9VuqGqj1Pp07Q8
+            key: keye3gzJRafDIhRKg
             baseId: appksCeuKfCS0e8fR
         tokenSecret: LicenseTokenSecret
     support:
