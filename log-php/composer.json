@@ -1,0 +1,15 @@
+{
+    "name": "fyipe/log-php",
+    "description": "A fyipe PHP package that send logs from your applications to your fyipe dashboard.",
+    "license": "MIT",
+    "minimum-stability": "stable",
+    "authors": [
+        {
+            "name": "HackerBay"
+        }
+    ],
+    "require": {
+        "php": ">=7.2.12",
+        "guzzlehttp/guzzle": "~6.0"
+    }
+}
