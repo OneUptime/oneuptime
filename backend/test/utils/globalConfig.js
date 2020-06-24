@@ -14,7 +14,8 @@ module.exports = {
                 'smtp-secure': true,
             },
         });
-
+        //
+        //https://www.twilio.com/docs/iam/test-credentials
         await GlobalConfigService.create({
             name: 'twilio',
             value: {
