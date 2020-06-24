@@ -46,7 +46,7 @@ describe('Credential Page', () => {
     });
 
     test(
-        'should can adding a git credential to a project',
+        'should cancel adding a git credential to a project',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -115,6 +115,39 @@ describe('Credential Page', () => {
                     { hidden: true }
                 );
                 expect(credentialModal).toBeNull();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should cancel deleting a git credential in a project',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#gitCredential', { visible: true });
+                await page.click('#gitCredential');
+
+                await page.waitForSelector('.ball-beat', { hidden: true });
+                const initialTableRow = await page.$$('tbody tr');
+                await page.click('#deleteCredentialBtn_0');
+
+                await page.waitForSelector('#cancelCredentialDeleteBtn', {
+                    visible: true,
+                });
+                await page.click('#cancelCredentialDeleteBtn');
+                await page.waitForSelector('#deleteCredentialModal', {
+                    hidden: true,
+                });
+                const finalTableRow = await page.$$('tbody tr');
+
+                expect(initialTableRow.length).toEqual(finalTableRow.length);
             });
             done();
         },
