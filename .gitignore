@@ -34,3 +34,8 @@ encrypted-credentials.tar
 encrypted-credentials/
 
 _README.md
+
+
+# Important Add production values to gitignore. 
+values-saas-production.yaml
+kubernetes/values-saas-production.yaml
