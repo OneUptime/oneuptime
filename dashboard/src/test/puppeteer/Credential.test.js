@@ -119,4 +119,49 @@ describe('Credential Page', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should add a docker credential to a project',
+        async done => {
+            const dockerRegistryUrl = 'https://registry.hub.docker.com';
+            const dockerUsername = 'randomUsername';
+            const dockerPassword = 'randomPassword';
+
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#dockerCredential', {
+                    visible: true,
+                });
+                await page.click('#dockerCredential');
+                await page.waitForSelector('#addCredentialBtn', {
+                    visible: true,
+                });
+                await page.click('#addCredentialBtn');
+
+                await page.waitForSelector('#dockerCredentialModal', {
+                    visible: true,
+                });
+                await page.click('#dockerRegistryUrl');
+                await page.type('#dockerRegistryUrl', dockerRegistryUrl);
+                await page.click('#dockerUsername');
+                await page.type('#dockerUsername', dockerUsername);
+                await page.click('#dockerPassword');
+                await page.type('#dockerPassword', dockerPassword);
+                await page.click('#addCredentialModalBtn');
+
+                const credentialModalForm = await page.waitForSelector(
+                    '#dockerCredentialForm',
+                    { hidden: true }
+                );
+                expect(credentialModalForm).toBeNull();
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });

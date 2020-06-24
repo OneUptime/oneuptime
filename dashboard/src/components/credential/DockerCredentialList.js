@@ -82,6 +82,7 @@ const DockerCredentialList = ({
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <div className="Box-root">
                                 <button
+                                    id="addCredentialBtn"
                                     className="Button bs-ButtonLegacy ActionIconParent"
                                     type="button"
                                     onClick={handleCredentialCreation}
