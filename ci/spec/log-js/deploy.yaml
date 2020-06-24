@@ -9,7 +9,9 @@ deploy_staging_log-js:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - cd log-js
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git feature-applog --force
+        - git remote add origin https://github.com/Fyipe/log-js.git
+        - git fetch --unshallow origin
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
         - sudo npm install -g json
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
