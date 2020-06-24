@@ -337,8 +337,8 @@ describe('Status API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
-                expect(res.body).to.have.property('monitorIds');
-                expect(res.body.monitorIds)
+                expect(res.body).to.have.property('monitors');
+                expect(res.body.monitors)
                     .to.be.an('array')
                     .with.length.greaterThan(0);
                 expect(res.body.monitorsData)
