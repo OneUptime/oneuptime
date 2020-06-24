@@ -6,7 +6,12 @@ A fyipe application logger that can be used to send logs about your applications
 
 ### NPM Install
 
-TODO
+You can install to use in your project:
+
+```
+$ cd project
+$ npm install fyipe-log-js
+```
 
 ### Development
 
