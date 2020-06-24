@@ -96,6 +96,52 @@ module.exports = {
         }
     },
 
+    async findLastestScan({ monitorId, url, skip, limit }) {
+        try {
+            let lighthouseLogs;
+            let siteUrls;
+
+            if (url) {
+                siteUrls = [url];
+                let log = await this.findBy({ monitorId, url }, 1, 0);
+                if (!log || (log && log.length === 0)) {
+                    log = [{ url }];
+                }
+                lighthouseLogs = log;
+            } else {
+                const monitor = await MonitorService.findOneBy({
+                    _id: monitorId,
+                });
+                siteUrls =
+                    monitor.siteUrls && monitor.data && monitor.data.url
+                        ? [...monitor.siteUrls, monitor.data.url]
+                        : [];
+
+                lighthouseLogs = [];
+                for (const url of siteUrls.slice(
+                    skip || 0,
+                    (limit || 5) < siteUrls.length - skip
+                        ? limit || 5
+                        : siteUrls.length
+                )) {
+                    let log = await this.findBy({ monitorId, url }, 1, 0);
+                    if (!log || (log && log.length === 0)) {
+                        log = [{ url }];
+                    }
+                    lighthouseLogs = [...lighthouseLogs, ...log];
+                }
+            }
+
+            return {
+                lighthouseLogs,
+                count: siteUrls && siteUrls.length ? siteUrls.length : 0,
+            };
+        } catch (error) {
+            ErrorService.log('lighthouseLogService.findLastestScan', error);
+            throw error;
+        }
+    },
+
     async countBy(query) {
         try {
             if (!query) {

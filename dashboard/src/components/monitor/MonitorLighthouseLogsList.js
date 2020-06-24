@@ -122,21 +122,24 @@ export class MonitorLighthouseLogsList extends Component {
                                                     ? monitor.name
                                                     : 'Unknown Monitor'
                                             }_${i}`}
-                                            key={log._id}
+                                            key={i}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink lighthouseLogsListItem"
                                             onClick={() => {
-                                                history.push(
-                                                    '/dashboard/project/' +
-                                                        this.props
-                                                            .currentProject
-                                                            ._id +
-                                                        '/' +
-                                                        this.props.componentId +
-                                                        '/monitoring/' +
-                                                        monitor._id +
-                                                        '/issues/' +
-                                                        log._id
-                                                );
+                                                return log._id
+                                                    ? history.push(
+                                                          '/dashboard/project/' +
+                                                              this.props
+                                                                  .currentProject
+                                                                  ._id +
+                                                              '/' +
+                                                              this.props
+                                                                  .componentId +
+                                                              '/monitoring/' +
+                                                              monitor._id +
+                                                              '/issues/' +
+                                                              log._id
+                                                      )
+                                                    : false;
                                             }}
                                         >
                                             <td

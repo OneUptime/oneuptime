@@ -53,7 +53,7 @@ class MonitorView extends React.Component {
                     subProjectId,
                     this.props.monitor._id,
                     0,
-                    10
+                    5
                 ); //0 -> skip, 10-> limit.
             }
             this.props.fetchMonitorsIncidents(
@@ -90,7 +90,7 @@ class MonitorView extends React.Component {
                 subProjectId,
                 this.props.monitor._id,
                 0,
-                10
+                5
             ); //0 -> skip, 10-> limit.
         }
         this.props.fetchMonitorsIncidents(

@@ -481,14 +481,15 @@ router.get(
             const { skip, limit, url } = req.query;
             const monitorId = req.params.monitorId;
 
-            const query = url ? { monitorId, url } : { monitorId };
-
-            const lighthouseLogs = await LighthouseLogService.findBy(
-                query,
-                limit || 10,
-                skip || 0
-            );
-            const count = await LighthouseLogService.countBy(query);
+            const {
+                lighthouseLogs,
+                count,
+            } = await LighthouseLogService.findLastestScan({
+                monitorId,
+                url,
+                limit: limit || 10,
+                skip: skip || 0,
+            });
 
             return sendListResponse(req, res, lighthouseLogs, count);
         } catch (error) {

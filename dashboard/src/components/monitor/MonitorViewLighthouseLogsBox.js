@@ -27,7 +27,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
         fetchLighthouseLogs(
             currentProject._id,
             monitorId,
-            skip ? parseInt(skip, 10) - 10 : 10,
+            skip ? parseInt(skip, 10) - 5 : 5,
             limit
         );
         if (window.location.href.indexOf('localhost') <= -1) {
@@ -42,7 +42,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
         fetchLighthouseLogs(
             currentProject._id,
             monitorId,
-            skip ? parseInt(skip, 10) + 10 : 10,
+            skip ? parseInt(skip, 10) + 5 : 5,
             limit
         );
         if (window.location.href.indexOf('localhost') <= -1) {
@@ -66,7 +66,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
     handleSiteChange = data => {
         this.setState({ siteValue: data });
         const { currentProject, monitor, fetchLighthouseLogs } = this.props;
-        fetchLighthouseLogs(currentProject._id, monitor._id, 0, 10, data.value);
+        fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5, data.value);
     };
 
     render() {
