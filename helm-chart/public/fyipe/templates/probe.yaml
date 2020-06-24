@@ -41,6 +41,10 @@ spec:
                       {{- if $.Values.saas.isSaasService }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
+                      - name: SLACK_ERROR_LOG_WEBHOOK
+                        value: {{ .Values.saas.slackErrorLog.webhook }}
+                      - name: SLACK_ERROR_LOG_CHANNEL
+                        value: {{ .Values.saas.slackErrorLog.channel }}
                       {{- end }}
                       - name: NODE_ENV
                         value: 'production'
