@@ -138,77 +138,82 @@ const DockerCredentialList = ({
                         </thead>
 
                         <tbody className="Table-body">
-                            {dockerCredentials.map(dockerCredential => (
-                                <tr
-                                    key={dockerCredential._id}
-                                    className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-                                >
-                                    <td
-                                        className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{ height: '1px' }}
+                            {dockerCredentials.map(
+                                (dockerCredential, index) => (
+                                    <tr
+                                        key={dockerCredential._id}
+                                        className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                                     >
-                                        <div className="db-ListViewItem-link">
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <div className="Box-root">
-                                                        <span>
-                                                            {
-                                                                dockerCredential.dockerRegistryUrl
-                                                            }
-                                                        </span>
-                                                    </div>
-                                                </span>
+                                        <td
+                                            className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                            style={{ height: '1px' }}
+                                        >
+                                            <div className="db-ListViewItem-link">
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <div className="Box-root">
+                                                            <span>
+                                                                {
+                                                                    dockerCredential.dockerRegistryUrl
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td
-                                        className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{ height: '1px' }}
-                                    >
-                                        <div className="db-ListViewItem-link">
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <div className="Box-root">
-                                                        <span>
-                                                            {
-                                                                dockerCredential.dockerUsername
-                                                            }
-                                                        </span>
-                                                    </div>
-                                                </span>
+                                        </td>
+                                        <td
+                                            className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                            style={{ height: '1px' }}
+                                        >
+                                            <div className="db-ListViewItem-link">
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <div className="Box-root">
+                                                            <span>
+                                                                {
+                                                                    dockerCredential.dockerUsername
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td
-                                        className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{
-                                            height: '1px',
-                                            textAlign: 'right',
-                                        }}
-                                    >
-                                        <div className="db-ListViewItem-link">
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <div className="Box-root">
-                                                        <button
-                                                            title="delete"
-                                                            className="bs-Button bs-DeprecatedButton Margin-left--8"
-                                                            type="button"
-                                                            onClick={() =>
-                                                                handleDelete(
-                                                                    dockerCredential._id
-                                                                )
-                                                            }
-                                                        >
-                                                            <span>Remove</span>
-                                                        </button>
-                                                    </div>
-                                                </span>
+                                        </td>
+                                        <td
+                                            className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                            style={{
+                                                height: '1px',
+                                                textAlign: 'right',
+                                            }}
+                                        >
+                                            <div className="db-ListViewItem-link">
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <div className="Box-root">
+                                                            <button
+                                                                id={`deleteCredentialBtn_${index}`}
+                                                                title="delete"
+                                                                className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleDelete(
+                                                                        dockerCredential._id
+                                                                    )
+                                                                }
+                                                            >
+                                                                <span>
+                                                                    Remove
+                                                                </span>
+                                                            </button>
+                                                        </div>
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                    </tr>
+                                )
+                            )}
                         </tbody>
                     </table>
                 </div>
