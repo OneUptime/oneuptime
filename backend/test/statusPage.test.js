@@ -1065,7 +1065,7 @@ describe('StatusPage API with Sub-Projects', function() {
                     .end(function(err, res) {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
-                        expect(res.body).to.have.property('monitorIds');
+                        expect(res.body).to.have.property('monitors');
                         done();
                     });
             });
