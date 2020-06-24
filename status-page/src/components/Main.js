@@ -185,11 +185,44 @@ class Main extends Component {
                         </div>
                         {groupedMonitors.map((monitor, i) => {
                             return (
-                                <MonitorInfo
-                                    monitor={monitor}
-                                    key={i}
-                                    id={`monitor${i}`}
-                                />
+                                <>
+                                    <MonitorInfo
+                                        monitor={monitor}
+                                        selectedCharts={
+                                            this.props.monitors.filter(
+                                                m => monitor._id === m.monitor
+                                            )[0]
+                                        }
+                                        key={i}
+                                        id={`monitor${i}`}
+                                    />
+                                    {this.props.monitors.some(
+                                        m => monitor._id === m.monitor
+                                    ) && (
+                                        <LineChartsContainer
+                                            monitor={monitor}
+                                            selectedCharts={
+                                                this.props.monitors.filter(
+                                                    m =>
+                                                        monitor._id ===
+                                                        m.monitor
+                                                )[0]
+                                            }
+                                        />
+                                    )}
+                                    {i <
+                                        this.props.statusData.monitorsData
+                                            .length -
+                                            1 && (
+                                        <div
+                                            style={{
+                                                margin: '30px 0px',
+                                                backgroundColor: '#8898aa',
+                                                height: '1px',
+                                            }}
+                                        />
+                                    )}
+                                </>
                             );
                         })}
                     </div>
