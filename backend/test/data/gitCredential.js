@@ -1,5 +1,5 @@
 module.exports = {
-    gitUsername: process.env.GIT_USERNAME,
-    gitPassword: process.env.GIT_PASSWORD,
-    gitRepositoryUrl: process.env.GIT_REPOSITORY_URL,
+    gitUsername: process.env.GITHUB_USERNAME,
+    gitPassword: process.env.GITHUB_PASSWORD,
+    gitRepositoryUrl: process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL,
 };

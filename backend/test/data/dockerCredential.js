@@ -1,7 +1,7 @@
 module.exports = {
-    dockerUsername: process.env.DOCKER_USERNAME,
-    dockerPassword: process.env.DOCKER_PASSWORD,
-    dockerRegistryUrl: process.env.DOCKER_REGISTRY_URL,
-    imagePath: process.env.IMAGE_PATH,
-    imageTags: process.env.IMAGE_TAGS,
+    dockerUsername: process.env.DOCKERUSERNAME,
+    dockerPassword: process.env.DOCKERPASSWORD,
+    dockerRegistryUrl: process.env.DOCKER_SECURITY_SCAN_REGISTRY_URL,
+    imagePath: process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH,
+    imageTags: process.env.DOCKER_SECURITY_SCAN_IMAGE_TAGS,
 };
