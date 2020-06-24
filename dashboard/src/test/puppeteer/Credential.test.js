@@ -190,6 +190,40 @@ describe('Credential Page', () => {
     );
 
     test(
+        'should cancel adding docker credential to a project',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#dockerCredential', {
+                    visible: true,
+                });
+                await page.click('#dockerCredential');
+                await page.waitForSelector('.ball-beat', { hidden: true });
+                const initialTableRow = await page.$$('tbody tr');
+                await page.click('#addCredentialBtn');
+
+                await page.waitForSelector('#dockerCredentialModal', {
+                    visible: true,
+                });
+                await page.click('#cancelCredentialModalBtn');
+                await page.waitForSelector('#dockerCredentialModal', {
+                    hidden: true,
+                });
+                const finalTableRow = await page.$$('tbody tr');
+
+                expect(initialTableRow.length).toEqual(finalTableRow.length);
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'should add a docker credential to a project',
         async done => {
             const dockerRegistryUrl = 'https://registry.hub.docker.com';
@@ -228,6 +262,41 @@ describe('Credential Page', () => {
                     { hidden: true }
                 );
                 expect(credentialModalForm).toBeNull();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should cancel deleting a docker credential in a project',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#dockerCredential', {
+                    visible: true,
+                });
+                await page.click('#dockerCredential');
+
+                await page.waitForSelector('.ball-beat', { hidden: true });
+                const initialTableRow = await page.$$('tbody tr');
+                await page.click('#deleteCredentialBtn_0');
+
+                await page.waitForSelector('#cancelCredentialDeleteBtn', {
+                    visible: true,
+                });
+                await page.click('#cancelCredentialDeleteBtn');
+                await page.waitForSelector('#deleteCredentialModal', {
+                    hidden: true,
+                });
+                const finalTableRow = await page.$$('tbody tr');
+
+                expect(initialTableRow.length).toEqual(finalTableRow.length);
             });
             done();
         },
