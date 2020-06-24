@@ -46,6 +46,42 @@ describe('Credential Page', () => {
     });
 
     test(
+        'should can adding a git credential to a project',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#gitCredential', { visible: true });
+                await page.click('#gitCredential');
+                await page.waitForSelector('.ball-beat', { hidden: true });
+                const initialTableRow = await page.$$('tbody tr');
+                await page.waitForSelector('#addCredentialBtn', {
+                    visible: true,
+                });
+                await page.click('#addCredentialBtn');
+
+                await page.waitForSelector('#gitCredentialModal', {
+                    visible: true,
+                });
+                await page.click('#cancelCredentialModalBtn');
+
+                await page.waitForSelector('#gitCredentialModal', {
+                    hidden: true,
+                });
+                const finalTableRow = await page.$$('tbody tr');
+
+                expect(initialTableRow.length).toEqual(finalTableRow.length);
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'should add a git credential to a project',
         async done => {
             const gitUsername = 'randomUsername';
