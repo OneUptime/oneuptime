@@ -589,11 +589,11 @@ module.exports = {
             const statuspages = await _this.findBy(query);
 
             const withMonitors = statuspages.filter(
-                statusPage => statusPage.monitorIds.length
+                statusPage => statusPage.monitors.length
             );
             const statuspage = withMonitors[0];
             const monitorIds =
-                statuspage && statuspage.monitorIds.map(m => m._id);
+                statuspage && statuspage.monitors.map(m => m.monitor);
             if (monitorIds && monitorIds.length) {
                 const incidents = await IncidentService.findBy({
                     monitorId: { $in: monitorIds },
