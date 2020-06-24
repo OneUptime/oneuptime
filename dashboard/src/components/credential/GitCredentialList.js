@@ -85,6 +85,7 @@ const GitCredentialList = ({
                                     className="Button bs-ButtonLegacy ActionIconParent"
                                     type="button"
                                     onClick={handleCredentialCreation}
+                                    id="addCredentialBtn"
                                 >
                                     <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                         <div className="Box-root Margin-right--8">
