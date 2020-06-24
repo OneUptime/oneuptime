@@ -20,8 +20,8 @@ module.exports = {
             value: {
                 'sms-enabled': false,
                 'call-enabled': false,
-                'account-sid': 'AC0a2295b7745a7ddc57fc73e77f9b72a0',
-                'authentication-token': '09336be1b05ab5b2c1a6870202d9b769',
+                'account-sid': 'AC4b957669470069d68cd5a09d7f91d7c6',
+                'authentication-token': '79a35156d9967f0f6d8cc0761ef7d48d',
                 phone: '+14143958232',
                 'alert-limit': 100,
                 'verification-sid': 'VA0832f242a8d417136df936f3e12af8c1',

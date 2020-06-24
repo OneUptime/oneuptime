@@ -6,6 +6,9 @@
 
 saas:
     isSaasService: true
+    slackErrorLog:
+        webhook: https://hooks.slack.com/services/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
+        channel: fyipe-logs 
     stripe:
         publicKey: pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv
         privateKey: sk_test_YxwnzywggtAd8jDaHecNmHiN
@@ -19,8 +22,6 @@ saas:
             key: keye3gzJRafDIhRKg
             baseId: appksCeuKfCS0e8fR
         tokenSecret: LicenseTokenSecret
-    support:
-        slackToken: xoxp-369430749728-370026359715-370129302482-08f43c6a1306d2e8f4be4b0d8abbdb80
 
 fyipe:
     hosts:
