@@ -73,4 +73,22 @@ class Logger
         $logType = "info";
         return $this->makeApiRequest($content, $logType);
     }
+    public function warning($content)
+    {
+        if (!(is_object($content) || is_string($content))) {
+            throw new \Exception("Invalid Content to be logged");
+        }
+
+        $logType = "warning";
+        return $this->makeApiRequest($content, $logType);
+    }
+    public function error($content)
+    {
+        if (!(is_object($content) || is_string($content))) {
+            throw new \Exception("Invalid Content to be logged");
+        }
+
+        $logType = "error";
+        return $this->makeApiRequest($content, $logType);
+    }
 }
