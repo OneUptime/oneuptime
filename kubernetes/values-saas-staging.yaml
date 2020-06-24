@@ -11,13 +11,13 @@ saas:
     publicKey: pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv
     privateKey: sk_test_YxwnzywggtAd8jDaHecNmHiN
   airtable: 
-    key: keyenXfDDP4Dutazt
+    key: keye3gzJRafDIhRKg
     baseId: appgek0ngJaHhppeJ
   amplitude: 
     key: 4b76c47248f969446af69dfdbf687d90
   licensing:
     airtable: 
-      key: key9VuqGqj1Pp07Q8
+      key: keye3gzJRafDIhRKg
       baseId: appksCeuKfCS0e8fR
     tokenSecret: LicenseTokenSecret
   support: 
