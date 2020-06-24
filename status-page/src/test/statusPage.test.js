@@ -148,7 +148,7 @@ describe('Status page monitors check', function() {
 
     it('Status page should have one monitor with a category', async function() {
         const monitorName = await page.$eval(
-            '#monitor0 > div.uptime-graph-header.clearfix > span.uptime-stat-name',
+            '#monitor0 > div.uptime-graph-header  span.uptime-stat-name',
             el => el.textContent
         );
         expect(monitorName).to.be.equal(monitor.name);
