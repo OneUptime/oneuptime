@@ -58,7 +58,16 @@ module.exports = {
                 clusterKey = req.body.clusterKey;
             }
 
-            let probe = await ProbeService.findOneBy({ probeKey, probeName });
+            let probe = null;
+
+            if (clusterKey && clusterKey === CLUSTER_KEY) {
+                // if cluster key matches then just query by probe name,
+                // because if the probe key does not match, we can update probe key later
+                // without updating mognodb database manually.
+                probe = await ProbeService.findOneBy({ probeName });
+            } else {
+                probe = await ProbeService.findOneBy({ probeKey, probeName });
+            }
 
             if (!probe && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
                 return sendErrorResponse(req, res, {
@@ -73,6 +82,16 @@ module.exports = {
                     probeKey,
                     probeName,
                 });
+            }
+
+            if (probe.probeKey !== probeKey) {
+                //update probe key becasue it does not match.
+                await ProbeService.updateOneBy(
+                    {
+                        probeName,
+                    },
+                    { probeKey }
+                );
             }
 
             req.probe = {};
