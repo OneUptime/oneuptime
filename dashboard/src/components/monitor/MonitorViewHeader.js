@@ -310,7 +310,7 @@ export class MonitorViewHeader extends Component {
 MonitorViewHeader.displayName = 'MonitorViewHeader';
 
 MonitorViewHeader.propTypes = {
-    componentId: PropTypes.object.isRequired,
+    componentId: PropTypes.string.isRequired,
     monitor: PropTypes.object.isRequired,
     editMonitorSwitch: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,

@@ -26,6 +26,8 @@ import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
 import moment from 'moment';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import { getProbes } from '../actions/probe';
+
 class MonitorView extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
@@ -40,9 +42,49 @@ class MonitorView extends React.Component {
         }
     }
 
+    componentDidUpdate(prevProps) {
+        if (!prevProps.monitor && this.props.monitor) {
+            const subProjectId =
+                this.props.monitor.projectId._id ||
+                this.props.monitor.projectId;
+            this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
+            if (this.props.monitor.type === 'url') {
+                this.props.fetchLighthouseLogs(
+                    subProjectId,
+                    this.props.monitor._id,
+                    0,
+                    10
+                ); //0 -> skip, 10-> limit.
+            }
+            this.props.fetchMonitorsIncidents(
+                subProjectId,
+                this.props.monitor._id,
+                0,
+                5
+            ); //0 -> skip, 5-> limit.
+            this.props.fetchMonitorsSubscribers(
+                subProjectId,
+                this.props.monitor._id,
+                0,
+                5
+            ); //0 -> skip, 5-> limit.
+            this.props.getMonitorLogs(
+                subProjectId,
+                this.props.monitor._id,
+                0,
+                10,
+                moment()
+                    .subtract(1, 'd')
+                    .utc(),
+                moment().utc()
+            ); //0 -> skip, 5-> limit.
+        }
+    }
+
     ready = () => {
         const subProjectId =
             this.props.monitor.projectId._id || this.props.monitor.projectId;
+        this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
         if (this.props.monitor.type === 'url') {
             this.props.fetchLighthouseLogs(
                 subProjectId,
@@ -86,12 +128,8 @@ class MonitorView extends React.Component {
             ? this.props.monitor.projectId._id || this.props.monitor.projectId
             : null;
         const componentName =
-            component.length > 0
-                ? component[0]
-                    ? component[0].name
-                    : null
-                : null;
-        const monitorName = monitor ? monitor.name : null;
+            component.length > 0 ? (component[0] ? component[0].name : '') : '';
+        const monitorName = monitor ? monitor.name : '';
 
         return (
             <Dashboard ready={this.ready}>
@@ -423,13 +461,14 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorsSubscribers,
             getMonitorLogs,
             fetchLighthouseLogs,
+            getProbes,
         },
         dispatch
     );
 };
 
 MonitorView.propTypes = {
-    componentId: PropTypes.object,
+    componentId: PropTypes.string,
     monitor: PropTypes.object,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorsSubscribers: PropTypes.func.isRequired,
@@ -444,6 +483,7 @@ MonitorView.propTypes = {
             name: PropTypes.string,
         })
     ),
+    getProbes: PropTypes.func.isRequired,
 };
 
 MonitorView.displayName = 'MonitorView';

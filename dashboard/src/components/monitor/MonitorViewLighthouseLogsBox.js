@@ -18,7 +18,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
         this.props = props;
         this.state = {
             addSiteUrlModalId: uuid.v4(),
-            siteValue: { value: null, label: 'All Site URLs' },
+            siteValue: { value: '', label: 'All Site URLs' },
         };
     }
 
@@ -82,7 +82,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                   })
                 : [];
 
-        siteUrls.unshift({ value: null, label: 'All Site URLs' });
+        siteUrls.unshift({ value: '', label: 'All Site URLs' });
 
         const monitorUrl =
             this.props.monitor &&
@@ -110,8 +110,12 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                         href="https://developers.google.com/web/tools/lighthouse"
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        style={{
+                                            cursor: 'pointer',
+                                            textDecoration: 'underline',
+                                        }}
                                     >
-                                        lighthouse
+                                        Lighthouse
                                     </a>{' '}
                                     scans we&apos;ve done on your website.
                                 </span>
