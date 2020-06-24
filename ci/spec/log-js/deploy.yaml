@@ -22,7 +22,7 @@ deploy_staging_log-js:
         - cd ..
     only:
         refs:
-            - feature-applog
-            # - hotfix-master
+            - master
+            - hotfix-master
     environment:
         name: staging
