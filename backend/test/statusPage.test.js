@@ -182,17 +182,19 @@ describe('Status API', function() {
                 description: 'status page description',
                 copyright: 'status page copyright',
                 projectId,
-                monitors: [{
-                    monitor: monitorId,
-                    description:'Monitor Description.',
-                    uptime:true,
-                    memory:false,
-                    cpu:false,
-                    storage:false,
-                    responseTime:false,
-                    temperature:false,
-                    runtime:false,
-                }]
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Monitor Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
             })
             .end(function(err, res) {
                 statusPageId = res.body._id;
@@ -215,17 +217,19 @@ describe('Status API', function() {
                 description: 'private status page description',
                 copyright: 'private status page copyright',
                 projectId,
-                monitors: [{
-                    monitor: monitorId,
-                    description:'Monitor Description.',
-                    uptime:true,
-                    memory:false,
-                    cpu:false,
-                    storage:false,
-                    responseTime:false,
-                    temperature:false,
-                    runtime:false,
-                }]
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Monitor Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
             })
             .end(function(err, res) {
                 privateStatusPageId = res.body._id;
@@ -310,17 +314,19 @@ describe('Status API', function() {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitors: [{
-                    monitor: monitorId,
-                    description:'Updated Description.',
-                    uptime:true,
-                    memory:false,
-                    cpu:false,
-                    storage:false,
-                    responseTime:false,
-                    temperature:false,
-                    runtime:false,
-                }]
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Updated Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -884,17 +890,20 @@ describe('StatusPage API with Sub-Projects', function() {
                                         description: 'status description',
                                         copyright: 'status copyright',
                                         projectId,
-                                        monitors: [{
-                                            monitor: monitorId,
-                                            description:'Monitor Description.',
-                                            uptime:true,
-                                            memory:false,
-                                            cpu:false,
-                                            storage:false,
-                                            responseTime:false,
-                                            temperature:false,
-                                            runtime:false,
-                                        }],
+                                        monitors: [
+                                            {
+                                                monitor: monitorId,
+                                                description:
+                                                    'Monitor Description.',
+                                                uptime: true,
+                                                memory: false,
+                                                cpu: false,
+                                                storage: false,
+                                                responseTime: false,
+                                                temperature: false,
+                                                runtime: false,
+                                            },
+                                        ],
                                     })
                                     .end(function(err, res) {
                                         expect(res).to.have.status(400);
@@ -931,17 +940,19 @@ describe('StatusPage API with Sub-Projects', function() {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitors: [{
-                    monitor: monitorId,
-                    description:'Monitor Description.',
-                    uptime:true,
-                    memory:false,
-                    cpu:false,
-                    storage:false,
-                    responseTime:false,
-                    temperature:false,
-                    runtime:false,
-                }],
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Monitor Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -964,17 +975,19 @@ describe('StatusPage API with Sub-Projects', function() {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitors: [{
-                    monitor: monitorId,
-                    description:'Monitor Description.',
-                    uptime:true,
-                    memory:false,
-                    cpu:false,
-                    storage:false,
-                    responseTime:false,
-                    temperature:false,
-                    runtime:false,
-                }],
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Monitor Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
                 domains: [],
             })
             .end(function(err, res) {
@@ -997,17 +1010,19 @@ describe('StatusPage API with Sub-Projects', function() {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitors: [{
-                    monitor: monitorId,
-                    description:'Monitor Description.',
-                    uptime:true,
-                    memory:false,
-                    cpu:false,
-                    storage:false,
-                    responseTime:false,
-                    temperature:false,
-                    runtime:false,
-                }],
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Monitor Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
             })
             .end(function(err, res) {
                 subProjectStatusPageId = res.body._id;

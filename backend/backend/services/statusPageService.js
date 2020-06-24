@@ -63,7 +63,9 @@ module.exports = {
             statusPageModel.deleted = data.deleted || false;
             statusPageModel.isSubscriberEnabled =
                 data.isSubscriberEnabled || false;
-            statusPageModel.monitors =Array.isArray(data.monitors)? [...data.monitors]: []
+            statusPageModel.monitors = Array.isArray(data.monitors)
+                ? [...data.monitors]
+                : [];
 
             const statusPage = await statusPageModel.save();
             return statusPage;
