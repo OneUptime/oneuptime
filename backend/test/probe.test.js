@@ -9,6 +9,7 @@ const app = require('../server');
 const userData = require('./data/user');
 const { newProject } = require('./data/project');
 const gitCredential = require('./data/gitCredential');
+const dockerCredential = require('./data/dockerCredential');
 const { createUser } = require('./utils/userSignUp');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const UserService = require('../backend/services/userService');
@@ -18,9 +19,11 @@ const ProbeService = require('../backend/services/probeService');
 const ComponentService = require('../backend/services/componentService');
 const GitCredentialService = require('../backend/services/gitCredentialService');
 const ApplicationSecurityService = require('../backend/services/applicationSecurityService');
+const DockerCredentialService = require('../backend/services/dockerCredentialService');
+const ContainerSecurityService = require('../backend/services/containerSecurityService');
 let probeId;
 const GlobalConfig = require('./utils/globalConfig');
-let token, userId, projectId, componentId, applicationSecurityId;
+let token, userId, projectId, componentId;
 const probeKey = 'test-key';
 const generateRandomString = require('./utils/string').generateRandomString;
 
@@ -75,6 +78,8 @@ describe('Probe API', function() {
         await ComponentService.hardDeleteBy({ _id: componentId });
         await GitCredentialService.hardDeleteBy({ projectId });
         await ApplicationSecurityService.hardDelete({ componentId });
+        await DockerCredentialService.hardDeleteBy({ projectId });
+        await ContainerSecurityService.hardDelete({ componentId });
     });
 
     it('should add a probe by admin', function(done) {
@@ -216,10 +221,48 @@ describe('Probe API', function() {
                 .set('Authorization', authorization)
                 .send(data)
                 .end(function(err, res) {
-                    applicationSecurityId = res.body._id;
-
                     request
                         .get('/probe/applicationSecurities')
+                        .set({
+                            probeName,
+                            probeKey,
+                            clusterKey,
+                        })
+                        .end(function(err, res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body).to.be.an('array');
+                            done();
+                        });
+                });
+        });
+    });
+
+    it('should get container securities yet to be scanned or scanned 24hrs ago', function(done) {
+        const authorization = `Basic ${token}`;
+        const probeName = 'US';
+        const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
+        const clusterKey = 'f414c23b4cdf4e84a6a66ecfd528eff2';
+
+        DockerCredentialService.create({
+            dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
+            dockerUsername: dockerCredential.dockerUsername,
+            dockerPassword: dockerCredential.dockerPassword,
+            projectId,
+        }).then(function(credential) {
+            const data = {
+                name: 'Test',
+                dockerCredential: credential._id,
+                imagePath: dockerCredential.imagePath,
+                imageTags: dockerCredential.imageTags,
+            };
+
+            request
+                .post(`/security/${projectId}/${componentId}/container`)
+                .set('Authorization', authorization)
+                .send(data)
+                .end(function(err, res) {
+                    request
+                        .get('/probe/containerSecurities')
                         .set({
                             probeName,
                             probeKey,
