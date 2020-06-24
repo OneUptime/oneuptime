@@ -14,6 +14,7 @@ class LoggerTest extends TestCase
     private $applicationLogId = "5eec6f33d7d57033b3a7d506";
     private $applicationLogKey = "23c07524-ee1f-48da-9cfd-70a3874b2682";
     private $faker;
+    private $header = [];
 
     protected function setUp(): void
     {
@@ -51,16 +52,28 @@ class LoggerTest extends TestCase
             'companyName' => $user->companyName
         ];
         $client = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
-        $response = $client->request('POST', 'stripe/checkCard',  ['form_params' => $data]);
-        $stripeResp = json_decode($response->getBody()->getContents());
-        $stripe = new StdClass();
-        $stripe->id = $stripeResp->id;
-        $user->paymentIntent = $stripe; 
+        try {
+            $response = $client->request('POST', 'stripe/checkCard',  ['form_params' => $data]);
+            $stripeResp = json_decode($response->getBody()->getContents());
+            $stripe = new StdClass();
+            $stripe->id = $stripeResp->id;
+            $user->paymentIntent = $stripe;
 
-        $response = $client->request('POST', 'user/signup',  ['form_params' => $user]);
-        $createdUser = json_decode($response->getBody()->getContents());
-        
-        dd($createdUser);
+            $response = $client->request('POST', 'user/signup',  ['form_params' => $user]);
+            $createdUser = json_decode($response->getBody()->getContents());
+
+            $token = $createdUser->tokens->jwtAccessToken;
+            $this->header['Authorization'] = 'Basic ' . $token;
+            $project = $createdUser->project;
+
+            $component = ['name' => $this->faker->words(2, true)];
+            $response = $client->request('POST', 'component/' . $project->_id, ['headers' => $this->header],  ['form_params' => $component]);
+            $createdComponent = json_decode($response->getBody()->getContents());
+
+            dd($createdComponent);
+        } catch (Exception $e) {
+            dd($e);
+        }
     }
 
     public function test_application_log_key_is_required()
