@@ -128,7 +128,7 @@ const GitCredentialList = ({
                         </thead>
 
                         <tbody className="Table-body">
-                            {gitCredentials.map(gitCredential => (
+                            {gitCredentials.map((gitCredential, index) => (
                                 <tr
                                     key={gitCredential._id}
                                     className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
@@ -163,6 +163,7 @@ const GitCredentialList = ({
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root">
                                                         <button
+                                                            id={`deleteCredentialBtn_${index}`}
                                                             title="delete"
                                                             className="bs-Button bs-DeprecatedButton Margin-left--8"
                                                             type="button"
