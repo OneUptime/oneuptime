@@ -185,7 +185,7 @@ describe('Status API', function() {
                 monitors: [{
                     monitor: monitorId,
                     description:'Monitor Description.',
-                    uptime:false,
+                    uptime:true,
                     memory:false,
                     cpu:false,
                     storage:false,
@@ -218,7 +218,7 @@ describe('Status API', function() {
                 monitors: [{
                     monitor: monitorId,
                     description:'Monitor Description.',
-                    uptime:false,
+                    uptime:true,
                     memory:false,
                     cpu:false,
                     storage:false,
@@ -305,11 +305,22 @@ describe('Status API', function() {
             .send({
                 _id: statusPageId,
                 links: [],
+                name: 'Status name',
                 title: 'Status title',
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitorIds: [monitorId],
+                monitors: [{
+                    monitor: monitorId,
+                    description:'Updated Description.',
+                    uptime:true,
+                    memory:false,
+                    cpu:false,
+                    storage:false,
+                    responseTime:false,
+                    temperature:false,
+                    runtime:false,
+                }]
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
