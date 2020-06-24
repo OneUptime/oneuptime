@@ -199,13 +199,23 @@ describe('Status page monitors check', function() {
             .set('Authorization', authorization)
             .send(monitor);
         monitorId = monitorRequest.body._id;
-        statusPage.monitorIds.push(monitorId);
+        statusPage.monitors.push({
+            monitor:monitorId,
+            description:"Monitor description",
+            uptime:true,
+            memory:false,
+            cpu:false,
+            storage:false,
+            responseTime:false,
+            temperature:false,
+            runtime:false,
+        });
         await request
             .put(`/statusPage/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 _id: statusPageId,
-                monitorIds: statusPage.monitorIds,
+                monitors: statusPage.monitors,
             });
         await page.reload({
             waitUntil: 'networkidle0',
