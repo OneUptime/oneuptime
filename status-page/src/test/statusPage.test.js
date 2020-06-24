@@ -111,17 +111,19 @@ describe('Status page monitors check', function() {
         scheduledEventId = scheduledEventRequest.body._id;
 
         statusPage.projectId = projectId;
-        statusPage.monitors = [{
-            monitor:monitorId,
-            description:"Monitor description",
-            uptime:true,
-            memory:false,
-            cpu:false,
-            storage:false,
-            responseTime:false,
-            temperature:false,
-            runtime:false,
-        }];
+        statusPage.monitors = [
+            {
+                monitor: monitorId,
+                description: 'Monitor description',
+                uptime: true,
+                memory: false,
+                cpu: false,
+                storage: false,
+                responseTime: false,
+                temperature: false,
+                runtime: false,
+            },
+        ];
 
         const statusPageRequest = await request
             .post(`/statusPage/${projectId}`)
@@ -162,15 +164,15 @@ describe('Status page monitors check', function() {
             .send(monitor);
         monitorId = monitorRequest.body._id;
         statusPage.monitors.push({
-            monitor:monitorId,
-            description:"Monitor description",
-            uptime:true,
-            memory:false,
-            cpu:false,
-            storage:false,
-            responseTime:false,
-            temperature:false,
-            runtime:false,
+            monitor: monitorId,
+            description: 'Monitor description',
+            uptime: true,
+            memory: false,
+            cpu: false,
+            storage: false,
+            responseTime: false,
+            temperature: false,
+            runtime: false,
         });
         await request
             .put(`/statusPage/${projectId}`)
@@ -200,15 +202,15 @@ describe('Status page monitors check', function() {
             .send(monitor);
         monitorId = monitorRequest.body._id;
         statusPage.monitors.push({
-            monitor:monitorId,
-            description:"Monitor description",
-            uptime:true,
-            memory:false,
-            cpu:false,
-            storage:false,
-            responseTime:false,
-            temperature:false,
-            runtime:false,
+            monitor: monitorId,
+            description: 'Monitor description',
+            uptime: true,
+            memory: false,
+            cpu: false,
+            storage: false,
+            responseTime: false,
+            temperature: false,
+            runtime: false,
         });
         await request
             .put(`/statusPage/${projectId}`)
