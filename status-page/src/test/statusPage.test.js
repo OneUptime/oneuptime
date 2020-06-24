@@ -332,7 +332,17 @@ describe('Private status page check', function() {
         this.enableTimeouts(false);
 
         privateStatusPage.projectId = projectId;
-        privateStatusPage.monitorIds = [monitorId];
+        privateStatusPage.monitors = [{
+            monitor: monitorId,
+            description: 'Monitor description',
+            uptime: true,
+            memory: false,
+            cpu: false,
+            storage: false,
+            responseTime: false,
+            temperature: false,
+            runtime: false,
+        }];
 
         const statusPageRequest = await request
             .post(`/statusPage/${projectId}`)
