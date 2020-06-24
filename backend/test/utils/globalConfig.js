@@ -22,7 +22,7 @@ module.exports = {
                 'call-enabled': false,
                 'account-sid': 'AC4b957669470069d68cd5a09d7f91d7c6',
                 'authentication-token': '79a35156d9967f0f6d8cc0761ef7d48d',
-                phone: '+14143958232',
+                phone: '+15005550006',
                 'alert-limit': 100,
                 'verification-sid': 'VA44d9243692d457bfca301300781fc7a6',
             },
