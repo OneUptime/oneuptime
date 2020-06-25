@@ -91,7 +91,7 @@ const pingfetch = async url => {
     try {
         let sslCertificate, response, data;
         try {
-            response = await fetch(url, { timeout: 30000 });
+            response = await fetch(url, { timeout: 120000 });
             data = await response.text();
             res = new Date().getTime() - now;
             const urlObject = new URL(url);
@@ -132,7 +132,7 @@ const lighthouseFetch = (monitor, url) => {
                 data: { url },
                 error: { message: 'TIMEOUT' },
             });
-        }, 60000);
+        }, 300000);
 
         lighthouseWorker.send(url);
         lighthouseWorker.on('message', async result => {
