@@ -394,6 +394,7 @@ describe('Incident API', function() {
                     .post(`/incident/${projectId}/${monitorId}`)
                     .set('Authorization', authorization)
                     .send(incidentData);
+                await sleep(2000);
                 alert = await AlertModel.findOne({
                     incidentId: createdIncident.body._id,
                     alertVia: 'sms',
