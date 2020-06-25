@@ -17,7 +17,7 @@ import { LoadingState } from '../components/basic/Loader';
 
 class ApplicationLog extends Component {
     componentDidMount() {
-        this.props.loadPage('Application Logs');
+        this.props.loadPage('Logs');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG LIST'

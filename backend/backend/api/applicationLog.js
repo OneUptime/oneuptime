@@ -155,6 +155,19 @@ router.post(
         try {
             const { skip, limit, startDate, endDate, type, filter } = req.body;
             const applicationLogId = req.params.applicationLogId;
+
+            const currentApplicationLog = await ApplicationLogService.findOneBy(
+                {
+                    _id: applicationLogId,
+                }
+            );
+            if (!currentApplicationLog) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Application Log not found',
+                });
+            }
+
             const query = {};
 
             if (applicationLogId) query.applicationLogId = applicationLogId;
@@ -173,6 +186,56 @@ router.post(
             const logs = await LogService.findBy(query, limit || 10, skip || 0);
             const count = await LogService.countBy(query);
             return sendListResponse(req, res, logs, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+// Description: Get all Logs stat by applicationLogId.
+router.post(
+    '/:projectId/:componentId/:applicationLogId/stats',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const applicationLogId = req.params.applicationLogId;
+
+            const currentApplicationLog = await ApplicationLogService.findOneBy(
+                {
+                    _id: applicationLogId,
+                }
+            );
+            if (!currentApplicationLog) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Application Log not found',
+                });
+            }
+
+            const query = {};
+
+            if (applicationLogId) query.applicationLogId = applicationLogId;
+
+            const stat = {};
+            let count = 0;
+
+            //query.type = '';
+            count = await LogService.countBy(query);
+            stat.all = count;
+
+            query.type = 'error';
+            count = await LogService.countBy(query);
+            stat.error = count;
+
+            query.type = 'info';
+            count = await LogService.countBy(query);
+            stat.info = count;
+
+            query.type = 'warning';
+            count = await LogService.countBy(query);
+            stat.warning = count;
+
+            return sendListResponse(req, res, stat);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -207,6 +270,69 @@ router.post(
             const applicationLog = await ApplicationLogService.updateOneBy(
                 { _id: currentApplicationLog._id },
                 data
+            );
+            return sendItemResponse(req, res, applicationLog);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// Description: Update Application Log by applicationLogId.
+router.put(
+    '/:projectId/:componentId/:applicationLogId',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function(req, res) {
+        const applicationLogId = req.params.applicationLogId;
+
+        const data = req.body;
+        if (!data) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "values can't be null",
+            });
+        }
+        data.createdById = req.user ? req.user.id : null;
+        if (!data.name) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'New Application Log Name is required.',
+            });
+        }
+
+        const currentApplicationLog = await ApplicationLogService.findOneBy({
+            _id: applicationLogId,
+        });
+        if (!currentApplicationLog) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Application Log not found',
+            });
+        }
+
+        // try to find in the application log if the name already exist for that component
+        const existingApplicationLog = await ApplicationLogService.findBy({
+            name: data.name,
+            componentId: req.params.componentId,
+        });
+        if (existingApplicationLog && existingApplicationLog.length > 0) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Application Log with that name already exists.',
+            });
+        }
+
+        // application Log is valid
+        const newName = {
+            name: data.name,
+        };
+
+        try {
+            const applicationLog = await ApplicationLogService.updateOneBy(
+                { _id: currentApplicationLog._id },
+                newName
             );
             return sendItemResponse(req, res, applicationLog);
         } catch (error) {

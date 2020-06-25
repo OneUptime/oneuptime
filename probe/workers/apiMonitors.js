@@ -57,7 +57,7 @@ const pingfetch = async (url, method, body, headers) => {
                 method: method,
                 body: body,
                 headers: headers,
-                timeout: 30000,
+                timeout: 120000,
             });
             data = await response.json();
             const urlObject = new URL(url);

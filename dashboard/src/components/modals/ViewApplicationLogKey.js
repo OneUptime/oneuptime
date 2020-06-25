@@ -91,6 +91,7 @@ class ViewApplicationLogKey extends Component {
                                                     Application Log Key
                                                 </label>
                                                 <div
+                                                    id={`show_application_log_key_${this.props.data.applicationLog.name}`}
                                                     onClick={() =>
                                                         this.setState(
                                                             state => ({
@@ -115,6 +116,7 @@ class ViewApplicationLogKey extends Component {
                                                     </ShouldRender>
                                                     <ShouldRender if={!hidden}>
                                                         <span
+                                                            id={`application_log_key_${this.props.data.applicationLog.name}`}
                                                             className="value"
                                                             style={{
                                                                 marginTop:
@@ -171,6 +173,7 @@ class ViewApplicationLogKey extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
+                                        id={`cancel_application_log_key_${this.props.data.applicationLog.name}`}
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey"
                                         type="button"
                                         onClick={this.props.closeThisDialog}
@@ -184,6 +187,7 @@ class ViewApplicationLogKey extends Component {
                                             if={this.state.confirmBoxHidden}
                                         >
                                             <button
+                                                id={`reset_application_log_key_${this.props.data.applicationLog.name}`}
                                                 className="bs-Button bs-Button--blue"
                                                 onClick={
                                                     this.toggleConfirmationBox
@@ -210,6 +214,7 @@ class ViewApplicationLogKey extends Component {
                                             if={!this.state.confirmBoxHidden}
                                         >
                                             <button
+                                                id={`confirm_reset_application_log_key_${this.props.data.applicationLog.name}`}
                                                 className="bs-Button bs-DeprecatedButton bs-Button--red"
                                                 type="button"
                                                 onClick={
