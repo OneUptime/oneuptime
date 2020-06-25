@@ -1,4 +1,4 @@
-build_n_test_log-js:
+build_n_test_log-php:
     stage: BuildAndTest
     script:
         - sudo apt-get update
