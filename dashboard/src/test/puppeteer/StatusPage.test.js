@@ -37,6 +37,18 @@ describe('Status Page', () => {
                 // user
                 await init.registerUser(user, page);
                 await init.loginUser(user, page);
+                const componentName = utils.generateRandomString();
+                
+                //project + status page
+                await init.addProject(page);
+                await init.addStatusPageToProject('test', 'test', page);
+
+                //component + monitor
+                await init.addComponent(componentName, page);
+                const monitorName = utils.generateRandomString();
+                await init.addMonitorToComponent(null, monitorName, page);
+                await page.waitForSelector('.ball-beat', { hidden: true });
+
             }
         );
     });
