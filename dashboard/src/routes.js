@@ -95,7 +95,7 @@ export const groups = [
                 index: 3,
             },
             {
-                title: 'Application Logs',
+                title: 'Logs',
                 path:
                     '/dashboard/project/:projectId/:componentId/application-log',
                 icon: 'appLog',

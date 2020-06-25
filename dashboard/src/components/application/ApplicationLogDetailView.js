@@ -1,15 +1,14 @@
 import React, { Component } from 'react';
 import LogList from './LogList';
 import Select from '../../components/basic/react-select-fyipe';
-import DateTimeWrapper from './DateTimeWrapper';
-import FilterSelect from './FilterSelect';
 import PropTypes from 'prop-types';
-import * as moment from 'moment';
+import DateTimeRangeSelector from '../basic/DateTimeRangeSelector';
+import SearchBox from '../basic/SearchBox';
+import ShouldRender from '../basic/ShouldRender';
 
 class ApplicationLogDetailView extends Component {
     render() {
         const {
-            startDate,
             logValue,
             applicationLog,
             logOptions,
@@ -18,7 +17,7 @@ class ApplicationLogDetailView extends Component {
             handleLogTypeChange,
             handleLogFilterChange,
             filter,
-            filters,
+            isDetails,
         } = this.props;
         return (
             <div>
@@ -44,96 +43,78 @@ class ApplicationLogDetailView extends Component {
                                                 <div></div>
                                             </div>
                                         </div>
-                                        <div className="Box-root Flex-flex action-bar-holder Padding-top--8">
-                                            <div className="action-bar">
-                                                <div className="db-Trends-timeControls">
-                                                    <DateTimeWrapper
-                                                        name="startDate"
-                                                        label="Set a start date and time"
-                                                        currentDate={startDate}
-                                                        id={
-                                                            applicationLog._id +
-                                                            'start'
-                                                        }
+                                        <ShouldRender if={isDetails}>
+                                            <div className="db-Trends-controls">
+                                                <div className="db-Trends-timeControls Padding-all--4 Margin-all--2">
+                                                    <DateTimeRangeSelector
                                                         onChange={
                                                             handleDateTimeChange
                                                         }
                                                     />
                                                 </div>
-                                                <div className="db-Trends-timeControls">
-                                                    <DateTimeWrapper
-                                                        name="endDate"
-                                                        label="Set an end date and time"
-                                                        currentDate={startDate}
-                                                        id={
-                                                            applicationLog._id +
-                                                            'end'
-                                                        }
-                                                        onChange={
-                                                            handleDateTimeChange
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="action-bar">
-                                                <div
-                                                    style={{
-                                                        height: '28px',
-                                                    }}
-                                                    className="db-Trends-timeControls"
-                                                >
-                                                    <FilterSelect
-                                                        name="probe_selector"
-                                                        value={filter}
-                                                        onChange={
-                                                            handleLogFilterChange
-                                                        }
-                                                        placeholder="Filter By"
-                                                        className="db-select-pr"
-                                                        id="log_type_selector"
-                                                        isDisabled={
-                                                            !(
-                                                                applicationLog &&
-                                                                !applicationLog.requesting
-                                                            )
-                                                        }
+                                                <div className="Flex-flex action-bar-holder Padding-all--4">
+                                                    <div
                                                         style={{
                                                             height: '28px',
+                                                            margin: '5px',
                                                         }}
-                                                        options={filters}
-                                                    />
-                                                </div>
+                                                    >
+                                                        <SearchBox
+                                                            name="log_filter"
+                                                            value={filter}
+                                                            onChange={
+                                                                handleLogFilterChange
+                                                            }
+                                                            placeholder="Filter logs by ..."
+                                                            className="db-select-pr"
+                                                            id="log_filter_selector"
+                                                            isDisabled={
+                                                                !(
+                                                                    applicationLog &&
+                                                                    !applicationLog.requesting
+                                                                )
+                                                            }
+                                                            style={{
+                                                                height: '28px',
+                                                                padding: '5px',
+                                                                border:
+                                                                    '#CCCCCC 1px solid',
+                                                                borderRadius:
+                                                                    '5px',
+                                                            }}
+                                                        />
+                                                    </div>
 
-                                                <div
-                                                    style={{
-                                                        height: '28px',
-                                                    }}
-                                                    className="db-Trends-timeControls"
-                                                >
-                                                    <Select
-                                                        name="probe_selector"
-                                                        value={logValue}
-                                                        onChange={
-                                                            handleLogTypeChange
-                                                        }
-                                                        placeholder="Log Type"
-                                                        className="db-select-pr"
-                                                        id="log_type_selector"
-                                                        isDisabled={
-                                                            !(
-                                                                applicationLog &&
-                                                                !applicationLog.requesting
-                                                            )
-                                                        }
+                                                    <div
                                                         style={{
                                                             height: '28px',
+                                                            margin: '5px',
                                                         }}
-                                                        options={logOptions}
-                                                    />
+                                                    >
+                                                        <Select
+                                                            name="probe_selector"
+                                                            value={logValue}
+                                                            onChange={
+                                                                handleLogTypeChange
+                                                            }
+                                                            placeholder="Log Type"
+                                                            className="db-select-pr"
+                                                            id="log_type_selector"
+                                                            isDisabled={
+                                                                !(
+                                                                    applicationLog &&
+                                                                    !applicationLog.requesting
+                                                                )
+                                                            }
+                                                            style={{
+                                                                height: '28px',
+                                                            }}
+                                                            options={logOptions}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </ShouldRender>
                                     </div>
                                     <LogList
                                         applicationLog={applicationLog}
@@ -161,15 +142,9 @@ ApplicationLogDetailView.propTypes = {
         })
     ),
     filter: PropTypes.object,
-    filters: PropTypes.arrayOf(
-        PropTypes.shape({
-            label: PropTypes.string,
-            value: PropTypes.string,
-        })
-    ),
     handleDateTimeChange: PropTypes.func,
     handleLogTypeChange: PropTypes.func,
     handleLogFilterChange: PropTypes.func,
-    startDate: PropTypes.instanceOf(moment),
+    isDetails: PropTypes.bool,
 };
 export default ApplicationLogDetailView;

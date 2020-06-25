@@ -4,8 +4,8 @@ class Logger {
     #applicationLogKey;
     #apiUrl;
     constructor(apiUrl, applicationLogId, applicationLogKey) {
-        this._setApiUrl(apiUrl);
         this._setApplicationLogId(applicationLogId);
+        this._setApiUrl(apiUrl);
         this._setApplicationLogKey(applicationLogKey);
     }
     _setApplicationLogId(applicationLogId) {

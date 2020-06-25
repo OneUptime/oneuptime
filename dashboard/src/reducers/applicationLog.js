@@ -19,6 +19,15 @@ import {
     RESET_APPLICATION_LOG_KEY_REQUEST,
     RESET_APPLICATION_LOG_KEY_RESET,
     RESET_APPLICATION_LOG_KEY_SUCCESS,
+    EDIT_APPLICATION_LOG_SWITCH,
+    EDIT_APPLICATION_LOG_FAILURE,
+    EDIT_APPLICATION_LOG_REQUEST,
+    EDIT_APPLICATION_LOG_RESET,
+    EDIT_APPLICATION_LOG_SUCCESS,
+    FETCH_LOG_STAT_FAILURE,
+    FETCH_LOG_STAT_REQUEST,
+    FETCH_LOG_STAT_RESET,
+    FETCH_LOG_STAT_SUCCESS,
 } from '../constants/applicationLog';
 import moment from 'moment';
 
@@ -39,17 +48,23 @@ const INITIAL_STATE = {
         endDate: moment(),
     },
     logs: {},
+    editApplicationLog: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
+    stats: {},
 };
 export default function applicationLog(state = INITIAL_STATE, action) {
-    let applicationLogs, failureLogs, requestLogs;
+    let applicationLogs, failureLogs, requestLogs, failureStats, requestStats;
     switch (action.type) {
         case CREATE_APPLICATION_LOG_SUCCESS:
             return Object.assign({}, state, {
                 newApplicationLog: INITIAL_STATE.newApplicationLog,
                 applicationLogsList: {
                     ...state.applicationLogsList,
-                    applicationLogs: state.applicationLogsList.applicationLogs.concat(
-                        action.payload
+                    applicationLogs: [action.payload].concat(
+                        state.applicationLogsList.applicationLogs
                     ),
                 },
             });
@@ -274,6 +289,133 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     error: null,
                     success: false,
                 },
+            });
+        case EDIT_APPLICATION_LOG_SWITCH:
+            applicationLogs = state.applicationLogsList.applicationLogs.map(
+                applicationLog => {
+                    if (applicationLog._id === action.payload) {
+                        if (!applicationLog.editMode)
+                            applicationLog.editMode = true;
+                        else applicationLog.editMode = false;
+                    } else {
+                        applicationLog.editMode = false;
+                    }
+                    return applicationLog;
+                }
+            );
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    applicationLogs: applicationLogs,
+                },
+                editApplicationLog: {
+                    requesting: false,
+                    error: null,
+                    success: false,
+                },
+            });
+        case EDIT_APPLICATION_LOG_SUCCESS:
+            applicationLogs = state.applicationLogsList.applicationLogs.map(
+                applicationLog => {
+                    if (applicationLog._id === action.payload._id) {
+                        applicationLog = action.payload;
+                    }
+                    return applicationLog;
+                }
+            );
+            return Object.assign({}, state, {
+                applicationLogsList: {
+                    ...state.applicationLogsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    applicationLogs: applicationLogs,
+                },
+            });
+        case EDIT_APPLICATION_LOG_FAILURE:
+            return Object.assign({}, state, {
+                editApplicationLog: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case EDIT_APPLICATION_LOG_RESET:
+            return Object.assign({}, state, {
+                editApplicationLog: INITIAL_STATE.editApplicationLog,
+            });
+
+        case EDIT_APPLICATION_LOG_REQUEST:
+            return Object.assign({}, state, {
+                editApplicationLog: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case FETCH_LOG_STAT_SUCCESS:
+            return Object.assign({}, state, {
+                stats: {
+                    ...state.stats,
+                    [action.payload.applicationLogId]: {
+                        stats: action.payload.stats,
+                        error: null,
+                        requesting: false,
+                        success: false,
+                    },
+                },
+            });
+
+        case FETCH_LOG_STAT_FAILURE:
+            failureStats = {
+                ...state.stats,
+                [action.payload.applicationLogId]: state.stats[
+                    action.payload.applicationLogId
+                ]
+                    ? {
+                          ...state.stats[action.payload.applicationLogId],
+                          error: action.payload.error,
+                      }
+                    : {
+                          stats: [],
+                          error: action.payload.error,
+                          requesting: false,
+                          success: false,
+                      },
+            };
+            return Object.assign({}, state, {
+                stats: failureStats,
+            });
+
+        case FETCH_LOG_STAT_REQUEST:
+            requestStats = {
+                ...state.stats,
+                [action.payload.applicationLogId]: state.stats[
+                    action.payload.applicationLogId
+                ]
+                    ? {
+                          ...state.stats[action.payload.applicationLogId],
+                          requesting: true,
+                      }
+                    : {
+                          stats: [],
+                          error: null,
+                          requesting: true,
+                          success: false,
+                      },
+            };
+            return Object.assign({}, state, {
+                logs: requestStats,
+            });
+
+        case FETCH_LOG_STAT_RESET:
+            return Object.assign({}, state, {
+                stats: INITIAL_STATE.stats,
             });
 
         default:
