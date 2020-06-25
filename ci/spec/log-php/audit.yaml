@@ -8,8 +8,7 @@ audit_log-php:
         - sudo apt-get install -y build-essential
         - sudo apt install -y php-cli php-mbstring unzip
         - sudo apt-get install -y composer
-        - composer
-        - cd log-js
+        - cd log-php
         - composer install
         - composer lint
         - composer analyze
