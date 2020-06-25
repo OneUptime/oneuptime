@@ -547,6 +547,7 @@ export function MonitorChart({
                                                 <span>
                                                     {' '}
                                                     <span
+                                                        id={`monitor-status-${monitor.name}`}
                                                         className={`chart-font Text-color--${statusColor}`}
                                                     >
                                                         {monitorStatus}

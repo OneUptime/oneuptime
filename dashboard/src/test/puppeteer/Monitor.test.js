@@ -9,6 +9,7 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const callSchedule = utils.generateRandomString();
+const testServerMonitorName = utils.generateRandomString();
 
 describe('Monitor API', () => {
     const operationTimeOut = 500000;
@@ -232,8 +233,6 @@ describe('Monitor API', () => {
     test(
         'should display SSL not found status',
         async () => {
-            const testServerMonitorName = utils.generateRandomString();
-
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
@@ -244,7 +243,7 @@ describe('Monitor API', () => {
                 await init.selectByText('#type', 'url', page);
                 await page.waitForSelector('#url');
                 await page.click('#url');
-                await page.type('#url', 'http://localhost:3010');
+                await page.type('#url', utils.HTTP_TEST_SERVER_URL);
                 await page.click('button[type=submit]');
                 await page.waitFor(280000);
 
@@ -291,6 +290,61 @@ describe('Monitor API', () => {
                 sslStatusElement = await sslStatusElement.jsonValue();
                 sslStatusElement.should.be.exactly('Self Signed');
             });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should degrade (not timeout and return status code 408) monitor with response time longer than 60000ms and status code 200',
+        async () => {
+            const bodyText = utils.generateRandomString();
+
+            const testServer = async ({ page }) => {
+                await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
+                await page.evaluate(
+                    () => (document.getElementById('responseTime').value = '')
+                );
+                await page.evaluate(
+                    () => (document.getElementById('statusCode').value = '')
+                );
+                await page.evaluate(
+                    () => (document.getElementById('body').value = '')
+                );
+                await page.waitForSelector('#responseTime');
+                await page.click('input[name=responseTime]');
+                await page.type('input[name=responseTime]', '60000');
+                await page.waitForSelector('#statusCode');
+                await page.click('input[name=statusCode]');
+                await page.type('input[name=statusCode]', '200');
+                await page.select('#responseType', 'html');
+                await page.waitForSelector('#body');
+                await page.click('textarea[name=body]');
+                await page.type(
+                    'textarea[name=body]',
+                    `<h1 id="html"><span>${bodyText}</span></h1>`
+                );
+                await page.click('button[type=submit]');
+                await page.waitForSelector('#save-btn');
+            };
+
+            const dashboard = async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+                await page.waitFor(280000);
+
+                let monitorStatusElement = await page.waitForSelector(
+                    `#monitor-status-${testServerMonitorName}`,
+                    { visible: true }
+                );
+                monitorStatusElement = await monitorStatusElement.getProperty(
+                    'innerText'
+                );
+                monitorStatusElement = await monitorStatusElement.jsonValue();
+                monitorStatusElement.should.be.exactly('Degraded');
+            };
+
+            await cluster.execute(null, testServer);
+            await cluster.execute(null, dashboard);
         },
         operationTimeOut
     );
