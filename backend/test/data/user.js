@@ -115,4 +115,16 @@ module.exports = {
         companyPhoneNumber: '+919910568840',
         alertPhoneNumber: '+919910568840',
     },
+
+    bulkUsers: {
+        emails: StringUtil.generateBulkEmails(120),
+    },
+
+    otherBulkUsers: {
+        emails: StringUtil.generateBulkEmails(99),
+    },
+
+    moreBulkUsers: {
+        emails: StringUtil.generateBulkEmails(98),
+    },
 };
