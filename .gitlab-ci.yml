@@ -118,4 +118,5 @@ include:
 
   # LOG-PHP
   - '/ci/spec/log-php/audit.yaml'
+  - '/ci/spec/log-php/build-n-test.yaml'
 

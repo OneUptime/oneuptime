@@ -1,0 +1,20 @@
+build_n_test_log-js:
+    stage: BuildAndTest
+    script:
+        - sudo apt-get update
+        - curl -sSL https://get.docker.com/ | sh #Install docker.
+        - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+        - echo "Setup machine for running log js tests"
+        - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+        - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+        - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+        - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+        - sudo docker ps
+        - cd log-php
+        - composer test
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release
