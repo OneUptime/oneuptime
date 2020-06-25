@@ -8,6 +8,8 @@ require('should');
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const componentName = 'hackerbay';
+const monitorName = "fyipe.com";
 
 const gotoTheFirstStatusPage= async(page)=>{
     await page.goto(utils.DASHBOARD_URL);
@@ -48,7 +50,6 @@ describe('Status Page', () => {
                 // user
                 await init.registerUser(user, page);
                 await init.loginUser(user, page);
-                const componentName = utils.generateRandomString();
                 
                 //project + status page
                 await init.addProject(page);
@@ -56,7 +57,6 @@ describe('Status Page', () => {
 
                 //component + monitor
                 await init.addComponent(componentName, page);
-                const monitorName = utils.generateRandomString();
                 await init.addMonitorToComponent(null, monitorName, page);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -82,6 +82,26 @@ describe('Status Page', () => {
                     return e.innerHTML;
                 });
                 expect(element).toContain('No monitors are added to this status page.');
+            })
+        },
+        operationTimeOut
+    );
+
+    test('should add a new monitor.',
+        async()=>{
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#addMoreMonitors');
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-0');
+                await init.selectByText('#monitor-0 .db-select-nw',`${componentName} / ${monitorName}`,page);
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(5000);
+                await page.reload({ waitUntil: 'networkidle0' });
+                const elem = await page.waitForSelector('#monitor-0', {
+                    visible: true,
+                });
+                expect(elem).toBeTruthy();
             })
         },
         operationTimeOut

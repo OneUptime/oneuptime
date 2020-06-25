@@ -81,7 +81,7 @@ let RenderMonitor = ({
         IsAdminSubProject(subProject) || IsOwnerSubProject(subProject);
 
     return (
-        <li style={{ margin: '5px 0px' }}>
+        <li id={`monitor-${monitorIndex}`} style={{ margin: '5px 0px' }}>
             <div className="Card-root">
                 <div className="Box-root">
                     {monitorIndex > 0 && (
