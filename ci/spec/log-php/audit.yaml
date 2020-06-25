@@ -14,6 +14,7 @@ audit_log-php:
         - cd log-js
         - composer install
         - composer lint
+        - composer analyze
         - cd ..
     except:
         refs:
