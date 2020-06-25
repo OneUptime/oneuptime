@@ -7,9 +7,8 @@ audit_log-php:
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
         - sudo apt install -y php-cli php-mbstring unzip
-        - sudo curl -sS https://getcomposer.org/installer | php
-        - sudo mv composer.phar /usr/local/bin/composer.phar
-        - sudo composer.phar
+        # - sudo curl -sS https://getcomposer.org/installer | php
+        # - sudo mv composer.phar /usr/local/bin/composer.phar
         - cd log-js
         - composer.phar install
         - composer.phar lint
