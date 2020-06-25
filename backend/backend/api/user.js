@@ -1265,4 +1265,44 @@ router.post('/users/search', getUser, isUserMasterAdmin, async function(
     }
 });
 
+// Route
+// Description: Delete user account.
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id};
+// Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
+router.delete('/:userId/delete', getUser, async function(req, res) {
+    try {
+        if (req.params.userId !== req.user.id) {
+            return sendErrorResponse(req, res, {
+                code: 401,
+                message: 'You are unauthorized to access the page',
+            });
+        }
+        const userId = req.user.id;
+        const user = await UserService.findOneBy({ _id: userId });
+        if (!user) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'No user associated with this account',
+            });
+        }
+
+        const { projects } = user;
+        projects.forEach(async project => {
+            const { _id: projectId, users } = project;
+            if (users.length > 1) {
+                // Exit project
+                await ProjectService.exitProject(projectId, userId);
+            } else {
+                // Delete project and cancel all subscription
+                await ProjectService.deleteBy({ _id: projectId }, userId);
+            }
+        });
+        const deletedUser = await UserService.deleteBy({ _id: userId }, userId);
+        return sendItemResponse(req, res, { user: deletedUser });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;

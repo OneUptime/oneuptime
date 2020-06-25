@@ -120,7 +120,7 @@ module.exports = {
             const user = await UserModel.findOne(query).sort([
                 ['createdAt', -1],
             ]);
-            if (user && !IS_SAAS_SERVICE) {
+            if ((user && !IS_SAAS_SERVICE) || user) {
                 // find user subprojects and parent projects
                 let userProjects = await ProjectService.findBy({
                     'users.userId': user._id,
