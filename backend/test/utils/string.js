@@ -14,4 +14,13 @@ module.exports = {
         }
         return result;
     },
+
+    generateBulkEmails: function(numberOfEmails = 10) {
+        const _this = this;
+        let emails = '';
+        for (let i = 0; i < numberOfEmails; i++) {
+            emails += _this.generateRandomString(10) + '@fyipe.com,';
+        }
+        return emails;
+    },
 };
