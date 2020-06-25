@@ -239,7 +239,10 @@ let RenderMonitor = ({
                                     )}
                                     {errors.monitors[monitorIndex] &&
                                         errors.monitors[monitorIndex].error && (
-                                            <div style={{ color: 'red' }}>
+                                            <div
+                                                className="errors"
+                                                style={{ color: 'red' }}
+                                            >
                                                 {
                                                     errors.monitors[
                                                         monitorIndex
