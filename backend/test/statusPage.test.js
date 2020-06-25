@@ -13,6 +13,7 @@ const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const StatusService = require('../backend/services/statusPageService');
 const MonitorService = require('../backend/services/monitorService');
+const monitorLogService = require('../backend/services/monitorLogService');
 const ScheduledEventService = require('../backend/services/scheduledEventService');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
@@ -392,6 +393,33 @@ describe('Status API', function() {
                     .with.length.greaterThan(0);
                 expect(res.body.data[0]).to.have.property('name');
                 done();
+            });
+    });
+
+    it('should get list of logs for a monitor', function(done) {
+        const authorization = `Basic ${token}`;
+        monitorLogService
+            .create({
+                monitorId,
+                status: 'online',
+                responseTime: 50,
+                responseStatus: 200,
+                incidentIds: [],
+            })
+            .then(() => {
+                request
+                    .post(`/statusPage/${projectId}/${monitorId}/monitorLogs`)
+                    .set('Authorization', authorization)
+                    .send({
+                        responseTime: true,
+                    })
+                    .end(function(err, res) {
+                        expect(res).to.have.status(200);
+                        expect(res).to.be.an('object');
+                        expect(res.body).to.have.property('data');
+                        expect(res.body.data).to.be.an('array');
+                        done();
+                    });
             });
     });
 
