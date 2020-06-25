@@ -154,6 +154,22 @@ describe('Status page monitors check', function() {
             el => el.textContent
         );
         expect(monitorName).to.be.equal(monitor.name);
+ 
+        const noOfBlockCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName(
+                'block-chart'
+            );
+            return monitors.length;
+        });
+        expect(noOfBlockCharts).to.be.equal(1);
+
+        const noOfLineCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName(
+                'recharts-responsive-container'
+            );
+            return monitors.length;
+        });
+        expect(noOfLineCharts).to.be.equal(0);
     });
 
     it('Status page add one more monitor and the monitor count should be 2', async function() {
@@ -170,7 +186,7 @@ describe('Status page monitors check', function() {
             memory: false,
             cpu: false,
             storage: false,
-            responseTime: false,
+            responseTime: true,
             temperature: false,
             runtime: false,
         });
@@ -191,6 +207,23 @@ describe('Status page monitors check', function() {
             return monitors.length;
         });
         expect(noOfMonitors).to.be.equal(2);
+
+        const noOfBlockCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName(
+                'block-chart'
+            );
+            return monitors.length;
+        });
+        expect(noOfBlockCharts).to.be.equal(2);
+
+        const noOfLineCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName(
+                'recharts-responsive-container'
+            );
+            return monitors.length;
+        });
+        expect(noOfLineCharts).to.be.equal(1);
+
     });
 
     it('should be able to add monitor without monitor category and the count should be 3', async function() {
@@ -204,11 +237,11 @@ describe('Status page monitors check', function() {
         statusPage.monitors.push({
             monitor: monitorId,
             description: 'Monitor description',
-            uptime: true,
+            uptime: false,
             memory: false,
             cpu: false,
             storage: false,
-            responseTime: false,
+            responseTime: true,
             temperature: false,
             runtime: false,
         });
@@ -229,6 +262,22 @@ describe('Status page monitors check', function() {
             return monitors.length;
         });
         expect(noOfMonitors).to.be.equal(3);
+
+        const noOfBlockCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName(
+                'block-chart'
+            );
+            return monitors.length;
+        });
+        expect(noOfBlockCharts).to.be.equal(2);
+
+        const noOfLineCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName(
+                'recharts-responsive-container'
+            );
+            return monitors.length;
+        });
+        expect(noOfLineCharts).to.be.equal(2);
     });
 
     it('should be displayed category wise', async function() {
