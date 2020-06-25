@@ -9,6 +9,16 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
+const gotoTheFirstStatusPage= async(page)=>{
+    await page.goto(utils.DASHBOARD_URL);
+    await page.$eval('#statusPages > a', elem => elem.click());
+    const rowItem = await page.waitForSelector(
+        '#statusPagesListContainer > tr',
+        { visible: true }
+    );
+    rowItem.click();
+}
+
 describe('Status Page', () => {
     const operationTimeOut = 500000;
 
@@ -34,6 +44,7 @@ describe('Status Page', () => {
                     email: data.email,
                     password: data.password,
                 };
+
                 // user
                 await init.registerUser(user, page);
                 await init.loginUser(user, page);
