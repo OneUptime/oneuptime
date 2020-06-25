@@ -70,6 +70,23 @@ describe('Status Page', () => {
         done();
     });
 
+    test('should indicate that no monitor is set yet for a status page',
+        async()=>{
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                const elem = await page.waitForSelector('#app-loading', {
+                    visible: true,
+                });
+                expect(elem).toBeTruthy()
+                const element = await page.$eval('#app-loading', e => {
+                    return e.innerHTML;
+                });
+                expect(element).toContain('No monitors are added to this status page.');
+            })
+        },
+        operationTimeOut
+    );
+
     test(
         'should indicate that no domain is set yet for a status page',
         async () => {
