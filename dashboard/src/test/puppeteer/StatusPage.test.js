@@ -212,10 +212,11 @@ describe('Status Page', () => {
     );
 
     test(
-        'should indicate that no domain is set yet for a status page',
+        'should indicate that no domain is set yet for a status page.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await gotoTheFirstStatusPage(page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
                 const elem = await page.waitForSelector('#domainNotSet', {
                     visible: true,
                 });
@@ -229,14 +230,7 @@ describe('Status Page', () => {
         'should create a domain',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('#domain', { visible: true });
                 await page.type('#domain', 'fyipeapp.com');
@@ -276,14 +270,7 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 const finalValue = 'status.fyipeapp.com';
 
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
                 const input = await page.$(
                     'fieldset[name="added-domain"] input[type="text"]'
@@ -309,14 +296,7 @@ describe('Status Page', () => {
         'should not verify a domain when txt record does not match token',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('#btnVerifyDomain');
                 await page.click('#btnVerifyDomain');
@@ -349,14 +329,7 @@ describe('Status Page', () => {
         'should delete a domain in a status page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 //Get the initial length of domains
@@ -393,14 +366,7 @@ describe('Status Page', () => {
         'should cancel deleting of a domain in a status page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 //Get the initial length of domains
@@ -437,17 +403,9 @@ describe('Status Page', () => {
         'should create custom HTML and CSS',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#statusPages');
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'load' });
+                await gotoTheFirstStatusPage(page);
 
+                await page.waitForNavigation({ waitUntil: 'load' });
                 await page.type('#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
