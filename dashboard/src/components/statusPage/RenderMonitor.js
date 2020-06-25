@@ -260,6 +260,7 @@ let RenderMonitor = ({
                 >
                     <div>
                         <button
+                            id={`delete-monitor-${monitorIndex}`}
                             className="bs-Button bs-DeprecatedButton"
                             onClick={() => fields.remove(monitorIndex)}
                             type="button"
