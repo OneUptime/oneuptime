@@ -309,6 +309,111 @@ describe('Application Log API', function() {
                 done();
             });
     });
+    it('should fetch logs all log stat related to application log', function(done) {
+        const authorization = `Basic ${token}`;
+        // create a log
+        log.applicationLogKey = applicationLog.key;
+        log.content = { code: '007', name: 'james', location: 'berlin' }; // log an object of type error
+        log.type = 'error';
+        request
+            .post(`/application-log/${applicationLog._id}/log`)
+            .set('Authorization', authorization)
+            .send(log)
+            .end();
+        request
+            .post(
+                `/application-log/${projectId}/${componentId}/${applicationLog._id}/stats`
+            )
+            .set('Authorization', authorization)
+            .send({})
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.data).to.be.an('object');
+                expect(res.body.data.all).to.be.equal(5); // total logs
+                expect(res.body.data.error).to.be.equal(3); // total error
+                expect(res.body.data.info).to.be.equal(1); // total info
+                expect(res.body.data.warning).to.be.equal(1); // total warning
+                done();
+            });
+    });
+    it('should not edit an application log with empty name', function(done) {
+        const newName = '';
+        const authorization = `Basic ${token}`;
+        request
+            .put(
+                `/application-log/${projectId}/${componentId}/${applicationLog._id}`
+            )
+            .set('Authorization', authorization)
+            .send({ name: newName })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'New Application Log Name is required.'
+                );
+                done();
+            });
+    });
+    it('should not edit an application log with same name as existing application log', function(done) {
+        const newName = 'Astro';
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/application-log/${projectId}/${componentId}/create`)
+            .set('Authorization', authorization)
+            .send({
+                name: newName,
+            })
+            .end(function(err, res) {
+                applicationLog = res.body;
+                expect(res).to.have.status(200);
+                expect(res.body).to.include({ name: newName });
+                request
+                    .put(
+                        `/application-log/${projectId}/${componentId}/${applicationLog._id}`
+                    )
+                    .set('Authorization', authorization)
+                    .send({ name: newName })
+                    .end(function(err, res) {
+                        expect(res).to.have.status(400);
+                        expect(res.body.message).to.be.equal(
+                            'Application Log with that name already exists.'
+                        );
+                        done();
+                    });
+            });
+    });
+    it('should edit an application log', function(done) {
+        const newName = 'Rodeo';
+        const authorization = `Basic ${token}`;
+        request
+            .put(
+                `/application-log/${projectId}/${componentId}/${applicationLog._id}`
+            )
+            .set('Authorization', authorization)
+            .send({ name: newName })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.id).to.be.equal(applicationLog.id);
+                expect(res.body.name).to.be.equal(newName);
+                done();
+            });
+    });
+    it('should edit an application log but not change application log key', function(done) {
+        const newName = 'Rodeo II';
+        const authorization = `Basic ${token}`;
+        request
+            .put(
+                `/application-log/${projectId}/${componentId}/${applicationLog._id}`
+            )
+            .set('Authorization', authorization)
+            .send({ name: newName })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.id).to.be.equal(applicationLog.id);
+                expect(res.body.name).to.be.equal(newName);
+                expect(res.body.key).to.be.equal(applicationLog.key);
+                done();
+            });
+    });
     it('should delete an application log', function(done) {
         const authorization = `Basic ${token}`;
         request

@@ -24,4 +24,5 @@ version slack
 version init-script
 version licensing
 version helm-chart
+version log-js
 version .

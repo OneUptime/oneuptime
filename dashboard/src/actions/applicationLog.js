@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi } from '../api';
+import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/applicationLog';
 import errors from '../errors';
 
@@ -325,5 +325,135 @@ export function resetApplicationLogKeyFailure(error) {
 export function resetresetApplicationLogKey() {
     return {
         type: types.RESET_APPLICATION_LOG_KEY_RESET,
+    };
+}
+export function editApplicationLogSwitch(index) {
+    return {
+        type: types.EDIT_APPLICATION_LOG_SWITCH,
+        payload: index,
+    };
+}
+//Edit new applicationLog
+export function editApplicationLog(
+    projectId,
+    componentId,
+    applicationLogId,
+    values
+) {
+    return function(dispatch) {
+        const promise = putApi(
+            `application-log/${projectId}/${componentId}/${applicationLogId}`,
+            values
+        );
+        dispatch(editApplicationLogRequest());
+
+        promise.then(
+            function(applicationLog) {
+                dispatch(editApplicationLogSuccess(applicationLog.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(editApplicationLogFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function editApplicationLogSuccess(newApplicationLog) {
+    return {
+        type: types.EDIT_APPLICATION_LOG_SUCCESS,
+        payload: newApplicationLog,
+    };
+}
+
+export function editApplicationLogRequest() {
+    return {
+        type: types.EDIT_APPLICATION_LOG_REQUEST,
+    };
+}
+
+export function editApplicationLogFailure(error) {
+    return {
+        type: types.EDIT_APPLICATION_LOG_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchStats(projectId, componentId, applicationLogId) {
+    return function(dispatch) {
+        const promise = postApi(
+            `application-log/${projectId}/${componentId}/${applicationLogId}/stats`,
+            {}
+        );
+        dispatch(fetchStatsRequest({ applicationLogId }));
+
+        promise.then(
+            function(logs) {
+                dispatch(
+                    fetchStatsSuccess({
+                        applicationLogId,
+                        stats: logs.data.data,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    fetchStatsFailure({
+                        applicationLogId,
+                        error: errors(error),
+                    })
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchStatsSuccess(stats) {
+    return {
+        type: types.FETCH_LOG_STAT_SUCCESS,
+        payload: stats,
+    };
+}
+
+export function fetchStatsRequest(applicationLogId) {
+    return {
+        type: types.FETCH_LOG_STAT_REQUEST,
+        payload: applicationLogId,
+    };
+}
+
+export function fetchStatsFailure(error) {
+    return {
+        type: types.FETCH_LOG_STAT_FAILURE,
+        payload: error,
+    };
+}
+export function resetFetchStats() {
+    return {
+        type: types.FETCH_LOG_STAT_RESET,
     };
 }

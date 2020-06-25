@@ -45,10 +45,7 @@ class ApplicationLogView extends Component {
         return (
             <Dashboard ready={this.ready}>
                 <BreadCrumbItem route="#" name={componentName} />
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Application Logs"
-                />
+                <BreadCrumbItem route={getParentRoute(pathname)} name="Logs" />
                 <BreadCrumbItem route={pathname} name={applicationLogName} />
                 <ShouldRender if={!this.props.applicationLog[0]}>
                     <LoadingState />
@@ -57,8 +54,7 @@ class ApplicationLogView extends Component {
                     <div>
                         <ApplicationLogDetail
                             componentId={componentId}
-                            applicationLog={applicationLog[0]}
-                            index={applicationLog._id}
+                            index={this.props.applicationLog[0]?._id}
                             isDetails={true}
                         />
                     </div>
@@ -114,6 +110,7 @@ ApplicationLogView.propTypes = {
     ]),
     applicationLog: PropTypes.arrayOf(
         PropTypes.shape({
+            _id: PropTypes.string,
             name: PropTypes.string,
         })
     ),

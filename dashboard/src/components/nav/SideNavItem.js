@@ -61,7 +61,7 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/application-log*/
             ) &&
-                route.title === 'Application Logs') ||
+                route.title === 'Logs') ||
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security/
             ) &&
