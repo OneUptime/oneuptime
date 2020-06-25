@@ -93,6 +93,20 @@ const updatedScheduledEventDescription = 'event description updated';
 
 const updatedScheduledEventName = 'event name updated';
 
+const dockerCredential = {
+    dockerUsername: process.env.DOCKERUSERNAME,
+    dockerPassword: process.env.DOCKERPASSWORD,
+    dockerRegistryUrl: process.env.DOCKER_SECURITY_SCAN_REGISTRY_URL,
+    imagePath: process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH,
+    imageTags: process.env.DOCKER_SECURITY_SCAN_IMAGE_TAGS,
+};
+
+const gitCredential = {
+    gitUsername: process.env.GITHUB_USERNAME,
+    gitPassword: process.env.GITHUB_PASSWORD,
+    gitRepositoryUrl: process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL,
+};
+
 module.exports = {
     ACCOUNTS_URL,
     DASHBOARD_URL,
@@ -116,4 +130,6 @@ module.exports = {
     generateRandomWebsite,
     timeout: 500000,
     parseBoolean,
+    dockerCredential,
+    gitCredential,
 };
