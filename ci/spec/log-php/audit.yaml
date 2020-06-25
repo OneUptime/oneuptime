@@ -1,0 +1,21 @@
+## LOG PHP
+audit_log-php:
+    stage: BuildAndTest
+    allow_failure: true
+    script:
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - sudo apt install curl php-cli php-mbstring git unzip
+        - sudo curl -sS https://getcomposer.org/installer -o composer-setup.php
+        - sudo HASH=544e09ee996cdf60ece3804abc52599c22b1f40f4323403c44d44fdfdd586475ca9813a858088ffbc1f233e9b180f061
+        - sudo php -r "if (hash_file('SHA384', 'composer-setup.php') === '$HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;
+        - sudo php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+        - cd log-js
+        - composer install
+        - composer lint
+        - cd ..
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release
