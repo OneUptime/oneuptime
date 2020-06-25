@@ -91,9 +91,7 @@ describe('Status Page', () => {
         'should indicate that no domain is set yet for a status page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await init.addProject(page);
-                await init.addStatusPageToProject('test', 'test', page);
-
+                await gotoTheFirstStatusPage(page);
                 const elem = await page.waitForSelector('#domainNotSet', {
                     visible: true,
                 });
