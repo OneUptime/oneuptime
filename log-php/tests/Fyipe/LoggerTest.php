@@ -11,6 +11,7 @@ use Faker\Factory;
 class LoggerTest extends TestCase
 {
     private $apiUrl = 'http://localhost:3002/api/';
+    private $applicationLog;
     private $applicationLogId = "5eec6f33d7d57033b3a7d506";
     private $applicationLogKey = "23c07524-ee1f-48da-9cfd-70a3874b2682";
     private $faker;
@@ -20,6 +21,7 @@ class LoggerTest extends TestCase
     {
         parent::setUp();
         $this->faker = Factory::create();
+        // create a test user
         $user = new stdClass();
         $user->name = $this->faker->name;
         $user->password = '1234567890';
@@ -53,51 +55,62 @@ class LoggerTest extends TestCase
         ];
         $client = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
         try {
+            // Stripe card request
             $response = $client->request('POST', 'stripe/checkCard',  ['form_params' => $data]);
             $stripeResp = json_decode($response->getBody()->getContents());
             $stripe = new StdClass();
             $stripe->id = $stripeResp->id;
             $user->paymentIntent = $stripe;
 
+            // create user
             $response = $client->request('POST', 'user/signup',  ['form_params' => $user]);
             $createdUser = json_decode($response->getBody()->getContents());
 
+            // get token and project
             $token = $createdUser->tokens->jwtAccessToken;
             $this->header['Authorization'] = 'Basic ' . $token;
             $project = $createdUser->project;
 
+            // create a component
             $component = ['name' => $this->faker->words(2, true)];
-            $response = $client->request('POST', 'component/' . $project->_id, ['headers' => $this->header],  ['form_params' => $component]);
+            $response = $client->request('POST', 'component/' . $project->_id, [
+                'headers' => $this->header, 'form_params' => $component
+            ]);
             $createdComponent = json_decode($response->getBody()->getContents());
 
-            dd($createdComponent);
+            // create an applicationlog and set it as the global application Log.
+            $applicationLog = ['name' => $this->faker->words(2, true)];
+            $response = $client->request('POST', 'application-log/'.$project->_id.'/'.$createdComponent->_id.'/create', [
+                'headers' => $this->header, 'form_params' => $applicationLog
+            ]);
+            $this->applicationLog = json_decode($response->getBody()->getContents());
         } catch (Exception $e) {
-            dd($e);
+            dd("Couldnt create an application log to run a test, Error occured: ".$e->getMessage());
         }
     }
 
     public function test_application_log_key_is_required()
     {
-        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLogId, '');
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, '');
         $response = $logger->log('test content');
         $this->assertEquals("Application Log Key is required.", $response->message);
     }
     public function test_content_is_required()
     {
-        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLogId, $this->applicationLogKey);
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
         $response = $logger->log('');
         $this->assertEquals("Content to be logged is required.", $response->message);
     }
     public function test_valid_applicaiton_log_id_is_required()
     {
-        $logger = new Fyipe\Logger($this->apiUrl, '5eec6f33d7d57033b3a7d502', $this->applicationLogKey);
+        $logger = new Fyipe\Logger($this->apiUrl, '5eec6f33d7d57033b3a7d502', $this->applicationLog->key);
         $response = $logger->log('content');
         $this->assertEquals("Application Log does not exist.", $response->message);
     }
     public function test_valid_string_content_of_type_info_is_logged()
     {
         $log = "sample content to be logged";
-        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLogId, $this->applicationLogKey);
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
         $response = $logger->log($log);
         $this->assertEquals($log, $response->content);
         $this->assertEquals(true, is_string($response->content));
@@ -108,7 +121,7 @@ class LoggerTest extends TestCase
         $log = new stdClass();
         $log->name = "Travis";
         $log->location = "Atlanta";
-        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLogId, $this->applicationLogKey);
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
         $response = $logger->log($log);
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
@@ -117,7 +130,7 @@ class LoggerTest extends TestCase
     public function test_valid_string_content_of_type_error_is_logged()
     {
         $log = "sample content to be logged";
-        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLogId, $this->applicationLogKey);
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
         $response = $logger->error($log);
         $this->assertEquals($log, $response->content);
         $this->assertEquals(true, is_string($response->content));
@@ -128,7 +141,7 @@ class LoggerTest extends TestCase
         $log = new stdClass();
         $log->name = "Travis";
         $log->location = "Atlanta";
-        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLogId, $this->applicationLogKey);
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
         $response = $logger->warning($log);
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
