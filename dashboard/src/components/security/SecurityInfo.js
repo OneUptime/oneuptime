@@ -110,12 +110,22 @@ const SecurityInfo = ({
                             <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                     <span
-                                        id="monitor-content-header"
+                                        id={
+                                            (applicationSecurityId &&
+                                                `applicationSecurityHeader_${name}`) ||
+                                            (containerSecurityId &&
+                                                `containerSecurityHeader_${name}`)
+                                        }
                                         className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                     >
                                         <IssueIndicator status={status} />
                                         <span
-                                            id={`monitor-title-${name}`}
+                                            id={
+                                                (applicationSecurityId &&
+                                                    `applicationSecurityTitle_${name}`) ||
+                                                (containerSecurityId &&
+                                                    `containerSecurityTitle_${name}`)
+                                            }
                                             style={{
                                                 textTransform: 'capitalize',
                                             }}

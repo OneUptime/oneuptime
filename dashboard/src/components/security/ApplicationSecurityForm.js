@@ -192,6 +192,7 @@ class ApplicationSecurityForm extends Component {
                                                                     this
                                                                         .handleGitCredential
                                                                 }
+                                                                id="addCredentialBtn"
                                                             >
                                                                 Add a git
                                                                 credential
