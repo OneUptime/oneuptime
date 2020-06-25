@@ -10,9 +10,9 @@ audit_log-php:
         - sudo apt-get install -y php-xml
         - sudo apt-get install -y composer
         - cd log-php
-        - sudo composer install
-        - sudo composer lint
-        - sudo composer analyze
+        - composer install
+        - composer lint
+        - composer analyze
         - cd ..
     except:
         refs:
