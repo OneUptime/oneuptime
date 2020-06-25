@@ -460,7 +460,7 @@ class LogList extends Component {
                         (!logs.logs || !logs.logs.length) &&
                         !logs.requesting &&
                         !logs.error)
-                        ? "We don't have any Logs yet"
+                        ? "We don't have any logs yet"
                         : null}
                     {logs && logs.error ? logs.error : null}
                 </div>

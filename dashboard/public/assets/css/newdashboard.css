@@ -10836,3 +10836,31 @@ table {
 .Margin-bottom--20i {
     margin-bottom: 20px !important;
 }
+/* writing some extra css for the date time range selector because bootstrap couldnt be added to avoid breaking changes on the design system  */
+.fromDateHourContainer .input-group{
+    display: flex;
+    flex-direction: column;
+}
+.inputDate {
+    border-radius: 5px;
+    border: solid 1px rgba(128, 126, 126, 0.7);
+    padding-left: 10px;
+}
+#Hour_start, #Minutes_start, #MonthSelector_start, #YearSelector_start,
+#Hour_end, #Minutes_end, #MonthSelector_end, #YearSelector_end{
+    border-radius: 5px;
+    padding: 3px;
+}
+
+@media only screen and (max-width: 807px) {
+    .action-bar-holder {
+      flex-direction: column;
+    }
+  }
+  @media only screen and (min-width: 808px) {
+    .action-bar-holder {
+      flex-direction: row;
+    }
+    
+  }
+  

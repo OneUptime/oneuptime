@@ -1,0 +1,7 @@
+<phpunit bootstrap="tests/bootstrap.php" backupStaticAttributes="false" backupGlobals="false" colors="true" convertErrorsToExceptions="true" convertNoticesToExceptions="true" convertWarningsToExceptions="true">
+    <testsuites>
+        <testsuite name="Logger">
+            <directory>tests/Fyipe</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
