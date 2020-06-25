@@ -12,8 +12,6 @@ class LoggerTest extends TestCase
 {
     private $apiUrl = 'http://localhost:3002/api/';
     private $applicationLog;
-    private $applicationLogId = "5eec6f33d7d57033b3a7d506";
-    private $applicationLogKey = "23c07524-ee1f-48da-9cfd-70a3874b2682";
     private $faker;
     private $header = [];
 
@@ -48,19 +46,8 @@ class LoggerTest extends TestCase
         $user->companyPhoneNumber = $this->faker->phoneNumber;
         $user->reference = 'Gitbuh';
 
-        $data = [
-            'tokenId' => 'tok_visa',
-            'email' => $user->email,
-            'companyName' => $user->companyName
-        ];
         $client = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
         try {
-            // Stripe card request
-            $response = $client->request('POST', 'stripe/checkCard',  ['form_params' => $data]);
-            $stripeResp = json_decode($response->getBody()->getContents());
-            $stripe = new StdClass();
-            $stripe->id = $stripeResp->id;
-            $user->paymentIntent = $stripe;
 
             // create user
             $response = $client->request('POST', 'user/signup',  ['form_params' => $user]);
