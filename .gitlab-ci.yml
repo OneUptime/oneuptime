@@ -111,10 +111,10 @@ include:
   # - '/ci/spec/smoke-tests/staging.yaml'
   # - '/ci/spec/smoke-tests/production.yaml'
 
-  # # LOG-JS
-  # - '/ci/spec/log-js/audit.yaml'
-  # - '/ci/spec/log-js/build-n-test.yaml'
-  # - '/ci/spec/log-js/deploy.yaml'
+  # LOG-JS
+  - '/ci/spec/log-js/audit.yaml'
+  - '/ci/spec/log-js/build-n-test.yaml'
+  - '/ci/spec/log-js/deploy.yaml'
 
   # LOG-PHP
   - '/ci/spec/log-php/audit.yaml'
