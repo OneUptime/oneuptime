@@ -31,44 +31,224 @@ class WebsiteMonitorIssues extends React.Component {
     };
 
     render() {
+        const { monitorState } = this.props;
         let variable;
-        if (this.props.monitorState.monitorIssue) {
+        if (monitorState.monitorIssue) {
             variable = (
-                <div className="Box-root Card-shadow--medium">
-                    <div className="db-Trends-header Box-background--white Box-divider--surface-bottom-1">
-                        <div className="ContentHeader Box-root Box-background--white Flex-flex Flex-direction--column">
+                <>
+                    <div className="Box-root Margin-bottom--12">
+                        <div className="bs-ContentSection Card-root Card-shadow--medium">
+                            <div
+                                className="db-Trend"
+                                style={{ height: 'auto', fontSize: '120%' }}
+                            >
+                                <div className="block-chart-side line-chart">
+                                    <div
+                                        className="db-TrendRow"
+                                        style={{
+                                            flexFlow: 'row wrap',
+                                        }}
+                                    >
+                                        <div
+                                            className="db-Trend-colInformation"
+                                            style={{
+                                                flexBasis: '18%',
+                                            }}
+                                        >
+                                            <div
+                                                className="db-Trend-rowTitle"
+                                                title="Performance"
+                                            >
+                                                <div className="db-Trend-title">
+                                                    <span className="chart-font">
+                                                        Performance
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            <small>
+                                                                {monitorState
+                                                                    .monitorIssue
+                                                                    .performance
+                                                                    ? `${monitorState.monitorIssue.performance}%`
+                                                                    : '-'}
+                                                            </small>
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="db-Trend-colInformation"
+                                            style={{
+                                                flexBasis: '18%',
+                                            }}
+                                        >
+                                            <div
+                                                className="db-Trend-rowTitle"
+                                                title="Accessibility"
+                                            >
+                                                <div className="db-Trend-title">
+                                                    <span className="chart-font">
+                                                        Accessibility
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            <small>
+                                                                {monitorState
+                                                                    .monitorIssue
+                                                                    .accessibility
+                                                                    ? `${monitorState.monitorIssue.accessibility}%`
+                                                                    : '-'}
+                                                            </small>
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="db-Trend-colInformation"
+                                            style={{
+                                                flexBasis: '18%',
+                                            }}
+                                        >
+                                            <div
+                                                className="db-Trend-rowTitle"
+                                                title="Best Practices"
+                                            >
+                                                <div className="db-Trend-title">
+                                                    <span className="chart-font">
+                                                        Best Practices
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            <small>
+                                                                {monitorState
+                                                                    .monitorIssue
+                                                                    .bestPractices
+                                                                    ? `${monitorState.monitorIssue.bestPractices}%`
+                                                                    : '-'}
+                                                            </small>
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="db-Trend-colInformation"
+                                            style={{
+                                                flexBasis: '18%',
+                                            }}
+                                        >
+                                            <div
+                                                className="db-Trend-rowTitle"
+                                                title="SEO"
+                                            >
+                                                <div className="db-Trend-title">
+                                                    <span className="chart-font">
+                                                        SEO
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            <small>
+                                                                {monitorState
+                                                                    .monitorIssue
+                                                                    .seo
+                                                                    ? `${monitorState.monitorIssue.seo}%`
+                                                                    : '-'}
+                                                            </small>
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="db-Trend-colInformation"
+                                            style={{
+                                                flexBasis: '18%',
+                                            }}
+                                        >
+                                            <div
+                                                className="db-Trend-rowTitle"
+                                                title="PWA"
+                                            >
+                                                <div className="db-Trend-title">
+                                                    <span className="chart-font">
+                                                        PWA
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            <small>
+                                                                {monitorState
+                                                                    .monitorIssue
+                                                                    .pwa
+                                                                    ? `${monitorState.monitorIssue.pwa}%`
+                                                                    : '-'}
+                                                            </small>
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                        <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                    <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                    <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                         <span>
                                             Website Issues (
-                                            {this.props.monitorState
-                                                .monitorIssue.data &&
-                                                this.props.monitorState
-                                                    .monitorIssue.data.length}
+                                            {monitorState.monitorIssue.data &&
+                                                monitorState.monitorIssue.data
+                                                    .length}
                                             )
                                         </span>
                                     </span>
                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                         <span>
                                             Here&#39;s the list of issues for{' '}
-                                            {
-                                                this.props.monitorState
-                                                    .monitorIssue.url
-                                            }
-                                            .
+                                            {monitorState.monitorIssue.url}.
                                         </span>
                                     </span>
                                 </div>
                             </div>
                         </div>
+                        <div className="bs-ContentSection Card-root Card-shadow--medium">
+                            <WebsiteIssuesList
+                                monitorIssue={monitorState.monitorIssue}
+                            />
+                        </div>
                     </div>
-                    <div className="bs-ContentSection Card-root Card-shadow--medium">
-                        <WebsiteIssuesList
-                            monitorIssue={this.props.monitorState.monitorIssue}
-                        />
-                    </div>
-                </div>
+                </>
             );
         } else {
             variable = (
@@ -109,7 +289,6 @@ class WebsiteMonitorIssues extends React.Component {
             location: { pathname },
             component,
             monitor,
-            monitorState,
         } = this.props;
         const componentName =
             component.length > 0

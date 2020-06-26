@@ -222,6 +222,18 @@ class MonitorView extends React.Component {
                                                                 />
                                                             </ShouldRender>
                                                         </div>
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <MonitorViewIncidentBox
+                                                                componentId={
+                                                                    this.props
+                                                                        .componentId
+                                                                }
+                                                                monitor={
+                                                                    this.props
+                                                                        .monitor
+                                                                }
+                                                            />
+                                                        </div>
                                                         <ShouldRender
                                                             if={
                                                                 this.props
@@ -250,18 +262,6 @@ class MonitorView extends React.Component {
                                                                 />
                                                             </div>
                                                         </ShouldRender>
-                                                        <div className="Box-root Margin-bottom--12">
-                                                            <MonitorViewIncidentBox
-                                                                componentId={
-                                                                    this.props
-                                                                        .componentId
-                                                                }
-                                                                monitor={
-                                                                    this.props
-                                                                        .monitor
-                                                                }
-                                                            />
-                                                        </div>
                                                         <ShouldRender
                                                             if={
                                                                 this.props
