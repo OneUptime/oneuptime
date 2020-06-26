@@ -5,7 +5,7 @@ import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import moment from 'moment';
 import { emaildomains } from './constants/emaildomains';
-import booleanParser from './utils/booleanParser';
+// import booleanParser from './utils/booleanParser';
 
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
@@ -43,7 +43,7 @@ export const DOMAIN_URL = window.location.origin;
 
 export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 
-export const IS_SAAS_SERVICE = booleanParser(env('IS_SAAS_SERVICE'));
+export const IS_SAAS_SERVICE = process.env.REACT_APP_IS_SAAS_SERVICE;
 
 export const IS_LOCALHOST = isLocalhost;
 

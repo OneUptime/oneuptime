@@ -8,6 +8,7 @@ require('should');
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const pageName = utils.generateRandomString();
 
 describe('Status Page', () => {
     const operationTimeOut = 500000;
@@ -58,7 +59,7 @@ describe('Status Page', () => {
                 await page.click('button[type="button"] .bs-FileUploadButton');
                 await page.waitForSelector('#name');
                 await page.click('#name');
-                await page.type('#name', 'test');
+                await page.type('#name', pageName);
                 await page.click('#btnCreateStatusPage');
                 // select the first item from the table row
                 const rowItem = await page.waitForSelector(

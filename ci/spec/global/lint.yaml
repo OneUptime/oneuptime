@@ -1,7 +1,6 @@
 # Run lint all projects
 lint-projects:
   stage: BuildAndTest
-  allow_failure: true
   script:
     - sudo apt-get update
     - sudo apt-get install -y curl gcc
