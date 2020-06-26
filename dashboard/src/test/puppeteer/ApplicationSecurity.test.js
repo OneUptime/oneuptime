@@ -8,6 +8,8 @@ require('should');
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const component = 'TestComponent';
+const applicationSecurityName = 'Test';
 
 describe('Application Security Page', () => {
     const operationTimeOut = 500000;
@@ -18,7 +20,7 @@ describe('Application Security Page', () => {
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions:utils.puppeteerLaunchConfig,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
             timeout: operationTimeOut,
         });
@@ -48,11 +50,9 @@ describe('Application Security Page', () => {
     test(
         'should create an application security',
         async done => {
-            const component = 'TestComponent';
             const gitUsername = utils.gitCredential.gitUsername;
             const gitPassword = utils.gitCredential.gitPassword;
             const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
-            const applicationSecurityName = 'Test';
 
             await cluster.execute(null, async ({ page }) => {
                 await init.addComponent(component, page);
@@ -102,8 +102,6 @@ describe('Application Security Page', () => {
     test(
         'should scan an application security',
         async done => {
-            const component = 'TestComponent';
-            const applicationSecurityName = 'Test';
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
@@ -208,6 +206,50 @@ describe('Application Security Page', () => {
                     elem => elem.textContent
                 );
                 expect(textContent).toEqual(newApplicationName);
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should delete an application security',
+        async done => {
+            const newApplicationName = 'AnotherName';
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#application', { visible: true });
+                await page.click('#application');
+                await page.waitForSelector(
+                    `#applicationSecurityHeader_${newApplicationName}`,
+                    { visible: true }
+                );
+                await page.click(
+                    `#moreApplicationSecurity_${newApplicationName}`
+                );
+                await page.waitForSelector('#deleteApplicationSecurityBtn', {
+                    visible: true,
+                });
+                await page.click('#deleteApplicationSecurityBtn');
+                await page.waitForSelector(
+                    '#deleteApplicationSecurityModalBtn',
+                    { visible: true }
+                );
+                await page.click('#deleteApplicationSecurityModalBtn');
+                await page.waitForNavigation();
+
+                const applicationSecurity = await page.waitForSelector(
+                    `#applicationSecurityHeader_${newApplicationName}`,
+                    { hidden: true }
+                );
+                expect(applicationSecurity).toBeNull();
             });
             done();
         },
