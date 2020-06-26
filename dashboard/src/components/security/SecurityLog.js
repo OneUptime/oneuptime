@@ -69,7 +69,10 @@ const SecurityLog = ({
     }
 
     return (
-        <div id="securityLog" className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
+        <div
+            id="securityLog"
+            className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12"
+        >
             <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
@@ -152,6 +155,7 @@ const SecurityLog = ({
                             <tbody className="Table-body">
                                 <ShouldRender if={applicationSecurityLog}>
                                     {applicationSecurityLog &&
+                                    applicationLogs.data &&
                                     applicationLogs.data.length > 0 ? (
                                         applicationLogs.data.map(advisory => {
                                             return (
@@ -235,6 +239,7 @@ const SecurityLog = ({
                                 </ShouldRender>
                                 <ShouldRender if={containerSecurityLog}>
                                     {containerSecurityLog &&
+                                    containerLogs.data &&
                                     containerLogs.data.length > 0 ? (
                                         containerLogs.data.map(
                                             (vulnerability, index) => {
