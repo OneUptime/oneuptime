@@ -337,7 +337,7 @@ export const groups = [
                         path:
                             '/dashboard/project/:projectId/credential/gitCredential',
                         icon: 'radar',
-                        visible: false,
+                        visible: true,
                         subRoutes: [],
                         component: GitCredential,
                         index: 7,
@@ -347,7 +347,7 @@ export const groups = [
                         path:
                             '/dashboard/project/:projectId/credential/dockerCredential',
                         icon: 'radar',
-                        visible: false,
+                        visible: true,
                         subRoutes: [],
                         component: DockerCredential,
                         index: 8,
