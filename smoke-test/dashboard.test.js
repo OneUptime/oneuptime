@@ -36,9 +36,35 @@ describe('Monitor API', () => {
         });
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
+        cluster.execute(null, async ({ page }) => {
+            // delete monitor
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: 'networkidle2',
+            });
+            await page.waitForSelector(`#more-details-${componentName}`);
+            await page.click(`#more-details-${componentName}`);
+            await page.waitForSelector(`#more-details-${monitorName}`);
+            await page.click(`#more-details-${monitorName}`);
+            await page.waitForSelector(`#delete_${monitorName}`);
+            await page.click(`#delete_${monitorName}`);
+            await page.waitForSelector('#deleteMonitor');
+            await page.click('#deleteMonitor');
+            await page.waitFor(2000);
+
+            // delete component
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: 'networkidle2',
+            });
+            await page.waitForSelector(`#delete-component-${componentName}`);
+            await page.click(`#delete-component-${componentName}`);
+            await page.waitForSelector('#deleteComponent');
+            await page.click('#deleteComponent');
+            await page.waitFor(2000);
+        });
         await cluster.idle();
         await cluster.close();
+        done();
     });
 
     it(

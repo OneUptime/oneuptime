@@ -92,8 +92,8 @@ const pingfetch = async url => {
         let sslCertificate, response, data;
         try {
             response = await fetch(url, { timeout: 120000 });
-            data = await response.text();
             res = new Date().getTime() - now;
+            data = await response.text();
             const urlObject = new URL(url);
             if (urlObject.protocol === 'https:') {
                 const certificate = await sslCert.get(urlObject.hostname);
