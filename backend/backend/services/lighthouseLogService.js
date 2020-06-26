@@ -98,7 +98,19 @@ module.exports = {
 
     async findLastestScan({ monitorId, url, skip, limit }) {
         try {
-            let lighthouseLogs;
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof limit === 'string') {
+                limit = parseInt(limit);
+            }
+
+            let lighthouseLogs = [];
             let siteUrls;
 
             if (url) {
@@ -116,19 +128,17 @@ module.exports = {
                     monitor.siteUrls && monitor.data && monitor.data.url
                         ? [...monitor.siteUrls, monitor.data.url]
                         : [];
-
-                lighthouseLogs = [];
-                for (const url of siteUrls.slice(
-                    skip || 0,
-                    (limit || 5) < siteUrls.length - skip
-                        ? limit || 5
-                        : siteUrls.length
-                )) {
-                    let log = await this.findBy({ monitorId, url }, 1, 0);
-                    if (!log || (log && log.length === 0)) {
-                        log = [{ url }];
+                if (siteUrls.length > 0) {
+                    for (const url of siteUrls.slice(
+                        skip,
+                        limit < siteUrls.length - skip ? limit : siteUrls.length
+                    )) {
+                        let log = await this.findBy({ monitorId, url }, 1, 0);
+                        if (!log || (log && log.length === 0)) {
+                            log = [{ url }];
+                        }
+                        lighthouseLogs = [...lighthouseLogs, ...log];
                     }
-                    lighthouseLogs = [...lighthouseLogs, ...log];
                 }
             }
 

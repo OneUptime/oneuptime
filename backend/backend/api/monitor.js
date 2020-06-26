@@ -487,7 +487,7 @@ router.get(
             } = await LighthouseLogService.findLastestScan({
                 monitorId,
                 url,
-                limit: limit || 10,
+                limit: limit || 5,
                 skip: skip || 0,
             });
 

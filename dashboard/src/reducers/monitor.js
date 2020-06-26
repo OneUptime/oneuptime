@@ -1000,20 +1000,20 @@ export default function monitor(state = INITIAL_STATE, action) {
                                           }
                                           if (
                                               monitor.lighthouseLogs &&
+                                              monitor.lighthouseLogs.data &&
                                               monitor.lighthouseLogs.data
+                                                  .length > 0
                                           ) {
-                                              monitor.lighthouseLogs = {
-                                                  ...monitor.lighthouseLogs,
-
-                                                  data: [
-                                                      action.payload.data,
-                                                      ...monitor.lighthouseLogs
-                                                          .data,
-                                                  ],
-                                                  count:
-                                                      monitor.lighthouseLogs
-                                                          .count + 1,
-                                              };
+                                              const logIndex = monitor.lighthouseLogs.data.findIndex(
+                                                  log =>
+                                                      log.url ===
+                                                      action.payload.data.url
+                                              );
+                                              if (logIndex > -1) {
+                                                  monitor.lighthouseLogs.data[
+                                                      logIndex
+                                                  ] = action.payload.data;
+                                              }
                                           } else {
                                               monitor.lighthouseLogs = {
                                                   data: [action.payload.data],

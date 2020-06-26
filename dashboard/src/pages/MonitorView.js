@@ -43,34 +43,30 @@ class MonitorView extends React.Component {
     }
 
     componentDidUpdate(prevProps) {
-        if (!prevProps.monitor && this.props.monitor) {
-            const subProjectId =
-                this.props.monitor.projectId._id ||
-                this.props.monitor.projectId;
+        const { monitor } = this.props;
+        if (!prevProps.monitor && monitor) {
+            const subProjectId = monitor.projectId._id || monitor.projectId;
             this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
-            if (this.props.monitor.type === 'url') {
+            if (monitor.type === 'url') {
                 this.props.fetchLighthouseLogs(
-                    subProjectId,
-                    this.props.monitor._id,
+                    monitor.projectId._id || monitor.projectId,
+                    monitor._id,
                     0,
-                    5
-                ); //0 -> skip, 10-> limit.
+                    1,
+                    monitor.data.url
+                );
+                this.props.fetchLighthouseLogs(subProjectId, monitor._id, 0, 5); //0 -> skip, 10-> limit.
             }
-            this.props.fetchMonitorsIncidents(
-                subProjectId,
-                this.props.monitor._id,
-                0,
-                5
-            ); //0 -> skip, 5-> limit.
+            this.props.fetchMonitorsIncidents(subProjectId, monitor._id, 0, 5); //0 -> skip, 5-> limit.
             this.props.fetchMonitorsSubscribers(
                 subProjectId,
-                this.props.monitor._id,
+                monitor._id,
                 0,
                 5
             ); //0 -> skip, 5-> limit.
             this.props.getMonitorLogs(
                 subProjectId,
-                this.props.monitor._id,
+                monitor._id,
                 0,
                 10,
                 moment()
@@ -82,32 +78,24 @@ class MonitorView extends React.Component {
     }
 
     ready = () => {
-        const subProjectId =
-            this.props.monitor.projectId._id || this.props.monitor.projectId;
+        const { monitor } = this.props;
+        const subProjectId = monitor.projectId._id || monitor.projectId;
         this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
-        if (this.props.monitor.type === 'url') {
+        if (monitor.type === 'url') {
             this.props.fetchLighthouseLogs(
-                subProjectId,
-                this.props.monitor._id,
+                monitor.projectId._id || monitor.projectId,
+                monitor._id,
                 0,
-                5
-            ); //0 -> skip, 10-> limit.
+                1,
+                monitor.data.url
+            );
+            this.props.fetchLighthouseLogs(subProjectId, monitor._id, 0, 5); //0 -> skip, 10-> limit.
         }
-        this.props.fetchMonitorsIncidents(
-            subProjectId,
-            this.props.monitor._id,
-            0,
-            5
-        ); //0 -> skip, 5-> limit.
-        this.props.fetchMonitorsSubscribers(
-            subProjectId,
-            this.props.monitor._id,
-            0,
-            5
-        ); //0 -> skip, 5-> limit.
+        this.props.fetchMonitorsIncidents(subProjectId, monitor._id, 0, 5); //0 -> skip, 5-> limit.
+        this.props.fetchMonitorsSubscribers(subProjectId, monitor._id, 0, 5); //0 -> skip, 5-> limit.
         this.props.getMonitorLogs(
             subProjectId,
-            this.props.monitor._id,
+            monitor._id,
             0,
             10,
             moment()

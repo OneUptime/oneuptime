@@ -22,6 +22,19 @@ export class MonitorViewLighthouseLogsBox extends Component {
         };
     }
 
+    componentDidUpdate(prevProps) {
+        const { currentProject, monitor, fetchLighthouseLogs } = this.props;
+        if (
+            prevProps.monitor &&
+            monitor &&
+            prevProps.monitor.siteUrls &&
+            monitor.siteUrls &&
+            prevProps.monitor.siteUrls.length !== monitor.siteUrls.length
+        ) {
+            fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5);
+        }
+    }
+
     prevClicked = (monitorId, skip, limit) => {
         const { currentProject, fetchLighthouseLogs } = this.props;
         fetchLighthouseLogs(
