@@ -93,12 +93,12 @@ const ApplicationSecurityView = ({
                                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                         <span
-                                            id="monitor-content-header"
+                                            id={`applicationSecurityHeader_${applicationSecurity.name}`}
                                             className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
                                             <IssueIndicator status={status} />
                                             <span
-                                                id={`application-title-${applicationSecurity.name}`}
+                                                id={`applicationSecurityTitle_${applicationSecurity.name}`}
                                                 style={{
                                                     textTransform: 'capitalize',
                                                 }}
@@ -173,6 +173,7 @@ const ApplicationSecurityView = ({
                                     <button
                                         className="bs-Button bs-DeprecatedButton"
                                         disabled={scanning}
+                                        id={`scanning_${applicationSecurity.name}`}
                                     >
                                         <Spinner
                                             style={{ stroke: '#8898aa' }}
@@ -203,6 +204,7 @@ const ApplicationSecurityView = ({
                                                     activeApplicationSecurity
                                                 )
                                         }
+                                        id={`scan_${applicationSecurity.name}`}
                                     >
                                         <span>Scan</span>
                                     </button>
@@ -217,6 +219,7 @@ const ApplicationSecurityView = ({
                                             applicationSecurityId,
                                         })
                                     }
+                                    id={`edit_${applicationSecurity.name}`}
                                 >
                                     <span>Edit</span>
                                 </button>

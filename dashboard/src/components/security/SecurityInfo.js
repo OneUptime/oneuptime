@@ -202,6 +202,12 @@ const SecurityInfo = ({
                                         (containerSecurityId &&
                                             scanningContainer)
                                     }
+                                    id={
+                                        (applicationSecurityId &&
+                                            `scanningApplicationSecurity_${name}`) ||
+                                        (containerSecurityId &&
+                                            `scanningContainerSecurity_${name}`)
+                                    }
                                 >
                                     <Spinner style={{ stroke: '#8898aa' }} />
                                     <span>Scanning</span>
@@ -211,6 +217,12 @@ const SecurityInfo = ({
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--security-scan"
                                     type="button"
                                     onClick={scanSecurity}
+                                    id={
+                                        (applicationSecurityId &&
+                                            `scanApplicationSecurity_${name}`) ||
+                                        (containerSecurityId &&
+                                            `scanContainerSecurity_${name}`)
+                                    }
                                 >
                                     <span>Scan</span>
                                 </button>
@@ -219,6 +231,12 @@ const SecurityInfo = ({
                                 className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--more"
                                 type="button"
                                 onClick={more}
+                                id={
+                                    (applicationSecurityId &&
+                                        `moreApplicationSecurity_${name}`) ||
+                                    (containerSecurityId &&
+                                        `moreContainerSecurity_${name}`)
+                                }
                             >
                                 <span>More</span>
                             </button>

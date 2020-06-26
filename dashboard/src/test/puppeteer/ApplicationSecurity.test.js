@@ -18,7 +18,7 @@ describe('Application Security Page', () => {
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteerOptions:utils.puppeteerLaunchConfig,
             puppeteer,
             timeout: operationTimeOut,
         });
@@ -48,7 +48,7 @@ describe('Application Security Page', () => {
     test(
         'should create an application security',
         async done => {
-            const component = 'Test Component';
+            const component = 'TestComponent';
             const gitUsername = utils.gitCredential.gitUsername;
             const gitPassword = utils.gitCredential.gitPassword;
             const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
@@ -87,11 +87,47 @@ describe('Application Security Page', () => {
                 await page.keyboard.press('Enter'); // Enter Key
                 await page.click('#addApplicationBtn');
 
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 const applicationSecurity = await page.waitForSelector(
                     `#applicationSecurityHeader_${applicationSecurityName}`,
                     { visible: true }
                 );
                 expect(applicationSecurity).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should scan an application security',
+        async done => {
+            const component = 'TestComponent';
+            const applicationSecurityName = 'Test';
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#application', { visible: true });
+                await page.click('#application');
+                await page.waitForSelector(
+                    `#applicationSecurityHeader_${applicationSecurityName}`,
+                    { visible: true }
+                );
+                await page.click(
+                    `#scanApplicationSecurity_${applicationSecurityName}`
+                );
+
+                const scanning = await page.waitForSelector(
+                    `#scanningApplicationSecurity_${applicationSecurityName}`,
+                    { hidden: true, timeout: operationTimeOut }
+                );
+                expect(scanning).toBeNull();
             });
             done();
         },
