@@ -133,4 +133,36 @@ describe('Application Security Page', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should view details of security log',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#application', { visible: true });
+                await page.click('#application');
+                await page.waitForSelector(
+                    `#applicationSecurityHeader_${applicationSecurityName}`,
+                    { visible: true }
+                );
+                await page.click(
+                    `#moreApplicationSecurity_${applicationSecurityName}`
+                );
+                const securityLog = await page.waitForSelector('#securityLog', {
+                    visible: true,
+                });
+
+                expect(securityLog).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });

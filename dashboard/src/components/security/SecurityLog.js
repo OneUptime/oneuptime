@@ -69,7 +69,7 @@ const SecurityLog = ({
     }
 
     return (
-        <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
+        <div id="securityLog" className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
             <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
