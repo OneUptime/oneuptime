@@ -70,7 +70,7 @@ class WebsiteMonitorIssues extends React.Component {
                                                     <span>
                                                         {' '}
                                                         <span className="chart-font">
-                                                            <small>
+                                                            <small id="lighthouse-performance">
                                                                 {monitorState
                                                                     .monitorIssue
                                                                     .performance
@@ -103,7 +103,7 @@ class WebsiteMonitorIssues extends React.Component {
                                                     <span>
                                                         {' '}
                                                         <span className="chart-font">
-                                                            <small>
+                                                            <small id="lighthouse-accessibility">
                                                                 {monitorState
                                                                     .monitorIssue
                                                                     .accessibility
@@ -136,7 +136,7 @@ class WebsiteMonitorIssues extends React.Component {
                                                     <span>
                                                         {' '}
                                                         <span className="chart-font">
-                                                            <small>
+                                                            <small id="lighthouse-bestPractices">
                                                                 {monitorState
                                                                     .monitorIssue
                                                                     .bestPractices
@@ -169,7 +169,7 @@ class WebsiteMonitorIssues extends React.Component {
                                                     <span>
                                                         {' '}
                                                         <span className="chart-font">
-                                                            <small>
+                                                            <small id="lighthouse-seo">
                                                                 {monitorState
                                                                     .monitorIssue
                                                                     .seo
@@ -202,7 +202,7 @@ class WebsiteMonitorIssues extends React.Component {
                                                     <span>
                                                         {' '}
                                                         <span className="chart-font">
-                                                            <small>
+                                                            <small id="lighthouse-pwa">
                                                                 {monitorState
                                                                     .monitorIssue
                                                                     .pwa

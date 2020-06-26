@@ -509,7 +509,7 @@ describe('Monitor Detail API', () => {
     );
 
     test(
-        'Should navigate to monitor details and get list of website issues',
+        'Should navigate to monitor details and get list of website scans',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToComponentDetails(componentName, page);
@@ -542,6 +542,116 @@ describe('Monitor Detail API', () => {
                 const countLighthouseLogs = lighthouseLogsRows.length;
 
                 expect(countLighthouseLogs).toEqual(1);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should display multiple probes and monitor chart on refresh',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    urlMonitorName,
+                    page
+                );
+
+                await page.reload({
+                    waitUntil: ['networkidle0', 'domcontentloaded'],
+                });
+
+                const probe0 = await page.waitForSelector('#probes-btn0');
+                const probe1 = await page.waitForSelector('#probes-btn1');
+
+                expect(probe0).toBeDefined();
+                expect(probe1).toBeDefined();
+
+                const monitorStatus = await page.waitForSelector(
+                    `#monitor-status-${urlMonitorName}`
+                );
+                const sslStatus = await page.waitForSelector(
+                    `#ssl-status-${urlMonitorName}`
+                );
+
+                expect(monitorStatus).toBeDefined();
+                expect(sslStatus).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and get lighthouse scores and website issues',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    urlMonitorName,
+                    page
+                );
+
+                const createdLighthouseLogsSelector =
+                    '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
+                await page.waitForSelector(createdLighthouseLogsSelector);
+                await page.click(createdLighthouseLogsSelector);
+                await page.waitForNavigation({ waitUntil: 'networkidle2' });
+
+                let lighthousePerformanceElement = await page.waitForSelector(
+                    `#lighthouse-performance`
+                );
+                lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
+                    'innerText'
+                );
+                lighthousePerformanceElement = await lighthousePerformanceElement.jsonValue();
+                lighthousePerformanceElement.should.endWith('%');
+
+                let lighthouseAccessibilityElement = await page.waitForSelector(
+                    `#lighthouse-accessibility`
+                );
+                lighthouseAccessibilityElement = await lighthouseAccessibilityElement.getProperty(
+                    'innerText'
+                );
+                lighthouseAccessibilityElement = await lighthouseAccessibilityElement.jsonValue();
+                lighthouseAccessibilityElement.should.endWith('%');
+
+                let lighthouseBestPracticesElement = await page.waitForSelector(
+                    `#lighthouse-bestPractices`
+                );
+                lighthouseBestPracticesElement = await lighthouseBestPracticesElement.getProperty(
+                    'innerText'
+                );
+                lighthouseBestPracticesElement = await lighthouseBestPracticesElement.jsonValue();
+                lighthouseBestPracticesElement.should.endWith('%');
+
+                let lighthouseSeoElement = await page.waitForSelector(
+                    `#lighthouse-seo`
+                );
+                lighthouseSeoElement = await lighthouseSeoElement.getProperty(
+                    'innerText'
+                );
+                lighthouseSeoElement = await lighthouseSeoElement.jsonValue();
+                lighthouseSeoElement.should.endWith('%');
+
+                let lighthousePwaElement = await page.waitForSelector(
+                    `#lighthouse-pwa`
+                );
+                lighthousePwaElement = await lighthousePwaElement.getProperty(
+                    'innerText'
+                );
+                lighthousePwaElement = await lighthousePwaElement.jsonValue();
+                lighthousePwaElement.should.endWith('%');
+
+                const websiteIssuesSelector =
+                    '#websiteIssuesList > tbody > tr.websiteIssuesListItem > td:nth-child(1) > div > span > div > span';
+                await page.waitForSelector(websiteIssuesSelector);
+
+                const websiteIssuesRows = await page.$$(websiteIssuesSelector);
+                const countWebsiteIssues = websiteIssuesRows.length;
+
+                expect(countWebsiteIssues).toBeGreaterThanOrEqual(1);
             });
         },
         operationTimeOut
