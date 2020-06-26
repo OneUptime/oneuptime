@@ -165,4 +165,52 @@ describe('Application Security Page', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should edit an application security',
+        async done => {
+            const newApplicationName = 'AnotherName';
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#application', { visible: true });
+                await page.click('#application');
+                await page.waitForSelector(
+                    `#applicationSecurityHeader_${applicationSecurityName}`,
+                    { visible: true }
+                );
+                await page.click(
+                    `#moreApplicationSecurity_${applicationSecurityName}`
+                );
+
+                await page.waitForSelector(`#edit_${applicationSecurityName}`, {
+                    visible: true,
+                });
+                await page.click(`#edit_${applicationSecurityName}`);
+                await page.waitForSelector('#editApplicationSecurityForm', {
+                    visible: true,
+                });
+                await page.click('#name', { clickCount: 3 });
+                await page.type('#name', newApplicationName);
+                await page.click('#editApplicationBtn');
+                await page.waitForSelector('#editApplicationSecurityForm', {
+                    hidden: true,
+                });
+
+                const textContent = await page.$eval(
+                    `#applicationSecurityTitle_${newApplicationName}`,
+                    elem => elem.textContent
+                );
+                expect(textContent).toEqual(newApplicationName);
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });
