@@ -5,7 +5,7 @@ public class StringLog {
     private String applicationLogKey;
     private String type;
 
-    public StringLog(String content, String applicationLogKey, String type) {
+    public StringLog(String applicationLogKey, String type, String content) {
         this.content = content;
         this.applicationLogKey = applicationLogKey;
         this.type = type;
