@@ -75,7 +75,7 @@ class ApplicationLog extends Component {
                     route={getParentRoute(pathname)}
                     name={componentName}
                 />
-                <BreadCrumbItem route={pathname} name="Application Log" />
+                <BreadCrumbItem route={pathname} name="Logs" />
                 <div>
                     <div>
                         <ShouldRender if={this.props.applicationLog.requesting}>
