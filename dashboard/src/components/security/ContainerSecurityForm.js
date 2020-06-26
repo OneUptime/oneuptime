@@ -167,6 +167,7 @@ class ContainerSecurityForm extends Component {
                                                             }}
                                                         >
                                                             <span
+                                                                id="addCredentialBtn"
                                                                 onClick={
                                                                     this
                                                                         .handleDockerCredential
