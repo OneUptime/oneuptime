@@ -145,7 +145,7 @@ class MonitorInfo extends Component {
     resizeHandler() {
         // block chart scroll wrapper
         const scrollWrapper = this.scrollWrapper.current;
-        if(!scrollWrapper) return;
+        if (!scrollWrapper) return;
         scrollWrapper.style.width = 'auto';
 
         // block chart scroll content
