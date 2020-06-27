@@ -245,10 +245,9 @@ describe('Container Security Page', () => {
                     visible: true,
                 });
                 await page.click('#deleteContainerSecurityBtn');
-                await page.waitForSelector(
-                    '#deleteContainerSecurityModalBtn',
-                    { visible: true }
-                );
+                await page.waitForSelector('#deleteContainerSecurityModalBtn', {
+                    visible: true,
+                });
                 await page.click('#deleteContainerSecurityModalBtn');
                 await page.waitForNavigation();
 

@@ -220,7 +220,7 @@ describe('Probe API', function() {
                 .post(`/security/${projectId}/${componentId}/application`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function(err, res) {
+                .end(function() {
                     request
                         .get('/probe/applicationSecurities')
                         .set({
@@ -260,7 +260,7 @@ describe('Probe API', function() {
                 .post(`/security/${projectId}/${componentId}/container`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function(err, res) {
+                .end(function() {
                     request
                         .get('/probe/containerSecurities')
                         .set({

@@ -167,7 +167,7 @@ const ContainerSecurityView = ({
                                     if={
                                         scanning &&
                                         String(containerSecurityId) ===
-                                        String(activeContainerSecurity)
+                                            String(activeContainerSecurity)
                                     }
                                 >
                                     <button
@@ -185,7 +185,7 @@ const ContainerSecurityView = ({
                                     if={
                                         !scanning ||
                                         String(containerSecurityId) !==
-                                        String(activeContainerSecurity)
+                                            String(activeContainerSecurity)
                                     }
                                 >
                                     <button
@@ -200,7 +200,7 @@ const ContainerSecurityView = ({
                                         disabled={
                                             scanning &&
                                             String(containerSecurityId) ===
-                                            String(activeContainerSecurity)
+                                                String(activeContainerSecurity)
                                         }
                                         id={`scan_${containerSecurity.name}`}
                                     >
@@ -259,7 +259,7 @@ const ContainerSecurityView = ({
                                         !isRequesting &&
                                         scanError &&
                                         String(containerSecurityId) ===
-                                        String(activeContainerSecurity)
+                                            String(activeContainerSecurity)
                                     }
                                 >
                                     <div className="Box-root Margin-right--8">
