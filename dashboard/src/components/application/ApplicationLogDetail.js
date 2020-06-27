@@ -217,6 +217,7 @@ class ApplicationLogDetail extends Component {
                                 applicationLog={applicationLog}
                                 logOptions={logOptions}
                                 componentId={componentId}
+                                projectId={currentProject._id}
                                 handleLogTypeChange={this.handleLogTypeChange}
                                 handleLogFilterChange={
                                     this.handleLogFilterChange
@@ -242,6 +243,7 @@ class ApplicationLogDetail extends Component {
                                 applicationLog={applicationLog}
                                 logOptions={logOptions}
                                 componentId={componentId}
+                                projectId={currentProject._id}
                                 handleLogTypeChange={this.handleLogTypeChange}
                                 handleLogFilterChange={
                                     this.handleLogFilterChange

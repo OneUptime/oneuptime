@@ -38,12 +38,12 @@ class Logger
         $this->applicationLogKey = $applicationLogKey;
     }
 
-    private function setApiUrl($apiUrl)
+    private function setApiUrl(String $apiUrl): void
     {
         $this->apiUrl = $apiUrl . 'application-log/' . $this->applicationLogId . '/log';
     }
 
-    private function makeApiRequest($data, $type)
+    private function makeApiRequest($data, String $type): \stdClass
     {
         // make api request and return response
         $client = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
@@ -64,7 +64,7 @@ class Logger
         }
     }
 
-    public function log($content)
+    public function log($content): \stdClass
     {
         if (!(is_object($content) || is_string($content))) {
             throw new \Exception("Invalid Content to be logged");
@@ -73,7 +73,7 @@ class Logger
         $logType = "info";
         return $this->makeApiRequest($content, $logType);
     }
-    public function warning($content)
+    public function warning($content): \stdClass
     {
         if (!(is_object($content) || is_string($content))) {
             throw new \Exception("Invalid Content to be logged");
@@ -82,7 +82,7 @@ class Logger
         $logType = "warning";
         return $this->makeApiRequest($content, $logType);
     }
-    public function error($content)
+    public function error($content): \stdClass
     {
         if (!(is_object($content) || is_string($content))) {
             throw new \Exception("Invalid Content to be logged");
