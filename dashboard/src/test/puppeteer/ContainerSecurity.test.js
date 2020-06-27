@@ -10,6 +10,7 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const component = 'TestComponent';
 const containerSecurityName = 'Test';
+const newContainerSecurityName = 'Byter';
 
 describe('Container Security Page', () => {
     const operationTimeOut = 500000;
