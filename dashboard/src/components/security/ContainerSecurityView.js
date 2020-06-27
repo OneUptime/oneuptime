@@ -93,12 +93,12 @@ const ContainerSecurityView = ({
                                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                         <span
-                                            id="monitor-content-header"
+                                            id={`containerSecurityHeader_${containerSecurity.name}`}
                                             className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
                                             <IssueIndicator status={status} />
                                             <span
-                                                id={`container-title-${containerSecurity.name}`}
+                                                id={`containerSecurityTitle_${containerSecurity.name}`}
                                                 style={{
                                                     textTransform: 'capitalize',
                                                 }}
@@ -167,12 +167,13 @@ const ContainerSecurityView = ({
                                     if={
                                         scanning &&
                                         String(containerSecurityId) ===
-                                            String(activeContainerSecurity)
+                                        String(activeContainerSecurity)
                                     }
                                 >
                                     <button
                                         className="bs-Button bs-DeprecatedButton"
                                         disabled={scanning}
+                                        id={`scanning_${containerSecurity.name}`}
                                     >
                                         <Spinner
                                             style={{ stroke: '#8898aa' }}
@@ -184,7 +185,7 @@ const ContainerSecurityView = ({
                                     if={
                                         !scanning ||
                                         String(containerSecurityId) !==
-                                            String(activeContainerSecurity)
+                                        String(activeContainerSecurity)
                                     }
                                 >
                                     <button
@@ -199,13 +200,15 @@ const ContainerSecurityView = ({
                                         disabled={
                                             scanning &&
                                             String(containerSecurityId) ===
-                                                String(activeContainerSecurity)
+                                            String(activeContainerSecurity)
                                         }
+                                        id={`scan_${containerSecurity.name}`}
                                     >
                                         <span>Scan</span>
                                     </button>
                                 </ShouldRender>
                                 <button
+                                    id={`edit_${containerSecurity.name}`}
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                     type="button"
                                     onClick={() =>
@@ -256,7 +259,7 @@ const ContainerSecurityView = ({
                                         !isRequesting &&
                                         scanError &&
                                         String(containerSecurityId) ===
-                                            String(activeContainerSecurity)
+                                        String(activeContainerSecurity)
                                     }
                                 >
                                     <div className="Box-root Margin-right--8">

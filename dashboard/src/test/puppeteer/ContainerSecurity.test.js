@@ -171,4 +171,51 @@ describe('Container Security Page', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should edit container security',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#container', { visible: true });
+                await page.click('#container');
+                await page.waitForSelector(
+                    `#containerSecurityHeader_${containerSecurityName}`,
+                    { visible: true }
+                );
+                await page.click(
+                    `#moreContainerSecurity_${containerSecurityName}`
+                );
+
+                await page.waitForSelector(`#edit_${containerSecurityName}`, {
+                    visible: true,
+                });
+                await page.click(`#edit_${containerSecurityName}`);
+                await page.waitForSelector('#editContainerSecurityForm', {
+                    visible: true,
+                });
+                await page.click('#name', { clickCount: 3 });
+                await page.type('#name', newContainerSecurityName);
+                await page.click('#editContainerBtn');
+                await page.waitForSelector('#editContainerSecurityForm', {
+                    hidden: true,
+                });
+
+                const textContent = await page.$eval(
+                    `#containerSecurityTitle_${newContainerSecurityName}`,
+                    elem => elem.textContent
+                );
+                expect(textContent).toEqual(newContainerSecurityName);
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });
