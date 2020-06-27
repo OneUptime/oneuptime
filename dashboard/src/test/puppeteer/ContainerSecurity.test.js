@@ -139,4 +139,36 @@ describe('Container Security Page', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should view details of the security log',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#container', { visible: true });
+                await page.click('#container');
+                await page.waitForSelector(
+                    `#containerSecurityHeader_${containerSecurityName}`,
+                    { visible: true }
+                );
+                await page.click(
+                    `#moreContainerSecurity_${containerSecurityName}`
+                );
+                const securityLog = await page.waitForSelector('#securityLog', {
+                    visible: true,
+                });
+
+                expect(securityLog).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });
