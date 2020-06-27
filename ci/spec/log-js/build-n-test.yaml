@@ -10,12 +10,12 @@ build_n_test_log-js:
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-        - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+        - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd log-js
         - npm ci
         - npm run test
     except:
-      refs:
-        - hotfix-master
-        - hotfix-release
+        refs:
+            - hotfix-master
+            - hotfix-release
