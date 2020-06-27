@@ -645,7 +645,7 @@ describe('Monitor Detail API', () => {
                 lighthousePwaElement.should.endWith('%');
 
                 const websiteIssuesSelector =
-                    '#websiteIssuesList > tbody > tr.websiteIssuesListItem > td:nth-child(1) > div > span > div > span';
+                    '#websiteIssuesList > tbody > tr.websiteIssuesListItem';
                 await page.waitForSelector(websiteIssuesSelector);
 
                 const websiteIssuesRows = await page.$$(websiteIssuesSelector);
