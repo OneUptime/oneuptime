@@ -649,7 +649,7 @@ function mapStateToProps(state) {
 
 MonitorDetail.propTypes = {
     currentProject: PropTypes.object.isRequired,
-    componentId: PropTypes.object.isRequired,
+    componentId: PropTypes.string.isRequired,
     monitor: PropTypes.object.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,
