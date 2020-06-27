@@ -218,4 +218,47 @@ describe('Container Security Page', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should delete container security',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#container', { visible: true });
+                await page.click('#container');
+                await page.waitForSelector(
+                    `#containerSecurityHeader_${newContainerSecurityName}`,
+                    { visible: true }
+                );
+                await page.click(
+                    `#moreContainerSecurity_${newContainerSecurityName}`
+                );
+                await page.waitForSelector('#deleteContainerSecurityBtn', {
+                    visible: true,
+                });
+                await page.click('#deleteContainerSecurityBtn');
+                await page.waitForSelector(
+                    '#deleteContainerSecurityModalBtn',
+                    { visible: true }
+                );
+                await page.click('#deleteContainerSecurityModalBtn');
+                await page.waitForNavigation();
+
+                const containerSecurity = await page.waitForSelector(
+                    `#containerSecurityHeader_${newContainerSecurityName}`,
+                    { hidden: true }
+                );
+                expect(containerSecurity).toBeNull();
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });
