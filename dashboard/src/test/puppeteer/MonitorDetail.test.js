@@ -597,7 +597,7 @@ describe('Monitor Detail API', () => {
                     '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
                 await page.waitForSelector(createdLighthouseLogsSelector);
                 await page.click(createdLighthouseLogsSelector);
-                await page.waitForNavigation({ waitUntil: 'networkidle2' });
+                await page.waitFor(5000);
 
                 let lighthousePerformanceElement = await page.waitForSelector(
                     `#lighthouse-performance`
