@@ -13,6 +13,7 @@ class ApplicationLogDetailView extends Component {
             applicationLog,
             logOptions,
             componentId,
+            projectId,
             handleDateTimeChange,
             handleLogTypeChange,
             handleLogFilterChange,
@@ -119,6 +120,7 @@ class ApplicationLogDetailView extends Component {
                                     <LogList
                                         applicationLog={applicationLog}
                                         componentId={componentId}
+                                        projectId={projectId}
                                     />
                                 </div>
                             </div>
@@ -132,6 +134,7 @@ class ApplicationLogDetailView extends Component {
 ApplicationLogDetailView.displayName = 'ApplicationLogDetailView';
 
 ApplicationLogDetailView.propTypes = {
+    projectId: PropTypes.string,
     componentId: PropTypes.string,
     applicationLog: PropTypes.object,
     logValue: PropTypes.object,

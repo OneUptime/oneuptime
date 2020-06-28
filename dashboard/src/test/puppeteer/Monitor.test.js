@@ -141,6 +141,37 @@ describe('Monitor API', () => {
     );
 
     test(
+        'should display multiple probes and monitor chart on refresh',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.reload({
+                    waitUntil: ['networkidle0', 'domcontentloaded'],
+                });
+
+                const probe0 = await page.waitForSelector('#probes-btn0');
+                const probe1 = await page.waitForSelector('#probes-btn1');
+
+                expect(probe0).toBeDefined();
+                expect(probe1).toBeDefined();
+
+                const monitorStatus = await page.waitForSelector(
+                    `#monitor-status-${monitorName}`
+                );
+                const sslStatus = await page.waitForSelector(
+                    `#ssl-status-${monitorName}`
+                );
+
+                expect(monitorStatus).toBeDefined();
+                expect(sslStatus).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should create new monitor with call schedule',
         async () => {
             return await cluster.execute(null, async ({ page }) => {

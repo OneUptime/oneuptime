@@ -134,7 +134,7 @@ const mapStateToProps = state => {
 
 MonitorViewDeleteBox.propTypes = {
     currentProject: PropTypes.object.isRequired,
-    componentId: PropTypes.object.isRequired,
+    componentId: PropTypes.string.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
