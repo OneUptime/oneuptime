@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { deleteDockerCredential } from '../../actions/credential';
@@ -9,6 +9,7 @@ import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import DeleteCredentialModal from './DeleteCredentialModal';
 import DockerCredentialModal from './DockerCredentialModal';
+import paginate from '../../utils/paginate';
 
 const DockerCredentialList = ({
     isRequesting,
@@ -21,6 +22,8 @@ const DockerCredentialList = ({
     closeModal,
     getDockerSecurities,
 }) => {
+    const [page, setPage] = useState(1);
+
     const handleDelete = credentialId => {
         getDockerSecurities({ projectId, credentialId });
 
@@ -57,6 +60,16 @@ const DockerCredentialList = ({
                 return false;
         }
     };
+
+    const prev = () => setPage(page - 1);
+    const next = () => setPage(page + 1);
+    const { next_page, pre_page, data, count } = paginate(
+        dockerCredentials,
+        page,
+        10
+    );
+
+    dockerCredentials = data;
 
     return (
         <div onKeyDown={handleKeyboard} className="Box-root  Margin-bottom--12">
@@ -261,8 +274,65 @@ const DockerCredentialList = ({
                             </div>
                         </div>
                     </ShouldRender>
+                </div>
+                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                    <div
+                        className="bs-Tail-copy"
+                        style={{
+                            padding: '0 10px',
+                        }}
+                    >
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                            style={{
+                                textAlign: 'center',
+                                marginTop: '10px',
+                                padding: '0 10px',
+                            }}
+                        >
+                            <div className="Box-root">
+                                <span className="Text-fontWeight--medium">
+                                    {count} Docker Credential
+                                    {count > 1 ? 's' : ''}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                     <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"></div>
+                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                            <div className="Box-root Margin-right--8">
+                                <button
+                                    id="btnPrev"
+                                    className={`Button bs-ButtonLegacy ${!pre_page &&
+                                        'Is--disabled'}`}
+                                    disabled=""
+                                    type="button"
+                                    onClick={prev}
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Previous</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                            <div className="Box-root">
+                                <button
+                                    id="btnNext"
+                                    className={`Button bs-ButtonLegacy ${!next_page &&
+                                        'Is--disabled'}`}
+                                    disabled=""
+                                    type="button"
+                                    onClick={next}
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Next</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
