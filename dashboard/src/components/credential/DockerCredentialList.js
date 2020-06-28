@@ -77,10 +77,8 @@ const DockerCredentialList = ({
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                            <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                <span style={{ textTransform: 'capitalize' }}>
-                                    Docker Credentials
-                                </span>
+                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                <span>Docker Credentials</span>
                             </span>
                             <span
                                 style={{ textTransform: 'lowercase' }}
