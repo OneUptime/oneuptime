@@ -544,7 +544,7 @@ module.exports = {
     scanApplicationSecurity: async security => {
         try {
             let securityDir = 'application_security_dir';
-            securityDir = createDir(securityDir);
+            securityDir = await createDir(securityDir);
 
             const USER = security.gitCredential.gitUsername;
             const PASS = security.gitCredential.gitPassword;
@@ -696,8 +696,7 @@ module.exports = {
                 : imagePath;
             const outputFile = `${uuidv1()}results.json`;
             let securityDir = 'container_security_dir';
-            securityDir = createDir(securityDir);
-
+            securityDir = await createDir(securityDir);
             // update container security to scanned true
             // so the cron job does not pull it multiple times due to network delays
             // since the cron job runs every minute
@@ -2223,14 +2222,17 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
 };
 
 function createDir(dirPath) {
-    const workPath = Path.resolve(process.cwd(), dirPath);
+    return new Promise((resolve, reject) => {
+        const workPath = Path.resolve(process.cwd(), dirPath);
 
-    if (fs.existsSync(workPath)) {
-        return workPath;
-    }
+        if (fs.existsSync(workPath)) {
+            resolve(workPath);
+        }
 
-    fs.mkdir(workPath, { recursive: true }, error => {
-        if (error) throw error;
+        fs.mkdir(workPath, error => {
+            if (error) reject(error);
+            resolve(workPath);
+        });
     });
 
     return workPath;
