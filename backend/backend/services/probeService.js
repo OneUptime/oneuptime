@@ -709,33 +709,43 @@ module.exports = {
 
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
-                const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
-                const clearCommand = `trivy image --clear-cache ${testPath}`;
-                let scanError = null;
-                let clearCacheError = null;
+                const scanCommand = `image -f json -o ${outputFile} ${testPath}`;
+                const clearCommand = `image --clear-cache ${testPath}`;
 
-                const output = exec(
-                    scanCommand,
-                    {
-                        cwd: securityDir,
-                        env: {
-                            TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
-                            TRIVY_USERNAME: dockerCredential.dockerUsername,
-                            TRIVY_PASSWORD: dockerCredential.dockerPassword,
-                        },
+                const output = spawn('trivy', [scanCommand], {
+                    cwd: securityDir,
+                    env: {
+                        TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
+                        TRIVY_USERNAME: dockerCredential.dockerUsername,
+                        TRIVY_PASSWORD: dockerCredential.dockerPassword,
                     },
-                    error => {
-                        if (error) {
-                            error.code = 400;
-                            error.message =
-                                'Scanning failed please check your docker credential or image path/tag';
-                            scanError = error;
-                        }
-                    }
-                );
+                    shell: true,
+                });
+
+                output.on('error', async error => {
+                    error.code = 400;
+                    error.message =
+                        'Scanning failed please check your docker credential or image path/tag';
+                    await ContainerSecurityService.updateOneBy(
+                        {
+                            _id: security._id,
+                        },
+                        { scanned: false }
+                    );
+                    deleteFolderRecursive(securityDir);
+                    return reject(error);
+                });
 
                 output.on('close', async () => {
-                    if (scanError) {
+                    const clearCache = spawn('trivy', [clearCommand], {
+                        cwd: securityDir,
+                        shell: true,
+                    });
+
+                    clearCache.on('error', async error => {
+                        error.code = 400;
+                        error.message =
+                            'Unable to clear cache, try again later';
                         await ContainerSecurityService.updateOneBy(
                             {
                                 _id: security._id,
@@ -743,34 +753,10 @@ module.exports = {
                             { scanned: false }
                         );
                         deleteFolderRecursive(securityDir);
-                        return reject(scanError);
-                    }
-
-                    const clearCache = exec(
-                        clearCommand,
-                        { cwd: securityDir },
-                        error => {
-                            if (error) {
-                                error.code = 400;
-                                error.message =
-                                    'Unable to clear cache, try again later';
-                                clearCacheError = error;
-                            }
-                        }
-                    );
+                        return reject(error);
+                    });
 
                     clearCache.on('close', async () => {
-                        if (clearCacheError) {
-                            await ContainerSecurityService.updateOneBy(
-                                {
-                                    _id: security._id,
-                                },
-                                { scanned: false }
-                            );
-                            deleteFolderRecursive(securityDir);
-                            return reject(clearCacheError);
-                        }
-
                         const filePath = Path.resolve(securityDir, outputFile);
                         let auditLogs = await readFileContent(filePath);
 
@@ -2224,7 +2210,6 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
 function createDir(dirPath) {
     return new Promise((resolve, reject) => {
         const workPath = Path.resolve(process.cwd(), dirPath);
-
         if (fs.existsSync(workPath)) {
             resolve(workPath);
         }
@@ -2234,8 +2219,6 @@ function createDir(dirPath) {
             resolve(workPath);
         });
     });
-
-    return workPath;
 }
 
 function deleteFolderRecursive(path) {
