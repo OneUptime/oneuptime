@@ -5,6 +5,7 @@ import IssueLabel from './IssueLabel';
 import ShouldRender from '../basic/ShouldRender';
 import { reduxForm, Field } from 'redux-form';
 import { RenderSelect } from '../basic/RenderSelect';
+import paginate from '../../utils/paginate';
 
 const SecurityLog = ({
     type,
@@ -32,7 +33,7 @@ const SecurityLog = ({
             );
         }
 
-        applicationLogs = paginator(applicationLogs, page);
+        applicationLogs = paginate(applicationLogs, page);
     }
 
     let containerLogs = [];
@@ -46,27 +47,11 @@ const SecurityLog = ({
             );
         }
 
-        containerLogs = paginator(containerLogs, page);
+        containerLogs = paginate(containerLogs, page);
     }
 
-    const prev = () => {
-        setPage(page - 1);
-    };
-
-    const next = () => {
-        setPage(page + 1);
-    };
-
-    function paginator(items, page = 1, limit = 10) {
-        const offset = (page - 1) * limit,
-            paginatedItems = items.slice(offset).slice(0, limit),
-            total_pages = Math.ceil(items.length / limit);
-        return {
-            pre_page: page - 1 ? page - 1 : null,
-            next_page: total_pages > page ? page + 1 : null,
-            data: paginatedItems,
-        };
-    }
+    const prev = () => setPage(page - 1);
+    const next = () => setPage(page + 1);
 
     return (
         <div
@@ -343,79 +328,117 @@ const SecurityLog = ({
                     </div>
                 </div>
             </div>
-            <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-vertical--12">
+            <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                 <ShouldRender if={applicationSecurityLog}>
-                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                        <div className="Box-root Margin-right--8">
-                            <button
-                                id="btnPrev"
-                                className={`Button bs-ButtonLegacy ${!applicationLogs.pre_page &&
-                                    'Is--disabled'}`}
-                                disabled=""
-                                type="button"
-                                onClick={prev}
-                            >
-                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                        <span>Previous</span>
-                                    </span>
-                                </div>
-                            </button>
-                        </div>
-                        <div className="Box-root">
-                            <button
-                                id="btnNext"
-                                className={`Button bs-ButtonLegacy ${!applicationLogs.next_page &&
-                                    'Is--disabled'}`}
-                                disabled=""
-                                type="button"
-                                onClick={next}
-                            >
-                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                        <span>Next</span>
-                                    </span>
-                                </div>
-                            </button>
+                    <div className="bs-Tail-copy">
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                            style={{
+                                textAlign: 'center',
+                                marginTop: '10px',
+                            }}
+                        >
+                            <div className="Box-root">
+                                <span className="Text-fontWeight--medium">
+                                    {applicationLogs.count} Log
+                                    {applicationLogs.count > 1 ? 's' : ''}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </ShouldRender>
                 <ShouldRender if={containerSecurityLog}>
-                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                        <div className="Box-root Margin-right--8">
-                            <button
-                                id="btnPrev"
-                                className={`Button bs-ButtonLegacy ${!containerLogs.pre_page &&
-                                    'Is--disabled'}`}
-                                disabled=""
-                                type="button"
-                                onClick={prev}
-                            >
-                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                        <span>Previous</span>
-                                    </span>
-                                </div>
-                            </button>
-                        </div>
-                        <div className="Box-root">
-                            <button
-                                id="btnNext"
-                                className={`Button bs-ButtonLegacy ${!containerLogs.next_page &&
-                                    'Is--disabled'}`}
-                                disabled=""
-                                type="button"
-                                onClick={next}
-                            >
-                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                        <span>Next</span>
-                                    </span>
-                                </div>
-                            </button>
+                    <div className="bs-Tail-copy">
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                            style={{
+                                textAlign: 'center',
+                                marginTop: '10px',
+                            }}
+                        >
+                            <div className="Box-root">
+                                <span className="Text-fontWeight--medium">
+                                    {containerLogs.count} Log
+                                    {containerLogs.count > 1 ? 's' : ''}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </ShouldRender>
+                <div>
+                    <ShouldRender if={applicationSecurityLog}>
+                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                            <div className="Box-root Margin-right--8">
+                                <button
+                                    id="btnPrev"
+                                    className={`Button bs-ButtonLegacy ${!applicationLogs.pre_page &&
+                                        'Is--disabled'}`}
+                                    disabled=""
+                                    type="button"
+                                    onClick={prev}
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Previous</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                            <div className="Box-root">
+                                <button
+                                    id="btnNext"
+                                    className={`Button bs-ButtonLegacy ${!applicationLogs.next_page &&
+                                        'Is--disabled'}`}
+                                    disabled=""
+                                    type="button"
+                                    onClick={next}
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Next</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </ShouldRender>
+                    <ShouldRender if={containerSecurityLog}>
+                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                            <div className="Box-root Margin-right--8">
+                                <button
+                                    id="btnPrev"
+                                    className={`Button bs-ButtonLegacy ${!containerLogs.pre_page &&
+                                        'Is--disabled'}`}
+                                    disabled=""
+                                    type="button"
+                                    onClick={prev}
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Previous</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                            <div className="Box-root">
+                                <button
+                                    id="btnNext"
+                                    className={`Button bs-ButtonLegacy ${!containerLogs.next_page &&
+                                        'Is--disabled'}`}
+                                    disabled=""
+                                    type="button"
+                                    onClick={next}
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Next</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </ShouldRender>
+                </div>
             </div>
         </div>
     );
