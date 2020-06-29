@@ -723,8 +723,11 @@ module.exports = {
                 });
 
                 output.stderr.on('data', async error => {
-                    console.log('****error just happend*****', error);
-                    error.code = 400;
+                    console.log(
+                        '****error just happend*****',
+                        error.toString()
+                    );
+                    // error.code = 400;
                     await ContainerSecurityService.updateOneBy(
                         {
                             _id: security._id,
