@@ -706,7 +706,7 @@ module.exports = {
                 },
                 { scanned: true }
             );
-
+            console.log('****security****', security);
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
                 const scanCommand = `image -f json -o ${outputFile} ${testPath}`;
@@ -759,6 +759,7 @@ module.exports = {
                     clearCache.on('close', async () => {
                         const filePath = Path.resolve(securityDir, outputFile);
                         let auditLogs = await readFileContent(filePath);
+                        console.log('****audit logs*****', auditLogs);
                         if (typeof auditLogs === 'string') {
                             auditLogs = JSON.parse(auditLogs); // parse the stringified logs
                         }

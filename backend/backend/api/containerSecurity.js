@@ -250,6 +250,7 @@ router.post(
             const securityLog = await ProbeService.scanContainerSecurity(
                 containerSecurity
             );
+            console.log('******security log******', securityLog);
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
