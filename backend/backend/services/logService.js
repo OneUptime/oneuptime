@@ -5,8 +5,15 @@ module.exports = {
 
             // prepare  log model
             let log = new LogModel();
-            log.content = data.content;
-            log.stringifiedContent = JSON.stringify(data.content);
+            let content;
+
+            try {
+                content = JSON.parse(data.content);
+            } catch (error) {
+                content = data.content;
+            }
+            log.content = content;
+            log.stringifiedContent = JSON.stringify(content);
             log.applicationLogId = data.applicationLogId;
             log.type = data.type;
             log.createdById = data.createdById;
