@@ -737,7 +737,6 @@ module.exports = {
 
                 let auditLogs = '';
                 output.stdout.on('data', data => {
-                    console.log('****data*****', data.toString());
                     auditLogs += data.toString();
                 });
 
