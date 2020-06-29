@@ -719,6 +719,13 @@ module.exports = {
                 },
             });
 
+            if (stderr) {
+                const error = new Error('Error just happened');
+                error.code = 400;
+                console.log('*****stderr is here******', stderr);
+                throw error;
+            }
+
             console.log('****output from here is******', stdout);
 
             return new Promise((resolve, reject) => {
