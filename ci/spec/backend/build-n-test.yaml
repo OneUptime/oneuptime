@@ -2,7 +2,11 @@ build_n_test_backend:
     stage: BuildAndTest
     script:
         - curl -sSL https://get.docker.com/ | sh #Install docker.
-        - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin #Install trivy
+        - sudo apt-get install wget apt-transport-https gnupg lsb-release
+        - wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+        - echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        - sudo apt-get update
+        - sudo apt-get install trivy
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
