@@ -721,7 +721,7 @@ module.exports = {
                     shell: true,
                 });
 
-                output.on('error', async error => {
+                /* output.on('error', async error => {
                     error.code = 400;
                     error.message =
                         'Scanning failed please check your docker credential or image path/tag';
@@ -733,12 +733,20 @@ module.exports = {
                     );
                     deleteFolderRecursive(securityDir);
                     return reject(error);
-                });
+                }); */
 
                 let auditLogs = '';
+                console.log('****before****');
                 output.stdout.on('data', data => {
+                    console.log('****after*****');
                     console.log('*****loading data******', data);
                     auditLogs += data.toString();
+                });
+
+                output.stderr.on('data', error => {
+                    console.log('****error*****', error);
+                    deleteFolderRecursive(securityDir);
+                    return reject(error);
                 });
 
                 output.on('close', async () => {
