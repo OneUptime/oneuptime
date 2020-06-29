@@ -44,4 +44,12 @@ public class Logger {
         String body = ParameterStringBuilder.getRequestString(this.applicationLogKey, content, "info");
         return this.makeApiRequest(body);
     }
+    public JsonObject error(String content) throws IOException {
+        String body = ParameterStringBuilder.getRequestString(this.applicationLogKey, content, "error");
+        return this.makeApiRequest(body);
+    }
+    public JsonObject warning(String content) throws IOException {
+        String body = ParameterStringBuilder.getRequestString(this.applicationLogKey, content, "warning");
+        return this.makeApiRequest(body);
+    }
 }
