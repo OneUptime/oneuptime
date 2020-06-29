@@ -706,9 +706,10 @@ module.exports = {
                 },
                 { scanned: true }
             );
+
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
-                const scanCommand = `-q image -f json ${testPath}`;
+                const scanCommand = `image -f json -o ${outputFile} ${testPath}`;
                 const clearCommand = `image --clear-cache ${testPath}`;
 
                 const output = spawn('trivy', [scanCommand], {
@@ -735,17 +736,7 @@ module.exports = {
                     return reject(error);
                 });
 
-                let auditLogs = '';
-                console.log('****before****');
-                output.stdout.on('data', data => {
-                    console.log('****after*****');
-                    console.log('*****loading data******', data);
-                    auditLogs += data.toString();
-                });
-
                 output.on('close', async () => {
-                    console.log('****after scanning*****');
-                    console.log('****before clearing cache******');
                     const clearCache = spawn('trivy', [clearCommand], {
                         cwd: securityDir,
                         shell: true,
@@ -766,10 +757,13 @@ module.exports = {
                     });
 
                     clearCache.on('close', async () => {
-                        console.log('*****after clearing cache*******');
-                        // const filePath = Path.resolve(securityDir, outputFile);
-                        // let auditLogs = await readFileContent(filePath);
-                        console.log('****audit logs*****', auditLogs);
+                        const filePath = Path.resolve(securityDir, outputFile);
+                        console.log(
+                            '******does file exist******',
+                            fs.existsSync(filePath)
+                        );
+                        let auditLogs = await readFileContent(filePath);
+                        console.log('***auditLogs****', auditLogs);
                         if (typeof auditLogs === 'string') {
                             auditLogs = JSON.parse(auditLogs); // parse the stringified logs
                         }
