@@ -694,7 +694,7 @@ module.exports = {
             const testPath = imageTags
                 ? `${imagePath}:${imageTags}`
                 : imagePath;
-            const outputFile = `${uuidv1()}results.json`;
+            const outputFile = `${uuidv1()}result.json`;
             let securityDir = 'container_security_dir';
             securityDir = await createDir(securityDir);
             // update container security to scanned true
@@ -707,39 +707,19 @@ module.exports = {
                 { scanned: true }
             );
 
-            // use trivy open source package to audit a container
-            const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
-            // const clearCommand = `trivy image --clear-cache ${testPath}`;
-            const { stderr, stdout } = await exec(scanCommand, {
-                cwd: securityDir,
-                env: {
-                    TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
-                    TRIVY_USERNAME: dockerCredential.dockerUsername,
-                    TRIVY_PASSWORD: dockerCredential.dockerPassword,
-                },
-            });
-
-            if (stderr) {
-                const error = new Error('Error just happened');
-                error.code = 400;
-                console.log('*****stderr is here******', stderr);
-                throw error;
-            }
-
-            console.log('****output from here is******', stdout);
-
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
-                const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
+                // const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
+                const scanCommand = `trivy image -f json -o ${outputFile} deityhub/hb_backend`;
                 const clearCommand = `trivy image --clear-cache ${testPath}`;
 
                 const output = spawn(scanCommand, {
                     cwd: securityDir,
-                    env: {
+                    /* env: {
                         TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
                         TRIVY_USERNAME: dockerCredential.dockerUsername,
                         TRIVY_PASSWORD: dockerCredential.dockerPassword,
-                    },
+                    }, */
                     shell: true,
                 });
 
