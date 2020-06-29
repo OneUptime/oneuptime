@@ -709,18 +709,30 @@ module.exports = {
 
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
-                // const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
-                const scanCommand = `trivy image -f json -o ${outputFile} deityhub/hb_backend`;
+                const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
                 const clearCommand = `trivy image --clear-cache ${testPath}`;
 
                 const output = spawn(scanCommand, {
                     cwd: securityDir,
                     env: {
-                        TRIVY_AUTH_URL: 'registry.hub.docker.com',
-                        TRIVY_USERNAME: 'deityhub',
-                        TRIVY_PASSWORD: 'helloworld',
+                        TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
+                        TRIVY_USERNAME: dockerCredential.dockerUsername,
+                        TRIVY_PASSWORD: dockerCredential.dockerPassword,
                     },
                     shell: true,
+                });
+
+                output.stderr.on('data', async error => {
+                    console.log('****error just happend*****', error);
+                    error.code = 400;
+                    await ContainerSecurityService.updateOneBy(
+                        {
+                            _id: security._id,
+                        },
+                        { scanned: false }
+                    );
+                    deleteFolderRecursive(securityDir);
+                    return reject(error);
                 });
 
                 output.on('error', async error => {
@@ -760,7 +772,6 @@ module.exports = {
                     clearCache.on('close', async () => {
                         const filePath = Path.resolve(securityDir, outputFile);
                         let auditLogs = await readFileContent(filePath);
-                        console.log('***auditLogs****', auditLogs);
                         if (typeof auditLogs === 'string') {
                             auditLogs = JSON.parse(auditLogs); // parse the stringified logs
                         }
