@@ -758,6 +758,10 @@ module.exports = {
 
                     clearCache.on('close', async () => {
                         const filePath = Path.resolve(securityDir, outputFile);
+                        console.log(
+                            '****reading file synchronously******',
+                            fs.readFileSync(filePath, 'utf8')
+                        );
                         let auditLogs = await readFileContent(filePath);
                         console.log('****audit logs*****', auditLogs);
                         if (typeof auditLogs === 'string') {
