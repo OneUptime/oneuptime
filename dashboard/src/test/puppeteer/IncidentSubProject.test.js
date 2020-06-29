@@ -66,7 +66,6 @@ describe('Incident API With SubProjects', () => {
                 await page.click('#create-project');
                 await page.waitForSelector('#name');
                 await page.type('#name', projectName);
-                await page.waitFor(2000);
                 await page.$$eval(
                     'input[name="planId"]',
                     inputs => inputs[2].click() // select Growth plan
