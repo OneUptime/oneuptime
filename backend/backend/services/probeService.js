@@ -715,11 +715,11 @@ module.exports = {
 
                 const output = spawn(scanCommand, {
                     cwd: securityDir,
-                    /* env: {
-                        TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
-                        TRIVY_USERNAME: dockerCredential.dockerUsername,
-                        TRIVY_PASSWORD: dockerCredential.dockerPassword,
-                    }, */
+                    env: {
+                        TRIVY_AUTH_URL: 'registry.hub.docker.com',
+                        TRIVY_USERNAME: 'deityhub',
+                        TRIVY_PASSWORD: 'helloworld',
+                    },
                     shell: true,
                 });
 
