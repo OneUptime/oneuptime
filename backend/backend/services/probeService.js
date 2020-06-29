@@ -759,6 +759,9 @@ module.exports = {
                     clearCache.on('close', async () => {
                         const filePath = Path.resolve(securityDir, outputFile);
                         let auditLogs = await readFileContent(filePath);
+                        if (typeof auditLogs === 'string') {
+                            auditLogs = JSON.parse(auditLogs); // parse the stringified logs
+                        }
 
                         const auditData = {
                             vulnerabilityInfo: {},
@@ -771,7 +774,6 @@ module.exports = {
                             critical: 0,
                         };
 
-                        auditLogs = JSON.parse(auditLogs); // parse the stringified logs
                         auditLogs.map(auditLog => {
                             const log = {
                                 type: auditLog.Type,
