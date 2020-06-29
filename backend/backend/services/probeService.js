@@ -707,12 +707,26 @@ module.exports = {
                 { scanned: true }
             );
 
+            // use trivy open source package to audit a container
+            const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
+            // const clearCommand = `trivy image --clear-cache ${testPath}`;
+            const { stderr, stdout } = await exec(scanCommand, {
+                cwd: securityDir,
+                env: {
+                    TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
+                    TRIVY_USERNAME: dockerCredential.dockerUsername,
+                    TRIVY_PASSWORD: dockerCredential.dockerPassword,
+                },
+            });
+
+            console.log('****output from here is******', stdout);
+
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
-                const scanCommand = `image -f json -o ${outputFile} ${testPath}`;
-                const clearCommand = `image --clear-cache ${testPath}`;
+                const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
+                const clearCommand = `trivy image --clear-cache ${testPath}`;
 
-                const output = spawn('trivy', [scanCommand], {
+                const output = spawn(scanCommand, {
                     cwd: securityDir,
                     env: {
                         TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
@@ -758,10 +772,6 @@ module.exports = {
 
                     clearCache.on('close', async () => {
                         const filePath = Path.resolve(securityDir, outputFile);
-                        console.log(
-                            '******does file exist******',
-                            fs.existsSync(filePath)
-                        );
                         let auditLogs = await readFileContent(filePath);
                         console.log('***auditLogs****', auditLogs);
                         if (typeof auditLogs === 'string') {
@@ -2294,6 +2304,8 @@ const moment = require('moment');
 const git = require('simple-git/promise');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 const Path = require('path');
 const ApplicationSecurityLogService = require('./applicationSecurityLogService');
 const ApplicationSecurityService = require('./applicationSecurityService');
