@@ -708,10 +708,10 @@ module.exports = {
             );
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
-                const scanCommand = `trivy -q image -f json ${testPath}`;
+                const scanCommand = `-q image -f json ${testPath}`;
                 const clearCommand = `image --clear-cache ${testPath}`;
 
-                const output = spawn(scanCommand, {
+                const output = spawn('trivy', [scanCommand], {
                     cwd: securityDir,
                     env: {
                         TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
@@ -721,7 +721,7 @@ module.exports = {
                     shell: true,
                 });
 
-                /* output.on('error', async error => {
+                output.on('error', async error => {
                     error.code = 400;
                     error.message =
                         'Scanning failed please check your docker credential or image path/tag';
@@ -733,7 +733,7 @@ module.exports = {
                     );
                     deleteFolderRecursive(securityDir);
                     return reject(error);
-                }); */
+                });
 
                 let auditLogs = '';
                 console.log('****before****');
@@ -743,13 +743,9 @@ module.exports = {
                     auditLogs += data.toString();
                 });
 
-                output.stderr.on('data', error => {
-                    console.log('****error*****', error);
-                    deleteFolderRecursive(securityDir);
-                    return reject(error);
-                });
-
                 output.on('close', async () => {
+                    console.log('****after scanning*****');
+                    console.log('****before clearing cache******');
                     const clearCache = spawn('trivy', [clearCommand], {
                         cwd: securityDir,
                         shell: true,
@@ -770,6 +766,7 @@ module.exports = {
                     });
 
                     clearCache.on('close', async () => {
+                        console.log('*****after clearing cache*******');
                         // const filePath = Path.resolve(securityDir, outputFile);
                         // let auditLogs = await readFileContent(filePath);
                         console.log('****audit logs*****', auditLogs);
