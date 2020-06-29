@@ -758,11 +758,6 @@ module.exports = {
 
                     clearCache.on('close', async () => {
                         const filePath = Path.resolve(securityDir, outputFile);
-                        console.log(
-                            '*****security directory******',
-                            securityDir
-                        );
-                        console.log('****file path*****', filePath);
                         let auditLogs = await readFileContent(filePath);
                         console.log('****audit logs*****', auditLogs);
                         if (typeof auditLogs === 'string') {
@@ -2251,6 +2246,8 @@ function readFileContent(filePath) {
             if (error) {
                 reject(error);
             }
+            console.log('*****error*****', error);
+            console.log('*****data*****', data);
             resolve(data);
         });
     });
