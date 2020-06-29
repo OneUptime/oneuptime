@@ -1,5 +1,6 @@
 package main.java.com.hackerbay.fyipe;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import main.java.com.hackerbay.fyipe.util.ParameterStringBuilder;
 import main.java.com.hackerbay.fyipe.util.ResponseBuilder;
@@ -9,7 +10,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class Logger {
-    private String apiUrl, applicationLogId, applicationLogKey;
+    private String apiUrl;
+    private final String applicationLogId;
+    private final String applicationLogKey;
 
     public Logger(String apiUrl, String applicationLogId, String applicationLogKey) {
         this.applicationLogId = applicationLogId;
@@ -26,7 +29,7 @@ public class Logger {
         URL url = new URL(this.apiUrl);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("POST");
-        connection.setRequestProperty("Content-Type", "application/json");
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
         connection.setDoOutput(true);
 
         try (OutputStream outputStream = connection.getOutputStream()) {
