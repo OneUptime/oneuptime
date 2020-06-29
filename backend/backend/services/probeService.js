@@ -737,6 +737,7 @@ module.exports = {
 
                 let auditLogs = '';
                 output.stdout.on('data', data => {
+                    console.log('*****loading data******', data);
                     auditLogs += data.toString();
                 });
 
