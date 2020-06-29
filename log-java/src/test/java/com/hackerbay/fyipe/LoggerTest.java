@@ -11,7 +11,7 @@ import java.io.IOException;
 import static org.junit.Assert.assertEquals;
 
 public class LoggerTest {
-    private final String apiUrl = "http://localhost:3002/api/";
+    private final String apiUrl = "http://localhost:3002/api";
     private final String applicationLogId = "5ee92d5023cc0e359d45a95a";
     private final String applicationLogKey = "a3c4eb43-4a9c-426c-a8f1-e9e1a33af05f";
 

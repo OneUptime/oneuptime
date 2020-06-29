@@ -10,7 +10,7 @@ use Faker\Factory;
 
 class LoggerTest extends TestCase
 {
-    private $apiUrl = 'http://localhost:3002/api/';
+    private $apiUrl = 'http://localhost:3002/api';
     private $applicationLog;
     private $faker;
     private $header = [];
@@ -50,7 +50,7 @@ class LoggerTest extends TestCase
         try {
 
             // create user
-            $response = $client->request('POST', 'user/signup',  ['form_params' => $user]);
+            $response = $client->request('POST', '/user/signup',  ['form_params' => $user]);
             $createdUser = json_decode($response->getBody()->getContents());
 
             // get token and project
@@ -60,14 +60,14 @@ class LoggerTest extends TestCase
 
             // create a component
             $component = ['name' => $this->faker->words(2, true)];
-            $response = $client->request('POST', 'component/' . $project->_id, [
+            $response = $client->request('POST', '/component/' . $project->_id, [
                 'headers' => $this->header, 'form_params' => $component
             ]);
             $createdComponent = json_decode($response->getBody()->getContents());
 
             // create an applicationlog and set it as the global application Log.
             $applicationLog = ['name' => $this->faker->words(2, true)];
-            $response = $client->request('POST', 'application-log/'.$project->_id.'/'.$createdComponent->_id.'/create', [
+            $response = $client->request('POST', '/application-log/'.$project->_id.'/'.$createdComponent->_id.'/create', [
                 'headers' => $this->header, 'form_params' => $applicationLog
             ]);
             $this->applicationLog = json_decode($response->getBody()->getContents());

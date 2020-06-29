@@ -21,7 +21,7 @@ public class Logger {
     }
 
     private void setApiUrl(String apiUrl){
-        this.apiUrl = apiUrl + "application-log/" + this.applicationLogId + "/log";
+        this.apiUrl = apiUrl + "/application-log/" + this.applicationLogId + "/log";
     }
 
     private JsonObject makeApiRequest(String jsonBody) throws IOException {
