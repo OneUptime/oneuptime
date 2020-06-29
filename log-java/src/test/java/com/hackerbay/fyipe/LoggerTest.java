@@ -1,8 +1,10 @@
 package test.java.com.hackerbay.fyipe;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import main.java.com.hackerbay.fyipe.Logger;
 import org.junit.Test;
+import test.java.com.hackerbay.fyipe.model.SampleLog;
 
 import java.io.IOException;
 
@@ -37,6 +39,14 @@ public class LoggerTest {
         Logger logger = new Logger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
         JsonObject response = logger.log(contentToBeLogged);
         assertEquals(contentToBeLogged, response.get("content").getAsString());
+    }
+    @Test
+    public void itShouldLogARequestOfTypeObject() throws IOException {
+        SampleLog contentToBeLogged = new SampleLog("Home Page", 50, "Travis");
+        Logger logger = new Logger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
+        JsonObject response = logger.log(new Gson().toJson(contentToBeLogged));
+        System.out.println(response);
+//        assertEquals(contentToBeLogged, response.get("content").getAsString());
     }
 
 }
