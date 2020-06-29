@@ -45,8 +45,8 @@
     "scripts": {
         "dev": "PORT=3100 react-scripts start",
         "build": "react-scripts build",
-        "test": "jest --runInBand ./src/test/*.test.js",
-        "enterprise-test": "jest --runInBand ./src/test/*.test.enterprise.js",
+        "test": "jest --detectOpenHandles --forceExit --runInBand ./src/test/*.test.js",
+        "enterprise-test": "jest  --detectOpenHandles --forceExit --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,loadable-components,js-uuid,acorn,@beam-australia/react-env'"

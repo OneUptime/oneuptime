@@ -58,12 +58,13 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: MonitorView,
+                        exact: true,
                         index: 1,
                     },
                     {
                         title: 'Website Issues',
                         path:
-                            '/dashboard/project/:projectId/:componentId/issues/:issueId',
+                            '/dashboard/project/:projectId/:componentId/monitoring/:monitorId/issues/:issueId',
                         icon: 'info',
                         visible: true,
                         subRoutes: [],
