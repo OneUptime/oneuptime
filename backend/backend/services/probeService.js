@@ -722,22 +722,6 @@ module.exports = {
                     shell: true,
                 });
 
-                output.stderr.on('data', async error => {
-                    console.log(
-                        '****error just happend*****',
-                        error.toString()
-                    );
-                    // error.code = 400;
-                    await ContainerSecurityService.updateOneBy(
-                        {
-                            _id: security._id,
-                        },
-                        { scanned: false }
-                    );
-                    deleteFolderRecursive(securityDir);
-                    return reject(error);
-                });
-
                 output.on('error', async error => {
                     error.code = 400;
                     error.message =

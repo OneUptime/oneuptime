@@ -17,7 +17,6 @@ build_n_test_backend:
         - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
         - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
         - sudo docker ps
-        - which trivy
         - sudo docker run --name fyipe --env-file ./backend/.env -e IS_SAAS_SERVICE=true -e DOCKERUSERNAME=$DOCKERUSERNAME -e DOCKERPASSWORD=$DOCKERPASSWORD -e DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL -e DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH -e DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS -e GITHUB_USERNAME=$GITHUB_USERNAME -e GITHUB_PASSWORD=$GITHUB_PASSWORD -e GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm test
     except:
         refs:
