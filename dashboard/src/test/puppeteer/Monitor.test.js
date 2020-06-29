@@ -231,8 +231,6 @@ describe('Monitor API', () => {
     test(
         'should display SSL enabled status',
         async () => {
-            const sslMonitorName = utils.generateRandomString();
-
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
