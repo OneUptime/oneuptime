@@ -706,10 +706,9 @@ module.exports = {
                 },
                 { scanned: true }
             );
-            console.log('****security****', security);
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
-                const scanCommand = `image -f json -o ${outputFile} ${testPath}`;
+                const scanCommand = `-q image -f json ${testPath}`;
                 const clearCommand = `image --clear-cache ${testPath}`;
 
                 const output = spawn('trivy', [scanCommand], {
@@ -736,6 +735,12 @@ module.exports = {
                     return reject(error);
                 });
 
+                let auditLogs = '';
+                output.stdout.on('data', data => {
+                    console.log('****data*****', data.toString());
+                    auditLogs += data.toString();
+                });
+
                 output.on('close', async () => {
                     const clearCache = spawn('trivy', [clearCommand], {
                         cwd: securityDir,
@@ -757,12 +762,8 @@ module.exports = {
                     });
 
                     clearCache.on('close', async () => {
-                        const filePath = Path.resolve(securityDir, outputFile);
-                        console.log(
-                            '****reading file synchronously******',
-                            fs.readFileSync(filePath, 'utf8')
-                        );
-                        let auditLogs = await readFileContent(filePath);
+                        // const filePath = Path.resolve(securityDir, outputFile);
+                        // let auditLogs = await readFileContent(filePath);
                         console.log('****audit logs*****', auditLogs);
                         if (typeof auditLogs === 'string') {
                             auditLogs = JSON.parse(auditLogs); // parse the stringified logs
@@ -2250,8 +2251,6 @@ function readFileContent(filePath) {
             if (error) {
                 reject(error);
             }
-            console.log('*****error*****', error);
-            console.log('*****data*****', data);
             resolve(data);
         });
     });
