@@ -708,10 +708,10 @@ module.exports = {
             );
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
-                const scanCommand = `-q image -f json ${testPath}`;
+                const scanCommand = `trivy -q image -f json ${testPath}`;
                 const clearCommand = `image --clear-cache ${testPath}`;
 
-                const output = spawn('trivy', [scanCommand], {
+                const output = spawn(scanCommand, {
                     cwd: securityDir,
                     env: {
                         TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
