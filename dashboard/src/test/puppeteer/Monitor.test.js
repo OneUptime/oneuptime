@@ -231,24 +231,14 @@ describe('Monitor API', () => {
     test(
         'should display SSL enabled status',
         async () => {
-            const sslMonitorName = utils.generateRandomString();
-
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitForSelector('#form-new-monitor');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', sslMonitorName);
-                await init.selectByText('#type', 'url', page);
-                await page.waitForSelector('#url');
-                await page.click('#url');
-                await page.type('#url', 'https://google.com');
-                await page.click('button[type=submit]');
-                await page.waitFor(280000);
+                await page.waitFor(5000);
 
                 let sslStatusElement = await page.waitForSelector(
-                    `#ssl-status-${sslMonitorName}`,
+                    `#ssl-status-${monitorName}`,
                     { visible: true }
                 );
                 sslStatusElement = await sslStatusElement.getProperty(
