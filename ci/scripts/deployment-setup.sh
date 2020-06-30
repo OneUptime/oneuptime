@@ -6,4 +6,3 @@ cd ..
 curl -sSL https://sdk.cloud.google.com | bash > /dev/null;
 source $HOME/google-cloud-sdk/path.bash.inc
 $HOME/google-cloud-sdk/bin/gcloud components update kubectl
-sudo docker login -u $DOCKERUSERNAME -p $PERSONAL_ACCESS_TOKEN registry.gitlab.com
