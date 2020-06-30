@@ -737,6 +737,29 @@ module.exports = {
                 });
 
                 output.on('close', async () => {
+                    const filePath = Path.resolve(securityDir, outputFile);
+                    let auditLogs = await readFileContent(filePath);
+                    // if auditLogs is empty, then scanning was unsuccessful
+                    // the provided credentials or image path must have been wrong
+                    if (!auditLogs) {
+                        const error = new Error(
+                            'Scanning failed please check your docker credential or image path/tag'
+                        );
+                        error.code = 400;
+                        await ContainerSecurityService.updateOneBy(
+                            {
+                                _id: security._id,
+                            },
+                            { scanned: false }
+                        );
+                        deleteFolderRecursive(securityDir);
+                        return reject(error);
+                    }
+
+                    if (typeof auditLogs === 'string') {
+                        auditLogs = JSON.parse(auditLogs); // parse the stringified logs
+                    }
+
                     const clearCache = spawn('trivy', [clearCommand], {
                         cwd: securityDir,
                         shell: true,
@@ -757,29 +780,6 @@ module.exports = {
                     });
 
                     clearCache.on('close', async () => {
-                        const filePath = Path.resolve(securityDir, outputFile);
-                        let auditLogs = await readFileContent(filePath);
-                        // if auditLogs is empty, then scanning was unsuccessful
-                        // the provided credentials or image path must have been wrong
-                        if (!auditLogs) {
-                            const error = new Error(
-                                'Scanning failed please check your docker credential or image path/tag'
-                            );
-                            error.code = 400;
-                            await ContainerSecurityService.updateOneBy(
-                                {
-                                    _id: security._id,
-                                },
-                                { scanned: false }
-                            );
-                            deleteFolderRecursive(securityDir);
-                            return reject(error);
-                        }
-
-                        if (typeof auditLogs === 'string') {
-                            auditLogs = JSON.parse(auditLogs); // parse the stringified logs
-                        }
-
                         const auditData = {
                             vulnerabilityInfo: {},
                             vulnerabilityData: [],

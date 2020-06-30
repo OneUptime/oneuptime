@@ -121,10 +121,7 @@ describe('Container Security Page', () => {
                 await page.click('#security');
                 await page.waitForSelector('#container', { visible: true });
                 await page.click('#container');
-                await page.waitForSelector(
-                    `#containerSecurityHeader_${containerSecurityName}`,
-                    { visible: true }
-                );
+                await page.waitForSelector('#largeSpinner', { hidden: true });
 
                 await page.click(
                     `#scanContainerSecurity_${containerSecurityName}`
@@ -155,10 +152,7 @@ describe('Container Security Page', () => {
                 await page.click('#security');
                 await page.waitForSelector('#container', { visible: true });
                 await page.click('#container');
-                await page.waitForSelector(
-                    `#containerSecurityHeader_${containerSecurityName}`,
-                    { visible: true }
-                );
+                await page.waitForSelector('#largeSpinner', { hidden: true });
                 await page.click(
                     `#moreContainerSecurity_${containerSecurityName}`
                 );
@@ -187,10 +181,7 @@ describe('Container Security Page', () => {
                 await page.click('#security');
                 await page.waitForSelector('#container', { visible: true });
                 await page.click('#container');
-                await page.waitForSelector(
-                    `#containerSecurityHeader_${containerSecurityName}`,
-                    { visible: true }
-                );
+                await page.waitForSelector('#largeSpinner', { hidden: true });
                 await page.click(
                     `#moreContainerSecurity_${containerSecurityName}`
                 );
@@ -234,10 +225,7 @@ describe('Container Security Page', () => {
                 await page.click('#security');
                 await page.waitForSelector('#container', { visible: true });
                 await page.click('#container');
-                await page.waitForSelector(
-                    `#containerSecurityHeader_${newContainerSecurityName}`,
-                    { visible: true }
-                );
+                await page.waitForSelector('#largeSpinner', { hidden: true });
                 await page.click(
                     `#moreContainerSecurity_${newContainerSecurityName}`
                 );

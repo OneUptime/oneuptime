@@ -74,7 +74,10 @@ class Container extends Component {
                                         gettingSecurityLogs
                                     }
                                 >
-                                    <div style={{ textAlign: 'center' }}>
+                                    <div
+                                        id="largeSpinner"
+                                        style={{ textAlign: 'center' }}
+                                    >
                                         <LargeSpinner />
                                     </div>
                                 </ShouldRender>
