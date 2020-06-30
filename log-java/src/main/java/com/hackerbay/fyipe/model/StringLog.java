@@ -1,4 +1,4 @@
-package main.java.com.hackerbay.fyipe.model;
+package com.hackerbay.fyipe.model;
 
 public class StringLog {
     private String content;

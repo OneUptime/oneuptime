@@ -1,14 +1,13 @@
-package test.com.hackerbay.fyipe;
+package com.hackerbay.fyipe;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import main.java.com.hackerbay.fyipe.Logger;
+import com.hackerbay.fyipe.model.SampleComponent;
+import com.hackerbay.fyipe.model.SampleLog;
+import com.hackerbay.fyipe.model.SampleUser;
+import com.hackerbay.fyipe.util.ApiRequest;
 import org.junit.Before;
 import org.junit.Test;
-import test.java.com.hackerbay.fyipe.model.SampleComponent;
-import test.java.com.hackerbay.fyipe.model.SampleLog;
-import test.java.com.hackerbay.fyipe.model.SampleUser;
-import test.java.com.hackerbay.fyipe.util.ApiRequest;
 
 import java.io.IOException;
 import java.util.Random;

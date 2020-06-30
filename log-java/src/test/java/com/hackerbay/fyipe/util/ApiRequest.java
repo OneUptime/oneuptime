@@ -1,7 +1,6 @@
-package test.java.com.hackerbay.fyipe.util;
+package com.hackerbay.fyipe.util;
 
 import com.google.gson.JsonObject;
-import main.java.com.hackerbay.fyipe.util.ResponseBuilder;
 
 import java.io.IOException;
 import java.io.OutputStream;

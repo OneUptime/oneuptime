@@ -1,9 +1,8 @@
-package main.java.com.hackerbay.fyipe;
+package com.hackerbay.fyipe;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import main.java.com.hackerbay.fyipe.util.ParameterStringBuilder;
-import main.java.com.hackerbay.fyipe.util.ResponseBuilder;
+import com.hackerbay.fyipe.util.ParameterStringBuilder;
+import com.hackerbay.fyipe.util.ResponseBuilder;
 
 import java.io.*;
 import java.net.HttpURLConnection;
