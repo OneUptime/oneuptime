@@ -58,7 +58,7 @@ Main API to send logs to the server.
 
 -   [Fyipe Application Logger](#fyipe-application-logger)
     -   [Installation](#installation)
-        -   [NPM Install](#npm-install)
+        -   [Maven Install](#maven-install)
         -   [Development](#development)
     -   [Basic Usage](#basic-usage)
     -   [API Documentation](#api-documentation)
