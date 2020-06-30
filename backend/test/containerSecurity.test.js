@@ -199,6 +199,37 @@ describe('Container Security API', function() {
             });
     });
 
+    it('should throw error if scanning with an invalid docker credentials or invalid image path', function(done) {
+        this.timeout(500000);
+        const authorization = `Basic ${token}`;
+        const data = {
+            name: 'Wrong Container',
+            dockerCredential: credentialId,
+            imagePath: 'invalid/image',
+            imageTags: dockerCredential.imageTags,
+        };
+
+        request
+            .post(`/security/${projectId}/${componentId}/container`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                const containerSecurityId = res.body._id;
+                request
+                    .post(
+                        `/security/${projectId}/container/scan/${containerSecurityId}`
+                    )
+                    .set('Authorization', authorization)
+                    .end(function(err, res) {
+                        expect(res).to.have.status(400);
+                        expect(res.body.message).to.be.equal(
+                            'Scanning failed please check your docker credential or image path/tag'
+                        );
+                        done();
+                    });
+            });
+    });
+
     it('should not create a container security if name already exist in the component', function(done) {
         const authorization = `Basic ${token}`;
         const data = {
