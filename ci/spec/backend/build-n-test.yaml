@@ -2,7 +2,6 @@ build_n_test_backend:
     stage: BuildAndTest
     script:
         - curl -sSL https://get.docker.com/ | sh #Install docker.
-        - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
