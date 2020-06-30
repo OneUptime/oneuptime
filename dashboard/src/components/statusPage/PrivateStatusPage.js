@@ -379,32 +379,40 @@ export class PrivateStatusPage extends Component {
                                                                         '5px',
                                                                 }}
                                                             >
-                                                                <label>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="button-as-anchor"
-                                                                        style={{
-                                                                            cursor:
-                                                                                'pointer',
-                                                                        }}
-                                                                        onClick={() => {
-                                                                            this.props.openModal(
-                                                                                {
-                                                                                    id: subscriberAdvanceOptionModalId,
-                                                                                    content: DataPathHoC(
-                                                                                        SubscriberAdvanceOptions,
-                                                                                        {}
-                                                                                    ),
-                                                                                }
-                                                                            );
-                                                                        }}
-                                                                    >
-                                                                        Advance
-                                                                        options
-                                                                        for
-                                                                        subscribers
-                                                                    </button>
-                                                                </label>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '18px',
+                                                                    }}
+                                                                >
+                                                                    <label>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="button-as-anchor"
+                                                                            style={{
+                                                                                cursor:
+                                                                                    'pointer',
+                                                                            }}
+                                                                            onClick={() => {
+                                                                                this.props.openModal(
+                                                                                    {
+                                                                                        id: subscriberAdvanceOptionModalId,
+                                                                                        content: DataPathHoC(
+                                                                                            SubscriberAdvanceOptions,
+                                                                                            {}
+                                                                                        ),
+                                                                                    }
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            Advance
+                                                                            options
+                                                                            for
+                                                                            subscribers
+                                                                        </button>
+                                                                    </label>
+                                                                </div>
                                                             </div>
                                                         </label>
                                                     </div>
