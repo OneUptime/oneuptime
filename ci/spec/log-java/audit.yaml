@@ -8,8 +8,9 @@ audit_log-js:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y maven
+        - sudo apt install default-jdk
         - cd log-java
-        - mvn verify
+        - mvn clean
         - mvn clean install
         - cd ..
     except:
