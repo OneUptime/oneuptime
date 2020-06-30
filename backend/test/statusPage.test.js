@@ -13,6 +13,7 @@ const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const StatusService = require('../backend/services/statusPageService');
 const MonitorService = require('../backend/services/monitorService');
+const monitorLogService = require('../backend/services/monitorLogService');
 const ScheduledEventService = require('../backend/services/scheduledEventService');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
@@ -152,7 +153,7 @@ describe('Status API', function() {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should not add status page if monitor ids is missing', function(done) {
+    it('should not add status page if the page name is missing', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(`/statusPage/${projectId}`)
@@ -163,25 +164,6 @@ describe('Status API', function() {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                done();
-            });
-    });
-
-    it('should not add status page if monitor is not an array', function(done) {
-        const authorization = `Basic ${token}`;
-        request
-            .post(`/statusPage/${projectId}`)
-            .set('Authorization', authorization)
-            .send({
-                links: [],
-                title: 'Status title',
-                description: 'status description',
-                copyright: 'status copyright',
-                projectId,
-                monitorsId: { _id: '2121' },
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -201,7 +183,19 @@ describe('Status API', function() {
                 description: 'status page description',
                 copyright: 'status page copyright',
                 projectId,
-                monitorIds: [monitorId],
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Monitor Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
             })
             .end(function(err, res) {
                 statusPageId = res.body._id;
@@ -224,7 +218,19 @@ describe('Status API', function() {
                 description: 'private status page description',
                 copyright: 'private status page copyright',
                 projectId,
-                monitorIds: [monitorId],
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Monitor Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
             })
             .end(function(err, res) {
                 privateStatusPageId = res.body._id;
@@ -304,11 +310,24 @@ describe('Status API', function() {
             .send({
                 _id: statusPageId,
                 links: [],
+                name: 'Status name',
                 title: 'Status title',
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitorIds: [monitorId],
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Updated Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -325,8 +344,8 @@ describe('Status API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
-                expect(res.body).to.have.property('monitorIds');
-                expect(res.body.monitorIds)
+                expect(res.body).to.have.property('monitors');
+                expect(res.body.monitors)
                     .to.be.an('array')
                     .with.length.greaterThan(0);
                 expect(res.body.monitorsData)
@@ -374,6 +393,33 @@ describe('Status API', function() {
                     .with.length.greaterThan(0);
                 expect(res.body.data[0]).to.have.property('name');
                 done();
+            });
+    });
+
+    it('should get list of logs for a monitor', function(done) {
+        const authorization = `Basic ${token}`;
+        monitorLogService
+            .create({
+                monitorId,
+                status: 'online',
+                responseTime: 50,
+                responseStatus: 200,
+                incidentIds: [],
+            })
+            .then(() => {
+                request
+                    .post(`/statusPage/${projectId}/${monitorId}/monitorLogs`)
+                    .set('Authorization', authorization)
+                    .send({
+                        responseTime: true,
+                    })
+                    .end(function(err, res) {
+                        expect(res).to.have.status(200);
+                        expect(res).to.be.an('object');
+                        expect(res.body).to.have.property('data');
+                        expect(res.body.data).to.be.an('array');
+                        done();
+                    });
             });
     });
 
@@ -872,7 +918,20 @@ describe('StatusPage API with Sub-Projects', function() {
                                         description: 'status description',
                                         copyright: 'status copyright',
                                         projectId,
-                                        monitorIds: [monitorId],
+                                        monitors: [
+                                            {
+                                                monitor: monitorId,
+                                                description:
+                                                    'Monitor Description.',
+                                                uptime: true,
+                                                memory: false,
+                                                cpu: false,
+                                                storage: false,
+                                                responseTime: false,
+                                                temperature: false,
+                                                runtime: false,
+                                            },
+                                        ],
                                     })
                                     .end(function(err, res) {
                                         expect(res).to.have.status(400);
@@ -909,7 +968,19 @@ describe('StatusPage API with Sub-Projects', function() {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitorIds: [monitorId],
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Monitor Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -932,7 +1003,19 @@ describe('StatusPage API with Sub-Projects', function() {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitorIds: [monitorId],
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Monitor Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
                 domains: [],
             })
             .end(function(err, res) {
@@ -955,7 +1038,19 @@ describe('StatusPage API with Sub-Projects', function() {
                 description: 'status description',
                 copyright: 'status copyright',
                 projectId,
-                monitorIds: [monitorId],
+                monitors: [
+                    {
+                        monitor: monitorId,
+                        description: 'Monitor Description.',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    },
+                ],
             })
             .end(function(err, res) {
                 subProjectStatusPageId = res.body._id;
@@ -1013,7 +1108,7 @@ describe('StatusPage API with Sub-Projects', function() {
                     .end(function(err, res) {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
-                        expect(res.body).to.have.property('monitorIds');
+                        expect(res.body).to.have.property('monitors');
                         done();
                     });
             });

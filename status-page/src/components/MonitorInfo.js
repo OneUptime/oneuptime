@@ -93,7 +93,7 @@ function debounce(fn, ms) {
     };
 }
 
-class UptimeGraphs extends Component {
+class MonitorInfo extends Component {
     constructor(props) {
         super(props);
 
@@ -145,6 +145,7 @@ class UptimeGraphs extends Component {
     resizeHandler() {
         // block chart scroll wrapper
         const scrollWrapper = this.scrollWrapper.current;
+        if (!scrollWrapper) return;
         scrollWrapper.style.width = 'auto';
 
         // block chart scroll content
@@ -172,6 +173,7 @@ class UptimeGraphs extends Component {
             probes,
             activeProbe,
             colors,
+            selectedCharts,
         } = this.props;
         const now = Date.now();
         const range = 90;
@@ -199,17 +201,18 @@ class UptimeGraphs extends Component {
         const upDays = timeBlock.length;
 
         const block = [];
-        for (let i = 0; i < range; i++) {
-            block.unshift(
-                <BlockChart
-                    monitorId={monitor._id}
-                    monitorName={monitor.name}
-                    time={timeBlock[i]}
-                    key={i}
-                    id={i}
-                />
-            );
-        }
+        if (selectedCharts.uptime)
+            for (let i = 0; i < range; i++) {
+                block.unshift(
+                    <BlockChart
+                        monitorId={monitor._id}
+                        monitorName={monitor.name}
+                        time={timeBlock[i]}
+                        key={i}
+                        id={i}
+                    />
+                );
+            }
 
         const status = {
             display: 'inline-block',
@@ -239,26 +242,25 @@ class UptimeGraphs extends Component {
                 id={this.props.id}
                 ref={this.container}
             >
-                <div className="uptime-graph-header clearfix">
-                    <span style={status}></span>
-                    <span className="uptime-stat-name" style={subheading}>
-                        {monitor.name}
-                    </span>
-                    <span className="url" style={{ paddingLeft: '0px' }}>
-                        {monitor && monitor.data && monitor.data.url ? (
-                            <a
-                                style={{
-                                    color: '#8898aa',
-                                    textDecoration: 'none',
-                                    paddingLeft: '0px',
-                                }}
-                                href={monitor.data.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                <div
+                    className="uptime-graph-header"
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                    }}
+                >
+                    <div style={{ display: 'flex' }}>
+                        <div>
+                            <span style={status}></span>
+                        </div>
+                        <div>
+                            <span
+                                className="uptime-stat-name"
+                                style={subheading}
                             >
-                                {monitor.data.url}
-                            </a>
-                        ) : (
+                                {monitor.name}
+                            </span>
+                            <br />
                             <span
                                 style={{
                                     color: '#8898aa',
@@ -266,31 +268,38 @@ class UptimeGraphs extends Component {
                                     paddingLeft: '0px',
                                 }}
                             >
-                                {monitor.type === 'manual' ? '' : monitor.type}
+                                {selectedCharts.description}
                             </span>
-                        )}
-                    </span>
-                    <span className="percentage" style={primaryText}>
-                        <em>{uptime}%</em> uptime for the last{' '}
-                        {upDays > range ? range : upDays} day
-                        {upDays > 1 ? 's' : ''}
-                    </span>
-                </div>
-                <div
-                    ref={this.scrollWrapper}
-                    className="block-chart"
-                    style={{ overflowX: 'scroll' }}
-                >
-                    <div ref={this.scrollContent} className="scroll-content">
-                        {block}
+                        </div>
+                    </div>
+                    <div>
+                        <span className="percentage" style={primaryText}>
+                            <em>{uptime}%</em> uptime for the last{' '}
+                            {upDays > range ? range : upDays} day
+                            {upDays > 1 ? 's' : ''}
+                        </span>
                     </div>
                 </div>
+                {selectedCharts.uptime && (
+                    <div
+                        ref={this.scrollWrapper}
+                        className="block-chart"
+                        style={{ overflowX: 'scroll' }}
+                    >
+                        <div
+                            ref={this.scrollContent}
+                            className="scroll-content"
+                        >
+                            {block}
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
 }
 
-UptimeGraphs.displayName = 'UptimeGraphs';
+MonitorInfo.displayName = 'UptimeGraphs';
 
 function mapStateToProps(state) {
     return {
@@ -309,7 +318,7 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-UptimeGraphs.propTypes = {
+MonitorInfo.propTypes = {
     monitor: PropTypes.object,
     colors: PropTypes.object,
     fetchMonitorStatuses: PropTypes.func,
@@ -317,6 +326,7 @@ UptimeGraphs.propTypes = {
     activeProbe: PropTypes.number,
     monitorState: PropTypes.array,
     probes: PropTypes.array,
+    selectedCharts: PropTypes.object,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(UptimeGraphs);
+export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);

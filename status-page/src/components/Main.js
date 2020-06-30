@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import UptimeLegend from './UptimeLegend';
 import NoMonitor from './NoMonitor';
-import UptimeGraphs from './UptimeGraphs';
+import MonitorInfo from './MonitorInfo';
 import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
@@ -14,6 +14,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { getStatusPage, selectedProbe } from '../actions/status';
 import { getProbes } from '../actions/probe';
+import LineChartsContainer from './LineChartsContainer';
 
 const greenBackground = {
     display: 'inline-block',
@@ -184,11 +185,44 @@ class Main extends Component {
                         </div>
                         {groupedMonitors.map((monitor, i) => {
                             return (
-                                <UptimeGraphs
-                                    monitor={monitor}
-                                    key={i}
-                                    id={`monitor${i}`}
-                                />
+                                <>
+                                    <MonitorInfo
+                                        monitor={monitor}
+                                        selectedCharts={
+                                            this.props.monitors.filter(
+                                                m => monitor._id === m.monitor
+                                            )[0]
+                                        }
+                                        key={i}
+                                        id={`monitor${i}`}
+                                    />
+                                    {this.props.monitors.some(
+                                        m => monitor._id === m.monitor
+                                    ) && (
+                                        <LineChartsContainer
+                                            monitor={monitor}
+                                            selectedCharts={
+                                                this.props.monitors.filter(
+                                                    m =>
+                                                        monitor._id ===
+                                                        m.monitor
+                                                )[0]
+                                            }
+                                        />
+                                    )}
+                                    {i <
+                                        this.props.statusData.monitorsData
+                                            .length -
+                                            1 && (
+                                        <div
+                                            style={{
+                                                margin: '30px 0px',
+                                                backgroundColor: '#8898aa',
+                                                height: '1px',
+                                            }}
+                                        />
+                                    )}
+                                </>
                             );
                         })}
                     </div>
@@ -445,11 +479,65 @@ class Main extends Component {
                                             this.props.statusData.monitorsData.map(
                                                 (monitor, i) => {
                                                     return (
-                                                        <UptimeGraphs
-                                                            monitor={monitor}
-                                                            key={i}
-                                                            id={`monitor${i}`}
-                                                        />
+                                                        this.props.monitors && (
+                                                            <>
+                                                                {this.props.monitors.some(
+                                                                    m =>
+                                                                        monitor._id ===
+                                                                        m.monitor
+                                                                ) && (
+                                                                    <MonitorInfo
+                                                                        monitor={
+                                                                            monitor
+                                                                        }
+                                                                        selectedCharts={
+                                                                            this.props.monitors.filter(
+                                                                                m =>
+                                                                                    monitor._id ===
+                                                                                    m.monitor
+                                                                            )[0]
+                                                                        }
+                                                                        key={`uptime-${i}`}
+                                                                        id={`monitor${i}`}
+                                                                    />
+                                                                )}
+                                                                {this.props.monitors.some(
+                                                                    m =>
+                                                                        monitor._id ===
+                                                                        m.monitor
+                                                                ) && (
+                                                                    <LineChartsContainer
+                                                                        monitor={
+                                                                            monitor
+                                                                        }
+                                                                        selectedCharts={
+                                                                            this.props.monitors.filter(
+                                                                                m =>
+                                                                                    monitor._id ===
+                                                                                    m.monitor
+                                                                            )[0]
+                                                                        }
+                                                                    />
+                                                                )}
+                                                                {i <
+                                                                    this.props
+                                                                        .statusData
+                                                                        .monitorsData
+                                                                        .length -
+                                                                        1 && (
+                                                                    <div
+                                                                        style={{
+                                                                            margin:
+                                                                                '30px 0px',
+                                                                            backgroundColor:
+                                                                                '#8898aa',
+                                                                            height:
+                                                                                '1px',
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                            </>
+                                                        )
                                                     );
                                                 }
                                             )
@@ -592,9 +680,12 @@ class Main extends Component {
                 )}
 
                 <ShouldRender
-                    if={this.props.status && this.props.status.requesting}
+                    if={
+                        this.props.status &&
+                        (this.props.status.requesting ||
+                            this.props.status.logs.some(log => log.requesting))
+                    }
                 >
-                    <div> error</div>
                     <div
                         id="app-loading"
                         style={{
@@ -645,6 +736,7 @@ const mapStateToProps = state => ({
     login: state.login,
     activeProbe: state.status.activeProbe,
     monitorState: state.status.statusPage.monitorsData,
+    monitors: state.status.statusPage.monitors,
     probes: state.probe.probes,
 });
 
@@ -665,6 +757,7 @@ Main.propTypes = {
     getProbes: PropTypes.func,
     login: PropTypes.object.isRequired,
     monitorState: PropTypes.array,
+    monitors: PropTypes.array,
     selectedProbe: PropTypes.func,
     activeProbe: PropTypes.number,
     probes: PropTypes.array,
