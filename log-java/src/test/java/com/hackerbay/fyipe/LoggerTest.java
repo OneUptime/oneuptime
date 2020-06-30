@@ -1,4 +1,4 @@
-package test.java.com.hackerbay.fyipe;
+package test.com.hackerbay.fyipe;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
