@@ -19,6 +19,9 @@
             </plugin>
         </plugins>
     </build>
+    <name>Fyipe Application</name>
+    <description>A fyipe JS package that send logs from your applications to your fyipe dashboard.</description>
+    <url>https://www.fyipe.com/</url>
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
         <dependency>
@@ -35,6 +38,24 @@
         </dependency>
 
     </dependencies>
-
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>HackerBay, Inc.</name>
+            <email>hello@hackerbay.io</email>
+            <organization>HackerBay, Inc.</organization>
+            <organizationUrl>http://www.hackerbay.io</organizationUrl>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:git://github.com/Fyipe/log-java.git</connection>
+        <developerConnection>scm:git:ssh://github.com:Fyipe/log-java.git</developerConnection>
+        <url>http://github.com/Fyipe/log-java</url>
+    </scm>
 
 </project>
