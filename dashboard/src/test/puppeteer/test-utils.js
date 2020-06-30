@@ -94,8 +94,8 @@ const updatedScheduledEventDescription = 'event description updated';
 const updatedScheduledEventName = 'event name updated';
 
 const dockerCredential = {
-    dockerUsername: process.env.DOCKERUSERNAME,
-    dockerPassword: process.env.DOCKERPASSWORD,
+    dockerUsername: process.env.DOCKERHUBUSERNAME,
+    dockerPassword: process.env.DOCKERHUBPASSWORD,
     dockerRegistryUrl: process.env.DOCKER_SECURITY_SCAN_REGISTRY_URL,
     imagePath: process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH,
     imageTags: process.env.DOCKER_SECURITY_SCAN_IMAGE_TAGS,
