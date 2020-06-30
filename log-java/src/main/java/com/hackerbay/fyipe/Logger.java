@@ -36,8 +36,7 @@ public class Logger {
             outputStream.flush();
         }
 
-        JsonObject response = ResponseBuilder.getFullResponse(connection);
-        return response;
+        return ResponseBuilder.getFullResponse(connection);
     }
     public JsonObject log(String content) throws IOException {
         String body = ParameterStringBuilder.getRequestString(this.applicationLogKey, content, "info");
