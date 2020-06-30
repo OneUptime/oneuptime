@@ -3,17 +3,61 @@ package test.java.com.hackerbay.fyipe;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import main.java.com.hackerbay.fyipe.Logger;
+import org.junit.Before;
 import org.junit.Test;
+import test.java.com.hackerbay.fyipe.model.SampleComponent;
 import test.java.com.hackerbay.fyipe.model.SampleLog;
+import test.java.com.hackerbay.fyipe.model.SampleUser;
+import test.java.com.hackerbay.fyipe.util.ApiRequest;
 
 import java.io.IOException;
+import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 
 public class LoggerTest {
     private final String apiUrl = "http://localhost:3002/api";
-    private final String applicationLogId = "5ee92d5023cc0e359d45a95a";
-    private final String applicationLogKey = "a3c4eb43-4a9c-426c-a8f1-e9e1a33af05f";
+    private String applicationLogId = "";
+    private String applicationLogKey = "";
+
+    @Before
+    public void setUp() throws Exception {
+        ApiRequest apiRequest = new ApiRequest(this.apiUrl);
+        Random random = new Random();
+        int num = random.nextInt( 78965);
+        String email = "username" + String.valueOf(num) + "@business.com";
+        SampleUser user = new SampleUser(
+                "Travis Jones",
+                email, "12345678",
+                "12345678",
+                "HackerBay",
+                "Analyst",
+                10,
+                "Mastercard",
+                "5555555555554444",
+                "123",
+                "04/2025",
+                "Atlanta",
+                "Atlanta",
+                "1009087",
+                "USA",
+                "plan_GoWIYiX2L8hwzx",
+                "Analyst",
+                "90004322356",
+                "Github");
+        JsonObject response = apiRequest.makeApiRequest("/user/signup", new Gson().toJson(user), "");
+        String token = response.get("tokens").getAsJsonObject().get("jwtAccessToken").getAsString();
+        String projectId = response.get("project").getAsJsonObject().get("_id").getAsString();
+
+        SampleComponent component = new SampleComponent("Component For Java Testing");
+        response = apiRequest.makeApiRequest("/component/"+projectId, new Gson().toJson(component), token);
+        String componentId = response.get("_id").getAsString();
+
+        SampleComponent applicationLog = new SampleComponent("Application Log For Java Testing");
+        response = apiRequest.makeApiRequest("/application-log/"+projectId+"/"+componentId+"/create", new Gson().toJson(applicationLog), token);
+        this.applicationLogId = response.get("_id").getAsString();
+        this.applicationLogKey = response.get("key").getAsString();
+    }
 
     @Test
     public void itShouldRequestForApplicationLogKey() throws IOException {
