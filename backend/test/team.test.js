@@ -418,4 +418,66 @@ describe('Team API with Sub-Projects', async function() {
         expect(projectTeamMembers.length).to.be.equal(1);
         expect(parseInt(project.seats)).to.be.equal(2);
     });
+
+    it('should not add members that are more than 100 on a project (role -> `Member`)', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/team/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                emails: userData.bulkUsers.emails,
+                role: 'Member',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('should not add members on a project if sum of new and old members exceeds 100 (role -> `Member`)', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/team/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                emails: userData.otherBulkUsers.emails,
+                role: 'Member',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('should add members on a project if the number does not exceeds 100 (role -> `Member`)', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/team/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                emails: userData.moreBulkUsers.emails,
+                role: 'Member',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body[0].team.length).to.be.equal(100);
+                done();
+            });
+    });
+
+    it('should add unlimited members for the Viewer role (role -> `Viewer`)', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/team/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                emails: userData.bulkUsers.emails,
+                role: 'Viewer',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body[0].team.length).to.be.equal(221);
+                done();
+            });
+    });
 });

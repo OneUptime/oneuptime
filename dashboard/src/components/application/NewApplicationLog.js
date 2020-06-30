@@ -13,47 +13,79 @@ import {
     createApplicationLog,
     createApplicationLogSuccess,
     createApplicationLogFailure,
+    editApplicationLogSwitch,
+    editApplicationLog,
 } from '../../actions/applicationLog';
 const selector = formValueSelector('NewApplicationLog');
 
 class NewApplicationLog extends Component {
     validate = values => {
         const errors = {};
-        if (!ValidateField.text(values[`name_${this.props.index}`])) {
+        if (!ValidateField.text(values[`name`])) {
             errors.name = 'Application Name is required.';
         }
         return errors;
     };
+    cancelEdit = () => {
+        this.props.editApplicationLogSwitch(this.props.index);
+    };
     submitForm = values => {
         const thisObj = this;
         const postObj = {};
-        postObj.name = values[`name_${this.props.index}`];
-        this.props
-            .createApplicationLog(
-                this.props.currentProject._id,
-                this.props.componentId,
-                postObj
-            )
-            .then(
-                () => {
-                    thisObj.props.reset();
-                    thisObj.props.closeCreateApplicationLogModal();
-                    if (SHOULD_LOG_ANALYTICS) {
-                        logEvent(
-                            'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > NEW APPLICATION LOG',
-                            values
-                        );
+        postObj.name = values[`name`];
+        if (!this.props.edit) {
+            this.props
+                .createApplicationLog(
+                    this.props.currentProject._id,
+                    this.props.componentId,
+                    postObj
+                )
+                .then(
+                    () => {
+                        thisObj.props.reset();
+                        thisObj.props.closeCreateApplicationLogModal();
+                        if (SHOULD_LOG_ANALYTICS) {
+                            logEvent(
+                                'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > NEW APPLICATION LOG',
+                                values
+                            );
+                        }
+                    },
+                    error => {
+                        if (error && error.message) {
+                            return error;
+                        }
                     }
-                },
-                error => {
-                    if (error && error.message) {
-                        return error;
+                );
+        } else {
+            this.props
+                .editApplicationLog(
+                    this.props.currentProject._id,
+                    this.props.componentId,
+                    this.props.applicationLog._id,
+                    postObj
+                )
+                .then(
+                    () => {
+                        thisObj.props.reset();
+                        thisObj.props.closeCreateApplicationLogModal();
+                        if (SHOULD_LOG_ANALYTICS) {
+                            logEvent(
+                                'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > EDIT APPLICATION LOG',
+                                values
+                            );
+                        }
+                    },
+                    error => {
+                        if (error && error.message) {
+                            return error;
+                        }
                     }
-                }
-            );
+                );
+        }
     };
     render() {
-        const { handleSubmit, requesting } = this.props;
+        const { handleSubmit, requesting, edit, applicationLog } = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -61,15 +93,30 @@ class NewApplicationLog extends Component {
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>New Application</span>
-                                </span>
-                                <p>
-                                    <span>
-                                        Create an application so you and your
-                                        team can monitor the logs related to it.
+                                <ShouldRender if={!edit}>
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>New Log Container</span>
                                     </span>
-                                </p>
+                                    <p>
+                                        <span>
+                                            Create an application log so you and
+                                            your team can monitor the logs
+                                            related to it.
+                                        </span>
+                                    </p>
+                                </ShouldRender>
+                                <ShouldRender if={edit}>
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>Edit Log Container</span>
+                                    </span>
+                                    <p>
+                                        <span
+                                            id={`application-log-edit-title-${applicationLog?.name}`}
+                                        >
+                                            {`Edit Log Container ${applicationLog?.name}`}
+                                        </span>
+                                    </p>
+                                </ShouldRender>
                             </div>
                         </div>
                         <form
@@ -95,7 +142,7 @@ class NewApplicationLog extends Component {
                                                                 RenderField
                                                             }
                                                             type="text"
-                                                            name={`name_${this.props.index}`}
+                                                            name={`name`}
                                                             id="name"
                                                             placeholder="Application Name"
                                                             validate={
@@ -114,7 +161,7 @@ class NewApplicationLog extends Component {
                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                         <ShouldRender
                                             if={
-                                                this.props.applicationLog
+                                                this.props.applicationLogState
                                                     .newApplicationLog.error
                                             }
                                         >
@@ -125,8 +172,28 @@ class NewApplicationLog extends Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
-                                                            .applicationLog
+                                                            .applicationLogState
                                                             .newApplicationLog
+                                                            .error
+                                                    }
+                                                </span>
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                this.props.applicationLogState
+                                                    .editApplicationLog.error
+                                            }
+                                        >
+                                            <div className="Box-root Margin-right--8">
+                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                            </div>
+                                            <div className="Box-root">
+                                                <span style={{ color: 'red' }}>
+                                                    {
+                                                        this.props
+                                                            .applicationLogState
+                                                            .editApplicationLog
                                                             .error
                                                     }
                                                 </span>
@@ -134,21 +201,47 @@ class NewApplicationLog extends Component {
                                         </ShouldRender>
                                     </div>
                                 </div>
-                                <div>
-                                    <button
-                                        id="addApplicationLogButton"
-                                        className="bs-Button bs-Button--blue"
-                                        type="submit"
-                                    >
-                                        <ShouldRender if={!requesting}>
-                                            <span>Add Application </span>
-                                        </ShouldRender>
+                                <ShouldRender if={!edit}>
+                                    <div>
+                                        <button
+                                            id="addApplicationLogButton"
+                                            className="bs-Button bs-Button--blue"
+                                            type="submit"
+                                        >
+                                            <ShouldRender if={!requesting}>
+                                                <span>Add Application </span>
+                                            </ShouldRender>
 
-                                        <ShouldRender if={requesting}>
-                                            <FormLoader />
-                                        </ShouldRender>
-                                    </button>
-                                </div>
+                                            <ShouldRender if={requesting}>
+                                                <FormLoader />
+                                            </ShouldRender>
+                                        </button>
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender if={edit}>
+                                    <div>
+                                        <button
+                                            className="bs-Button"
+                                            disabled={requesting}
+                                            onClick={this.cancelEdit}
+                                        >
+                                            <span>Cancel</span>
+                                        </button>
+                                        <button
+                                            id="addApplicationLogButton"
+                                            className="bs-Button bs-Button--blue"
+                                            type="submit"
+                                        >
+                                            <ShouldRender if={!requesting}>
+                                                <span>Edit Application </span>
+                                            </ShouldRender>
+
+                                            <ShouldRender if={requesting}>
+                                                <FormLoader />
+                                            </ShouldRender>
+                                        </button>
+                                    </div>
+                                </ShouldRender>
                             </div>
                         </form>
                     </div>
@@ -172,21 +265,27 @@ const mapDispatchToProps = dispatch =>
             createApplicationLog,
             createApplicationLogSuccess,
             createApplicationLogFailure,
+            editApplicationLogSwitch,
+            editApplicationLog,
         },
         dispatch
     );
 
 const mapStateToProps = (state, ownProps) => {
-    const name = selector(state, 'name_2000');
+    const name = selector(state, 'name');
     const componentId = ownProps.componentId;
     const requesting = state.applicationLog.newApplicationLog.requesting;
     const currentProject = state.project.currentProject;
+    const initialValues = {
+        name: ownProps.applicationLog ? ownProps.applicationLog.name : '',
+    };
     return {
-        applicationLog: state.applicationLog,
+        applicationLogState: state.applicationLog,
         name,
         componentId,
         requesting,
         currentProject,
+        initialValues,
     };
 };
 
@@ -196,11 +295,15 @@ NewApplicationLog.propTypes = {
         PropTypes.number.isRequired,
     ]),
     createApplicationLog: PropTypes.func.isRequired,
-    applicationLog: PropTypes.object.isRequired,
+    applicationLogState: PropTypes.object.isRequired,
+    applicationLog: PropTypes.object,
     handleSubmit: PropTypes.func.isRequired,
     componentId: PropTypes.string,
     requesting: PropTypes.bool,
     currentProject: PropTypes.object,
+    edit: PropTypes.bool,
+    editApplicationLogSwitch: PropTypes.func,
+    editApplicationLog: PropTypes.func,
 };
 
 export default connect(

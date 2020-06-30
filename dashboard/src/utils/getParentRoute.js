@@ -11,6 +11,12 @@ function getParentRoute(childRoute, projectId = null, type) {
         const urlParts = childRoute.split('/').slice(0, 4);
         return urlParts.join('/').concat('/on-call');
     }
+    if (childRoute.includes('issues')) {
+        const urlParts = childRoute.split('/');
+        urlParts.pop();
+        urlParts.pop();
+        return urlParts.join('/');
+    }
     if (
         childRoute.includes('sub-project') &&
         childRoute.includes('status-page')

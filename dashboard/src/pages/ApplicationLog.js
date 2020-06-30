@@ -17,7 +17,7 @@ import { LoadingState } from '../components/basic/Loader';
 
 class ApplicationLog extends Component {
     componentDidMount() {
-        this.props.loadPage('Application Logs');
+        this.props.loadPage('Logs');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG LIST'
@@ -75,7 +75,7 @@ class ApplicationLog extends Component {
                     route={getParentRoute(pathname)}
                     name={componentName}
                 />
-                <BreadCrumbItem route={pathname} name="Application Log" />
+                <BreadCrumbItem route={pathname} name="Logs" />
                 <div>
                     <div>
                         <ShouldRender if={this.props.applicationLog.requesting}>

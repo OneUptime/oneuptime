@@ -59,9 +59,13 @@ export class SidebarNavItem extends Component {
             ) &&
                 route.title === 'Monitors') ||
             (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+            ) &&
+                route.title === 'Incident Log') ||
+            (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/application-log*/
             ) &&
-                route.title === 'Application Logs') ||
+                route.title === 'Logs') ||
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security/
             ) &&
@@ -86,9 +90,9 @@ export class SidebarNavItem extends Component {
                 newPath === match.url
                     ? true
                     : (location.pathname.match(
-                          /project\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
                       ) &&
-                          link.title === 'Incident Log') ||
+                          link.title === 'Incident') ||
                       (location.pathname.match(
                           /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container/
                       ) &&

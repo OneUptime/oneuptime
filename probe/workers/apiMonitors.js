@@ -57,8 +57,9 @@ const pingfetch = async (url, method, body, headers) => {
                 method: method,
                 body: body,
                 headers: headers,
-                timeout: 30000,
+                timeout: 120000,
             });
+            res = new Date().getTime() - now;
             data = await response.json();
             const urlObject = new URL(url);
             if (urlObject.protocol === 'https:') {
@@ -84,8 +85,8 @@ const pingfetch = async (url, method, body, headers) => {
         }
         resp = { status: response.status, body: data, sslCertificate };
     } catch (error) {
+        res = new Date().getTime() - now;
         resp = { status: 408, body: error };
     }
-    res = new Date().getTime() - now;
     return { res, resp };
 };

@@ -26,7 +26,7 @@ ProcessedDescription.displayName = 'ProcessedDescription';
 const WebsiteIssuesList = ({ monitorIssue }) => {
     return (
         <div>
-            <table className="Table">
+            <table id="websiteIssuesList" className="Table">
                 <thead className="Table-body">
                     <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                         <td
@@ -58,7 +58,7 @@ const WebsiteIssuesList = ({ monitorIssue }) => {
                                 <tr
                                     id={`website_issues_${i}`}
                                     key={i}
-                                    className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
+                                    className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink websiteIssuesListItem"
                                 >
                                     <td
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"

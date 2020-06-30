@@ -18,8 +18,21 @@ export class MonitorViewLighthouseLogsBox extends Component {
         this.props = props;
         this.state = {
             addSiteUrlModalId: uuid.v4(),
-            siteValue: { value: null, label: 'All Site URLs' },
+            siteValue: { value: '', label: 'All Site URLs' },
         };
+    }
+
+    componentDidUpdate(prevProps) {
+        const { currentProject, monitor, fetchLighthouseLogs } = this.props;
+        if (
+            prevProps.monitor &&
+            monitor &&
+            prevProps.monitor.siteUrls &&
+            monitor.siteUrls &&
+            prevProps.monitor.siteUrls.length !== monitor.siteUrls.length
+        ) {
+            fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5);
+        }
     }
 
     prevClicked = (monitorId, skip, limit) => {
@@ -27,7 +40,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
         fetchLighthouseLogs(
             currentProject._id,
             monitorId,
-            skip ? parseInt(skip, 10) - 10 : 10,
+            skip ? parseInt(skip, 10) - 5 : 5,
             limit
         );
         if (window.location.href.indexOf('localhost') <= -1) {
@@ -42,7 +55,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
         fetchLighthouseLogs(
             currentProject._id,
             monitorId,
-            skip ? parseInt(skip, 10) + 10 : 10,
+            skip ? parseInt(skip, 10) + 5 : 5,
             limit
         );
         if (window.location.href.indexOf('localhost') <= -1) {
@@ -66,7 +79,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
     handleSiteChange = data => {
         this.setState({ siteValue: data });
         const { currentProject, monitor, fetchLighthouseLogs } = this.props;
-        fetchLighthouseLogs(currentProject._id, monitor._id, 0, 10, data.value);
+        fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5, data.value);
     };
 
     render() {
@@ -82,7 +95,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                   })
                 : [];
 
-        siteUrls.unshift({ value: null, label: 'All Site URLs' });
+        siteUrls.unshift({ value: '', label: 'All Site URLs' });
 
         const monitorUrl =
             this.props.monitor &&
@@ -101,12 +114,23 @@ export class MonitorViewLighthouseLogsBox extends Component {
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                <span>Website Issues</span>
+                                <span>Website Scan</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span>
-                                    Here&#39;s all of the logs of your website
-                                    issues for this monitor.
+                                    Here&apos;s a summary of{' '}
+                                    <a
+                                        href="https://developers.google.com/web/tools/lighthouse"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            cursor: 'pointer',
+                                            textDecoration: 'underline',
+                                        }}
+                                    >
+                                        Lighthouse
+                                    </a>{' '}
+                                    scans we&apos;ve done on your website.
                                 </span>
                             </span>
                         </div>

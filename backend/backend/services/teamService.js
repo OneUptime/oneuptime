@@ -165,17 +165,7 @@ module.exports = {
                     _id: subProject.parentProjectId,
                 });
             }
-            let teamMembers = null;
-            if (subProject) {
-                teamMembers = await _this.getTeamMembersBy({
-                    _id: subProject._id,
-                });
-            } else {
-                teamMembers = await _this.getTeamMembersBy({
-                    _id: project._id,
-                });
-            }
-
+            const teamMembers = await _this.getTeamMembers(projectId);
             let projectSeats = project.seats;
             if (typeof projectSeats === 'string') {
                 projectSeats = parseInt(projectSeats);
@@ -211,6 +201,26 @@ module.exports = {
                 }
             }
         }
+    },
+
+    //Description: Retrieve Members, Administrator and Owners of a Project or subProject
+    //Params:
+    //Param 1: projectId: Project id.
+    //Returns: promise
+    getTeamMembers: async function(projectId) {
+        const _this = this;
+        const subProject = await ProjectService.findOneBy({ _id: projectId });
+        if (subProject.parentProjectId) {
+            const project = await ProjectService.findOneBy({
+                _id: subProject.parentProjectId,
+            });
+            return await _this.getTeamMembersBy({
+                _id: project._id,
+            });
+        }
+        return await _this.getTeamMembersBy({
+            _id: subProject._id,
+        });
     },
 
     async checkUser(teamMembers, emails) {

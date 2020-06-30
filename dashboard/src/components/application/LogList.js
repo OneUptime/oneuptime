@@ -16,11 +16,18 @@ class LogList extends Component {
         super(props);
         this.state = { viewJsonModalId: uuid.v4() };
     }
-    prevClicked = (applicationLogId, skip, limit) => {
+    prevClicked = (skip, limit) => {
         const start = this.props.startDate.clone().utc();
         const end = this.props.endDate.clone().utc();
-        const { fetchLogs } = this.props;
+        const {
+            fetchLogs,
+            projectId,
+            componentId,
+            applicationLogId,
+        } = this.props;
         fetchLogs(
+            projectId,
+            componentId,
             applicationLogId,
             skip ? parseInt(skip, 10) - 10 : 10,
             limit,
@@ -29,11 +36,18 @@ class LogList extends Component {
         );
     };
 
-    nextClicked = (applicationLogId, skip, limit) => {
+    nextClicked = (skip, limit) => {
         const start = this.props.startDate.clone().utc();
         const end = this.props.endDate.clone().utc();
-        const { fetchLogs } = this.props;
+        const {
+            fetchLogs,
+            projectId,
+            componentId,
+            applicationLogId,
+        } = this.props;
         fetchLogs(
+            projectId,
+            componentId,
             applicationLogId,
             skip ? parseInt(skip, 10) + 10 : 10,
             limit,
@@ -55,7 +69,7 @@ class LogList extends Component {
         );
     };
     render() {
-        const { applicationLogId, logs } = this.props;
+        const { logs } = this.props;
         let skip = logs && logs.skip ? logs.skip : null;
         let limit = logs && logs.limit ? logs.limit : null;
         const count = logs && logs.count ? logs.count : null;
@@ -460,7 +474,7 @@ class LogList extends Component {
                         (!logs.logs || !logs.logs.length) &&
                         !logs.requesting &&
                         !logs.error)
-                        ? "We don't have any Logs yet"
+                        ? "We don't have any logs yet"
                         : null}
                     {logs && logs.error ? logs.error : null}
                 </div>
@@ -482,13 +496,7 @@ class LogList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
-                                        this.prevClicked(
-                                            applicationLogId
-                                                ? applicationLogId
-                                                : null,
-                                            skip,
-                                            limit
-                                        );
+                                        this.prevClicked(skip, limit);
                                     }}
                                     className={
                                         'Button bs-ButtonLegacy' +
@@ -509,13 +517,7 @@ class LogList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
-                                        this.nextClicked(
-                                            applicationLogId
-                                                ? applicationLogId
-                                                : null,
-                                            skip,
-                                            limit
-                                        );
+                                        this.nextClicked(skip, limit);
                                     }}
                                     className={
                                         'Button bs-ButtonLegacy' +
@@ -546,6 +548,8 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({ openModal, closeModal, fetchLogs }, dispatch);
 };
 LogList.propTypes = {
+    projectId: PropTypes.string,
+    componentId: PropTypes.string,
     applicationLogId: PropTypes.string,
     applicationLog: PropTypes.object,
     logs: PropTypes.object,
