@@ -16,5 +16,7 @@ module.exports = {
         uptime: { r: 108, g: 219, b: 86, a: 1 },
         downtime: { r: 250, g: 109, b: 70, a: 1 },
         degraded: { r: 255, g: 222, b: 36, a: 1 },
+        strokeChart: { r: 0, g: 0, b: 0, a: 1 },
+        fillChart: { r: 226, g: 225, b: 242, a: 1 },
     },
 };

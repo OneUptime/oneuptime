@@ -23,7 +23,6 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
-                .populate('monitorIds', 'name')
                 .populate('domains.domainVerificationToken')
                 .lean();
             return statusPages;
@@ -64,20 +63,10 @@ module.exports = {
             statusPageModel.deleted = data.deleted || false;
             statusPageModel.isSubscriberEnabled =
                 data.isSubscriberEnabled || false;
+            statusPageModel.monitors = Array.isArray(data.monitors)
+                ? [...data.monitors]
+                : [];
 
-            if (!data.monitorIds) {
-                statusPageModel.monitorIds = null;
-            } else {
-                // if monitorIds is array
-                if (data.monitorIds.length !== undefined) {
-                    statusPageModel.monitorIds = [];
-                    for (const monitorId of data.monitorIds) {
-                        statusPageModel.monitorIds.push(monitorId);
-                    }
-                } else {
-                    statusPageModel.monitorIds = data.monitorIds;
-                }
-            }
             const statusPage = await statusPageModel.save();
             return statusPage;
         } catch (error) {
@@ -379,11 +368,11 @@ module.exports = {
             const statuspages = await _this.findBy(query, 0, limit);
 
             const withMonitors = statuspages.filter(
-                statusPage => statusPage.monitorIds.length
+                statusPage => statusPage.monitors.length
             );
             const statuspage = withMonitors[0];
             const monitorIds = statuspage
-                ? statuspage.monitorIds.map(m => m._id)
+                ? statuspage.monitors.map(m => m.monitor)
                 : [];
             if (monitorIds && monitorIds.length) {
                 const notes = await IncidentService.findBy(
@@ -448,17 +437,16 @@ module.exports = {
             const statuspages = await _this.findBy(query, 0, limit);
 
             const withMonitors = statuspages.filter(
-                statusPage => statusPage.monitorIds.length
+                statusPage => statusPage.monitors.length
             );
             const statuspage = withMonitors[0];
             const monitorIds = statuspage
-                ? statuspage.monitorIds.map(m => m._id)
+                ? statuspage.monitors.map(m => m.monitor)
                 : [];
             if (monitorIds && monitorIds.length) {
                 const events = await ScheduledEventsService.findBy(
                     {
                         monitorId: { $in: monitorIds },
-                        showEventOnStatusPage: true,
                     },
                     limit,
                     skip
@@ -555,8 +543,8 @@ module.exports = {
                     throw error;
                 }
 
-                const monitorIds = statusPage.monitorIds.map(monitorId =>
-                    monitorId._id.toString()
+                const monitorIds = statusPage.monitors.map(monitor =>
+                    monitor.monitor.toString()
                 );
                 const projectId = statusPage.projectId._id;
                 const subProjects = await ProjectService.findBy({
@@ -604,11 +592,11 @@ module.exports = {
             const statuspages = await _this.findBy(query);
 
             const withMonitors = statuspages.filter(
-                statusPage => statusPage.monitorIds.length
+                statusPage => statusPage.monitors.length
             );
             const statuspage = withMonitors[0];
             const monitorIds =
-                statuspage && statuspage.monitorIds.map(m => m._id);
+                statuspage && statuspage.monitors.map(m => m.monitor);
             if (monitorIds && monitorIds.length) {
                 const incidents = await IncidentService.findBy({
                     monitorId: { $in: monitorIds },

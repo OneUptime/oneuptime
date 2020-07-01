@@ -8,6 +8,19 @@ require('should');
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const componentName = 'hackerbay';
+const monitorName = 'fyipe.com';
+const monitorName1 = 'test.fyipe.com';
+
+const gotoTheFirstStatusPage = async page => {
+    await page.goto(utils.DASHBOARD_URL);
+    await page.$eval('#statusPages > a', elem => elem.click());
+    const rowItem = await page.waitForSelector(
+        '#statusPagesListContainer > tr',
+        { visible: true }
+    );
+    rowItem.click();
+};
 
 describe('Status Page', () => {
     const operationTimeOut = 500000;
@@ -34,9 +47,20 @@ describe('Status Page', () => {
                     email: data.email,
                     password: data.password,
                 };
+
                 // user
                 await init.registerUser(user, page);
                 await init.loginUser(user, page);
+
+                //project + status page
+                await init.addProject(page);
+                await init.addStatusPageToProject('test', 'test', page);
+
+                //component + monitor
+                await init.addComponent(componentName, page);
+                await init.addMonitorToComponent(null, monitorName, page);
+                await init.addMonitorToComponent(null, monitorName1, page);
+                await page.waitForSelector('.ball-beat', { hidden: true });
             }
         );
     });
@@ -48,12 +72,151 @@ describe('Status Page', () => {
     });
 
     test(
-        'should indicate that no domain is set yet for a status page',
+        'should indicate that no monitor is set yet for a status page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await init.addProject(page);
-                await init.addStatusPageToProject('test', 'test', page);
+                await gotoTheFirstStatusPage(page);
+                const elem = await page.waitForSelector('#app-loading', {
+                    visible: true,
+                });
+                expect(elem).toBeTruthy();
+                const element = await page.$eval('#app-loading', e => {
+                    return e.innerHTML;
+                });
+                expect(element).toContain(
+                    'No monitors are added to this status page.'
+                );
+            });
+        },
+        operationTimeOut
+    );
 
+    test(
+        'should show error message if no chart is selected.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#addMoreMonitors');
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-0');
+                await init.selectByText(
+                    '#monitor-0 .db-select-nw',
+                    `${componentName} / ${monitorName}`,
+                    page
+                );
+                await page.click('#monitor-0 .Checkbox');
+                await page.waitForSelector('#monitor-0 .errors', {
+                    visible: true,
+                });
+                const element = await page.$eval('#monitor-0 .errors', e => {
+                    return e.innerHTML;
+                });
+                expect(element).toContain(
+                    'You must select at least one bar chart'
+                );
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should add a new monitor.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#addMoreMonitors');
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-0');
+                await init.selectByText(
+                    '#monitor-0 .db-select-nw',
+                    `${componentName} / ${monitorName}`,
+                    page
+                );
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(5000);
+                await page.reload({ waitUntil: 'networkidle0' });
+                const elem = await page.waitForSelector('#monitor-0', {
+                    visible: true,
+                });
+                expect(elem).toBeTruthy();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should remove monitor.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#monitor-0');
+                await page.click('#delete-monitor-0');
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(5000);
+                await page.reload({ waitUntil: 'networkidle0' });
+                const elem = await page.waitForSelector('#app-loading', {
+                    visible: true,
+                });
+                expect(elem).toBeTruthy();
+                const element = await page.$eval('#app-loading', e => {
+                    return e.innerHTML;
+                });
+                expect(element).toContain(
+                    'No monitors are added to this status page.'
+                );
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should add more than one monitor.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#addMoreMonitors');
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-0');
+                await init.selectByText(
+                    '#monitor-0 .db-select-nw',
+                    `${componentName} / ${monitorName}`,
+                    page
+                );
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-1');
+                await init.selectByText(
+                    '#monitor-1 .db-select-nw',
+                    `${componentName} / ${monitorName1}`,
+                    page
+                );
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(5000);
+                await page.reload({ waitUntil: 'networkidle0' });
+                const firstMonitorContainer = await page.waitForSelector(
+                    '#monitor-0',
+                    {
+                        visible: true,
+                    }
+                );
+                expect(firstMonitorContainer).toBeTruthy();
+                const secondMonitorContainer = await page.waitForSelector(
+                    '#monitor-1',
+                    {
+                        visible: true,
+                    }
+                );
+                expect(secondMonitorContainer).toBeTruthy();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should indicate that no domain is set yet for a status page.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval('#statusPages > a', elem => elem.click());
                 const elem = await page.waitForSelector('#domainNotSet', {
                     visible: true,
                 });
@@ -67,14 +230,7 @@ describe('Status Page', () => {
         'should create a domain',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('#domain', { visible: true });
                 await page.type('#domain', 'fyipeapp.com');
@@ -114,14 +270,7 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 const finalValue = 'status.fyipeapp.com';
 
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
                 const input = await page.$(
                     'fieldset[name="added-domain"] input[type="text"]'
@@ -147,14 +296,7 @@ describe('Status Page', () => {
         'should not verify a domain when txt record does not match token',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('#btnVerifyDomain');
                 await page.click('#btnVerifyDomain');
@@ -187,14 +329,7 @@ describe('Status Page', () => {
         'should delete a domain in a status page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 //Get the initial length of domains
@@ -231,14 +366,7 @@ describe('Status Page', () => {
         'should cancel deleting of a domain in a status page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
                 //Get the initial length of domains
@@ -275,17 +403,9 @@ describe('Status Page', () => {
         'should create custom HTML and CSS',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#statusPages');
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'load' });
+                await gotoTheFirstStatusPage(page);
 
+                await page.waitForNavigation({ waitUntil: 'load' });
                 await page.type('#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
