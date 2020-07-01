@@ -12,7 +12,6 @@ build_n_test_log-java:
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
-        - export JAVA_HOME=$(/usr/libexec/java_home)
         - cd log-java
         - mvn clean install
         - mvn clean test
