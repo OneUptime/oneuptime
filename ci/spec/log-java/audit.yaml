@@ -11,7 +11,7 @@ audit_log-java:
         - sudo apt install -y default-jdk
         - mvn --version
         - cd log-java
-        - sudo cp .m2/settings.xml /root/.m2/settings.xml
+        - sudo cp .m2/settings.xml /.m2/settings.xml
         - mvn clean
         - cd ..
     except:
