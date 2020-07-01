@@ -69,12 +69,16 @@ describe('Login API', () => {
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.DASHBOARD_URL);
     }, 300000);
-    
+
     it('Should login valid User (even if the user uses 127.0.0.1 instead of localhost) ', async () => {
         const context = await browser.createIncognitoBrowserContext();
         page = await context.newPage();
 
-        await init.loginUser(user, page, utils.ACCOUNTS_URL1 + '/accounts/login');
+        await init.loginUser(
+            user,
+            page,
+            utils.ACCOUNTS_URL1 + '/accounts/login'
+        );
 
         await page.waitFor(10000);
 
