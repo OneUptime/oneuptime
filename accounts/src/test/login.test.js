@@ -69,4 +69,27 @@ describe('Login API', () => {
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.DASHBOARD_URL);
     }, 300000);
+    
+    it('Should login valid User (even if the user uses 127.0.0.1 instead of localhost) ', async () => {
+        const context = await browser.createIncognitoBrowserContext();
+        page = await context.newPage();
+
+        await init.loginUser(user, page, utils.ACCOUNTS_URL1 + '/accounts/login');
+
+        await page.waitFor(10000);
+
+        const localStorageData = await page.evaluate(() => {
+            const json = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                json[key] = localStorage.getItem(key);
+            }
+            return json;
+        });
+
+        await page.waitFor(10000);
+        localStorageData.should.have.property('access_token');
+        localStorageData.should.have.property('email', email);
+        page.url().should.containEql(utils.DASHBOARD_URL1);
+    }, 300000);
 });
