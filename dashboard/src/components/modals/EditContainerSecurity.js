@@ -200,9 +200,6 @@ class EditContainerSecurity extends Component {
                                                                     disabled={
                                                                         isRequesting
                                                                     }
-                                                                    validate={
-                                                                        ValidateField.text
-                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
