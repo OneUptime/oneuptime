@@ -219,9 +219,6 @@ class ContainerSecurityForm extends Component {
                                                             disabled={
                                                                 addingContainer
                                                             }
-                                                            validate={
-                                                                ValidateField.text
-                                                            }
                                                         />
                                                     </div>
                                                 </div>

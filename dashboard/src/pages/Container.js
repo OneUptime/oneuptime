@@ -95,6 +95,7 @@ class Container extends Component {
                                                         key={
                                                             containerSecurity._id
                                                         }
+                                                        id={`containerSecurity_${containerSecurity.name}`}
                                                     >
                                                         <div>
                                                             <div>

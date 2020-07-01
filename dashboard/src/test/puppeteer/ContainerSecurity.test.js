@@ -56,6 +56,11 @@ describe('Container Security Page', () => {
             const dockerPassword = utils.dockerCredential.dockerPassword;
             const imagePath = utils.dockerCredential.imagePath;
             const imageTags = utils.dockerCredential.imageTags;
+            console.log('****docker registry url******', dockerRegistryUrl);
+            console.log('******docker username*******', dockerUsername);
+            console.log('*****docker password******', dockerPassword);
+            console.log('******image path******', imagePath);
+            console.log('******image tags******', imageTags);
             await cluster.execute(null, async ({ page }) => {
                 await init.addComponent(component, page);
 
@@ -95,12 +100,12 @@ describe('Container Security Page', () => {
                 await page.type('#imageTags', imageTags);
                 await page.click('#addContainerBtn');
 
-                const loader = await page.waitForSelector('.ball-beat', {
+                await page.waitForSelector('.ball-beat', {
                     hidden: true,
                 });
-                console.log('******loading spinner*******', loader);
+                await page.reload();
                 const containerSecurity = await page.waitForSelector(
-                    `#containerSecurityTitle_${containerSecurityName}`,
+                    `#containerSecurity_${containerSecurityName}`,
                     { visible: true, timeout: operationTimeOut }
                 );
                 expect(containerSecurity).toBeDefined();
