@@ -3,20 +3,14 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+// import { SHOULD_LOG_ANALYTICS } from '../../config';
+// import { logEvent } from '../../analytics';
 import { bindActionCreators } from 'redux';
 import { deleteAccount } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
 import { teamLoading, subProjectTeamLoading } from '../../actions/team';
 
 class DeleteAccount extends Component {
-    componentDidMount() {
-        const { _id: projectId } = this.props.currentProject;
-        this.props.teamLoading(projectId);
-        this.props.subProjectTeamLoading(projectId);
-    }
-
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -38,21 +32,26 @@ class DeleteAccount extends Component {
     // return promise;
     // };
 
-    isOwner = () => {
-        const { profileSettings } = this.props;
-        const userId = profileSettings.data.id;
-        const teamMembers = this.combinedTeamMembers();
-        const member = teamMembers.find(tm => tm.userId === userId);
-        return member ? member.role === 'Owner' : false;
-    };
-
-    combinedTeamMembers = () => {
-        const { teamMembers, subProjectTeamMembers } = this.props;
-        return [...teamMembers, ...subProjectTeamMembers];
-    };
-
-    listProjects = () => {
+    ownProjects = userId => {
         const { projects } = this.props;
+        return projects.filter(project => {
+            return project.users.find(
+                user => user.userId === userId && user.role === 'Owner'
+            );
+        });
+    };
+
+    projectMembers = userId => {
+        const projects = this.ownProjects(userId);
+        let members = [];
+        projects.forEach(project => {
+            members = [...members, ...project.users];
+        });
+        return members;
+    };
+
+    renderOwnProjects = userId => {
+        const projects = this.ownProjects(userId);
         return projects.map(project => {
             return <li key={project._id}>{project.name}</li>;
         });
@@ -60,12 +59,11 @@ class DeleteAccount extends Component {
 
     render() {
         const deleting = this.props.deleteAccountSetting.requesting;
-        const { handleSubmit, projects } = this.props;
+        const { profileSettings } = this.props;
+        const userId = profileSettings.data.id;
         const shouldRender =
-            (projects.length > 1 &&
-                this.isOwner() &&
-                this.combinedTeamMembers().length > 1) ||
-            (this.isOwner() && this.combinedTeamMembers().length > 1);
+            this.ownProjects(userId).length > 0 &&
+            this.projectMembers(userId).length > 1;
 
         return (
             <div
@@ -95,7 +93,9 @@ class DeleteAccount extends Component {
                                         can delete your account.
                                     </span>
                                     <div className="bs-Fieldset-row">
-                                        <ul>{this.listProjects()}</ul>
+                                        <ul>
+                                            {this.renderOwnProjects(userId)}
+                                        </ul>
                                     </div>
                                 </ShouldRender>
                             </div>
@@ -108,15 +108,17 @@ class DeleteAccount extends Component {
                                     >
                                         <span>Cancel</span>
                                     </button>
-                                    <button
-                                        id="deleteMonitor"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
-                                        type="save"
-                                        disabled={deleting}
-                                    >
-                                        {!deleting && <span>Delete</span>}
-                                        {deleting && <FormLoader />}
-                                    </button>
+                                    <ShouldRender if={!shouldRender}>
+                                        <button
+                                            id="deleteMonitor"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                            type="save"
+                                            disabled={deleting}
+                                        >
+                                            {!deleting && <span>Delete</span>}
+                                            {deleting && <FormLoader />}
+                                        </button>
+                                    </ShouldRender>
                                 </div>
                             </div>
                         </div>
@@ -138,11 +140,7 @@ DeleteAccount.propTypes = {
     currentProject: PropTypes.shape({ _id: PropTypes.string }),
     deleteAccount: PropTypes.func,
     logoutUser: PropTypes.func,
-    teamLoading: PropTypes.func,
-    subProjectTeamLoading: PropTypes.func,
-    teamMembers: PropTypes.array,
-    subProjectTeamMembers: PropTypes.array,
-    handleSubmit: PropTypes.func,
+    projects: PropTypes.array,
 };
 
 const mapStateToProps = state => {
@@ -150,8 +148,6 @@ const mapStateToProps = state => {
         deleteAccountSetting: state.profileSettings.deleteAccount,
         profileSettings: state.profileSettings.profileSetting,
         currentProject: state.project.currentProject,
-        teamMembers: state.team.teamMembers,
-        subProjectTeamMembers: state.team.subProjectTeamMembers,
         projects: state.project.projects.projects,
     };
 };
