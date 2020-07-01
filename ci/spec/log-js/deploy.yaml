@@ -35,9 +35,9 @@ deploy_production_server-monitor:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
+        - cd log-js
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
-        - cd log-js
         - git init
         - git add -A
         - git commit -m "production deployment"
