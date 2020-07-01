@@ -13,7 +13,6 @@ audit_log-java:
         - which java
         - cd log-java
         - mvn clean
-        - mvn clean install
         - cd ..
     except:
         refs:
