@@ -66,24 +66,13 @@ describe('Container Security Page', () => {
                 });
                 await page.click('#container');
 
-                const form = await page.waitForSelector(
-                    '#containerSecurityForm',
-                    {
-                        visible: true,
-                    }
-                );
-                console.log('******container security form********', form);
+                await page.waitForSelector('#containerSecurityForm', {
+                    visible: true,
+                });
                 await page.click('#addCredentialBtn');
-                const dockerForm = await page.waitForSelector(
-                    '#dockerCredentialForm',
-                    {
-                        visible: true,
-                    }
-                );
-                console.log(
-                    '*******docker credential form*********',
-                    dockerForm
-                );
+                await page.waitForSelector('#dockerCredentialForm', {
+                    visible: true,
+                });
                 await page.click('#dockerRegistryUrl');
                 await page.type('#dockerRegistryUrl', dockerRegistryUrl);
                 await page.click('#dockerUsername');
@@ -106,10 +95,13 @@ describe('Container Security Page', () => {
                 await page.type('#imageTags', imageTags);
                 await page.click('#addContainerBtn');
 
-                await page.waitForSelector('.ball-beat', { hidden: true });
+                const loader = await page.waitForSelector('.ball-beat', {
+                    hidden: true,
+                });
+                console.log('******loading spinner*******', loader);
                 const containerSecurity = await page.waitForSelector(
                     `#containerSecurityTitle_${containerSecurityName}`,
-                    { visible: true }
+                    { visible: true, timeout: operationTimeOut }
                 );
                 expect(containerSecurity).toBeDefined();
             });
