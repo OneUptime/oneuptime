@@ -9,16 +9,16 @@ deploy_staging_log-js:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - cd log-js
-        - git init
-        - git add -A
-        - git commit -m "staging deployment"
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
         - sudo npm install -g json
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe-log-js-staging"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
+        - git init
+        - git add -A
+        - git commit -m "staging deployment"
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
         - cd ..
     only:
         refs:
@@ -26,3 +26,25 @@ deploy_staging_log-js:
             - hotfix-master
     environment:
         name: staging
+
+deploy_production_server-monitor:
+    stage: Deploy
+    script:
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+        - npm publish
+        - cd log-js
+        - git init
+        - git add -A
+        - git commit -m "production deployment"
+        - cd ..
+    only:
+        refs:
+            - release
+            - hotfix-release
+    environment:
+        name: production
