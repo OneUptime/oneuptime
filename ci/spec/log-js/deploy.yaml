@@ -20,7 +20,7 @@ deploy_staging_log-js:
         - git commit -m "staging deployment"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
         - cd ..
-    except:
+    only:
         refs:
             - master
             - hotfix-master
@@ -46,7 +46,7 @@ deploy_production_server-monitor:
         - git add -A
         - git commit -m "production deployment"
         - cd ..
-    except:
+    only:
         refs:
             - release
             - hotfix-release
