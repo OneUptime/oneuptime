@@ -87,9 +87,13 @@ module.exports = {
             timeout: 60000,
         });
     },
-    loginUser: async function(user, page) {
+    loginUser: async function(
+        user,
+        page,
+        url = utils.ACCOUNTS_URL + '/accounts/login'
+    ) {
         const { email, password } = user;
-        await page.goto(utils.ACCOUNTS_URL + '/accounts/login', {
+        await page.goto(url, {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#login-button');
