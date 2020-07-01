@@ -1,5 +1,5 @@
 ## LOG JAVA
-audit_log-js:
+audit_log-java:
     stage: BuildAndTest
     allow_failure: true
     script:
@@ -9,6 +9,8 @@ audit_log-js:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y maven
         - sudo apt install -y default-jdk
+        - mvn --version
+        - which java
         - cd log-java
         - mvn clean
         - mvn clean install
