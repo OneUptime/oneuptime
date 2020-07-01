@@ -9,6 +9,7 @@ audit_log-java:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y maven
         - sudo apt install -y default-jdk
+        - sudo /var/lib/dpkg/info/ca-certificates-java.postinst configure
         - mvn --version
         - which java
         - cd log-java
