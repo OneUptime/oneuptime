@@ -1,11 +1,11 @@
-package com.hackerbay.fyipe;
+package io.hackerbay.fyipe;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.hackerbay.fyipe.model.SampleComponent;
-import com.hackerbay.fyipe.model.SampleLog;
-import com.hackerbay.fyipe.model.SampleUser;
-import com.hackerbay.fyipe.util.ApiRequest;
+import io.hackerbay.fyipe.model.SampleComponent;
+import io.hackerbay.fyipe.model.SampleLog;
+import io.hackerbay.fyipe.model.SampleUser;
+import io.hackerbay.fyipe.util.ApiRequest;
 import org.junit.Before;
 import org.junit.Test;
 

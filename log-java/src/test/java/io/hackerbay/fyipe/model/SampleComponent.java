@@ -1,4 +1,4 @@
-package com.hackerbay.fyipe.model;
+package io.hackerbay.fyipe.model;
 
 public class SampleComponent {
     private String name;

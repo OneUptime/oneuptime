@@ -1,4 +1,4 @@
-package com.hackerbay.fyipe.util;
+package io.hackerbay.fyipe.util;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;

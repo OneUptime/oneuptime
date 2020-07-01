@@ -1,4 +1,4 @@
-package com.hackerbay.fyipe.model;
+package io.hackerbay.fyipe.model;
 
 public class SampleLog {
     private String page;

@@ -23,7 +23,7 @@ You can install to use in your project by adding the following to your `pom.xml`
 
 ```java
 import com.google.gson.JsonObject;
-import com.hackerbay.fyipe.Logger;
+import io.hackerbay.fyipe.Logger;
 
 public class SampleClass {
 

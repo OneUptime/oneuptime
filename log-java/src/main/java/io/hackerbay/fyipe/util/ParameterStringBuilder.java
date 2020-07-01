@@ -1,7 +1,7 @@
-package com.hackerbay.fyipe.util;
+package io.hackerbay.fyipe.util;
 
 import com.google.gson.Gson;
-import com.hackerbay.fyipe.model.StringLog;
+import io.hackerbay.fyipe.model.StringLog;
 
 public class ParameterStringBuilder {
     public static String getRequestString(String applicationLogKey, String content, String logType) {
