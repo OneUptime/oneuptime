@@ -68,8 +68,8 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-        </plugins> -->
+            </plugin> -->
+        </plugins> 
     </build>
     <name>Fyipe Application</name>
     <description>A fyipe JS package that send logs from your applications to your fyipe dashboard.</description>
