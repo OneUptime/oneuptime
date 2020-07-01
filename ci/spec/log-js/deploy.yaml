@@ -39,7 +39,7 @@ deploy_production_server-monitor:
         - sudo npm install -g json
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
-        - json -I -f package.json -e 'this.name="fyipe-log-js-staging"'
+        - json -I -f package.json -e 'this.name="fyipe-log-js"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - git init
