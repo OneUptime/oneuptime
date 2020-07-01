@@ -122,3 +122,4 @@ include:
 
   # LOG-JAVA
   - '/ci/spec/log-java/audit.yaml'
+  - '/ci/spec/log-java/build-n-test.yaml'
