@@ -35,11 +35,15 @@ module.exports = {
     runApplicationScan: async function() {
         try {
             const securities = await getApi('probe/applicationSecurities');
-            await Promise.all(
-                securities.map(security => {
-                    return ApplicationSecurity.scan(security);
-                })
-            );
+            if (securities && securities.length > 0) {
+                await Promise.all(
+                    securities.map(security => {
+                        return ApplicationSecurity.scan(security);
+                    })
+                );
+            }
+
+            return;
         } catch (error) {
             ErrorService.log('runApplicationScan.getApi', error);
         }
@@ -47,11 +51,15 @@ module.exports = {
     runContainerScan: async function() {
         try {
             const securities = await getApi('probe/containerSecurities');
-            await Promise.all(
-                securities.map(security => {
-                    return ContainerSecurity.scan(security);
-                })
-            );
+            if (securities && securities.length > 0) {
+                await Promise.all(
+                    securities.map(security => {
+                        return ContainerSecurity.scan(security);
+                    })
+                );
+            }
+
+            return;
         } catch (error) {
             ErrorService.log('runContainerScan.getApi', error);
         }

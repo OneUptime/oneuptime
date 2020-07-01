@@ -173,7 +173,7 @@ class EditContainerSecurity extends Component {
                                                                     type="text"
                                                                     name="imagePath"
                                                                     id="imagePath"
-                                                                    placeholder="Image path"
+                                                                    placeholder="fyipeproject/home"
                                                                     disabled={
                                                                         isRequesting
                                                                     }
@@ -196,12 +196,9 @@ class EditContainerSecurity extends Component {
                                                                     type="text"
                                                                     name="imageTags"
                                                                     id="imageTags"
-                                                                    placeholder="Image tags"
+                                                                    placeholder="latest"
                                                                     disabled={
                                                                         isRequesting
-                                                                    }
-                                                                    validate={
-                                                                        ValidateField.text
                                                                     }
                                                                 />
                                                             </div>

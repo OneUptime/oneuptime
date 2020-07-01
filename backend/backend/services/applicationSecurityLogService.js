@@ -143,4 +143,13 @@ module.exports = {
             throw error;
         }
     },
+    hardDelete: async function(query) {
+        try {
+            await ApplicationSecurityLogModel.deleteMany(query);
+            return 'Application Security logs deleted successfully';
+        } catch (error) {
+            ErrorService.log('applicationSecurityLogService.hardDelete', error);
+            throw error;
+        }
+    },
 };

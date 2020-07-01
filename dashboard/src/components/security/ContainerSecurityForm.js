@@ -167,6 +167,7 @@ class ContainerSecurityForm extends Component {
                                                             }}
                                                         >
                                                             <span
+                                                                id="addCredentialBtn"
                                                                 onClick={
                                                                     this
                                                                         .handleDockerCredential
@@ -191,7 +192,7 @@ class ContainerSecurityForm extends Component {
                                                             type="text"
                                                             name="imagePath"
                                                             id="imagePath"
-                                                            placeholder="Image path"
+                                                            placeholder="fyipeproject/home"
                                                             disabled={
                                                                 addingContainer
                                                             }
@@ -214,12 +215,9 @@ class ContainerSecurityForm extends Component {
                                                             type="text"
                                                             name="imageTags"
                                                             id="imageTags"
-                                                            placeholder="Image tags"
+                                                            placeholder="latest"
                                                             disabled={
                                                                 addingContainer
-                                                            }
-                                                            validate={
-                                                                ValidateField.text
                                                             }
                                                         />
                                                     </div>

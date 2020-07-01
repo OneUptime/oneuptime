@@ -94,13 +94,21 @@ export class SidebarNavItem extends Component {
                       ) &&
                           link.title === 'Incident') ||
                       (location.pathname.match(
-                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container*/
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container/
                       ) &&
                           link.title === 'Container') ||
                       (location.pathname.match(
-                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/application*/
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/application/
                       ) &&
-                          link.title === 'Application')
+                          link.title === 'Application') ||
+                      (location.pathname.match(
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/application\/([0-9]|[a-z])*/
+                      ) &&
+                          link.title === 'Application Detail') ||
+                      (location.pathname.match(
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container\/([0-9]|[a-z])*/
+                      ) &&
+                          link.title === 'Container Detail')
                     ? true
                     : false;
             return response;
@@ -208,6 +216,25 @@ export class SidebarNavItem extends Component {
                     ? active
                     : false;
 
+                const applicationDetailLink = active.match(
+                    /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/application*/
+                )
+                    ? active
+                    : false;
+                const containerDetailLink = active.match(
+                    /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container*/
+                )
+                    ? active
+                    : false;
+
+                const isSubrouteActive =
+                    child.title === 'Application'
+                        ? applicationDetailLink === active
+                            ? true
+                            : false
+                        : child.title === 'Container' &&
+                          (containerDetailLink === active ? true : false);
+
                 return (
                     <ul key={`nav ${index}`}>
                         <li id={this.camalize(child.title)}>
@@ -224,7 +251,8 @@ export class SidebarNavItem extends Component {
                                                         className={
                                                             link === active ||
                                                             incidentLogLink ===
-                                                                active
+                                                                active ||
+                                                            isSubrouteActive
                                                                 ? 'Text-color--fyipeblue Text-fontWeight--bold'
                                                                 : ''
                                                         }

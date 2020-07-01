@@ -7,15 +7,23 @@ chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
 const app = require('../server');
 const userData = require('./data/user');
+const { newProject } = require('./data/project');
+const gitCredential = require('./data/gitCredential');
+const dockerCredential = require('./data/dockerCredential');
 const { createUser } = require('./utils/userSignUp');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const request = chai.request.agent(app);
 const ProbeService = require('../backend/services/probeService');
+const ComponentService = require('../backend/services/componentService');
+const GitCredentialService = require('../backend/services/gitCredentialService');
+const ApplicationSecurityService = require('../backend/services/applicationSecurityService');
+const DockerCredentialService = require('../backend/services/dockerCredentialService');
+const ContainerSecurityService = require('../backend/services/containerSecurityService');
 let probeId;
 const GlobalConfig = require('./utils/globalConfig');
-let token, userId, projectId;
+let token, userId, projectId, componentId;
 const probeKey = 'test-key';
 const generateRandomString = require('./utils/string').generateRandomString;
 
@@ -25,10 +33,25 @@ describe('Probe API', function() {
     before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
-        await UserService.create({
+
+        const user = await UserService.create({
             ...userData.user,
             role: 'master-admin',
         });
+
+        const project = await ProjectService.create({
+            name: 'New Test Project',
+            userId: user._id,
+            stripePlanId: newProject.stripePlanId,
+            stripeSubscriptionId: newProject.stripeSubscriptionId,
+        });
+        projectId = project._id;
+
+        const component = await ComponentService.create({
+            name: 'New Test Component',
+            projectId,
+        });
+        componentId = component._id;
 
         const response = await request.post('/user/login').send({
             email: userData.user.email,
@@ -52,6 +75,11 @@ describe('Probe API', function() {
                 ],
             },
         });
+        await ComponentService.hardDeleteBy({ _id: componentId });
+        await GitCredentialService.hardDeleteBy({ projectId });
+        await ApplicationSecurityService.hardDelete({ componentId });
+        await DockerCredentialService.hardDeleteBy({ projectId });
+        await ContainerSecurityService.hardDelete({ componentId });
     });
 
     it('should add a probe by admin', function(done) {
@@ -169,5 +197,83 @@ describe('Probe API', function() {
                         done();
                     });
             });
+    });
+
+    it('should get application securities yet to be scanned or scanned 24hrs ago', function(done) {
+        const authorization = `Basic ${token}`;
+        const probeName = 'US';
+        const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
+        const clusterKey = 'f414c23b4cdf4e84a6a66ecfd528eff2';
+
+        GitCredentialService.create({
+            gitUsername: gitCredential.gitUsername,
+            gitPassword: gitCredential.gitPassword,
+            projectId,
+        }).then(function(credential) {
+            const data = {
+                name: 'Test',
+                gitRepositoryUrl: gitCredential.gitRepositoryUrl,
+                gitCredential: credential._id,
+            };
+
+            request
+                .post(`/security/${projectId}/${componentId}/application`)
+                .set('Authorization', authorization)
+                .send(data)
+                .end(function() {
+                    request
+                        .get('/probe/applicationSecurities')
+                        .set({
+                            probeName,
+                            probeKey,
+                            clusterKey,
+                        })
+                        .end(function(err, res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body).to.be.an('array');
+                            done();
+                        });
+                });
+        });
+    });
+
+    it('should get container securities yet to be scanned or scanned 24hrs ago', function(done) {
+        const authorization = `Basic ${token}`;
+        const probeName = 'US';
+        const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
+        const clusterKey = 'f414c23b4cdf4e84a6a66ecfd528eff2';
+
+        DockerCredentialService.create({
+            dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
+            dockerUsername: dockerCredential.dockerUsername,
+            dockerPassword: dockerCredential.dockerPassword,
+            projectId,
+        }).then(function(credential) {
+            const data = {
+                name: 'Test',
+                dockerCredential: credential._id,
+                imagePath: dockerCredential.imagePath,
+                imageTags: dockerCredential.imageTags,
+            };
+
+            request
+                .post(`/security/${projectId}/${componentId}/container`)
+                .set('Authorization', authorization)
+                .send(data)
+                .end(function() {
+                    request
+                        .get('/probe/containerSecurities')
+                        .set({
+                            probeName,
+                            probeKey,
+                            clusterKey,
+                        })
+                        .end(function(err, res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body).to.be.an('array');
+                            done();
+                        });
+                });
+        });
     });
 });

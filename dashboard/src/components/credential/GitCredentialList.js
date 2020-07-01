@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { deleteGitCredential } from '../../actions/credential';
@@ -9,6 +9,7 @@ import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import DeleteCredentialModal from './DeleteCredentialModal';
 import GitCredentialModal from './GitCredentialModal';
+import paginate from '../../utils/paginate';
 
 const GitCredentialList = ({
     isRequesting,
@@ -21,6 +22,8 @@ const GitCredentialList = ({
     closeModal,
     getGitSecurities,
 }) => {
+    const [page, setPage] = useState(1);
+
     const handleDelete = credentialId => {
         getGitSecurities({ projectId, credentialId });
 
@@ -58,16 +61,28 @@ const GitCredentialList = ({
         }
     };
 
+    const prev = () => {
+        setPage(page - 1);
+    };
+    const next = () => {
+        setPage(page + 1);
+    };
+
+    const { next_page, pre_page, data, count } = paginate(
+        gitCredentials,
+        page,
+        10
+    );
+    gitCredentials = data;
+
     return (
         <div onKeyDown={handleKeyboard} className="Box-root  Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                            <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                <span style={{ textTransform: 'capitalize' }}>
-                                    Git Credentials
-                                </span>
+                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                <span>Git Credentials</span>
                             </span>
                             <span
                                 style={{ textTransform: 'lowercase' }}
@@ -85,6 +100,7 @@ const GitCredentialList = ({
                                     className="Button bs-ButtonLegacy ActionIconParent"
                                     type="button"
                                     onClick={handleCredentialCreation}
+                                    id="addCredentialBtn"
                                 >
                                     <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                         <div className="Box-root Margin-right--8">
@@ -127,7 +143,7 @@ const GitCredentialList = ({
                         </thead>
 
                         <tbody className="Table-body">
-                            {gitCredentials.map(gitCredential => (
+                            {gitCredentials.map((gitCredential, index) => (
                                 <tr
                                     key={gitCredential._id}
                                     className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
@@ -162,6 +178,7 @@ const GitCredentialList = ({
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root">
                                                         <button
+                                                            id={`deleteCredentialBtn_${index}`}
                                                             title="delete"
                                                             className="bs-Button bs-DeprecatedButton Margin-left--8"
                                                             type="button"
@@ -225,8 +242,65 @@ const GitCredentialList = ({
                             </div>
                         </div>
                     </ShouldRender>
+                </div>
+
+                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                    <div
+                        className="bs-Tail-copy"
+                        style={{
+                            padding: '0 10px',
+                        }}
+                    >
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                            style={{
+                                textAlign: 'center',
+                                marginTop: '10px',
+                                padding: '0 10px',
+                            }}
+                        >
+                            <div className="Box-root">
+                                <span className="Text-fontWeight--medium">
+                                    {count} Git Credential{count > 1 ? 's' : ''}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                     <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"></div>
+                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                            <div className="Box-root Margin-right--8">
+                                <button
+                                    id="btnPrev"
+                                    className={`Button bs-ButtonLegacy ${!pre_page &&
+                                        'Is--disabled'}`}
+                                    disabled=""
+                                    type="button"
+                                    onClick={prev}
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Previous</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                            <div className="Box-root">
+                                <button
+                                    id="btnNext"
+                                    className={`Button bs-ButtonLegacy ${!next_page &&
+                                        'Is--disabled'}`}
+                                    disabled=""
+                                    type="button"
+                                    onClick={next}
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Next</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

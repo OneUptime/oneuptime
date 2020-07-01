@@ -16,6 +16,7 @@ import IssueIndicator from './IssueIndicator';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import EditApplicationSecurity from '../modals/EditApplicationSecurity';
+import threatLevel from '../../utils/threatLevel';
 
 const ApplicationSecurityView = ({
     deleteApplicationSecurity,
@@ -78,6 +79,10 @@ const ApplicationSecurityView = ({
         }
     };
 
+    const status = securityLog.data
+        ? threatLevel(securityLog.data.vulnerabilities)
+        : 'no data';
+
     return (
         <div onKeyDown={handleKeyBoard} className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -88,12 +93,12 @@ const ApplicationSecurityView = ({
                                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                         <span
-                                            id="monitor-content-header"
+                                            id={`applicationSecurityHeader_${applicationSecurity.name}`}
                                             className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            <IssueIndicator status={1} />
+                                            <IssueIndicator status={status} />
                                             <span
-                                                id={`application-title-${applicationSecurity.name}`}
+                                                id={`applicationSecurityTitle_${applicationSecurity.name}`}
                                                 style={{
                                                     textTransform: 'capitalize',
                                                 }}
@@ -113,31 +118,49 @@ const ApplicationSecurityView = ({
                             </div>
                         </div>
                         <div className="bs-u-flex Flex-wrap--wrap bs-u-justify--between">
-                            <div
-                                className="bs-Fieldset-row"
-                                style={{ padding: 0 }}
-                            >
-                                <label className="Text-fontWeight--medium">
-                                    Last Scan:
-                                </label>
-                                <ShouldRender if={applicationSecurity.lastScan}>
-                                    <div className="Margin-left--2">
-                                        <span className="value">{`${moment(
-                                            applicationSecurity.lastScan
-                                        ).fromNow()} (${moment(
-                                            applicationSecurity.lastScan
-                                        ).format(
-                                            'MMMM Do YYYY, h:mm:ss a'
-                                        )})`}</span>
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={!applicationSecurity.lastScan}
+                            <div>
+                                <div
+                                    className="bs-Fieldset-row"
+                                    style={{ padding: 0 }}
                                 >
-                                    <div className="Margin-left--2">
-                                        <span>will display soon</span>
-                                    </div>
-                                </ShouldRender>
+                                    <ShouldRender
+                                        if={applicationSecurity.lastScan}
+                                    >
+                                        <label className="Text-fontWeight--medium">
+                                            Last Scan:
+                                        </label>
+                                        <div className="Margin-left--2">
+                                            <span className="value">{`${moment(
+                                                applicationSecurity.lastScan
+                                            ).fromNow()} (${moment(
+                                                applicationSecurity.lastScan
+                                            ).format(
+                                                'MMMM Do YYYY, h:mm:ss a'
+                                            )})`}</span>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
+                                <div
+                                    className="bs-Fieldset-row"
+                                    style={{ padding: 0 }}
+                                >
+                                    <ShouldRender
+                                        if={applicationSecurity.lastScan}
+                                    >
+                                        <label className="Text-fontWeight--medium">
+                                            Next Scan:
+                                        </label>
+                                        <div className="Margin-left--2">
+                                            <span className="value">{`${moment(
+                                                applicationSecurity.lastScan
+                                            )
+                                                .add(24, 'hours')
+                                                .format(
+                                                    'MMMM Do YYYY, h:mm:ss a'
+                                                )}`}</span>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
                             </div>
                             <div>
                                 <ShouldRender
@@ -150,6 +173,7 @@ const ApplicationSecurityView = ({
                                     <button
                                         className="bs-Button bs-DeprecatedButton"
                                         disabled={scanning}
+                                        id={`scanning_${applicationSecurity.name}`}
                                     >
                                         <Spinner
                                             style={{ stroke: '#8898aa' }}
@@ -180,6 +204,7 @@ const ApplicationSecurityView = ({
                                                     activeApplicationSecurity
                                                 )
                                         }
+                                        id={`scan_${applicationSecurity.name}`}
                                     >
                                         <span>Scan</span>
                                     </button>
@@ -194,6 +219,7 @@ const ApplicationSecurityView = ({
                                             applicationSecurityId,
                                         })
                                     }
+                                    id={`edit_${applicationSecurity.name}`}
                                 >
                                     <span>Edit</span>
                                 </button>

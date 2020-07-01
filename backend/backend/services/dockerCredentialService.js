@@ -45,10 +45,11 @@ module.exports = {
     },
     create: async function(data) {
         try {
-            // no more than one dockerRegistryUrl in a project
+            // no more than one docker credential with the same details in a project
             const dockerCredential = await this.findOneBy({
                 dockerRegistryUrl: data.dockerRegistryUrl,
                 projectId: data.projectId,
+                dockerUsername: data.dockerUsername,
             });
 
             if (dockerCredential) {
@@ -62,7 +63,7 @@ module.exports = {
 
             data.dockerPassword = await encrypt(data.dockerPassword);
 
-            const response = DockerCredentialModel.create(data);
+            const response = await DockerCredentialModel.create(data);
             return response;
         } catch (error) {
             ErrorService.log('dockerCredentialService.create', error);
@@ -75,7 +76,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const dockerCredential = DockerCredentialModel.findOneAndUpdate(
+            const dockerCredential = await DockerCredentialModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -99,17 +100,18 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let dockerCredential = this.findOneBy(query);
+            let dockerCredential = await this.findOneBy(query);
 
             if (!dockerCredential) {
                 const error = new Error(
                     'Docker Credential not found or does not exist'
                 );
                 error.code = 400;
+                ErrorService.log('dockerCredentialService.deleteBy', error);
                 throw error;
             }
 
-            dockerCredential = this.updateOneBy(query, {
+            dockerCredential = await this.updateOneBy(query, {
                 deleted: true,
                 deletedAt: Date.now(),
             });
@@ -117,6 +119,15 @@ module.exports = {
             return dockerCredential;
         } catch (error) {
             ErrorService.log('dockerCredentialService.deleteBy', error);
+            throw error;
+        }
+    },
+    hardDeleteBy: async function(query) {
+        try {
+            await DockerCredentialModel.deleteMany(query);
+            return 'Docker credential(s) successfully deleted';
+        } catch (error) {
+            ErrorService.log('dockerCredentialService.hardDeleteBy', error);
             throw error;
         }
     },

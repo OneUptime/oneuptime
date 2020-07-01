@@ -29,21 +29,21 @@ router.post(
                 });
             }
 
-            if (!data.name.trim()) {
+            if (!data.name || !data.name.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Container Security Name is required',
                 });
             }
 
-            if (!data.imagePath.trim()) {
+            if (!data.imagePath || !data.imagePath.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Image Path is required',
                 });
             }
 
-            if (!data.dockerCredential.trim()) {
+            if (!data.dockerCredential || !data.dockerCredential.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Docker Credential is required',

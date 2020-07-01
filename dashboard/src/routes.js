@@ -333,9 +333,9 @@ export const groups = [
                         index: 6,
                     },
                     {
-                        title: 'Git Credential',
+                        title: 'Git Credentials',
                         path:
-                            '/dashboard/project/:projectId/credential/gitCredential',
+                            '/dashboard/project/:projectId/settings/gitCredential',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],
@@ -343,9 +343,9 @@ export const groups = [
                         index: 7,
                     },
                     {
-                        title: 'Docker Credential',
+                        title: 'Docker Credentials',
                         path:
-                            '/dashboard/project/:projectId/credential/dockerCredential',
+                            '/dashboard/project/:projectId/settings/dockerCredential',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],

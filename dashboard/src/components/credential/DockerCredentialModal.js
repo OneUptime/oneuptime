@@ -60,6 +60,7 @@ class DockerCredentialModal extends Component {
 
         return (
             <div
+                id="dockerCredentialModal"
                 onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
             >
@@ -107,7 +108,7 @@ class DockerCredentialModal extends Component {
                                                                     type="text"
                                                                     name="dockerRegistryUrl"
                                                                     id="dockerRegistryUrl"
-                                                                    placeholder="Docker Registry URL"
+                                                                    placeholder="https://registry.hub.docker.com"
                                                                     disabled={
                                                                         isRequesting
                                                                     }

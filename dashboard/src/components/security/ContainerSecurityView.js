@@ -16,6 +16,7 @@ import IssueIndicator from './IssueIndicator';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import EditContainerSecurity from '../modals/EditContainerSecurity';
+import threatLevel from '../../utils/threatLevel';
 
 const ContainerSecurityView = ({
     deleteContainerSecurity,
@@ -78,6 +79,10 @@ const ContainerSecurityView = ({
         });
     };
 
+    const status = securityLog.data
+        ? threatLevel(securityLog.data.vulnerabilityInfo)
+        : 'no data';
+
     return (
         <div onKeyDown={handleKeyBoard} className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -88,12 +93,12 @@ const ContainerSecurityView = ({
                                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                         <span
-                                            id="monitor-content-header"
+                                            id={`containerSecurityHeader_${containerSecurity.name}`}
                                             className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            <IssueIndicator status={1} />
+                                            <IssueIndicator status={status} />
                                             <span
-                                                id={`container-title-${containerSecurity.name}`}
+                                                id={`containerSecurityTitle_${containerSecurity.name}`}
                                                 style={{
                                                     textTransform: 'capitalize',
                                                 }}
@@ -113,29 +118,49 @@ const ContainerSecurityView = ({
                             </div>
                         </div>
                         <div className="bs-u-flex Flex-wrap--wrap bs-u-justify--between">
-                            <div
-                                className="bs-Fieldset-row"
-                                style={{ padding: 0 }}
-                            >
-                                <label className="Text-fontWeight--medium">
-                                    Last Scan:
-                                </label>
-                                <ShouldRender if={containerSecurity.lastScan}>
-                                    <div className="Margin-left--2">
-                                        <span className="value">{`${moment(
-                                            containerSecurity.lastScan
-                                        ).fromNow()} (${moment(
-                                            containerSecurity.lastScan
-                                        ).format(
-                                            'MMMM Do YYYY, h:mm:ss a'
-                                        )})`}</span>
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender if={!containerSecurity.lastScan}>
-                                    <div className="Margin-left--2">
-                                        <span>will display soon</span>
-                                    </div>
-                                </ShouldRender>
+                            <div>
+                                <div
+                                    className="bs-Fieldset-row"
+                                    style={{ padding: 0 }}
+                                >
+                                    <ShouldRender
+                                        if={containerSecurity.lastScan}
+                                    >
+                                        <label className="Text-fontWeight--medium">
+                                            Last Scan:
+                                        </label>
+                                        <div className="Margin-left--2">
+                                            <span className="value">{`${moment(
+                                                containerSecurity.lastScan
+                                            ).fromNow()} (${moment(
+                                                containerSecurity.lastScan
+                                            ).format(
+                                                'MMMM Do YYYY, h:mm:ss a'
+                                            )})`}</span>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
+                                <div
+                                    className="bs-Fieldset-row"
+                                    style={{ padding: 0 }}
+                                >
+                                    <ShouldRender
+                                        if={containerSecurity.lastScan}
+                                    >
+                                        <label className="Text-fontWeight--medium">
+                                            Next Scan:
+                                        </label>
+                                        <div className="Margin-left--2">
+                                            <span className="value">{`${moment(
+                                                containerSecurity.lastScan
+                                            )
+                                                .add(24, 'hours')
+                                                .format(
+                                                    'MMMM Do YYYY, h:mm:ss a'
+                                                )}`}</span>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
                             </div>
                             <div>
                                 <ShouldRender
@@ -148,6 +173,7 @@ const ContainerSecurityView = ({
                                     <button
                                         className="bs-Button bs-DeprecatedButton"
                                         disabled={scanning}
+                                        id={`scanning_${containerSecurity.name}`}
                                     >
                                         <Spinner
                                             style={{ stroke: '#8898aa' }}
@@ -176,11 +202,13 @@ const ContainerSecurityView = ({
                                             String(containerSecurityId) ===
                                                 String(activeContainerSecurity)
                                         }
+                                        id={`scan_${containerSecurity.name}`}
                                     >
                                         <span>Scan</span>
                                     </button>
                                 </ShouldRender>
                                 <button
+                                    id={`edit_${containerSecurity.name}`}
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                     type="button"
                                     onClick={() =>

@@ -13,6 +13,7 @@ import {
 } from '../../actions/security';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import threatLevel from '../../utils/threatLevel';
 
 const SecurityInfo = ({
     name,
@@ -90,6 +91,16 @@ const SecurityInfo = ({
 
     const security = getSecurityInfo();
 
+    const status =
+        type === 'application'
+            ? applicationSecurityLog.data
+                ? threatLevel(applicationSecurityLog.data.vulnerabilities)
+                : 'no data'
+            : type === 'container' &&
+              (containerSecurityLog.data
+                  ? threatLevel(containerSecurityLog.data.vulnerabilityInfo)
+                  : 'no data');
+
     return (
         <Fragment>
             <div className="Box-root">
@@ -99,12 +110,22 @@ const SecurityInfo = ({
                             <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                     <span
-                                        id="monitor-content-header"
+                                        id={
+                                            (applicationSecurityId &&
+                                                `applicationSecurityHeader_${name}`) ||
+                                            (containerSecurityId &&
+                                                `containerSecurityHeader_${name}`)
+                                        }
                                         className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                     >
-                                        <IssueIndicator status={1} />
+                                        <IssueIndicator status={status} />
                                         <span
-                                            id={`monitor-title-${name}`}
+                                            id={
+                                                (applicationSecurityId &&
+                                                    `applicationSecurityTitle_${name}`) ||
+                                                (containerSecurityId &&
+                                                    `containerSecurityTitle_${name}`)
+                                            }
                                             style={{
                                                 textTransform: 'capitalize',
                                             }}
@@ -124,26 +145,45 @@ const SecurityInfo = ({
                         </div>
                     </div>
                     <div className="bs-u-flex Flex-wrap--wrap bs-u-justify--between">
-                        <div className="bs-Fieldset-row" style={{ padding: 0 }}>
-                            <label className="Text-fontWeight--medium">
-                                Last Scan:
-                            </label>
-                            <ShouldRender if={security.lastScan}>
-                                <div className="Margin-left--2">
-                                    <span className="value">{`${moment(
-                                        security.lastScan
-                                    ).fromNow()} (${moment(
-                                        security.lastScan
-                                    ).format(
-                                        'MMMM Do YYYY, h:mm:ss a'
-                                    )})`}</span>
-                                </div>
-                            </ShouldRender>
-                            <ShouldRender if={!security.lastScan}>
-                                <div className="Margin-left--2">
-                                    <span>will display soon</span>
-                                </div>
-                            </ShouldRender>
+                        <div>
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0 }}
+                            >
+                                <ShouldRender if={security.lastScan}>
+                                    <label className="Text-fontWeight--medium">
+                                        Last Scan:
+                                    </label>
+                                    <div className="Margin-left--2">
+                                        <span className="value">{`${moment(
+                                            security.lastScan
+                                        ).fromNow()} (${moment(
+                                            security.lastScan
+                                        ).format(
+                                            'MMMM Do YYYY, h:mm:ss a'
+                                        )})`}</span>
+                                    </div>
+                                </ShouldRender>
+                            </div>
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0 }}
+                            >
+                                <ShouldRender if={security.lastScan}>
+                                    <label className="Text-fontWeight--medium">
+                                        Next Scan:
+                                    </label>
+                                    <div className="Margin-left--2">
+                                        <span className="value">{`${moment(
+                                            security.lastScan
+                                        )
+                                            .add(24, 'hours')
+                                            .format(
+                                                'MMMM Do YYYY, h:mm:ss a'
+                                            )}`}</span>
+                                    </div>
+                                </ShouldRender>
+                            </div>
                         </div>
                         <div>
                             {(applicationSecurityId &&
@@ -162,6 +202,12 @@ const SecurityInfo = ({
                                         (containerSecurityId &&
                                             scanningContainer)
                                     }
+                                    id={
+                                        (applicationSecurityId &&
+                                            `scanningApplicationSecurity_${name}`) ||
+                                        (containerSecurityId &&
+                                            `scanningContainerSecurity_${name}`)
+                                    }
                                 >
                                     <Spinner style={{ stroke: '#8898aa' }} />
                                     <span>Scanning</span>
@@ -171,14 +217,26 @@ const SecurityInfo = ({
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--security-scan"
                                     type="button"
                                     onClick={scanSecurity}
+                                    id={
+                                        (applicationSecurityId &&
+                                            `scanApplicationSecurity_${name}`) ||
+                                        (containerSecurityId &&
+                                            `scanContainerSecurity_${name}`)
+                                    }
                                 >
                                     <span>Scan</span>
                                 </button>
                             )}
                             <button
-                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--help"
+                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--more"
                                 type="button"
                                 onClick={more}
+                                id={
+                                    (applicationSecurityId &&
+                                        `moreApplicationSecurity_${name}`) ||
+                                    (containerSecurityId &&
+                                        `moreContainerSecurity_${name}`)
+                                }
                             >
                                 <span>More</span>
                             </button>

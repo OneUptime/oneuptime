@@ -140,4 +140,13 @@ module.exports = {
             throw error;
         }
     },
+    hardDelete: async function(query) {
+        try {
+            await ContainerSecurityLogModel.deleteMany(query);
+            return 'Container Security logs deleted successfully';
+        } catch (error) {
+            ErrorService.log('containerSecurityLogService.hardDelete', error);
+            throw error;
+        }
+    },
 };
