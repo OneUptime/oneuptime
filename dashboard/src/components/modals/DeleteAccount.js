@@ -36,22 +36,26 @@ class DeleteAccount extends Component {
         const { projects } = this.props;
         return projects.filter(project => {
             return project.users.find(
-                user => user.userId === userId && user.role === 'Owner'
+                user =>
+                    user.userId === userId &&
+                    user.role === 'Owner' &&
+                    project.users.length > 1
             );
         });
     };
 
-    projectMembers = userId => {
+    projectsWithoutMultipleOwners = userId => {
         const projects = this.ownProjects(userId);
-        let members = [];
-        projects.forEach(project => {
-            members = [...members, ...project.users];
+        return projects.filter(project => {
+            const otherOwner = project.users.find(
+                user => user.userId !== userId && user.role === 'Owner'
+            );
+            return otherOwner ? false : true;
         });
-        return members;
     };
 
     renderOwnProjects = userId => {
-        const projects = this.ownProjects(userId);
+        const projects = this.projectsWithoutMultipleOwners(userId);
         return projects.map(project => {
             return <li key={project._id}>{project.name}</li>;
         });
@@ -62,8 +66,7 @@ class DeleteAccount extends Component {
         const { profileSettings } = this.props;
         const userId = profileSettings.data.id;
         const shouldRender =
-            this.ownProjects(userId).length > 0 &&
-            this.projectMembers(userId).length > 1;
+            this.projectsWithoutMultipleOwners(userId).length > 0;
 
         return (
             <div
@@ -97,6 +100,12 @@ class DeleteAccount extends Component {
                                             {this.renderOwnProjects(userId)}
                                         </ul>
                                     </div>
+                                </ShouldRender>
+                                <ShouldRender if={!shouldRender}>
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        Are you sure you want to delete your
+                                        account?
+                                    </span>
                                 </ShouldRender>
                             </div>
                             <div className="bs-Modal-footer">

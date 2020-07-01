@@ -9,11 +9,16 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import DeleteAccount from '../modals/DeleteAccount';
+import { getProjects } from '../../actions/project';
 
 export class DeleteAccountBox extends Component {
     constructor(props) {
         super(props);
         this.state = { deleteModalId: uuid.v4() };
+    }
+
+    componentDidMount() {
+        this.props.getProjects(null);
     }
 
     handleKeyBoard = e => {
@@ -85,7 +90,7 @@ export class DeleteAccountBox extends Component {
 DeleteAccountBox.displayName = 'DeleteAccountBox';
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal, closeModal }, dispatch);
+    bindActionCreators({ openModal, closeModal, getProjects }, dispatch);
 
 const mapStateToProps = state => {
     return {
@@ -97,6 +102,7 @@ DeleteAccountBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     deleteAccountSetting: PropTypes.shape({ requesting: PropTypes.bool }),
+    getProjects: PropTypes.func,
 };
 
 export default withRouter(
