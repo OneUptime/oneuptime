@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-// import { SHOULD_LOG_ANALYTICS } from '../../config';
-// import { logEvent } from '../../analytics';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { logEvent } from '../../analytics';
 import { bindActionCreators } from 'redux';
 import { deleteAccount } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
@@ -20,17 +20,17 @@ class DeleteAccount extends Component {
         }
     };
 
-    // submitForm = values => {
-    // const userId = this.props.profileSettings.data.id;
-    // const promise = this.props.deleteAccount(userId);
-    // this.props.logoutUser();
-    // if (SHOULD_LOG_ANALYTICS) {
-    //     logEvent('EVENT: DASHBOARD > PROFILE > ACCOUNT DELETED', {
-    //         userId,
-    //     });
-    // }
-    // return promise;
-    // };
+    deleteAccount = () => {
+        const userId = this.props.profileSettings.data.id;
+        const promise = this.props.deleteAccount(userId);
+        this.props.logoutUser();
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('EVENT: DASHBOARD > PROFILE > ACCOUNT DELETED', {
+                userId,
+            });
+        }
+        return promise;
+    };
 
     ownProjects = userId => {
         const { projects } = this.props;
@@ -119,10 +119,11 @@ class DeleteAccount extends Component {
                                     </button>
                                     <ShouldRender if={!shouldRender}>
                                         <button
-                                            id="deleteMonitor"
+                                            id="btn_confirm_delete"
                                             className="bs-Button bs-DeprecatedButton bs-Button--red"
-                                            type="save"
+                                            type="button"
                                             disabled={deleting}
+                                            onClick={this.deleteAccount}
                                         >
                                             {!deleting && <span>Delete</span>}
                                             {deleting && <FormLoader />}

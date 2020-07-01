@@ -57,6 +57,7 @@ export class DeleteAccountBox extends Component {
                                 <span className="db-SettingsForm-footerMessage"></span>
                                 <div>
                                     <button
+                                        id="btn_delete_account"
                                         className="bs-Button bs-Button--red Box-background--red"
                                         disabled={deleting}
                                         onClick={() =>

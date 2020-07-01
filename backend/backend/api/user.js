@@ -1288,16 +1288,44 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
         }
 
         const { projects } = user;
-        projects.forEach(async project => {
-            const { _id: projectId, users } = project;
-            if (users.length > 1) {
-                // Exit project
+        projects
+            .filter(project => {
+                return project.users.find(
+                    user =>
+                        user.userId === userId &&
+                        user.role === 'Owner' &&
+                        project.users.length > 1
+                );
+            })
+            .forEach(async project => {
+                const { _id: projectId } = project;
                 await ProjectService.exitProject(projectId, userId);
-            } else {
-                // Delete project and cancel all subscription
-                await ProjectService.deleteBy({ _id: projectId }, userId);
-            }
-        });
+            });
+
+        projects
+            .filter(project => {
+                return project.users.find(
+                    user =>
+                        (user.userId === userId && user.role !== 'Owner') ||
+                        (user.userId === userId &&
+                            user.role === 'Owner' &&
+                            project.users.length === 1)
+                );
+            })
+            .forEach(async project => {
+                const { _id: projectId, users } = project;
+                const user = users.find(user => user.userId === userId);
+                if (user) {
+                    if (user.role === 'Owner') {
+                        await ProjectService.deleteBy(
+                            { _id: projectId },
+                            userId
+                        );
+                    } else {
+                        await ProjectService.exitProject(projectId, userId);
+                    }
+                }
+            });
         const deletedUser = await UserService.deleteBy({ _id: userId }, userId);
         return sendItemResponse(req, res, { user: deletedUser });
     } catch (error) {
