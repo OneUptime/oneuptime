@@ -117,9 +117,9 @@ include:
   - '/ci/spec/log-js/deploy.yaml'
 
   # LOG-PHP
-  # - '/ci/spec/log-php/audit.yaml'
-  # - '/ci/spec/log-php/build-n-test.yaml'
-  # - '/ci/spec/log-php/deploy.yaml'
+  - '/ci/spec/log-php/audit.yaml'
+  - '/ci/spec/log-php/build-n-test.yaml'
+  - '/ci/spec/log-php/deploy.yaml'
 
   # LOG-JAVA
   # - '/ci/spec/log-java/audit.yaml'
