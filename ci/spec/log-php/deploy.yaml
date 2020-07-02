@@ -11,10 +11,9 @@ deploy_staging_log-php:
         - sudo add-apt-repository -y ppa:ondrej/php
         - sudo apt install -y php7.3 php7.3-common php7.3-opcache php7.3-cli php7.3-gd php7.3-curl php7.3-mysql php7.3-xml php7.3-mbstring
         - sudo apt-get install -y composer
-        - sudo npm install -g json
+        - sudo npm install -g json composer-version
         - cd log-php
-        - chmod +x ../ci/scripts/version-setup.sh
-        - ../ci/scripts/version-setup.sh
+        - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php-staging"'
         - git init
         - git add -A
