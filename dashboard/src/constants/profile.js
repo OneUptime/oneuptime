@@ -95,3 +95,8 @@ export const GENERATE_TWO_FACTOR_QR_FAILURE =
     'ProfileSetting/GENERATE_TWO_FACTOR_QR_FAILURE';
 export const GENERATE_TWO_FACTOR_QR_RESET =
     'ProfileSetting/GENERATE_TWO_FACTOR_QR_RESET';
+
+//Update change password setting.
+export const DELETE_ACCOUNT_REQUEST = 'ProfileSetting/DELETE_ACCOUNT_REQUEST';
+export const DELETE_ACCOUNT_SUCCESS = 'ProfileSetting/DELETE_ACCOUNT_SUCCESS';
+export const DELETE_ACCOUNT_FAILURE = 'ProfileSetting/DELETE_ACCOUNT_FAILURE';

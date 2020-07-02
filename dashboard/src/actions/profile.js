@@ -1,4 +1,4 @@
-import { getApi, putApi, postApi } from '../api';
+import { getApi, putApi, postApi, deleteApi } from '../api';
 import * as types from '../constants/profile';
 import FormData from 'form-data';
 import errors from '../errors';
@@ -594,5 +594,55 @@ export function setResendTimer(value) {
     return {
         type: types.SET_RESEND_TIMER,
         payload: value,
+    };
+}
+
+// Delete user account
+export function deleteAccountRequest() {
+    return {
+        type: types.DELETE_ACCOUNT_REQUEST,
+    };
+}
+
+export function deleteAccountSuccess(promise) {
+    return {
+        type: types.USER_SETTINGS_SUCCESS,
+        payload: promise,
+    };
+}
+
+export function deleteAccountFailure(error) {
+    return {
+        type: types.USER_SETTINGS_FAILURE,
+        payload: error,
+    };
+}
+
+export function deleteAccount(userId) {
+    return function(dispatch) {
+        const promise = deleteApi(`user/${userId}/delete`);
+        dispatch(deleteAccountRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(deleteAccountSuccess(response.data));
+                return response;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(deleteAccountFailure(errors(error)));
+            }
+        );
+
+        return promise;
     };
 }

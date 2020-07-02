@@ -59,6 +59,12 @@ const INITIAL_STATE = {
         success: false,
         data: {},
     },
+    deleteAccount: {
+        error: null,
+        requesting: false,
+        success: false,
+        data: {},
+    },
     resendTimer: null,
 };
 
@@ -479,6 +485,36 @@ export default function profileSettings(state = INITIAL_STATE, action) {
         case types.SET_RESEND_TIMER:
             return Object.assign({}, state, {
                 resendTimer: action.payload,
+            });
+
+        case types.DELETE_ACCOUNT_REQUEST:
+            return Object.assign({}, state, {
+                deleteAccount: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                    data: {},
+                },
+            });
+
+        case types.DELETE_ACCOUNT_SUCCESS:
+            return Object.assign({}, state, {
+                deleteAccount: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    data: action.payload,
+                },
+            });
+
+        case types.DELETE_ACCOUNT_FAILURE:
+            return Object.assign({}, state, {
+                deleteAccount: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    data: {},
+                },
             });
 
         default:

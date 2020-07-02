@@ -481,6 +481,91 @@ describe('User API', function() {
                 done();
             });
     });
+
+    it('should not delete account that belongs to another user', function(done) {
+        const authorization = `Basic ${token}`;
+        const anotherUserId = '5ef84e17504ba0deaac459d9';
+        request
+            .delete(`/user/${anotherUserId}/delete`)
+            .set('Authorization', authorization)
+            .end(function(_err, res) {
+                expect(res).to.have.status(401);
+                done();
+            });
+    });
+
+    it('should delete user account and cancel all subscriptions', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .delete(`/user/${userId}/delete`)
+            .set('Authorization', authorization)
+            .end(function(_err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.user.deleted).to.equal(true);
+                done();
+            });
+    });
+
+    it('should not delete account twice', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .delete(`/user/${userId}/delete`)
+            .set('Authorization', authorization)
+            .end(function(_err, res) {
+                expect(res).to.have.status(401);
+                done();
+            });
+    });
+
+    it('Should delete user account and remove user from the project', function(done) {
+        createUser(request, data.anotherUser, function(_err, res) {
+            const project = res.body.project;
+            const { id: userId } = res.body;
+            VerificationTokenModel.findOne({ userId }, function(
+                _err,
+                verificationToken
+            ) {
+                request
+                    .get(`/user/confirmation/${verificationToken.token}`)
+                    .redirects(0)
+                    .end(function() {
+                        request
+                            .post('/user/login')
+                            .send({
+                                email: data.anotherUser.email,
+                                password: data.anotherUser.password,
+                            })
+                            .end(function(_err, res) {
+                                const accessToken =
+                                    res.body.tokens.jwtAccessToken;
+                                const authorization = `Basic ${accessToken}`;
+                                request
+                                    .post(`/team/${project._id}`)
+                                    .set('Authorization', authorization)
+                                    .send({
+                                        emails: data.newUser.email,
+                                        role: 'Member',
+                                    })
+                                    .end(function(_err, res) {
+                                        expect(
+                                            res.body[0].team.length
+                                        ).to.be.equal(2);
+                                        request
+                                            .delete(`/user/${userId}/delete`)
+                                            .set('Authorization', authorization)
+                                            .end(function(_err, res) {
+                                                expect(res).to.have.status(200);
+                                                expect(
+                                                    res.body.user.deleted
+                                                ).to.equal(true);
+                                                done();
+                                            });
+                                    });
+                            });
+                    });
+            });
+        });
+    });
 });
 
 let ssoId;

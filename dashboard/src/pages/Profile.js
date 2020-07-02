@@ -5,6 +5,7 @@ import ChangePasswordSetting from '../components/profileSettings/ChangePassword'
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
 import { PropTypes } from 'prop-types';
+import DeleteAccountBox from '../components/profileSettings/DeleteAccountBox';
 
 const Profile = props => {
     const {
@@ -28,6 +29,9 @@ const Profile = props => {
                                             </div>
                                             <div className="Box-root Margin-bottom--12">
                                                 <ChangePasswordSetting />
+                                            </div>
+                                            <div className="Box-root Margin-bottom--12">
+                                                <DeleteAccountBox />
                                             </div>
                                         </div>
                                     </div>
