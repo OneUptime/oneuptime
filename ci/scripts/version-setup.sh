@@ -5,7 +5,7 @@ This script changes version of every project
 function version {
   ls 
   cd $1
-  npm version --force "3.0.$CI_PIPELINE_IID"
+  npm version "3.0.$CI_PIPELINE_IID"
   cd ..
 }
 
