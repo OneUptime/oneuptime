@@ -10,6 +10,8 @@ audit_log-java:
         - sudo apt-get install -y maven
         - sudo apt install -y default-jdk
         - mvn --version
+        - ls /.m2/repositories
+        - ls /.m2
         - cd log-java
         - mvn --settings=.m2/settings.xml clean
         - cd ..
