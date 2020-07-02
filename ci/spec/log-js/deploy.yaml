@@ -10,6 +10,7 @@ deploy_staging_log-js:
         - sudo apt-get install -y nodejs
         - sudo npm install -g json
         - cd log-js
+        - git checkout -b staging
         - git add -A
         - git commit -m "staging deployment"
         - cd ..
@@ -21,7 +22,6 @@ deploy_staging_log-js:
         - npm publish
         - git add -A
         - git commit -m "staging deployment"
-        - git checkout staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git staging --force
         - cd ..
     except:
