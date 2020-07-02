@@ -3,6 +3,7 @@ echo "
 This script changes version of every project
 "
 function version {
+  ls 
   cd $1
   npm version "3.0.$CI_PIPELINE_IID"
   cd ..
