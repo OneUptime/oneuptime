@@ -13,7 +13,7 @@ audit_log-java:
         - cp -f log-java/.m2/settings.xml $HOME/.m2/settings.xml
         - cat $HOME/.m2/settings.xml
         - cd log-java
-        - mvn clean
+        - mvn -e -X clean
         - cd ..
     except:
         refs:
