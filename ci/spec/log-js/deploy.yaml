@@ -9,6 +9,10 @@ deploy_staging_log-js:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - sudo npm install -g json
+        - cd log-js
+        - git add -A
+        - git commit -m "staging deployment"
+        - cd ..
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - cd log-js
