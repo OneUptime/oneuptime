@@ -13,7 +13,6 @@ deploy_staging_log-php:
         - sudo apt-get install -y composer
         - sudo npm install -g json composer-version
         - cd log-php
-        - git checkout -b staging
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php-staging"'
         - git init
