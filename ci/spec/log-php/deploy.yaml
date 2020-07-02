@@ -1,0 +1,56 @@
+## DEPLOYMENT STAGE - Log PHP
+deploy_staging_log-php:
+    stage: Deploy
+    allow_failure: true
+    script:
+        - sudo apt-get update
+        - sudo lsb_release -a
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - sudo apt install -y software-properties-common
+        - sudo add-apt-repository -y ppa:ondrej/php
+        - sudo apt install -y php7.3 php7.3-common php7.3-opcache php7.3-cli php7.3-gd php7.3-curl php7.3-mysql php7.3-xml php7.3-mbstring
+        - sudo apt-get install -y composer
+        - sudo npm install -g json composer-version
+        - cd log-php
+        - composer-version patch
+        - json -I -f composer.json -e 'this.name="fyipe/log-php-staging"'
+        - git init
+        - git add -A
+        - git commit -m "staging deployment"
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git deploy_staging --force
+        - cd ..
+    only:
+        refs:
+            - hotfix-master
+            - hotfix-release
+    environment:
+        name: staging
+
+deploy_production_log-php:
+    stage: Deploy
+    allow_failure: true
+    script:
+        - sudo apt-get update
+        - sudo lsb_release -a
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - sudo apt install -y software-properties-common
+        - sudo add-apt-repository -y ppa:ondrej/php
+        - sudo apt install -y php7.3 php7.3-common php7.3-opcache php7.3-cli php7.3-gd php7.3-curl php7.3-mysql php7.3-xml php7.3-mbstring
+        - sudo apt-get install -y composer
+        - sudo npm install -g json composer-version
+        - cd log-php
+        - composer-version patch
+        - json -I -f composer.json -e 'this.name="fyipe/log-php"'
+        - git init
+        - git add -A
+        - git commit -m "production deployment"
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git master --force
+        - cd ..
+    only:
+        refs:
+            - hotfix-master
+            - hotfix-release
+    environment:
+        name: production

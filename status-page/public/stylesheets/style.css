@@ -333,6 +333,7 @@ div.block-chart::-webkit-scrollbar {
   position: absolute;
   left: 27px;
   top: 57px;
+  border-radius: 100px;
   background-position: center;
   background-repeat: no-repeat;
 }
@@ -1033,6 +1034,7 @@ margin-left:10px;
 
   .status-bubble {
     left: 16px;
+    border-radius: 100px;
   }
 }
 
