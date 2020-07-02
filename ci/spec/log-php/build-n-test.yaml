@@ -13,7 +13,6 @@ build_n_test_log-php:
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd log-php
-        - composer install
         - composer test
     except:
         refs:
