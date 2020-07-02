@@ -2,6 +2,7 @@
     "name": "fyipe/log-php",
     "description": "A fyipe PHP package that send logs from your applications to your fyipe dashboard.",
     "license": "MIT",
+    "version": "3.0.1",
     "minimum-stability": "stable",
     "authors": [
         {

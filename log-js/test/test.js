@@ -5,7 +5,7 @@ chai.use(require('chai-http'));
 
 const expect = chai.expect;
 import { user, generateRandomBusinessEmail } from './util';
-const API_URL = 'http://localhost:3002/api/';
+const API_URL = 'http://localhost:3002/api';
 const request = chai.request.agent(API_URL);
 
 import Logger from '../src/logger';
@@ -19,21 +19,21 @@ describe('Logger', function() {
         this.timeout(20000);
 
         request
-            .post('user/signup')
+            .post('/user/signup')
             .send(user)
             .end(function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
                 token = res.body.tokens.jwtAccessToken;
                 request
-                    .post(`component/${projectId}`)
+                    .post(`/component/${projectId}`)
                     .set('Authorization', `Basic ${token}`)
                     .send(component)
                     .end(function(err, res) {
                         componentId = res.body._id;
                         request
                             .post(
-                                `application-log/${projectId}/${componentId}/create`
+                                `/application-log/${projectId}/${componentId}/create`
                             )
                             .set('Authorization', `Basic ${token}`)
                             .send({ name: 'Application Logger' })

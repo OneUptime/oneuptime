@@ -1,3 +1,5 @@
+[![npm](https://img.shields.io/npm/v/fyipe-log-js)](https://www.npmjs.com/package/fyipe-log-js)
+
 # Fyipe Application Logger
 
 A fyipe application logger that can be used to send logs about your applications created on your fypie dashboard
@@ -29,7 +31,7 @@ import Logger from 'log-js';
 
 // constructor
 const logger = new Logger(
-    'API_URL',
+    'API_URL', // https:fyipe.com/api
     'APPLICATION_LOG_ID',
     'APPLICATION_LOG_KEY'
 );
@@ -37,14 +39,7 @@ const logger = new Logger(
 // Sending a string log to the server
 const item = 'This is a simple log';
 
-logger
-    .log(item)
-    .then(res => {
-        // A success response
-    })
-    .catch(err => {
-        // An error response
-    });
+logger.log(item); // returns a promise
 
 // Sending a JSON object log to the server
 const item = {
@@ -55,14 +50,7 @@ const item = {
     },
 };
 
-logger
-    .log(item)
-    .then(res => {
-        // A success response
-    })
-    .catch(err => {
-        // An error response
-    });
+logger.log(item); // returns a promise
 ```
 
 ## API Documentation

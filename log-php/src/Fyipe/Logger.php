@@ -40,7 +40,7 @@ class Logger
 
     private function setApiUrl(String $apiUrl): void
     {
-        $this->apiUrl = $apiUrl . 'application-log/' . $this->applicationLogId . '/log';
+        $this->apiUrl = $apiUrl . '/application-log/' . $this->applicationLogId . '/log';
     }
 
     private function makeApiRequest($data, String $type): \stdClass
