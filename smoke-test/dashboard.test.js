@@ -36,8 +36,8 @@ describe('Monitor API', () => {
         });
     });
 
-    afterAll(async done => {
-        cluster.execute(null, async ({ page }) => {
+    afterAll(async () => {
+        await cluster.execute(null, async ({ page }) => {
             // delete monitor
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -64,13 +64,12 @@ describe('Monitor API', () => {
         });
         await cluster.idle();
         await cluster.close();
-        done();
     });
 
     it(
         'Should create new component',
         async () => {
-            return cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle2',
@@ -111,9 +110,10 @@ describe('Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor', {
                     visible: true,
                 });
+                await page.waitFor(5000);
 
                 // Fill and submit New Monitor form
-                await page.click('input[id=name]');
+                await page.click('input[id=name]', { visible: true });
                 await page.type('input[id=name]', monitorName);
                 await init.selectByText('#type', 'url', page);
                 await page.waitForSelector('#url');
