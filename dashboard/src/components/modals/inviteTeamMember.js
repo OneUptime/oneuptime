@@ -17,11 +17,16 @@ import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import DataPathHoC from '../DataPathHoC';
+import MessageBox from './MessageBox';
 
 export class FormModal extends Component {
     constructor(props) {
         super(props);
-        this.state = { notificationModalId: uuid.v4() };
+        this.state = {
+            notificationModalId: uuid.v4(),
+            messageModalId: uuid.v4(),
+        };
     }
 
     submitForm = values => {
@@ -36,6 +41,19 @@ export class FormModal extends Component {
         } = this.props;
         const { notificationModalId } = this.state;
         values.projectId = data.subProjectId;
+
+        const { role, emails } = values;
+        if (role !== 'Viewer' && emails.split(',').length > 100) {
+            openModal({
+                id: this.state.messageModalId,
+                content: DataPathHoC(MessageBox, {
+                    message:
+                        'Please contact sales if you wish to add more than 100 members on the project',
+                    title: 'You cannot add more than 100 members',
+                    messageBoxId: this.state.messageModalId,
+                }),
+            });
+        }
 
         if (
             subProjects &&
