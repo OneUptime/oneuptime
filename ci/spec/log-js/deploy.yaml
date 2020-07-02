@@ -9,11 +9,9 @@ deploy_staging_log-js:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - sudo npm install -g json
-        - ls
-        - chmod +x ci/scripts/version-setup.sh
-        - ci/scripts/version-setup.sh
         - cd log-js
         - json -I -f package.json -e 'this.name="fyipe-log-js-staging"'
+        - json -I -f package.json -e 'this.version="3.0.$CI_PIPELINE_IID"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - git init
