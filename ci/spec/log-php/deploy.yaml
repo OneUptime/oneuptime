@@ -42,8 +42,8 @@ deploy_production_log-php:
         - sudo apt-get install -y composer
         - sudo npm install -g json
         - cd log-php
-        - chmod +x ../ci/scripts/version-setup.sh
-        - ../ci/scripts/version-setup.sh
+        - npm install -g composer-version
+        - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php"'
         - git init
         - git add -A
