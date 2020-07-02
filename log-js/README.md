@@ -1,4 +1,4 @@
-![npm](https://img.shields.io/npm/v/fyipe-log-js)
+[![npm](https://img.shields.io/npm/v/fyipe-log-js)](https://www.npmjs.com/package/fyipe-log-js)
 
 # Fyipe Application Logger
 
