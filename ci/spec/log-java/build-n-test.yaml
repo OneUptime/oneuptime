@@ -13,7 +13,7 @@ build_n_test_log-java:
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd log-java
-        - mvn --settings .m2/settings.xml clean
+        - mvn --settings=.m2/settings.xml clean
         - mvn clean install
         - mvn clean test
     except:
