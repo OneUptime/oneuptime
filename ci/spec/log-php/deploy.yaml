@@ -18,7 +18,6 @@ deploy_staging_log-php:
         - git init
         - git add -A
         - git commit -m "staging deployment"
-        - git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git staging --force
         - cd ..
     except:
