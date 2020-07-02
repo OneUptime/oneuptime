@@ -18,7 +18,7 @@ deploy_staging_log-js:
         - git init
         - git add -A
         - git commit -m "staging deployment"
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git staging --force
         - cd ..
     only:
         refs:
@@ -45,6 +45,7 @@ deploy_production_server-monitor:
         - git init
         - git add -A
         - git commit -m "production deployment"
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
         - cd ..
     only:
         refs:
