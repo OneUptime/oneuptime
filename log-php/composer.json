@@ -37,5 +37,6 @@
         "test": "./vendor/bin/phpunit",
         "lint": "./vendor/bin/phplint ./ --exclude=vendor",
         "analyze": "./vendor/bin/phpstan analyse -l 5 src tests"
-    }
+    },
+    "version": "0.0.0"
 }
