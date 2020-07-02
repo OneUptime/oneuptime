@@ -1,3 +1,5 @@
+![npm](https://img.shields.io/npm/v/fyipe-log-js)
+
 # Fyipe Application Logger
 
 A fyipe application logger that can be used to send logs about your applications created on your fypie dashboard
