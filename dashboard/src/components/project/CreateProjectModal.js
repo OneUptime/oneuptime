@@ -31,9 +31,9 @@ export class CreateProjectModal extends Component {
             if (res.error) {
                 throw new SubmissionError({ _error: res.error.message });
             }
-            let { path } = this.props.match;
-            path = path.replace(':projectId', res._id);
-            this.props.history.push(path);
+            // let { path } = this.props.match;
+            // path = path.replace(':projectId', res._id);
+            // this.props.history.push(path);
             this.props.hideForm();
         });
     }

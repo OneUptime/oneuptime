@@ -316,6 +316,40 @@ describe('Monitor API', () => {
     );
 
     test(
+        'should display monitor status (online or degraded) for monitor with large request or response header',
+        async () => {
+            const largeHeaderMonitorName = utils.generateRandomString();
+
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', largeHeaderMonitorName);
+                await init.selectByText('#type', 'url', page);
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type(
+                    '#url',
+                    'https://www.prepaiddigitalsolutions.com/'
+                );
+                await page.click('button[type=submit]');
+                await page.waitFor(280000);
+
+                let monitorStatus = await page.waitForSelector(
+                    `#monitor-status-${largeHeaderMonitorName}`,
+                    { visible: true }
+                );
+                monitorStatus = await monitorStatus.getProperty('innerText');
+                monitorStatus = await monitorStatus.jsonValue();
+                expect(monitorStatus).toMatch(/Online|Degraded/);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'should degrade (not timeout and return status code 408) monitor with response time longer than 60000ms and status code 200',
         async () => {
             const bodyText = utils.generateRandomString();

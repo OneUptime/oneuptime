@@ -47,8 +47,21 @@ export class FormModal extends Component {
             openModal({
                 id: this.state.messageModalId,
                 content: DataPathHoC(MessageBox, {
-                    message:
-                        'Please contact sales if you wish to add more than 100 members on the project',
+                    message: (
+                        <span>
+                            Please{' '}
+                            <a
+                                href="mailto: sales@fyipe.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ textDecoration: 'underline' }}
+                            >
+                                contact sales
+                            </a>{' '}
+                            if you wish to add more than 100 members to the
+                            project
+                        </span>
+                    ),
                     title: 'You cannot add more than 100 members',
                     messageBoxId: this.state.messageModalId,
                 }),
