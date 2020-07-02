@@ -17,9 +17,7 @@ deploy_staging_log-php:
         - json -I -f composer.json -e 'this.name="fyipe/log-php-staging"'
         - git init
         - git add -A
-        - git commit -m "staging deployment"
-        - git pull https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git master --allow-unrelated-histories
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git master --force
+        - git commit -m "staging update"
         - cd ..
     except:
         refs:
@@ -47,7 +45,6 @@ deploy_production_log-php:
         - git init
         - git add -A
         - git commit -m "production deployment"
-        - git pull https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git master --allow-unrelated-histories
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git master --force
         - cd ..
     except:
