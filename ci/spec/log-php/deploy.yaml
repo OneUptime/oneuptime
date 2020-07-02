@@ -20,7 +20,7 @@ deploy_staging_log-php:
         - git commit -m "staging deployment"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git deploy_staging --force
         - cd ..
-    except:
+    only:
         refs:
             - hotfix-master
             - hotfix-release
@@ -48,7 +48,7 @@ deploy_production_log-php:
         - git commit -m "production deployment"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git master --force
         - cd ..
-    except:
+    only:
         refs:
             - hotfix-master
             - hotfix-release
