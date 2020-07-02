@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import PropTypes from 'prop-types';
+import PropTypes, { string } from 'prop-types';
 import { closeModal } from '../../actions/modal';
 
 class MessageBox extends Component {
@@ -18,7 +18,14 @@ class MessageBox extends Component {
     };
 
     render() {
-        const { title, message, messageBoxId } = this.props;
+        const { data } = this.props;
+        let { title, message, messageBoxId } = this.props;
+        if (data) {
+            title = data.title;
+            message = data.message;
+            messageBoxId = data.messageBoxId;
+        }
+
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -73,6 +80,11 @@ MessageBox.propTypes = {
     title: PropTypes.string,
     message: PropTypes.string,
     messageBoxId: PropTypes.string,
+    data: PropTypes.shape({
+        title: PropTypes.string,
+        message: PropTypes.string,
+        messageBoxId: string,
+    }),
 };
 
 const mapStateToProps = state => {
