@@ -19,24 +19,24 @@ function Color({
             <div
                 onClick={handleClick}
                 style={{
-                    padding: '3px',
-                    background: '#fff',
-                    borderRadius: '1px',
-                    boxShadow: '0 0 0 1px rgba(0,0,0,.1)',
+                    margin: '3px',
+                    borderRadius: '5px',
                     display: 'inline-block',
                     cursor: 'pointer',
-                    width: '36px',
+                    width: '27px',
                     height: '27px',
+                    borderColor: '#bd5858',
+                    borderWidth: '1px',
                 }}
                 id={props.id}
             >
                 <div
                     style={{
                         padding: '3px',
-                        width: '30px',
-                        height: '20px',
-                        borderRadius: '1px',
-                        boxShadow: '0 0 0 1px rgba(0,0,0,.1)',
+                        width: '25px',
+                        height: '25px',
+                        borderRadius: '5px',
+                        boxShadow: 'rgba(0, 0, 0, 0.1) 0px 0px 1px 1px',
                         background: `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`,
                     }}
                 />
