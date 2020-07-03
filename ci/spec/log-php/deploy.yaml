@@ -47,7 +47,7 @@ deploy_production_log-php:
         - git commit -m "production deployment"
         - git status
         - git checkout master
-        - composer-version patch
+        # - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php"'
         - git add .
         - git commit -m "production deployment"
