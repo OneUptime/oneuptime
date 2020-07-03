@@ -10,6 +10,8 @@ deploy_staging_log-js:
         - sudo apt-get install -y nodejs
         - cd log-js
         - sudo npm install -g json
+        - git add .
+        - git commit -m "staging deployment"
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe-log-js-staging"'
@@ -37,12 +39,13 @@ deploy_production_server-monitor:
         - sudo npm install -g json
         - cd log-js
         - sudo npm install -g json
+        - git add .
+        - git commit -m "production deployment"
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe-log-js"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
-        - git init
         - git add .
         - git commit -m "production deployment"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
