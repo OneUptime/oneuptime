@@ -12,7 +12,8 @@ build_n_test_log-java:
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
-        - sudo apt install -y default-jdk
+        - sudo update-alternatives --config java
+        - sudo apt-get install -y openjdk-8-jdk
         - sudo update-ca-certificates -f
         - sudo apt install ca-certificates-java --reinstall
         - cp -f log-java/.m2/settings.xml $HOME/.m2/settings.xml

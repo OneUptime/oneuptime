@@ -8,6 +8,7 @@ audit_log-java:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y maven
+        - sudo update-alternatives --config java
         - sudo apt install -y default-jdk
         - sudo update-ca-certificates -f
         - sudo apt install ca-certificates-java --reinstall
