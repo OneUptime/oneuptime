@@ -16,7 +16,6 @@ deploy_staging_log-php:
         - git branch
         - git add .
         - git commit -m "staging deployment"
-        - git checkout -b staging
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php-staging"'
         - git add .
