@@ -23,7 +23,7 @@ const ProcessedDescription = text => {
 
 ProcessedDescription.displayName = 'ProcessedDescription';
 
-const WebsiteIssuesList = ({ monitorIssue }) => {
+const WebsiteIssuesList = ({ issues }) => {
     return (
         <div>
             <table id="websiteIssuesList" className="Table">
@@ -52,8 +52,8 @@ const WebsiteIssuesList = ({ monitorIssue }) => {
                     </tr>
                 </thead>
                 <tbody className="Table-body">
-                    {monitorIssue.data && monitorIssue.data.length > 0 ? (
-                        monitorIssue.data.map((issue, i) => {
+                    {issues && issues.length > 0 ? (
+                        issues.map((issue, i) => {
                             return (
                                 <tr
                                     id={`website_issues_${i}`}
@@ -104,8 +104,8 @@ const WebsiteIssuesList = ({ monitorIssue }) => {
                     padding: '10px 20px 20px',
                 }}
             >
-                {!monitorIssue.data || !monitorIssue.data.length
-                    ? "We don't have any activity yet"
+                {!issues || !issues.length
+                    ? "We don't have any issues yet"
                     : null}
             </div>
         </div>
@@ -115,7 +115,7 @@ const WebsiteIssuesList = ({ monitorIssue }) => {
 WebsiteIssuesList.displayName = 'IncidentTimelineList';
 
 WebsiteIssuesList.propTypes = {
-    monitorIssue: PropTypes.object,
+    issues: PropTypes.array,
 };
 
 export default WebsiteIssuesList;

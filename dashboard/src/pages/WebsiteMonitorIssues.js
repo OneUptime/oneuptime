@@ -9,6 +9,42 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import WebsiteIssuesList from '../components/monitor/WebsiteIssuesList';
+import ShouldRender from '../components/basic/ShouldRender';
+
+const WebsiteIssuesBox = ({ category, description, issues }) => {
+    return (
+        <div className="Box-root Margin-bottom--12">
+            <div className="bs-ContentSection Card-root Card-shadow--medium">
+                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span>
+                                    {category} Issues ({issues && issues.length}
+                                    )
+                                </span>
+                            </span>
+                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                <span>{description}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div className="bs-ContentSection Card-root Card-shadow--medium">
+                    <WebsiteIssuesList issues={issues} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+WebsiteIssuesBox.displayName = 'WebsiteIssuesBox';
+
+WebsiteIssuesBox.propTypes = {
+    category: PropTypes.string,
+    description: PropTypes.string,
+    issues: PropTypes.array,
+};
 
 class WebsiteMonitorIssues extends React.Component {
     constructor(props) {
@@ -220,34 +256,74 @@ class WebsiteMonitorIssues extends React.Component {
                         </div>
                     </div>
 
-                    <div className="bs-ContentSection Card-root Card-shadow--medium">
-                        <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                    <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                        <span>
-                                            Website Issues (
-                                            {monitorState.monitorIssue.data &&
-                                                monitorState.monitorIssue.data
-                                                    .length}
-                                            )
-                                        </span>
-                                    </span>
-                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                        <span>
-                                            Here&#39;s the list of issues for{' '}
-                                            {monitorState.monitorIssue.url}.
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                            <WebsiteIssuesList
-                                monitorIssue={monitorState.monitorIssue}
-                            />
-                        </div>
-                    </div>
+                    <ShouldRender
+                        if={
+                            monitorState.monitorIssue.data &&
+                            monitorState.monitorIssue.data.performance
+                        }
+                    >
+                        <WebsiteIssuesBox
+                            category="Performance"
+                            description="These checks ensure that your page is optimized for users to be able to see and interact with page content."
+                            issues={monitorState.monitorIssue.data.performance}
+                        />
+                    </ShouldRender>
+
+                    <ShouldRender
+                        if={
+                            monitorState.monitorIssue.data &&
+                            monitorState.monitorIssue.data.accessibility
+                        }
+                    >
+                        <WebsiteIssuesBox
+                            category="Accessibility"
+                            description="These checks highlight opportunities to improve the accessibility of your web app."
+                            issues={
+                                monitorState.monitorIssue.data.accessibility
+                            }
+                        />
+                    </ShouldRender>
+
+                    <ShouldRender
+                        if={
+                            monitorState.monitorIssue.data &&
+                            monitorState.monitorIssue.data.bestPractices
+                        }
+                    >
+                        <WebsiteIssuesBox
+                            category="Best Practices"
+                            description="These checks highlight opportunities to improve the overall code health of your web app."
+                            issues={
+                                monitorState.monitorIssue.data.bestPractices
+                            }
+                        />
+                    </ShouldRender>
+
+                    <ShouldRender
+                        if={
+                            monitorState.monitorIssue.data &&
+                            monitorState.monitorIssue.data.seo
+                        }
+                    >
+                        <WebsiteIssuesBox
+                            category="SEO"
+                            description="These checks ensure that your page is optimized for search engine results ranking."
+                            issues={monitorState.monitorIssue.data.seo}
+                        />
+                    </ShouldRender>
+
+                    <ShouldRender
+                        if={
+                            monitorState.monitorIssue.data &&
+                            monitorState.monitorIssue.data.pwa
+                        }
+                    >
+                        <WebsiteIssuesBox
+                            category="PWA"
+                            description="These checks validate the aspects of a Progressive Web App."
+                            issues={monitorState.monitorIssue.data.pwa}
+                        />
+                    </ShouldRender>
                 </>
             );
         } else {
