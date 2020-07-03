@@ -41,8 +41,6 @@ deploy_production_log-js:
         - json -I -f package.json -e 'this.name="fyipe-log-js"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
-        - git add .
-        - git commit -m "production deployment"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
         - cd ..
     except:
