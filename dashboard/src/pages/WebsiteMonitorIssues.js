@@ -11,9 +11,9 @@ import getParentRoute from '../utils/getParentRoute';
 import WebsiteIssuesList from '../components/monitor/WebsiteIssuesList';
 import ShouldRender from '../components/basic/ShouldRender';
 
-const WebsiteIssuesBox = ({ category, description, issues }) => {
+const WebsiteIssuesBox = ({ id, category, description, issues }) => {
     return (
-        <div className="Box-root Margin-bottom--12">
+        <div id={id} className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
@@ -41,6 +41,7 @@ const WebsiteIssuesBox = ({ category, description, issues }) => {
 WebsiteIssuesBox.displayName = 'WebsiteIssuesBox';
 
 WebsiteIssuesBox.propTypes = {
+    id: PropTypes.string,
     category: PropTypes.string,
     description: PropTypes.string,
     issues: PropTypes.array,
@@ -263,6 +264,7 @@ class WebsiteMonitorIssues extends React.Component {
                         }
                     >
                         <WebsiteIssuesBox
+                            id="performance"
                             category="Performance"
                             description="These checks ensure that your page is optimized for users to be able to see and interact with page content."
                             issues={monitorState.monitorIssue.data.performance}
@@ -276,6 +278,7 @@ class WebsiteMonitorIssues extends React.Component {
                         }
                     >
                         <WebsiteIssuesBox
+                            id="accessibility"
                             category="Accessibility"
                             description="These checks highlight opportunities to improve the accessibility of your web app."
                             issues={
@@ -291,6 +294,7 @@ class WebsiteMonitorIssues extends React.Component {
                         }
                     >
                         <WebsiteIssuesBox
+                            id="bestPractices"
                             category="Best Practices"
                             description="These checks highlight opportunities to improve the overall code health of your web app."
                             issues={
@@ -306,6 +310,7 @@ class WebsiteMonitorIssues extends React.Component {
                         }
                     >
                         <WebsiteIssuesBox
+                            id="seo"
                             category="SEO"
                             description="These checks ensure that your page is optimized for search engine results ranking."
                             issues={monitorState.monitorIssue.data.seo}
@@ -319,6 +324,7 @@ class WebsiteMonitorIssues extends React.Component {
                         }
                     >
                         <WebsiteIssuesBox
+                            id="pwa"
                             category="PWA"
                             description="These checks validate the aspects of a Progressive Web App."
                             issues={monitorState.monitorIssue.data.pwa}
