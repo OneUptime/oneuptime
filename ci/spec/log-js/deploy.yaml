@@ -36,8 +36,6 @@ deploy_production_log-js:
         - cd log-js
         - sudo npm install -g json
         - git checkout -f master
-        - git add .
-        - git commit -m "production deployment"
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe-log-js"'
