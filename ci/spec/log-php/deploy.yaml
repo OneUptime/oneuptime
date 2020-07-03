@@ -14,7 +14,7 @@ deploy_staging_log-php:
         - sudo npm install -g json composer-version
         - cd log-php
         - git branch
-        - git checkout staging
+        - git checkout -f staging
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php-staging"'
         - git add .
@@ -46,7 +46,7 @@ deploy_production_log-php:
         - git add .
         - git commit -m "production deployment"
         - git status
-        - git checkout master
+        - git checkout -f master
         # - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php"'
         - git add .
