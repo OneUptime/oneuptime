@@ -17,6 +17,7 @@ audit_log-java:
         - sudo update-ca-certificates — fresh
         - cp -f log-java/.m2/settings.xml $HOME/.m2/settings.xml
         - cat $HOME/.m2/settings.xml
+        - java -version
         - cd log-java
         - mvn -e -X clean
         - cd ..
