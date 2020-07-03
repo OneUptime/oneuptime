@@ -16,12 +16,12 @@ deploy_staging_log-php:
         - git branch
         - git add .
         - git commit -m "staging deployment"
-        - git checkout deploy_staging
+        - git checkout -b staging
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php-staging"'
         - git add .
         - git commit -m "staging deployment"
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git deploy_staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git staging --force
         - cd ..
     except:
         refs:
