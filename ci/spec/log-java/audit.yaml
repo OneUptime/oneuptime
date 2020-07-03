@@ -10,6 +10,7 @@ audit_log-java:
         - sudo apt-get install -y maven
         - sudo update-alternatives --config java
         - sudo apt install -y default-jdk
+        - sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
         - sudo update-ca-certificates -f
         - sudo apt install ca-certificates-java --reinstall
         - cp -f log-java/.m2/settings.xml $HOME/.m2/settings.xml
