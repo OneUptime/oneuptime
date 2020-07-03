@@ -1,16 +1,31 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
+import { reduxForm, Field } from 'redux-form';
+import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, Validate } from '../../config';
 import { logEvent } from '../../analytics';
 import { bindActionCreators } from 'redux';
 import { deleteAccount } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
 import { teamLoading, subProjectTeamLoading } from '../../actions/team';
+import { trim } from 'lodash';
+
+function validate(values) {
+    const errors = {};
+
+    if (!Validate.text(values.name)) {
+        errors.name = 'This field cannot be empty';
+    }
+    return errors;
+}
 
 class DeleteAccount extends Component {
+    state = {
+        deleteMyAccount: false,
+    };
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -18,18 +33,6 @@ class DeleteAccount extends Component {
             default:
                 return false;
         }
-    };
-
-    deleteAccount = () => {
-        const userId = this.props.profileSettings.data.id;
-        const promise = this.props.deleteAccount(userId);
-        this.props.logoutUser();
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROFILE > ACCOUNT DELETED', {
-                userId,
-            });
-        }
-        return promise;
     };
 
     ownProjects = userId => {
@@ -61,12 +64,32 @@ class DeleteAccount extends Component {
         });
     };
 
+    onChange = event => {
+        const { value } = event.target;
+        const deleteMyAccount =
+            trim(value.toUpperCase()) === 'DELETE MY ACCOUNT' ? true : false;
+        this.setState({ deleteMyAccount });
+    };
+
+    submitForm = values => {
+        const userId = this.props.profileSettings.data.id;
+        const promise = this.props.deleteAccount(userId, values);
+        this.props.logoutUser();
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('EVENT: DASHBOARD > PROFILE > ACCOUNT DELETED', {
+                userId,
+            });
+        }
+        return promise;
+    };
+
     render() {
         const deleting = this.props.deleteAccountSetting.requesting;
-        const { profileSettings } = this.props;
+        const { profileSettings, handleSubmit } = this.props;
         const userId = profileSettings.data.id;
         const shouldRender =
             this.projectsWithoutMultipleOwners(userId).length > 0;
+        const { deleteMyAccount } = this.state;
 
         return (
             <div
@@ -80,57 +103,85 @@ class DeleteAccount extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Confirm Deletion</span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <ShouldRender if={shouldRender}>
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        You are the owner of the following
-                                        projects, you need to make someone else
-                                        the owner of these projects before you
-                                        can delete your account.
-                                    </span>
-                                    <div className="bs-Fieldset-row">
-                                        <ul>
-                                            {this.renderOwnProjects(userId)}
-                                        </ul>
+                            <form onSubmit={handleSubmit(this.submitForm)}>
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Confirm Deletion</span>
+                                        </span>
                                     </div>
-                                </ShouldRender>
-                                <ShouldRender if={!shouldRender}>
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        Are you sure you want to delete your
-                                        account?
-                                    </span>
-                                </ShouldRender>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
-                                        type="button"
-                                        onClick={this.props.closeThisDialog}
-                                    >
-                                        <span>Cancel</span>
-                                    </button>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <ShouldRender if={shouldRender}>
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            You are the owner of the following
+                                            projects, you need to make someone
+                                            else the owner of these projects
+                                            before you can delete your account.
+                                        </span>
+                                        <div className="bs-Fieldset-row">
+                                            <ul>
+                                                {this.renderOwnProjects(userId)}
+                                            </ul>
+                                        </div>
+                                    </ShouldRender>
                                     <ShouldRender if={!shouldRender}>
-                                        <button
-                                            id="btn_confirm_delete"
-                                            className="bs-Button bs-DeprecatedButton bs-Button--red"
-                                            type="button"
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            Deleting your account will delete
+                                            all the projects ownened by you. If
+                                            you are a member of any projects,
+                                            you will automaitally be removed
+                                            from those projects. Please type
+                                            exactly - &#34;DELETE MY
+                                            ACCOUNT&#34; in the textbox below to
+                                            delete your account.
+                                        </span>
+                                        <Field
+                                            required={true}
+                                            component="input"
+                                            name="deleteMyAccount"
+                                            placeholder="DELETE MY ACCOUNT"
+                                            id="deleteMyAccount"
+                                            className="bs-TextInput"
+                                            style={{
+                                                width: '100%',
+                                                margin: '10px 0 10px 0',
+                                                textTransform: 'uppercase',
+                                            }}
+                                            onChange={this.onChange}
                                             disabled={deleting}
-                                            onClick={this.deleteAccount}
-                                        >
-                                            {!deleting && <span>Delete</span>}
-                                            {deleting && <FormLoader />}
-                                        </button>
+                                        />
                                     </ShouldRender>
                                 </div>
-                            </div>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                            type="button"
+                                            onClick={this.props.closeThisDialog}
+                                        >
+                                            <span>Cancel</span>
+                                        </button>
+                                        <ShouldRender
+                                            if={
+                                                !shouldRender && deleteMyAccount
+                                            }
+                                        >
+                                            <button
+                                                id="btn_confirm_delete"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                                type="submit"
+                                                disabled={deleting}
+                                            >
+                                                {!deleting && (
+                                                    <span>Delete</span>
+                                                )}
+                                                {deleting && <FormLoader />}
+                                            </button>
+                                        </ShouldRender>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -140,6 +191,11 @@ class DeleteAccount extends Component {
 }
 
 DeleteAccount.displayName = 'DeleteAccount';
+
+const DeleteAccountForm = reduxForm({
+    form: 'DeleteAccount',
+    validate,
+})(DeleteAccount);
 
 DeleteAccount.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
@@ -151,6 +207,7 @@ DeleteAccount.propTypes = {
     deleteAccount: PropTypes.func,
     logoutUser: PropTypes.func,
     projects: PropTypes.array,
+    handleSubmit: PropTypes.func,
 };
 
 const mapStateToProps = state => {
@@ -168,4 +225,4 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-export default connect(mapStateToProps, mapDispatchToProps)(DeleteAccount);
+export default connect(mapStateToProps, mapDispatchToProps)(DeleteAccountForm);
