@@ -27,7 +27,7 @@ deploy_staging_log-js:
     environment:
         name: staging
 
-deploy_production_server-monitor:
+deploy_production_log-js:
     stage: Deploy
     script:
         - sudo apt-get update
@@ -36,8 +36,8 @@ deploy_production_server-monitor:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - cd log-js
-        - git checkout -f master
         - sudo npm install -g json
+        - git checkout -f master
         - git add .
         - git commit -m "production deployment"
         - chmod +x ../ci/scripts/version-setup.sh
