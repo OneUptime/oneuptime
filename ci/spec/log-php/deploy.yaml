@@ -47,8 +47,6 @@ deploy_production_log-php:
         - git status
         - git checkout -f master
         - json -I -f composer.json -e 'this.name="fyipe/log-php"'
-        - git add .
-        - git commit -m "production deployment"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git master --force
         - cd ..
     except:
