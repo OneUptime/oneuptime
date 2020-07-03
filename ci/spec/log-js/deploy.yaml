@@ -8,16 +8,14 @@ deploy_staging_log-js:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
-        - sudo npm install -g json
         - cd log-js
-        - git add -A
-        - git commit -m "staging deployment"
+        - sudo npm install -g json
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe-log-js-staging"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
-        - git add -A
+        - git add .
         - git commit -m "staging deployment"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git staging --force
         - cd ..
