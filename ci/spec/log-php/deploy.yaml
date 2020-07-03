@@ -13,11 +13,12 @@ deploy_staging_log-php:
         - sudo apt-get install -y composer
         - sudo npm install -g json composer-version
         - cd log-php
+        - git status
+        - git checkout deploy_staging
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php-staging"'
         - git add .
         - git commit -m "staging deployment"
-        - git checkout deploy_staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git deploy_staging --force
         - cd ..
     except:
@@ -40,11 +41,12 @@ deploy_production_log-php:
         - sudo apt-get install -y composer
         - sudo npm install -g json composer-version
         - cd log-php
+        - git status
+        - git checkout master
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php"'
         - git add .
         - git commit -m "production deployment"
-        - git checkout master
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git master --force
         - cd ..
     except:
