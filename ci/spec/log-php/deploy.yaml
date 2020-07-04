@@ -42,9 +42,6 @@ deploy_production_log-php:
         - sudo npm install -g json composer-version
         - cd log-php
         - git status
-        - git add .
-        - git commit -m "production deployment"
-        - git status
         - git checkout -f master
         - json -I -f composer.json -e 'this.name="fyipe/log-php"'
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git master --force
