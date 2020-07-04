@@ -150,6 +150,7 @@ class DeleteAccount extends Component {
                                             }}
                                             onChange={this.onChange}
                                             disabled={deleting}
+                                            autocomplete="off"
                                         />
                                     </ShouldRender>
                                 </div>
