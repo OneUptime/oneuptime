@@ -618,9 +618,9 @@ export function deleteAccountFailure(error) {
     };
 }
 
-export function deleteAccount(userId) {
+export function deleteAccount(userId, confirmation) {
     return function(dispatch) {
-        const promise = deleteApi(`user/${userId}/delete`);
+        const promise = deleteApi(`user/${userId}/delete`, confirmation);
         dispatch(deleteAccountRequest());
 
         promise.then(

@@ -132,7 +132,7 @@ describe('Profile -> Delete Account Component test', () => {
     );
 
     test(
-        'Should delete account with multiple projects -> multiple users -> multiple owners',
+        'Should delete account without user confirmation',
         async () => {
             const role = 'Owner';
             const projectName = 'Project1';
@@ -163,6 +163,33 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#userProfile');
                 await page.waitForSelector('button[id=btn_delete_account]');
                 await page.click('button[id=btn_delete_account]');
+                const deleteButton = await page.$(
+                    'button[id=btn_confirm_delete]'
+                );
+                expect(deleteButton).toEqual(null);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should delete account with multiple projects -> multiple users -> multiple owners',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+
+                // Navigate to profile page and delete account
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('button[id=btn_delete_account]');
+                await page.click('button[id=btn_delete_account]');
+                await page.waitForSelector('input[name=deleteMyAccount]');
+                await page.type(
+                    'input[name=deleteMyAccount]',
+                    'DELETE MY ACCOUNT'
+                );
                 await page.waitForSelector('button[id=btn_confirm_delete]');
                 await page.click('button[id=btn_confirm_delete]');
             });
