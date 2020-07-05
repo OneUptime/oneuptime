@@ -16,9 +16,20 @@ import projectTeamMemberNotification from './projectTeamMemberNotification.js';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, Validate } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import MessageBox from './MessageBox';
+
+function validate(values) {
+    const errors = {};
+
+    const emails = values.emails ? values.emails.split(',') : [];
+    if (!Validate.isValidBusinessEmails(emails)) {
+        errors.emails = 'Please enter business emails of the members.';
+    }
+
+    return errors;
+}
 
 export class FormModal extends Component {
     constructor(props) {
@@ -43,29 +54,10 @@ export class FormModal extends Component {
         values.projectId = data.subProjectId;
 
         const { role, emails } = values;
-        if (role !== 'Viewer' && emails.split(',').length > 100) {
-            openModal({
-                id: this.state.messageModalId,
-                content: DataPathHoC(MessageBox, {
-                    message: (
-                        <span>
-                            Please{' '}
-                            <a
-                                href="mailto: sales@fyipe.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ textDecoration: 'underline' }}
-                            >
-                                contact sales
-                            </a>{' '}
-                            if you wish to add more than 100 members to the
-                            project
-                        </span>
-                    ),
-                    title: 'You cannot add more than 100 members',
-                    messageBoxId: this.state.messageModalId,
-                }),
-            });
+        const emailArray = emails ? emails.split(',') : [];
+
+        if (role !== 'Viewer' && emailArray.length > 100) {
+            this.showMessageBox();
         }
 
         if (
@@ -116,6 +108,29 @@ export class FormModal extends Component {
                 return false;
         }
     };
+
+    showMessageBox = () =>
+        this.props.openModal({
+            id: this.state.messageModalId,
+            content: DataPathHoC(MessageBox, {
+                message: (
+                    <span>
+                        Please{' '}
+                        <a
+                            href="mailto: sales@fyipe.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ textDecoration: 'underline' }}
+                        >
+                            contact sales
+                        </a>{' '}
+                        if you wish to add more than 100 members to the project
+                    </span>
+                ),
+                title: 'You cannot add more than 100 members',
+                messageBoxId: this.state.messageModalId,
+            }),
+        });
 
     render() {
         const { handleSubmit, closeThisDialog, data } = this.props;
@@ -183,7 +198,7 @@ export class FormModal extends Component {
                                                                             type="text"
                                                                             name="emails"
                                                                             id={`emails_${data.subProjectName}`}
-                                                                            placeholder="bob@example.com, alice@example.com, etc."
+                                                                            placeholder="bob@hackerbay.com, alice@hackerbay.com, etc."
                                                                             component={
                                                                                 RenderField
                                                                             }
@@ -461,6 +476,7 @@ FormModal.displayName = 'InviteMemberFormModal';
 
 const InviteTeamMemberForm = reduxForm({
     form: 'InviteTeamMember', // a unique identifier for this form
+    validate,
 })(FormModal);
 
 const mapDispatchToProps = dispatch => {
