@@ -68,6 +68,7 @@ const fetchIdpSAMLResponse = async function({
 };
 
 let projectId, userId, airtableId, token;
+const deleteAccountConfirmation = { deleteMyAccount: 'DELETE MY ACCOUNT' };
 
 describe('User API', function() {
     this.timeout(20000);
@@ -494,11 +495,23 @@ describe('User API', function() {
             });
     });
 
+    it('should not delete account without confirmation from the user', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .delete(`/user/${userId}/delete`)
+            .set('Authorization', authorization)
+            .end(function(_err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
     it('should delete user account and cancel all subscriptions', function(done) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
+            .send(deleteAccountConfirmation)
             .end(function(_err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.user.deleted).to.equal(true);
@@ -511,6 +524,7 @@ describe('User API', function() {
         request
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
+            .send(deleteAccountConfirmation)
             .end(function(_err, res) {
                 expect(res).to.have.status(401);
                 done();
@@ -553,6 +567,7 @@ describe('User API', function() {
                                         request
                                             .delete(`/user/${userId}/delete`)
                                             .set('Authorization', authorization)
+                                            .send(deleteAccountConfirmation)
                                             .end(function(_err, res) {
                                                 expect(res).to.have.status(200);
                                                 expect(

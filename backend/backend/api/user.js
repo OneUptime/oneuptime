@@ -1286,6 +1286,13 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
                 message: 'No user associated with this account',
             });
         }
+        const { deleteMyAccount } = req.body;
+        if (deleteMyAccount !== 'DELETE MY ACCOUNT') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'No confirmation was provided by the user',
+            });
+        }
 
         const { projects } = user;
         projects
