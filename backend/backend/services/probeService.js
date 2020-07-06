@@ -554,14 +554,14 @@ module.exports = {
             const cloneDirectory = `${uuidv1()}security`; // always create unique paths
             const repoPath = Path.resolve(securityDir, cloneDirectory);
 
-            // update application security to scanned true
+            // update application security to scanning true
             // to prevent pulling an applicaiton security multiple times by running cron job
             // due to network delay
             await ApplicationSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
-                { scanned: true }
+                { scanning: true }
             );
 
             return new Promise((resolve, reject) => {
@@ -669,7 +669,7 @@ module.exports = {
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
                         deleteFolderRecursive(securityDir);
                         ErrorService.log(
@@ -697,14 +697,14 @@ module.exports = {
             const outputFile = `${uuidv1()}result.json`;
             let securityDir = 'container_security_dir';
             securityDir = await createDir(securityDir);
-            // update container security to scanned true
+            // update container security to scanning true
             // so the cron job does not pull it multiple times due to network delays
             // since the cron job runs every minute
             await ContainerSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
-                { scanned: true }
+                { scanning: true }
             );
 
             return new Promise((resolve, reject) => {
@@ -730,7 +730,7 @@ module.exports = {
                         {
                             _id: security._id,
                         },
-                        { scanned: false }
+                        { scanning: false }
                     );
                     deleteFolderRecursive(securityDir);
                     return reject(error);
@@ -750,7 +750,7 @@ module.exports = {
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
                         deleteFolderRecursive(securityDir);
                         return reject(error);
@@ -773,7 +773,7 @@ module.exports = {
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
                         deleteFolderRecursive(securityDir);
                         return reject(error);

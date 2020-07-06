@@ -208,6 +208,7 @@ module.exports = {
             const applicationSecurity = await this.updateOneBy(query, {
                 lastScan: newDate,
                 scanned: true,
+                scanning: false,
             });
             return applicationSecurity;
         } catch (error) {

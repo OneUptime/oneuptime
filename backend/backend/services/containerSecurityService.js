@@ -200,6 +200,7 @@ module.exports = {
             const containerSecurity = await this.updateOneBy(query, {
                 lastScan: newDate,
                 scanned: true,
+                scanning: false,
             });
             return containerSecurity;
         } catch (error) {
