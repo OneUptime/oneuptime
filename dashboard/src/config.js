@@ -801,3 +801,17 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
 
     return { logs, statuses };
 };
+
+export const logLibraries = {
+    getLibraries() {
+        return [
+            {
+                id: 'js',
+                iconText: 'JavaScript',
+                icon:
+                    'data:image/svg+xml;utf8;base64,PHN2ZyBpZD0iX3gzMV9weCIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMjQgMjQiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSI1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTE5LjUgMjRoLTE1Yy0xLjM3OSAwLTIuNS0xLjEyMi0yLjUtMi41di0xOWMwLTEuMzc4IDEuMTIxLTIuNSAyLjUtMi41aDE1YzEuMzc5IDAgMi41IDEuMTIyIDIuNSAyLjV2MTljMCAxLjM3OC0xLjEyMSAyLjUtMi41IDIuNXptLTE1LTIzYy0uODI3IDAtMS41LjY3My0xLjUgMS41djE5YzAgLjgyNy42NzMgMS41IDEuNSAxLjVoMTVjLjgyNyAwIDEuNS0uNjczIDEuNS0xLjV2LTE5YzAtLjgyNy0uNjczLTEuNS0xLjUtMS41eiIvPjxwYXRoIGQ9Im0xMS41IDIxaC0yYy0uMjc2IDAtLjUtLjIyNC0uNS0uNXMuMjI0LS41LjUtLjVoMmMuMjc1IDAgLjUtLjIyNC41LS41di00YzAtLjI3Ni4yMjQtLjUuNS0uNXMuNS4yMjQuNS41djRjMCAuODI3LS42NzMgMS41LTEuNSAxLjV6Ii8+PHBhdGggZD0ibTE2LjI1IDIxaC0xLjc1Yy0uMjc2IDAtLjUtLjIyNC0uNS0uNXMuMjI0LS41LjUtLjVoMS43NWMuNDEzIDAgLjc1LS4zMzYuNzUtLjc1cy0uMzM3LS43NS0uNzUtLjc1aC0uNWMtLjk2NSAwLTEuNzUtLjc4NS0xLjc1LTEuNzVzLjc4NS0xLjc1IDEuNzUtMS43NWgxLjc1Yy4yNzYgMCAuNS4yMjQuNS41cy0uMjI0LjUtLjUuNWgtMS43NWMtLjQxMyAwLS43NS4zMzYtLjc1Ljc1cy4zMzcuNzUuNzUuNzVoLjVjLjk2NSAwIDEuNzUuNzg1IDEuNzUgMS43NXMtLjc4NSAxLjc1LTEuNzUgMS43NXoiLz48Y2lyY2xlIGN4PSI3IiBjeT0iMjAiIHI9IjEiLz48L3N2Zz4=',
+                link: 'https://github.com/Fyipe/log-js',
+            },
+        ];
+    },
+};
