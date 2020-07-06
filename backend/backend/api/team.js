@@ -143,8 +143,15 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         });
     }
 
-    const numberOfNewMembers = data.emails.split(',').length;
-    if (data.role !== 'Viewer' && numberOfNewMembers > 100) {
+    const emailArray = data.emails ? data.emails.split(',') : [];
+    if (!TeamService.isValidBusinessEmails(emailArray)) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Please enter business emails of the members.',
+        });
+    }
+
+    if (data.role !== 'Viewer' && emailArray.length > 100) {
         return sendErrorResponse(req, res, {
             code: 400,
             message: 'Invited members should not exceed 100 on a project.',
@@ -160,7 +167,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             const withoutViewers = teamMembers
                 ? teamMembers.filter(teamMember => teamMember.role !== 'Viewer')
                 : [];
-            const totalTeamMembers = withoutViewers.length + numberOfNewMembers;
+            const totalTeamMembers = withoutViewers.length + emailArray.length;
             if (totalTeamMembers > 100 && data.role !== 'Viewer') {
                 return sendErrorResponse(req, res, {
                     code: 400,

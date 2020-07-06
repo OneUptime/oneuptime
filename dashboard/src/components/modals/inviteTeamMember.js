@@ -198,7 +198,7 @@ export class FormModal extends Component {
                                                                             type="text"
                                                                             name="emails"
                                                                             id={`emails_${data.subProjectName}`}
-                                                                            placeholder="bob@hackerbay.com, alice@hackerbay.com, etc."
+                                                                            placeholder="bob@example.com, alice@example.com, etc."
                                                                             component={
                                                                                 RenderField
                                                                             }
