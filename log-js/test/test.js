@@ -7,16 +7,18 @@ const expect = chai.expect;
 import { user, generateRandomBusinessEmail } from './util';
 const API_URL = 'http://localhost:3002/api';
 const request = chai.request.agent(API_URL);
+const timeout = 5000;
 
 import Logger from '../src/logger';
 
 describe('Logger', function() {
+    this.timeout(timeout + 1000);
     let projectId, token, componentId, applicationLog;
     // create a new user
     user.email = generateRandomBusinessEmail();
     const component = { name: 'Our Component' };
     before(function(done) {
-        this.timeout(20000);
+        this.timeout(30000);
 
         request
             .post('/user/signup')
