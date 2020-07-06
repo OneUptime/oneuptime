@@ -27,9 +27,21 @@ build_n_test_dashboard:
         - sudo docker ps
         - cd dashboard
         - npm ci
+        - chmod -x ./ci/scripts/hash.sh
+        - chmod -x ./ci/scripts/checkhash.sh
+        # hash the project
+        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
+        # check if hash exist in db
+        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
+        - |
+            if [[ ! hash_exist ]]
+            then 
+              npm run build
+              DOCKERHUBUSERNAME=$DOCKERHUBUSERNAME DOCKERHUBPASSWORD=$DOCKERHUBPASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_USERNAME=$GITHUB_USERNAME GITHUB_PASSWORD=$GITHUB_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm run test
+            fi
         # try building, if there are warnings then this will fail
-        - npm run build
-        - DOCKERHUBUSERNAME=$DOCKERHUBUSERNAME DOCKERHUBPASSWORD=$DOCKERHUBPASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_USERNAME=$GITHUB_USERNAME GITHUB_PASSWORD=$GITHUB_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm run test
+        # - npm run build
+        # - DOCKERHUBUSERNAME=$DOCKERHUBUSERNAME DOCKERHUBPASSWORD=$DOCKERHUBPASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_USERNAME=$GITHUB_USERNAME GITHUB_PASSWORD=$GITHUB_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm run test
     except:
         refs:
             - hotfix-master
@@ -59,9 +71,21 @@ build_n_test_enterprise_dashboard:
         - sudo docker ps
         - cd dashboard
         - npm ci
+        - chmod -x ./ci/scripts/hash.sh
+        - chmod -x ./ci/scripts/checkhash.sh
+        # hash the project
+        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
+        # check if hash exist in db
+        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
+        - |
+            if [[ ! hash_exist ]]
+            then
+              npm run build
+              npm run enterprise-test
+            fi
         # try building, if there are warnings then this will fail
-        - npm run build
-        - npm run enterprise-test
+        # - npm run build
+        # - npm run enterprise-test
     except:
         refs:
             - hotfix-master
