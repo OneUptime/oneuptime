@@ -12,10 +12,12 @@ module.exports = {
             } catch (error) {
                 content = data.content;
             }
+
             log.content = content;
             log.stringifiedContent = JSON.stringify(content);
             log.applicationLogId = data.applicationLogId;
             log.type = data.type;
+            log.tags = data.tags;
             log.createdById = data.createdById;
             const savedlog = await log.save();
             log = await _this.findOneBy({
