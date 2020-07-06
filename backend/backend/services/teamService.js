@@ -223,6 +223,19 @@ module.exports = {
         });
     },
 
+    isValidBusinessEmails: function(emails) {
+        let valid = true;
+        if (emails && emails.length > 0) {
+            for (let i = 0; i < emails.length; i++) {
+                if (!emaildomains.test(emails[i])) {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+        return valid;
+    },
+
     async checkUser(teamMembers, emails) {
         const teamMembersEmail = [];
 
@@ -758,3 +771,4 @@ const RealTimeService = require('../services/realTimeService');
 const ErrorService = require('./errorService');
 const domains = require('../config/domains');
 const { IS_SAAS_SERVICE } = require('../config/server');
+const { emaildomains } = require('../config/emaildomains');
