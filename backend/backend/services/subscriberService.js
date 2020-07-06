@@ -169,8 +169,7 @@ module.exports = {
         try {
             const _this = this;
             const { data, projectId, monitorId } = subscribers;
-            const success = [];
-            data.forEach(async subscriber => {
+            const success = data.map(async subscriber => {
                 const newSubscriber = Object.assign({}, subscriber, {
                     monitorId,
                     projectId,
@@ -179,14 +178,11 @@ module.exports = {
                     newSubscriber
                 );
                 if (!hasSubscribed) {
-                    const createdSubscriber = await _this.create(newSubscriber);
-                    success.push(createdSubscriber);
+                    return await _this.create(newSubscriber);
                 }
+                return [];
             });
-            if (success.length > 0) {
-                return await Promise.all(success);
-            }
-            return null;
+            return await Promise.all(success);
         } catch (error) {
             ErrorService.log('SubscriberService.subscribeFromCSVFile', error);
             throw error;
