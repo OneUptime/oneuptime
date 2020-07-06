@@ -14,6 +14,7 @@ import { logEvent } from '../analytics';
 import { loadPage } from '../actions/page';
 import { ApplicationLogList } from '../components/application/ApplicationLogList';
 import { LoadingState } from '../components/basic/Loader';
+import LibraryList from '../components/application/LibraryList';
 
 class ApplicationLog extends Component {
     componentDidMount() {
@@ -90,6 +91,7 @@ class ApplicationLog extends Component {
                                 >
                                     <TutorialBox type="applicationLog" />
                                 </ShouldRender>
+                                <LibraryList />
                                 {applicationLogsList}
                                 <NewApplicationLog
                                     index={2000}
