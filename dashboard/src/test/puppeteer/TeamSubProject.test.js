@@ -3,6 +3,8 @@ const utils = require('./test-utils');
 const init = require('./test-init');
 const { Cluster } = require('puppeteer-cluster');
 
+require('should');
+
 // parent user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -340,6 +342,60 @@ describe('Team API With SubProjects', () => {
                 await page.waitForSelector('#removeTeamUser');
                 await page.click('#removeTeamUser');
                 await page.waitFor(5000);
+            });
+
+            cluster.queue({ email, password });
+            await cluster.idle();
+            await cluster.close();
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not add team members without business emails',
+        async done => {
+            const cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 120000,
+            });
+            const role = 'Member';
+            const nonBusinessEmail =
+                utils.generateRandomString() + '@gmail.com';
+
+            cluster.on('taskerror', err => {
+                throw err;
+            });
+
+            await cluster.task(async ({ page, data }) => {
+                const user = {
+                    email: data.email,
+                    password: data.password,
+                };
+
+                await init.loginUser(user, page);
+                await page.waitForSelector('#teamMembers');
+                await page.click('#teamMembers');
+                await page.waitForSelector(`button[id=btn_${projectName}]`);
+                await page.click(`button[id=btn_${projectName}]`);
+                await page.waitForSelector('input[name=emails]');
+                await page.click('input[name=emails]');
+                await page.type('input[name=emails]', nonBusinessEmail);
+                await page.waitForSelector(`#${role}_${projectName}`);
+                await page.click(`#${role}_${projectName}`);
+                await page.waitForSelector(`#btn_modal_${projectName}`);
+                await page.click(`#btn_modal_${projectName}`);
+                let spanElement = await page.waitForSelector(
+                    `#frm_${projectName} span#field-error`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(
+                    'Please enter business emails of the members.'
+                );
+                // await page.waitFor(5000);
             });
 
             cluster.queue({ email, password });

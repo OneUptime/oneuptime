@@ -428,7 +428,7 @@ describe('Team API with Sub-Projects', async function() {
                 emails: userData.bulkUsers.emails,
                 role: 'Member',
             })
-            .end(function(err, res) {
+            .end(function(_err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -443,7 +443,23 @@ describe('Team API with Sub-Projects', async function() {
                 emails: userData.otherBulkUsers.emails,
                 role: 'Member',
             })
-            .end(function(err, res) {
+            .end(function(_err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('should not add members without business emails (role -> `Member`)', function(done) {
+        const authorization = `Basic ${token}`;
+        const emails = 'sample.yahoo.com,sample@gmail.com';
+        request
+            .post(`/team/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                emails: emails,
+                role: 'Member',
+            })
+            .end(function(_err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -458,7 +474,7 @@ describe('Team API with Sub-Projects', async function() {
                 emails: userData.moreBulkUsers.emails,
                 role: 'Member',
             })
-            .end(function(err, res) {
+            .end(function(_err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body[0].team.length).to.be.equal(100);
                 done();
