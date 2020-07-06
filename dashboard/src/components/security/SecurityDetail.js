@@ -136,8 +136,10 @@ const SecurityDetail = ({
                                 <Spinner style={{ stroke: '#8898aa' }} />{' '}
                                 <span style={{ width: 10 }} />
                                 We are currently scanning this{' '}
-                                {(type === 'container' && ' docker image') ||
-                                    (type === 'application' && ' repository')}
+                                {(type === 'container' && 'docker image') ||
+                                    (type === 'application' &&
+                                        'repository')}{' '}
+                                and it will take few minutes
                             </div>
                         </div>
                     )}
