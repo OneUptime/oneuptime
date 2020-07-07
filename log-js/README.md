@@ -51,6 +51,14 @@ const item = {
 };
 
 logger.log(item); // returns a promise
+
+// Alternatively, Logs can be tagged with either a string or an array of strings
+const item = 'This is a simple log';
+const tags = ['server', 'script', 'dev'];
+logger.log(item, tags);
+
+const tag = 'testing';
+logger.log(item, tag);
 ```
 
 ## API Documentation
@@ -66,10 +74,9 @@ Main API to send logs to the server.
     -   [Basic Usage](#basic-usage)
     -   [API Documentation](#api-documentation)
         -   [new Logger(apiUrl, applicationId, applicationKey)](#new-loggerapiurl-applicationid-applicationkey)
-            -   [logger.log(log)](#loggerloglog)
-            -   [logger.warning(log)](#loggerwarninglog)
-            -   [logger.error(log)](#loggererrorlog)
-    -   [TODO](#todo)
+            -   [logger.log(log, tags)](#loggerloglog-tags)
+            -   [logger.warning(log, tags)](#loggerwarninglog-tags)
+            -   [logger.error(log, tags)](#loggererrorlog-tags)
 
 <a name="logger_api--logger"></a>
 
@@ -86,40 +93,38 @@ Create a constructor from the class, which will be used to send logs to the serv
 | applicationId  | <code>string</code> | The Application Log ID.  |
 | applicationKey | <code>string</code> | The Application Log Key. |
 
-#### logger.log(log)
+#### logger.log(log, tags)
 
 Logs a request of type `info` to the server.
 
 **Kind**: method of [<code>new Logger</code>](#logger_api--logger)
 **Returns**: <code>Promise</code> - A promise response of a success or failure.
 
-| Param | Type                                       | Description                              |
-| ----- | ------------------------------------------ | ---------------------------------------- |
-| log   | <code>string</code> \| <code>Object</code> | The content to the logged on the server. |
+| Param | Type                                       | Description                                                 |
+| ----- | ------------------------------------------ | ----------------------------------------------------------- |
+| log   | <code>string</code> \| <code>Object</code> | The content to the logged on the server.                    |
+| tags  | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
 
-#### logger.warning(log)
+#### logger.warning(log, tags)
 
 Logs a request of type `warning` to the server.
 
 **Kind**: method of [<code>new Logger</code>](#logger_api--logger)
 **Returns**: <code>Promise</code> - A promise response of a success or failure.
 
-| Param   | Type                                       | Description                              |
-| ------- | ------------------------------------------ | ---------------------------------------- |
-| warning | <code>string</code> \| <code>Object</code> | The content to the logged on the server. |
+| Param | Type                                       | Description                                                 |
+| ----- | ------------------------------------------ | ----------------------------------------------------------- |
+| log   | <code>string</code> \| <code>Object</code> | The content to the logged on the server.                    |
+| tags  | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
 
-#### logger.error(log)
+#### logger.error(log, tags)
 
 Logs a request of type `error` to the server.
 
 **Kind**: method of [<code>new Logger</code>](#logger_api--logger)
 **Returns**: <code>Promise</code> - A promise response of a success or failure.
 
-| Param | Type                                       | Description                              |
-| ----- | ------------------------------------------ | ---------------------------------------- |
-| error | <code>string</code> \| <code>Object</code> | The content to the logged on the server. |
-
-## TODO
-
--   Tags
--   TBD
+| Param | Type                                       | Description                                                 |
+| ----- | ------------------------------------------ | ----------------------------------------------------------- |
+| log   | <code>string</code> \| <code>Object</code> | The content to the logged on the server.                    |
+| tags  | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
