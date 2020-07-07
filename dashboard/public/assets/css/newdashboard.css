@@ -10862,5 +10862,29 @@ table {
       flex-direction: row;
     }
     
+}
+.tag {
+  background: #0c0b0b;
+  border-radius: 3px 0 0 3px;
+  color: white;
+  display: inline-block;
+  height: 26px;
+  line-height: 26px;
+  padding: 0 10px 0 20px;
+  position: relative;
+  margin: 0 10px 10px 0;
+  text-decoration: none;
+  -webkit-transition: color 0.2s;
+  border-radius: 10px;
+}
+.tag::before {
+    background: #fff;
+    border-radius: 10px;
+    content: '';
+    height: 6px;
+    left: 10px;
+    position: absolute;
+    width: 6px;
+    top: 10px;
   }
   
