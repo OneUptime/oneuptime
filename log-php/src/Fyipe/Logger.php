@@ -43,7 +43,7 @@ class Logger
         $this->apiUrl = $apiUrl . '/application-log/' . $this->applicationLogId . '/log';
     }
 
-    private function makeApiRequest($data, String $type): \stdClass
+    private function makeApiRequest($data, String $type, $tags = null): \stdClass
     {
         // make api request and return response
         $client = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
@@ -52,6 +52,9 @@ class Logger
             'type' => $type,
             'applicationLogKey' => $this->applicationLogKey,
         ];
+        if( !is_null($tags)) {
+            $body['tags'] = $tags;
+        }
         try {
             $response = $client->request('POST', '',  ['form_params' => $body]);
 
@@ -64,31 +67,43 @@ class Logger
         }
     }
 
-    public function log($content): \stdClass
+    public function log($content, $tags = null): \stdClass
     {
         if (!(is_object($content) || is_string($content))) {
             throw new \Exception("Invalid Content to be logged");
+        }
+
+        if (!is_null($tags) && !(is_array($tags) || is_string($tags))) {
+            throw new \Exception("Invalid Content Tags to be logged");
         }
 
         $logType = "info";
-        return $this->makeApiRequest($content, $logType);
+        return $this->makeApiRequest($content, $logType, $tags);
     }
-    public function warning($content): \stdClass
+    public function warning($content, $tags = null): \stdClass
     {
         if (!(is_object($content) || is_string($content))) {
             throw new \Exception("Invalid Content to be logged");
+        }
+
+        if (!is_null($tags) && !(is_array($tags) || is_string($tags))) {
+            throw new \Exception("Invalid Content Tags to be logged");
         }
 
         $logType = "warning";
-        return $this->makeApiRequest($content, $logType);
+        return $this->makeApiRequest($content, $logType, $tags);
     }
-    public function error($content): \stdClass
+    public function error($content, $tags = null): \stdClass
     {
         if (!(is_object($content) || is_string($content))) {
             throw new \Exception("Invalid Content to be logged");
         }
 
+        if (!is_null($tags) && !(is_array($tags) || is_string($tags))) {
+            throw new \Exception("Invalid Content Tags to be logged");
+        }
+
         $logType = "error";
-        return $this->makeApiRequest($content, $logType);
+        return $this->makeApiRequest($content, $logType, $tags);
     }
 }

@@ -134,4 +134,48 @@ class LoggerTest extends TestCase
         $this->assertEquals(true, is_object($response->content));
         $this->assertEquals("warning", $response->type);
     }
+    public function test_valid_object_content_of_type_info_with_one_tag_is_logged()
+    {
+        $log = new stdClass();
+        $log->name = "Travis";
+        $log->location = "Atlanta";
+        $tag = "Famous";
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
+        $response = $logger->log($log, $tag);
+        $this->assertEquals($log->name, $response->content->name);
+        $this->assertEquals(true, is_object($response->content));
+        $this->assertEquals("info", $response->type);
+        $this->assertEquals(true, is_array($response->tags));
+        $this->assertEquals($tag, $response->tags[0]);
+
+    }
+    public function test_valid_object_content_of_type_error_with_no_tag_is_logged()
+    {
+        $log = new stdClass();
+        $log->name = "Travis";
+        $log->location = "Atlanta";
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
+        $response = $logger->error($log);
+        $this->assertEquals($log->name, $response->content->name);
+        $this->assertEquals(true, is_object($response->content));
+        $this->assertEquals("error", $response->type);
+        $this->assertEquals(true, is_array($response->tags));
+        $this->assertEquals([], $response->tags);
+    }
+    public function test_valid_object_content_of_type_warning_with_four_tags_is_logged()
+    {
+        $log = new stdClass();
+        $log->name = "Travis";
+        $log->location = "Atlanta";
+        $tag = ['Enough', 'Php', 'Error', 'Serverside'];
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
+        $response = $logger->warning($log, $tag);
+        $this->assertEquals($log->name, $response->content->name);
+        $this->assertEquals(true, is_object($response->content));
+        $this->assertEquals("warning", $response->type);
+        $this->assertEquals(true, is_array($response->tags));
+        $this->assertEquals(sizeof($tag), sizeof($response->tags));
+        $this->assertEquals($tag[1], $response->tags[1]);
+        $this->assertEquals($tag[3], $response->tags[3]);
+    }
 }
