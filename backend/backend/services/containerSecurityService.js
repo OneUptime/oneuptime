@@ -202,6 +202,10 @@ module.exports = {
                 scanned: true,
                 scanning: false,
             });
+            global.io.emit(
+                `security_${containerSecurity._id}`,
+                containerSecurity
+            );
             return containerSecurity;
         } catch (error) {
             ErrorService.log('containerSecurityService.updateScanTime', error);
