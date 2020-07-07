@@ -15,13 +15,6 @@ $ cd project
 $ npm install fyipe-log-js
 ```
 
-### Development
-
--   Clone repository
--   run `npm i` to install dependencies
--   run `npm run test` to run tests
--   run `npm run build` to build for production.
-
 <a name="module_api"></a>
 
 ## Basic Usage
@@ -70,13 +63,13 @@ Main API to send logs to the server.
 -   [Fyipe Application Logger](#fyipe-application-logger)
     -   [Installation](#installation)
         -   [NPM Install](#npm-install)
-        -   [Development](#development)
     -   [Basic Usage](#basic-usage)
     -   [API Documentation](#api-documentation)
         -   [new Logger(apiUrl, applicationId, applicationKey)](#new-loggerapiurl-applicationid-applicationkey)
             -   [logger.log(log, tags)](#loggerloglog-tags)
             -   [logger.warning(log, tags)](#loggerwarninglog-tags)
             -   [logger.error(log, tags)](#loggererrorlog-tags)
+    -   [Contribution](#contribution)
 
 <a name="logger_api--logger"></a>
 
@@ -128,3 +121,10 @@ Logs a request of type `error` to the server.
 | ----- | ------------------------------------------ | ----------------------------------------------------------- |
 | log   | <code>string</code> \| <code>Object</code> | The content to the logged on the server.                    |
 | tags  | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
+
+## Contribution
+
+-   Clone repository
+-   run `npm i` to install dependencies
+-   run `npm run test` to run tests
+-   run `npm run build` to build for production.
