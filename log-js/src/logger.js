@@ -24,12 +24,12 @@ class Logger {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
-            return;
+            return 'Invalid Content to be logged';
         }
 
         if (tags) {
             if (!(typeof tags === 'string' || Array.isArray(tags))) {
-                return;
+                return 'Invalid Content Tags to be logged';
             }
         }
         const logType = 'info';
@@ -40,12 +40,12 @@ class Logger {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
-            return;
+            return 'Invalid Content to be logged';
         }
 
         if (tags) {
             if (!(typeof tags === 'string' || Array.isArray(tags))) {
-                return;
+                return 'Invalid Content Tags to be logged';
             }
         }
         const logType = 'warning';
@@ -56,12 +56,12 @@ class Logger {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
-            return;
+            return 'Invalid Content to be logged';
         }
 
         if (tags) {
             if (!(typeof tags === 'string' || Array.isArray(tags))) {
-                return;
+                return 'Invalid Content Tags to be logged';
             }
         }
         const logType = 'error';

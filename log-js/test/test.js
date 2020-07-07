@@ -201,4 +201,16 @@ describe('Logger', function() {
             });
         });
     });
+    it('should reject a valid logged item with log type of error with invalid tags', function() {
+        const validLog = new Logger(
+            API_URL,
+            applicationLog._id,
+            applicationLog.key
+        );
+        const logMessage = 'This is a simple log';
+        const tags = { type: 'trying things' };
+        validLog.error(logMessage, tags).then(response => {
+            expect(response).to.equal('Invalid Tags');
+        });
+    });
 });
