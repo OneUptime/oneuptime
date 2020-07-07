@@ -117,15 +117,18 @@ describe('Application Security Page', () => {
                     `#applicationSecurityHeader_${applicationSecurityName}`,
                     { visible: true }
                 );
-                await page.click(
-                    `#scanApplicationSecurity_${applicationSecurityName}`
-                );
 
-                const scanning = await page.waitForSelector(
+                await page.waitForSelector(
                     `#scanningApplicationSecurity_${applicationSecurityName}`,
                     { hidden: true, timeout: operationTimeOut }
                 );
-                expect(scanning).toBeNull();
+                await page.click(
+                    `#moreApplicationSecurity_${applicationSecurityName}`
+                );
+                const issueCount = await page.waitForSelector('#issueCount', {
+                    visible: true,
+                });
+                expect(issueCount).toBeDefined();
             });
             done();
         },
@@ -153,6 +156,36 @@ describe('Application Security Page', () => {
                 await page.click(
                     `#moreApplicationSecurity_${applicationSecurityName}`
                 );
+                const securityLog = await page.waitForSelector('#securityLog', {
+                    visible: true,
+                });
+
+                expect(securityLog).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should also view details of a security log, on clicking the issue count section',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#application', { visible: true });
+                await page.click('#application');
+                await page.waitForSelector(
+                    `#applicationSecurityHeader_${applicationSecurityName}`,
+                    { visible: true }
+                );
+                await page.click('#issueCount');
                 const securityLog = await page.waitForSelector('#securityLog', {
                     visible: true,
                 });
