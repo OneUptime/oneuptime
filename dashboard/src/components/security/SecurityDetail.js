@@ -26,12 +26,13 @@ const SecurityDetail = ({
 
     return (
         <Fragment>
-            <div className="db-Trend" style={{ height: '100%' }}>
-                <div
-                    className="block-chart-side line-chart"
-                    style={{ cursor: 'pointer' }}
-                    onClick={more}
-                >
+            <div
+                className="db-Trend"
+                style={{ height: '100%', cursor: 'pointer' }}
+                onClick={more}
+                id="issueCount"
+            >
+                <div className="block-chart-side line-chart">
                     {vulnerabilities ? (
                         <div className="db-TrendRow">
                             <div className="db-Trend-colInformation">
