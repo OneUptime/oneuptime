@@ -20,45 +20,67 @@ class Logger {
         }/log`;
     }
 
-    async log(data) {
+    async log(data, tags = null) {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
             return;
+        }
+
+        if (tags) {
+            if (!(typeof tags === 'string' || Array.isArray(tags))) {
+                return;
+            }
         }
         const logType = 'info';
         // make api request to the server to save a log with the key, id and content
-        return await this._makeApiRequest(data, logType);
+        return await this._makeApiRequest(data, logType, tags);
     }
-    async warning(data) {
+    async warning(data, tags = null) {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
             return;
+        }
+
+        if (tags) {
+            if (!(typeof tags === 'string' || Array.isArray(tags))) {
+                return;
+            }
         }
         const logType = 'warning';
         // make api request to the server to save a log with the key, id and content
-        return await this._makeApiRequest(data, logType);
+        return await this._makeApiRequest(data, logType, tags);
     }
-    async error(data) {
+    async error(data, tags = null) {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
             return;
         }
+
+        if (tags) {
+            if (!(typeof tags === 'string' || Array.isArray(tags))) {
+                return;
+            }
+        }
         const logType = 'error';
         // make api request to the server to save a log with the key, id and content
-        return await this._makeApiRequest(data, logType);
+        return await this._makeApiRequest(data, logType, tags);
     }
 
-    _makeApiRequest(data, logType) {
+    _makeApiRequest(data, logType, tags = null) {
+        const requestData = {
+            content: data,
+            applicationLogKey: this.#applicationLogKey,
+            type: logType,
+        };
+        if (tags) {
+            requestData.tags = tags;
+        }
         return new Promise((resolve, reject) => {
             axios
-                .post(this.#apiUrl, {
-                    content: data,
-                    applicationLogKey: this.#applicationLogKey,
-                    type: logType,
-                })
+                .post(this.#apiUrl, requestData)
                 .then(res => {
                     resolve(res);
                 })
