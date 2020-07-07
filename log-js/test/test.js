@@ -210,7 +210,7 @@ describe('Logger', function() {
         const logMessage = 'This is a simple log';
         const tags = { type: 'trying things' };
         validLog.error(logMessage, tags).then(response => {
-            expect(response).to.equal('Invalid Tags');
+            expect(response).to.equal('Invalid Content Tags to be logged');
         });
     });
 });

@@ -179,4 +179,18 @@ class LoggerTest extends TestCase
             $this->assertContains($key, $response->tags);   
         }
     }
+    public function test_valid_object_content_of_type_warning_return_invalid_tags()
+    {
+        $log = new stdClass();
+        $log->name = "Travis";
+        $log->location = "Atlanta";
+        $tag = new stdClass();
+        $tag->type = "testing";
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
+        try {
+            $logger->warning($log, $tag);
+        } catch (\Throwable $th) {
+            $this->assertEquals("Invalid Content Tags to be logged", $th->getMessage());
+        }
+    }
 }
