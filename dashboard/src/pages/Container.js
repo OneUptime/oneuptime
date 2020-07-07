@@ -72,6 +72,8 @@ class Container extends Component {
                 socket.on(`securityLog_${containerSecurity._id}`, data => {
                     scanContainerSecuritySuccess(data);
                 });
+
+                return containerSecurity;
             });
 
         const componentName =
