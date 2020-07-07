@@ -198,6 +198,41 @@ describe('Application Security Page', () => {
     );
 
     test(
+        'should display log(s) of an application security scan',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#application', { visible: true });
+                await page.click('#application');
+                await page.waitForSelector(
+                    `#applicationSecurityHeader_${applicationSecurityName}`,
+                    { visible: true }
+                );
+                await page.click(
+                    `#moreApplicationSecurity_${applicationSecurityName}`
+                );
+
+                await page.waitForSelector('#securityLog tbody', {
+                    visible: true,
+                });
+                // make sure the added application security
+                // has atleast one security vulnerability
+                const logs = await page.$$('#securityLog tbody tr');
+                expect(logs.length).toBeGreaterThanOrEqual(1);
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'should edit an application security',
         async done => {
             const newApplicationName = 'AnotherName';

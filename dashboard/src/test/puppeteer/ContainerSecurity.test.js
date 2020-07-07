@@ -197,6 +197,38 @@ describe('Container Security Page', () => {
     );
 
     test(
+        'should display log(s) of a container security scan',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#container', { visible: true });
+                await page.click('#container');
+                await page.waitForSelector('#largeSpinner', { hidden: true });
+                await page.click(
+                    `#moreContainerSecurity_${containerSecurityName}`
+                );
+
+                await page.waitForSelector('#securityLog tbody', {
+                    visible: true,
+                });
+                // make sure the added container security
+                // have atlest one security vulnerability
+                const logs = await page.$$('#securityLog tbody tr');
+                expect(logs.length).toBeGreaterThanOrEqual(1);
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'should edit container security',
         async done => {
             await cluster.execute(null, async ({ page }) => {
