@@ -161,7 +161,8 @@ describe('Logger', function() {
             expect(response.data.content).to.be.a('string');
             expect(response.data).to.include({ type: 'info' });
             expect(response.data.tags).to.be.an('array');
-            expect(response.data.tags[0]).to.equal(tag);
+            expect(response.data.tags).to.have.lengthOf(1);
+            expect(response.data.tags).to.include(tag);
         });
     });
     it('should return a valid logged item with log type of warning with no tag', function() {
@@ -194,9 +195,10 @@ describe('Logger', function() {
             expect(response.data.content).to.be.a('string');
             expect(response.data).to.include({ type: 'error' });
             expect(response.data.tags).to.be.an('array');
-            expect(response.data.tags[1]).to.equal(tags[1]);
-            expect(response.data.tags[2]).to.equal(tags[2]);
-            expect(response.data.tags[0]).to.equal(tags[0]);
+            expect(response.data.tags).to.have.lengthOf(tags.length);
+            tags.forEach(tag => {
+                expect(response.data.tags).to.include(tag);
+            });
         });
     });
 });
