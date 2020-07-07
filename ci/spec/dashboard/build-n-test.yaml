@@ -1,6 +1,18 @@
 build_n_test_dashboard:
     stage: BuildAndTest
     script:
+        - chmod -x ./ci/scripts/hash.sh
+        - chmod -x ./ci/scripts/checkhash.sh
+        # hash the project
+        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
+        # check if hash exist in db
+        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
+        - |
+            if [[ hash_exist ]]
+            then
+                echo "No new changes, skipping job"
+                exit 0
+            fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
@@ -27,21 +39,9 @@ build_n_test_dashboard:
         - sudo docker ps
         - cd dashboard
         - npm ci
-        - chmod -x ./ci/scripts/hash.sh
-        - chmod -x ./ci/scripts/checkhash.sh
-        # hash the project
-        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
-        # check if hash exist in db
-        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
-        - |
-            if [[ ! hash_exist ]]
-            then 
-              npm run build
-              DOCKERHUBUSERNAME=$DOCKERHUBUSERNAME DOCKERHUBPASSWORD=$DOCKERHUBPASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_USERNAME=$GITHUB_USERNAME GITHUB_PASSWORD=$GITHUB_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm run test
-            fi
         # try building, if there are warnings then this will fail
-        # - npm run build
-        # - DOCKERHUBUSERNAME=$DOCKERHUBUSERNAME DOCKERHUBPASSWORD=$DOCKERHUBPASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_USERNAME=$GITHUB_USERNAME GITHUB_PASSWORD=$GITHUB_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm run test
+        - npm run build
+        - DOCKERHUBUSERNAME=$DOCKERHUBUSERNAME DOCKERHUBPASSWORD=$DOCKERHUBPASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_USERNAME=$GITHUB_USERNAME GITHUB_PASSWORD=$GITHUB_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm run test
     except:
         refs:
             - hotfix-master
@@ -50,6 +50,18 @@ build_n_test_dashboard:
 build_n_test_enterprise_dashboard:
     stage: BuildAndTest
     script:
+        - chmod -x ./ci/scripts/hash.sh
+        - chmod -x ./ci/scripts/checkhash.sh
+        # hash the project
+        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
+        # check if hash exist in db
+        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
+        - |
+            if [[ hash_exist ]]
+            then
+                echo "No new changes, skipping job"
+                exit 0
+            fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
@@ -71,21 +83,9 @@ build_n_test_enterprise_dashboard:
         - sudo docker ps
         - cd dashboard
         - npm ci
-        - chmod -x ./ci/scripts/hash.sh
-        - chmod -x ./ci/scripts/checkhash.sh
-        # hash the project
-        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
-        # check if hash exist in db
-        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
-        - |
-            if [[ ! hash_exist ]]
-            then
-              npm run build
-              npm run enterprise-test
-            fi
         # try building, if there are warnings then this will fail
-        # - npm run build
-        # - npm run enterprise-test
+        - npm run build
+        - npm run enterprise-test
     except:
         refs:
             - hotfix-master

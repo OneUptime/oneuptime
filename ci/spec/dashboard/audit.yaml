@@ -1,19 +1,31 @@
 ##DASHBOARD
 audit_dashboard:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd dashboard
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+    stage: BuildAndTest
+    allow_failure: true
+    script:
+        - chmod -x ./ci/scripts/hash.sh
+        - chmod -x ./ci/scripts/checkhash.sh
+        # hash the project
+        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
+        # check if hash exist in db
+        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
+        - |
+            if [[ hash_exist ]]
+            then
+                echo "No new changes, skipping job"
+                exit 0
+            fi
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - cd dashboard
+        - npm ci
+        - npm run audit
+        - npm run dep-check
+        - cd ..
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release
