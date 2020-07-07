@@ -145,8 +145,8 @@ class LoggerTest extends TestCase
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
         $this->assertEquals("info", $response->type);
-        $this->assertEquals(true, is_array($response->tags));
-        $this->assertEquals($tag, $response->tags[0]);
+        $this->assertIsArray($response->tags);
+        $this->assertContains($tag, $response->tags);
 
     }
     public function test_valid_object_content_of_type_error_with_no_tag_is_logged()
@@ -159,7 +159,7 @@ class LoggerTest extends TestCase
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
         $this->assertEquals("error", $response->type);
-        $this->assertEquals(true, is_array($response->tags));
+        $this->assertIsArray($response->tags);
         $this->assertEquals([], $response->tags);
     }
     public function test_valid_object_content_of_type_warning_with_four_tags_is_logged()
@@ -173,9 +173,10 @@ class LoggerTest extends TestCase
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
         $this->assertEquals("warning", $response->type);
-        $this->assertEquals(true, is_array($response->tags));
-        $this->assertEquals(sizeof($tag), sizeof($response->tags));
-        $this->assertEquals($tag[1], $response->tags[1]);
-        $this->assertEquals($tag[3], $response->tags[3]);
+        $this->assertIsArray($response->tags);
+        $this->assertCount(sizeof($tag), $response->tags);
+        foreach ($tag as $key) {
+            $this->assertContains($key, $response->tags);   
+        }
     }
 }
