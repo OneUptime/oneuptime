@@ -659,7 +659,7 @@ module.exports = {
                                     }
                                 );
 
-                                deleteFolderRecursive(securityDir);
+                                await deleteFolderRecursive(securityDir);
                                 return resolve(securityLog);
                             });
                         });
@@ -671,7 +671,7 @@ module.exports = {
                             },
                             { scanning: false }
                         );
-                        deleteFolderRecursive(securityDir);
+                        await deleteFolderRecursive(securityDir);
                         ErrorService.log(
                             'probeService.scanApplicationSecurity',
                             error
@@ -2240,19 +2240,18 @@ function createDir(dirPath) {
     });
 }
 
-function deleteFolderRecursive(path) {
-    if (fs.existsSync(path)) {
-        fs.readdirSync(path).forEach(file => {
-            const curPath = Path.join(path, file);
-            if (fs.lstatSync(curPath).isDirectory()) {
-                // recurse
-                deleteFolderRecursive(curPath);
-            } else {
-                // delete file
-                fs.unlinkSync(curPath);
-            }
-        });
-        fs.rmdirSync(path);
+async function deleteFolderRecursive(dir) {
+    if (fs.existsSync(dir)) {
+        const entries = await readdir(dir, { withFileTypes: true });
+        await Promise.all(
+            entries.map(entry => {
+                const fullPath = Path.join(dir, entry.name);
+                return entry.isDirectory()
+                    ? deleteFolderRecursive(fullPath)
+                    : unlink(fullPath);
+            })
+        );
+        await rmdir(dir); // finally remove now empty directory
     }
 }
 
@@ -2312,3 +2311,7 @@ const ApplicationSecurityService = require('./applicationSecurityService');
 const ContainerSecurityService = require('./containerSecurityService');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
 const flattenArray = require('../utils/flattenArray');
+const { promisify } = require('util');
+const readdir = promisify(fs.readdir);
+const rmdir = promisify(fs.rmdir);
+const unlink = promisify(fs.unlink);
