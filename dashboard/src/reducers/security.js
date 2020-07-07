@@ -78,7 +78,19 @@ export default function security(state = initialState, action) {
                 },
             };
 
-        case types.GET_CONTAINER_SECURITY_SUCCESS:
+        case types.GET_CONTAINER_SECURITY_SUCCESS: {
+            const containerSecurities =
+                state.containerSecurities.length > 0
+                    ? state.containerSecurities.map(containerSecurity => {
+                          if (
+                              String(containerSecurity._id) ===
+                              String(action.payload._id)
+                          ) {
+                              containerSecurity = action.payload;
+                          }
+                          return containerSecurity;
+                      })
+                    : [action.payload];
             return {
                 ...state,
                 getContainer: {
@@ -87,7 +99,9 @@ export default function security(state = initialState, action) {
                     error: null,
                 },
                 containerSecurity: action.payload,
+                containerSecurities,
             };
+        }
 
         case types.GET_CONTAINER_SECURITY_FAILURE:
             return {
@@ -344,7 +358,19 @@ export default function security(state = initialState, action) {
                 },
             };
 
-        case types.GET_APPLICATION_SECURITY_SUCCESS:
+        case types.GET_APPLICATION_SECURITY_SUCCESS: {
+            const applicationSecurities =
+                state.applicationSecurities.length > 0
+                    ? state.applicationSecurities.map(applicationSecurity => {
+                          if (
+                              String(applicationSecurity._id) ===
+                              String(action.payload._id)
+                          ) {
+                              applicationSecurity = action.payload;
+                          }
+                          return applicationSecurity;
+                      })
+                    : [action.payload];
             return {
                 ...state,
                 getApplication: {
@@ -353,7 +379,9 @@ export default function security(state = initialState, action) {
                     error: null,
                 },
                 applicationSecurity: action.payload,
+                applicationSecurities,
             };
+        }
 
         case types.GET_APPLICATION_SECURITY_FAILURE:
             return {
