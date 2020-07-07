@@ -13,8 +13,15 @@ module.exports = {
                 content = data.content;
             }
 
+            let stringifiedTags = '';
+            if (data.tags) {
+                typeof data.tags === 'string'
+                    ? (stringifiedTags = data.tags)
+                    : (stringifiedTags = data.tags.join());
+            }
+
             log.content = content;
-            log.stringifiedContent = JSON.stringify(content);
+            log.stringifiedContent = JSON.stringify(content) + stringifiedTags;
             log.applicationLogId = data.applicationLogId;
             log.type = data.type;
             log.tags = data.tags;
