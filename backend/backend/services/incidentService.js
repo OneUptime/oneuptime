@@ -209,6 +209,13 @@ module.exports = {
             await ZapierService.pushToZapier('incident_created', incident);
             await RealTimeService.sendCreatedIncident(incident);
 
+            const monitor = await MonitorService.findOneBy({
+                _id: incident.monitorId,
+            });
+            const component = await ComponentService.findOneBy({
+                _id: monitor.componentId,
+            });
+
             if (!incident.createdById) {
                 const msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
                 const slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *Fyipe*`;
@@ -233,6 +240,14 @@ module.exports = {
                     incident.monitorId,
                     'created'
                 );
+                // Ms Teams
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
+                );
             } else {
                 const msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
                 const slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *${incident.createdById.name}*`;
@@ -256,6 +271,14 @@ module.exports = {
                     incident,
                     incident.monitorId,
                     'created'
+                );
+                // Ms Teams
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
                 );
             }
         } catch (error) {
