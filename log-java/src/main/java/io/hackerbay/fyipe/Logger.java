@@ -39,15 +39,27 @@ public class Logger {
         return ResponseBuilder.getFullResponse(connection);
     }
     public JsonObject log(String content) throws IOException {
-        String body = ParameterStringBuilder.getRequestString(this.applicationLogKey, content, "info");
+        String [] tags = new String[1];
+        return log(content,tags);
+    }
+    public JsonObject log(String content, String [] tags) throws IOException {
+        String body = ParameterStringBuilder.getRequestString(this.applicationLogKey, content, "info", tags);
         return this.makeApiRequest(body);
     }
     public JsonObject error(String content) throws IOException {
-        String body = ParameterStringBuilder.getRequestString(this.applicationLogKey, content, "error");
+        String [] tags = new String[1];
+        return error(content,tags);
+    }
+    public JsonObject error(String content, String [] tags) throws IOException {
+        String body = ParameterStringBuilder.getRequestString(this.applicationLogKey, content, "error", tags);
         return this.makeApiRequest(body);
     }
     public JsonObject warning(String content) throws IOException {
-        String body = ParameterStringBuilder.getRequestString(this.applicationLogKey, content, "warning");
+        String [] tags = new String[1];
+        return warning(content,tags);
+    }
+    public JsonObject warning(String content, String [] tags) throws IOException {
+        String body = ParameterStringBuilder.getRequestString(this.applicationLogKey, content, "warning", tags);
         return this.makeApiRequest(body);
     }
 }
