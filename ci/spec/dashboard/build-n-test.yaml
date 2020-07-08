@@ -3,6 +3,7 @@ build_n_test_dashboard:
     script:
         - chmod +x ./ci/scripts/checkhash.sh
         - export hash_exist=`./ci/scripts/checkhash.sh "dashboard"`
+        - echo $hash_exist
         - if [[ $hash_exist == true ]]; then exit 0; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
