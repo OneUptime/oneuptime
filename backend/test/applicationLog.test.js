@@ -251,6 +251,32 @@ describe('Application Log API', function() {
                 done();
             });
     });
+    it('should fetch logs related to application log with tag search params', function(done) {
+        const authorization = `Basic ${token}`;
+        // create a log
+        log.applicationLogKey = applicationLog.key;
+        log.content = 'another content';
+        log.type = 'warning';
+        log.tags = ['server', 'side', 'monitor', 'watcher', 'testing'];
+        request
+            .post(`/application-log/${applicationLog._id}/log`)
+            .set('Authorization', authorization)
+            .send(log)
+            .end();
+        logCount.warning++;
+        request
+            .post(
+                `/application-log/${projectId}/${componentId}/${applicationLog._id}/logs`
+            )
+            .set('Authorization', authorization)
+            .send({ filter: 'server' })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.data).to.be.an('array');
+                expect(res.body.count).to.be.equal(3);
+                done();
+            });
+    });
     it('should not create a log with correct application log key and invalid type', function(done) {
         const authorization = `Basic ${token}`;
         log.applicationLogKey = applicationLog.key;
@@ -339,7 +365,7 @@ describe('Application Log API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('array');
-                expect(res.body.count).to.be.equal(1);
+                expect(res.body.count).to.be.equal(2);
                 done();
             });
     });
