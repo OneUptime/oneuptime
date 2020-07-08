@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 
-# echo "
-# This script does the following.
-# - Checks if hash of project exists in firestore db
-# - If hash does not exist, add hash to firestore db
-# - returns true or false based on whether the hash exists on firestore db
-# "
-
-echo "value of '$1': $1"
-echo "value of '$2': $2"
+echo "
+This script does the following.
+- Checks if hash of project exists in firestore db
+- If hash does not exist, add hash to firestore db
+- returns true or false based on whether the hash exists on firestore db
+"
 
 sudo apt-get install -y jq
 
@@ -27,11 +24,9 @@ RESPONSE=`curl -H "Content-Type: application/json" -d "{\"structuredQuery\": {\"
 # if response does not contain an array with document key, then the hash does not exist in db, create the document
 document=`jq '.[0].document' <<< "$RESPONSE"`
 
-echo "value of response is '$RESPONSE'"
-
 if [[ $document = null ]]
 then
-    echo "hash not in db"
+    echo "hash does not exist in db"
     storeHash $1 $2
     false
 else
