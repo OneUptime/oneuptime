@@ -2,3 +2,6 @@
 /target
 /.idea
 log-java.iml
+.classpath
+.project
+/.settings/org.eclipse.*
