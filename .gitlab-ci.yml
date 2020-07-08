@@ -45,10 +45,10 @@ include:
   # - '/ci/spec/backend/rollback.yaml'
 
   # DASHBOARD
-  - '/ci/spec/dashboard/audit.yaml'
+  # - '/ci/spec/dashboard/audit.yaml'
   - '/ci/spec/dashboard/build-n-test.yaml'
-  - '/ci/spec/dashboard/deploy.yaml'
-  - '/ci/spec/dashboard/rollback.yaml'
+  # - '/ci/spec/dashboard/deploy.yaml'
+  # - '/ci/spec/dashboard/rollback.yaml'
 
   # # HELM-CHART
   # - '/ci/spec/helm-chart/audit.yaml'
