@@ -23,7 +23,7 @@ const monitor = {
 };
 const msTeamsPayload={
     monitorId:null,
-    endpoint:'http://localhost',
+    endpoint:'http://hackerbay.io',
     incidentCreated:true,
     incidentResolved:true,
     incidentAcknowledged:true,
@@ -112,17 +112,31 @@ describe('Webhook API', function () {
             });
     });
 
-    it('should reject requests missing an endpoint.', function (done) {
+    it('should reject requests missing the endpoint.', function (done) {
         const authorization = `Basic ${token}`;
-        const payload=Object.assign({},msTeamsPayload);
+        const payload={...msTeamsPayload};
         delete payload.endpoint;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
+            .send(payload)
             .end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
+    });
 
+    it('should reject requests missing the monitorId.', function (done) {
+        const authorization = `Basic ${token}`;
+        const payload={...msTeamsPayload};
+        delete payload.monitorId;
+        request
+            .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .send(payload)
+            .end(function (err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
     });
 });
