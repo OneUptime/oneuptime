@@ -21,16 +21,16 @@ const monitor = {
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
-const msTeamsPayload={
-    monitorId:null,
-    endpoint:'http://hackerbay.io',
-    incidentCreated:true,
-    incidentResolved:true,
-    incidentAcknowledged:true,
-    type:'msteams',
-}
+const msTeamsPayload = {
+    monitorId: null,
+    endpoint: 'http://hackerbay.io',
+    incidentCreated: true,
+    incidentResolved: true,
+    incidentAcknowledged: true,
+    type: 'msteams',
+};
 
-describe('Webhook API', function () {
+describe('Webhook API', function() {
     this.timeout(20000);
 
     before(function(done) {
@@ -70,13 +70,9 @@ describe('Webhook API', function () {
                                         .send(monitor)
                                         .end(function(err, res) {
                                             monitorId = res.body._id;
-                                            msTeamsPayload.monitorId=monitorId;
-                                            expect(res).to.have.status(
-                                                200
-                                            );
-                                            expect(res.body).to.be.an(
-                                                'object'
-                                            );
+                                            msTeamsPayload.monitorId = monitorId;
+                                            expect(res).to.have.status(200);
+                                            expect(res.body).to.be.an('object');
                                             done();
                                         });
                                 });
@@ -103,64 +99,62 @@ describe('Webhook API', function () {
     });
 
     //MS Teams
-    it('should prevent unauthenticated users from creating webhooks.', function (done) {
-        request
-            .post(`/webhook/${projectId}/create`)
-            .end(function (err, res) {
-                expect(res).to.have.status(401);
-                done();
-            });
+    it('should prevent unauthenticated users from creating webhooks.', function(done) {
+        request.post(`/webhook/${projectId}/create`).end(function(err, res) {
+            expect(res).to.have.status(401);
+            done();
+        });
     });
 
-    it('should reject requests missing the endpoint.', function (done) {
+    it('should reject requests missing the endpoint.', function(done) {
         const authorization = `Basic ${token}`;
-        const payload={...msTeamsPayload};
+        const payload = { ...msTeamsPayload };
         delete payload.endpoint;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err, res) {
+            .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should reject requests missing the monitorId.', function (done) {
+    it('should reject requests missing the monitorId.', function(done) {
         const authorization = `Basic ${token}`;
-        const payload={...msTeamsPayload};
+        const payload = { ...msTeamsPayload };
         delete payload.monitorId;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err, res) {
+            .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should reject requests missing the integration type.', function (done) {
+    it('should reject requests missing the integration type.', function(done) {
         const authorization = `Basic ${token}`;
-        const payload={...msTeamsPayload};
+        const payload = { ...msTeamsPayload };
         delete payload.type;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err, res) {
+            .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create msteams webhook.', function (done) {
+    it('should create msteams webhook.', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(msTeamsPayload)
-            .end(function (err, res) {
+            .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -171,27 +165,27 @@ describe('Webhook API', function () {
             });
     });
 
-    it('should not create msteams webhook, with the same integration type and endpoint, for the same monitorId.', function (done) {
+    it('should not create msteams webhook, with the same integration type and endpoint, for the same monitorId.', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(msTeamsPayload)
-            .end(function (err, res) {
+            .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create msteams webhook with a different endpoint.', function (done) {
+    it('should create msteams webhook with a different endpoint.', function(done) {
         const authorization = `Basic ${token}`;
-        const payload={...msTeamsPayload};
-        payload.endpoint='http://test1.hackerbay.io';
+        const payload = { ...msTeamsPayload };
+        payload.endpoint = 'http://test1.hackerbay.io';
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err, res) {
+            .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -201,5 +195,4 @@ describe('Webhook API', function () {
                 done();
             });
     });
-
 });
