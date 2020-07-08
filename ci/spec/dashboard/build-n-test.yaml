@@ -33,6 +33,7 @@ build_n_test_dashboard:
         # try building, if there are warnings then this will fail
         - npm run build
         - DOCKERHUBUSERNAME=$DOCKERHUBUSERNAME DOCKERHUBPASSWORD=$DOCKERHUBPASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_USERNAME=$GITHUB_USERNAME GITHUB_PASSWORD=$GITHUB_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm run test
+    after_script:
         - chmod +x ./ci/scripts/storehash.sh
         - chmod +x ./ci/scripts/job-status.sh
         - export build_n_test_dashboard_status=`./ci/scripts/job-status.sh build_n_test_dashboard`
@@ -72,6 +73,7 @@ build_n_test_enterprise_dashboard:
         # try building, if there are warnings then this will fail
         - npm run build
         - npm run enterprise-test
+    after_script:
         - chmod +x ./ci/scripts/storehash.sh
         - chmod +x ./ci/scripts/job-status.sh
         - export build_n_test_enterprise_dashboard_status=`./ci/scripts/job-status.sh build_n_test_enterprise_dashboard`
