@@ -3,7 +3,7 @@ build_n_test_dashboard:
     script:
         # hash the project
         - chmod +x ./ci/scripts/hash.sh
-        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
+        - export hash_value=`./ci/scripts/hash.sh "./dashboard"`
         # check if hash exist in db
         - chmod +x ./ci/scripts/checkhash.sh
         - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
@@ -47,7 +47,7 @@ build_n_test_enterprise_dashboard:
     script:
         # hash the project
         - chmod +x ./ci/scripts/hash.sh
-        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
+        - export hash_value=`./ci/scripts/hash.sh "./dashboard"`
         # check if hash exist in db
         - chmod +x ./ci/scripts/checkhash.sh
         - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
