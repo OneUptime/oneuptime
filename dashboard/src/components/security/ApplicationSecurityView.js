@@ -165,14 +165,20 @@ const ApplicationSecurityView = ({
                             <div>
                                 <ShouldRender
                                     if={
-                                        scanning &&
-                                        String(applicationSecurityId) ===
-                                            String(activeApplicationSecurity)
+                                        (scanning &&
+                                            String(applicationSecurityId) ===
+                                                String(
+                                                    activeApplicationSecurity
+                                                )) ||
+                                        applicationSecurity.scanning
                                     }
                                 >
                                     <button
                                         className="bs-Button bs-DeprecatedButton"
-                                        disabled={scanning}
+                                        disabled={
+                                            scanning ||
+                                            applicationSecurity.scanning
+                                        }
                                         id={`scanning_${applicationSecurity.name}`}
                                     >
                                         <Spinner
@@ -183,9 +189,12 @@ const ApplicationSecurityView = ({
                                 </ShouldRender>
                                 <ShouldRender
                                     if={
-                                        !scanning ||
-                                        String(applicationSecurityId) !==
-                                            String(activeApplicationSecurity)
+                                        (!scanning ||
+                                            String(applicationSecurityId) !==
+                                                String(
+                                                    activeApplicationSecurity
+                                                )) &&
+                                        !applicationSecurity.scanning
                                     }
                                 >
                                     <button

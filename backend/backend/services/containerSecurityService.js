@@ -200,7 +200,12 @@ module.exports = {
             const containerSecurity = await this.updateOneBy(query, {
                 lastScan: newDate,
                 scanned: true,
+                scanning: false,
             });
+            global.io.emit(
+                `security_${containerSecurity._id}`,
+                containerSecurity
+            );
             return containerSecurity;
         } catch (error) {
             ErrorService.log('containerSecurityService.updateScanTime', error);

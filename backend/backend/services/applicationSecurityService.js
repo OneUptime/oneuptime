@@ -208,7 +208,12 @@ module.exports = {
             const applicationSecurity = await this.updateOneBy(query, {
                 lastScan: newDate,
                 scanned: true,
+                scanning: false,
             });
+            global.io.emit(
+                `security_${applicationSecurity._id}`,
+                applicationSecurity
+            );
             return applicationSecurity;
         } catch (error) {
             ErrorService.log(

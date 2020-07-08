@@ -8,6 +8,8 @@ import { LargeSpinner } from '../basic/Loader';
 import {
     getContainerSecurity,
     getContainerSecurityLog,
+    scanContainerSecuritySuccess,
+    getContainerSecuritySuccess,
 } from '../../actions/security';
 import ContainerSecurityView from './ContainerSecurityView';
 import ContainerSecurityDeleteBox from './ContainerSecurityDeleteBox';
@@ -15,6 +17,13 @@ import SecurityLog from './SecurityLog';
 import { getDockerCredentials } from '../../actions/credential';
 import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
 import getParentRoute from '../../utils/getParentRoute';
+import { API_URL } from '../../config';
+import io from 'socket.io-client';
+
+// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 
 class ContainerSecurityDetail extends Component {
     componentDidMount() {
@@ -59,7 +68,17 @@ class ContainerSecurityDetail extends Component {
             fetchLogError,
             location: { pathname },
             component,
+            scanContainerSecuritySuccess,
+            getContainerSecuritySuccess,
         } = this.props;
+
+        socket.on(`security_${containerSecurity._id}`, data => {
+            getContainerSecuritySuccess(data);
+        });
+
+        socket.on(`securityLog_${containerSecurity._id}`, data => {
+            scanContainerSecuritySuccess(data);
+        });
 
         const componentName =
             component.length > 0 ? component[0].name : 'loading...';
@@ -182,11 +201,19 @@ ContainerSecurityDetail.propTypes = {
             name: PropTypes.string,
         })
     ),
+    scanContainerSecuritySuccess: PropTypes.func,
+    getContainerSecuritySuccess: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { getContainerSecurity, getContainerSecurityLog, getDockerCredentials },
+        {
+            getContainerSecurity,
+            getContainerSecurityLog,
+            getDockerCredentials,
+            scanContainerSecuritySuccess,
+            getContainerSecuritySuccess,
+        },
         dispatch
     );
 

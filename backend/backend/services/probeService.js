@@ -554,14 +554,14 @@ module.exports = {
             const cloneDirectory = `${uuidv1()}security`; // always create unique paths
             const repoPath = Path.resolve(securityDir, cloneDirectory);
 
-            // update application security to scanned true
+            // update application security to scanning true
             // to prevent pulling an applicaiton security multiple times by running cron job
             // due to network delay
             await ApplicationSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
-                { scanned: true }
+                { scanning: true }
             );
 
             return new Promise((resolve, reject) => {
@@ -659,7 +659,7 @@ module.exports = {
                                     }
                                 );
 
-                                deleteFolderRecursive(securityDir);
+                                await deleteFolderRecursive(securityDir);
                                 return resolve(securityLog);
                             });
                         });
@@ -669,9 +669,9 @@ module.exports = {
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
-                        deleteFolderRecursive(securityDir);
+                        await deleteFolderRecursive(securityDir);
                         ErrorService.log(
                             'probeService.scanApplicationSecurity',
                             error
@@ -697,14 +697,14 @@ module.exports = {
             const outputFile = `${uuidv1()}result.json`;
             let securityDir = 'container_security_dir';
             securityDir = await createDir(securityDir);
-            // update container security to scanned true
+            // update container security to scanning true
             // so the cron job does not pull it multiple times due to network delays
             // since the cron job runs every minute
             await ContainerSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
-                { scanned: true }
+                { scanning: true }
             );
 
             return new Promise((resolve, reject) => {
@@ -730,7 +730,7 @@ module.exports = {
                         {
                             _id: security._id,
                         },
-                        { scanned: false }
+                        { scanning: false }
                     );
                     deleteFolderRecursive(securityDir);
                     return reject(error);
@@ -750,7 +750,7 @@ module.exports = {
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
                         deleteFolderRecursive(securityDir);
                         return reject(error);
@@ -773,7 +773,7 @@ module.exports = {
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
                         deleteFolderRecursive(securityDir);
                         return reject(error);
@@ -2240,19 +2240,18 @@ function createDir(dirPath) {
     });
 }
 
-function deleteFolderRecursive(path) {
-    if (fs.existsSync(path)) {
-        fs.readdirSync(path).forEach(file => {
-            const curPath = Path.join(path, file);
-            if (fs.lstatSync(curPath).isDirectory()) {
-                // recurse
-                deleteFolderRecursive(curPath);
-            } else {
-                // delete file
-                fs.unlinkSync(curPath);
-            }
-        });
-        fs.rmdirSync(path);
+async function deleteFolderRecursive(dir) {
+    if (fs.existsSync(dir)) {
+        const entries = await readdir(dir, { withFileTypes: true });
+        await Promise.all(
+            entries.map(entry => {
+                const fullPath = Path.join(dir, entry.name);
+                return entry.isDirectory()
+                    ? deleteFolderRecursive(fullPath)
+                    : unlink(fullPath);
+            })
+        );
+        await rmdir(dir); // finally remove now empty directory
     }
 }
 
@@ -2312,3 +2311,7 @@ const ApplicationSecurityService = require('./applicationSecurityService');
 const ContainerSecurityService = require('./containerSecurityService');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
 const flattenArray = require('../utils/flattenArray');
+const { promisify } = require('util');
+const readdir = promisify(fs.readdir);
+const rmdir = promisify(fs.rmdir);
+const unlink = promisify(fs.unlink);

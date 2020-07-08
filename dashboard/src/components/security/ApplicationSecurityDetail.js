@@ -9,12 +9,21 @@ import ApplicationSecurityView from './ApplicationSecurityView';
 import {
     getApplicationSecurity,
     getApplicationSecurityLog,
+    scanApplicationSecuritySuccess,
+    getApplicationSecuritySuccess,
 } from '../../actions/security';
 import ApplicationSecurityDeleteBox from './ApplicationSecurityDeleteBox';
 import SecurityLog from './SecurityLog';
 import { getGitCredentials } from '../../actions/credential';
 import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
 import getParentRoute from '../../utils/getParentRoute';
+import { API_URL } from '../../config';
+import io from 'socket.io-client';
+
+// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 
 class ApplicationSecurityDetail extends Component {
     componentDidMount() {
@@ -58,7 +67,17 @@ class ApplicationSecurityDetail extends Component {
             fetchLogError,
             location: { pathname },
             component,
+            scanApplicationSecuritySuccess,
+            getApplicationSecuritySuccess,
         } = this.props;
+
+        socket.on(`security_${applicationSecurityId}`, data => {
+            getApplicationSecuritySuccess(data);
+        });
+
+        socket.on(`securityLog_${applicationSecurityId}`, data => {
+            scanApplicationSecuritySuccess(data);
+        });
 
         const componentName =
             component.length > 0 ? component[0].name : 'loading...';
@@ -183,6 +202,8 @@ ApplicationSecurityDetail.propTypes = {
             name: PropTypes.string,
         })
     ),
+    scanApplicationSecuritySuccess: PropTypes.func,
+    getApplicationSecuritySuccess: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -191,6 +212,8 @@ const mapDispatchToProps = dispatch =>
             getApplicationSecurity,
             getApplicationSecurityLog,
             getGitCredentials,
+            scanApplicationSecuritySuccess,
+            getApplicationSecuritySuccess,
         },
         dispatch
     );

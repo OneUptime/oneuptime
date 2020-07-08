@@ -122,16 +122,17 @@ describe('Container Security Page', () => {
                 await page.waitForSelector('#container', { visible: true });
                 await page.click('#container');
                 await page.waitForSelector('#largeSpinner', { hidden: true });
-
-                await page.click(
-                    `#scanContainerSecurity_${containerSecurityName}`
-                );
-
-                const scanning = await page.waitForSelector(
+                await page.waitForSelector(
                     `#scanningContainerSecurity_${containerSecurityName}`,
                     { hidden: true, timeout: operationTimeOut }
                 );
-                expect(scanning).toBeNull();
+                await page.click(
+                    `#moreContainerSecurity_${containerSecurityName}`
+                );
+                const issueCount = await page.waitForSelector('#issueCount', {
+                    visible: true,
+                });
+                expect(issueCount).toBeDefined();
             });
             done();
         },
@@ -161,6 +162,66 @@ describe('Container Security Page', () => {
                 });
 
                 expect(securityLog).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should also view details of the security log on clicking the issue count section',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#container', { visible: true });
+                await page.click('#container');
+                await page.waitForSelector('#largeSpinner', { hidden: true });
+
+                await page.click('#issueCount');
+                const securityLog = await page.waitForSelector('#securityLog', {
+                    visible: true,
+                });
+
+                expect(securityLog).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should display log(s) of a container security scan',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${component}`);
+                await page.waitForSelector('#security', { visible: true });
+                await page.click('#security');
+                await page.waitForSelector('#container', { visible: true });
+                await page.click('#container');
+                await page.waitForSelector('#largeSpinner', { hidden: true });
+                await page.click(
+                    `#moreContainerSecurity_${containerSecurityName}`
+                );
+
+                await page.waitForSelector('#securityLog tbody', {
+                    visible: true,
+                });
+                // make sure the added container security
+                // have atlest one security vulnerability
+                const logs = await page.$$('#securityLog tbody tr');
+                expect(logs.length).toBeGreaterThanOrEqual(1);
             });
             done();
         },

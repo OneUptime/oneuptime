@@ -6,15 +6,23 @@ import Dashboard from '../components/Dashboard';
 import ApplicationSecurityForm from '../components/security/ApplicationSecurityForm';
 import ApplicationSecurity from '../components/security/ApplicationSecurity';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+import { SHOULD_LOG_ANALYTICS, API_URL } from '../config';
 import {
     getApplicationSecurities,
     getApplicationSecurityLogs,
+    scanApplicationSecuritySuccess,
+    getApplicationSecuritySuccess,
 } from '../actions/security';
 import { LargeSpinner } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import io from 'socket.io-client';
+
+// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 
 class Application extends Component {
     constructor(props) {
@@ -52,7 +60,20 @@ class Application extends Component {
             gettingSecurityLogs,
             location: { pathname },
             component,
+            scanApplicationSecuritySuccess,
+            getApplicationSecuritySuccess,
         } = this.props;
+
+        applicationSecurities.length > 0 &&
+            applicationSecurities.forEach(applicationSecurity => {
+                socket.on(`security_${applicationSecurity._id}`, data => {
+                    getApplicationSecuritySuccess(data);
+                });
+
+                socket.on(`securityLog_${applicationSecurity._id}`, data => {
+                    scanApplicationSecuritySuccess(data);
+                });
+            });
 
         const componentName =
             component.length > 0 ? component[0].name : 'loading...';
@@ -153,6 +174,8 @@ Application.propTypes = {
             name: PropTypes.string,
         })
     ),
+    scanApplicationSecuritySuccess: PropTypes.func,
+    getApplicationSecuritySuccess: PropTypes.func,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -176,7 +199,12 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { getApplicationSecurities, getApplicationSecurityLogs },
+        {
+            getApplicationSecurities,
+            getApplicationSecurityLogs,
+            scanApplicationSecuritySuccess,
+            getApplicationSecuritySuccess,
+        },
         dispatch
     );
 
