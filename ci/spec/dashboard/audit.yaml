@@ -9,7 +9,7 @@ audit_dashboard:
         - echo $hash_value
         # check if hash exist in db
         - chmod +x ./ci/scripts/checkhash.sh
-        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
+        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" "$hash_value"`
         - echo $hash_exist
         - if [[ hash_exist ]]; then exit 0; fi
         - sudo apt-get update
