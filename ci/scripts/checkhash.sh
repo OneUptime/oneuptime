@@ -16,7 +16,7 @@ function storeHash {
     # $1 is project name $2 is hash value
     echo "Store hash inside db"
     
-    curl -d '{"fields": {"project": {"stringValue": "$1"},"hash": {"stringValue": "$2"}}}' -H "Content-Type: application/json" -X POST "https://firestore.googleapis.com/v1/projects/fyipe-devops/databases/(default)/documents/builds"
+    curl -d `{"fields": {"project": {"stringValue": $1},"hash": {"stringValue": $2}}}` -H "Content-Type: application/json" -X POST "https://firestore.googleapis.com/v1/projects/fyipe-devops/databases/(default)/documents/builds"
 }
 
 # $1 is the project
