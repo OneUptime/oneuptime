@@ -171,5 +171,16 @@ describe('Webhook API', function () {
             });
     });
 
+    it('should not create msteams webhook with the same integration type and endpoint.', function (done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .send(msTeamsPayload)
+            .end(function (err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
 
 });
