@@ -15,7 +15,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 
 // eslint-disable-next-line
-let token, userId, airtableId, projectId, monitorId;
+let token, userId, airtableId, projectId, monitorId, msTeamsId;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -161,6 +161,7 @@ describe('Webhook API', function() {
                 expect(res.body).to.have.property('projectId');
                 expect(res.body).to.have.property('monitorId');
                 expect(res.body).to.have.property('notificationOptions');
+                msTeamsId=res.body._id;
                 done();
             });
     });
@@ -183,6 +184,25 @@ describe('Webhook API', function() {
         payload.endpoint = 'http://test1.hackerbay.io';
         request
             .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .send(payload)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('notificationOptions');
+                done();
+            });
+    });
+
+    it('should update the msteams webhook.', function(done) {
+        const authorization = `Basic ${token}`;
+        const payload = { ...msTeamsPayload };
+        payload.endpoint = 'http://newlink.hackerbay.io';
+        request
+            .put(`/webhook/${projectId}/${msTeamsId}`)
             .set('Authorization', authorization)
             .send(payload)
             .end(function(err, res) {
