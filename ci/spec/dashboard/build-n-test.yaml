@@ -2,8 +2,7 @@ build_n_test_dashboard:
     stage: BuildAndTest
     script:
         # hash the project
-        - chmod +x ./ci/scripts/hash.sh
-        - export hash_value=`./ci/scripts/hash.sh "./dashboard"`
+        - export hash_value=`find ./dashboard -type f ! -path "*node_modules*" -print0 | sort -z | xargs -0 sha256sum | sha256sum | head -c 64`
         # check if hash exist in db
         - chmod +x ./ci/scripts/checkhash.sh
         - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" "$hash_value"`
@@ -47,8 +46,7 @@ build_n_test_enterprise_dashboard:
     stage: BuildAndTest
     script:
         # hash the project
-        - chmod +x ./ci/scripts/hash.sh
-        - export hash_value=`./ci/scripts/hash.sh "./dashboard"`
+        - export hash_value=`find ./dashboard -type f ! -path "*node_modules*" -print0 | sort -z | xargs -0 sha256sum | sha256sum | head -c 64`
         # check if hash exist in db
         - chmod +x ./ci/scripts/checkhash.sh
         - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" "$hash_value"`
