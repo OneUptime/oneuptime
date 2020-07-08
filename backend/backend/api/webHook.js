@@ -101,7 +101,7 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
         if (!data.projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'projectId missing in body, must be present',
+                message: 'projectId missing in params, must be present',
             });
         }
 
