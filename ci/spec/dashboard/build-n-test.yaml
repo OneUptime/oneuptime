@@ -2,9 +2,11 @@ build_n_test_dashboard:
     stage: BuildAndTest
     script:
         # hash the project
-        - chmod -x ./ci/scripts/hash.sh && export hash_value=`./ci/scripts/hash.sh ./dashboard`
+        - sudo chmod -x ./ci/scripts/hash.sh
+        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
         # check if hash exist in db
-        - chmod -x ./ci/scripts/checkhash.sh && export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
+        - sudo chmod -x ./ci/scripts/checkhash.sh
+        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
         - if [[ hash_exist ]]; then exit 0; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
@@ -44,9 +46,11 @@ build_n_test_enterprise_dashboard:
     stage: BuildAndTest
     script:
         # hash the project
-        - chmod -x ./ci/scripts/hash.sh && export hash_value=`./ci/scripts/hash.sh ./dashboard`
+        - sudo chmod -x ./ci/scripts/hash.sh
+        - export hash_value=`./ci/scripts/hash.sh ./dashboard`
         # check if hash exist in db
-        - chmod -x ./ci/scripts/checkhash.sh && export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
+        - sudo chmod -x ./ci/scripts/checkhash.sh
+        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
         - if [[ hash_exist ]]; then exit 0; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
