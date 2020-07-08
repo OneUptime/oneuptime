@@ -6,11 +6,9 @@ audit_dashboard:
         # hash the project
         - chmod +x ./ci/scripts/hash.sh
         - export hash_value=`./ci/scripts/hash.sh "./dashboard"`
-        - echo $hash_value
         # check if hash exist in db
         - chmod +x ./ci/scripts/checkhash.sh
         - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" $hash_value`
-        - echo $hash_exist
         - if [[ hash_exist ]]; then exit 0; fi
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
