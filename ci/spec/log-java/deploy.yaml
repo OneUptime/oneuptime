@@ -10,9 +10,9 @@ deploy_staging_log-java:
         - cd log-java
         - git init
         - git add .
-        - git commit -m "first deployment"
+        - git commit -m "staging deployment"
         # - git checkout -f staging
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git master --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
         - cd ..
     only:
         refs:
