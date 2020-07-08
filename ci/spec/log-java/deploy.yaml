@@ -9,9 +9,6 @@ deploy_staging_log-java:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - cd log-java
         - git checkout -b staging
-        - git init
-        - git add .
-        - git commit -m "staging deployment"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
         - cd ..
     only:
