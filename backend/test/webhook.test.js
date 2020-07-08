@@ -21,6 +21,14 @@ const monitor = {
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
+const msTeamsPayload={
+    monitorId:null,
+    endpoint:'http://localhost',
+    incidentCreated:true,
+    incidentResolved:true,
+    incidentAcknowledged:true,
+    type:'msteams',
+}
 
 describe('Webhook API', function () {
     this.timeout(20000);
@@ -62,6 +70,7 @@ describe('Webhook API', function () {
                                         .send(monitor)
                                         .end(function(err, res) {
                                             monitorId = res.body._id;
+                                            msTeamsPayload.monitorId=monitorId;
                                             expect(res).to.have.status(
                                                 200
                                             );
@@ -99,6 +108,19 @@ describe('Webhook API', function () {
             .post(`/webhook/${projectId}/create`)
             .end(function (err, res) {
                 expect(res).to.have.status(401);
+                done();
+            });
+    });
+
+    it('should reject requests missing an endpoint.', function (done) {
+        const authorization = `Basic ${token}`;
+        const payload=Object.assign({},msTeamsPayload);
+        delete payload.endpoint;
+        request
+            .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .end(function (err, res) {
+                expect(res).to.have.status(400);
                 done();
             });
 
