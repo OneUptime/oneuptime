@@ -1,0 +1,20 @@
+## DEPLOYMENT STAGE - Log JAVA
+deploy_staging_log-java:
+    stage: Deploy
+    allow_failure: true
+    script:
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - cd log-java
+        - git checkout -f staging
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
+        - cd ..
+    only:
+        refs:
+            - master
+            - hotfix-master
+            - feature-applog
+    environment:
+        name: staging
