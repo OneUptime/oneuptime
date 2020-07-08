@@ -28,7 +28,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'projectId missing in body, must be present',
+                message: 'projectId missing in params, must be present',
             });
         }
 
@@ -42,7 +42,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
         if (!monitorId) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'monitorId is missing in body, it must be present',
+                message: 'monitorId is missing in body, must be present',
             });
         }
 

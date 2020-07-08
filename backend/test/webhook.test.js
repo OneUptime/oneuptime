@@ -139,4 +139,18 @@ describe('Webhook API', function () {
                 done();
             });
     });
+
+    it('should reject requests missing the integration type.', function (done) {
+        const authorization = `Basic ${token}`;
+        const payload={...msTeamsPayload};
+        delete payload.type;
+        request
+            .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .send(payload)
+            .end(function (err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
 });
