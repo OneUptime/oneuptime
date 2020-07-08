@@ -349,6 +349,9 @@ module.exports = {
                 const monitor = await MonitorService.findOneBy({
                     _id: incident.monitorId,
                 });
+                const component = await ComponentService.findOneBy({
+                    _id: monitor.componentId,
+                });
                 incident = await _this.findOneBy({ _id: incident._id });
 
                 await IncidentTimelineService.create({
@@ -369,6 +372,15 @@ module.exports = {
                     monitor,
                     'acknowledged'
                 );
+
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
+                );
+
                 await RealTimeService.incidentAcknowledged(incident);
                 await ZapierService.pushToZapier(
                     'incident_acknowledge',
