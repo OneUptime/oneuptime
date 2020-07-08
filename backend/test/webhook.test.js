@@ -153,4 +153,23 @@ describe('Webhook API', function () {
                 done();
             });
     });
+
+    it('should create msteams webhook.', function (done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .send(msTeamsPayload)
+            .end(function (err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('notificationOptions');
+                done();
+            });
+    });
+
+
 });
