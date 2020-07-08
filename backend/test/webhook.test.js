@@ -229,6 +229,22 @@ describe('Webhook API', function() {
                 expect(res.body.count).to.eql(2);
                 done();
             });
+    });
 
+    it('should delete msteams webhooks.', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .delete(`/webhook/${projectId}/delete/${msTeamsId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('integrationType');
+                expect(res.body).to.have.property('notificationOptions');
+                done();
+            });
     });
 });
