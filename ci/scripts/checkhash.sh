@@ -23,6 +23,7 @@ RESPONSE=`curl -d '{"structuredQuery": {"from": {"collectionId": "builds"},"wher
 # if response contains an array with document key, then the hash already exist in db
 # if response does not contain an array with document key, then the hash does not exist in db, create the document
 document=`jq '.[0].document' <<< "$RESPONSE"`
+
 if [[ $document = null ]]
 then
     echo "hash not in db"
