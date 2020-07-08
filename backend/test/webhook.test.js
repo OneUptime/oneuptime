@@ -171,7 +171,7 @@ describe('Webhook API', function () {
             });
     });
 
-    it('should not create msteams webhook with the same integration type and endpoint.', function (done) {
+    it('should not create msteams webhook, with the same integration type and endpoint, for the same monitorId.', function (done) {
         const authorization = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
@@ -179,6 +179,25 @@ describe('Webhook API', function () {
             .send(msTeamsPayload)
             .end(function (err, res) {
                 expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('should create msteams webhook with a different endpoint.', function (done) {
+        const authorization = `Basic ${token}`;
+        const payload={...msTeamsPayload};
+        payload.endpoint='http://test1.hackerbay.io';
+        request
+            .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .send(payload)
+            .end(function (err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('notificationOptions');
                 done();
             });
     });
