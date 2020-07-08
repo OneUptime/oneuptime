@@ -212,6 +212,45 @@ describe('Application Log API', function() {
                 done();
             });
     });
+    it('should not create a log with correct application log key with type error but invalid tag', function(done) {
+        const authorization = `Basic ${token}`;
+        log.applicationLogKey = applicationLog.key;
+        log.type = 'error';
+        log.tags = { key: 'server-side' };
+        request
+            .post(`/application-log/${applicationLog._id}/log`)
+            .set('Authorization', authorization)
+            .send(log)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Application Log Tags must be of type String or Array of Strings'
+                );
+                // remove the invalid tag
+                delete log['tags'];
+                done();
+            });
+    });
+    it('should create a log with correct application log key with type error and 5 tags', function(done) {
+        const authorization = `Basic ${token}`;
+        log.applicationLogKey = applicationLog.key;
+        log.type = 'error';
+        log.tags = ['server', 'side', 'monitor', 'watcher', 'testing'];
+        request
+            .post(`/application-log/${applicationLog._id}/log`)
+            .set('Authorization', authorization)
+            .send(log)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.include({ content: log.content });
+                expect(res.body).to.include({ type: log.type });
+                expect(res.body.tags).to.be.an('array');
+                expect(res.body.tags).to.have.lengthOf(log.tags.length);
+                logCount.error++;
+                delete log['tags'];
+                done();
+            });
+    });
     it('should not create a log with correct application log key and invalid type', function(done) {
         const authorization = `Basic ${token}`;
         log.applicationLogKey = applicationLog.key;
