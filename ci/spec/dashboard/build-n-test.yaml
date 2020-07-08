@@ -3,10 +3,11 @@ build_n_test_dashboard:
     script:
         # hash the project
         - chmod +x ./ci/scripts/hash.sh
-        - ./ci/scripts/hash.sh "./dashboard"
+        - export hash_value=`./ci/scripts/hash.sh "./dashboard"`
         # check if hash exist in db
         - chmod +x ./ci/scripts/checkhash.sh
-        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" "$HASH"`
+        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" "$hash_value"`
+        - echo $hash_exist
         - if [[ hash_exist ]]; then exit 0; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
@@ -47,10 +48,11 @@ build_n_test_enterprise_dashboard:
     script:
         # hash the project
         - chmod +x ./ci/scripts/hash.sh
-        - ./ci/scripts/hash.sh "./dashboard"
+        - export hash_value=`./ci/scripts/hash.sh "./dashboard"`
         # check if hash exist in db
         - chmod +x ./ci/scripts/checkhash.sh
-        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" "$HASH"`
+        - export hash_exist=`./ci/scripts/checkhash.sh "dashboard" "$hash_value"`
+        - echo $hash_exist
         - if [[ hash_exist ]]; then exit 0; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
