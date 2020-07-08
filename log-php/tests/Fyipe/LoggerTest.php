@@ -134,4 +134,63 @@ class LoggerTest extends TestCase
         $this->assertEquals(true, is_object($response->content));
         $this->assertEquals("warning", $response->type);
     }
+    public function test_valid_object_content_of_type_info_with_one_tag_is_logged()
+    {
+        $log = new stdClass();
+        $log->name = "Travis";
+        $log->location = "Atlanta";
+        $tag = "Famous";
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
+        $response = $logger->log($log, $tag);
+        $this->assertEquals($log->name, $response->content->name);
+        $this->assertEquals(true, is_object($response->content));
+        $this->assertEquals("info", $response->type);
+        $this->assertIsArray($response->tags);
+        $this->assertContains($tag, $response->tags);
+
+    }
+    public function test_valid_object_content_of_type_error_with_no_tag_is_logged()
+    {
+        $log = new stdClass();
+        $log->name = "Travis";
+        $log->location = "Atlanta";
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
+        $response = $logger->error($log);
+        $this->assertEquals($log->name, $response->content->name);
+        $this->assertEquals(true, is_object($response->content));
+        $this->assertEquals("error", $response->type);
+        $this->assertIsArray($response->tags);
+        $this->assertEquals([], $response->tags);
+    }
+    public function test_valid_object_content_of_type_warning_with_four_tags_is_logged()
+    {
+        $log = new stdClass();
+        $log->name = "Travis";
+        $log->location = "Atlanta";
+        $tag = ['Enough', 'Php', 'Error', 'Serverside'];
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
+        $response = $logger->warning($log, $tag);
+        $this->assertEquals($log->name, $response->content->name);
+        $this->assertEquals(true, is_object($response->content));
+        $this->assertEquals("warning", $response->type);
+        $this->assertIsArray($response->tags);
+        $this->assertCount(sizeof($tag), $response->tags);
+        foreach ($tag as $key) {
+            $this->assertContains($key, $response->tags);   
+        }
+    }
+    public function test_valid_object_content_of_type_warning_return_invalid_tags()
+    {
+        $log = new stdClass();
+        $log->name = "Travis";
+        $log->location = "Atlanta";
+        $tag = new stdClass();
+        $tag->type = "testing";
+        $logger = new Fyipe\Logger($this->apiUrl, $this->applicationLog->_id, $this->applicationLog->key);
+        try {
+            $logger->warning($log, $tag);
+        } catch (\Throwable $th) {
+            $this->assertEquals("Invalid Content Tags to be logged", $th->getMessage());
+        }
+    }
 }

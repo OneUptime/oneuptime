@@ -7,16 +7,18 @@ const expect = chai.expect;
 import { user, generateRandomBusinessEmail } from './util';
 const API_URL = 'http://localhost:3002/api';
 const request = chai.request.agent(API_URL);
+const timeout = 5000;
 
 import Logger from '../src/logger';
 
 describe('Logger', function() {
+    this.timeout(timeout + 1000);
     let projectId, token, componentId, applicationLog;
     // create a new user
     user.email = generateRandomBusinessEmail();
     const component = { name: 'Our Component' };
     before(function(done) {
-        this.timeout(20000);
+        this.timeout(30000);
 
         request
             .post('/user/signup')
@@ -143,6 +145,72 @@ describe('Logger', function() {
             expect(response.data).to.be.an('object');
             expect(response.data.content).to.be.a('string');
             expect(response.data).to.include({ type: 'warning' });
+        });
+    });
+    it('should return a valid logged item with log type of info with one tag', function() {
+        const validLog = new Logger(
+            API_URL,
+            applicationLog._id,
+            applicationLog.key
+        );
+        const logMessage = 'This is a simple log';
+        const tag = 'trial';
+        validLog.log(logMessage, tag).then(response => {
+            expect(response.status).to.equal(200);
+            expect(response.data).to.be.an('object');
+            expect(response.data.content).to.be.a('string');
+            expect(response.data).to.include({ type: 'info' });
+            expect(response.data.tags).to.be.an('array');
+            expect(response.data.tags).to.have.lengthOf(1);
+            expect(response.data.tags).to.include(tag);
+        });
+    });
+    it('should return a valid logged item with log type of warning with no tag', function() {
+        const validLog = new Logger(
+            API_URL,
+            applicationLog._id,
+            applicationLog.key
+        );
+        const logMessage = 'This is a simple log';
+        validLog.warning(logMessage).then(response => {
+            expect(response.status).to.equal(200);
+            expect(response.data).to.be.an('object');
+            expect(response.data.content).to.be.a('string');
+            expect(response.data).to.include({ type: 'warning' });
+            expect(response.data.tags).to.be.an('array');
+            expect(response.data.tags).to.be.an('array').that.is.empty;
+        });
+    });
+    it('should return a valid logged item with log type of error with 3 tags', function() {
+        const validLog = new Logger(
+            API_URL,
+            applicationLog._id,
+            applicationLog.key
+        );
+        const logMessage = 'This is a simple log';
+        const tags = ['auction', 'trial', 'famous'];
+        validLog.error(logMessage, tags).then(response => {
+            expect(response.status).to.equal(200);
+            expect(response.data).to.be.an('object');
+            expect(response.data.content).to.be.a('string');
+            expect(response.data).to.include({ type: 'error' });
+            expect(response.data.tags).to.be.an('array');
+            expect(response.data.tags).to.have.lengthOf(tags.length);
+            tags.forEach(tag => {
+                expect(response.data.tags).to.include(tag);
+            });
+        });
+    });
+    it('should reject a valid logged item with log type of error with invalid tags', function() {
+        const validLog = new Logger(
+            API_URL,
+            applicationLog._id,
+            applicationLog.key
+        );
+        const logMessage = 'This is a simple log';
+        const tags = { type: 'trying things' };
+        validLog.error(logMessage, tags).then(response => {
+            expect(response).to.equal('Invalid Content Tags to be logged');
         });
     });
 });

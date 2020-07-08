@@ -13,18 +13,12 @@ $ cd project
 $ composer require fyipe/log-php
 ```
 
-### Development
-
--   Clone repository
--   run `composer install` to install dependencies
--   run `composer test` to run tests
-
 <a name="module_api"></a>
 
 ## Basic Usage
 
 ```php
-import Logger from 'log-js';
+use Fyipe\Logger;
 
 // constructor
 $logger = new Fyipe\Logger(
@@ -50,6 +44,20 @@ $item->page = 'Landing Page';
 $response = $logger->log($item);
 // response after logging a request
 var_dump($response);
+
+// alternatively, tags can be added to the logged item.
+$item = 'This is a simple log';
+// using a tag string
+$tag = 'server-side-error'
+$response = $logger->log($item, $tag);
+// response after logging a request
+var_dump($response);
+
+// Using an array of strings
+$tags = ['error', 'server']
+$response = $logger->log($item, $tags);
+// response after logging a request
+var_dump($response);
 ```
 
 ## API Documentation
@@ -61,18 +69,17 @@ Main API to send logs to the server.
 -   [Fyipe Application Logger](#fyipe-application-logger)
     -   [Installation](#installation)
         -   [Composer Install](#composer-install)
-        -   [Development](#development)
     -   [Basic Usage](#basic-usage)
     -   [API Documentation](#api-documentation)
-        -   [new Logger(apiUrl, applicationId, applicationKey)](#new-loggerapiurl-applicationid-applicationkey)
-            -   [$logger->log($log)](#math-xmlnshttpwwww3org1998mathmathmlsemanticsmrowmilmimiomimigmimigmimiemimirmimomomomomilmimiomimigmimo-stretchyfalsemomrowannotation-encodingapplicationx-texlogger-logannotationsemanticsmathloggerloglog)
-            -   [$logger->warning($warning)](#math-xmlnshttpwwww3org1998mathmathmlsemanticsmrowmilmimiomimigmimigmimiemimirmimomomomomiwmimiamimirmiminmimiimiminmimigmimo-stretchyfalsemomrowannotation-encodingapplicationx-texlogger-warningannotationsemanticsmathloggerwarningwarning)
-            -   [logger.error(\$error)](#loggererrorerror)
-    -   [TODO](#todo)
+        -   [new Logger($apiUrl, $applicationId, \$applicationKey)](#new-loggerapiurl-applicationid-applicationkey)
+            -   [$logger->log($log, \$tags)](#math-xmlnshttpwwww3org1998mathmathmlsemanticsmrowmilmimiomimigmimigmimiemimirmimomomomomilmimiomimigmimo-stretchyfalsemomrowannotation-encodingapplicationx-texlogger-logannotationsemanticsmathloggerloglog-tags)
+            -   [$logger->warning($warning, \$tags)](#math-xmlnshttpwwww3org1998mathmathmlsemanticsmrowmilmimiomimigmimigmimiemimirmimomomomomiwmimiamimirmiminmimiimiminmimigmimo-stretchyfalsemomrowannotation-encodingapplicationx-texlogger-warningannotationsemanticsmathloggerwarningwarning-tags)
+            -   [$logger->error($error, \$tags)](#math-xmlnshttpwwww3org1998mathmathmlsemanticsmrowmilmimiomimigmimigmimiemimirmimomomomomiemimirmimirmimiomimirmimo-stretchyfalsemomrowannotation-encodingapplicationx-texlogger-errorannotationsemanticsmathloggererrorerror-tags)
+    -   [Contribution](#contribution)
 
 <a name="logger_api--logger"></a>
 
-### new Logger(apiUrl, applicationId, applicationKey)
+### new Logger($apiUrl, $applicationId, \$applicationKey)
 
 Create a constructor from the class, which will be used to send logs to the server.
 
@@ -85,40 +92,44 @@ Create a constructor from the class, which will be used to send logs to the serv
 | \$applicationId  | <code>string</code> | The Application Log ID.  |
 | \$applicationKey | <code>string</code> | The Application Log Key. |
 
-#### $logger->log($log)
+#### $logger->log($log, \$tags)
 
 Logs a request of type `info` to the server.
 
 **Kind**: method of [<code>new Fyipe\Logger</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
-| Param | Type                                       | Description                              |
-| ----- | ------------------------------------------ | ---------------------------------------- |
-| \$log | <code>string</code> \| <code>Object</code> | The content to the logged on the server. |
+| Param  | Type                                       | Description                                                 |
+| ------ | ------------------------------------------ | ----------------------------------------------------------- |
+| \$log  | <code>string</code> \| <code>Object</code> | The content to the logged on the server.                    |
+| \$tags | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
 
-#### $logger->warning($warning)
+#### $logger->warning($warning, \$tags)
 
 Logs a request of type `warning` to the server.
 
 **Kind**: method of [<code>new FyiLogger</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
-| Param     | Type                                       | Description                              |
-| --------- | ------------------------------------------ | ---------------------------------------- |
-| \$warning | <code>string</code> \| <code>Object</code> | The content to the logged on the server. |
+| Param     | Type                                       | Description                                                 |
+| --------- | ------------------------------------------ | ----------------------------------------------------------- |
+| \$warning | <code>string</code> \| <code>Object</code> | The content to the logged on the server.                    |
+| \$tags    | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
 
-#### logger.error(\$error)
+#### $logger->error($error, \$tags)
 
 Logs a request of type `error` to the server.
 
 **Kind**: method of [<code>new Fyipe\Logger</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
-| Param   | Type                                       | Description                              |
-| ------- | ------------------------------------------ | ---------------------------------------- |
-| \$error | <code>string</code> \| <code>Object</code> | The content to the logged on the server. |
+| Param   | Type                                       | Description                                                 |
+| ------- | ------------------------------------------ | ----------------------------------------------------------- |
+| \$error | <code>string</code> \| <code>Object</code> | The content to the logged on the server.                    |
+| \$tags  | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
 
-## TODO
+## Contribution
 
--   Tags
--   TBD
+-   Clone repository
+-   run `composer install` to install dependencies
+-   run `composer test` to run tests

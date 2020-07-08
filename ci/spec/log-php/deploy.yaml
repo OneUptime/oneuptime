@@ -13,12 +13,13 @@ deploy_staging_log-php:
         - sudo apt-get install -y composer
         - sudo npm install -g json composer-version
         - cd log-php
+        - git branch
+        - git checkout -f staging
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php-staging"'
-        - git init
-        - git add -A
+        - git add .
         - git commit -m "staging deployment"
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git deploy_staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git staging --force
         - cd ..
     only:
         refs:
@@ -26,7 +27,6 @@ deploy_staging_log-php:
             - hotfix-release
     environment:
         name: staging
-
 deploy_production_log-php:
     stage: Deploy
     allow_failure: true
@@ -41,10 +41,11 @@ deploy_production_log-php:
         - sudo apt-get install -y composer
         - sudo npm install -g json composer-version
         - cd log-php
+        - git status
+        - git checkout -f master
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/log-php"'
-        - git init
-        - git add -A
+        - git add .
         - git commit -m "production deployment"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-php.git master --force
         - cd ..
