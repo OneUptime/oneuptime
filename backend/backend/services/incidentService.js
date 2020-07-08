@@ -532,6 +532,12 @@ module.exports = {
     sendIncidentResolvedNotification: async function(incident, name) {
         try {
             const _this = this;
+            const monitor = await MonitorService.findOneBy({
+                _id: incident.monitorId,
+            });
+            const component = await ComponentService.findOneBy({
+                _id: monitor.componentId,
+            });
             const resolvedincident = await _this.findOneBy({
                 _id: incident._id,
             });
@@ -580,6 +586,15 @@ module.exports = {
                     resolvedincident.monitorId,
                     'resolved'
                 );
+                // Ms Teams
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
+                );
+
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
             } else {
                 msg = `${
@@ -611,6 +626,14 @@ module.exports = {
                     incident,
                     resolvedincident.monitorId,
                     'resolved'
+                );
+                // Ms Teams
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
                 );
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
             }
@@ -682,8 +705,10 @@ const AlertService = require('./alertService');
 const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
 const WebHookService = require('./webHookService');
+const MsTeamsService = require('./msTeamsService');
 const SlackService = require('./slackService');
 const ZapierService = require('./zapierService');
 const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const MonitorStatusService = require('./monitorStatusService');
+const ComponentService = require('./componentService');
