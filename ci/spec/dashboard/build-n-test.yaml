@@ -77,6 +77,7 @@ build_n_test_enterprise_dashboard:
         - chmod +x ./ci/scripts/storehash.sh
         - chmod +x ./ci/scripts/job-status.sh
         - export build_n_test_enterprise_dashboard_status=`./ci/scripts/job-status.sh build_n_test_enterprise_dashboard`
+        - echo $build_n_test_enterprise_dashboard_status
         - if [[ $build_n_test_enterprise_dashboard_status == \"success\" ]]; then ./ci/scripts/storehash.sh dashboard; fi
     except:
         refs:
