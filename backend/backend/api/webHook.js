@@ -23,11 +23,12 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
         const incidentCreated = body.incidentCreated;
         const incidentResolved = body.incidentResolved;
         const incidentAcknowledged = body.incidentAcknowledged;
+        const integrationType = body.type;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'projectId missing in body, must be present',
+                message: 'projectId missing in params, must be present',
             });
         }
 
@@ -41,7 +42,14 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
         if (!monitorId) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'monitorId is missing in body, it must be present',
+                message: 'monitorId is missing in body, must be present',
+            });
+        }
+
+        if (!integrationType) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'type is missing in body, it must be present',
             });
         }
 
@@ -64,7 +72,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
             incidentAcknowledged,
             incidentResolved,
         };
-        const integrationType = 'webhook';
+
         const webhook = await IntegrationService.create(
             projectId,
             userId,
@@ -89,12 +97,11 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
         data.projectId = req.params.projectId;
         data.userId = req.user ? req.user.id : null;
         data._id = integrationId;
-        data.integrationType = 'webhook';
 
         if (!data.projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'projectId missing in body, must be present',
+                message: 'projectId missing in params, must be present',
             });
         }
 
@@ -112,12 +119,23 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
             });
         }
 
+        if (!data.type) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'type is missing in body, it must be present',
+            });
+        }
+
         const existingWebhook = await IntegrationService.findOneBy({
             monitorId: data.monitorId,
             'data.endpoint': data.endpoint,
-            'data.endpointType': data.endpointType,
+            ...(data.type === 'webhook' && {
+                'data.endpointType': data.endpointType,
+            }),
+            integrationType: data.type,
             deleted: { $ne: null },
         });
+
         if (
             existingWebhook &&
             existingWebhook._id.toString() !== integrationId
@@ -163,7 +181,7 @@ router.delete(
 router.get('/:projectId/hooks', getUser, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        const integrationType = 'webhook';
+        const integrationType = req.query.type || 'webhook';
         const integrations = await IntegrationService.findBy(
             { projectId: projectId, integrationType: integrationType },
             req.query.skip || 0,

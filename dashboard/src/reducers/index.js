@@ -33,6 +33,7 @@ import dateTime from './dateTime';
 import applicationLog from './applicationLog';
 import security from './security';
 import credential from './credential';
+import msTeams from './msteams';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -69,6 +70,7 @@ const appReducer = combineReducers({
     applicationLog,
     security,
     credential,
+    msTeams,
 });
 
 export default (state, action) => {

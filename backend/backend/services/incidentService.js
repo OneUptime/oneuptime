@@ -209,6 +209,13 @@ module.exports = {
             await ZapierService.pushToZapier('incident_created', incident);
             await RealTimeService.sendCreatedIncident(incident);
 
+            const monitor = await MonitorService.findOneBy({
+                _id: incident.monitorId,
+            });
+            const component = await ComponentService.findOneBy({
+                _id: monitor.componentId,
+            });
+
             if (!incident.createdById) {
                 const msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
                 const slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *Fyipe*`;
@@ -233,6 +240,14 @@ module.exports = {
                     incident.monitorId,
                     'created'
                 );
+                // Ms Teams
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
+                );
             } else {
                 const msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
                 const slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *${incident.createdById.name}*`;
@@ -256,6 +271,14 @@ module.exports = {
                     incident,
                     incident.monitorId,
                     'created'
+                );
+                // Ms Teams
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
                 );
             }
         } catch (error) {
@@ -326,6 +349,9 @@ module.exports = {
                 const monitor = await MonitorService.findOneBy({
                     _id: incident.monitorId,
                 });
+                const component = await ComponentService.findOneBy({
+                    _id: monitor.componentId,
+                });
                 incident = await _this.findOneBy({ _id: incident._id });
 
                 await IncidentTimelineService.create({
@@ -346,6 +372,15 @@ module.exports = {
                     monitor,
                     'acknowledged'
                 );
+
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
+                );
+
                 await RealTimeService.incidentAcknowledged(incident);
                 await ZapierService.pushToZapier(
                     'incident_acknowledge',
@@ -497,6 +532,12 @@ module.exports = {
     sendIncidentResolvedNotification: async function(incident, name) {
         try {
             const _this = this;
+            const monitor = await MonitorService.findOneBy({
+                _id: incident.monitorId,
+            });
+            const component = await ComponentService.findOneBy({
+                _id: monitor.componentId,
+            });
             const resolvedincident = await _this.findOneBy({
                 _id: incident._id,
             });
@@ -545,6 +586,15 @@ module.exports = {
                     resolvedincident.monitorId,
                     'resolved'
                 );
+                // Ms Teams
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
+                );
+
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
             } else {
                 msg = `${
@@ -576,6 +626,14 @@ module.exports = {
                     incident,
                     resolvedincident.monitorId,
                     'resolved'
+                );
+                // Ms Teams
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
                 );
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
             }
@@ -647,8 +705,10 @@ const AlertService = require('./alertService');
 const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
 const WebHookService = require('./webHookService');
+const MsTeamsService = require('./msTeamsService');
 const SlackService = require('./slackService');
 const ZapierService = require('./zapierService');
 const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const MonitorStatusService = require('./monitorStatusService');
+const ComponentService = require('./componentService');
