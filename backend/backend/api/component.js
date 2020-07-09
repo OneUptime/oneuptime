@@ -9,6 +9,9 @@ const UserService = require('../services/userService');
 const ComponentService = require('../services/componentService');
 const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
+const ApplicationLogService = require('../services/applicationLogService');
+const MonitorService = require('../services/monitorService');
+const ApplicationSecurityService = require('../services/applicationSecurityService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -173,6 +176,123 @@ router.get(
 
             const component = await ComponentService.findOneBy(query);
             return sendItemResponse(req, res, component);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// TODO fetch latest stats related to a particular component
+router.get(
+    '/:projectId/component/:componentId/resources',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function(req, res) {
+        try {
+            const componentId = req.params.componentId;
+            const type = req.query.type;
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map(project => project._id)
+                : null;
+            const query = type
+                ? { _id: componentId, projectId: { $in: subProjectIds }, type }
+                : { _id: componentId, projectId: { $in: subProjectIds } };
+
+            // Get that component
+            const component = await ComponentService.findOneBy(query);
+            if (!component) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Component not Found',
+                });
+            }
+
+            let totalResources = [];
+            let totalResourceCount = 0;
+
+            // fetch application logs
+            const applicationLogs = await ApplicationLogService.getApplicationLogsByComponentId(
+                componentId,
+                req.query.limit || 5,
+                req.query.skip || 0
+            );
+            applicationLogs.map(elem => {
+                const newElement = {
+                    _id: elem._id,
+                    name: elem.name,
+                    type: 'application-log',
+                    createdAt: elem.createdAt,
+                };
+                // add it to the total resources
+                totalResources.push(newElement);
+                return newElement;
+            });
+
+            // get total number of application log and sum it
+            totalResourceCount += await ApplicationLogService.countBy({
+                componentId: { $in: componentId },
+            });
+
+            // fetch monitors
+            const monitorQuery = type
+                ? { projectId: { $in: subProjectIds }, type }
+                : { projectId: { $in: subProjectIds } };
+
+            const monitors = await MonitorService.findBy(
+                monitorQuery,
+                req.query.limit || 5,
+                req.query.skip || 0
+            );
+            monitors.map(elem => {
+                const newElement = {
+                    _id: elem._id,
+                    name: elem.name,
+                    type: 'monitor',
+                    createdAt: elem.createdAt,
+                };
+                // add it to the total resources
+                totalResources.push(newElement);
+                return newElement;
+            });
+            // get total number of monitors and sum it
+            totalResourceCount += await MonitorService.countBy({
+                projectId: { $in: subProjectIds },
+            });
+
+            // fetch application security
+            const applicationSecurity = await ApplicationSecurityService.findBy(
+                { componentId: componentId },
+                req.query.limit || 5,
+                req.query.skip || 0
+            );
+            applicationSecurity.map(elem => {
+                const newElement = {
+                    _id: elem._id,
+                    name: elem.name,
+                    type: 'application-security',
+                    createdAt: elem.createdAt,
+                };
+                // add it to the total resources
+                totalResources.push(newElement);
+                return newElement;
+            });
+
+            // get total number of application log and sum it
+            totalResourceCount += await ApplicationSecurityService.countBy({
+                componentId: componentId,
+            });
+
+            // Sort all resources by creation date
+            totalResources = totalResources.sort(
+                (a, b) => b.createdAt - a.createdAt
+            );
+
+            // return response
+            return sendItemResponse(req, res, {
+                totalResources,
+                totalResourceCount,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
