@@ -34,6 +34,7 @@ import applicationLog from './applicationLog';
 import security from './security';
 import credential from './credential';
 import msTeams from './msteams';
+import slackWebhooks from './slackWebhooks';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -54,6 +55,7 @@ const appReducer = combineReducers({
     feedback,
     notifications,
     slack,
+    slackWebhooks,
     webHooks,
     report,
     subProject,
