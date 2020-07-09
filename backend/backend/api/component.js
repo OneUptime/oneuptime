@@ -12,6 +12,7 @@ const RealTimeService = require('../services/realTimeService');
 const ApplicationLogService = require('../services/applicationLogService');
 const MonitorService = require('../services/monitorService');
 const ApplicationSecurityService = require('../services/applicationSecurityService');
+const ContainerSecurityService = require('../services/containerSecurityService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -278,8 +279,31 @@ router.get(
                 return newElement;
             });
 
-            // get total number of application log and sum it
+            // get total number of application security and sum it
             totalResourceCount += await ApplicationSecurityService.countBy({
+                componentId: componentId,
+            });
+
+            // fetch container security
+            const containerSecurity = await ContainerSecurityService.findBy(
+                { componentId: componentId },
+                req.query.limit || 5,
+                req.query.skip || 0
+            );
+            containerSecurity.map(elem => {
+                const newElement = {
+                    _id: elem._id,
+                    name: elem.name,
+                    type: 'container-security',
+                    createdAt: elem.createdAt,
+                };
+                // add it to the total resources
+                totalResources.push(newElement);
+                return newElement;
+            });
+
+            // get total number of container security and sum it
+            totalResourceCount += await ContainerSecurityService.countBy({
                 componentId: componentId,
             });
 
