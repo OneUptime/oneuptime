@@ -443,6 +443,51 @@ describe('Monitor Detail API', () => {
     );
 
     test(
+        'Should navigate to monitor details and update a msteams webhook',
+        async () => {
+            expect.assertions(2);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const existingWebhookSelector =
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+
+                await page.waitForSelector(existingWebhookSelector);
+
+                const existingWebhookEndpoint = await page.$eval(
+                    existingWebhookSelector,
+                    el => el.textContent
+                );
+
+                expect(existingWebhookEndpoint).toEqual(webhookEndpoint);
+
+                const editWebhookButtonSelector =
+                '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(1)';
+                await page.click(editWebhookButtonSelector);
+
+                const newWebhookEndpoint=utils.generateRandomWebsite();
+                await page.click("#endpoint", {clickCount: 3})
+                await page.keyboard.press('Backspace')
+                await page.type('#endpoint', newWebhookEndpoint);
+                await page.click('#msteamsUpdate');
+                await page.waitFor(1000);
+                const updatedWebhookEndpoint = await page.$eval(
+                    existingWebhookSelector,
+                    el => el.textContent
+                );
+                expect(updatedWebhookEndpoint).toEqual(newWebhookEndpoint);
+
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should navigate to monitor details and get list of msteams webhooks and paginate them',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
