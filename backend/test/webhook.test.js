@@ -13,6 +13,7 @@ const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const MonitorService = require('../backend/services/monitorService');
 const AirtableService = require('../backend/services/airtableService');
+const IntegrationService = require('../backend/services/integrationService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 
@@ -23,6 +24,7 @@ const monitor = {
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
+
 const msTeamsPayload = {
     monitorId: null,
     endpoint: 'http://hackerbay.io',
@@ -30,6 +32,15 @@ const msTeamsPayload = {
     incidentResolved: true,
     incidentAcknowledged: true,
     type: 'msteams',
+};
+
+const slackPayload = {
+    monitorId: null,
+    endpoint: 'http://hackerbay.io',
+    incidentCreated: true,
+    incidentResolved: true,
+    incidentAcknowledged: true,
+    type: 'slack',
 };
 
 describe('Webhook API', function() {
@@ -73,6 +84,7 @@ describe('Webhook API', function() {
                                         .end(function(err, res) {
                                             monitorId = res.body._id;
                                             msTeamsPayload.monitorId = monitorId;
+                                            slackPayload.monitorId = monitorId;
                                             expect(res).to.have.status(200);
                                             expect(res.body).to.be.an('object');
                                             done();
@@ -98,6 +110,7 @@ describe('Webhook API', function() {
         });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await AirtableService.deleteUser(airtableId);
+        await IntegrationService.hardDeleteBy({});
     });
 
     //MS Teams
@@ -249,4 +262,23 @@ describe('Webhook API', function() {
                 done();
             });
     });
+    //Slack
+    it('should create slack webhook.', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .send(slackPayload)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('notificationOptions');
+                msTeamsId = res.body._id;
+                done();
+            });
+    });
+
 });
