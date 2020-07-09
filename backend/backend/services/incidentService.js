@@ -572,10 +572,10 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(
                     incident.projectId,
-                    incident._id,
-                    null,
-                    slackMsg,
-                    false
+                    incident,
+                    incident.monitorId,
+                    'resolved',
+                    component
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -589,7 +589,7 @@ module.exports = {
                     incident.projectId,
                     incident,
                     incident.monitorId,
-                    'created',
+                    'resolved',
                     component
                 );
 
@@ -613,10 +613,10 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(
                     incident.projectId,
-                    incident._id,
-                    null,
-                    slackMsg,
-                    false
+                    incident,
+                    incident.monitorId,
+                    'resolved',
+                    component
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -630,7 +630,7 @@ module.exports = {
                     incident.projectId,
                     incident,
                     incident.monitorId,
-                    'created',
+                    'resolved',
                     component
                 );
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
