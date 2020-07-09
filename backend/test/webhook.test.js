@@ -331,5 +331,19 @@ describe('Webhook API', function() {
             });
     });
 
+    it('should return the list of slack webhook.', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(`/webhook/${projectId}/hooks?type=slack`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('count');
+                expect(res.body.count).to.eql(2);
+                done();
+            });
+    });
 
 });
