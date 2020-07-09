@@ -329,19 +329,11 @@ module.exports = {
 
                 const slackMsg = `*${incident.monitorId.name}* monitor was acknowledged by *${name}* after being down for _${downtimestring}_`;
 
-                // send slack notification
                 await NotificationService.create(
                     incident.projectId,
                     `An Incident was acknowledged by ${name}`,
                     userId,
                     'acknowledge'
-                );
-                await SlackService.sendNotification(
-                    incident.projectId,
-                    incident._id,
-                    userId,
-                    slackMsg,
-                    incident
                 );
                 // Ping webhook
                 const monitor = await MonitorService.findOneBy({
@@ -371,11 +363,19 @@ module.exports = {
                     'acknowledged'
                 );
 
+                await SlackService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'acknowledged',
+                    component
+                );
+
                 await MsTeamsService.sendNotification(
                     incident.projectId,
                     incident,
                     incident.monitorId,
-                    'created',
+                    'acknowledged',
                     component
                 );
 
