@@ -20,7 +20,7 @@ $ npm install fyipe-log-js
 ## Basic Usage
 
 ```javascript
-import Logger from 'log-js';
+import Logger from 'fyipe-log-js';
 
 // constructor
 const logger = new Logger(
