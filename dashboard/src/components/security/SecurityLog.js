@@ -211,8 +211,7 @@ const SecurityLog = ({
                                             <td
                                                 style={{
                                                     textAlign: 'center',
-                                                    marginTop: '10px',
-                                                    padding: '0px 10px',
+                                                    padding: '15px 10px 0px',
                                                 }}
                                                 colSpan="3"
                                             >
@@ -312,8 +311,7 @@ const SecurityLog = ({
                                             <td
                                                 style={{
                                                     textAlign: 'center',
-                                                    marginTop: '10px',
-                                                    padding: '0px 10px',
+                                                    padding: '15px 10px 0px',
                                                 }}
                                                 colSpan="3"
                                             >
