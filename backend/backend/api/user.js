@@ -959,7 +959,6 @@ router.get('/profile', getUser, async function(req, res) {
             id: user._id,
             name: user.name ? user.name : '',
             email: user.email ? user.email : '',
-            password: user.password,
             companyName: user.companyName,
             companyRole: user.companyRole,
             companySize: user.companySize,
