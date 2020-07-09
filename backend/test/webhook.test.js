@@ -18,7 +18,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 
 // eslint-disable-next-line
-let token, userId, airtableId, projectId, monitorId, msTeamsId,slackId;
+let token, userId, airtableId, projectId, monitorId, msTeamsId,msTeamsId1,slackId,slackId1;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -110,7 +110,12 @@ describe('Webhook API', function() {
         });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await AirtableService.deleteUser(airtableId);
-        await IntegrationService.hardDeleteBy({});
+        await IntegrationService.hardDeleteBy({_id:{$in:[
+            msTeamsId,
+            msTeamsId1,
+            slackId,
+            slackId1,
+        ]}});
     });
 
     //MS Teams
@@ -208,6 +213,7 @@ describe('Webhook API', function() {
                 expect(res.body).to.have.property('projectId');
                 expect(res.body).to.have.property('monitorId');
                 expect(res.body).to.have.property('notificationOptions');
+                msTeamsId1 = res.body._id;
                 done();
             });
     });
@@ -308,6 +314,7 @@ describe('Webhook API', function() {
                 expect(res.body).to.have.property('projectId');
                 expect(res.body).to.have.property('monitorId');
                 expect(res.body).to.have.property('notificationOptions');
+                slackId1 = res.body._id;
                 done();
             });
     });
