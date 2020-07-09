@@ -218,7 +218,6 @@ module.exports = {
 
             if (!incident.createdById) {
                 const msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
-                const slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *Fyipe*`;
                 await NotificationService.create(
                     incident.projectId,
                     msg,
@@ -228,10 +227,10 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(
                     incident.projectId,
-                    incident._id,
-                    null,
-                    slackMsg,
-                    false
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -250,7 +249,6 @@ module.exports = {
                 );
             } else {
                 const msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
-                const slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *${incident.createdById.name}*`;
                 await NotificationService.create(
                     incident.projectId,
                     msg,
@@ -260,10 +258,10 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(
                     incident.projectId,
-                    incident._id,
-                    null,
-                    slackMsg,
-                    false
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
