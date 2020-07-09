@@ -6,7 +6,7 @@ store_hash_dashboard:
         - export build_n_test_dashboard_status=`./ci/scripts/job-status.sh build_n_test_dashboard`
         - export build_n_test_enterprise_dashboard_status=`./ci/scripts/job-status.sh build_n_test_enterprise_dashboard`
         - echo $build_n_test_enterprise_dashboard_status
-        - if [[ $build_n_test_dashboard_status == \"success\" && $build_n_test_enterprise_dashboard_status == \"success\" ]]; then ./ci/scripts/storehash.sh dashboard; else echo "not running this"; fi
+        - if [[ $build_n_test_dashboard_status == \"success\" ]] && [[ $build_n_test_enterprise_dashboard_status == \"success\" ]]; then ./ci/scripts/storehash.sh dashboard; else echo "not running this"; fi
     except:
         refs:
             - hotfix-master
