@@ -18,7 +18,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 
 // eslint-disable-next-line
-let token, userId, airtableId, projectId, monitorId, msTeamsId;
+let token, userId, airtableId, projectId, monitorId, msTeamsId,slackId;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -276,7 +276,7 @@ describe('Webhook API', function() {
                 expect(res.body).to.have.property('projectId');
                 expect(res.body).to.have.property('monitorId');
                 expect(res.body).to.have.property('notificationOptions');
-                msTeamsId = res.body._id;
+                slackId = res.body._id;
                 done();
             });
     });
@@ -317,7 +317,7 @@ describe('Webhook API', function() {
         const payload = { ...slackPayload };
         payload.endpoint = 'http://newlink.hackerbay.io';
         request
-            .put(`/webhook/${projectId}/${msTeamsId}`)
+            .put(`/webhook/${projectId}/${slackId}`)
             .set('Authorization', authorization)
             .send(payload)
             .end(function(err, res) {
@@ -342,6 +342,23 @@ describe('Webhook API', function() {
                 expect(res.body).to.have.property('data');
                 expect(res.body).to.have.property('count');
                 expect(res.body.count).to.eql(2);
+                done();
+            });
+    });
+
+    it('should delete slack webhooks.', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .delete(`/webhook/${projectId}/delete/${slackId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('integrationType');
+                expect(res.body).to.have.property('notificationOptions');
                 done();
             });
     });
