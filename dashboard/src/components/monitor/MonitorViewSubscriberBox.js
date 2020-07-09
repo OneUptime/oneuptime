@@ -168,7 +168,7 @@ export class MonitorViewSubscriberBox extends Component {
                                     }}
                                 >
                                     <ShouldRender if={!exporting}>
-                                        <span className="bs-Button--icon bs-Button--new">
+                                        <span className="bs-Button--icon bs-Button--upload">
                                             <span>Import CSV</span>
                                         </span>
                                     </ShouldRender>

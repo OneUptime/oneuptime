@@ -464,6 +464,7 @@ describe('Monitor Detail API', () => {
 
                     await page.type('#endpoint', utils.generateRandomWebsite());
                     await init.selectByText('#endpointType', 'GET', page);
+                    await page.waitFor(2000);
                     await page.evaluate(() => {
                         document
                             .querySelector('input[name=incidentCreated]')
@@ -567,6 +568,7 @@ describe('Monitor Detail API', () => {
 
                 expect(probe0).toBeDefined();
                 expect(probe1).toBeDefined();
+                await page.waitFor(10000);
 
                 const monitorStatus = await page.waitForSelector(
                     `#monitor-status-${urlMonitorName}`
