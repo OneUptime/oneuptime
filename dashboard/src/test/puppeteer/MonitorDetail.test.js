@@ -400,6 +400,49 @@ describe('Monitor Detail API', () => {
     );
 
     test(
+        'Should navigate to monitor details and create a msteams webhook',
+        async () => {
+            expect.assertions(1);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const addButtonSelector = '#addMsTeamsButton';
+                await page.waitForSelector(addButtonSelector);
+                await page.click(addButtonSelector);
+
+                await page.waitForSelector('#endpoint');
+
+                await page.type('#endpoint', webhookEndpoint);
+
+                await page.evaluate(() => {
+                    document
+                        .querySelector('input[name=incidentCreated]')
+                        .click();
+                });
+
+                const createdWebhookSelector =
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+
+                await page.click('#createMsTeams');
+                await page.waitForSelector(createdWebhookSelector);
+
+                const createdWebhookEndpoint = await page.$eval(
+                    createdWebhookSelector,
+                    el => el.textContent
+                );
+
+                expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should navigate to monitor details and create a webhook',
         async () => {
             expect.assertions(1);
