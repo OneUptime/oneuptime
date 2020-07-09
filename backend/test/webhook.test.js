@@ -312,4 +312,24 @@ describe('Webhook API', function() {
             });
     });
 
+    it('should update the slack webhook.', function(done) {
+        const authorization = `Basic ${token}`;
+        const payload = { ...slackPayload };
+        payload.endpoint = 'http://newlink.hackerbay.io';
+        request
+            .put(`/webhook/${projectId}/${msTeamsId}`)
+            .set('Authorization', authorization)
+            .send(payload)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('notificationOptions');
+                done();
+            });
+    });
+
+
 });
