@@ -7,7 +7,6 @@
 # Define stages
 stages:
   - BuildAndTest
-  - StoreHash
   - Deploy
   - RollbackIfDeploymentFail
   - SmokeTest
