@@ -12,7 +12,6 @@ deploy_staging_log-java:
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
         - echo $JAVA_HOME
         - which java
-        - export JAVA_HOME=$(/usr/libexec/java_home)
         - mvn clean deploy
         - cd ..
     only:

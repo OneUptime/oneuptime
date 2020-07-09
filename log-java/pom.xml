@@ -48,7 +48,7 @@
                 <version>2.9.1</version>
                 <configuration>
                     <source>7</source>
-                    <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
+                    <javadocExecutable>${java.home}/../bin/javadoc</javadocExecutable>
                 </configuration>
                 <executions>
                     <execution>
