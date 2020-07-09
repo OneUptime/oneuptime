@@ -29,6 +29,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { getProbes } from '../actions/probe';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
+import SlackBox from '../components/webHooks/SlackBox';
 
 class MonitorView extends React.Component {
     // eslint-disable-next-line
@@ -317,6 +318,15 @@ class MonitorView extends React.Component {
                                                         </div>
                                                         <div className="Box-root Margin-bottom--12">
                                                             <MSTeamsBox
+                                                                monitorId={
+                                                                    this.props
+                                                                        .monitor
+                                                                        ._id
+                                                                }
+                                                            />
+                                                        </div>
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <SlackBox
                                                                 monitorId={
                                                                     this.props
                                                                         .monitor
