@@ -467,12 +467,12 @@ describe('Monitor Detail API', () => {
                 expect(existingWebhookEndpoint).toEqual(webhookEndpoint);
 
                 const editWebhookButtonSelector =
-                '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(1)';
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(1)';
                 await page.click(editWebhookButtonSelector);
 
-                const newWebhookEndpoint=utils.generateRandomWebsite();
-                await page.click("#endpoint", {clickCount: 3})
-                await page.keyboard.press('Backspace')
+                const newWebhookEndpoint = utils.generateRandomWebsite();
+                await page.click('#endpoint', { clickCount: 3 });
+                await page.keyboard.press('Backspace');
                 await page.type('#endpoint', newWebhookEndpoint);
                 await page.click('#msteamsUpdate');
                 await page.waitFor(1000);
@@ -481,7 +481,6 @@ describe('Monitor Detail API', () => {
                     el => el.textContent
                 );
                 expect(updatedWebhookEndpoint).toEqual(newWebhookEndpoint);
-
             });
         },
         operationTimeOut
@@ -508,7 +507,7 @@ describe('Monitor Detail API', () => {
                 expect(countWebhooks).toEqual(1);
 
                 const deleteWebhookButtonSelector =
-                '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(2)';
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(2)';
                 await page.click(deleteWebhookButtonSelector);
 
                 await page.waitForSelector('#msteamsDelete');

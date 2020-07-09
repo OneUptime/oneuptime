@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const userData = require('./data/user');
@@ -161,7 +163,7 @@ describe('Webhook API', function() {
                 expect(res.body).to.have.property('projectId');
                 expect(res.body).to.have.property('monitorId');
                 expect(res.body).to.have.property('notificationOptions');
-                msTeamsId=res.body._id;
+                msTeamsId = res.body._id;
                 done();
             });
     });

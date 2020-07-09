@@ -54,7 +54,7 @@ class DeleteMsTeams extends Component {
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
                                         disabled={data.deleting}
-                                        id='msteamsDelete'
+                                        id="msteamsDelete"
                                     >
                                         {!data.deleting && <span>Delete</span>}
                                         {data.deleting && <FormLoader />}

@@ -443,7 +443,7 @@ class EditWebHook extends React.Component {
                                             this.props.newMsTeams.requesting
                                         }
                                         type="submit"
-                                        id='msteamsUpdate'
+                                        id="msteamsUpdate"
                                     >
                                         {this.props.newMsTeams &&
                                             !this.props.newMsTeams
