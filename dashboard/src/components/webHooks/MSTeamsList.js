@@ -107,7 +107,7 @@ class MSTeamsList extends React.Component {
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
                     <table
                         className="Table"
-                        id="webhookList"
+                        id="msteamsWebhookList"
                         onKeyDown={this.handleKeyBoard}
                     >
                         <thead className="Table-body">
