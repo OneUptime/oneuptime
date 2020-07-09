@@ -47,7 +47,6 @@ include:
   # DASHBOARD
   # - '/ci/spec/dashboard/audit.yaml'
   - '/ci/spec/dashboard/build-n-test.yaml'
-  - '/ci/spec/dashboard/store-hash.yaml'
   # - '/ci/spec/dashboard/deploy.yaml'
   # - '/ci/spec/dashboard/rollback.yaml'
 
