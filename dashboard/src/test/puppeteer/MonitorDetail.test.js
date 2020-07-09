@@ -488,6 +488,43 @@ describe('Monitor Detail API', () => {
     );
 
     test(
+        'Should navigate to monitor details and delete a msteams webhook',
+        async () => {
+            expect.assertions(2);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                const createdWebhookSelector =
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                await page.waitForSelector(createdWebhookSelector);
+
+                let webhookRows = await page.$$(createdWebhookSelector);
+                let countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(1);
+
+                const deleteWebhookButtonSelector =
+                '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(2)';
+                await page.click(deleteWebhookButtonSelector);
+
+                await page.waitForSelector('#msteamsDelete');
+                await page.click('#msteamsDelete');
+
+                await page.waitFor(1000);
+                webhookRows = await page.$$(createdWebhookSelector);
+                countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(0);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should navigate to monitor details and get list of msteams webhooks and paginate them',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
