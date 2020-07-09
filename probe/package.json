@@ -4,8 +4,8 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "node --max-http-header-size=800000 index.js",
-        "dev": "nodemon --max-http-header-size=800000 index.js",
+        "start": "node --max-http-header-size=80000 index.js",
+        "dev": "nodemon --max-http-header-size=80000 index.js",
         "test": "echo 'no tests'",
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "dep-check": "depcheck ./ --skip-missing=true"

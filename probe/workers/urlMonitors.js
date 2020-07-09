@@ -91,7 +91,13 @@ const pingfetch = async url => {
     try {
         let sslCertificate, response, data;
         try {
-            response = await fetch(url, { timeout: 120000 });
+            response = await fetch(url, {
+                timeout: 120000,
+                headers: {
+                    'User-Agent':
+                        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36',
+                },
+            });
             res = new Date().getTime() - now;
             data = await response.text();
             const urlObject = new URL(url);
