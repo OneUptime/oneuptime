@@ -232,6 +232,16 @@ module.exports = {
             return integration;
         }
     },
+    hardDeleteBy: async function(query) {
+        try {
+            await IntegrationModel.deleteMany(query);
+            return 'Integration(s) Removed Successfully!';
+        } catch (error) {
+            ErrorService.log('Integration.hardDeleteBy', error);
+            throw error;
+        }
+    },
+
 };
 const IntegrationModel = require('../models/integration');
 const ErrorService = require('./errorService');
