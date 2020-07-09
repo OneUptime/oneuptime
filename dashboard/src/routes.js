@@ -34,6 +34,8 @@ const {
     GitCredential,
     DockerCredential,
     FyipeApi,
+    ChangePasswordSetting,
+    DeleteAccountPage,
 } = pages;
 
 export const groups = [
@@ -368,8 +370,28 @@ export const groups = [
         ],
     },
     {
-        group: 'Profile',
+        group: 'VisibleOnProfile',
+        visible: true,
+        visibleOnProfile: true,
         routes: [
+            {
+                title: 'Profile Settings',
+                path: '/dashboard/profile/settings',
+                icon: 'businessSettings',
+                visible: true,
+                component: Profile,
+                subRoutes: [],
+                index: 1,
+            },
+            {
+                title: 'Change Password',
+                path: '/dashboard/profile/changePassword',
+                icon: 'customers',
+                visible: true,
+                component: ChangePasswordSetting,
+                subRoutes: [],
+                index: 2,
+            },
             {
                 title: 'Billing',
                 path: '/dashboard/profile/billing',
@@ -377,16 +399,16 @@ export const groups = [
                 visible: IS_SAAS_SERVICE,
                 component: ProfileBilling,
                 subRoutes: [],
-                index: 1,
+                index: 3,
             },
             {
-                title: 'Profile Settings',
-                path: '/dashboard/profile/settings',
+                title: 'Advanced',
+                path: '/dashboard/profile/advanced',
                 icon: 'customers',
                 visible: true,
-                component: Profile,
+                component: DeleteAccountPage,
                 subRoutes: [],
-                index: 2,
+                index: 4,
             },
             {
                 title: 'Team Member Profile',
@@ -395,7 +417,16 @@ export const groups = [
                 visible: true,
                 component: TeamMemberProfile,
                 subRoutes: [],
-                index: 3,
+                index: 5,
+            },
+            {
+                title: 'Back to Dashboard',
+                path: '/dashboard/project/:projectId/components',
+                icon: 'back',
+                component: Component,
+                visible: true,
+                subRoutes: [],
+                index: 6,
             },
         ],
     },

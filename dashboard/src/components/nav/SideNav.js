@@ -65,6 +65,11 @@ class SideNav extends Component {
             location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security/
             );
+        const switchToProfileNav =
+            location.pathname.match(/profile\/settings/) ||
+            location.pathname.match(/profile\/changePassword/) ||
+            location.pathname.match(/profile\/billing/) ||
+            location.pathname.match(/profile\/advanced/);
 
         let groupsToRender = [];
 
@@ -76,10 +81,23 @@ class SideNav extends Component {
                     group.routes = group.routes.filter(route => route.visible);
                     return group;
                 });
+        } else if (switchToProfileNav) {
+            groupsToRender = groups
+                .filter(group => group.visibleOnProfile)
+                .filter(group => group.visible)
+                .map(group => {
+                    group.routes = group.routes.filter(
+                        route =>
+                            route.visible &&
+                            route.title !== 'Team Member Profile'
+                    );
+                    return group;
+                });
         } else {
             groupsToRender = groups
                 .filter(group => !group.isPublic)
                 .filter(group => !group.visibleOnComponentDetail)
+                .filter(group => !group.visibleOnProfile)
                 .filter(group => group.visible);
         }
 
