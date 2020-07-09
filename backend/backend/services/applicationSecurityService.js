@@ -206,4 +206,18 @@ module.exports = {
             throw error;
         }
     },
+    async countBy(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const count = await ApplicationSecurityModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('applicationSecurityService.countBy', error);
+            throw error;
+        }
+    },
 };
