@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators, compose } from 'redux';
 import { Validate } from '../../config';
 import { reduxForm, Field } from 'redux-form';
-import { updateMsTeams } from '../../actions/msteamsWebhook';
+import { updateSlack } from '../../actions/slackWebhook';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
@@ -24,7 +24,7 @@ function validate(values) {
 class EditWebHook extends React.Component {
     submitForm = values => {
         const {
-            updateMsTeams,
+            updateSlack,
             closeThisDialog,
             data,
             currentProject,
@@ -34,7 +34,7 @@ class EditWebHook extends React.Component {
         postObj.endpoint = values.endpoint;
         postObj.monitorId = values.monitorId;
         postObj.endpointType = values.endpointType;
-        postObj.type = 'msteams';
+        postObj.type = 'slack';
         postObj.monitorId = data.currentMonitorId
             ? data.currentMonitorId
             : values.monitorId;
@@ -48,8 +48,8 @@ class EditWebHook extends React.Component {
             ? values.incidentAcknowledged
             : false;
 
-        updateMsTeams(currentProject._id, data._id, postObj).then(() => {
-            if (this.props.newMsTeams && !this.props.newMsTeams.error) {
+        updateSlack(currentProject._id, data._id, postObj).then(() => {
+            if (this.props.newSlack && !this.props.newSlack.error) {
                 closeThisDialog();
             }
         });
@@ -174,7 +174,7 @@ class EditWebHook extends React.Component {
                                                                 placeholder="Select monitor"
                                                                 disabled={
                                                                     this.props
-                                                                        .newMsTeams
+                                                                        .newSlack
                                                                         .requesting
                                                                 }
                                                                 validate={
@@ -403,8 +403,8 @@ class EditWebHook extends React.Component {
                                 <div className="bs-Modal-footer-actions">
                                     <ShouldRender
                                         if={
-                                            this.props.newMsTeams &&
-                                            this.props.newMsTeams.error
+                                            this.props.newSlack &&
+                                            this.props.newSlack.error
                                         }
                                     >
                                         <div className="bs-Tail-copy">
@@ -420,8 +420,7 @@ class EditWebHook extends React.Component {
                                                         style={{ color: 'red' }}
                                                     >
                                                         {
-                                                            this.props
-                                                                .newMsTeams
+                                                            this.props.newSlack
                                                                 .error
                                                         }
                                                     </span>
@@ -439,20 +438,20 @@ class EditWebHook extends React.Component {
                                     <button
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={
-                                            this.props.newMsTeams &&
-                                            this.props.newMsTeams.requesting
+                                            this.props.newSlack &&
+                                            this.props.newSlack.requesting
                                         }
                                         type="submit"
-                                        id="msteamsUpdate"
+                                        id="slackUpdate"
                                     >
-                                        {this.props.newMsTeams &&
-                                            !this.props.newMsTeams
-                                                .requesting && (
+                                        {this.props.newSlack &&
+                                            !this.props.newSlack.requesting && (
                                                 <span>Update</span>
                                             )}
-                                        {this.props.newMsTeams &&
-                                            this.props.newMsTeams
-                                                .requesting && <FormLoader />}
+                                        {this.props.newSlack &&
+                                            this.props.newSlack.requesting && (
+                                                <FormLoader />
+                                            )}
                                     </button>
                                 </div>
                             </div>
@@ -464,21 +463,21 @@ class EditWebHook extends React.Component {
     }
 }
 
-EditWebHook.displayName = 'EditMsTeamsWebHook';
+EditWebHook.displayName = 'EditSlackWebHook';
 
 EditWebHook.propTypes = {
     currentProject: PropTypes.object,
-    updateMsTeams: PropTypes.func.isRequired,
+    updateSlack: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     monitor: PropTypes.object,
-    newMsTeams: PropTypes.object,
+    newSlack: PropTypes.object,
     data: PropTypes.object.isRequired,
 };
 
 const NewEditWebHook = compose(
     reduxForm({
-        form: 'NewEditMsTeamsWebHook',
+        form: 'NewEditSlackWebHook',
         validate,
         enableReinitialize: true,
         destroyOnUnmount: true,
@@ -490,7 +489,7 @@ const NewEditWebHook = compose(
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            updateMsTeams,
+            updateSlack,
         },
         dispatch
     );
@@ -503,10 +502,10 @@ const mapStateToProps = (state, props) => {
         currentMonitorValue.value = props.data.monitorId._id;
     }
     return {
-        msTeams: state.msTeams,
+        slacks: state.slackWebhooks,
         monitor: state.monitor,
         currentProject: state.project.currentProject,
-        newMsTeams: state.msTeams.updateMsTeams,
+        newSlack: state.slackWebhooks.updateSlack,
         initialValues: {
             endpoint: props.data.data.endpoint,
             monitorId: currentMonitorValue.value,

@@ -13,16 +13,18 @@ const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const MonitorService = require('../backend/services/monitorService');
 const AirtableService = require('../backend/services/airtableService');
+const IntegrationService = require('../backend/services/integrationService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 
 // eslint-disable-next-line
-let token, userId, airtableId, projectId, monitorId, msTeamsId;
+let token, userId, airtableId, projectId, monitorId, msTeamsId,msTeamsId1,slackId,slackId1;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
+
 const msTeamsPayload = {
     monitorId: null,
     endpoint: 'http://hackerbay.io',
@@ -30,6 +32,15 @@ const msTeamsPayload = {
     incidentResolved: true,
     incidentAcknowledged: true,
     type: 'msteams',
+};
+
+const slackPayload = {
+    monitorId: null,
+    endpoint: 'http://hackerbay.io',
+    incidentCreated: true,
+    incidentResolved: true,
+    incidentAcknowledged: true,
+    type: 'slack',
 };
 
 describe('Webhook API', function() {
@@ -73,6 +84,7 @@ describe('Webhook API', function() {
                                         .end(function(err, res) {
                                             monitorId = res.body._id;
                                             msTeamsPayload.monitorId = monitorId;
+                                            slackPayload.monitorId = monitorId;
                                             expect(res).to.have.status(200);
                                             expect(res.body).to.be.an('object');
                                             done();
@@ -98,6 +110,9 @@ describe('Webhook API', function() {
         });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await AirtableService.deleteUser(airtableId);
+        await IntegrationService.hardDeleteBy({
+            _id: { $in: [msTeamsId, msTeamsId1, slackId, slackId1] },
+        });
     });
 
     //MS Teams
@@ -195,6 +210,7 @@ describe('Webhook API', function() {
                 expect(res.body).to.have.property('projectId');
                 expect(res.body).to.have.property('monitorId');
                 expect(res.body).to.have.property('notificationOptions');
+                msTeamsId1 = res.body._id;
                 done();
             });
     });
@@ -237,6 +253,107 @@ describe('Webhook API', function() {
         const authorization = `Basic ${token}`;
         request
             .delete(`/webhook/${projectId}/delete/${msTeamsId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('integrationType');
+                expect(res.body).to.have.property('notificationOptions');
+                done();
+            });
+    });
+    //Slack
+    it('should create slack webhook.', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .send(slackPayload)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('notificationOptions');
+                slackId = res.body._id;
+                done();
+            });
+    });
+
+    it('should not create slack webhook, with the same integration type and endpoint, for the same monitorId.', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .send(slackPayload)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('should create slack webhook with a different endpoint.', function(done) {
+        const authorization = `Basic ${token}`;
+        const payload = { ...slackPayload };
+        payload.endpoint = 'http://test1.slack.hackerbay.io';
+        request
+            .post(`/webhook/${projectId}/create`)
+            .set('Authorization', authorization)
+            .send(payload)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('notificationOptions');
+                slackId1 = res.body._id;
+                done();
+            });
+    });
+
+    it('should update the slack webhook.', function(done) {
+        const authorization = `Basic ${token}`;
+        const payload = { ...slackPayload };
+        payload.endpoint = 'http://newlink.hackerbay.io';
+        request
+            .put(`/webhook/${projectId}/${slackId}`)
+            .set('Authorization', authorization)
+            .send(payload)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('projectId');
+                expect(res.body).to.have.property('monitorId');
+                expect(res.body).to.have.property('notificationOptions');
+                done();
+            });
+    });
+
+    it('should return the list of slack webhook.', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(`/webhook/${projectId}/hooks?type=slack`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body).to.have.property('count');
+                expect(res.body.count).to.eql(2);
+                done();
+            });
+    });
+
+    it('should delete slack webhooks.', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .delete(`/webhook/${projectId}/delete/${slackId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
