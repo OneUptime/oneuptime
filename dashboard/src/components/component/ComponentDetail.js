@@ -4,7 +4,10 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import MonitorTabularList from '../monitor/MonitorTabularList';
 import uuid from 'uuid';
-import { fetchComponents } from '../../actions/component';
+import {
+    fetchComponents,
+    fetchComponentResources,
+} from '../../actions/component';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteComponent from '../modals/DeleteComponent';
 import { deleteComponent } from '../../actions/component';
@@ -15,6 +18,7 @@ import { history } from '../../store';
 import { logEvent } from '../../analytics';
 import { IS_SAAS_SERVICE } from '../../config';
 import EditComponent from '../modals/EditComponent';
+import ResourceTabularList from './ResourceTabularList';
 
 export class ComponentDetail extends Component {
     constructor(props) {
@@ -27,13 +31,18 @@ export class ComponentDetail extends Component {
     }
 
     prevClicked = () => {
+        const { component } = this.props;
         this.props.fetchComponents(
-            this.props.component.projectId._id,
-            this.props.component._id,
-            this.props.component.skip
-                ? parseInt(this.props.component.skip, 10) - 3
-                : 3,
+            component.projectId._id,
+            component._id,
+            component.skip ? parseInt(component.skip, 10) - 3 : 3,
             3
+        );
+        this.props.fetchComponentResources(
+            component.projectId._id,
+            component._id,
+            component.skip ? parseInt(component.skip, 5) - 5 : 5,
+            5
         );
         if (IS_SAAS_SERVICE) {
             logEvent(
@@ -50,13 +59,18 @@ export class ComponentDetail extends Component {
     };
 
     nextClicked = () => {
+        const { component } = this.props;
         this.props.fetchComponents(
-            this.props.component.projectId._id,
-            this.props.component._id,
-            this.props.component.skip
-                ? parseInt(this.props.component.skip, 10) + 3
-                : 3,
+            component.projectId._id,
+            component._id,
+            component.skip ? parseInt(component.skip, 10) + 3 : 3,
             3
+        );
+        this.props.fetchComponentResources(
+            component.projectId._id,
+            component._id,
+            component.skip ? parseInt(component.skip, 5) + 5 : 5,
+            5
         );
         if (IS_SAAS_SERVICE) {
             logEvent(
@@ -110,6 +124,15 @@ export class ComponentDetail extends Component {
         }
         return promise;
     };
+    componentDidMount() {
+        const { component } = this.props;
+        this.props.fetchComponentResources(
+            component.projectId._id,
+            component._id,
+            0,
+            5
+        );
+    }
 
     render() {
         const { deleteComponentModalId, editComponentModalId } = this.state;
@@ -249,6 +272,26 @@ export class ComponentDetail extends Component {
                                     </div>
                                 </div>
                             </div>
+                            <div className="Box-root Margin-bottom--12">
+                                <div className="">
+                                    <div className="Box-root">
+                                        <div>
+                                            <ResourceTabularList
+                                                componentId={
+                                                    this.props.component._id
+                                                }
+                                                componentResources={
+                                                    this.props
+                                                        .componentResources
+                                                }
+                                                currentProject={
+                                                    this.props.currentProject
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ) : null}
@@ -266,6 +309,7 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             deleteComponent,
             fetchComponents,
+            fetchComponentResources,
         },
         dispatch
     );
@@ -284,6 +328,7 @@ function mapStateToProps(state, props) {
         componentState: state.component,
         currentProject: state.project.currentProject,
         subProject: state.subProject,
+        componentResources: state.component.componentResourceList,
     };
 }
 
@@ -298,6 +343,8 @@ ComponentDetail.propTypes = {
     projectName: PropTypes.string,
     projectType: PropTypes.string,
     shouldRenderProjectType: PropTypes.bool,
+    fetchComponentResources: PropTypes.func,
+    componentResources: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ComponentDetail);
