@@ -557,11 +557,15 @@ module.exports = {
             // update application security to scanning true
             // to prevent pulling an applicaiton security multiple times by running cron job
             // due to network delay
-            await ApplicationSecurityService.updateOneBy(
+            let applicationSecurity = await ApplicationSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
                 { scanning: true }
+            );
+            global.io.emit(
+                `security_${applicationSecurity._id}`,
+                applicationSecurity
             );
 
             return new Promise((resolve, reject) => {
@@ -659,19 +663,23 @@ module.exports = {
                                     }
                                 );
 
-                                await deleteFolderRecursive(securityDir);
+                                await deleteFolderRecursive(repoPath);
                                 return resolve(securityLog);
                             });
                         });
                     })
                     .catch(async error => {
-                        await ApplicationSecurityService.updateOneBy(
+                        applicationSecurity = await ApplicationSecurityService.updateOneBy(
                             {
                                 _id: security._id,
                             },
                             { scanning: false }
                         );
-                        await deleteFolderRecursive(securityDir);
+                        global.io.emit(
+                            `security_${applicationSecurity._id}`,
+                            applicationSecurity
+                        );
+                        await deleteFolderRecursive(repoPath);
                         ErrorService.log(
                             'probeService.scanApplicationSecurity',
                             error
