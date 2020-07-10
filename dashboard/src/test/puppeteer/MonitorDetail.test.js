@@ -399,6 +399,7 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
+    //MS Teams
     test(
         'Should navigate to monitor details and create a msteams webhook',
         async () => {
@@ -619,12 +620,55 @@ describe('Monitor Detail API', () => {
                 await page.click('#createSlack');
                 await page.waitForSelector(createdWebhookSelector);
 
-                await page.waitFor(30000)
                 const createdWebhookEndpoint = await page.$eval(
                     createdWebhookSelector,
                     el => el.textContent
                 );
                 expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and update a Slack webhook',
+        async () => {
+            expect.assertions(2);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const existingWebhookSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+
+                await page.waitForSelector(existingWebhookSelector);
+
+                const existingWebhookEndpoint = await page.$eval(
+                    existingWebhookSelector,
+                    el => el.textContent
+                );
+
+                expect(existingWebhookEndpoint).toEqual(webhookEndpoint);
+
+                const editWebhookButtonSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(1)';
+                await page.click(editWebhookButtonSelector);
+
+                const newWebhookEndpoint = utils.generateRandomWebsite();
+                await page.click('#endpoint', { clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                await page.type('#endpoint', newWebhookEndpoint);
+                await page.click('#slackUpdate');
+                await page.waitFor(1000);
+                const updatedWebhookEndpoint = await page.$eval(
+                    existingWebhookSelector,
+                    el => el.textContent
+                );
+                expect(updatedWebhookEndpoint).toEqual(newWebhookEndpoint);
             });
         },
         operationTimeOut
