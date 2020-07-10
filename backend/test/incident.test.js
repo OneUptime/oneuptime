@@ -20,6 +20,7 @@ const ProjectModel = require('../backend/models/project');
 const IncidentService = require('../backend/services/incidentService');
 const MonitorService = require('../backend/services/monitorService');
 const NotificationService = require('../backend/services/notificationService');
+const IntegrationService = require('../backend/services/integrationService');
 const AirtableService = require('../backend/services/airtableService');
 const Config = require('./utils/config');
 const VerificationTokenModel = require('../backend/models/verificationToken');
@@ -78,14 +79,49 @@ describe('Incident API', function() {
                                     const authorization = `Basic ${token}`;
                                     ComponentModel.create({
                                         name: 'New Component',
+                                        projectId,
                                     }).then(component => {
                                         componentId = component._id;
                                         request
                                             .post(`/monitor/${projectId}`)
                                             .set('Authorization', authorization)
                                             .send({ ...monitor, componentId })
-                                            .end(function(err, res) {
+                                            .end(async function(err, res) {
                                                 monitorId = res.body._id;
+
+                                                await IntegrationService.create(
+                                                    projectId,
+                                                    userId,
+                                                    {
+                                                        monitorId,
+                                                        userId,
+                                                        endpoint:
+                                                            'http://127.0.0.1:3010/api/webhooks/msteams',
+                                                    },
+                                                    'msteams',
+                                                    {
+                                                        incidentCreated: true,
+                                                        incidentResolved: true,
+                                                        incidentAcknowledged: true,
+                                                    }
+                                                );
+
+                                                await IntegrationService.create(
+                                                    projectId,
+                                                    userId,
+                                                    {
+                                                        monitorId,
+                                                        userId,
+                                                        endpoint:
+                                                            'http://127.0.0.1:3010/api/webhooks/slack',
+                                                    },
+                                                    'slack',
+                                                    {
+                                                        incidentCreated: true,
+                                                        incidentResolved: true,
+                                                        incidentAcknowledged: true,
+                                                    }
+                                                );
                                                 expect(res).to.have.status(200);
                                                 expect(
                                                     res.body.name
