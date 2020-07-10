@@ -185,7 +185,7 @@ module.exports = {
                 {
                     new: true,
                 }
-            );
+            ).select('-password');
             return updatedUser;
         } catch (error) {
             ErrorService.log('userService.updateOneBy', error);
