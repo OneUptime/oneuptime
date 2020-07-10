@@ -140,6 +140,9 @@ describe('Incident API', function() {
         await GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
+        await IntegrationService.hardDeleteBy({
+            monitorId,
+        });
     });
 
     it('should create an incident', function(done) {
