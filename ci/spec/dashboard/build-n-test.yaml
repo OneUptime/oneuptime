@@ -2,7 +2,7 @@ build_n_test_dashboard:
     stage: BuildAndTest
     script:
         - |
-            if [[ $CI_COMMIT_BRANCH != "master"]] || [[ $CI_COMMIT_BRANCH != "release" ]]
+            if [[ $CI_COMMIT_BRANCH != "master" ]] || [[ $CI_COMMIT_BRANCH != "release" ]]
             then
                 chmod +x ./ci/scripts/checkhash.sh
                 export hash_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard dashboard`
@@ -49,7 +49,7 @@ build_n_test_enterprise_dashboard:
     stage: BuildAndTest
     script:
         - |
-            if [[ $CI_COMMIT_BRANCH != "master"]] || [[ $CI_COMMIT_BRANCH != "release" ]]
+            if [[ $CI_COMMIT_BRANCH != "master" ]] || [[ $CI_COMMIT_BRANCH != "release" ]]
             then
                 chmod +x ./ci/scripts/checkhash.sh
                 export hash_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_dashboard dashboard`
