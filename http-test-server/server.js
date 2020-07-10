@@ -12,6 +12,7 @@ global.httpServerResponse = {
     statusCode: 200,
     responseType: { values: ['json', 'html'], currentType: 'json' },
     responseTime: 0,
+    header: {},
     body: { status: 'ok' },
 };
 
@@ -36,6 +37,16 @@ app.get('/', function(req, res) {
     setTimeout(function() {
         if (global.httpServerResponse.responseType.currentType === 'html') {
             res.setHeader('Content-Type', 'text/html');
+            try {
+                const header = JSON.parse(global.httpServerResponse.header);
+                if (typeof header === 'object') {
+                    for (const key in header) {
+                        res.setHeader(String(key), String(header[key]));
+                    }
+                }
+            } catch (e) {
+                //
+            }
             return res.send(global.httpServerResponse.body);
         } else {
             res.setHeader('Content-Type', 'application/json');

@@ -63,11 +63,11 @@ include:
   # - '/ci/spec/home/rollback.yaml'
   # - '/ci/spec/home/lighthouse.yaml'
 
-  # # HTTP-TEST-SERVER
-  # - '/ci/spec/http-test-server/audit.yaml'
-  # - '/ci/spec/http-test-server/build-n-test.yaml'
-  # - '/ci/spec/http-test-server/deploy.yaml'
-  # - '/ci/spec/http-test-server/rollback.yaml'
+  # HTTP-TEST-SERVER
+  - '/ci/spec/http-test-server/audit.yaml'
+  - '/ci/spec/http-test-server/build-n-test.yaml'
+  - '/ci/spec/http-test-server/deploy.yaml'
+  - '/ci/spec/http-test-server/rollback.yaml'
 
   # # INIT-SCRIPT
   # - '/ci/spec/init-script/audit.yaml'
