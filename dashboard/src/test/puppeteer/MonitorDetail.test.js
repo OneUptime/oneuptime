@@ -675,6 +675,43 @@ describe('Monitor Detail API', () => {
     );
 
     test(
+        'Should navigate to monitor details and delete a slack webhook',
+        async () => {
+            expect.assertions(2);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                const createdWebhookSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                await page.waitForSelector(createdWebhookSelector);
+      
+                let webhookRows = await page.$$(createdWebhookSelector);
+                let countWebhooks = webhookRows.length;
+      
+                expect(countWebhooks).toEqual(1);
+      
+                const deleteWebhookButtonSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(2)';
+                await page.click(deleteWebhookButtonSelector);
+      
+                await page.waitForSelector('#slackDelete');
+                await page.click('#slackDelete');
+      
+                await page.waitFor(1000);
+                webhookRows = await page.$$(createdWebhookSelector);
+                countWebhooks = webhookRows.length;
+      
+                expect(countWebhooks).toEqual(0);
+            });
+        },
+        operationTimeOut
+      );
+      
+    test(
         'Should navigate to monitor details and create a webhook',
         async () => {
             expect.assertions(1);
