@@ -11,7 +11,7 @@ const ChangePasswordSetting = props => {
 
     return (
         <Dashboard>
-            <BreadCrumbItem route={pathname} name="Profile Settings" />
+            <BreadCrumbItem route={pathname} name="Change Password" />
             <div>
                 <div>
                     <div className="db-BackboneViewContainer">

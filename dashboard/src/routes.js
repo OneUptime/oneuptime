@@ -386,7 +386,7 @@ export const groups = [
             {
                 title: 'Change Password',
                 path: '/dashboard/profile/changePassword',
-                icon: 'customers',
+                icon: 'password',
                 visible: true,
                 component: ChangePasswordSetting,
                 subRoutes: [],
@@ -395,7 +395,7 @@ export const groups = [
             {
                 title: 'Billing',
                 path: '/dashboard/profile/billing',
-                icon: 'customers',
+                icon: 'receipt',
                 visible: IS_SAAS_SERVICE,
                 component: ProfileBilling,
                 subRoutes: [],
@@ -404,7 +404,7 @@ export const groups = [
             {
                 title: 'Advanced',
                 path: '/dashboard/profile/advanced',
-                icon: 'customers',
+                icon: 'businessSettings',
                 visible: true,
                 component: DeleteAccountPage,
                 subRoutes: [],

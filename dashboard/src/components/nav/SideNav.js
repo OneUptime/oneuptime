@@ -13,6 +13,7 @@ import {
     hideProjectSwitcher,
     hideForm,
 } from '../../actions/project';
+import { API_URL } from '../../config';
 
 class SideNav extends Component {
     hideSwitcher = () => {
@@ -36,6 +37,85 @@ class SideNav extends Component {
             default:
                 return false;
         }
+    };
+
+    renderAccountSwitcher = () => (
+        <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+            <div tabIndex="-1">
+                <div
+                    id="AccountSwitcherId"
+                    className="db-AccountSwitcherX-button Box-root Flex-flex Flex-alignItems--center"
+                    onClick={this.showSwitcher}
+                >
+                    <ClickOutside onClickOutside={this.hideSwitcher}>
+                        <ProjectSwitcher
+                            visible={this.props.project.projectSwitcherVisible}
+                        />
+                    </ClickOutside>
+
+                    <div className="Box-root Margin-right--8">
+                        <div className="db-AccountSwitcherX-activeImage">
+                            <div className="db-AccountSwitcherX-accountImage Box-root Box-background--white">
+                                <div className="db-AccountSwitcherX-accountImage--content db-AccountSwitcherX-accountImage--fallback" />
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {this.props.project.currentProject && (
+                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--noWrap">
+                                {this.props.project.currentProject.name}
+                            </span>
+                        )}
+                    </div>
+                    <div className="Box-root Margin-left--8">
+                        <div className="db-AccountSwitcherX-chevron" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    renderUserProfile = () => {
+        const IMG_URL =
+            this.props.profilePic &&
+            this.props.profilePic !== '' &&
+            this.props.profilePic !== 'null'
+                ? `url(${API_URL}/file/${this.props.profilePic})`
+                : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
+
+        return (
+            <div className="Box-root Flex-flex">
+                <button
+                    className="bs-Button bs-DeprecatedButton db-UserMenuX"
+                    id="profile-menu"
+                    type="button"
+                    tabIndex="-1"
+                    onClick={this.showProfileMenu}
+                >
+                    <div
+                        className="db-GravatarImage db-UserMenuX-image"
+                        style={{
+                            backgroundImage: IMG_URL,
+                        }}
+                    />
+                </button>
+                <span
+                    style={{
+                        height: '25px',
+                        lineHeight: '25px',
+                        marginLeft: '10px',
+                    }}
+                >
+                    {this.props.userName}
+                </span>
+            </div>
+        );
     };
 
     render() {
@@ -112,57 +192,9 @@ class SideNav extends Component {
                     <div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
                         <div className="Box-root Margin-bottom--20">
                             <div>
-                                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                                    <div tabIndex="-1">
-                                        <div
-                                            id="AccountSwitcherId"
-                                            className="db-AccountSwitcherX-button Box-root Flex-flex Flex-alignItems--center"
-                                            onClick={this.showSwitcher}
-                                        >
-                                            <ClickOutside
-                                                onClickOutside={
-                                                    this.hideSwitcher
-                                                }
-                                            >
-                                                <ProjectSwitcher
-                                                    visible={
-                                                        this.props.project
-                                                            .projectSwitcherVisible
-                                                    }
-                                                />
-                                            </ClickOutside>
-
-                                            <div className="Box-root Margin-right--8">
-                                                <div className="db-AccountSwitcherX-activeImage">
-                                                    <div className="db-AccountSwitcherX-accountImage Box-root Box-background--white">
-                                                        <div className="db-AccountSwitcherX-accountImage--content db-AccountSwitcherX-accountImage--fallback" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div
-                                                style={{
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    whiteSpace: 'nowrap',
-                                                }}
-                                            >
-                                                {this.props.project
-                                                    .currentProject && (
-                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--noWrap">
-                                                        {
-                                                            this.props.project
-                                                                .currentProject
-                                                                .name
-                                                        }
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="Box-root Margin-left--8">
-                                                <div className="db-AccountSwitcherX-chevron" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                {switchToProfileNav
+                                    ? this.renderUserProfile()
+                                    : this.renderAccountSwitcher()}
                             </div>
                         </div>
 
@@ -263,10 +295,16 @@ const mapStateToProps = function(state, props) {
     const selectedComponent = allIndividualComponents.find(
         component => component._id === componentId
     );
+    const settings = state.profileSettings.profileSetting.data;
+    const profilePic = settings ? settings.profilePic : '';
+    const userName = settings ? settings.name : '';
+
     return {
         selectedComponent,
         project: state.project,
         sidenavopen: state.page.sidenavopen,
+        profilePic,
+        userName,
     };
 };
 
@@ -294,6 +332,11 @@ SideNav.propTypes = {
     selectedComponent: PropTypes.object,
     location: PropTypes.object,
     match: PropTypes.object,
+    profilePic: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    userName: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SideNav);
