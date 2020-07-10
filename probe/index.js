@@ -14,6 +14,8 @@ const cron = require('node-cron');
 const config = require('./utils/config');
 
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
+const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
+const cronContainerSecurityStartTime = Math.floor(Math.random() * 50);
 
 app.use(cors());
 app.set('port', process.env.PORT || 3008);
@@ -48,11 +50,15 @@ cron.schedule('* * * * *', () => {
 });
 
 cron.schedule('* * * * *', () => {
-    Main.runApplicationScan();
+    setTimeout(() => {
+        Main.runApplicationScan();
+    }, cronApplicationSecurityStartTime * 1000);
 });
 
 cron.schedule('* * * * *', () => {
-    Main.runContainerScan();
+    setTimeout(() => {
+        Main.runContainerScan();
+    }, cronContainerSecurityStartTime * 1000);
 });
 
 module.exports = app;
