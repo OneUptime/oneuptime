@@ -697,14 +697,19 @@ module.exports = {
             const outputFile = `${uuidv1()}result.json`;
             let securityDir = 'container_security_dir';
             securityDir = await createDir(securityDir);
+            const exactFilePath = Path.resolve(securityDir, outputFile);
             // update container security to scanning true
             // so the cron job does not pull it multiple times due to network delays
             // since the cron job runs every minute
-            await ContainerSecurityService.updateOneBy(
+            let containerSecurity = await ContainerSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
                 { scanning: true }
+            );
+            global.io.emit(
+                `security_${containerSecurity._id}`,
+                containerSecurity
             );
 
             return new Promise((resolve, reject) => {
@@ -726,19 +731,22 @@ module.exports = {
                     error.code = 400;
                     error.message =
                         'Scanning failed please check your docker credential or image path/tag';
-                    await ContainerSecurityService.updateOneBy(
+                    containerSecurity = await ContainerSecurityService.updateOneBy(
                         {
                             _id: security._id,
                         },
                         { scanning: false }
                     );
-                    deleteFolderRecursive(securityDir);
+                    global.io.emit(
+                        `security_${containerSecurity._id}`,
+                        containerSecurity
+                    );
+                    await deleteFile(exactFilePath);
                     return reject(error);
                 });
 
                 output.on('close', async () => {
-                    const filePath = Path.resolve(securityDir, outputFile);
-                    let auditLogs = await readFileContent(filePath);
+                    let auditLogs = await readFileContent(exactFilePath);
                     // if auditLogs is empty, then scanning was unsuccessful
                     // the provided credentials or image path must have been wrong
                     if (!auditLogs) {
@@ -746,13 +754,17 @@ module.exports = {
                             'Scanning failed please check your docker credential or image path/tag'
                         );
                         error.code = 400;
-                        await ContainerSecurityService.updateOneBy(
+                        containerSecurity = await ContainerSecurityService.updateOneBy(
                             {
                                 _id: security._id,
                             },
                             { scanning: false }
                         );
-                        deleteFolderRecursive(securityDir);
+                        global.io.emit(
+                            `security_${containerSecurity._id}`,
+                            containerSecurity
+                        );
+                        await deleteFile(exactFilePath);
                         return reject(error);
                     }
 
@@ -775,7 +787,7 @@ module.exports = {
                             },
                             { scanning: false }
                         );
-                        deleteFolderRecursive(securityDir);
+                        await deleteFile(exactFilePath);
                         return reject(error);
                     });
 
@@ -883,7 +895,7 @@ module.exports = {
                             _id: security._id,
                         });
 
-                        deleteFolderRecursive(securityDir);
+                        await deleteFile(exactFilePath);
                         resolve(securityLog);
                     });
                 });
