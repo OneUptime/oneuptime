@@ -145,18 +145,42 @@ describe('Incident API', function() {
         });
     });
 
-    it('should create an incident', function(done) {
+    it('should create an incident', async function() {
         const authorization = `Basic ${token}`;
-        request
+        try {
+            await chai
+                .request('http://127.0.0.1:3010')
+                .get('/api/webhooks/msteams');
+            throw Error();
+        } catch (e) {
+            expect(e.response.status).to.eql(404);
+        }
+        try {
+            await chai
+                .request('http://127.0.0.1:3010')
+                .get('/api/webhooks/slack');
+            throw Error();
+        } catch (e) {
+            expect(e.response.status).to.eql(404);
+        }
+
+        const res = await request
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .send(incidentData)
-            .end(function(err, res) {
-                incidentId = res.body._id;
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                done();
-            });
+            .send(incidentData);
+        incidentId = res.body._id;
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+
+        const msTeamsEndpoint = await chai
+            .request('http://127.0.0.1:3010')
+            .get('/api/webhooks/msteams');
+        expect(msTeamsEndpoint).to.have.status(200);
+
+        const slackEndpoint = await chai
+            .request('http://127.0.0.1:3010')
+            .get('/api/webhooks/slack');
+        expect(slackEndpoint).to.have.status(200);
     });
 
     it('should create an incident with multi-probes and add to incident timeline', function(done) {
