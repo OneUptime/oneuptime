@@ -194,7 +194,8 @@ const SecurityInfo = ({
                                 scanningContainer &&
                                 String(containerSecurityId) ===
                                     String(activeContainerSecurity)) ||
-                            security.scanning ? (
+                            security.scanning ||
+                            !security.lastScan ? (
                                 <button
                                     className="bs-Button bs-DeprecatedButton"
                                     disabled={
@@ -202,7 +203,8 @@ const SecurityInfo = ({
                                             scanningApplication) ||
                                         (containerSecurityId &&
                                             scanningContainer) ||
-                                        security.scanning
+                                        security.scanning ||
+                                        !security.lastScan
                                     }
                                     id={
                                         (applicationSecurityId &&
