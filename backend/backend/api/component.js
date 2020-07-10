@@ -212,11 +212,13 @@ router.get(
             let totalResources = [];
             let totalResourceCount = 0;
 
+            const limit = req.query.limit || 5;
+            const skip = req.query.skip || 0;
             // fetch application logs
             const applicationLogs = await ApplicationLogService.getApplicationLogsByComponentId(
                 componentId,
-                req.query.limit || 5,
-                req.query.skip || 0
+                limit,
+                skip
             );
             applicationLogs.map(elem => {
                 const newElement = {
@@ -242,8 +244,8 @@ router.get(
 
             const monitors = await MonitorService.findBy(
                 monitorQuery,
-                req.query.limit || 5,
-                req.query.skip || 0
+                limit,
+                skip
             );
             monitors.map(elem => {
                 const newElement = {
@@ -264,8 +266,8 @@ router.get(
             // fetch application security
             const applicationSecurity = await ApplicationSecurityService.findBy(
                 { componentId: componentId },
-                req.query.limit || 5,
-                req.query.skip || 0
+                limit,
+                skip
             );
             applicationSecurity.map(elem => {
                 const newElement = {
@@ -287,8 +289,8 @@ router.get(
             // fetch container security
             const containerSecurity = await ContainerSecurityService.findBy(
                 { componentId: componentId },
-                req.query.limit || 5,
-                req.query.skip || 0
+                limit,
+                skip
             );
             containerSecurity.map(elem => {
                 const newElement = {
@@ -316,6 +318,8 @@ router.get(
             return sendItemResponse(req, res, {
                 totalResources,
                 totalResourceCount,
+                skip,
+                componentId,
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);
