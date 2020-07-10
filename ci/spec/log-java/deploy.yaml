@@ -9,6 +9,8 @@ deploy_staging_log-java:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - cd log-java
         - git checkout -f staging
+        - git add .
+        - git commiit -m "gpg update"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         - cp -f .m2/settings.xml $HOME/.m2/settings.xml
