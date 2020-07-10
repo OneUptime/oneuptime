@@ -2255,6 +2255,12 @@ async function deleteFolderRecursive(dir) {
     }
 }
 
+async function deleteFile(file) {
+    if (fs.existsSync(file)) {
+        await unlink(file);
+    }
+}
+
 function readFileContent(filePath) {
     return new Promise((resolve, reject) => {
         if (fs.existsSync(filePath)) {
