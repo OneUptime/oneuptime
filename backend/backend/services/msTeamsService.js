@@ -5,7 +5,8 @@ module.exports = {
         incident,
         monitor,
         incidentStatus,
-        component
+        component,
+        duration,
     ) {
         try {
             const self = this;
@@ -49,7 +50,8 @@ module.exports = {
                     incident,
                     integration,
                     monitorStatus ? monitorStatus.status : null,
-                    component
+                    component,
+                    duration,
                 );
             }
             return response;
@@ -66,7 +68,8 @@ module.exports = {
         incident,
         integration,
         monitorStatus,
-        component
+        component,
+        duration,
     ) {
         try {
             const payloadText = incident.resolved
@@ -74,7 +77,7 @@ module.exports = {
                       monitor.name
                   }** is resolved by ${
                       incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
-                  } at ${incident.resolvedAt}`
+                  } at ${incident.resolvedAt} after being down for ${duration}`
                 : incident.acknowledged
                 ? `Incident on **${component.name} / ${
                       monitor.name
@@ -82,7 +85,7 @@ module.exports = {
                       incident.acknowledgedBy
                           ? incident.acknowledgedBy.name
                           : 'Fyipe'
-                  } at ${incident.acknowledgedAt}`
+                  } at ${incident.acknowledgedAt} after being down for ${duration}`
                 : `
 **New incident:**
 

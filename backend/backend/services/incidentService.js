@@ -366,7 +366,8 @@ module.exports = {
                     incident,
                     incident.monitorId,
                     'acknowledged',
-                    component
+                    component,
+                    downtimestring,
                 );
 
                 await MsTeamsService.sendNotification(
@@ -374,7 +375,8 @@ module.exports = {
                     incident,
                     incident.monitorId,
                     'acknowledged',
-                    component
+                    component,
+                    downtimestring,
                 );
 
                 await RealTimeService.incidentAcknowledged(incident);
@@ -569,7 +571,8 @@ module.exports = {
                     incident,
                     incident.monitorId,
                     'resolved',
-                    component
+                    component,
+                    downtimestring,
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -584,7 +587,8 @@ module.exports = {
                     incident,
                     incident.monitorId,
                     'resolved',
-                    component
+                    component,
+                    downtimestring,
                 );
 
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
@@ -606,7 +610,8 @@ module.exports = {
                     incident,
                     incident.monitorId,
                     'resolved',
-                    component
+                    component,
+                    downtimestring,
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -621,7 +626,8 @@ module.exports = {
                     incident,
                     incident.monitorId,
                     'resolved',
-                    component
+                    component,
+                    downtimestring,
                 );
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
             }
