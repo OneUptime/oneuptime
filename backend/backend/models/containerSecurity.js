@@ -22,7 +22,7 @@ const containerSecuritySchema = new Schema(
         deleteAt: Date,
         lastScan: Date,
         scanned: { type: Boolean, default: false },
-        scanning: { type: Boolean, default: true },
+        scanning: { type: Boolean, default: false },
     },
     { timestamps: true } //automatically adds createdAt and updatedAt to the schema
 );
