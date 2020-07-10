@@ -6,7 +6,8 @@ build_n_test_dashboard:
             then
                 chmod +x ./ci/scripts/checkhash.sh
                 export hash_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard dashboard`
-                if [[ $hash_exist == *"true"* ]]
+                export backend_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard backend`
+                if [[ $hash_exist == *"true"* ]] || [[ $backend_exist == *"true"* ]]
                 then
                     exit ${CI_JOB_SKIP_EXIT_CODE:-0}
                 fi
@@ -53,7 +54,8 @@ build_n_test_enterprise_dashboard:
             then
                 chmod +x ./ci/scripts/checkhash.sh
                 export hash_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_dashboard dashboard`
-                if [[ $hash_exist == *"true"* ]]
+                export backend_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_dashboard backend`
+                if [[ $hash_exist == *"true"* ]] || [[ $backend_exist == *"true"* ]]
                 then
                     exit ${CI_JOB_SKIP_EXIT_CODE:-0}
                 fi
