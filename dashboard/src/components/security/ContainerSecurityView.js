@@ -170,14 +170,16 @@ const ContainerSecurityView = ({
                                                 String(
                                                     activeContainerSecurity
                                                 )) ||
-                                        containerSecurity.scanning
+                                        containerSecurity.scanning ||
+                                        !containerSecurity.lastScan
                                     }
                                 >
                                     <button
                                         className="bs-Button bs-DeprecatedButton"
                                         disabled={
                                             scanning ||
-                                            containerSecurity.scanning
+                                            containerSecurity.scanning ||
+                                            !containerSecurity.lastScan
                                         }
                                         id={`scanning_${containerSecurity.name}`}
                                     >
@@ -194,7 +196,8 @@ const ContainerSecurityView = ({
                                                 String(
                                                     activeContainerSecurity
                                                 )) &&
-                                        !containerSecurity.scanning
+                                        !containerSecurity.scanning &&
+                                        containerSecurity.lastScan
                                     }
                                 >
                                     <button

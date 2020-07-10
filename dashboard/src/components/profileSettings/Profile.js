@@ -25,6 +25,7 @@ import {
     setTwoFactorAuth,
     updateTwoFactorAuthToken,
 } from '../../actions/profile';
+import { getProjects } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import { Validate, API_URL } from '../../config';
 import { FormLoader, ListLoader } from '../basic/Loader';
@@ -162,6 +163,7 @@ export class ProfileSetting extends Component {
         this.props.setInitialAlertPhoneNumber(alertPhoneNumber);
         this.props.setUserEmail(email);
         this.props.setTwoFactorAuth(twoFactorAuthEnabled);
+        this.props.getProjects(null);
     }
 
     componentDidUpdate(prevProps) {
@@ -1318,6 +1320,7 @@ const mapDispatchToProps = dispatch => {
             setTwoFactorAuth,
             updateTwoFactorAuthToken,
             openModal,
+            getProjects,
         },
         dispatch
     );
@@ -1444,6 +1447,7 @@ ProfileSetting.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     verifySMSCodeRequesting: PropTypes.bool,
+    getProjects: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProfileSettingForm);

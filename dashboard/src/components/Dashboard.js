@@ -107,7 +107,9 @@ export class DashboardApp extends Component {
         return (
             <Fragment>
                 {location.pathname === '/dashboard/profile/billing' ||
-                location.pathname === '/dashboard/profile/settings' ? (
+                location.pathname === '/dashboard/profile/settings' ||
+                location.pathname === '/dashboard/profile/changePassword' ||
+                location.pathname === '/dashboard/profile/advanced' ? (
                     <BreadCrumbItem route="#" name="Account" />
                 ) : (
                     <BreadCrumbItem

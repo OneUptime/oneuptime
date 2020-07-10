@@ -218,7 +218,6 @@ module.exports = {
 
             if (!incident.createdById) {
                 const msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
-                const slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *Fyipe*`;
                 await NotificationService.create(
                     incident.projectId,
                     msg,
@@ -228,10 +227,10 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(
                     incident.projectId,
-                    incident._id,
-                    null,
-                    slackMsg,
-                    false
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -250,7 +249,6 @@ module.exports = {
                 );
             } else {
                 const msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
-                const slackMsg = `A New Incident was created for *${incident.monitorId.name}* by *${incident.createdById.name}*`;
                 await NotificationService.create(
                     incident.projectId,
                     msg,
@@ -260,10 +258,10 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(
                     incident.projectId,
-                    incident._id,
-                    null,
-                    slackMsg,
-                    false
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -329,21 +327,11 @@ module.exports = {
                     )} hours ${Math.floor(downtime % 60)} minutes`;
                 }
 
-                const slackMsg = `*${incident.monitorId.name}* monitor was acknowledged by *${name}* after being down for _${downtimestring}_`;
-
-                // send slack notification
                 await NotificationService.create(
                     incident.projectId,
                     `An Incident was acknowledged by ${name}`,
                     userId,
                     'acknowledge'
-                );
-                await SlackService.sendNotification(
-                    incident.projectId,
-                    incident._id,
-                    userId,
-                    slackMsg,
-                    incident
                 );
                 // Ping webhook
                 const monitor = await MonitorService.findOneBy({
@@ -373,12 +361,22 @@ module.exports = {
                     'acknowledged'
                 );
 
+                await SlackService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'acknowledged',
+                    component,
+                    downtimestring
+                );
+
                 await MsTeamsService.sendNotification(
                     incident.projectId,
                     incident,
                     incident.monitorId,
-                    'created',
-                    component
+                    'acknowledged',
+                    component,
+                    downtimestring
                 );
 
                 await RealTimeService.incidentAcknowledged(incident);
@@ -546,7 +544,7 @@ module.exports = {
                     new Date(resolvedincident.createdAt).getTime()) /
                 (1000 * 60);
             let downtimestring = `${Math.ceil(downtime)} minutes`;
-            let msg, slackMsg;
+            let msg;
             if (downtime < 1) {
                 downtimestring = 'less than a minute';
             }
@@ -560,10 +558,6 @@ module.exports = {
                     resolvedincident.monitorId.name
                 } monitor was down for ${downtimestring} and is now resolved by ${name ||
                     resolvedincident.resolvedBy.name}`;
-                slackMsg = `*${
-                    resolvedincident.monitorId.name
-                }* monitor was down for _${downtimestring}_ and is now resolved by *${name ||
-                    resolvedincident.resolvedBy.name}*`;
 
                 await NotificationService.create(
                     incident.projectId,
@@ -574,10 +568,11 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(
                     incident.projectId,
-                    incident._id,
-                    null,
-                    slackMsg,
-                    false
+                    incident,
+                    incident.monitorId,
+                    'resolved',
+                    component,
+                    downtimestring
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -591,8 +586,9 @@ module.exports = {
                     incident.projectId,
                     incident,
                     incident.monitorId,
-                    'created',
-                    component
+                    'resolved',
+                    component,
+                    downtimestring
                 );
 
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
@@ -601,10 +597,6 @@ module.exports = {
                     resolvedincident.monitorId.name
                 } monitor was down for ${downtimestring} and is now resolved by ${name ||
                     'fyipe'}`;
-                slackMsg = `*${
-                    resolvedincident.monitorId.name
-                }* monitor was down for _${downtimestring}_ and is now resolved by *${name ||
-                    'fyipe'}*`;
 
                 await NotificationService.create(
                     incident.projectId,
@@ -615,10 +607,11 @@ module.exports = {
                 // send slack notification
                 await SlackService.sendNotification(
                     incident.projectId,
-                    incident._id,
-                    null,
-                    slackMsg,
-                    false
+                    incident,
+                    incident.monitorId,
+                    'resolved',
+                    component,
+                    downtimestring
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -632,8 +625,9 @@ module.exports = {
                     incident.projectId,
                     incident,
                     incident.monitorId,
-                    'created',
-                    component
+                    'resolved',
+                    component,
+                    downtimestring
                 );
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
             }

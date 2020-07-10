@@ -178,6 +178,7 @@ module.exports = {
                 .toDate();
             const securities = await this.findBy({
                 $or: [{ lastScan: { $lt: oneDay } }, { scanned: false }],
+                scanning: false,
             });
             return securities;
         } catch (error) {

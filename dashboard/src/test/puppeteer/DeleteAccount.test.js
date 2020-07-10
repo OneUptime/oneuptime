@@ -81,6 +81,8 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
+                await page.waitForSelector('#advanced');
+                await page.click('#advanced');
                 await page.waitForSelector('button[id=btn_delete_account]');
                 await page.click('button[id=btn_delete_account]');
                 const deleteButton = await page.$(
@@ -120,6 +122,8 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
+                await page.waitForSelector('#advanced');
+                await page.click('#advanced');
                 await page.waitForSelector('button[id=btn_delete_account]');
                 await page.click('button[id=btn_delete_account]');
                 const deleteButton = await page.$(
@@ -161,6 +165,8 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
+                await page.waitForSelector('#advanced');
+                await page.click('#advanced');
                 await page.waitForSelector('button[id=btn_delete_account]');
                 await page.click('button[id=btn_delete_account]');
                 const deleteButton = await page.$(
@@ -183,6 +189,8 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
+                await page.waitForSelector('#advanced');
+                await page.click('#advanced');
                 await page.waitForSelector('button[id=btn_delete_account]');
                 await page.click('button[id=btn_delete_account]');
                 await page.waitForSelector('input[name=deleteMyAccount]');

@@ -198,6 +198,7 @@ export class SidebarNavItem extends Component {
                 'Status Page',
                 'Application Detail',
                 'Container Detail',
+                'Team Member Profile',
             ];
 
             if (removedLinks.some(link => link === child.title)) return null;

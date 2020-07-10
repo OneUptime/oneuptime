@@ -170,14 +170,16 @@ const ApplicationSecurityView = ({
                                                 String(
                                                     activeApplicationSecurity
                                                 )) ||
-                                        applicationSecurity.scanning
+                                        applicationSecurity.scanning ||
+                                        !applicationSecurity.lastScan
                                     }
                                 >
                                     <button
                                         className="bs-Button bs-DeprecatedButton"
                                         disabled={
                                             scanning ||
-                                            applicationSecurity.scanning
+                                            applicationSecurity.scanning ||
+                                            !applicationSecurity.lastScan
                                         }
                                         id={`scanning_${applicationSecurity.name}`}
                                     >
@@ -194,7 +196,8 @@ const ApplicationSecurityView = ({
                                                 String(
                                                     activeApplicationSecurity
                                                 )) &&
-                                        !applicationSecurity.scanning
+                                        !applicationSecurity.scanning &&
+                                        applicationSecurity.lastScan
                                     }
                                 >
                                     <button
