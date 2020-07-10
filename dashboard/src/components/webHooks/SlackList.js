@@ -93,7 +93,7 @@ class SlackList extends React.Component {
         }
         const numberOfWebHooks = webHooks ? webHooks.length : 0;
 
-        if (slacks && (slacks.requesting || !slacks.msTeams)) {
+        if (slacks && (slacks.requesting || !slacks.slacks)) {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
