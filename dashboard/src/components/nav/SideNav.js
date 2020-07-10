@@ -106,6 +106,7 @@ class SideNav extends Component {
                     />
                 </button>
                 <span
+                    id="userProfileName"
                     style={{
                         height: '25px',
                         lineHeight: '25px',
