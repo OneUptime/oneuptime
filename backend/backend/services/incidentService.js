@@ -367,7 +367,7 @@ module.exports = {
                     incident.monitorId,
                     'acknowledged',
                     component,
-                    downtimestring,
+                    downtimestring
                 );
 
                 await MsTeamsService.sendNotification(
@@ -376,7 +376,7 @@ module.exports = {
                     incident.monitorId,
                     'acknowledged',
                     component,
-                    downtimestring,
+                    downtimestring
                 );
 
                 await RealTimeService.incidentAcknowledged(incident);
@@ -572,7 +572,7 @@ module.exports = {
                     incident.monitorId,
                     'resolved',
                     component,
-                    downtimestring,
+                    downtimestring
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -588,7 +588,7 @@ module.exports = {
                     incident.monitorId,
                     'resolved',
                     component,
-                    downtimestring,
+                    downtimestring
                 );
 
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
@@ -611,7 +611,7 @@ module.exports = {
                     incident.monitorId,
                     'resolved',
                     component,
-                    downtimestring,
+                    downtimestring
                 );
                 // Ping webhook
                 await WebHookService.sendNotification(
@@ -627,7 +627,7 @@ module.exports = {
                     incident.monitorId,
                     'resolved',
                     component,
-                    downtimestring,
+                    downtimestring
                 );
                 await AlertService.sendResolvedIncidentToSubscribers(incident);
             }

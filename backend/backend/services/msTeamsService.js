@@ -6,7 +6,7 @@ module.exports = {
         monitor,
         incidentStatus,
         component,
-        duration,
+        duration
     ) {
         try {
             const self = this;
@@ -51,7 +51,7 @@ module.exports = {
                     integration,
                     monitorStatus ? monitorStatus.status : null,
                     component,
-                    duration,
+                    duration
                 );
             }
             return response;
@@ -69,7 +69,7 @@ module.exports = {
         integration,
         monitorStatus,
         component,
-        duration,
+        duration
     ) {
         try {
             const payloadText = incident.resolved
@@ -85,7 +85,9 @@ module.exports = {
                       incident.acknowledgedBy
                           ? incident.acknowledgedBy.name
                           : 'Fyipe'
-                  } at ${incident.acknowledgedAt} after being down for ${duration}`
+                  } at ${
+                      incident.acknowledgedAt
+                  } after being down for ${duration}`
                 : `
 **New incident:**
 
