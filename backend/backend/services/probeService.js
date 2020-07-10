@@ -2257,12 +2257,14 @@ async function deleteFolderRecursive(dir) {
 
 function readFileContent(filePath) {
     return new Promise((resolve, reject) => {
-        fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
-            if (error) {
-                reject(error);
-            }
-            resolve(data);
-        });
+        if (fs.existsSync(filePath)) {
+            fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
+                if (error) {
+                    reject(error);
+                }
+                resolve(data);
+            });
+        }
     });
 }
 
