@@ -327,8 +327,6 @@ module.exports = {
                     )} hours ${Math.floor(downtime % 60)} minutes`;
                 }
 
-                const slackMsg = `*${incident.monitorId.name}* monitor was acknowledged by *${name}* after being down for _${downtimestring}_`;
-
                 await NotificationService.create(
                     incident.projectId,
                     `An Incident was acknowledged by ${name}`,
@@ -544,7 +542,7 @@ module.exports = {
                     new Date(resolvedincident.createdAt).getTime()) /
                 (1000 * 60);
             let downtimestring = `${Math.ceil(downtime)} minutes`;
-            let msg, slackMsg;
+            let msg;
             if (downtime < 1) {
                 downtimestring = 'less than a minute';
             }
@@ -558,10 +556,6 @@ module.exports = {
                     resolvedincident.monitorId.name
                 } monitor was down for ${downtimestring} and is now resolved by ${name ||
                     resolvedincident.resolvedBy.name}`;
-                slackMsg = `*${
-                    resolvedincident.monitorId.name
-                }* monitor was down for _${downtimestring}_ and is now resolved by *${name ||
-                    resolvedincident.resolvedBy.name}*`;
 
                 await NotificationService.create(
                     incident.projectId,
@@ -599,10 +593,6 @@ module.exports = {
                     resolvedincident.monitorId.name
                 } monitor was down for ${downtimestring} and is now resolved by ${name ||
                     'fyipe'}`;
-                slackMsg = `*${
-                    resolvedincident.monitorId.name
-                }* monitor was down for _${downtimestring}_ and is now resolved by *${name ||
-                    'fyipe'}*`;
 
                 await NotificationService.create(
                     incident.projectId,

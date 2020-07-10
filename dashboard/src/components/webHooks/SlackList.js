@@ -55,11 +55,7 @@ class SlackList extends React.Component {
             paginate,
         } = this.props;
 
-        getSlack(
-            projectId,
-            (skip || 0) > (limit || 10) ? skip - limit : 0,
-            10
-        );
+        getSlack(projectId, (skip || 0) > (limit || 10) ? skip - limit : 0, 10);
         paginate('prev');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(

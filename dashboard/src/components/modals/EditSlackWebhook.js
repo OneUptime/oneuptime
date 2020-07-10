@@ -420,8 +420,7 @@ class EditWebHook extends React.Component {
                                                         style={{ color: 'red' }}
                                                     >
                                                         {
-                                                            this.props
-                                                                .newSlack
+                                                            this.props.newSlack
                                                                 .error
                                                         }
                                                     </span>
@@ -446,13 +445,13 @@ class EditWebHook extends React.Component {
                                         id="slackUpdate"
                                     >
                                         {this.props.newSlack &&
-                                            !this.props.newSlack
-                                                .requesting && (
+                                            !this.props.newSlack.requesting && (
                                                 <span>Update</span>
                                             )}
                                         {this.props.newSlack &&
-                                            this.props.newSlack
-                                                .requesting && <FormLoader />}
+                                            this.props.newSlack.requesting && (
+                                                <FormLoader />
+                                            )}
                                     </button>
                                 </div>
                             </div>

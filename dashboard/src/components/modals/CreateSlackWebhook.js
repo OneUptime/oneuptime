@@ -412,8 +412,7 @@ class CreateSlack extends React.Component {
                                                         style={{ color: 'red' }}
                                                     >
                                                         {
-                                                            this.props
-                                                                .newSlack
+                                                            this.props.newSlack
                                                                 .error
                                                         }
                                                     </span>
@@ -438,13 +437,13 @@ class CreateSlack extends React.Component {
                                         id="createSlack"
                                     >
                                         {this.props.newSlack &&
-                                            !this.props.newSlack
-                                                .requesting && (
+                                            !this.props.newSlack.requesting && (
                                                 <span>Create</span>
                                             )}
                                         {this.props.newSlack &&
-                                            this.props.newSlack
-                                                .requesting && <FormLoader />}
+                                            this.props.newSlack.requesting && (
+                                                <FormLoader />
+                                            )}
                                     </button>
                                 </div>
                             </div>
@@ -460,7 +459,7 @@ CreateSlack.displayName = 'CreateSlack';
 
 CreateSlack.propTypes = {
     currentProject: PropTypes.object,
-    createMsTeams: PropTypes.func.isRequired,
+    createSlack: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     monitor: PropTypes.object,

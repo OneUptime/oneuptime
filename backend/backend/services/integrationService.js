@@ -241,7 +241,6 @@ module.exports = {
             throw error;
         }
     },
-
 };
 const IntegrationModel = require('../models/integration');
 const ErrorService = require('./errorService');

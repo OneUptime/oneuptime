@@ -106,7 +106,7 @@ export default (state = initialState, action) => {
                     error: action.payload,
                     success: false,
                 },
-            })
+            });
 
         case DELETE_SLACK_WEBHOOK_SUCCESS:
             slacks = Object.assign([], state.slacks.slacks);

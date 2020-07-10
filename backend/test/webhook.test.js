@@ -110,12 +110,9 @@ describe('Webhook API', function() {
         });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await AirtableService.deleteUser(airtableId);
-        await IntegrationService.hardDeleteBy({_id:{$in:[
-            msTeamsId,
-            msTeamsId1,
-            slackId,
-            slackId1,
-        ]}});
+        await IntegrationService.hardDeleteBy({
+            _id: { $in: [msTeamsId, msTeamsId1, slackId, slackId1] },
+        });
     });
 
     //MS Teams
@@ -369,5 +366,4 @@ describe('Webhook API', function() {
                 done();
             });
     });
-
 });

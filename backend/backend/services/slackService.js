@@ -103,7 +103,7 @@ module.exports = {
 <${uri}|Acknowledge>
 `;
             const payload = {
-                'text': payloadText
+                text: payloadText,
             };
             await axios.post(
                 integration.data.endpoint,
