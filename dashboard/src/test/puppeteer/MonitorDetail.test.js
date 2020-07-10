@@ -710,6 +710,69 @@ describe('Monitor Detail API', () => {
         },
         operationTimeOut
       );
+
+      test(
+        'Should navigate to monitor details and get list of slack webhooks and paginate them',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+      
+                const addButtonSelector = '#addSlackButton';
+                await page.waitForSelector(addButtonSelector);
+      
+                for (let i = 0; i < 11; i++) {
+                    await page.click(addButtonSelector);
+                    await page.waitForSelector('#endpoint');
+      
+                    await page.type('#endpoint', utils.generateRandomWebsite());
+                    await page.evaluate(() => {
+                        document
+                            .querySelector('input[name=incidentCreated]')
+                            .click();
+                    });
+                    await page.click('#createSlack');
+                    await page.waitFor(1000);
+                }
+      
+                const createdWebhookSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                await page.waitForSelector(createdWebhookSelector);
+      
+                let webhookRows = await page.$$(createdWebhookSelector);
+                let countWebhooks = webhookRows.length;
+      
+                expect(countWebhooks).toEqual(11);
+      
+                const nextSelector = await page.$('#btnNextSlack');
+      
+                await nextSelector.click();
+                await page.waitFor(1000);
+                await page.waitForSelector(createdWebhookSelector);
+      
+                webhookRows = await page.$$(createdWebhookSelector);
+                countWebhooks = webhookRows.length;
+      
+                expect(countWebhooks).toEqual(1);
+      
+                const prevSelector = await page.$('#btnPrevSlack');
+      
+                await prevSelector.click();
+                await page.waitFor(1000);
+                await page.waitForSelector(createdWebhookSelector);
+      
+                webhookRows = await page.$$(createdWebhookSelector);
+                countWebhooks = webhookRows.length;
+      
+                expect(countWebhooks).toEqual(10);
+            });
+        },
+        operationTimeOut
+      );
       
     test(
         'Should navigate to monitor details and create a webhook',
