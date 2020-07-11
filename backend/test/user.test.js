@@ -385,6 +385,9 @@ describe('User API', function() {
             .send(profile)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('_id');
+                expect(res.body).to.not.have.property('password');
                 expect(res.body._id).to.be.equal(userId);
                 done();
             });
@@ -462,6 +465,9 @@ describe('User API', function() {
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('name');
+                expect(res.body).to.not.have.property('password');
                 expect(res.body.name).to.be.equal(profile.name);
                 done();
             });
