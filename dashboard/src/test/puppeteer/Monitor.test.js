@@ -329,7 +329,7 @@ describe('Monitor API', () => {
                     () => (document.getElementById('statusCode').value = '')
                 );
                 await page.evaluate(
-                    () => (document.getElementById('header').value = '')
+                    () => (document.getElementById('header').value = '{}')
                 );
                 await page.evaluate(
                     () => (document.getElementById('body').value = '')
@@ -406,6 +406,9 @@ describe('Monitor API', () => {
                 );
                 await page.evaluate(
                     () => (document.getElementById('statusCode').value = '')
+                );
+                await page.evaluate(
+                    () => (document.getElementById('header').value = '{}')
                 );
                 await page.evaluate(
                     () => (document.getElementById('body').value = '')
