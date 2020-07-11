@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
-sudo apt-get install -y jq
 chmod +x ./ci/scripts/gethash.sh
+
+# install jq only when it does not exist
+if [[ ! $(which jq) ]]
+then
+    sudo apt-get install -y jq
+fi
 
 function checkHash {
     # $1 is the job name
