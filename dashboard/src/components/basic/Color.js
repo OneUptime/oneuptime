@@ -37,7 +37,11 @@ function Color({
                         height: '25px',
                         borderRadius: '5px',
                         boxShadow: 'rgba(0, 0, 0, 0.1) 0px 0px 1px 1px',
-                        background: `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`,
+                        background: `rgba(${color && color.r ? color.r : 0}, ${
+                            color && color.g ? color.g : 0
+                        }, ${color && color.b ? color.b : 0}, ${
+                            color && color.a ? color.a : 1
+                        })`,
                     }}
                 />
             </div>
