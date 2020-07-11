@@ -216,7 +216,7 @@ const SecurityLog = ({
                                                 colSpan="3"
                                             >
                                                 No security issue detected for
-                                                this {type}
+                                                this application
                                             </td>
                                         </tr>
                                     )}
@@ -316,7 +316,7 @@ const SecurityLog = ({
                                                 colSpan="3"
                                             >
                                                 No security issue detected for
-                                                this {type}
+                                                this container
                                             </td>
                                         </tr>
                                     )}
