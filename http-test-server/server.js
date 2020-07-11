@@ -44,6 +44,20 @@ app.get('/', function(req, res) {
     }, global.httpServerResponse.responseTime);
 });
 
+const hook = {};
+
+app.post('/api/webhooks/:id', function(req, res) {
+    const { id } = req.params;
+    hook[id] = req.body;
+    return res.status(200).json(req.body);
+});
+
+app.get('/api/webhooks/:id', function(req, res) {
+    const { id } = req.params;
+    if (hook[id] === undefined) return res.status(404).json({});
+    return res.status(200).json(hook[id]);
+});
+
 app.use('/*', function(req, res) {
     res.status(404).render('notFound.ejs', {});
 });

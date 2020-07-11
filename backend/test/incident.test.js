@@ -20,6 +20,7 @@ const ProjectModel = require('../backend/models/project');
 const IncidentService = require('../backend/services/incidentService');
 const MonitorService = require('../backend/services/monitorService');
 const NotificationService = require('../backend/services/notificationService');
+const IntegrationService = require('../backend/services/integrationService');
 const AirtableService = require('../backend/services/airtableService');
 const Config = require('./utils/config');
 const VerificationTokenModel = require('../backend/models/verificationToken');
@@ -78,14 +79,49 @@ describe('Incident API', function() {
                                     const authorization = `Basic ${token}`;
                                     ComponentModel.create({
                                         name: 'New Component',
+                                        projectId,
                                     }).then(component => {
                                         componentId = component._id;
                                         request
                                             .post(`/monitor/${projectId}`)
                                             .set('Authorization', authorization)
                                             .send({ ...monitor, componentId })
-                                            .end(function(err, res) {
+                                            .end(async function(err, res) {
                                                 monitorId = res.body._id;
+
+                                                await IntegrationService.create(
+                                                    projectId,
+                                                    userId,
+                                                    {
+                                                        monitorId,
+                                                        userId,
+                                                        endpoint:
+                                                            'http://127.0.0.1:3010/api/webhooks/msteams',
+                                                    },
+                                                    'msteams',
+                                                    {
+                                                        incidentCreated: true,
+                                                        incidentResolved: true,
+                                                        incidentAcknowledged: true,
+                                                    }
+                                                );
+
+                                                await IntegrationService.create(
+                                                    projectId,
+                                                    userId,
+                                                    {
+                                                        monitorId,
+                                                        userId,
+                                                        endpoint:
+                                                            'http://127.0.0.1:3010/api/webhooks/slack',
+                                                    },
+                                                    'slack',
+                                                    {
+                                                        incidentCreated: true,
+                                                        incidentResolved: true,
+                                                        incidentAcknowledged: true,
+                                                    }
+                                                );
                                                 expect(res).to.have.status(200);
                                                 expect(
                                                     res.body.name
@@ -104,20 +140,47 @@ describe('Incident API', function() {
         await GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
+        await IntegrationService.hardDeleteBy({
+            monitorId,
+        });
     });
 
-    it('should create an incident', function(done) {
+    it('should create an incident', async function() {
         const authorization = `Basic ${token}`;
-        request
+        try {
+            await chai
+                .request('http://127.0.0.1:3010')
+                .get('/api/webhooks/msteams');
+            throw Error();
+        } catch (e) {
+            expect(e.response.status).to.eql(404);
+        }
+        try {
+            await chai
+                .request('http://127.0.0.1:3010')
+                .get('/api/webhooks/slack');
+            throw Error();
+        } catch (e) {
+            expect(e.response.status).to.eql(404);
+        }
+
+        const res = await request
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .send(incidentData)
-            .end(function(err, res) {
-                incidentId = res.body._id;
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                done();
-            });
+            .send(incidentData);
+        incidentId = res.body._id;
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+
+        const msTeamsEndpoint = await chai
+            .request('http://127.0.0.1:3010')
+            .get('/api/webhooks/msteams');
+        expect(msTeamsEndpoint).to.have.status(200);
+
+        const slackEndpoint = await chai
+            .request('http://127.0.0.1:3010')
+            .get('/api/webhooks/slack');
+        expect(slackEndpoint).to.have.status(200);
     });
 
     it('should create an incident with multi-probes and add to incident timeline', function(done) {
