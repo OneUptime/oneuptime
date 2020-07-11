@@ -1,6 +1,18 @@
 build_n_test_accounts:
     stage: BuildAndTest
     script:
+        - |
+            if [[ $CI_COMMIT_BRANCH != "master" ]] || [[ $CI_COMMIT_BRANCH != "release" ]]
+            then
+                chmod +x ./ci/scripts/checkhash.sh
+                export dashboard_exist=`./ci/scripts/checkhash.sh build_n_test_accounts dashboard`
+                export backend_exist=`./ci/scripts/checkhash.sh build_n_test_accounts backend`
+                export accounts_exist=`./ci/scripts/checkhash.sh build_n_test_accounts accounts`
+                if [[ $dashboard_exist == *"true"* ]] || [[ $backend_exist == *"true"* ]] || [[ $accounts_exist == *"true"* ]]
+                then
+                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
+                fi
+            fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo apt-get update
         - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
@@ -29,6 +41,19 @@ build_n_test_accounts:
 build_n_test_enterprise_accounts:
     stage: BuildAndTest
     script:
+        - |
+            if [[ $CI_COMMIT_BRANCH != "master" ]] || [[ $CI_COMMIT_BRANCH != "release" ]]
+            then
+                chmod +x ./ci/scripts/checkhash.sh
+                export dashboard_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_accounts dashboard`
+                export backend_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_accounts backend`
+                export accounts_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_accounts accounts`
+                export admin_dashboard_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_accounts admin-dashboard`
+                if [[ $dashboard_exist == *"true"* ]] || [[ $backend_exist == *"true"* ]] || [[ $accounts_exist == *"true"* ]] || [[ $admin_dashboard_exist == *"true"* ]]
+                then
+                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
+                fi
+            fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo apt-get update
         - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
