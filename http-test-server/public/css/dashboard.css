@@ -45840,6 +45840,8 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   position: relative;
   min-height: 100%;
   background-color: #f7f8fc;
+  padding-top: 30px;
+  padding-bottom: 30px;
 }
 
 #http-server div#http-server-background,

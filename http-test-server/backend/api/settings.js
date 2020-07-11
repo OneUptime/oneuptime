@@ -10,7 +10,7 @@ router.get('/settings', function(req, res) {
 });
 
 router.post('/api/settings', function(req, res) {
-    const { responseTime, statusCode, responseType, body } = req.body;
+    const { responseTime, statusCode, responseType, header, body } = req.body;
     let { httpServerResponse } = global;
     const newResponseType = {
         ...httpServerResponse.responseType,
@@ -19,6 +19,7 @@ router.post('/api/settings', function(req, res) {
     httpServerResponse = {
         ...httpServerResponse,
         body,
+        header,
         responseTime,
         statusCode,
         responseType: newResponseType,

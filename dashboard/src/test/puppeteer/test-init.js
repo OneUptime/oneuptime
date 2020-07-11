@@ -145,7 +145,9 @@ module.exports = {
         // Navigate to details page of monitor assumed created
         await page.waitForSelector(`#more-details-${monitor}`);
         await page.click(`#more-details-${monitor}`);
-        await page.waitForSelector(`#monitor-title-${monitor}`);
+        await page.waitForSelector(`#monitor-title-${monitor}`, {
+            visible: true,
+        });
     },
     navigateToApplicationLogDetails: async function(
         component,
