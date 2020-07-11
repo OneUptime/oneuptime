@@ -73,6 +73,7 @@ class DeleteAccount extends Component {
 
     submitForm = values => {
         const userId = this.props.profileSettings.data.id;
+        values.deleteMyAccount = values.deleteMyAccount.toUpperCase();
         const promise = this.props.deleteAccount(userId, values);
         this.props.logoutUser();
         if (SHOULD_LOG_ANALYTICS) {
@@ -150,7 +151,7 @@ class DeleteAccount extends Component {
                                             }}
                                             onChange={this.onChange}
                                             disabled={deleting}
-                                            autocomplete="off"
+                                            autoComplete="off"
                                         />
                                     </ShouldRender>
                                 </div>
