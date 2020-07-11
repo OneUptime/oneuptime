@@ -5,9 +5,14 @@ build_n_test_dashboard:
             if [[ $CI_COMMIT_BRANCH != "master" ]] || [[ $CI_COMMIT_BRANCH != "release" ]]
             then
                 chmod +x ./ci/scripts/checkhash.sh
-                export hash_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard dashboard`
+                export dashboard_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard dashboard`
                 export backend_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard backend`
-                if [[ $hash_exist == *"true"* ]] || [[ $backend_exist == *"true"* ]]
+                export probe_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard probe`
+                export accounts_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard accounts`
+                export status_page_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard status-page`
+                export init_script_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard init-script`
+                export http_test_server_exist=`./ci/scripts/checkhash.sh build_n_test_dashboard http-test-server`
+                if [[ $dashboard_exist == *"true"* ]] || [[ $backend_exist == *"true"* ]] || [[ $probe_exist == *"true"* ]] || [[ $accounts_exist == *"true"* ]] || [[ $status_page_exist == *"true"* ]] || [[ $init_script_exist == *"true"* ]] || [[ $http_test_server_exist == *"true"* ]]
                 then
                     exit ${CI_JOB_SKIP_EXIT_CODE:-0}
                 fi
@@ -53,9 +58,12 @@ build_n_test_enterprise_dashboard:
             if [[ $CI_COMMIT_BRANCH != "master" ]] || [[ $CI_COMMIT_BRANCH != "release" ]]
             then
                 chmod +x ./ci/scripts/checkhash.sh
-                export hash_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_dashboard dashboard`
+                export dashboard_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_dashboard dashboard`
                 export backend_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_dashboard backend`
-                if [[ $hash_exist == *"true"* ]] || [[ $backend_exist == *"true"* ]]
+                export accounts_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_dashboard accounts`
+                export status_page_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_dashboard status-page`
+                export admin_dashboard_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_dashboard admin-dashboard`
+                if [[ $dashboard_exist == *"true"* ]] || [[ $backend_exist == *"true"* ]] || [[ $accounts == *"true"* ]] || [[ $status_page_exist == *"true"* ]] || [[ $admin_dashboard_exist == *"true"* ]]
                 then
                     exit ${CI_JOB_SKIP_EXIT_CODE:-0}
                 fi
