@@ -33,10 +33,11 @@ build_n_test_accounts:
         # try building, if there are warnings then this will fail
         - npm run build
         - npm run test
-        - chmod +x ./ci/scripts/storehash.sh
+        - cd ..
         - |
             if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
             then
+                chmod +x ./ci/scripts/storehash.sh
                 ./ci/scripts/storehash.sh build_n_test_accounts dashboard
                 ./ci/scripts/storehash.sh build_n_test_accounts backend
                 ./ci/scripts/storehash.sh build_n_test_accounts accounts
@@ -85,10 +86,11 @@ build_n_test_enterprise_accounts:
         # try building, if there are warnings then this will fail
         - npm run build
         - npm run enterprise-test
-        - chmod +x ./ci/scripts/storehash.sh
+        - cd ..
         - |
             if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
             then
+                chmod +x ./ci/scripts/storehash.sh
                 ./ci/scripts/storehash.sh build_n_test_enterprise_accounts dashboard
                 ./ci/scripts/storehash.sh build_n_test_enterprise_accounts backend
                 ./ci/scripts/storehash.sh build_n_test_enterprise_accounts accounts
