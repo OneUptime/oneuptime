@@ -20,8 +20,8 @@ include:
   # - '/ci/spec/global/rollback.yaml'
 
   # # ACCOUNTS
-  # - '/ci/spec/accounts/audit.yaml'
-  # - '/ci/spec/accounts/build-n-test.yaml'
+  - '/ci/spec/accounts/audit.yaml'
+  - '/ci/spec/accounts/build-n-test.yaml'
   # - '/ci/spec/accounts/deploy.yaml'
   # - '/ci/spec/accounts/rollback.yaml'
   # - '/ci/spec/accounts/lighthouse.yaml'
