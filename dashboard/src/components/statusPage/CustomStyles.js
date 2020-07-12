@@ -21,6 +21,7 @@ export class CustomStyles extends Component {
     headerHTML = null;
     footerHTML = null;
     customCSS = null;
+    customJS = null;
 
     shouldComponentUpdate(nextProps, nextState) {
         const { recent } = nextState.syntaxError;
@@ -318,12 +319,13 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = ({ statusPage }) => {
-    const { headerHTML, footerHTML, customCSS } = statusPage.status;
+    const { headerHTML, footerHTML, customCSS, customJS } = statusPage.status;
     return {
         initialValues: {
             headerHTML,
             footerHTML,
             customCSS,
+            customJS,
         },
         statusPage,
     };
