@@ -127,13 +127,13 @@ export class CustomStyles extends Component {
                                     <span
                                         style={{ textTransform: 'capitalize' }}
                                     >
-                                        Custom HTML and CSS
+                                        Custom HTML, CSS and Javascript
                                     </span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <span>
                                         Add custom header and footer HTML, plus
-                                        CSS on the status page.
+                                        CSS and Javascript on the status page.
                                     </span>
                                 </span>
                             </div>
