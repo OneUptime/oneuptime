@@ -4,7 +4,7 @@ audit_dashboard:
     allow_failure: true
     script:
         - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] || [[ $CI_COMMIT_BRANCH != "release" ]]
+            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
             then
                 chmod +x ./ci/scripts/checkhash.sh
                 export dashboard_exist=`./ci/scripts/checkhash.sh audit_dashboard dashboard`
