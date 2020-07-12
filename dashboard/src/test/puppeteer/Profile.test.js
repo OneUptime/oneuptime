@@ -59,6 +59,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.type('input[name=name]', name);
                 await page.waitForSelector('button[type=submit]');
                 await page.click('button[type=submit]');
+                await page.waitFor(5000);
                 let spanElement = await page.waitForSelector(
                     'span#userProfileName'
                 );
