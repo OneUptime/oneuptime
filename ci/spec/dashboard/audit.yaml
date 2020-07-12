@@ -23,6 +23,8 @@ audit_dashboard:
         - npm run audit
         - npm run dep-check
         - cd ..
+        - chmod +x ./ci/scripts/storehash.sh
+        - if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]; then ./ci/scripts/storehash.sh audit_dashboard dashboard; fi
     except:
         refs:
             - hotfix-master
