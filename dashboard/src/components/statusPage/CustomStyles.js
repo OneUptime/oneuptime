@@ -3,9 +3,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
     updateStatusPageCustomHTML,
-    updateStatusPageCustomHTMLRequest,
-    updateStatusPageCustomHTMLSuccess,
-    updateStatusPageCustomHTMLError,
     fetchProjectStatusPage,
 } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';
@@ -310,9 +307,6 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             updateStatusPageCustomHTML,
-            updateStatusPageCustomHTMLRequest,
-            updateStatusPageCustomHTMLSuccess,
-            updateStatusPageCustomHTMLError,
             fetchProjectStatusPage,
         },
         dispatch
