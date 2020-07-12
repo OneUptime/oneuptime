@@ -24,7 +24,7 @@ include:
   - '/ci/spec/accounts/build-n-test.yaml'
   # - '/ci/spec/accounts/deploy.yaml'
   # - '/ci/spec/accounts/rollback.yaml'
-  # - '/ci/spec/accounts/lighthouse.yaml'
+  - '/ci/spec/accounts/lighthouse.yaml'
 
   # # ADMIN DASHBOARD
   # - '/ci/spec/admin-dashboard/audit.yaml'
