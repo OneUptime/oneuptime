@@ -109,6 +109,11 @@ export class CustomStyles extends Component {
                 mode: 'css',
                 label: 'Custom CSS',
             },
+            {
+                name: 'customJS',
+                mode: 'javascript',
+                label: 'Custom JS',
+            },
         ];
 
         return (
