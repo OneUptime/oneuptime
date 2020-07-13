@@ -1,13 +1,29 @@
 build_n_test_licensing:
-  stage: BuildAndTest
-  script:
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker build -t fyipeproject/licensing:3.0.$CI_PIPELINE_IID ./licensing
-    - sudo docker ps
-    - sudo docker run --env-file ./licensing/.env --net=host fyipeproject/licensing:3.0.$CI_PIPELINE_IID npm test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+    stage: BuildAndTest
+    script:
+        - |
+            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
+            then
+                chmod +x ./ci/scripts/checkhash.sh
+                export licensing_exist=`./ci/scripts/checkhash.sh build_n_test_licensing licensing`
+                if [[ $licensing_exist == *"true"* ]]
+                then
+                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
+                fi
+            fi
+        - curl -sSL https://get.docker.com/ | sh #Install docker.
+        - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker build -t fyipeproject/licensing:3.0.$CI_PIPELINE_IID ./licensing
+        - sudo docker ps
+        - sudo docker run --env-file ./licensing/.env --net=host fyipeproject/licensing:3.0.$CI_PIPELINE_IID npm test
+        - |
+            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
+            then
+                chmod +x ./ci/scripts/storehash.sh
+                ./ci/scripts/storehash.sh build_n_test_licensing licensing
+            fi
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release
