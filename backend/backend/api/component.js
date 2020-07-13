@@ -185,7 +185,7 @@ router.get(
 
 // TODO fetch latest stats related to a particular component
 router.get(
-    '/:projectId/component/:componentId/resources',
+    '/:projectId/resources/:componentId',
     getUser,
     isAuthorized,
     getSubProjects,
