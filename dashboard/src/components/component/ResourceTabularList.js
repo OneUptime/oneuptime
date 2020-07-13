@@ -3,6 +3,8 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { history } from '../../store';
 import { ListLoader } from '../basic/Loader';
+import { fetchComponentResources } from '../../actions/component';
+import { bindActionCreators } from 'redux';
 
 class ResourceTabularList extends Component {
     generateUrlLink(componentResource) {
@@ -28,44 +30,7 @@ class ResourceTabularList extends Component {
         return `${baseUrl}${route}/${componentResource._id}`;
     }
     render() {
-        const { componentResource, componentId, currentProject } = this.props;
-
-        if (
-            componentResource &&
-            componentResource.skip &&
-            typeof componentResource.skip === 'string'
-        ) {
-            componentResource.skip = parseInt(componentResource.skip, 10);
-        }
-        if (
-            componentResource &&
-            componentResource.limit &&
-            typeof componentResource.limit === 'string'
-        ) {
-            componentResource.limit = parseInt(componentResource.limit, 10);
-        }
-        if (componentResource && !componentResource.skip)
-            componentResource.skip = 0;
-        if (componentResource && !componentResource.limit)
-            componentResource.limit = 0;
-
-        let canNext =
-            componentResource &&
-            componentResource.count &&
-            componentResource.count >
-                componentResource.skip + componentResource.limit
-                ? true
-                : false;
-        let canPrev =
-            componentResource && componentResource.skip <= 0 ? false : true;
-
-        if (
-            componentResource &&
-            (componentResource.requesting || !componentResource)
-        ) {
-            canNext = false;
-            canPrev = false;
-        }
+        const { componentResource } = this.props;
 
         return (
             <div>
@@ -260,72 +225,18 @@ class ResourceTabularList extends Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {componentResource &&
-                                    componentResource.count
-                                        ? componentResource.count +
+                                    componentResource.componentResources
+                                        ? componentResource.componentResources
+                                              .length +
                                           (componentResource &&
-                                          componentResource.count > 1
+                                          componentResource.componentResources
+                                              .length > 1
                                               ? ' Resources'
                                               : ' Resource')
                                         : null}
                                 </span>
                             </span>
                         </span>
-                    </div>
-                    <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                            <div className="Box-root Margin-right--8">
-                                <button
-                                    id="btnPrev"
-                                    onClick={() => {
-                                        this.props.prevClicked(
-                                            currentProject._id,
-                                            componentId,
-                                            componentResource.skip,
-                                            componentResource.limit
-                                        );
-                                    }}
-                                    className={
-                                        'Button bs-ButtonLegacy' +
-                                        (canPrev ? '' : 'Is--disabled')
-                                    }
-                                    disabled={!canPrev}
-                                    data-db-analytics-name="list_view.pagination.previous"
-                                    type="button"
-                                >
-                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                            <span>Previous</span>
-                                        </span>
-                                    </div>
-                                </button>
-                            </div>
-                            <div className="Box-root">
-                                <button
-                                    id="btnNext"
-                                    onClick={() => {
-                                        this.props.nextClicked(
-                                            currentProject._id,
-                                            componentId,
-                                            componentResource.skip,
-                                            componentResource.limit
-                                        );
-                                    }}
-                                    className={
-                                        'Button bs-ButtonLegacy' +
-                                        (canNext ? '' : 'Is--disabled')
-                                    }
-                                    disabled={!canNext}
-                                    data-db-analytics-name="list_view.pagination.next"
-                                    type="button"
-                                >
-                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                            <span>Next</span>
-                                        </span>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -334,7 +245,14 @@ class ResourceTabularList extends Component {
 }
 
 ResourceTabularList.displayName = 'ResourceTabularList';
-
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            fetchComponentResources,
+        },
+        dispatch
+    );
+};
 function mapStateToProps(state, props) {
     let componentResource = null;
     if (state.component.componentResourceList) {
@@ -352,4 +270,7 @@ ResourceTabularList.propTypes = {
     componentId: PropTypes.string,
 };
 
-export default connect(mapStateToProps)(ResourceTabularList);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(ResourceTabularList);

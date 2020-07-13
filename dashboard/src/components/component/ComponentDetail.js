@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import MonitorTabularList from '../monitor/MonitorTabularList';
 import uuid from 'uuid';
 import {
     fetchComponents,
@@ -258,24 +257,6 @@ export class ComponentDetail extends Component {
                                 <div className="">
                                     <div className="Box-root">
                                         <div>
-                                            <MonitorTabularList
-                                                componentId={
-                                                    this.props.component._id
-                                                }
-                                                monitors={
-                                                    this.props.componentMonitors
-                                                }
-                                                prevClicked={this.prevClicked}
-                                                nextClicked={this.nextClicked}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="Box-root Margin-bottom--12">
-                                <div className="">
-                                    <div className="Box-root">
-                                        <div>
                                             <ResourceTabularList
                                                 componentId={
                                                     this.props.component._id
@@ -335,7 +316,6 @@ function mapStateToProps(state, props) {
 ComponentDetail.propTypes = {
     currentProject: PropTypes.object.isRequired,
     component: PropTypes.object.isRequired,
-    componentMonitors: PropTypes.array.isRequired,
     componentState: PropTypes.object.isRequired,
     openModal: PropTypes.func,
     deleteComponent: PropTypes.func,
