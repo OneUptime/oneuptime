@@ -196,6 +196,7 @@ router.get(
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map(project => project._id)
                 : null;
+
             const query = type
                 ? { _id: componentId, projectId: { $in: subProjectIds }, type }
                 : { _id: componentId, projectId: { $in: subProjectIds } };
@@ -234,16 +235,13 @@ router.get(
 
             // get total number of application log and sum it
             totalResourceCount += await ApplicationLogService.countBy({
-                componentId: { $in: componentId },
+                componentId: componentId,
             });
 
             // fetch monitors
-            const monitorQuery = type
-                ? { projectId: { $in: subProjectIds }, type }
-                : { projectId: { $in: subProjectIds } };
 
             const monitors = await MonitorService.findBy(
-                monitorQuery,
+                { componentId: componentId },
                 limit,
                 skip
             );
@@ -260,7 +258,7 @@ router.get(
             });
             // get total number of monitors and sum it
             totalResourceCount += await MonitorService.countBy({
-                projectId: { $in: subProjectIds },
+                componentId: componentId,
             });
 
             // fetch application security
