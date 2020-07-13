@@ -424,4 +424,36 @@ describe('Status Page', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should create custom Javascript',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                const javascript = `console.log('this is a js code');`;
+                await page.waitForNavigation({ waitUntil: 'load' });
+                await page.type(
+                    '#customJS textarea',
+                    `
+                <script>${javascript}</script>
+                `
+                ); // Ace editor completes the div tag
+                await page.click('#btnAddCustomStyles');
+                await page.waitFor(3000);
+
+                let link = await page.$('#publicStatusPageUrl > span > a');
+                link = await link.getProperty('href');
+                link = await link.jsonValue();
+                await page.goto(link);
+                await page.waitFor(3000);
+
+                const code = await page.$eval(
+                    'body>script:last-child',
+                    script => script.innerHTML
+                );
+                expect(code).toEqual(javascript);
+            });
+        },
+        operationTimeOut
+    );
 });
