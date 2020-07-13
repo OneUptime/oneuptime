@@ -144,7 +144,7 @@ class ResourceTabularList extends Component {
                                                                 className={`Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                             >
                                                                 <span
-                                                                    id={`resource_type_${i}`}
+                                                                    id={`resource_type_${componentResource.name}`}
                                                                     className={`Badge-text Text-typeface--upper Text-color--green Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper`}
                                                                 >
                                                                     {
