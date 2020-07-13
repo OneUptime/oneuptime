@@ -119,7 +119,7 @@ class DockerCredentialModal extends Component {
                                                                         isRequesting
                                                                     }
                                                                     validate={
-                                                                        ValidateField.required
+                                                                        ValidateField.url
                                                                     }
                                                                 />
                                                             </div>
