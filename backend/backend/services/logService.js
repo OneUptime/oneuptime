@@ -5,10 +5,26 @@ module.exports = {
 
             // prepare  log model
             let log = new LogModel();
-            log.content = data.content;
-            log.stringifiedContent = JSON.stringify(data.content);
+            let content;
+
+            try {
+                content = JSON.parse(data.content);
+            } catch (error) {
+                content = data.content;
+            }
+
+            let stringifiedTags = '';
+            if (data.tags) {
+                typeof data.tags === 'string'
+                    ? (stringifiedTags = data.tags)
+                    : (stringifiedTags = data.tags.join());
+            }
+
+            log.content = content;
+            log.stringifiedContent = JSON.stringify(content) + stringifiedTags;
             log.applicationLogId = data.applicationLogId;
             log.type = data.type;
+            log.tags = data.tags;
             log.createdById = data.createdById;
             const savedlog = await log.save();
             log = await _this.findOneBy({

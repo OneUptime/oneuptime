@@ -17,6 +17,7 @@ import MonitorAddScheduleBox from '../components/monitor/MonitorAddScheduleBox';
 import MonitorViewDeleteBox from '../components/monitor/MonitorViewDeleteBox';
 import NewMonitor from '../components/monitor/NewMonitor';
 import ShouldRender from '../components/basic/ShouldRender';
+import { LoadingState } from '../components/basic/Loader';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { mapCriteria } from '../config';
 import WebHookBox from '../components/webHooks/WebHookBox';
@@ -27,6 +28,8 @@ import moment from 'moment';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { getProbes } from '../actions/probe';
+import MSTeamsBox from '../components/webHooks/MSTeamsBox';
+import SlackBox from '../components/webHooks/SlackBox';
 
 class MonitorView extends React.Component {
     // eslint-disable-next-line
@@ -141,7 +144,19 @@ class MonitorView extends React.Component {
                                         <div>
                                             <div>
                                                 {this.props.monitor &&
-                                                this.props.monitor._id ? (
+                                                this.props.monitor._id &&
+                                                this.props.monitor.type &&
+                                                (((this.props.monitor.type ===
+                                                    'url' ||
+                                                    this.props.monitor.type ===
+                                                        'api') &&
+                                                    !this.props.probeList
+                                                        .requesting) ||
+                                                    (this.props.monitor.type !==
+                                                        'url' &&
+                                                        this.props.monitor
+                                                            .type !==
+                                                            'api')) ? (
                                                     <Fragment>
                                                         <div className="Box-root Margin-bottom--12">
                                                             <ShouldRender
@@ -302,6 +317,24 @@ class MonitorView extends React.Component {
                                                             />
                                                         </div>
                                                         <div className="Box-root Margin-bottom--12">
+                                                            <MSTeamsBox
+                                                                monitorId={
+                                                                    this.props
+                                                                        .monitor
+                                                                        ._id
+                                                                }
+                                                            />
+                                                        </div>
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <SlackBox
+                                                                monitorId={
+                                                                    this.props
+                                                                        .monitor
+                                                                        ._id
+                                                                }
+                                                            />
+                                                        </div>
+                                                        <div className="Box-root Margin-bottom--12">
                                                             <WebHookBox
                                                                 monitorId={
                                                                     this.props
@@ -332,7 +365,7 @@ class MonitorView extends React.Component {
                                                         </RenderIfSubProjectAdmin>
                                                     </Fragment>
                                                 ) : (
-                                                    ''
+                                                    <LoadingState />
                                                 )}
                                             </div>
                                         </div>
@@ -444,6 +477,7 @@ const mapStateToProps = (state, props) => {
         initialValues,
         match: props.match,
         component,
+        probeList: state.probe.probes,
     };
 };
 
@@ -477,6 +511,7 @@ MonitorView.propTypes = {
         })
     ),
     getProbes: PropTypes.func.isRequired,
+    probeList: PropTypes.object,
 };
 
 MonitorView.displayName = 'MonitorView';

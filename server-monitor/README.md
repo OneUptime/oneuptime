@@ -1,3 +1,5 @@
+[![npm](https://img.shields.io/npm/v/fyipe-server-monitor)](https://www.npmjs.com/package/fyipe-server-monitor)
+
 # Fyipe Server Monitor
 
 A fyipe shell package that monitor's server resources - disk, memory and CPU percentage - used.
@@ -61,11 +63,15 @@ Main API to authenticate user, start and stop server monitoring.
 
 **Author**: HackerBay, Inc.
 
--   [api](#module_api)
-    -   [module.exports(config, apiKey, monitorId)](#exp_module_api--module.exports) ⇒ <code>Object</code> ⏏
-        -   [~ping(projectId, monitorId, apiKey, interval)](#module_api--module.exports..ping) ⇒ <code>Object</code>
-        -   [~start(id)](#module_api--module.exports..start) ⇒ <code>Object</code> \| <code>number</code>
-        -   [~stop()](#module_api--module.exports..stop) ⇒ <code>Object</code>
+-   [Fyipe Server Monitor](#fyipe-server-monitor)
+    -   [Installation](#installation)
+    -   [CLI Usage](#cli-usage)
+    -   [Basic Usage](#basic-usage)
+    -   [API Documentation](#api-documentation)
+        -   [module.exports(config, apiKey, monitorId) ⇒ <code>Object</code> ⏏](#moduleexportsconfig-apikey-monitorid--object-)
+            -   [module.exports~ping(projectId, monitorId, apiKey, interval) ⇒ <code>Object</code>](#moduleexportspingprojectid-monitorid-apikey-interval--object)
+            -   [module.exports~start(id) ⇒ <code>Object</code> \| <code>number</code>](#moduleexportsstartid--object--number)
+            -   [module.exports~stop() ⇒ <code>Object</code>](#moduleexportsstop--object)
 
 <a name="exp_module_api--module.exports"></a>
 

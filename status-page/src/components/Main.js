@@ -18,7 +18,7 @@ import LineChartsContainer from './LineChartsContainer';
 
 const greenBackground = {
     display: 'inline-block',
-    borderRadius: '50%',
+    borderRadius: '100px',
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
@@ -26,7 +26,7 @@ const greenBackground = {
 };
 const yellowBackground = {
     display: 'inline-block',
-    borderRadius: '50%',
+    borderRadius: '100px',
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
@@ -34,7 +34,7 @@ const yellowBackground = {
 };
 const redBackground = {
     display: 'inline-block',
-    borderRadius: '50%',
+    borderRadius: '100px',
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
@@ -42,7 +42,7 @@ const redBackground = {
 };
 const greyBackground = {
     display: 'inline-block',
-    borderRadius: '50%',
+    borderRadius: '100px',
     height: '8px',
     width: '8px',
     margin: '0 8px 1px 0',
@@ -217,7 +217,8 @@ class Main extends Component {
                                         <div
                                             style={{
                                                 margin: '30px 0px',
-                                                backgroundColor: '#8898aa',
+                                                backgroundColor:
+                                                    'rgb(232, 232, 232)',
                                                 height: '1px',
                                             }}
                                         />

@@ -178,6 +178,7 @@ module.exports = {
                 .toDate();
             const securities = await this.findBy({
                 $or: [{ lastScan: { $lt: oneDay } }, { scanned: false }],
+                scanning: false,
             });
             return securities;
         } catch (error) {
@@ -208,7 +209,12 @@ module.exports = {
             const applicationSecurity = await this.updateOneBy(query, {
                 lastScan: newDate,
                 scanned: true,
+                scanning: false,
             });
+            global.io.emit(
+                `security_${applicationSecurity._id}`,
+                applicationSecurity
+            );
             return applicationSecurity;
         } catch (error) {
             ErrorService.log(

@@ -211,13 +211,12 @@ const SecurityLog = ({
                                             <td
                                                 style={{
                                                     textAlign: 'center',
-                                                    marginTop: '10px',
-                                                    padding: '0px 10px',
+                                                    padding: '15px 10px 0px',
                                                 }}
                                                 colSpan="3"
                                             >
                                                 No security issue detected for
-                                                this {type}
+                                                this application
                                             </td>
                                         </tr>
                                     )}
@@ -312,13 +311,12 @@ const SecurityLog = ({
                                             <td
                                                 style={{
                                                     textAlign: 'center',
-                                                    marginTop: '10px',
-                                                    padding: '0px 10px',
+                                                    padding: '15px 10px 0px',
                                                 }}
                                                 colSpan="3"
                                             >
                                                 No security issue detected for
-                                                this {type}
+                                                this container
                                             </td>
                                         </tr>
                                     )}

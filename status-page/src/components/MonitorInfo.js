@@ -266,6 +266,7 @@ class MonitorInfo extends Component {
                                     color: '#8898aa',
                                     textDecoration: 'none',
                                     paddingLeft: '0px',
+                                    fontSize: '12px',
                                 }}
                             >
                                 {selectedCharts.description}

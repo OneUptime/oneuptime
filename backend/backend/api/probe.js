@@ -233,6 +233,7 @@ router.post('/scan/git', isAuthorizedProbe, async function(req, res) {
         const securityLog = await ProbeService.scanApplicationSecurity(
             security
         );
+        global.io.emit(`securityLog_${security._id}`, securityLog);
         return sendItemResponse(req, res, securityLog);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -255,6 +256,7 @@ router.post('/scan/docker', isAuthorizedProbe, async function(req, res) {
         security = await ContainerSecurityService.decryptPassword(security);
 
         const securityLog = await ProbeService.scanContainerSecurity(security);
+        global.io.emit(`securityLog_${security._id}`, securityLog);
         return sendItemResponse(req, res, securityLog);
     } catch (error) {
         return sendErrorResponse(req, res, error);

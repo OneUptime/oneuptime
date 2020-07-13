@@ -554,14 +554,18 @@ module.exports = {
             const cloneDirectory = `${uuidv1()}security`; // always create unique paths
             const repoPath = Path.resolve(securityDir, cloneDirectory);
 
-            // update application security to scanned true
+            // update application security to scanning true
             // to prevent pulling an applicaiton security multiple times by running cron job
             // due to network delay
-            await ApplicationSecurityService.updateOneBy(
+            let applicationSecurity = await ApplicationSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
-                { scanned: true }
+                { scanning: true }
+            );
+            global.io.emit(
+                `security_${applicationSecurity._id}`,
+                applicationSecurity
             );
 
             return new Promise((resolve, reject) => {
@@ -659,19 +663,23 @@ module.exports = {
                                     }
                                 );
 
-                                deleteFolderRecursive(securityDir);
+                                await deleteFolderRecursive(repoPath);
                                 return resolve(securityLog);
                             });
                         });
                     })
                     .catch(async error => {
-                        await ApplicationSecurityService.updateOneBy(
+                        applicationSecurity = await ApplicationSecurityService.updateOneBy(
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
-                        deleteFolderRecursive(securityDir);
+                        global.io.emit(
+                            `security_${applicationSecurity._id}`,
+                            applicationSecurity
+                        );
+                        await deleteFolderRecursive(repoPath);
                         ErrorService.log(
                             'probeService.scanApplicationSecurity',
                             error
@@ -697,14 +705,19 @@ module.exports = {
             const outputFile = `${uuidv1()}result.json`;
             let securityDir = 'container_security_dir';
             securityDir = await createDir(securityDir);
-            // update container security to scanned true
+            const exactFilePath = Path.resolve(securityDir, outputFile);
+            // update container security to scanning true
             // so the cron job does not pull it multiple times due to network delays
             // since the cron job runs every minute
-            await ContainerSecurityService.updateOneBy(
+            let containerSecurity = await ContainerSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
-                { scanned: true }
+                { scanning: true }
+            );
+            global.io.emit(
+                `security_${containerSecurity._id}`,
+                containerSecurity
             );
 
             return new Promise((resolve, reject) => {
@@ -726,19 +739,22 @@ module.exports = {
                     error.code = 400;
                     error.message =
                         'Scanning failed please check your docker credential or image path/tag';
-                    await ContainerSecurityService.updateOneBy(
+                    containerSecurity = await ContainerSecurityService.updateOneBy(
                         {
                             _id: security._id,
                         },
-                        { scanned: false }
+                        { scanning: false }
                     );
-                    deleteFolderRecursive(securityDir);
+                    global.io.emit(
+                        `security_${containerSecurity._id}`,
+                        containerSecurity
+                    );
+                    await deleteFile(exactFilePath);
                     return reject(error);
                 });
 
                 output.on('close', async () => {
-                    const filePath = Path.resolve(securityDir, outputFile);
-                    let auditLogs = await readFileContent(filePath);
+                    let auditLogs = await readFileContent(exactFilePath);
                     // if auditLogs is empty, then scanning was unsuccessful
                     // the provided credentials or image path must have been wrong
                     if (!auditLogs) {
@@ -746,13 +762,17 @@ module.exports = {
                             'Scanning failed please check your docker credential or image path/tag'
                         );
                         error.code = 400;
-                        await ContainerSecurityService.updateOneBy(
+                        containerSecurity = await ContainerSecurityService.updateOneBy(
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
-                        deleteFolderRecursive(securityDir);
+                        global.io.emit(
+                            `security_${containerSecurity._id}`,
+                            containerSecurity
+                        );
+                        await deleteFile(exactFilePath);
                         return reject(error);
                     }
 
@@ -773,9 +793,9 @@ module.exports = {
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
-                        deleteFolderRecursive(securityDir);
+                        await deleteFile(exactFilePath);
                         return reject(error);
                     });
 
@@ -883,7 +903,7 @@ module.exports = {
                             _id: security._id,
                         });
 
-                        deleteFolderRecursive(securityDir);
+                        await deleteFile(exactFilePath);
                         resolve(securityLog);
                     });
                 });
@@ -2240,30 +2260,37 @@ function createDir(dirPath) {
     });
 }
 
-function deleteFolderRecursive(path) {
-    if (fs.existsSync(path)) {
-        fs.readdirSync(path).forEach(file => {
-            const curPath = Path.join(path, file);
-            if (fs.lstatSync(curPath).isDirectory()) {
-                // recurse
-                deleteFolderRecursive(curPath);
-            } else {
-                // delete file
-                fs.unlinkSync(curPath);
-            }
-        });
-        fs.rmdirSync(path);
+async function deleteFolderRecursive(dir) {
+    if (fs.existsSync(dir)) {
+        const entries = await readdir(dir, { withFileTypes: true });
+        await Promise.all(
+            entries.map(entry => {
+                const fullPath = Path.join(dir, entry.name);
+                return entry.isDirectory()
+                    ? deleteFolderRecursive(fullPath)
+                    : unlink(fullPath);
+            })
+        );
+        await rmdir(dir); // finally remove now empty directory
+    }
+}
+
+async function deleteFile(file) {
+    if (fs.existsSync(file)) {
+        await unlink(file);
     }
 }
 
 function readFileContent(filePath) {
     return new Promise((resolve, reject) => {
-        fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
-            if (error) {
-                reject(error);
-            }
-            resolve(data);
-        });
+        if (fs.existsSync(filePath)) {
+            fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
+                if (error) {
+                    reject(error);
+                }
+                resolve(data);
+            });
+        }
     });
 }
 
@@ -2312,3 +2339,7 @@ const ApplicationSecurityService = require('./applicationSecurityService');
 const ContainerSecurityService = require('./containerSecurityService');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
 const flattenArray = require('../utils/flattenArray');
+const { promisify } = require('util');
+const readdir = promisify(fs.readdir);
+const rmdir = promisify(fs.rmdir);
+const unlink = promisify(fs.unlink);

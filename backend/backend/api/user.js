@@ -959,7 +959,6 @@ router.get('/profile', getUser, async function(req, res) {
             id: user._id,
             name: user.name ? user.name : '',
             email: user.email ? user.email : '',
-            password: user.password,
             companyName: user.companyName,
             companyRole: user.companyRole,
             companySize: user.companySize,
@@ -1260,6 +1259,81 @@ router.post('/users/search', getUser, isUserMasterAdmin, async function(
         });
 
         return sendListResponse(req, res, users, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// Description: Delete user account.
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id};
+// Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
+router.delete('/:userId/delete', getUser, async function(req, res) {
+    try {
+        if (req.params.userId !== req.user.id) {
+            return sendErrorResponse(req, res, {
+                code: 401,
+                message: 'You are unauthorized to access the page',
+            });
+        }
+        const userId = req.user.id;
+        const user = await UserService.findOneBy({ _id: userId });
+        if (!user) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'No user associated with this account',
+            });
+        }
+        const { deleteMyAccount } = req.body;
+        if (deleteMyAccount !== 'DELETE MY ACCOUNT') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'No confirmation was provided by the user',
+            });
+        }
+
+        const { projects } = user;
+        projects
+            .filter(project => {
+                return project.users.find(
+                    user =>
+                        user.userId === userId &&
+                        user.role === 'Owner' &&
+                        project.users.length > 1
+                );
+            })
+            .forEach(async project => {
+                const { _id: projectId } = project;
+                await ProjectService.exitProject(projectId, userId);
+            });
+
+        projects
+            .filter(project => {
+                return project.users.find(
+                    user =>
+                        (user.userId === userId && user.role !== 'Owner') ||
+                        (user.userId === userId &&
+                            user.role === 'Owner' &&
+                            project.users.length === 1)
+                );
+            })
+            .forEach(async project => {
+                const { _id: projectId, users } = project;
+                const user = users.find(user => user.userId === userId);
+                if (user) {
+                    if (user.role === 'Owner') {
+                        await ProjectService.deleteBy(
+                            { _id: projectId },
+                            userId
+                        );
+                    } else {
+                        await ProjectService.exitProject(projectId, userId);
+                    }
+                }
+            });
+        const deletedUser = await UserService.deleteBy({ _id: userId }, userId);
+        return sendItemResponse(req, res, { user: deletedUser });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

@@ -29,7 +29,7 @@ const PricingPlanComponent = ({
     const isEnterprise =
         currentProject.stripePlanId === 'enterprise' ? true : false;
 
-    if (!isEnterprise) {
+    if (!isEnterprise && PricingPlan.getPlanById(currentProject.stripePlanId)) {
         category = PricingPlan.getPlanById(currentProject.stripePlanId)
             .category;
     }

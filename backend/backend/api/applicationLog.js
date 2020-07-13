@@ -136,6 +136,15 @@ router.post('/:applicationLogId/log', isApplicationLogValid, async function(
         const data = req.body;
         const applicationLogId = req.params.applicationLogId;
 
+        if (data.tags) {
+            if (!(typeof data.tags === 'string' || Array.isArray(data.tags))) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Application Log Tags must be of type String or Array of Strings',
+                });
+            }
+        }
         data.applicationLogId = applicationLogId;
 
         const log = await LogService.create(data);
@@ -177,11 +186,12 @@ router.post(
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
-            if (filter)
+            if (filter) {
                 query.stringifiedContent = {
                     $regex: new RegExp(filter),
                     $options: 'i',
                 };
+            }
 
             const logs = await LogService.findBy(query, limit || 10, skip || 0);
             const count = await LogService.countBy(query);

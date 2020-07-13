@@ -20,7 +20,7 @@ const ApplicationSecurities = require('../backend/services/applicationSecuritySe
 const ApplicationSecurityLogService = require('../backend/services/applicationSecurityLogService');
 
 describe('Application Security API', function() {
-    const timeout = 30000;
+    const timeout = 300000;
     let projectId,
         componentId,
         userId,

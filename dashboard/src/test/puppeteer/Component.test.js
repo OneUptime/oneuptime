@@ -250,4 +250,45 @@ describe('Components', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Should create new project from incident page and redirect to the component page',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    newComponentName,
+                    newMonitorName,
+                    page
+                );
+                await page.waitForSelector(`#createIncident_${newMonitorName}`);
+                await page.click(`#createIncident_${newMonitorName}`);
+                await page.waitForSelector('#createIncident');
+                await init.selectByText('#incidentType', 'Offline', page);
+                await page.click('#createIncident');
+                await page.waitFor(2000);
+                await page.waitForSelector(
+                    `table > tbody > tr#incident_${newMonitorName}_0`
+                );
+                await page.click(
+                    `table > tbody > tr#incident_${newMonitorName}_0`
+                );
+                await page.waitFor(5000);
+                await page.waitForSelector('#AccountSwitcherId');
+                await page.click('#AccountSwitcherId');
+                await page.waitForSelector('#create-project');
+                await page.click('#create-project');
+                await page.waitForSelector('#name');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', utils.generateRandomString());
+                await page.click('input[id=Startup_month]');
+                await page.click('button[type=submit]');
+                let currentPage = await page.waitForSelector('#cbComponents');
+                currentPage = await currentPage.getProperty('innerText');
+                currentPage = await currentPage.jsonValue();
+                currentPage.should.be.exactly('Components');
+            });
+        },
+        operationTimeOut
+    );
 });

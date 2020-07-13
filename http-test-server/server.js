@@ -12,6 +12,7 @@ global.httpServerResponse = {
     statusCode: 200,
     responseType: { values: ['json', 'html'], currentType: 'json' },
     responseTime: 0,
+    header: {},
     body: { status: 'ok' },
 };
 
@@ -36,12 +37,36 @@ app.get('/', function(req, res) {
     setTimeout(function() {
         if (global.httpServerResponse.responseType.currentType === 'html') {
             res.setHeader('Content-Type', 'text/html');
+            try {
+                const header = JSON.parse(global.httpServerResponse.header);
+                if (typeof header === 'object') {
+                    for (const key in header) {
+                        res.setHeader(String(key), String(header[key]));
+                    }
+                }
+            } catch (e) {
+                //
+            }
             return res.send(global.httpServerResponse.body);
         } else {
             res.setHeader('Content-Type', 'application/json');
             return res.send(global.httpServerResponse.body);
         }
     }, global.httpServerResponse.responseTime);
+});
+
+const hook = {};
+
+app.post('/api/webhooks/:id', function(req, res) {
+    const { id } = req.params;
+    hook[id] = req.body;
+    return res.status(200).json(req.body);
+});
+
+app.get('/api/webhooks/:id', function(req, res) {
+    const { id } = req.params;
+    if (hook[id] === undefined) return res.status(404).json({});
+    return res.status(200).json(hook[id]);
 });
 
 app.use('/*', function(req, res) {

@@ -14,6 +14,11 @@ const logSchema = new Schema({
         enum: ['info', 'warning', 'error'],
         required: true,
     },
+    tags: [
+        {
+            type: String,
+        },
+    ],
     createdById: { type: String, ref: 'User' }, //userId.
     createdAt: {
         type: Date,

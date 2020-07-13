@@ -250,6 +250,11 @@ router.post(
             const securityLog = await ProbeService.scanApplicationSecurity(
                 applicationSecurity
             );
+
+            global.io.emit(
+                `securityLog_${applicationSecurity._id}`,
+                securityLog
+            );
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);

@@ -4,10 +4,13 @@ import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import { IS_SAAS_SERVICE } from '../../config';
 import booleanParser from '../../utils/booleanParser';
+import { history } from '../../store';
 
 class AlertDisabledWarning extends Component {
     render() {
-        const { alertEnable } = this.props;
+        const { alertEnable, currentProject } = this.props;
+        const projectId = currentProject ? currentProject._id : null;
+        const redirectTo = `/dashboard/project/${projectId}/settings/billing`;
 
         return (
             <ShouldRender if={!alertEnable && booleanParser(IS_SAAS_SERVICE)}>
@@ -18,8 +21,18 @@ class AlertDisabledWarning extends Component {
                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                     <span>
                                         SMS and Call Alerts are disabled for
-                                        this project. Please go to Settings
-                                        -&gt; Billings and enable it.
+                                        this project. Please go to{' '}
+                                        <span
+                                            className="pointer underline"
+                                            onClick={() =>
+                                                history.push(redirectTo)
+                                            }
+                                        >
+                                            Settings
+                                            <span className="right-arrow" />
+                                            Billings
+                                        </span>{' '}
+                                        and enable it.
                                     </span>
                                 </span>
                             </div>
@@ -35,6 +48,7 @@ AlertDisabledWarning.displayName = 'AlertDisabledWarning';
 
 AlertDisabledWarning.propTypes = {
     alertEnable: PropTypes.bool,
+    currentProject: PropTypes.shape({ _id: PropTypes.string }),
 };
 
 const mapStateToProps = state => {
@@ -43,6 +57,7 @@ const mapStateToProps = state => {
             state.project &&
             state.project.currentProject &&
             state.project.currentProject.alertEnable,
+        currentProject: state.project.currentProject,
     };
 };
 

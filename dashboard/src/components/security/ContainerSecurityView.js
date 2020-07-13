@@ -165,14 +165,22 @@ const ContainerSecurityView = ({
                             <div>
                                 <ShouldRender
                                     if={
-                                        scanning &&
-                                        String(containerSecurityId) ===
-                                            String(activeContainerSecurity)
+                                        (scanning &&
+                                            String(containerSecurityId) ===
+                                                String(
+                                                    activeContainerSecurity
+                                                )) ||
+                                        containerSecurity.scanning ||
+                                        !containerSecurity.lastScan
                                     }
                                 >
                                     <button
                                         className="bs-Button bs-DeprecatedButton"
-                                        disabled={scanning}
+                                        disabled={
+                                            scanning ||
+                                            containerSecurity.scanning ||
+                                            !containerSecurity.lastScan
+                                        }
                                         id={`scanning_${containerSecurity.name}`}
                                     >
                                         <Spinner
@@ -183,9 +191,13 @@ const ContainerSecurityView = ({
                                 </ShouldRender>
                                 <ShouldRender
                                     if={
-                                        !scanning ||
-                                        String(containerSecurityId) !==
-                                            String(activeContainerSecurity)
+                                        (!scanning ||
+                                            String(containerSecurityId) !==
+                                                String(
+                                                    activeContainerSecurity
+                                                )) &&
+                                        !containerSecurity.scanning &&
+                                        containerSecurity.lastScan
                                     }
                                 >
                                     <button

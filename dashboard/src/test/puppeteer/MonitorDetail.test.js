@@ -399,6 +399,381 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
+    //MS Teams
+    test(
+        'Should navigate to monitor details and create a msteams webhook',
+        async () => {
+            expect.assertions(1);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const addButtonSelector = '#addMsTeamsButton';
+                await page.waitForSelector(addButtonSelector);
+                await page.click(addButtonSelector);
+
+                await page.waitForSelector('#endpoint');
+
+                await page.type('#endpoint', webhookEndpoint);
+
+                await page.evaluate(() => {
+                    document
+                        .querySelector('input[name=incidentCreated]')
+                        .click();
+                });
+
+                const createdWebhookSelector =
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+
+                await page.click('#createMsTeams');
+                await page.waitForSelector(createdWebhookSelector);
+
+                const createdWebhookEndpoint = await page.$eval(
+                    createdWebhookSelector,
+                    el => el.textContent
+                );
+
+                expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and update a msteams webhook',
+        async () => {
+            expect.assertions(2);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const existingWebhookSelector =
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+
+                await page.waitForSelector(existingWebhookSelector);
+
+                const existingWebhookEndpoint = await page.$eval(
+                    existingWebhookSelector,
+                    el => el.textContent
+                );
+
+                expect(existingWebhookEndpoint).toEqual(webhookEndpoint);
+
+                const editWebhookButtonSelector =
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(1)';
+                await page.click(editWebhookButtonSelector);
+
+                const newWebhookEndpoint = utils.generateRandomWebsite();
+                await page.click('#endpoint', { clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                await page.type('#endpoint', newWebhookEndpoint);
+                await page.click('#msteamsUpdate');
+                await page.waitFor(1000);
+                const updatedWebhookEndpoint = await page.$eval(
+                    existingWebhookSelector,
+                    el => el.textContent
+                );
+                expect(updatedWebhookEndpoint).toEqual(newWebhookEndpoint);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and delete a msteams webhook',
+        async () => {
+            expect.assertions(2);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                const createdWebhookSelector =
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                await page.waitForSelector(createdWebhookSelector);
+
+                let webhookRows = await page.$$(createdWebhookSelector);
+                let countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(1);
+
+                const deleteWebhookButtonSelector =
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(2)';
+                await page.click(deleteWebhookButtonSelector);
+
+                await page.waitForSelector('#msteamsDelete');
+                await page.click('#msteamsDelete');
+
+                await page.waitFor(1000);
+                webhookRows = await page.$$(createdWebhookSelector);
+                countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(0);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and get list of msteams webhooks and paginate them',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const addButtonSelector = '#addMsTeamsButton';
+                await page.waitForSelector(addButtonSelector);
+
+                for (let i = 0; i < 11; i++) {
+                    await page.click(addButtonSelector);
+                    await page.waitForSelector('#endpoint');
+
+                    await page.type('#endpoint', utils.generateRandomWebsite());
+                    await page.evaluate(() => {
+                        document
+                            .querySelector('input[name=incidentCreated]')
+                            .click();
+                    });
+                    await page.click('#createMsTeams');
+                    await page.waitFor(1000);
+                }
+
+                const createdWebhookSelector =
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                await page.waitForSelector(createdWebhookSelector);
+
+                let webhookRows = await page.$$(createdWebhookSelector);
+                let countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(11);
+
+                const nextSelector = await page.$('#btnNextMsTeams');
+
+                await nextSelector.click();
+                await page.waitFor(1000);
+                await page.waitForSelector(createdWebhookSelector);
+
+                webhookRows = await page.$$(createdWebhookSelector);
+                countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(1);
+
+                const prevSelector = await page.$('#btnPrevMsTeams');
+
+                await prevSelector.click();
+                await page.waitFor(1000);
+                await page.waitForSelector(createdWebhookSelector);
+
+                webhookRows = await page.$$(createdWebhookSelector);
+                countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(10);
+            });
+        },
+        operationTimeOut
+    );
+
+    //Slack
+    test(
+        'Should navigate to monitor details and create a slack webhook',
+        async () => {
+            expect.assertions(1);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const addButtonSelector = '#addSlackButton';
+                await page.waitForSelector(addButtonSelector);
+                await page.click(addButtonSelector);
+
+                await page.waitForSelector('#endpoint');
+
+                await page.type('#endpoint', webhookEndpoint);
+
+                await page.evaluate(() => {
+                    document
+                        .querySelector('input[name=incidentCreated]')
+                        .click();
+                });
+
+                const createdWebhookSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+
+                await page.click('#createSlack');
+                await page.waitForSelector(createdWebhookSelector);
+
+                const createdWebhookEndpoint = await page.$eval(
+                    createdWebhookSelector,
+                    el => el.textContent
+                );
+                expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and update a Slack webhook',
+        async () => {
+            expect.assertions(2);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const existingWebhookSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+
+                await page.waitForSelector(existingWebhookSelector);
+
+                const existingWebhookEndpoint = await page.$eval(
+                    existingWebhookSelector,
+                    el => el.textContent
+                );
+
+                expect(existingWebhookEndpoint).toEqual(webhookEndpoint);
+
+                const editWebhookButtonSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(1)';
+                await page.click(editWebhookButtonSelector);
+
+                const newWebhookEndpoint = utils.generateRandomWebsite();
+                await page.click('#endpoint', { clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                await page.type('#endpoint', newWebhookEndpoint);
+                await page.click('#slackUpdate');
+                await page.waitFor(1000);
+                const updatedWebhookEndpoint = await page.$eval(
+                    existingWebhookSelector,
+                    el => el.textContent
+                );
+                expect(updatedWebhookEndpoint).toEqual(newWebhookEndpoint);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and delete a slack webhook',
+        async () => {
+            expect.assertions(2);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                const createdWebhookSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                await page.waitForSelector(createdWebhookSelector);
+
+                let webhookRows = await page.$$(createdWebhookSelector);
+                let countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(1);
+
+                const deleteWebhookButtonSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(2)';
+                await page.click(deleteWebhookButtonSelector);
+
+                await page.waitForSelector('#slackDelete');
+                await page.click('#slackDelete');
+
+                await page.waitFor(1000);
+                webhookRows = await page.$$(createdWebhookSelector);
+                countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(0);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and get list of slack webhooks and paginate them',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const addButtonSelector = '#addSlackButton';
+                await page.waitForSelector(addButtonSelector);
+
+                for (let i = 0; i < 11; i++) {
+                    await page.click(addButtonSelector);
+                    await page.waitForSelector('#endpoint');
+
+                    await page.type('#endpoint', utils.generateRandomWebsite());
+                    await page.evaluate(() => {
+                        document
+                            .querySelector('input[name=incidentCreated]')
+                            .click();
+                    });
+                    await page.click('#createSlack');
+                    await page.waitFor(1000);
+                }
+
+                const createdWebhookSelector =
+                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                await page.waitForSelector(createdWebhookSelector);
+
+                let webhookRows = await page.$$(createdWebhookSelector);
+                let countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(11);
+
+                const nextSelector = await page.$('#btnNextSlack');
+
+                await nextSelector.click();
+                await page.waitFor(1000);
+                await page.waitForSelector(createdWebhookSelector);
+
+                webhookRows = await page.$$(createdWebhookSelector);
+                countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(1);
+
+                const prevSelector = await page.$('#btnPrevSlack');
+
+                await prevSelector.click();
+                await page.waitFor(1000);
+                await page.waitForSelector(createdWebhookSelector);
+
+                webhookRows = await page.$$(createdWebhookSelector);
+                countWebhooks = webhookRows.length;
+
+                expect(countWebhooks).toEqual(10);
+            });
+        },
+        operationTimeOut
+    );
+
     test(
         'Should navigate to monitor details and create a webhook',
         async () => {
@@ -464,6 +839,7 @@ describe('Monitor Detail API', () => {
 
                     await page.type('#endpoint', utils.generateRandomWebsite());
                     await init.selectByText('#endpointType', 'GET', page);
+                    await page.waitFor(2000);
                     await page.evaluate(() => {
                         document
                             .querySelector('input[name=incidentCreated]')
@@ -567,6 +943,7 @@ describe('Monitor Detail API', () => {
 
                 expect(probe0).toBeDefined();
                 expect(probe1).toBeDefined();
+                await page.waitFor(10000);
 
                 const monitorStatus = await page.waitForSelector(
                     `#monitor-status-${urlMonitorName}`
@@ -645,7 +1022,7 @@ describe('Monitor Detail API', () => {
                 lighthousePwaElement.should.endWith('%');
 
                 const websiteIssuesSelector =
-                    '#websiteIssuesList > tbody > tr.websiteIssuesListItem';
+                    '#performance #websiteIssuesList > tbody > tr.websiteIssuesListItem';
                 await page.waitForSelector(websiteIssuesSelector);
 
                 const websiteIssuesRows = await page.$$(websiteIssuesSelector);

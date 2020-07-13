@@ -18,15 +18,22 @@ function launchChromeAndRunLighthouse(
 process.on('message', url => {
     launchChromeAndRunLighthouse(url)
         .then(results => {
-            const issues = [];
+            const issues = {};
+            const categories = results.categories;
             const audits = results.audits;
-            for (const property in audits) {
-                if (
-                    audits[property].score !== null &&
-                    audits[property].score < 1
-                ) {
-                    issues.push(audits[property]);
-                }
+            for (const category in categories) {
+                const ids = categories[category].auditRefs.map(
+                    auditRef => auditRef.id
+                );
+                issues[category] = ids
+                    .map(id =>
+                        audits[id] &&
+                        audits[id].score !== null &&
+                        audits[id].score < 1
+                            ? audits[id]
+                            : id
+                    )
+                    .filter(id => typeof id !== 'string');
             }
 
             const result = {
