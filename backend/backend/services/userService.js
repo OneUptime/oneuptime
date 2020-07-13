@@ -13,6 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const users = await UserModel.find(query)
+                .select("-password")
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
