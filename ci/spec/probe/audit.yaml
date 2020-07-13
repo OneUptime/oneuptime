@@ -1,19 +1,35 @@
 ## PROBE
 audit_probe:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd probe
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+    stage: BuildAndTest
+    allow_failure: true
+    script:
+        - |
+            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
+            then
+                chmod +x ./ci/scripts/checkhash.sh
+                export probe_exist=`./ci/scripts/checkhash.sh audit_probe probe`
+                if [[ $probe_exist == *"true"* ]]
+                then
+                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
+                fi
+            fi
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - cd probe
+        - npm ci
+        - npm run audit
+        - npm run dep-check
+        - cd ..
+        - |
+            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
+            then
+                chmod +x ./ci/scripts/storehash.sh
+                ./ci/scripts/storehash.sh audit_probe probe
+            fi
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release
