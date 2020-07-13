@@ -304,7 +304,7 @@ export function addSeatReset() {
 export function fetchComponentResources(projectId, componentId, skip, limit) {
     return function(dispatch) {
         const promise = getApi(
-            `component/${projectId}/component/${componentId}/resources?skip=${skip}&limit=${limit}`
+            `component/${projectId}/resources/${componentId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchComponentResourcesRequest(componentId));
 
