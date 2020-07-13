@@ -99,7 +99,7 @@ export class CustomStyles extends Component {
                 name: 'headerHTML',
                 mode: 'html',
                 label: 'Header HTML',
-                placeholder:`<div>
+                placeholder: `<div>
                     <!-- HTML code -->
                 </div>`,
             },
@@ -107,7 +107,7 @@ export class CustomStyles extends Component {
                 name: 'footerHTML',
                 mode: 'html',
                 label: 'Footer HTML',
-                placeholder:`<div>
+                placeholder: `<div>
                     <!-- HTML code -->
                 </div>`,
             },
@@ -115,7 +115,7 @@ export class CustomStyles extends Component {
                 name: 'customCSS',
                 mode: 'css',
                 label: 'Custom CSS',
-                placeholder:`.your-css-class{
+                placeholder: `.your-css-class{
                     /* CSS code */
                  }`,
             },
@@ -123,7 +123,7 @@ export class CustomStyles extends Component {
                 name: 'customJS',
                 mode: 'html',
                 label: 'Custom JS',
-                placeholder:`<script> 
+                placeholder: `<script> 
                 // your JS code here (also include the <script> tag)
                 </script>  `,
             },
@@ -212,7 +212,9 @@ export class CustomStyles extends Component {
                                                                             script.name
                                                                         )
                                                                     }
-                                                                    placeholder={script.placeholder}
+                                                                    placeholder={
+                                                                        script.placeholder
+                                                                    }
                                                                 />
                                                             )}
                                                         />
