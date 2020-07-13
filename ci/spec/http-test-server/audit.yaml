@@ -1,18 +1,34 @@
 ##HTTP_TEST_SERVER
 audit_http_test_server:
-  stage: BuildAndTest
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd http-test-server
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+    stage: BuildAndTest
+    script:
+        - |
+            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
+            then
+                chmod +x ./ci/scripts/checkhash.sh
+                export http_test_server_exist=`./ci/scripts/checkhash.sh audit_http_test_server http-test-server`
+                if [[ $http_test_server_exist == *"true"* ]]
+                then
+                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
+                fi
+            fi
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - cd http-test-server
+        - npm ci
+        - npm run audit
+        - npm run dep-check
+        - cd ..
+        - |
+            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
+            then
+                chmod +x ./ci/scripts/storehash.sh
+                ./ci/scripts/storehash.sh audit_http_test_server http-test-server
+            fi
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release
