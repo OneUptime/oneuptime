@@ -158,6 +158,47 @@ describe('Component API', function() {
             });
     });
 
+    it('should return a list of all resources under component', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(`/component/${projectId}/resources/${componentId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.totalResources).to.be.an('array');
+                expect(res.body.totalResources).to.have.lengthOf(1); // one monitor
+                done();
+            });
+    });
+
+    it('should create a new application log when `componentId` is given`', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/application-log/${projectId}/${componentId}/create`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Application Log',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal('New Application Log');
+                done();
+            });
+    });
+
+    it('should return a list of all resources under component', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(`/component/${projectId}/resources/${componentId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.totalResources).to.be.an('array');
+                expect(res.body.totalResources).to.have.lengthOf(2); // one applicattion log and one monitor
+                done();
+            });
+    });
+
     it('should delete a component and its monitor when componentId is valid', function(done) {
         let authorization = `Basic ${token}`;
         request
