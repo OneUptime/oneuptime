@@ -1,19 +1,35 @@
-## LOG JS 
+## LOG JS
 audit_log-js:
     stage: BuildAndTest
     allow_failure: true
     script:
-      - sudo apt-get update
-      - sudo apt-get install -y curl gcc
-      - sudo apt-get install -y build-essential
-      - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-      - sudo apt-get install -y nodejs
-      - cd log-js
-      - npm ci
-      - npm run audit
-      - npm run dep-check
-      - cd ..
+        - |
+            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
+            then
+                chmod +x ./ci/scripts/checkhash.sh
+                export log_js_exist=`./ci/scripts/checkhash.sh audit_log-js log-js`
+                if [[ $log_js_exist == *"true"* ]]
+                then
+                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
+                fi
+            fi
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - cd log-js
+        - npm ci
+        - npm run audit
+        - npm run dep-check
+        - cd ..
+        - |
+            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
+            then
+                chmod +x ./ci/scripts/storehash.sh
+                ./ci/scripts/storehash.sh audit_log-js log-js
+            fi
     except:
-      refs:
-        - hotfix-master
-        - hotfix-release
+        refs:
+            - hotfix-master
+            - hotfix-release
