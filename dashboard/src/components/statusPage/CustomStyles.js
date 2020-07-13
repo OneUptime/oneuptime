@@ -99,21 +99,33 @@ export class CustomStyles extends Component {
                 name: 'headerHTML',
                 mode: 'html',
                 label: 'Header HTML',
+                placeholder:`<div>
+                    <!-- HTML code -->
+                </div>`,
             },
             {
                 name: 'footerHTML',
                 mode: 'html',
                 label: 'Footer HTML',
+                placeholder:`<div>
+                    <!-- HTML code -->
+                </div>`,
             },
             {
                 name: 'customCSS',
                 mode: 'css',
                 label: 'Custom CSS',
+                placeholder:`.your-css-class{
+                    /* CSS code */
+                 }`,
             },
             {
                 name: 'customJS',
-                mode: 'javascript',
+                mode: 'html',
                 label: 'Custom JS',
+                placeholder:`<script> 
+                // your JS code here (also include the <script> tag)
+                </script>  `,
             },
         ];
 
@@ -200,6 +212,7 @@ export class CustomStyles extends Component {
                                                                             script.name
                                                                         )
                                                                     }
+                                                                    placeholder={script.placeholder}
                                                                 />
                                                             )}
                                                         />
