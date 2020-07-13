@@ -331,10 +331,10 @@ export function fetchComponentResources(projectId, componentId, skip, limit) {
     };
 }
 
-export function fetchComponentResourcesSuccess(components) {
+export function fetchComponentResourcesSuccess(resources) {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_SUCCESS,
-        payload: components,
+        payload: resources,
     };
 }
 
