@@ -74,7 +74,11 @@ class StatusPage extends Component {
                     route={getParentRoute(pathname)}
                     name="Status Pages"
                 />
-                <BreadCrumbItem route={pathname} name={pageName} />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={pageName}
+                    pageTitle="Status Page"
+                />
                 <div className="Box-root">
                     <div>
                         <div>

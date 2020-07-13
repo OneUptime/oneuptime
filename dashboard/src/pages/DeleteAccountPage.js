@@ -11,7 +11,7 @@ const DeleteAccountPage = props => {
 
     return (
         <Dashboard>
-            <BreadCrumbItem route={pathname} name="Profile Settings" />
+            <BreadCrumbItem route={pathname} name="Advanced" />
             <div>
                 <div>
                     <div className="db-BackboneViewContainer">

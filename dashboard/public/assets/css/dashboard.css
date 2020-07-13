@@ -51140,3 +51140,24 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   padding-right: 8px;
   filter: brightness(0) invert(1);
 }
+
+.page-title-wrapper {
+  margin-bottom: 10px;
+}
+
+.page-title-icon {
+  padding-left: 9px;
+  padding-right: 9px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  height: 20px;
+  width: 20px;
+  font-size: 1.125em;
+
+}
+
+.page-title-text {
+  margin-left: 5px;
+  font-size: 1.125em;
+  font-weight: bold;
+}
