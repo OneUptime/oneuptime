@@ -211,8 +211,6 @@ router.get(
             }
 
             let totalResources = [];
-            let totalResourceCount = 0;
-
             const limit = req.query.limit || 5;
             const skip = req.query.skip || 0;
             // fetch application logs
@@ -233,13 +231,7 @@ router.get(
                 return newElement;
             });
 
-            // get total number of application log and sum it
-            totalResourceCount += await ApplicationLogService.countBy({
-                componentId: componentId,
-            });
-
             // fetch monitors
-
             const monitors = await MonitorService.findBy(
                 { componentId: componentId },
                 limit,
@@ -255,10 +247,6 @@ router.get(
                 // add it to the total resources
                 totalResources.push(newElement);
                 return newElement;
-            });
-            // get total number of monitors and sum it
-            totalResourceCount += await MonitorService.countBy({
-                componentId: componentId,
             });
 
             // fetch application security
@@ -279,11 +267,6 @@ router.get(
                 return newElement;
             });
 
-            // get total number of application security and sum it
-            totalResourceCount += await ApplicationSecurityService.countBy({
-                componentId: componentId,
-            });
-
             // fetch container security
             const containerSecurity = await ContainerSecurityService.findBy(
                 { componentId: componentId },
@@ -302,11 +285,6 @@ router.get(
                 return newElement;
             });
 
-            // get total number of container security and sum it
-            totalResourceCount += await ContainerSecurityService.countBy({
-                componentId: componentId,
-            });
-
             // Sort all resources by creation date
             totalResources = totalResources.sort(
                 (a, b) => b.createdAt - a.createdAt
@@ -315,7 +293,6 @@ router.get(
             // return response
             return sendItemResponse(req, res, {
                 totalResources,
-                totalResourceCount,
                 skip,
                 componentId,
             });

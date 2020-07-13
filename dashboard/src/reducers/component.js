@@ -406,8 +406,6 @@ export default function component(state = INITIAL_STATE, action) {
                         error: null,
                         success: false,
                         componentResources: action.payload.totalResources,
-                        count: action.payload.totalResourceCount,
-                        skip: action.payload.skip,
                     },
                 },
             });
@@ -429,8 +427,6 @@ export default function component(state = INITIAL_STATE, action) {
                           error: action.payload.error,
                           requesting: false,
                           success: false,
-                          count: 0,
-                          skip: 0,
                       },
             };
             return Object.assign({}, state, {
@@ -459,8 +455,6 @@ export default function component(state = INITIAL_STATE, action) {
                           error: null,
                           requesting: true,
                           success: false,
-                          count: 0,
-                          skip: 0,
                       },
             };
             return Object.assign({}, state, {
