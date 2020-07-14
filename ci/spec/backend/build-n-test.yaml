@@ -1,19 +1,9 @@
 build_n_test_backend:
     stage: BuildAndTest
     script:
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/checkhash.sh
-                export backend_exist=`./ci/scripts/checkhash.sh build_n_test_backend backend`
-                export init_script_exist=`./ci/scripts/checkhash.sh build_n_test_backend init-script`
-                export probe_exist=`./ci/scripts/checkhash.sh build_n_test_backend probe`
-                export http_test_server_exist=`./ci/scripts/checkhash.sh build_n_test_backend http-test-server`
-                if [[ $backend_exist == *"true"* ]] && [[ $init_script_exist == *"true"* ]] && [[ $probe_exist == *"true*" ]] && [[ $http_test_server_exist == *"true"* ]]
-                then
-                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
-                fi
-            fi
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_backend backend init-script probe http-test-server`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -30,15 +20,8 @@ build_n_test_backend:
         - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - sudo docker run --name fyipe --env-file ./backend/.env -e IS_SAAS_SERVICE=true -e DOCKERHUBUSERNAME=$DOCKERHUBUSERNAME -e DOCKERHUBPASSWORD=$DOCKERHUBPASSWORD -e DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL -e DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH -e DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS -e GITHUB_USERNAME=$GITHUB_USERNAME -e GITHUB_PASSWORD=$GITHUB_PASSWORD -e GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm test
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/storehash.sh
-                ./ci/scripts/storehash.sh build_n_test_backend backend
-                ./ci/scripts/storehash.sh build_n_test_backend init-script
-                ./ci/scripts/storehash.sh build_n_test_backend probe
-                ./ci/scripts/storehash.sh build_n_test_backend http-test-server
-            fi
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh build_n_test_backend backend init-script probe http-test-server
     except:
         refs:
             - hotfix-master
@@ -47,16 +30,9 @@ build_n_test_backend:
 build_n_test_enterprise_backend:
     stage: BuildAndTest
     script:
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/checkhash.sh
-                export backend_exist=`./ci/scripts/checkhash.sh build_n_test_enterprise_backend backend`
-                if [[ $backend_exist == *"true"* ]]
-                then
-                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
-                fi
-            fi
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_enterprise_backend backend`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -65,12 +41,8 @@ build_n_test_enterprise_backend:
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
         - sudo docker ps
         - sudo docker run --name fyipe --env-file ./backend/.env --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm run enterprise-test
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/storehash.sh
-                ./ci/scripts/storehash.sh build_n_test_enterprise_backend backend
-            fi
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh build_n_test_enterprise_backend backend
     except:
         refs:
             - hotfix-master
