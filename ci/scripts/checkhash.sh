@@ -10,13 +10,11 @@ function checkHash {
     
     # if response contains an array of object with document key, then the hash already exist in db
     document=`jq '.[0].document' <<< "$RESPONSE"`
-    echo "document we have is: $document"
-    
-    if [[ $document ]]
+    if [[ $document = null ]]
     then
-        echo true
-    else
         echo false
+    else
+        echo true
     fi
 }
 
