@@ -16,6 +16,8 @@ function checkHash {
     then
         echo "skip"
         exit
+    else
+        echo "continue"
     fi
 }
 
@@ -30,8 +32,6 @@ then
     # the first argument is always the job name ($1)
     for ((i = 2; i <= $#; i++ ))
     do
-        echo "continue"
         checkHash $1 ${!i}
     done
-    
 fi
