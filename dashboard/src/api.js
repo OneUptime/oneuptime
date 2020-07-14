@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { API_URL } from './config';
+import Cookies from 'universal-cookie';
+import { API_URL, ACCOUNTS_URL } from './config';
 import { User } from './config';
 import { history } from './store';
 const baseURL = API_URL;
@@ -28,6 +29,9 @@ export function postApi(url, data) {
         })
         .catch(function(error) {
             if (error && error.response && error.response.status === 401) {
+                const cookies = new Cookies();
+                cookies.remove('admin-data', { path: '/' });
+                cookies.remove('data', { path: '/' });        
                 User.clear();
                 history.push('/login');
             }
@@ -55,6 +59,9 @@ export function getApi(url) {
         })
         .catch(function(error) {
             if (error && error.response && error.response.status === 401) {
+                const cookies = new Cookies();
+                cookies.remove('admin-data', { path: '/' });
+                cookies.remove('data', { path: '/' });        
                 User.clear();
                 history.push('/login');
             }
@@ -84,6 +91,9 @@ export function putApi(url, data) {
         })
         .catch(function(error) {
             if (error && error.response && error.response.status === 401) {
+                const cookies = new Cookies();
+                cookies.remove('admin-data', { path: '/' });
+                cookies.remove('data', { path: '/' });        
                 User.clear();
                 history.push('/login');
             }
@@ -113,6 +123,9 @@ export function deleteApi(url, data) {
         })
         .catch(function(error) {
             if (error && error.response && error.response.status === 401) {
+                const cookies = new Cookies();
+                cookies.remove('admin-data', { path: '/' });
+                cookies.remove('data', { path: '/' });        
                 User.clear();
                 history.push('/login');
             }
