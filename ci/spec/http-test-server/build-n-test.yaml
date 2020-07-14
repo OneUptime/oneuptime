@@ -1,16 +1,9 @@
 build_n_test_http_test_server:
     stage: BuildAndTest
     script:
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/checkhash.sh
-                export http_test_server_exist=`./ci/scripts/checkhash.sh build_n_test_http_test_server http-test-server`
-                if [[ $http_test_server_exist == *"true"* ]]
-                then
-                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
-                fi
-            fi
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_http_test_server http-test-server`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
@@ -21,12 +14,8 @@ build_n_test_http_test_server:
         - npm ci
         - npm test
         - cd ..
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/storehash.sh
-                ./ci/scripts/storehash.sh build_n_test_http_test_server http-test-server
-            fi
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh build_n_test_http_test_server http-test-server
     except:
         refs:
             - hotfix-master

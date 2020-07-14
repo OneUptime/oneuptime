@@ -2,16 +2,9 @@
 audit_http_test_server:
     stage: BuildAndTest
     script:
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/checkhash.sh
-                export http_test_server_exist=`./ci/scripts/checkhash.sh audit_http_test_server http-test-server`
-                if [[ $http_test_server_exist == *"true"* ]]
-                then
-                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
-                fi
-            fi
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh audit_http_test_server http-test-server`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
@@ -22,12 +15,8 @@ audit_http_test_server:
         - npm run audit
         - npm run dep-check
         - cd ..
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/storehash.sh
-                ./ci/scripts/storehash.sh audit_http_test_server http-test-server
-            fi
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh audit_http_test_server http-test-server
     except:
         refs:
             - hotfix-master
