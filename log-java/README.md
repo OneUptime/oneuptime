@@ -22,7 +22,7 @@ public class SampleClass {
 
     // constructor
     Logger logger = new Logger(
-        "API_URL", // https:fyipe.com/api
+        "API_URL", // https://fyipe.com/api
         "APPLICATION_LOG_ID",
         "APPLICATION_LOG_KEY"
     );

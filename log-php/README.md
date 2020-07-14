@@ -22,7 +22,7 @@ use Fyipe\Logger;
 
 // constructor
 $logger = new Fyipe\Logger(
-    'API_URL', // https:fyipe.com/api
+    'API_URL', // https://fyipe.com/api
     'APPLICATION_LOG_ID',
     'APPLICATION_LOG_KEY'
 );

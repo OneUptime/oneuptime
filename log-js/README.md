@@ -24,7 +24,7 @@ import Logger from 'fyipe-log-js';
 
 // constructor
 const logger = new Logger(
-    'API_URL', // https:fyipe.com/api
+    'API_URL', // https://fyipe.com/api
     'APPLICATION_LOG_ID',
     'APPLICATION_LOG_KEY'
 );
