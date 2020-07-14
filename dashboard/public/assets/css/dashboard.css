@@ -51161,3 +51161,11 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   font-size: 1.125em;
   font-weight: bold;
 }
+
+.Border-bottom--white {
+  border-bottom: solid thin #fff;
+}
+
+.Border-radius--4 {
+  border-radius: 4px;
+}
