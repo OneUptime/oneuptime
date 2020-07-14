@@ -209,18 +209,24 @@ export function getServiceStatus(monitorsData, probes) {
 
     const totalServices = monitorsLength * probesLength;
     let onlineServices = totalServices;
+    let degraded = 0;
 
     monitorsData.forEach(monitor => {
         probes.forEach(probe => {
             const statuses = filterProbeData(monitor, probe);
             const monitorStatus = getMonitorStatus(statuses);
-            if (monitorStatus === 'degraded' || monitorStatus === 'offline') {
+            if (  monitorStatus === 'offline') {
                 onlineServices--;
+            }
+            if(monitorStatus === 'degraded'){
+                degraded++;
             }
         });
     });
 
     if (onlineServices === totalServices) {
+        if(degraded !== 0)
+            return 'some-degraded';
         return 'all';
     } else if (onlineServices === 0) {
         return 'none';
