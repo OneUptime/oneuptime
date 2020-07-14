@@ -5,7 +5,6 @@ audit_accounts:
     script:
         - chmod +x ./ci/scripts/checkhash.sh
         - ./ci/scripts/checkhash.sh audit_accounts accounts
-        - echo "done checking hash"
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
