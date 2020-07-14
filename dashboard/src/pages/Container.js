@@ -6,16 +6,23 @@ import Dashboard from '../components/Dashboard';
 import ContainerSecurityForm from '../components/security/ContainerSecurityForm';
 import ContainerSecurity from '../components/security/ContainerSecurity';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+import { SHOULD_LOG_ANALYTICS, API_URL } from '../config';
 import {
     getContainerSecurities,
     getContainerSecurityLogs,
+    scanContainerSecuritySuccess,
+    getContainerSecuritySuccess,
 } from '../actions/security';
 import { LargeSpinner } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import io from 'socket.io-client';
 
+// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 class Container extends Component {
     constructor(props) {
         super(props);
@@ -52,7 +59,22 @@ class Container extends Component {
             gettingSecurityLogs,
             location: { pathname },
             component,
+            scanContainerSecuritySuccess,
+            getContainerSecuritySuccess,
         } = this.props;
+
+        containerSecurities.length > 0 &&
+            containerSecurities.map(containerSecurity => {
+                socket.on(`security_${containerSecurity._id}`, data => {
+                    getContainerSecuritySuccess(data);
+                });
+
+                socket.on(`securityLog_${containerSecurity._id}`, data => {
+                    scanContainerSecuritySuccess(data);
+                });
+
+                return containerSecurity;
+            });
 
         const componentName =
             component.length > 0 ? component[0].name : 'loading...';
@@ -63,7 +85,11 @@ class Container extends Component {
                     route={getParentRoute(pathname, null, 'component')}
                     name={componentName}
                 />
-                <BreadCrumbItem route={pathname} name="Container Security" />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Container Security"
+                    pageTitle="Container"
+                />
                 <div className="Margin-vertical--12">
                     <div>
                         <div className="db-BackboneViewContainer">
@@ -74,7 +100,10 @@ class Container extends Component {
                                         gettingSecurityLogs
                                     }
                                 >
-                                    <div style={{ textAlign: 'center' }}>
+                                    <div
+                                        id="largeSpinner"
+                                        style={{ textAlign: 'center' }}
+                                    >
                                         <LargeSpinner />
                                     </div>
                                 </ShouldRender>
@@ -159,6 +188,8 @@ Container.propTypes = {
             name: PropTypes.string,
         })
     ),
+    scanContainerSecuritySuccess: PropTypes.func,
+    getContainerSecuritySuccess: PropTypes.func,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -182,7 +213,12 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { getContainerSecurities, getContainerSecurityLogs },
+        {
+            getContainerSecurities,
+            getContainerSecurityLogs,
+            scanContainerSecuritySuccess,
+            getContainerSecuritySuccess,
+        },
         dispatch
     );
 

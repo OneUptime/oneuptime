@@ -4,9 +4,9 @@ class CustomSequencer extends TestSequencer {
     sort(tests) {
         const orderPath = [
             'MonitorDetail.test.js',
+            'IncidentSubProject.test.js',
             'IncidentTimeline.test.js',
             'Monitor.test.js',
-            'IncidentSubProject.test.js',
             'Component.test.js',
             'ApplicationLog.test.js',
         ];

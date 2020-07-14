@@ -3,6 +3,7 @@ const ErrorService = require('./errorService');
 const moment = require('moment');
 const { decrypt } = require('../config/encryptDecrypt');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
+const DockerCredentialService = require('./dockerCredentialService');
 
 module.exports = {
     create: async function(data) {
@@ -15,6 +16,9 @@ module.exports = {
                 imagePath: data.imagePath,
                 componentId: data.componentId,
             });
+            const dockerCredentialExist = await DockerCredentialService.findOneBy(
+                { _id: data.dockerCredential }
+            );
 
             if (containerNameExist) {
                 const error = new Error(
@@ -27,6 +31,14 @@ module.exports = {
             if (imagePathExist) {
                 const error = new Error(
                     'Container security with this image path already exist in this component'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            if (!dockerCredentialExist) {
+                const error = new Error(
+                    'Docker Credential not found or does not exist'
                 );
                 error.code = 400;
                 throw error;
@@ -161,6 +173,7 @@ module.exports = {
                 .toDate();
             const securities = await this.findBy({
                 $or: [{ lastScan: { $lt: oneDay } }, { scanned: false }],
+                scanning: false,
             });
             return securities;
         } catch (error) {
@@ -188,7 +201,12 @@ module.exports = {
             const containerSecurity = await this.updateOneBy(query, {
                 lastScan: newDate,
                 scanned: true,
+                scanning: false,
             });
+            global.io.emit(
+                `security_${containerSecurity._id}`,
+                containerSecurity
+            );
             return containerSecurity;
         } catch (error) {
             ErrorService.log('containerSecurityService.updateScanTime', error);

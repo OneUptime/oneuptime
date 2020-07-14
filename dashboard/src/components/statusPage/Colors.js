@@ -134,6 +134,33 @@ function Colors({
                     </div>
                 </div>
             </div>
+            <div className="bs-Fieldset-row">
+                <label className="bs-Fieldset-label">Chart Colors</label>
+                <div className="bs-Fieldset-fields">
+                    <div className="Box-root">
+                        <Color
+                            id="strokeChart"
+                            title="Line Color"
+                            color={colors.strokeChart}
+                            currentColorPicker={currentColorPicker}
+                            displayColorPicker={displayColorPicker}
+                            handleClick={handleClick}
+                            handleChange={handleChange}
+                            handleClose={handleClose}
+                        />
+                        <Color
+                            id="fillChart"
+                            title="Graph Color"
+                            color={colors.fillChart}
+                            currentColorPicker={currentColorPicker}
+                            displayColorPicker={displayColorPicker}
+                            handleClick={handleClick}
+                            handleChange={handleChange}
+                            handleClose={handleClose}
+                        />
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

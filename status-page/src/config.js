@@ -228,3 +228,26 @@ export function getServiceStatus(monitorsData, probes) {
         return 'some';
     }
 }
+
+export const formatDecimal = (value, decimalPlaces) => {
+    return Number(
+        Math.round(parseFloat(value + 'e' + decimalPlaces)) +
+            'e-' +
+            decimalPlaces
+    ).toFixed(decimalPlaces);
+};
+
+export const formatBytes = (a, b, c, d, e) => {
+    return (
+        formatDecimal(
+            ((b = Math),
+            (c = b.log),
+            (d = 1e3),
+            (e = (c(a) / c(d)) | 0),
+            a / b.pow(d, e)),
+            2
+        ) +
+        ' ' +
+        (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
+    );
+};

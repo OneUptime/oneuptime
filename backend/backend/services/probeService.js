@@ -543,8 +543,8 @@ module.exports = {
 
     scanApplicationSecurity: async security => {
         try {
-            let securityDir = '/application_security_dir';
-            securityDir = createDir(securityDir);
+            let securityDir = 'application_security_dir';
+            securityDir = await createDir(securityDir);
 
             const USER = security.gitCredential.gitUsername;
             const PASS = security.gitCredential.gitPassword;
@@ -554,14 +554,18 @@ module.exports = {
             const cloneDirectory = `${uuidv1()}security`; // always create unique paths
             const repoPath = Path.resolve(securityDir, cloneDirectory);
 
-            // update application security to scanned true
+            // update application security to scanning true
             // to prevent pulling an applicaiton security multiple times by running cron job
             // due to network delay
-            await ApplicationSecurityService.updateOneBy(
+            let applicationSecurity = await ApplicationSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
-                { scanned: true }
+                { scanning: true }
+            );
+            global.io.emit(
+                `security_${applicationSecurity._id}`,
+                applicationSecurity
             );
 
             return new Promise((resolve, reject) => {
@@ -594,13 +598,41 @@ module.exports = {
                             });
 
                             audit.on('close', async () => {
-                                const advisories = [];
+                                let advisories = [];
                                 auditOutput = JSON.parse(auditOutput); // parse the stringified json
                                 for (const key in auditOutput.advisories) {
                                     advisories.push(
                                         auditOutput.advisories[key]
                                     );
                                 }
+
+                                const criticalArr = [],
+                                    highArr = [],
+                                    moderateArr = [],
+                                    lowArr = [];
+                                advisories.map(advisory => {
+                                    if (advisory.severity === 'critical') {
+                                        criticalArr.push(advisory);
+                                    }
+                                    if (advisory.severity === 'high') {
+                                        highArr.push(advisory);
+                                    }
+                                    if (advisory.severity === 'moderate') {
+                                        moderateArr.push(advisory);
+                                    }
+                                    if (advisory.severity === 'low') {
+                                        lowArr.push(advisory);
+                                    }
+                                    return advisory;
+                                });
+
+                                // restructure advisories from the most critical case to the least critical(low)
+                                advisories = [
+                                    ...criticalArr,
+                                    ...highArr,
+                                    ...moderateArr,
+                                    ...lowArr,
+                                ];
 
                                 const auditData = {
                                     dependencies:
@@ -631,19 +663,23 @@ module.exports = {
                                     }
                                 );
 
-                                deleteFolderRecursive(securityDir);
+                                await deleteFolderRecursive(repoPath);
                                 return resolve(securityLog);
                             });
                         });
                     })
                     .catch(async error => {
-                        await ApplicationSecurityService.updateOneBy(
+                        applicationSecurity = await ApplicationSecurityService.updateOneBy(
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
-                        deleteFolderRecursive(securityDir);
+                        global.io.emit(
+                            `security_${applicationSecurity._id}`,
+                            applicationSecurity
+                        );
+                        await deleteFolderRecursive(repoPath);
                         ErrorService.log(
                             'probeService.scanApplicationSecurity',
                             error
@@ -662,84 +698,108 @@ module.exports = {
 
     scanContainerSecurity: async security => {
         try {
-            const { imagePath, imageTags } = security;
+            const { imagePath, imageTags, dockerCredential } = security;
             const testPath = imageTags
                 ? `${imagePath}:${imageTags}`
                 : imagePath;
-            const outputFile = `${uuidv1()}results.json`;
-            let securityDir = '/container_security_dir';
-            securityDir = createDir(securityDir);
-
-            // update container security to scanned true
+            const outputFile = `${uuidv1()}result.json`;
+            let securityDir = 'container_security_dir';
+            securityDir = await createDir(securityDir);
+            const exactFilePath = Path.resolve(securityDir, outputFile);
+            // update container security to scanning true
             // so the cron job does not pull it multiple times due to network delays
             // since the cron job runs every minute
-            await ContainerSecurityService.updateOneBy(
+            let containerSecurity = await ContainerSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
-                { scanned: true }
+                { scanning: true }
+            );
+            global.io.emit(
+                `security_${containerSecurity._id}`,
+                containerSecurity
             );
 
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
                 const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
                 const clearCommand = `trivy image --clear-cache ${testPath}`;
-                let scanError = null;
-                let clearCacheError = null;
 
-                const output = exec(
-                    scanCommand,
-                    { cwd: securityDir },
-                    error => {
-                        if (error) {
-                            error.code = 400;
-                            error.message =
-                                'Scanning failed please check your docker credential or image path/tag';
-                            scanError = error;
-                        }
-                    }
-                );
+                const output = spawn(scanCommand, {
+                    cwd: securityDir,
+                    env: {
+                        TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
+                        TRIVY_USERNAME: dockerCredential.dockerUsername,
+                        TRIVY_PASSWORD: dockerCredential.dockerPassword,
+                    },
+                    shell: true,
+                });
+
+                output.on('error', async error => {
+                    error.code = 400;
+                    error.message =
+                        'Scanning failed please check your docker credential or image path/tag';
+                    containerSecurity = await ContainerSecurityService.updateOneBy(
+                        {
+                            _id: security._id,
+                        },
+                        { scanning: false }
+                    );
+                    global.io.emit(
+                        `security_${containerSecurity._id}`,
+                        containerSecurity
+                    );
+                    await deleteFile(exactFilePath);
+                    return reject(error);
+                });
 
                 output.on('close', async () => {
-                    if (scanError) {
+                    let auditLogs = await readFileContent(exactFilePath);
+                    // if auditLogs is empty, then scanning was unsuccessful
+                    // the provided credentials or image path must have been wrong
+                    if (!auditLogs) {
+                        const error = new Error(
+                            'Scanning failed please check your docker credential or image path/tag'
+                        );
+                        error.code = 400;
+                        containerSecurity = await ContainerSecurityService.updateOneBy(
+                            {
+                                _id: security._id,
+                            },
+                            { scanning: false }
+                        );
+                        global.io.emit(
+                            `security_${containerSecurity._id}`,
+                            containerSecurity
+                        );
+                        await deleteFile(exactFilePath);
+                        return reject(error);
+                    }
+
+                    if (typeof auditLogs === 'string') {
+                        auditLogs = JSON.parse(auditLogs); // parse the stringified logs
+                    }
+
+                    const clearCache = spawn('trivy', [clearCommand], {
+                        cwd: securityDir,
+                        shell: true,
+                    });
+
+                    clearCache.on('error', async error => {
+                        error.code = 400;
+                        error.message =
+                            'Unable to clear cache, try again later';
                         await ContainerSecurityService.updateOneBy(
                             {
                                 _id: security._id,
                             },
-                            { scanned: false }
+                            { scanning: false }
                         );
-                        deleteFolderRecursive(securityDir);
-                        return reject(scanError);
-                    }
-
-                    const clearCache = exec(
-                        clearCommand,
-                        { cwd: securityDir },
-                        error => {
-                            if (error) {
-                                error.code = 400;
-                                error.message =
-                                    'Unable to clear cache, try again later';
-                                clearCacheError = error;
-                            }
-                        }
-                    );
+                        await deleteFile(exactFilePath);
+                        return reject(error);
+                    });
 
                     clearCache.on('close', async () => {
-                        if (clearCacheError) {
-                            await ContainerSecurityService.updateOneBy(
-                                {
-                                    _id: security._id,
-                                },
-                                { scanned: false }
-                            );
-                            deleteFolderRecursive(securityDir);
-                            return reject(clearCacheError);
-                        }
-
-                        const filePath = Path.resolve(securityDir, outputFile);
-                        let auditLogs = await readFileContent(filePath);
-
                         const auditData = {
                             vulnerabilityInfo: {},
                             vulnerabilityData: [],
@@ -751,7 +811,6 @@ module.exports = {
                             critical: 0,
                         };
 
-                        auditLogs = JSON.parse(auditLogs); // parse the stringified logs
                         auditLogs.map(auditLog => {
                             const log = {
                                 type: auditLog.Type,
@@ -759,6 +818,24 @@ module.exports = {
                             };
 
                             auditLog.Vulnerabilities.map(vulnerability => {
+                                let severity;
+                                if (vulnerability.Severity === 'LOW') {
+                                    counter.low += 1;
+                                    severity = 'low';
+                                }
+                                if (vulnerability.Severity === 'MEDIUM') {
+                                    counter.moderate += 1;
+                                    severity = 'moderate';
+                                }
+                                if (vulnerability.Severity === 'HIGH') {
+                                    counter.high += 1;
+                                    severity = 'high';
+                                }
+                                if (vulnerability.Severity === 'CRITICAL') {
+                                    counter.critical += 1;
+                                    severity = 'critical';
+                                }
+
                                 const vulObj = {
                                     vulnerabilityId:
                                         vulnerability.VulnerabilityID,
@@ -768,22 +845,9 @@ module.exports = {
                                     fixedVersions: vulnerability.FixedVersion,
                                     title: vulnerability.Title,
                                     description: vulnerability.Description,
-                                    severity: vulnerability.Severity,
+                                    severity,
                                 };
                                 log.vulnerabilities.push(vulObj);
-
-                                if (vulnerability.Severity === 'LOW') {
-                                    counter.low += 1;
-                                }
-                                if (vulnerability.Severity === 'MEDIUM') {
-                                    counter.moderate += 1;
-                                }
-                                if (vulnerability.Severity === 'HIGH') {
-                                    counter.high += 1;
-                                }
-                                if (vulnerability.Severity === 'CRITICAL') {
-                                    counter.critical += 1;
-                                }
 
                                 return vulnerability;
                             });
@@ -793,6 +857,40 @@ module.exports = {
                         });
 
                         auditData.vulnerabilityInfo = counter;
+
+                        const arrayData = auditData.vulnerabilityData.map(
+                            log => log.vulnerabilities
+                        );
+
+                        auditData.vulnerabilityData = flattenArray(arrayData);
+
+                        const criticalArr = [],
+                            highArr = [],
+                            moderateArr = [],
+                            lowArr = [];
+                        auditData.vulnerabilityData.map(vulnerability => {
+                            if (vulnerability.severity === 'critical') {
+                                criticalArr.push(vulnerability);
+                            }
+                            if (vulnerability.severity === 'high') {
+                                highArr.push(vulnerability);
+                            }
+                            if (vulnerability.severity === 'moderate') {
+                                moderateArr.push(vulnerability);
+                            }
+                            if (vulnerability.severity === 'low') {
+                                lowArr.push(vulnerability);
+                            }
+                            return vulnerability;
+                        });
+
+                        auditData.vulnerabilityData = [
+                            ...criticalArr,
+                            ...highArr,
+                            ...moderateArr,
+                            ...lowArr,
+                        ];
+
                         const securityLog = await ContainerSecurityLogService.create(
                             {
                                 securityId: security._id,
@@ -805,7 +903,7 @@ module.exports = {
                             _id: security._id,
                         });
 
-                        deleteFolderRecursive(securityDir);
+                        await deleteFile(exactFilePath);
                         resolve(securityLog);
                     });
                 });
@@ -2149,43 +2247,50 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
 };
 
 function createDir(dirPath) {
-    const workPath = process.cwd() + dirPath;
+    return new Promise((resolve, reject) => {
+        const workPath = Path.resolve(process.cwd(), dirPath);
+        if (fs.existsSync(workPath)) {
+            resolve(workPath);
+        }
 
-    if (fs.existsSync(workPath)) {
-        return workPath;
-    }
-
-    fs.mkdir(workPath, { recursive: true }, error => {
-        if (error) throw error;
+        fs.mkdir(workPath, error => {
+            if (error) reject(error);
+            resolve(workPath);
+        });
     });
-
-    return workPath;
 }
 
-function deleteFolderRecursive(path) {
-    if (fs.existsSync(path)) {
-        fs.readdirSync(path).forEach(file => {
-            const curPath = Path.join(path, file);
-            if (fs.lstatSync(curPath).isDirectory()) {
-                // recurse
-                deleteFolderRecursive(curPath);
-            } else {
-                // delete file
-                fs.unlinkSync(curPath);
-            }
-        });
-        fs.rmdirSync(path);
+async function deleteFolderRecursive(dir) {
+    if (fs.existsSync(dir)) {
+        const entries = await readdir(dir, { withFileTypes: true });
+        await Promise.all(
+            entries.map(entry => {
+                const fullPath = Path.join(dir, entry.name);
+                return entry.isDirectory()
+                    ? deleteFolderRecursive(fullPath)
+                    : unlink(fullPath);
+            })
+        );
+        await rmdir(dir); // finally remove now empty directory
+    }
+}
+
+async function deleteFile(file) {
+    if (fs.existsSync(file)) {
+        await unlink(file);
     }
 }
 
 function readFileContent(filePath) {
     return new Promise((resolve, reject) => {
-        fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
-            if (error) {
-                reject(error);
-            }
-            resolve(data);
-        });
+        if (fs.existsSync(filePath)) {
+            fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
+                if (error) {
+                    reject(error);
+                }
+                resolve(data);
+            });
+        }
     });
 }
 
@@ -2227,9 +2332,14 @@ const IncidentTimelineService = require('./incidentTimelineService');
 const moment = require('moment');
 const git = require('simple-git/promise');
 const fs = require('fs');
-const { spawn, exec } = require('child_process');
+const { spawn } = require('child_process');
 const Path = require('path');
 const ApplicationSecurityLogService = require('./applicationSecurityLogService');
 const ApplicationSecurityService = require('./applicationSecurityService');
 const ContainerSecurityService = require('./containerSecurityService');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
+const flattenArray = require('../utils/flattenArray');
+const { promisify } = require('util');
+const readdir = promisify(fs.readdir);
+const rmdir = promisify(fs.rmdir);
+const unlink = promisify(fs.unlink);

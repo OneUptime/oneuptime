@@ -111,7 +111,19 @@ describe('Status page monitors check', function() {
         scheduledEventId = scheduledEventRequest.body._id;
 
         statusPage.projectId = projectId;
-        statusPage.monitorIds = [monitorId];
+        statusPage.monitors = [
+            {
+                monitor: monitorId,
+                description: 'Monitor description',
+                uptime: true,
+                memory: false,
+                cpu: false,
+                storage: false,
+                responseTime: false,
+                temperature: false,
+                runtime: false,
+            },
+        ];
 
         const statusPageRequest = await request
             .post(`/statusPage/${projectId}`)
@@ -138,10 +150,24 @@ describe('Status page monitors check', function() {
 
     it('Status page should have one monitor with a category', async function() {
         const monitorName = await page.$eval(
-            '#monitor0 > div.uptime-graph-header.clearfix > span.uptime-stat-name',
+            '#monitor0 > div.uptime-graph-header  span.uptime-stat-name',
             el => el.textContent
         );
         expect(monitorName).to.be.equal(monitor.name);
+
+        const noOfBlockCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName('block-chart');
+            return monitors.length;
+        });
+        expect(noOfBlockCharts).to.be.equal(1);
+
+        const noOfLineCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName(
+                'recharts-responsive-container'
+            );
+            return monitors.length;
+        });
+        expect(noOfLineCharts).to.be.equal(0);
     });
 
     it('Status page add one more monitor and the monitor count should be 2', async function() {
@@ -151,13 +177,23 @@ describe('Status page monitors check', function() {
             .set('Authorization', authorization)
             .send(monitor);
         monitorId = monitorRequest.body._id;
-        statusPage.monitorIds.push(monitorId);
+        statusPage.monitors.push({
+            monitor: monitorId,
+            description: 'Monitor description',
+            uptime: true,
+            memory: false,
+            cpu: false,
+            storage: false,
+            responseTime: true,
+            temperature: false,
+            runtime: false,
+        });
         await request
             .put(`/statusPage/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 _id: statusPageId,
-                monitorIds: statusPage.monitorIds,
+                monitors: statusPage.monitors,
             });
         await page.reload({
             waitUntil: 'networkidle0',
@@ -169,6 +205,20 @@ describe('Status page monitors check', function() {
             return monitors.length;
         });
         expect(noOfMonitors).to.be.equal(2);
+
+        const noOfBlockCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName('block-chart');
+            return monitors.length;
+        });
+        expect(noOfBlockCharts).to.be.equal(2);
+
+        const noOfLineCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName(
+                'recharts-responsive-container'
+            );
+            return monitors.length;
+        });
+        expect(noOfLineCharts).to.be.equal(1);
     });
 
     it('should be able to add monitor without monitor category and the count should be 3', async function() {
@@ -179,13 +229,23 @@ describe('Status page monitors check', function() {
             .set('Authorization', authorization)
             .send(monitor);
         monitorId = monitorRequest.body._id;
-        statusPage.monitorIds.push(monitorId);
+        statusPage.monitors.push({
+            monitor: monitorId,
+            description: 'Monitor description',
+            uptime: false,
+            memory: false,
+            cpu: false,
+            storage: false,
+            responseTime: true,
+            temperature: false,
+            runtime: false,
+        });
         await request
             .put(`/statusPage/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 _id: statusPageId,
-                monitorIds: statusPage.monitorIds,
+                monitors: statusPage.monitors,
             });
         await page.reload({
             waitUntil: 'networkidle0',
@@ -197,6 +257,20 @@ describe('Status page monitors check', function() {
             return monitors.length;
         });
         expect(noOfMonitors).to.be.equal(3);
+
+        const noOfBlockCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName('block-chart');
+            return monitors.length;
+        });
+        expect(noOfBlockCharts).to.be.equal(2);
+
+        const noOfLineCharts = await page.evaluate(() => {
+            const monitors = document.getElementsByClassName(
+                'recharts-responsive-container'
+            );
+            return monitors.length;
+        });
+        expect(noOfLineCharts).to.be.equal(2);
     });
 
     it('should be displayed category wise', async function() {
@@ -300,7 +374,19 @@ describe('Private status page check', function() {
         this.enableTimeouts(false);
 
         privateStatusPage.projectId = projectId;
-        privateStatusPage.monitorIds = [monitorId];
+        privateStatusPage.monitors = [
+            {
+                monitor: monitorId,
+                description: 'Monitor description',
+                uptime: true,
+                memory: false,
+                cpu: false,
+                storage: false,
+                responseTime: false,
+                temperature: false,
+                runtime: false,
+            },
+        ];
 
         const statusPageRequest = await request
             .post(`/statusPage/${projectId}`)
@@ -366,7 +452,7 @@ describe('Private status page check', function() {
         ]);
 
         const monitorName = await page.$eval(
-            '#monitor0 > div.uptime-graph-header.clearfix > span.uptime-stat-name',
+            '#monitor0 > div.uptime-graph-header span.uptime-stat-name',
             el => el.textContent
         );
         expect(monitorName).to.be.equal(monitor.name);
@@ -380,7 +466,7 @@ describe('Private status page check', function() {
             }
         );
         const monitorName = await newPage.$eval(
-            '#monitor0 > div.uptime-graph-header.clearfix > span.uptime-stat-name',
+            '#monitor0 > div.uptime-graph-header span.uptime-stat-name',
             el => el.textContent
         );
         expect(monitorName).to.be.equal(monitor.name);

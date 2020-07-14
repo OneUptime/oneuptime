@@ -23,10 +23,11 @@ deploy_staging_log-php:
         - cd ..
     only:
         refs:
+            - master
             - hotfix-master
-            - hotfix-release
     environment:
         name: staging
+
 deploy_production_log-php:
     stage: Deploy
     allow_failure: true
@@ -51,7 +52,7 @@ deploy_production_log-php:
         - cd ..
     only:
         refs:
-            - hotfix-master
+            - release
             - hotfix-release
     environment:
         name: production

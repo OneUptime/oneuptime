@@ -3,7 +3,10 @@ openssl enc -in encrypted-credentials.enc -out encrypted-credentials.tar -d -aes
 tar -xvf encrypted-credentials.tar
 cd ..
 cd ..
+echo "Remove Google Cloud SDK"
+sudo rm -rf /home/gitlab-runner/google-cloud-sdk
+echo "Remove Google Cloud Logs"
+sudo rm -rf /home/gitlab-runner/.config/gcloud
 curl -sSL https://sdk.cloud.google.com | bash > /dev/null;
 source $HOME/google-cloud-sdk/path.bash.inc
 $HOME/google-cloud-sdk/bin/gcloud components update kubectl
-sudo docker login -u $DOCKERUSERNAME -p $PERSONAL_ACCESS_TOKEN registry.gitlab.com

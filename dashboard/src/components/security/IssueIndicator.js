@@ -4,25 +4,20 @@ import PropTypes from 'prop-types';
 const IssueIndicator = ({ status }) => {
     let statusColor;
 
-    switch (Number(status)) {
-        case 1:
-            // low priority issues
+    switch (status) {
+        case 'low':
             statusColor = 'green';
             break;
-        case 2:
-            // moderate issues
-            statusColor = 'blue5';
-            break;
-        case 3:
-            // high priority issues
+        case 'moderate':
+        case 'medium':
             statusColor = 'yellow';
             break;
-        case 4:
-            // critical issues
+        case 'high':
+        case 'critical':
             statusColor = 'red';
             break;
         default:
-            statusColor = 'green';
+            statusColor = 'slate';
     }
 
     return <div className={`db-Badge Box-background--${statusColor}`}></div>;
@@ -30,7 +25,7 @@ const IssueIndicator = ({ status }) => {
 
 IssueIndicator.displayName = 'IssueIndicator';
 IssueIndicator.propTypes = {
-    status: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    status: PropTypes.string.isRequired,
 };
 
 export default IssueIndicator;

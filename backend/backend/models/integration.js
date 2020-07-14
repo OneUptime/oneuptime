@@ -11,7 +11,7 @@ const integrationSchema = new Schema({
     createdById: { type: Schema.Types.ObjectId, ref: 'User', alias: 'user' },
     integrationType: {
         type: String,
-        enum: ['slack', 'webhook'],
+        enum: ['slack', 'webhook', 'msteams'],
         required: true,
     },
     data: {},

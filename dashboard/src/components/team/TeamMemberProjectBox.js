@@ -22,16 +22,16 @@ const TeamMemberProjectBox = props => (
                             Team Members
                         </span>
                     </span>
-                    <span
-                        style={{ textTransform: 'lowercase' }}
-                        className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                    >
+                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <span>
                             Here are all the members who belong to{' '}
-                            {props.currentProjectId !== props.teamMembers._id
-                                ? `${props.subProjectName} sub-project`
-                                : `${props.subProjectName} project`}
-                            .
+                            <span style={{ textTransform: 'lowercase' }}>
+                                {props.currentProjectId !==
+                                props.teamMembers._id
+                                    ? `${props.subProjectName} sub-project`
+                                    : `${props.subProjectName} project`}
+                                .
+                            </span>
                         </span>
                     </span>
                 </div>

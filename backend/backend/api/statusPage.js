@@ -17,6 +17,7 @@ const validUrl = require('valid-url');
 const multer = require('multer');
 const ErrorService = require('../services/errorService');
 const { toXML } = require('jstoxml');
+const moment = require('moment');
 
 const { getUser, checkUser } = require('../middlewares/user');
 const { getSubProjects } = require('../middlewares/subProject');
@@ -38,21 +39,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     try {
         const data = req.body;
         data.projectId = req.params.projectId;
-
-        // Sanitize
-        if (!data.monitorIds) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor ids are required.',
-            });
-        }
-
-        if (!Array.isArray(data.monitorIds)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor IDs are not stored in an array.',
-            });
-        }
 
         if (!data.name) {
             return sendErrorResponse(req, res, {
@@ -693,6 +679,50 @@ router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
             endDate
         );
         return sendListResponse(req, res, monitorStatuses);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { monitorId } = req.params;
+        const endDate = moment(Date.now());
+        const startDate = moment(endDate).subtract(90, 'days');
+        const { memory, cpu, storage, responseTime, temperature } = req.body;
+        const filter = {
+            ...(!memory && {
+                maxMemoryUsed: 0,
+                memoryUsed: 0,
+            }),
+            ...(!cpu && {
+                maxCpuLoad: 0,
+                cpuLoad: 0,
+            }),
+            ...(!storage && {
+                maxStorageUsed: 0,
+                storageUsed: 0,
+            }),
+            ...(!responseTime && {
+                maxResponseTime: 0,
+                responseTime: 0,
+            }),
+            ...(!temperature && {
+                maxMainTemp: 0,
+                mainTemp: 0,
+            }),
+        };
+
+        const monitorLogs = await MonitorService.getMonitorLogsByDay(
+            monitorId,
+            startDate,
+            endDate,
+            filter
+        );
+        return sendListResponse(req, res, monitorLogs);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

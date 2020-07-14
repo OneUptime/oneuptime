@@ -57,11 +57,13 @@ module.exports = {
         }
     },
 
-    async findBy(query, limit, skip) {
+    async findBy(query, limit, skip, filter) {
         try {
             if (!skip) skip = 0;
 
             if (!limit) limit = 0;
+
+            if (!filter) filter = {};
 
             if (typeof skip === 'string') {
                 skip = parseInt(skip);
@@ -75,7 +77,10 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLogsByDay = await MonitorLogByDayModel.find(query)
+            const monitorLogsByDay = await MonitorLogByDayModel.find(
+                query,
+                filter
+            )
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);

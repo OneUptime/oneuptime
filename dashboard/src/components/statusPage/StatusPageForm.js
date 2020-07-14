@@ -25,7 +25,6 @@ export class StatusPageForm extends React.Component {
     }
 
     submitForm = values => {
-        values.monitorIds = [];
         const { data } = this.props;
         this.props.createStatusPage(data.projectId, values).then(() => {
             return this.props.closeModal({

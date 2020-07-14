@@ -7,6 +7,8 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { getDockerCredentials } from '../actions/credential';
 import DockerCredentialList from '../components/credential/DockerCredentialList';
+import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import getParentRoute from '../utils/getParentRoute';
 
 class DockerCredential extends Component {
     constructor(props) {
@@ -31,10 +33,16 @@ class DockerCredential extends Component {
             dockerCredentials,
             getError,
             isRequesting,
+            location: { pathname },
         } = this.props;
 
         return (
             <Dashboard>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Docker Credentials" />
                 <div className="Margin-vertical--12">
                     <div>
                         <div className="db-BackboneViewContainer">
@@ -67,6 +75,9 @@ DockerCredential.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     isRequesting: PropTypes.bool,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 const mapStateToProps = (state, ownProps) => {

@@ -20,3 +20,6 @@ yarn.lock
 
 **/*/paymentService.test.js
 apiTest.rest
+
+application_security_dir
+container_security_dir

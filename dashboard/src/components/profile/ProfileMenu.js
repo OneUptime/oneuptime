@@ -100,6 +100,7 @@ export class ProfileMenu extends Component {
                                 </div>
                                 <div className="Box-root Padding-vertical--8">
                                     <div
+                                        id="userProfile"
                                         className="Box-root"
                                         style={{
                                             padding: '10px',

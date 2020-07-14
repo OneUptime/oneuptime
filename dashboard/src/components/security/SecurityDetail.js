@@ -26,12 +26,13 @@ const SecurityDetail = ({
 
     return (
         <Fragment>
-            <div className="db-Trend" style={{ height: '100%' }}>
-                <div
-                    className="block-chart-side line-chart"
-                    style={{ cursor: 'pointer' }}
-                    onClick={more}
-                >
+            <div
+                className="db-Trend"
+                style={{ height: '100%', cursor: 'pointer' }}
+                onClick={more}
+                id="issueCount"
+            >
+                <div className="block-chart-side line-chart">
                     {vulnerabilities ? (
                         <div className="db-TrendRow">
                             <div className="db-Trend-colInformation">
@@ -49,7 +50,7 @@ const SecurityDetail = ({
                                     <div className="db-Trend-col db-Trend-colValue">
                                         <span>
                                             {' '}
-                                            <span className="chart-font">
+                                            <span className="chart-font Text-color--red">
                                                 {vulnerabilities.critical}
                                             </span>
                                         </span>
@@ -71,7 +72,7 @@ const SecurityDetail = ({
                                     <div className="db-Trend-col db-Trend-colValue">
                                         <span>
                                             {' '}
-                                            <span className="chart-font">
+                                            <span className="chart-font Text-color--red">
                                                 {vulnerabilities.high}
                                             </span>
                                         </span>
@@ -93,7 +94,7 @@ const SecurityDetail = ({
                                     <div className="db-Trend-col db-Trend-colValue">
                                         <span>
                                             {' '}
-                                            <span className="chart-font">
+                                            <span className="chart-font Text-color--yellow">
                                                 {vulnerabilities.moderate}
                                             </span>
                                         </span>
@@ -115,7 +116,7 @@ const SecurityDetail = ({
                                     <div className="db-Trend-col db-Trend-colValue">
                                         <span>
                                             {' '}
-                                            <span className="chart-font">
+                                            <span className="chart-font Text-color--green">
                                                 {vulnerabilities.low}
                                             </span>
                                         </span>
@@ -136,8 +137,10 @@ const SecurityDetail = ({
                                 <Spinner style={{ stroke: '#8898aa' }} />{' '}
                                 <span style={{ width: 10 }} />
                                 We are currently scanning this{' '}
-                                {(type === 'container' && ' docker image') ||
-                                    (type === 'application' && ' repository')}
+                                {(type === 'container' && 'docker image') ||
+                                    (type === 'application' &&
+                                        'repository')}{' '}
+                                and it will take few minutes
                             </div>
                         </div>
                     )}

@@ -177,19 +177,10 @@ module.exports = {
                 const hasSubscribed = await _this.subscriberCheck(
                     newSubscriber
                 );
-                if (hasSubscribed) {
-                    const error = new Error(
-                        'You are already subscribed to this monitor.'
-                    );
-                    error.code = 400;
-                    ErrorService.log(
-                        'SubscriberService.subscribeFromCSVFile',
-                        error
-                    );
-                    throw error;
-                } else {
+                if (!hasSubscribed) {
                     return await _this.create(newSubscriber);
                 }
+                return [];
             });
             return await Promise.all(success);
         } catch (error) {

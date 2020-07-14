@@ -33,6 +33,7 @@ class DeleteCredentialModal extends Component {
 
         return (
             <div
+                id="deleteCredentialModal"
                 onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
             >

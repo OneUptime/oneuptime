@@ -16,6 +16,7 @@ const NotificationService = require('../backend/services/notificationService');
 const SubscriberService = require('../backend/services/subscriberService');
 const MonitorService = require('../backend/services/monitorService');
 const AirtableService = require('../backend/services/airtableService');
+const StringUtil = require('./utils/string');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const ComponentModel = require('../backend/models/component');
@@ -30,17 +31,17 @@ const csvData = {
     data: [
         {
             alertVia: 'sms',
-            contactEmail: 'sample@sample.com',
-            contactPhone: '123456788',
-            contactWebhook: 'samplehook.com',
+            contactEmail: '',
+            contactPhone: StringUtil.generateRandomDigits(),
+            contactWebhook: '',
             countryCode: 'us',
         },
         {
             alertVia: 'email',
-            contactEmail: 'sample1@sample.com',
-            contactPhone: '123456789',
-            contactWebhook: 'samplehook.com',
-            countryCode: 'us',
+            contactEmail: StringUtil.generateRandomString(10) + '@fyipe.com',
+            contactPhone: '',
+            contactWebhook: '',
+            countryCode: '',
         },
     ],
 };
@@ -228,6 +229,8 @@ describe('Subscriber API', function() {
             .end((_err, res) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.lengthOf(2);
+                expect(res.body[0]).to.have.property('_id');
+                expect(res.body[0]).to.have.property('projectId');
                 done();
             });
     });
@@ -237,10 +240,32 @@ describe('Subscriber API', function() {
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
             .send(csvData)
             .end((_err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.equal(
-                    'You are already subscribed to this monitor.'
-                );
+                expect(res).to.have.status(200);
+                expect(res.body[0]).to.not.have.property('_id');
+                expect(res.body[0]).to.not.have.property('projectId');
+                done();
+            });
+    });
+
+    it('Should ignore exisiting subscribers and register only new subscribers from the svc file', done => {
+        csvData.data.push({
+            alertVia: 'sms',
+            contactEmail: '',
+            contactPhone: StringUtil.generateRandomDigits(),
+            contactWebhook: '',
+            countryCode: 'us',
+        });
+        request
+            .post(`/subscriber/${projectId}/${monitorId}/csv`)
+            .send(csvData)
+            .end((_err, res) => {
+                expect(res).to.have.status(200);
+                expect(res.body[0]).to.not.have.property('_id');
+                expect(res.body[0]).to.not.have.property('projectId');
+                expect(res.body[1]).to.not.have.property('_id');
+                expect(res.body[1]).to.not.have.property('projectId');
+                expect(res.body[2]).to.have.property('_id');
+                expect(res.body[2]).to.have.property('projectId');
                 done();
             });
     });

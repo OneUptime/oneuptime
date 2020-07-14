@@ -333,6 +333,7 @@ div.block-chart::-webkit-scrollbar {
   position: absolute;
   left: 27px;
   top: 57px;
+  border-radius: 100px;
   background-position: center;
   background-repeat: no-repeat;
 }
@@ -374,9 +375,9 @@ div.block-chart::-webkit-scrollbar {
   z-index: 10;
 }
 
-.uptime-graph-section {
+/* .uptime-graph-section {
   margin-bottom: 1.7em;
-}
+} */
 
     .uptime-graph-section.warning em.warning {
       display: inline-block;
@@ -401,7 +402,6 @@ div.block-chart::-webkit-scrollbar {
 .percentage {
   font-size: 13px;
   color: #8898aa;
-  float: right;
   padding-left: 10px;
 }
 
@@ -1034,6 +1034,7 @@ margin-left:10px;
 
   .status-bubble {
     left: 16px;
+    border-radius: 100px;
   }
 }
 

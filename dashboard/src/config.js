@@ -43,7 +43,7 @@ export const DOMAIN_URL = window.location.origin;
 
 export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 
-export const IS_SAAS_SERVICE = process.env.REACT_APP_IS_SAAS_SERVICE;
+export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
 export const IS_LOCALHOST = isLocalhost;
 
@@ -160,6 +160,19 @@ export const Validate = {
 
     isValidBusinessEmail(email) {
         return emaildomains.test(email);
+    },
+
+    isValidBusinessEmails(emails) {
+        let valid = true;
+        if (emails && emails.length > 0) {
+            for (let i = 0; i < emails.length; i++) {
+                if (!emaildomains.test(emails[i])) {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+        return valid;
     },
 
     compare(text1, text2) {

@@ -145,7 +145,9 @@ module.exports = {
         // Navigate to details page of monitor assumed created
         await page.waitForSelector(`#more-details-${monitor}`);
         await page.click(`#more-details-${monitor}`);
-        await page.waitForSelector(`#monitor-title-${monitor}`);
+        await page.waitForSelector(`#monitor-title-${monitor}`, {
+            visible: true,
+        });
     },
     navigateToApplicationLogDetails: async function(
         component,
@@ -439,14 +441,14 @@ module.exports = {
             request.continue();
         }
     },
-    addProject: async function(page) {
+    addProject: async function(page, projectName = null) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
         await page.waitForSelector('#create-project');
         await page.click('#create-project');
         await page.waitForSelector('#name');
-        await page.type('#name', 'test');
+        await page.type('#name', projectName ? projectName : 'test');
         await page.$$eval(
             'input[name="planId"]',
             inputs => inputs[0].click() // select the first plan

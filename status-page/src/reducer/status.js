@@ -24,6 +24,9 @@ import {
     FETCH_MONITOR_STATUSES_REQUEST,
     FETCH_MONITOR_STATUSES_SUCCESS,
     FETCH_MONITOR_STATUSES_FAILURE,
+    FETCH_MONITOR_LOGS_REQUEST,
+    FETCH_MONITOR_LOGS_SUCCESS,
+    FETCH_MONITOR_LOGS_FAILURE,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -43,6 +46,7 @@ const INITIAL_STATE = {
         requesting: false,
         skip: 0,
     },
+    logs: [],
     requestingmore: false,
     requestingmoreevents: false,
     requestingstatuses: false,
@@ -620,6 +624,58 @@ export default (state = INITIAL_STATE, action) => {
                 requestingstatuses: false,
             });
 
+        case FETCH_MONITOR_LOGS_REQUEST:
+            return Object.assign({}, state, {
+                logs: state.logs.some(log => log.monitorId === action.payload)
+                    ? state.logs.map(log =>
+                          log.monitorId !== action.payload
+                              ? log
+                              : {
+                                    monitorId: action.payload,
+                                    error: null,
+                                    logs: [],
+                                    requesting: true,
+                                }
+                      )
+                    : [
+                          ...state.logs,
+                          {
+                              monitorId: action.payload,
+                              logs: [],
+                              requesting: true,
+                              error: null,
+                          },
+                      ],
+            });
+        case FETCH_MONITOR_LOGS_SUCCESS:
+            return Object.assign({}, state, {
+                logs: state.logs.map(log =>
+                    log.monitorId !== action.payload.monitorId
+                        ? log
+                        : {
+                              monitorId: action.payload.monitorId,
+                              logs:
+                                  action.payload.logs.data.length === 0
+                                      ? []
+                                      : action.payload.logs.data[0].logs,
+                              requesting: false,
+                              error: null,
+                          }
+                ),
+            });
+        case FETCH_MONITOR_LOGS_FAILURE:
+            return Object.assign({}, state, {
+                logs: state.logs.map(log =>
+                    log.monitorId !== action.payload
+                        ? log
+                        : {
+                              monitorId: action.payload.monitorId,
+                              logs: [],
+                              requesting: false,
+                              error: action.payload,
+                          }
+                ),
+            });
         default:
             return state;
     }

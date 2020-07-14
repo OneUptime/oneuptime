@@ -23,4 +23,10 @@ module.exports = {
         }
         return emails;
     },
+
+    generateRandomDigits: function() {
+        return Math.random()
+            .toString()
+            .slice(2, 11);
+    },
 };
