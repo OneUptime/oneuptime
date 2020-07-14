@@ -3,16 +3,9 @@ audit_log-js:
     stage: BuildAndTest
     allow_failure: true
     script:
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/checkhash.sh
-                export log_js_exist=`./ci/scripts/checkhash.sh audit_log-js log-js`
-                if [[ $log_js_exist == *"true"* ]]
-                then
-                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
-                fi
-            fi
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh audit_log-js log-js`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
@@ -23,12 +16,8 @@ audit_log-js:
         - npm run audit
         - npm run dep-check
         - cd ..
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/storehash.sh
-                ./ci/scripts/storehash.sh audit_log-js log-js
-            fi
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh audit_log-js log-js
     except:
         refs:
             - hotfix-master
