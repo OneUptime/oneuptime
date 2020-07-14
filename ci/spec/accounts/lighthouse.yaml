@@ -3,18 +3,9 @@ mobile_lighthouse_accounts:
     stage: BuildAndTest
     allow_failure: true
     script:
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/checkhash.sh
-                export dashboard_exist=`./ci/scripts/checkhash.sh mobile_lighthouse_accounts dashboard`
-                export backend_exist=`./ci/scripts/checkhash.sh mobile_lighthouse_accounts backend`
-                export accounts_exist=`./ci/scripts/checkhash.sh mobile_lighthouse_accounts accounts`
-                if [[ $dashboard_exist == *"true"* ]] && [[ $backend_exist == *"true"* ]] && [[ $accounts_exist == *"true"* ]]
-                then
-                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
-                fi
-            fi
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh mobile_lighthouse_accounts dashboard backend accounts`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - chmod +x ./ci/scripts/setup-docker.sh
         - ./ci/scripts/setup-docker.sh
         - echo "Setup machine for running lighthouse on accounts pages"
@@ -36,14 +27,8 @@ mobile_lighthouse_accounts:
         - npm run build
         - npm run light-house-mobile
         - cd ..
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/storehash.sh
-                ./ci/scripts/storehash.sh mobile_lighthouse_accounts dashboard
-                ./ci/scripts/storehash.sh mobile_lighthouse_accounts backend
-                ./ci/scripts/storehash.sh mobile_lighthouse_accounts accounts
-            fi
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh mobile_lighthouse_accounts dashboard backend accounts
     except:
         refs:
             - hotfix-master
@@ -53,18 +38,9 @@ desktop_lighthouse_accounts:
     stage: BuildAndTest
     allow_failure: true
     script:
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/checkhash.sh
-                export dashboard_exist=`./ci/scripts/checkhash.sh desktop_lighthouse_accounts dashboard`
-                export backend_exist=`./ci/scripts/checkhash.sh desktop_lighthouse_accounts backend`
-                export accounts_exist=`./ci/scripts/checkhash.sh desktop_lighthouse_accounts accounts`
-                if [[ $dashboard_exist == *"true"* ]] && [[ $backend_exist == *"true"* ]] && [[ $accounts_exist == *"true"* ]]
-                then
-                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
-                fi
-            fi
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh desktop_lighthouse_accounts dashboard backend accounts`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - chmod +x ./ci/scripts/setup-docker.sh
         - ./ci/scripts/setup-docker.sh
         - echo "Setup machine for running lighthouse on accounts pages"
@@ -86,14 +62,8 @@ desktop_lighthouse_accounts:
         - npm run build
         - npm run light-house
         - cd ..
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/storehash.sh
-                ./ci/scripts/storehash.sh desktop_lighthouse_accounts dashboard
-                ./ci/scripts/storehash.sh desktop_lighthouse_accounts backend
-                ./ci/scripts/storehash.sh desktop_lighthouse_accounts accounts
-            fi
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh desktop_lighthouse_accounts dashboard backend accounts
     except:
         refs:
             - hotfix-master
