@@ -2,7 +2,6 @@ import axios from 'axios';
 import Cookies from 'universal-cookie';
 import { API_URL, ACCOUNTS_URL } from './config';
 import { User } from './config';
-import { history } from './store';
 const baseURL = API_URL;
 
 const Q = require('q');
@@ -33,7 +32,7 @@ export function postApi(url, data) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });        
                 User.clear();
-                history.push('/login');
+                window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
                 error = error.response.data;
@@ -63,7 +62,7 @@ export function getApi(url) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });        
                 User.clear();
-                history.push('/login');
+                window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
                 error = error.response.data;
@@ -95,7 +94,7 @@ export function putApi(url, data) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });        
                 User.clear();
-                history.push('/login');
+                window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
                 error = error.response.data;
@@ -127,7 +126,7 @@ export function deleteApi(url, data) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });        
                 User.clear();
-                history.push('/login');
+                window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
                 error = error.response.data;
