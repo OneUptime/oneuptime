@@ -266,7 +266,48 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toMatch('Monitor');
+                expect(spanElement).toMatch('MONITOR');
+
+                spanElement = await page.waitForSelector(
+                    `#resource_type_${applicationLogName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+
+                expect(spanElement).toMatch('APPLICATION-LOG');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should get list of resources and  navigate to each page',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Components page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitForSelector('#components');
+                await page.click('#components');
+
+                const componentSelector = '#component1 table > tbody > tr';
+                await page.waitForSelector(componentSelector);
+
+                const resourceRows = await page.$$(componentSelector);
+                const countResources = resourceRows.length;
+
+                expect(countResources).toEqual(2); // one application log and one monitor
+
+                await page.click(`#view-resource-${applicationLogName}`);
+
+                let spanElement = await page.waitForSelector(
+                    `#application-log-title-${applicationLogName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+
+                expect(spanElement).toMatch(applicationLogName);
             });
         },
         operationTimeOut
