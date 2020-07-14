@@ -12,7 +12,7 @@ function checkHash {
     document=`jq '.[0].document' <<< "$RESPONSE"`
     echo "document we have is: $document"
     
-    if [[ $document != null ]]
+    if [[ $document ]]
     then
         echo "exiting this project"
         exit ${CI_JOB_SKIP_EXIT_CODE:-0}
