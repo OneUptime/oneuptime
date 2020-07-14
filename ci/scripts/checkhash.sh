@@ -34,7 +34,7 @@ then
         if [[ $found == *"true"* ]]
         then
             echo "exiting this project"
-            exit ${CI_JOB_SKIP_EXIT_CODE:-0}
+            exit 0
         fi
     done
 fi
