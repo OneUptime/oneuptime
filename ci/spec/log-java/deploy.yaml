@@ -9,7 +9,7 @@ deploy_staging_log-java:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - ls /home/gitlab-runner/.gnupg
         - ls -l ~/.gnupg/private-keys-v1.d
-        - gpg --batch --generate-key foo
+        - gpg --batch --generate-key
         - gpg --list-keys
         - cd log-java
         # - git checkout -f staging
