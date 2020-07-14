@@ -14,6 +14,10 @@ let ProjectService = require('../backend/services/projectService');
 let ComponentService = require('../backend/services/componentService');
 let NotificationService = require('../backend/services/notificationService');
 let AirtableService = require('../backend/services/airtableService');
+const gitCredential = require('./data/gitCredential');
+const GitCredentialService = require('../backend/services/gitCredentialService');
+const dockerCredential = require('./data/dockerCredential');
+const DockerCredentialService = require('../backend/services/dockerCredentialService');
 
 let VerificationTokenModel = require('../backend/models/verificationToken');
 
@@ -24,35 +28,35 @@ describe('Component API', function() {
 
     before(function(done) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-        createUser(request, userData.user, function(err, res) {
-            let project = res.body.project;
-            projectId = project._id;
-            userId = res.body.id;
-            airtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                let project = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
 
-            VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err, res) {
-                                token = res.body.tokens.jwtAccessToken;
-                                done();
-                            });
-                    });
+                VerificationTokenModel.findOne({ userId }, function(
+                    err,
+                    verificationToken
+                ) {
+                    request
+                        .get(`/user/confirmation/${verificationToken.token}`)
+                        .redirects(0)
+                        .end(function() {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function(err, res) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    done();
+                                });
+                        });
+                });
             });
         });
-    });
     });
 
     it('should reject the request of an unauthenticated user', function(done) {
@@ -171,7 +175,7 @@ describe('Component API', function() {
             });
     });
 
-    it('should create a new application log when `componentId` is given`', function(done) {
+    it('should create a new application log when `componentId` is given then get list of resources`', function(done) {
         let authorization = `Basic ${token}`;
         request
             .post(`/application-log/${projectId}/${componentId}/create`)
@@ -182,21 +186,100 @@ describe('Component API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Application Log');
-                done();
+                request
+                    .get(`/component/${projectId}/resources/${componentId}`)
+                    .set('Authorization', authorization)
+                    .end(function(err, res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body.totalResources).to.be.an('array');
+                        expect(res.body.totalResources).to.have.lengthOf(2); // one application log and one monitor
+                        done();
+                    });
             });
     });
 
-    it('should return a list of all resources under component', function(done) {
+    it('should create an application security then get list of resources', function(done) {
         const authorization = `Basic ${token}`;
-        request
-            .get(`/component/${projectId}/resources/${componentId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body.totalResources).to.be.an('array');
-                expect(res.body.totalResources).to.have.lengthOf(2); // one applicattion log and one monitor
-                done();
-            });
+
+        GitCredentialService.create({
+            gitUsername: gitCredential.gitUsername,
+            gitPassword: gitCredential.gitPassword,
+            projectId,
+        }).then(function(credential) {
+            credentialId = credential._id;
+            const data = {
+                name: 'Test',
+                gitRepositoryUrl: gitCredential.gitRepositoryUrl,
+                gitCredential: credential._id,
+            };
+
+            request
+                .post(`/security/${projectId}/${componentId}/application`)
+                .set('Authorization', authorization)
+                .send(data)
+                .end(function(err, res) {
+                    applicationSecurityId = res.body._id;
+                    expect(res).to.have.status(200);
+                    expect(res.body.componentId).to.be.equal(componentId);
+                    expect(res.body.name).to.be.equal(data.name);
+                    expect(res.body.gitRepositoryUrl).to.be.equal(
+                        data.gitRepositoryUrl
+                    );
+                    expect(String(res.body.gitCredential)).to.be.equal(
+                        String(data.gitCredential)
+                    );
+                    request
+                        .get(`/component/${projectId}/resources/${componentId}`)
+                        .set('Authorization', authorization)
+                        .end(function(err, res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body.totalResources).to.be.an('array');
+                            expect(res.body.totalResources).to.have.lengthOf(3); // one application log, one monitor and one application log security
+                            done();
+                        });
+                });
+        });
+    });
+
+    it('should create a container security', function(done) {
+        const authorization = `Basic ${token}`;
+
+        DockerCredentialService.create({
+            dockerUsername: dockerCredential.dockerUsername,
+            dockerPassword: dockerCredential.dockerPassword,
+            dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
+            projectId,
+        }).then(function(credential) {
+            credentialId = credential._id;
+            const data = {
+                name: 'Test Container',
+                dockerCredential: credential._id,
+                imagePath: dockerCredential.imagePath,
+                imageTags: dockerCredential.imageTags,
+            };
+
+            request
+                .post(`/security/${projectId}/${componentId}/container`)
+                .set('Authorization', authorization)
+                .send(data)
+                .end(function(err, res) {
+                    containerSecurityId = res.body._id;
+                    expect(res).to.have.status(200);
+                    expect(res.body.componentId).to.be.equal(componentId);
+                    expect(res.body.name).to.be.equal(data.name);
+                    expect(res.body.imagePath).to.be.equal(data.imagePath);
+                    expect(res.body.imageTags).to.be.equal(data.imageTags);
+                    request
+                        .get(`/component/${projectId}/resources/${componentId}`)
+                        .set('Authorization', authorization)
+                        .end(function(err, res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body.totalResources).to.be.an('array');
+                            expect(res.body.totalResources).to.have.lengthOf(4); // one application log, one monitor, one application log security and one container security
+                            done();
+                        });
+                });
+        });
     });
 
     it('should delete a component and its monitor when componentId is valid', function(done) {
@@ -205,7 +288,7 @@ describe('Component API', function() {
             .delete(`/component/${projectId}/${componentId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                expect(res).to.have.status(200);;
+                expect(res).to.have.status(200);
                 request
                     .get(`/monitor/${projectId}/monitor/${monitorId}`)
                     .set('Authorization', authorization)
@@ -236,61 +319,66 @@ describe('Component API with Sub-Projects', function() {
         this.timeout(30000);
         let authorization = `Basic ${token}`;
         // create a subproject for parent project
-        GlobalConfig.initTestConfig().then(function () {
-        request
-            .post(`/project/${projectId}/subProject`)
-            .set('Authorization', authorization)
-            .send({ subProjectName: 'New SubProject' })
-            .end(function(err, res) {
-                subProjectId = res.body[0]._id;
-                // sign up second user (subproject user)
-                createUser(request, userData.newUser, function(err, res) {
-                    let project = res.body.project;
-                    newProjectId = project._id;
-                    newUserId = res.body.id;
-                    newAirtableId = res.body.airtableId;
+        GlobalConfig.initTestConfig().then(function() {
+            request
+                .post(`/project/${projectId}/subProject`)
+                .set('Authorization', authorization)
+                .send({ subProjectName: 'New SubProject' })
+                .end(function(err, res) {
+                    subProjectId = res.body[0]._id;
+                    // sign up second user (subproject user)
+                    createUser(request, userData.newUser, function(err, res) {
+                        let project = res.body.project;
+                        newProjectId = project._id;
+                        newUserId = res.body.id;
+                        newAirtableId = res.body.airtableId;
 
-                    VerificationTokenModel.findOne(
-                        { userId: newUserId },
-                        function(err, verificationToken) {
-                            request
-                                .get(
-                                    `/user/confirmation/${verificationToken.token}`
-                                )
-                                .redirects(0)
-                                .end(function() {
-                                    request
-                                        .post('/user/login')
-                                        .send({
-                                            email: userData.newUser.email,
-                                            password: userData.newUser.password,
-                                        })
-                                        .end(function(err, res) {
-                                            newUserToken =
-                                                res.body.tokens.jwtAccessToken;
-                                            let authorization = `Basic ${token}`;
-                                            // add second user to subproject
-                                            request
-                                                .post(`/team/${subProjectId}`)
-                                                .set(
-                                                    'Authorization',
-                                                    authorization
-                                                )
-                                                .send({
-                                                    emails:
-                                                        userData.newUser.email,
-                                                    role: 'Member',
-                                                })
-                                                .end(function() {
-                                                    done();
-                                                });
-                                        });
-                                });
-                        }
-                    );
+                        VerificationTokenModel.findOne(
+                            { userId: newUserId },
+                            function(err, verificationToken) {
+                                request
+                                    .get(
+                                        `/user/confirmation/${verificationToken.token}`
+                                    )
+                                    .redirects(0)
+                                    .end(function() {
+                                        request
+                                            .post('/user/login')
+                                            .send({
+                                                email: userData.newUser.email,
+                                                password:
+                                                    userData.newUser.password,
+                                            })
+                                            .end(function(err, res) {
+                                                newUserToken =
+                                                    res.body.tokens
+                                                        .jwtAccessToken;
+                                                let authorization = `Basic ${token}`;
+                                                // add second user to subproject
+                                                request
+                                                    .post(
+                                                        `/team/${subProjectId}`
+                                                    )
+                                                    .set(
+                                                        'Authorization',
+                                                        authorization
+                                                    )
+                                                    .send({
+                                                        emails:
+                                                            userData.newUser
+                                                                .email,
+                                                        role: 'Member',
+                                                    })
+                                                    .end(function() {
+                                                        done();
+                                                    });
+                                            });
+                                    });
+                            }
+                        );
+                    });
                 });
-            });
-            });
+        });
     });
 
     after(async function() {
