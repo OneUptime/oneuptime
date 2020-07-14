@@ -14,10 +14,9 @@ function checkHash {
     
     if [[ $document ]]
     then
-        echo "skip"
-        exit
+        echo true
     else
-        echo "continue"
+        echo false
     fi
 }
 
@@ -29,9 +28,17 @@ then
         sudo apt-get install -y jq
     fi
     
+    next_stage="continue"
+    
     # the first argument is always the job name ($1)
     for ((i = 2; i <= $#; i++ ))
     do
-        checkHash $1 ${!i}
+        hash_found=`checkHash $1 ${!i}`
+        if [[ $hash_found == *"true"* ]]
+        then
+            next_stage="skip"
+        fi
     done
+    
+    echo $next_stage
 fi
