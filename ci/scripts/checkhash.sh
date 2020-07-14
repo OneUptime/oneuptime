@@ -10,6 +10,9 @@ function checkHash {
     
     # if response contains an array of object with document key, then the hash already exist in db
     document=`jq '.[0].document' <<< "$RESPONSE"`
+    echo "document we have is: $document"
+    echo "response we have is: $RESPONSE"
+    
     if [[ $document != null ]]
     then
         exit ${CI_JOB_SKIP_EXIT_CODE:-0}
