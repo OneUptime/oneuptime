@@ -2,12 +2,6 @@
 
 chmod +x ./ci/scripts/gethash.sh
 
-# install jq only when it does not exist
-if [[ ! $(which jq) ]]
-then
-    sudo apt-get install -y jq
-fi
-
 function checkHash {
     # $1 is the job name
     # $2 is the project
@@ -16,12 +10,23 @@ function checkHash {
     
     # if response contains an array of object with document key, then the hash already exist in db
     document=`jq '.[0].document' <<< "$RESPONSE"`
-    if [[ $document = null ]]
+    if [[ $document != null ]]
     then
-        echo false
-    else
-        echo true
+        exit ${CI_JOB_SKIP_EXIT_CODE:-0}
     fi
 }
 
-checkHash $1 $2
+if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
+then
+    # install jq only when it does not exist
+    if [[ ! $(which jq) ]]
+    then
+        sudo apt-get install -y jq
+    fi
+    
+    # the first argument is always the job name ($1)
+    for ((i = 2; i <= $#; i++ ))
+    do
+        checkHash $1 ${!i}
+    done
+fi
