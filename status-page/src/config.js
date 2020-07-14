@@ -215,18 +215,17 @@ export function getServiceStatus(monitorsData, probes) {
         probes.forEach(probe => {
             const statuses = filterProbeData(monitor, probe);
             const monitorStatus = getMonitorStatus(statuses);
-            if (  monitorStatus === 'offline') {
+            if (monitorStatus === 'offline') {
                 onlineServices--;
             }
-            if(monitorStatus === 'degraded'){
+            if (monitorStatus === 'degraded') {
                 degraded++;
             }
         });
     });
 
     if (onlineServices === totalServices) {
-        if(degraded !== 0)
-            return 'some-degraded';
+        if (degraded !== 0) return 'some-degraded';
         return 'all';
     } else if (onlineServices === 0) {
         return 'none';

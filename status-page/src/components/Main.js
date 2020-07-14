@@ -283,15 +283,15 @@ class Main extends Component {
                 status = 'status-bubble status-up';
                 statusMessage = 'All services are online';
                 faviconurl = '/status-page/greenfavicon.ico';
-            } else if (serviceStatus === 'some'){
+            } else if (serviceStatus === 'some') {
                 status = 'status-bubble status-down';
                 statusMessage = 'Some services are offline';
                 faviconurl = '/status-page/redfavicon.ico';
-            } else if ( serviceStatus === 'none') {
+            } else if (serviceStatus === 'none') {
                 status = 'status-bubble status-down';
                 statusMessage = 'All services are offline';
                 faviconurl = '/status-page/redfavicon.ico';
-            } else if ( serviceStatus === 'some-degraded' ) {
+            } else if (serviceStatus === 'some-degraded') {
                 status = 'status-bubble status-paused';
                 statusMessage = 'Some services are degraded';
                 faviconurl = '/status-page/yellowfavicon.ico';
@@ -326,7 +326,7 @@ class Main extends Component {
                 statusBackground = uptimeColor;
             } else if (serviceStatus === 'some' || serviceStatus === 'none') {
                 statusBackground = downtimeColor;
-            } else if( serviceStatus === 'some-degraded'){
+            } else if (serviceStatus === 'some-degraded') {
                 statusBackground = degradedColor;
             }
 
@@ -442,8 +442,9 @@ class Main extends Component {
                                                     ) >= 300
                                                         ? greyBackground
                                                         : serviceStatus ===
-                                                          'none' || serviceStatus ===
-                                                          'some'
+                                                              'none' ||
+                                                          serviceStatus ===
+                                                              'some'
                                                         ? {
                                                               ...redBackground,
                                                               backgroundColor:
