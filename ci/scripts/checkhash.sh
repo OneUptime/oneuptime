@@ -34,6 +34,7 @@ then
     for ((i = 2; i <= $#; i++ ))
     do
         hash_found=`checkHash $1 ${!i}`
+        echo $hash_found
         if [[ $hash_found == *"true"* ]]
         then
             next_stage="skip"
