@@ -435,9 +435,9 @@ describe('Status Page', () => {
                 await page.type(
                     '#customJS textarea',
                     `
-                <script>${javascript}</script>
+                <script id='js'>${javascript}</script>
                 `
-                ); // Ace editor completes the div tag
+                );
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
 
@@ -445,10 +445,10 @@ describe('Status Page', () => {
                 link = await link.getProperty('href');
                 link = await link.jsonValue();
                 await page.goto(link);
-                await page.waitFor(3000);
+                await page.waitFor('#js');
 
                 const code = await page.$eval(
-                    'body>script:last-child',
+                    '#js',
                     script => script.innerHTML
                 );
                 expect(code).toEqual(javascript);
