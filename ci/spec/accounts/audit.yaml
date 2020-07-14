@@ -3,16 +3,8 @@ audit_accounts:
     stage: BuildAndTest
     allow_failure: true
     script:
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/checkhash.sh
-                export accounts_exist=`./ci/scripts/checkhash.sh audit_accounts accounts`
-                if [[ $accounts_exist == *"true"* ]]
-                then
-                    exit ${CI_JOB_SKIP_EXIT_CODE:-0}
-                fi
-            fi
+        - chmod +x ./ci/scripts/checkhash.sh
+        - ./ci/scripts/checkhash.sh audit_accounts accounts
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
@@ -23,12 +15,8 @@ audit_accounts:
         - npm run audit
         - npm run dep-check
         - cd ..
-        - |
-            if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
-            then
-                chmod +x ./ci/scripts/storehash.sh
-                ./ci/scripts/storehash.sh audit_accounts accounts
-            fi
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh audit_accounts accounts
     except:
         refs:
             - hotfix-master
