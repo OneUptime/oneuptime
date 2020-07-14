@@ -4,7 +4,8 @@ audit_accounts:
     allow_failure: true
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - ./ci/scripts/checkhash.sh audit_accounts accounts
+        - export next_stage=`./ci/scripts/checkhash.sh audit_accounts accounts`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential

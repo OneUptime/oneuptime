@@ -10,12 +10,12 @@ function checkHash {
     
     # if response contains an array of object with document key, then the hash already exist in db
     document=`jq '.[0].document' <<< "$RESPONSE"`
+    echo "document we have is: $document"
     
     if [[ $document ]]
     then
-        echo true
-    else
-        echo false
+        echo "skip"
+        exit
     fi
 }
 
@@ -30,11 +30,8 @@ then
     # the first argument is always the job name ($1)
     for ((i = 2; i <= $#; i++ ))
     do
-        found=`checkHash $1 ${!i}`
-        if [[ $found == *"true"* ]]
-        then
-            echo "exiting this project"
-            exit 0
-        fi
+        echo "continue"
+        checkHash $1 ${!i}
     done
+    
 fi
