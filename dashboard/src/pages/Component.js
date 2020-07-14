@@ -168,7 +168,7 @@ class DashboardView extends Component {
         return (
             <Dashboard ready={this.ready}>
                 <BreadCrumbItem route={pathname} name="Components" />
-                <AlertDisabledWarning />
+                <AlertDisabledWarning page="Component" />
                 <div className="Box-root">
                     <div>
                         <div>

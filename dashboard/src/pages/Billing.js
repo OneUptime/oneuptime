@@ -12,6 +12,8 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { PropTypes } from 'prop-types';
+import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
+import ShouldRender from '../components/basic/ShouldRender';
 
 class Billing extends Component {
     constructor(props) {
@@ -28,6 +30,7 @@ class Billing extends Component {
     render() {
         const {
             location: { pathname },
+            alertEnable,
         } = this.props;
 
         return (
@@ -38,15 +41,17 @@ class Billing extends Component {
                 />
                 <BreadCrumbItem route={pathname} name="Billing" />
                 <div className="Margin-vertical--12">
+                    <ShouldRender if={!alertEnable}>
+                        <AlertDisabledWarning page="Billing" />
+                    </ShouldRender>
+                    <RenderIfOwner>
+                        <AlertAdvanceOption />
+                    </RenderIfOwner>
                     <CustomerBalance />
                     <AlertCharges />
 
                     <RenderIfOwner>
                         <ChangePlan />
-                    </RenderIfOwner>
-
-                    <RenderIfOwner>
-                        <AlertAdvanceOption />
                     </RenderIfOwner>
                 </div>
             </Dashboard>
@@ -56,10 +61,19 @@ class Billing extends Component {
 
 Billing.displayName = 'Billing';
 
+const mapStateToProps = state => {
+    return {
+        alertEnable:
+            state.form.AlertAdvanceOption &&
+            state.form.AlertAdvanceOption.values.alertEnable,
+    };
+};
+
 Billing.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    alertEnable: PropTypes.bool,
 };
 
-export default withRouter(connect(null, null)(Billing));
+export default withRouter(connect(mapStateToProps, null)(Billing));
