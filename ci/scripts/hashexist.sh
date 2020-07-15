@@ -9,7 +9,7 @@ then
     sudo apt-get install -y jq
 fi
 
-function checkHash {
+function hashExist {
     # $1 is the job name
     # $2 is the project
     HASH_VALUE=`./ci/scripts/gethash.sh $1 $2`
@@ -17,7 +17,7 @@ function checkHash {
     
     # if response contains an array of object with document key, then the hash already exist in db
     document=`jq '.[0].document' <<< "$RESPONSE"`
-    if [[ $document = null ]]
+    if [[ $document == null ]]
     then
         echo false
     else
@@ -25,4 +25,4 @@ function checkHash {
     fi
 }
 
-checkHash $1 $2
+hashExist $1 $2
