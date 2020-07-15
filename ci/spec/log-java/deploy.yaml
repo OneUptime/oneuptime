@@ -13,7 +13,7 @@ deploy_staging_log-java:
         # - echo allow-loopback-pinentry >> ~/.gnupg/gpg-agent.conf
         # - echo RELOADAGENT | gpg-connect-agent
         - ls /home/gitlab-runner/.gnupg
-        - gpg --batch --quick-gen-key --pass=$GPG_PASSPHRASE 'Tester <bundayy@outlook.com>'
+        - gpg --batch --quick-gen-key --passphrase $GPG_PASSPHRASE 'Tester <bundayy@outlook.com>'
         - gpg --list-keys
         - cd log-java
         # - git checkout -f staging
