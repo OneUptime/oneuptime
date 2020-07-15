@@ -5,10 +5,11 @@ module.exports = [
             '{{monitorName}} : Name of the monitor on which incident has occured.',
             '{{projectName}} : Name of the project on which the incident has occured.',
             '{{incidentType}} : Type of incident.',
+            '{{componentName}} : Name of the component the monitor belongs to',
         ],
         smsType: 'Subscriber Incident Created',
         body:
-            '{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+            '{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
     {
         allowedVariables: [
@@ -16,10 +17,11 @@ module.exports = [
             '{{monitorName}} : Name of the monitor on which incident has occured.',
             '{{projectName}} : Name of the project on which the incident has occured.',
             '{{incidentType}} : Type of incident.',
+            '{{componentName}} : Name of the component the monitor belongs to',
         ],
         smsType: 'Subscriber Incident Acknowldeged',
         body:
-            '{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+            '{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
     {
         allowedVariables: [
@@ -27,9 +29,10 @@ module.exports = [
             '{{monitorName}} : Name of the monitor on which incident has occured.',
             '{{projectName}} : Name of the project on which the incident has occured.',
             '{{incidentType}} : Type of incident.',
+            '{{componentName}} : Name of the component the monitor belongs to',
         ],
         smsType: 'Subscriber Incident Resolved',
         body:
-            '{{projectName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+            '{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
 ];
