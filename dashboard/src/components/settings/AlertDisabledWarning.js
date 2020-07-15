@@ -38,8 +38,10 @@ class AlertDisabledWarning extends Component {
                                     </ShouldRender>
                                     <ShouldRender if={page === 'Billing'}>
                                         <span>
-                                            Click the checkbox to enable SMS and
-                                            Call Alerts for this project
+                                            Click &#34;Enable Call and SMS
+                                            alerts&#34; for SMS and Call alerts
+                                            to be sent to your team when
+                                            incidents / downtime happens.
                                         </span>
                                     </ShouldRender>
                                 </span>
