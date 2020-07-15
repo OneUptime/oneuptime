@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
-import { fetchLighthouseLogs } from '../../actions/monitor';
+import { editMonitor, fetchLighthouseLogs } from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
@@ -82,6 +82,14 @@ export class MonitorViewLighthouseLogsBox extends Component {
         fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5, data.value);
     };
 
+    scanWebsites = () => {
+        const { currentProject, monitor, editMonitor } = this.props;
+        editMonitor(currentProject._id, {
+            ...monitor,
+            lighthouseScanStatus: 'scan',
+        });
+    };
+
     render() {
         const { addSiteUrlModalId } = this.state;
         const creating = this.props.create ? this.props.create : false;
@@ -135,6 +143,26 @@ export class MonitorViewLighthouseLogsBox extends Component {
                             </span>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                            <button
+                                className={
+                                    creating
+                                        ? 'bs-Button bs-Button--blue'
+                                        : 'bs-Button bs-ButtonLegacy ActionIconParent'
+                                }
+                                type="button"
+                                disabled={creating}
+                                id={`scanWebsites_${this.props.monitor.name}`}
+                                onClick={() => this.scanWebsites()}
+                            >
+                                <ShouldRender if={!creating}>
+                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--download">
+                                        <span>Scan Websites</span>
+                                    </span>
+                                </ShouldRender>
+                                <ShouldRender if={creating}>
+                                    <FormLoader />
+                                </ShouldRender>
+                            </button>
                             <button
                                 className={
                                     creating
@@ -213,6 +241,7 @@ MonitorViewLighthouseLogsBox.propTypes = {
     componentId: PropTypes.string.isRequired,
     currentProject: PropTypes.object,
     monitor: PropTypes.object.isRequired,
+    editMonitor: PropTypes.func,
     fetchLighthouseLogs: PropTypes.func,
     create: PropTypes.bool,
     openModal: PropTypes.func,
@@ -221,7 +250,7 @@ MonitorViewLighthouseLogsBox.propTypes = {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { fetchLighthouseLogs, openModal, closeModal },
+        { editMonitor, fetchLighthouseLogs, openModal, closeModal },
         dispatch
     );
 
