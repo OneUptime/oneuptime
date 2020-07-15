@@ -24,7 +24,7 @@
                 <version>1.6.7</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <serverId>fyipe-snapshot</serverId>
+                    <serverId>ossrh</serverId>
                     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
@@ -120,8 +120,8 @@
     </scm>
     <distributionManagement>
         <snapshotRepository>
-            <id>fyipe-snapshot</id>
-            <name>fyipe-snapshot</name>
+            <id>ossrh</id>
+            <name>ossrh</name>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <!-- <repository>
