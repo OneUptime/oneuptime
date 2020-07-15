@@ -15,8 +15,8 @@ deploy_staging_log-java:
         - git status
         # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
-        - cp -f .m2/settings.xml $HOME/.m2/settings.xml
-        - mvn -e -X clean deploy
+        # - cp -f .m2/settings.xml $HOME/.m2/settings.xml
+        - mvn -e -X -s .m2/settings.xml clean deploy
         - cd ..
     only:
         refs:
