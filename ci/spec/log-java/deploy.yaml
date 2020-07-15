@@ -7,12 +7,6 @@ deploy_staging_log-java:
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-        # - ls /home/gitlab-runner/.gnupg
-        # - echo use-agent >> ~/.gnupg/gpg.conf
-        # - echo pinentry-mode loopback >> ~/.gnupg/gpg.conf
-        # - echo allow-loopback-pinentry >> ~/.gnupg/gpg-agent.conf
-        # - echo RELOADAGENT | gpg-connect-agent
-        # - ls /home/gitlab-runner/.gnupg
         - gpg --list-keys
         # - gpg --batch --quick-gen-key --passphrase $GPG_PASSPHRASE 'Tester <bundayy@outlook.com>'
         # - gpg --list-keys
@@ -21,7 +15,7 @@ deploy_staging_log-java:
         - git status
         # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
-        - cp -f log-java/.m2/settings.xml $HOME/.m2/settings.xml
+        - cp -f .m2/settings.xml $HOME/.m2/settings.xml
         - mvn -Dgpg.passphrase=$GPG_PASSPHRASE clean deploy
         - cd ..
     only:
