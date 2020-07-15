@@ -5,6 +5,7 @@
  */
 
 const express = require('express');
+const axios = require('axios');
 const UserService = require('../services/userService');
 const MonitorService = require('../services/monitorService');
 const MonitorLogService = require('../services/monitorLogService');
@@ -116,7 +117,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             });
         }
 
-        if (data.type === 'url') {
+        if (data.type === 'url' || data.type === 'api') {
             if (!data.data.url) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -134,6 +135,43 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     message:
                         'Monitor data should have a `url` property of type string.',
                 });
+            }
+
+            if (data.type === 'api') {
+                try {
+                    const headers = {};
+                    const body =
+                        data.bodyType && data.bodyType === 'application/json'
+                            ? JSON.parse(data.text)
+                            : data.text;
+                    if (data.headers) {
+                        for (const header of data.headers) {
+                            headers[header.key] = header.value;
+                        }
+                    }
+                    const payload = {
+                        method: data.method,
+                        url: data.data.url,
+                        headers,
+                        data: body,
+                    };
+                    const apiResponse = await axios(payload);
+                    const headerContentType =
+                        apiResponse.headers['content-type'];
+                    if (/text\/html/.test(headerContentType)) {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'Monitor url should not be a website.',
+                        });
+                    }
+                } catch (err) {
+                    return sendErrorResponse(req, res, {
+                        code: (err.response && err.response.status) || 400,
+                        message:
+                            (err.response && err.response.statusText) ||
+                            'Monitor url did not return a valid response.',
+                    });
+                }
             }
         }
 
