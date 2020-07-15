@@ -80,13 +80,10 @@ const DockerCredentialList = ({
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <span>Docker Credentials</span>
                             </span>
-                            <span
-                                style={{ textTransform: 'lowercase' }}
-                                className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                            >
+                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span>
                                     Here&#39;s a list of all the available
-                                    docker Credentials for this project
+                                    docker credentials for this project
                                 </span>
                             </span>
                         </div>
