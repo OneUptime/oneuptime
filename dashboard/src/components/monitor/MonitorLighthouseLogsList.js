@@ -1,9 +1,12 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 import { ListLoader } from '../basic/Loader';
+import { deleteSiteUrl } from '../../actions/monitor';
 import moment from 'moment';
+import ShouldRender from '../basic/ShouldRender';
 
 export class MonitorLighthouseLogsList extends Component {
     // eslint-disable-next-line
@@ -109,6 +112,16 @@ export class MonitorLighthouseLogsList extends Component {
                                         </span>
                                     </div>
                                 </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Action</span>
+                                        </span>
+                                    </div>
+                                </td>
                             </tr>
                         </thead>
                         <tbody className="Table-body">
@@ -124,29 +137,29 @@ export class MonitorLighthouseLogsList extends Component {
                                             }_${i}`}
                                             key={i}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink lighthouseLogsListItem"
-                                            onClick={() => {
-                                                return log._id
-                                                    ? history.push(
-                                                          '/dashboard/project/' +
-                                                              this.props
-                                                                  .currentProject
-                                                                  ._id +
-                                                              '/' +
-                                                              this.props
-                                                                  .componentId +
-                                                              '/monitoring/' +
-                                                              monitor._id +
-                                                              '/issues/' +
-                                                              log._id
-                                                      )
-                                                    : false;
-                                            }}
                                         >
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                                 style={{
                                                     height: '1px',
                                                     minWidth: '210px',
+                                                }}
+                                                onClick={() => {
+                                                    return log._id
+                                                        ? history.push(
+                                                              '/dashboard/project/' +
+                                                                  this.props
+                                                                      .currentProject
+                                                                      ._id +
+                                                                  '/' +
+                                                                  this.props
+                                                                      .componentId +
+                                                                  '/monitoring/' +
+                                                                  monitor._id +
+                                                                  '/issues/' +
+                                                                  log._id
+                                                          )
+                                                        : false;
                                                 }}
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -337,6 +350,53 @@ export class MonitorLighthouseLogsList extends Component {
                                                     </div>
                                                 </div>
                                             </td>
+
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <div className="Box-root Flex">
+                                                            <span>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        monitor.data &&
+                                                                        monitor
+                                                                            .data
+                                                                            .url &&
+                                                                        monitor
+                                                                            .data
+                                                                            .url !==
+                                                                            log.url
+                                                                    }
+                                                                >
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            this.props.deleteSiteUrl(
+                                                                                monitor._id,
+                                                                                this
+                                                                                    .props
+                                                                                    .currentProject
+                                                                                    ._id,
+                                                                                log.url
+                                                                            )
+                                                                        }
+                                                                        className="bs-Button bs-ButtonLegacy ActionIconParent"
+                                                                        type="button"
+                                                                    >
+                                                                        <span className="bs-Button--icon bs-Button--trash">
+                                                                            <span>
+                                                                                Remove
+                                                                            </span>
+                                                                        </span>
+                                                                    </button>
+                                                                </ShouldRender>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
                                         </tr>
                                     );
                                 })
@@ -446,6 +506,10 @@ function mapStateToProps(state) {
     };
 }
 
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators({ deleteSiteUrl }, dispatch);
+};
+
 MonitorLighthouseLogsList.displayName = 'MonitorLighthouseLogsList';
 
 MonitorLighthouseLogsList.propTypes = {
@@ -453,8 +517,12 @@ MonitorLighthouseLogsList.propTypes = {
     monitorState: PropTypes.object,
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
+    deleteSiteUrl: PropTypes.func.isRequired,
     currentProject: PropTypes.object,
     componentId: PropTypes.string.isRequired,
 };
 
-export default connect(mapStateToProps, null)(MonitorLighthouseLogsList);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(MonitorLighthouseLogsList);

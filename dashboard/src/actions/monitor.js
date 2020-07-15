@@ -219,6 +219,37 @@ export function addSiteUrl(monitorId, projectId, siteUrl) {
     };
 }
 
+export function deleteSiteUrl(monitorId, projectId, siteUrl) {
+    return function(dispatch) {
+        const promise = deleteApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
+            siteUrl,
+        });
+        dispatch(editMonitorRequest());
+
+        promise.then(
+            function(monitor) {
+                dispatch(editMonitorSuccess(monitor.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(editMonitorFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
 //Delete a monitor
 //props -> {name: '', type, data -> { data.url}}
 export function deleteMonitor(monitorId, projectId) {
