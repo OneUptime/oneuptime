@@ -3,7 +3,7 @@ build_n_test_backend:
     script:
         - chmod +x ./ci/scripts/checkhash.sh
         - export next_stage=`./ci/scripts/checkhash.sh build_n_test_backend backend init-script probe http-test-server`
-        - echo "the value of next_stage is: $next_stage"
+        - echo "the value of next_stage is; $next_stage"
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
