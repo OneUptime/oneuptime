@@ -1405,6 +1405,9 @@
 .Text-wrap--noWrap {
   white-space: nowrap;
 }
+.Text-overflow--scroll {
+  overflow: scroll;
+}
 .Button {
   display: -webkit-box;
   display: -ms-flexbox;
