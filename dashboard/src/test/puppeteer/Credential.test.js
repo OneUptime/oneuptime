@@ -11,6 +11,11 @@ const password = '1234567890';
 
 describe('Credential Page', () => {
     const operationTimeOut = 500000;
+    const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
+    const dockerUsername = utils.dockerCredential.dockerUsername;
+    const dockerPassword = utils.dockerCredential.dockerPassword;
+    const gitUsername = utils.gitCredential.gitUsername;
+    const gitPassword = utils.gitCredential.gitPassword;
 
     let cluster;
     beforeAll(async done => {
@@ -86,9 +91,6 @@ describe('Credential Page', () => {
     test(
         'should add a git credential to a project',
         async done => {
-            const gitUsername = 'randomUsername';
-            const gitPassword = 'randomPassword';
-
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
 
@@ -234,10 +236,6 @@ describe('Credential Page', () => {
     test(
         'should add a docker credential to a project',
         async done => {
-            const dockerRegistryUrl = 'https://registry.hub.docker.com';
-            const dockerUsername = 'randomUsername';
-            const dockerPassword = 'randomPassword';
-
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
 
@@ -270,6 +268,47 @@ describe('Credential Page', () => {
                     { hidden: true }
                 );
                 expect(credentialModalForm).toBeNull();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not add a docker credential to a project if username or password is invalid',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#dockerCredentials', {
+                    visible: true,
+                });
+                await page.click('#dockerCredentials');
+                await page.waitForSelector('#addCredentialBtn', {
+                    visible: true,
+                });
+                await page.click('#addCredentialBtn');
+
+                await page.waitForSelector('#dockerCredentialForm', {
+                    visible: true,
+                });
+                await page.click('#dockerRegistryUrl');
+                await page.type('#dockerRegistryUrl', dockerRegistryUrl);
+                await page.click('#dockerUsername');
+                await page.type('#dockerUsername', 'randomusername');
+                await page.click('#dockerPassword');
+                await page.type('#dockerPassword', 'invalidpassword');
+                await page.click('#addCredentialModalBtn');
+
+                const addCredentialError = await page.waitForSelector(
+                    '#addCredentialError',
+                    { visible: true, timeout: operationTimeOut }
+                );
+                expect(addCredentialError).toBeDefined();
             });
             done();
         },

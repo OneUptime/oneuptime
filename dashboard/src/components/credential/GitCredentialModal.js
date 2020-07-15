@@ -75,9 +75,15 @@ class GitCredentialModal extends Component {
                             style={{ width: 600 }}
                         >
                             <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
+                                <div className="bs-Modal-header-copy bs-u-flex Flex-direction--column">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <span>Add Git Credentials</span>
+                                    </span>
+                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            Add a valid git credential to this
+                                            project
+                                        </span>
                                     </span>
                                 </div>
                             </div>
