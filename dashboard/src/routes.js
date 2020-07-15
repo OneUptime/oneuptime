@@ -47,7 +47,7 @@ export const groups = [
             {
                 title: 'Monitors',
                 path: '/dashboard/project/:projectId/:componentId/monitoring',
-                icon: 'atlas',
+                icon: 'monitor',
                 component: Monitor,
                 exact: true,
                 visible: true,
@@ -56,7 +56,7 @@ export const groups = [
                         title: 'Monitor View',
                         path:
                             '/dashboard/project/:projectId/:componentId/monitoring/:monitorId',
-                        icon: 'radar',
+                        icon: 'monitor',
                         visible: true,
                         subRoutes: [],
                         component: MonitorView,
@@ -131,7 +131,7 @@ export const groups = [
                         title: 'Container',
                         path:
                             '/dashboard/project/:projectId/:componentId/security/container',
-                        icon: 'info',
+                        icon: 'security',
                         visible: true,
                         subRoute: [],
                         component: Container,
@@ -153,7 +153,7 @@ export const groups = [
                         title: 'Application',
                         path:
                             '/dashboard/project/:projectId/:componentId/security/application',
-                        icon: 'info',
+                        icon: 'security',
                         visible: true,
                         component: Application,
                         index: 3,
@@ -228,7 +228,7 @@ export const groups = [
                     {
                         title: 'Alert Log',
                         path: '/dashboard/project/:projectId/alert-log',
-                        icon: 'radar',
+                        icon: 'info',
                         visible: true,
                         subRoutes: [],
                         component: AlertLog,
@@ -291,7 +291,7 @@ export const groups = [
                     {
                         title: 'Monitors',
                         path: '/dashboard/project/:projectId/settings/monitors',
-                        icon: 'atlas',
+                        icon: 'monitor',
                         visible: true,
                         subRoutes: [],
                         component: Monitors,
@@ -310,7 +310,7 @@ export const groups = [
                     {
                         title: 'Email',
                         path: '/dashboard/project/:projectId/settings/emails',
-                        icon: 'radar',
+                        icon: 'email',
                         visible: true,
                         subRoutes: [],
                         component: EmailTemplates,
@@ -319,7 +319,7 @@ export const groups = [
                     {
                         title: 'SMS',
                         path: '/dashboard/project/:projectId/settings/sms',
-                        icon: 'radar',
+                        icon: 'sms',
                         visible: true,
                         subRoutes: [],
                         component: SmsTemplates,
@@ -348,7 +348,7 @@ export const groups = [
                         title: 'Docker Credentials',
                         path:
                             '/dashboard/project/:projectId/settings/dockerCredential',
-                        icon: 'radar',
+                        icon: 'docker',
                         visible: true,
                         subRoutes: [],
                         component: DockerCredential,
@@ -377,7 +377,7 @@ export const groups = [
             {
                 title: 'Profile Settings',
                 path: '/dashboard/profile/settings',
-                icon: 'businessSettings',
+                icon: 'user',
                 visible: true,
                 component: Profile,
                 subRoutes: [],
@@ -413,7 +413,7 @@ export const groups = [
             {
                 title: 'Team Member Profile',
                 path: '/dashboard/profile/:memberId',
-                icon: 'customers',
+                icon: 'user',
                 visible: true,
                 component: TeamMemberProfile,
                 subRoutes: [],

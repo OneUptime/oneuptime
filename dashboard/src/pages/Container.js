@@ -85,7 +85,11 @@ class Container extends Component {
                     route={getParentRoute(pathname, null, 'component')}
                     name={componentName}
                 />
-                <BreadCrumbItem route={pathname} name="Container Security" />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Container Security"
+                    pageTitle="Container"
+                />
                 <div className="Margin-vertical--12">
                     <div>
                         <div className="db-BackboneViewContainer">

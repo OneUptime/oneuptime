@@ -5,6 +5,12 @@ import { PropTypes } from 'prop-types';
 function BreadCrumbs({ styles }) {
     return (
         <div className={styles}>
+            <div id="page-title-wrapper" className="page-title-wrapper">
+                <span id="titleIcon" className="page-title-icon" />
+                <span id="titleText" className="page-title-text">
+                    Page Title
+                </span>
+            </div>
             <Breadcrumbs
                 separator={<span className="db-breadcrumb-seperator" />}
                 item={CrumbItem}

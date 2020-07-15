@@ -218,7 +218,7 @@ export const downloadCsvTemplateSuccess = () => {
  */
 export function downloadCsvTemplate() {
     const fields =
-        'alertVia,contactEmail,contactPhone,countryCode,contactWebhook\nsms,,123456700,us,\nemail,sampleemail@sample.com,,,\nwebhook,sampleemail1@sample.com,,,samplewebhook.com';
+        'alertVia,contactEmail,contactPhone,countryCode,contactWebhook\nsms,,585-364-1200,us,\nemail,sampleemail@sample.com,,,\nwebhook,sampleemail1@sample.com,,,https://sample.com/webhook';
     return function(dispatch) {
         dispatch(downloadCsvTemplateRequest());
         try {

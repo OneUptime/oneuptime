@@ -41,7 +41,7 @@ class EmailTemplates extends Component {
                     route={getParentRoute(pathname)}
                     name="Project Settings"
                 />
-                <BreadCrumbItem route={pathname} name="Emails" />
+                <BreadCrumbItem route={pathname} name="Email" />
                 <EmailTemplatesBox />
                 <EmailSmtpBox />
             </Dashboard>
