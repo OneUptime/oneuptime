@@ -53,12 +53,17 @@ const pingfetch = async (url, method, body, headers) => {
     try {
         let sslCertificate, response, data;
         try {
-            response = await fetch(url, {
+            const payload = {
                 method: method,
-                body: body,
-                headers: headers,
                 timeout: 120000,
-            });
+            };
+            if (headers && Object.keys(headers).length) {
+                payload.headers = headers;
+            }
+            if (body && Object.keys(body).length) {
+                payload.body = body;
+            }
+            response = await fetch(url, payload);
             res = new Date().getTime() - now;
             data = await response.json();
             const urlObject = new URL(url);
@@ -74,6 +79,7 @@ const pingfetch = async (url, method, body, headers) => {
                 }
             }
         } catch (e) {
+            console.log(e);
             if (e.code === 'DEPTH_ZERO_SELF_SIGNED_CERT') {
                 response = { status: 200 };
                 sslCertificate = {
