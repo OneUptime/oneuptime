@@ -178,6 +178,7 @@ export class Plans extends Component {
                                             <button
                                                 className="bs-Button bs-Button--blue"
                                                 type="submit"
+                                                id="changePlanBtn"
                                             >
                                                 <ShouldRender
                                                     if={!isRequesting}
