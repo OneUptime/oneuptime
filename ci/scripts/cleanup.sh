@@ -30,3 +30,7 @@ sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
 # Delete all locally built images. (Comment this out to reduce build times)
 # echo "RUNNING COMMAND: sudo docker rmi -f \$(sudo docker images -q) || echo 'No docker containers'"
 # sudo docker rmi -f $(sudo docker images -q) || echo 'No docker containers'
+# remove any service holding port 80
+sudo apt remove apache2 nginx -y
+sudo apt purge apache2 nginx -y
+sudo apt autoremove -y
