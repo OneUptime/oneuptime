@@ -57,10 +57,6 @@ describe('Container Security Page', () => {
             const imagePath = utils.dockerCredential.imagePath;
             const imageTags = utils.dockerCredential.imageTags;
             await cluster.execute(null, async ({ page }) => {
-                console.log(
-                    '******value of utils******',
-                    utils.dockerCredential
-                );
                 await init.addComponent(component, page);
 
                 await page.waitForSelector('#security', { visible: true });
