@@ -18,9 +18,12 @@ deploy_staging_log-java:
         - sudo docker ps
         - cd log-java
         - git status
-        - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
-        - mvn clean deploy
         - git checkout -f staging
+        - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
+        - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
+        - mvn clean deploy
+        - git add .
+        - git commit -m "staginng deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
         # - mvn versions:set -DnewVersion=1.0.0
         # - mvn clean deploy -P release
