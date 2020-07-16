@@ -15,11 +15,15 @@ audit_log-java:
         - sudo apt install -y default-jdk
         - sudo update-ca-certificates -f
         - sudo apt install ca-certificates-java --reinstall
-        - cd log-java
-        - mvn clean
-        - cd ..
-        - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh audit_log-java log-java
+        - gpg --list-keys
+        - gpg --delete-secret-key "Tester <bundayy@outlook.com>"
+        - gpg --delete-key "Tester <bundayy@outlook.com>"
+        - gpg --list-keys
+        # - cd log-java
+        # - mvn clean
+        # - cd ..
+        # - chmod +x ./ci/scripts/storehash.sh
+        # - ./ci/scripts/storehash.sh audit_log-java log-java
     except:
         refs:
             - hotfix-master
