@@ -169,4 +169,34 @@ describe('Member Restriction', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should disable fields for project description box',
+        async done => {
+            cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 120000,
+            });
+
+            await cluster.execute(null, async ({ page }) => {
+                await init.loginUser({ email: teamEmail, password }, page);
+                await init.switchProject(newProjectName, page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('input[name=project_name]');
+                const disabled = await page.$eval(
+                    'input[name=project_name]',
+                    input => input.disabled
+                );
+                expect(disabled).toBe(true);
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });
