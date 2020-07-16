@@ -128,21 +128,29 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                 <span>Website Scan</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                <span>
-                                    Here&apos;s a summary of{' '}
-                                    <a
-                                        href="https://developers.google.com/web/tools/lighthouse"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{
-                                            cursor: 'pointer',
-                                            textDecoration: 'underline',
-                                        }}
-                                    >
-                                        Lighthouse
-                                    </a>{' '}
-                                    scans we&apos;ve done on your website.
-                                </span>
+                                {lighthouseScanStatus &&
+                                (lighthouseScanStatus === 'scan' ||
+                                    lighthouseScanStatus === 'scanning') ? (
+                                    <span>
+                                        Currently scanning your website URL(s).
+                                    </span>
+                                ) : (
+                                    <span>
+                                        Here&apos;s a summary of{' '}
+                                        <a
+                                            href="https://developers.google.com/web/tools/lighthouse"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                                cursor: 'pointer',
+                                                textDecoration: 'underline',
+                                            }}
+                                        >
+                                            Lighthouse
+                                        </a>{' '}
+                                        scans we&apos;ve done on your website.
+                                    </span>
+                                )}
                             </span>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
