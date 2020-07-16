@@ -16,20 +16,14 @@ deploy_staging_log-java:
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
-        - gpg --list-keys
-        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16# - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 933E67E97C807DFCBACB699E49861AA02BA2A6FC
-        - gpg --keyserver hkp://keyserver.ubuntu.com --send-keys F0217D11BDA2FBB9F22861583E4E27A23BB1DC81
         - cd log-java
-        # - git checkout -f staging
+        - git checkout -f staging
         - git status
-        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
-        # - sudo update-ca-certificates -f
-        # - sudo apt install ca-certificates-java --reinstall
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
-        # # - cp -f .m2/settings.xml $HOME/.m2/settings.xml
         - mvn clean deploy
-        - mvn versions:set -DnewVersion=1.0.0
-        - mvn clean deploy -P release
+        # - mvn versions:set -DnewVersion=1.0.0
+        # - mvn clean deploy -P release
         - cd ..
     only:
         refs:
