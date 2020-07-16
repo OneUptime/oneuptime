@@ -642,4 +642,24 @@ router.post(
     }
 );
 
+router.delete(
+    '/:projectId/siteUrl/:monitorId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { siteUrl } = req.body;
+            const monitor = await MonitorService.removeSiteUrl(
+                {
+                    _id: req.params.monitorId,
+                },
+                { siteUrl }
+            );
+            return sendItemResponse(req, res, monitor);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;
