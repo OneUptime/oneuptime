@@ -971,6 +971,7 @@ describe('Monitor Detail API', () => {
                     `#removeSiteUrl_${urlMonitorName}_0`
                 );
                 await page.click(`#removeSiteUrl_${urlMonitorName}_0`);
+                await page.waitFor(5000);
 
                 const createdLighthouseLogsSelector =
                     '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem';
