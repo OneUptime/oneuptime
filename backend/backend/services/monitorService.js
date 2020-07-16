@@ -688,6 +688,41 @@ module.exports = {
         }
     },
 
+    removeSiteUrl: async function(query, data) {
+        try {
+            let monitor = await this.findOneBy(query);
+            const siteUrlIndex =
+                monitor.siteUrls && monitor.siteUrls.length > 0
+                    ? monitor.siteUrls.indexOf(data.siteUrl)
+                    : -1;
+
+            if (siteUrlIndex === -1) {
+                const error = new Error(
+                    monitor.data &&
+                    monitor.data.url &&
+                    monitor.data.url === data.siteUrl
+                        ? 'Monitor URL can not be deleted.'
+                        : 'Site URL does not exist.'
+                );
+                error.code = 400;
+                ErrorService.log('monitorService.removeSiteUrl', error);
+                throw error;
+            }
+
+            if (monitor.siteUrls && monitor.siteUrls.length > 0) {
+                monitor.siteUrls.splice(siteUrlIndex, 1);
+            }
+            const siteUrls = monitor.siteUrls;
+
+            monitor = await this.updateOneBy(query, { siteUrls });
+
+            return monitor;
+        } catch (error) {
+            ErrorService.log('monitorService.removeSiteUrl', error);
+            throw error;
+        }
+    },
+
     hardDeleteBy: async function(query) {
         try {
             await MonitorModel.deleteMany(query);
