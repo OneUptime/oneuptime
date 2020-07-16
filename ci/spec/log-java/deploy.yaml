@@ -18,6 +18,7 @@ deploy_staging_log-java:
         - sudo docker ps
         - cd log-java
         - git status
+        - git checkout -b staging
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         - mvn clean deploy
         - git status
