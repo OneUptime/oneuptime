@@ -8,13 +8,15 @@ import RenderIfOwner from '../components/basic/RenderIfOwner';
 import ChangePlan from '../components/settings/ChangePlan';
 import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { PropTypes } from 'prop-types';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import ShouldRender from '../components/basic/ShouldRender';
 import NotAuthorised from '../components/project/NotAuthorised';
+import RenderIfOwnerOrAdmin from '../components/basic/RenderIfOwnerOrAdmin';
+import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMember';
 
 class Billing extends Component {
     constructor(props) {
@@ -32,21 +34,7 @@ class Billing extends Component {
         const {
             location: { pathname },
             alertEnable,
-            currentProject,
         } = this.props;
-
-        const currentUser =
-            currentProject &&
-            currentProject.users.filter(
-                user => String(user.userId) === String(User.getUserId())
-            );
-
-        const isOwnerOrAdmin =
-            currentUser &&
-            (currentUser[0].role === 'Owner' ||
-            currentUser[0].role === 'Administrator'
-                ? true
-                : false);
 
         return (
             <Dashboard>
@@ -55,7 +43,7 @@ class Billing extends Component {
                     name="Project Settings"
                 />
                 <BreadCrumbItem route={pathname} name="Billing" />
-                <ShouldRender if={isOwnerOrAdmin}>
+                <RenderIfOwnerOrAdmin>
                     <div className="Margin-vertical--12">
                         <ShouldRender if={!alertEnable}>
                             <AlertDisabledWarning page="Billing" />
@@ -70,8 +58,10 @@ class Billing extends Component {
                             <ChangePlan />
                         </RenderIfOwner>
                     </div>
-                </ShouldRender>
-                <NotAuthorised />
+                </RenderIfOwnerOrAdmin>
+                <RenderIfSubProjectMember>
+                    <NotAuthorised />
+                </RenderIfSubProjectMember>
             </Dashboard>
         );
     }
@@ -93,7 +83,6 @@ Billing.propTypes = {
         pathname: PropTypes.string,
     }),
     alertEnable: PropTypes.bool,
-    currentProject: PropTypes.object,
 };
 
 export default withRouter(connect(mapStateToProps, null)(Billing));
