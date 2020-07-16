@@ -10,6 +10,10 @@ const user = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
+const member = {
+    email: utils.generateRandomBusinessEmail(),
+    password: '1234567890',
+};
 
 describe('API test', () => {
     const operationTimeOut = 500000;
@@ -34,6 +38,7 @@ describe('API test', () => {
         return await cluster.execute(null, async ({ page }) => {
             // user
             await init.registerUser(user, page);
+            await init.registerUser(member, page);
             await init.loginUser(user, page);
         });
     });
@@ -120,6 +125,60 @@ describe('API test', () => {
                 newApiKey = await newApiKey.jsonValue();
 
                 expect(oldApiKey).not.toEqual(newApiKey);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should not access API settings if user is a member on a project',
+        async () => {
+            const projectName = 'Project1';
+            const role = 'Member';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                // Rename project
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('input[name=project_name]');
+                await page.click('input[name=project_name]', { clickCount: 3 });
+                await page.type('input[name=project_name]', projectName);
+                await page.waitForSelector('button[id=btnCreateProject]');
+                await page.click('button[id=btnCreateProject]');
+
+                // Invite member on the project
+                await page.waitForSelector('#teamMembers');
+                await page.click('#teamMembers');
+                await page.waitForSelector(`#btn_${projectName}`);
+                await page.click(`#btn_${projectName}`);
+                await page.waitForSelector('input[name=emails]');
+                await page.click('input[name=emails]');
+                await page.type('input[name=emails]', member.email);
+                await page.waitForSelector(`#${role}_${projectName}`);
+                await page.click(`#${role}_${projectName}`);
+                await page.waitForSelector('button[type=submit]');
+                await page.click('button[type=submit]');
+                await page.waitFor(5000);
+                await init.logout(page);
+
+                // Login as member
+                await init.loginUser(member, page);
+                await init.switchProject(projectName, page);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#api');
+                await page.click('#api a');
+                let elementHandle = await page.$('#boxTitle', {
+                    visible: true,
+                });
+                expect(elementHandle).toEqual(null);
+
+                elementHandle = await page.$('#warningMessage', {
+                    visible: true,
+                });
+                expect(elementHandle).not.toBe(null);
             });
         },
         operationTimeOut

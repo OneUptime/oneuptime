@@ -357,7 +357,7 @@ export const groups = [
                     {
                         title: 'API',
                         path: '/dashboard/project/:projectId/settings/api',
-                        icon: 'radar',
+                        icon: 'apis',
                         visible: true,
                         subRoutes: [],
                         component: FyipeApi,
