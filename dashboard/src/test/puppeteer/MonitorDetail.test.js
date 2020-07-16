@@ -939,6 +939,7 @@ describe('Monitor Detail API', () => {
                 await page.click('input[id=siteUrl]');
                 await page.type('input[id=siteUrl]', 'http://localhost:3010');
                 await page.click('#addSiteUrlButton');
+                await page.waitFor(5000);
 
                 const createdLighthouseLogsSelector =
                     '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem';
