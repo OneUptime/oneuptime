@@ -5,6 +5,7 @@ process.env.IS_SAAS_SERVICE = true;
 const chai = require('chai');
 const expect = require('chai').expect;
 const userData = require('./data/user');
+const dockerCredential = require('./data/dockerCredential');
 const app = require('../server');
 chai.use(require('chai-http'));
 const request = chai.request.agent(app);
@@ -18,6 +19,9 @@ const DockerCredentialService = require('../backend/services/dockerCredentialSer
 describe('Docker Credential API', function() {
     const timeout = 30000;
     let projectId, userId, token, credentialId;
+    const dockerRegistryUrl = dockerCredential.dockerRegistryUrl;
+    const dockerUsername = dockerCredential.dockerUsername;
+    const dockerPassword = dockerCredential.dockerPassword;
 
     this.timeout(timeout);
     before(function(done) {
@@ -64,9 +68,6 @@ describe('Docker Credential API', function() {
 
     it('should add docker credential', function(done) {
         const authorization = `Basic ${token}`;
-        const dockerRegistryUrl = 'https://dockerhub.com/nodejs';
-        const dockerUsername = 'username';
-        const dockerPassword = 'password';
 
         request
             .post(`/credential/${projectId}/dockerCredential`)
@@ -81,6 +82,26 @@ describe('Docker Credential API', function() {
                 expect(res).to.have.status(200);
                 expect(res.body.dockerRegistryUrl).to.be.equal(
                     dockerRegistryUrl
+                );
+                done();
+            });
+    });
+
+    it('should not add docker credential if username or password is invalid', function(done) {
+        const authorization = `Basic ${token}`;
+
+        request
+            .post(`/credential/${projectId}/dockerCredential`)
+            .set('Authorization', authorization)
+            .send({
+                dockerRegistryUrl,
+                dockerUsername: 'randomusername',
+                dockerPassword: 'invalidpassword',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Invalid docker credential'
                 );
                 done();
             });
@@ -102,9 +123,6 @@ describe('Docker Credential API', function() {
 
     it('should get all the docker credentials in a project', function(done) {
         const authorization = `Basic ${token}`;
-        const dockerRegistryUrl = 'https://dockerhub.com/reactjs';
-        const dockerUsername = 'username';
-        const dockerPassword = 'password';
 
         request
             .post(`/credential/${projectId}/dockerCredential`)
@@ -128,9 +146,6 @@ describe('Docker Credential API', function() {
 
     it('should not create docker credential with an existing docker registry url and docker username in a project', function(done) {
         const authorization = `Basic ${token}`;
-        const dockerRegistryUrl = 'https://dockerhub.com/reactjs';
-        const dockerUsername = 'username';
-        const dockerPassword = 'password';
 
         request
             .post(`/credential/${projectId}/dockerCredential`)
@@ -151,15 +166,12 @@ describe('Docker Credential API', function() {
 
     it('should not create docker credential if docker registry url is missing', function(done) {
         const authorization = `Basic ${token}`;
-        const dockerRegistryUrl = ''; // empty docker registry url
-        const dockerUsername = 'username';
-        const dockerPassword = 'password';
 
         request
             .post(`/credential/${projectId}/dockerCredential`)
             .set('Authorization', authorization)
             .send({
-                dockerRegistryUrl,
+                dockerRegistryUrl: '',
                 dockerUsername,
                 dockerPassword,
             })
@@ -174,16 +186,13 @@ describe('Docker Credential API', function() {
 
     it('should not create docker credential if docker username is missing', function(done) {
         const authorization = `Basic ${token}`;
-        const dockerRegistryUrl = 'https://dockerhub.com/nodejs';
-        const dockerUsername = '';
-        const dockerPassword = 'password';
 
         request
             .post(`/credential/${projectId}/dockerCredential`)
             .set('Authorization', authorization)
             .send({
                 dockerRegistryUrl,
-                dockerUsername,
+                dockerUsername: '',
                 dockerPassword,
             })
             .end(function(err, res) {
@@ -197,15 +206,13 @@ describe('Docker Credential API', function() {
 
     it('should not create docker credential if docker password is missing', function(done) {
         const authorization = `Basic ${token}`;
-        const dockerRegistryUrl = 'https://dockerhub.com/twitter';
-        const dockerUsername = 'username';
 
         request
             .post(`/credential/${projectId}/dockerCredential`)
             .set('Authorization', authorization)
             .send({
                 dockerRegistryUrl,
-                dockerUsername,
+                dockerUsername: 'username',
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);

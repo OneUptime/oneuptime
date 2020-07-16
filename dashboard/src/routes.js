@@ -47,7 +47,7 @@ export const groups = [
             {
                 title: 'Monitors',
                 path: '/dashboard/project/:projectId/:componentId/monitoring',
-                icon: 'atlas',
+                icon: 'monitor',
                 component: Monitor,
                 exact: true,
                 visible: true,
@@ -56,7 +56,7 @@ export const groups = [
                         title: 'Monitor View',
                         path:
                             '/dashboard/project/:projectId/:componentId/monitoring/:monitorId',
-                        icon: 'atlas',
+                        icon: 'monitor',
                         visible: true,
                         subRoutes: [],
                         component: MonitorView,
@@ -291,7 +291,7 @@ export const groups = [
                     {
                         title: 'Monitors',
                         path: '/dashboard/project/:projectId/settings/monitors',
-                        icon: 'atlas',
+                        icon: 'monitor',
                         visible: true,
                         subRoutes: [],
                         component: Monitors,

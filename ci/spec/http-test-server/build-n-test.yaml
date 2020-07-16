@@ -1,16 +1,22 @@
 build_n_test_http_test_server:
-  stage: BuildAndTest
-  script:
-    - curl -sSL https://get.docker.com/ | sh #Install docker.
-    - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-    - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
-    - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
-    - sudo docker ps
-    - cd http-test-server
-    - npm ci
-    - npm test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+    stage: BuildAndTest
+    script:
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_http_test_server http-test-server`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
+        - curl -sSL https://get.docker.com/ | sh #Install docker.
+        - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
+        - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
+        - sudo docker ps
+        - cd http-test-server
+        - npm ci
+        - npm test
+        - cd ..
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh build_n_test_http_test_server http-test-server
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release

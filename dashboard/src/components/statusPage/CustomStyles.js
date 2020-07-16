@@ -3,9 +3,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
     updateStatusPageCustomHTML,
-    updateStatusPageCustomHTMLRequest,
-    updateStatusPageCustomHTMLSuccess,
-    updateStatusPageCustomHTMLError,
     fetchProjectStatusPage,
 } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';
@@ -24,6 +21,7 @@ export class CustomStyles extends Component {
     headerHTML = null;
     footerHTML = null;
     customCSS = null;
+    customJS = null;
 
     shouldComponentUpdate(nextProps, nextState) {
         const { recent } = nextState.syntaxError;
@@ -101,16 +99,33 @@ export class CustomStyles extends Component {
                 name: 'headerHTML',
                 mode: 'html',
                 label: 'Header HTML',
+                placeholder: `<div>
+                    <!-- HTML code -->
+                </div>`,
             },
             {
                 name: 'footerHTML',
                 mode: 'html',
                 label: 'Footer HTML',
+                placeholder: `<div>
+                    <!-- HTML code -->
+                </div>`,
             },
             {
                 name: 'customCSS',
                 mode: 'css',
                 label: 'Custom CSS',
+                placeholder: `.your-css-class{
+                    /* CSS code */
+                 }`,
+            },
+            {
+                name: 'customJS',
+                mode: 'html',
+                label: 'Custom JS',
+                placeholder: `<script> 
+                // your JS code here (also include the <script> tag)
+                </script>  `,
             },
         ];
 
@@ -124,13 +139,13 @@ export class CustomStyles extends Component {
                                     <span
                                         style={{ textTransform: 'capitalize' }}
                                     >
-                                        Custom HTML and CSS
+                                        Custom HTML, CSS and Javascript
                                     </span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <span>
                                         Add custom header and footer HTML, plus
-                                        CSS on the status page.
+                                        CSS and Javascript on the status page.
                                     </span>
                                 </span>
                             </div>
@@ -196,6 +211,9 @@ export class CustomStyles extends Component {
                                                                             input.onChange,
                                                                             script.name
                                                                         )
+                                                                    }
+                                                                    placeholder={
+                                                                        script.placeholder
                                                                     }
                                                                 />
                                                             )}
@@ -310,21 +328,19 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             updateStatusPageCustomHTML,
-            updateStatusPageCustomHTMLRequest,
-            updateStatusPageCustomHTMLSuccess,
-            updateStatusPageCustomHTMLError,
             fetchProjectStatusPage,
         },
         dispatch
     );
 
 const mapStateToProps = ({ statusPage }) => {
-    const { headerHTML, footerHTML, customCSS } = statusPage.status;
+    const { headerHTML, footerHTML, customCSS, customJS } = statusPage.status;
     return {
         initialValues: {
             headerHTML,
             footerHTML,
             customCSS,
+            customJS,
         },
         statusPage,
     };
