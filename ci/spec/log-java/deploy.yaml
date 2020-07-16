@@ -21,10 +21,11 @@ deploy_staging_log-java:
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         - mvn clean deploy
         - git status
-        - git checkout -f staging
+        # - git checkout -f staging
         - git init
         - git add .
         - git commit -m "staging deployment"
+        - git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
         # - mvn versions:set -DnewVersion=1.0.0
         # - mvn clean deploy -P release
