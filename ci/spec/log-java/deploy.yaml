@@ -18,8 +18,8 @@ deploy_staging_log-java:
         # - sudo docker ps
         - gpg --list-keys
         # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
-        - gpg --delete-secret-key 16C15E6B80491EB7A498F6D4B89F0C2A5E5B5549
-        - gpg --delete-key 16C15E6B80491EB7A498F6D4B89F0C2A5E5B5549
+        - gpg --batch --yes --delete-secret-key 16C15E6B80491EB7A498F6D4B89F0C2A5E5B5549
+        - gpg --batch --yes --delete-key 16C15E6B80491EB7A498F6D4B89F0C2A5E5B5549
         # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 933E67E97C807DFCBACB699E49861AA02BA2A6FC
         # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys b89f0c2a5e5b5549
         # # - gpg --keyserver hkp://keyserver.ubuntu.com --send-keys 933E67E97C807DFCBACB699E49861AA02BA2A6FC
