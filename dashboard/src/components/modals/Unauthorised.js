@@ -16,6 +16,7 @@ class Unauthorised extends Component {
             <div
                 onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
+                id="unauthorisedModal"
             >
                 <div
                     className="ModalLayer-contents"
