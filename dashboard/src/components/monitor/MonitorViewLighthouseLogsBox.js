@@ -128,9 +128,11 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                 <span>Website Scan</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                {lighthouseScanStatus &&
-                                (lighthouseScanStatus === 'scan' ||
-                                    lighthouseScanStatus === 'scanning') ? (
+                                {!lighthouseScanStatus ||
+                                (lighthouseScanStatus &&
+                                    (lighthouseScanStatus === 'scan' ||
+                                        lighthouseScanStatus ===
+                                            'scanning')) ? (
                                     <span>
                                         Currently scanning your website URL(s).
                                     </span>
@@ -156,17 +158,21 @@ export class MonitorViewLighthouseLogsBox extends Component {
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <button
                                 className={
-                                    lighthouseScanStatus &&
-                                    (lighthouseScanStatus === 'scan' ||
-                                        lighthouseScanStatus === 'scanning')
+                                    !lighthouseScanStatus ||
+                                    (lighthouseScanStatus &&
+                                        (lighthouseScanStatus === 'scan' ||
+                                            lighthouseScanStatus ===
+                                                'scanning'))
                                         ? 'bs-Button bs-Button--blue'
                                         : 'bs-Button bs-ButtonLegacy ActionIconParent'
                                 }
                                 type="button"
                                 disabled={
-                                    lighthouseScanStatus &&
-                                    (lighthouseScanStatus === 'scan' ||
-                                        lighthouseScanStatus === 'scanning')
+                                    !lighthouseScanStatus ||
+                                    (lighthouseScanStatus &&
+                                        (lighthouseScanStatus === 'scan' ||
+                                            lighthouseScanStatus ===
+                                                'scanning'))
                                 }
                                 id={`scanWebsites_${this.props.monitor.name}`}
                                 onClick={() => this.scanWebsites()}
@@ -181,14 +187,16 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                     }
                                 >
                                     <span className="bs-FileUploadButton bs-Button--icon bs-Button--search">
-                                        <span>Scan Websites</span>
+                                        <span>Scan Website</span>
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender
                                     if={
-                                        lighthouseScanStatus &&
-                                        (lighthouseScanStatus === 'scan' ||
-                                            lighthouseScanStatus === 'scanning')
+                                        !lighthouseScanStatus ||
+                                        (lighthouseScanStatus &&
+                                            (lighthouseScanStatus === 'scan' ||
+                                                lighthouseScanStatus ===
+                                                    'scanning'))
                                     }
                                 >
                                     <FormLoader />
