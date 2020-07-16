@@ -7,23 +7,12 @@
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { User } from '../../config';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 
 const RenderIfOwnerOrAdmin = ({ currentProject, children }) => {
     const userId = User.getUserId();
-    const currentUser =
-        currentProject &&
-        currentProject.users.filter(
-            user => String(user.userId) === String(userId)
-        );
 
-    const isOwnerOrAdmin =
-        currentUser &&
-        (currentUser[0].role === 'Owner' ||
-        currentUser[0].role === 'Administrator'
-            ? true
-            : false);
-
-    return isOwnerOrAdmin ? children : null;
+    return isOwnerOrAdmin(userId, currentProject) ? children : null;
 };
 
 RenderIfOwnerOrAdmin.propTypes = {
