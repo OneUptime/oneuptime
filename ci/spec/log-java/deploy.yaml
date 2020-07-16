@@ -8,12 +8,8 @@ deploy_staging_log-java:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - gpg --list-keys
-        - gpg --batch --delete-secret-key 16C15E6B80491EB7A498F6D4B89F0C2A5E5B5549
-        - gpg --batch --delete-key 16C15E6B80491EB7A498F6D4B89F0C2A5E5B5549
-        - gpg --list-keys
-        # - gpg --batch --quick-gen-key --passphrase $GPG_PASSPHRASE 'Tester <bundayy@outlook.com>'
         # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
-        # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 933E67E97C807DFCBACB699E49861AA02BA2A6FC
+        - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 933E67E97C807DFCBACB699E49861AA02BA2A6FC
 
         # - cd log-java
         # - git checkout -f staging
