@@ -8,7 +8,17 @@ A fyipe application logger that can be used to send logs about your applications
 
 You can install to use in your project by adding the following to your `pom.xml` file:
 
-// Todo
+```xml
+<dependency>
+    <groupId>io.hackerbay.fyipe</groupId>
+    <artifactId>log-java</artifactId>
+    <version>CURRENT_VERSION</version>
+</dependency>
+```
+
+### Others
+
+Check [Maven Central Repository](https://search.maven.org/artifact/io.hackerbay.fyipe/log-java) for other modes of installation.
 
 <a name="module_api"></a>
 
@@ -60,6 +70,7 @@ Main API to send logs to the server.
 -   [Fyipe Application Logger](#fyipe-application-logger)
     -   [Installation](#installation)
         -   [Maven Install](#maven-install)
+        -   [Others](#others)
     -   [Basic Usage](#basic-usage)
     -   [API Documentation](#api-documentation)
         -   [new Logger(apiUrl, applicationId, applicationKey)](#new-loggerapiurl-applicationid-applicationkey)

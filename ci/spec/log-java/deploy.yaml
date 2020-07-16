@@ -66,4 +66,4 @@ deploy_poduction_log-java:
             - hotfix-master
             - feature-applog
     environment:
-        name: staging
+        name: production
