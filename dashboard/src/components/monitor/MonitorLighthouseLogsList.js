@@ -223,7 +223,9 @@ export class MonitorLighthouseLogsList extends Component {
                                                                     <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                         <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                <span>
+                                                                                <span
+                                                                                    id={`performance_${monitor.name}_${i}`}
+                                                                                >
                                                                                     {log &&
                                                                                     log.performance
                                                                                         ? `${log.performance}%`
@@ -372,6 +374,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                     }
                                                                 >
                                                                     <button
+                                                                        id={`removeSiteUrl_${monitor.name}_${i}`}
                                                                         onClick={() =>
                                                                             this.props.deleteSiteUrl(
                                                                                 monitor._id,
