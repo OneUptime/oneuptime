@@ -113,6 +113,9 @@ export class MonitorViewLighthouseLogsBox extends Component {
                 : '';
         siteUrls.push({ value: monitorUrl, label: monitorUrl });
 
+        const lighthouseScanStatus =
+            this.props.monitor && this.props.monitor.lighthouseScanStatus;
+
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -145,21 +148,41 @@ export class MonitorViewLighthouseLogsBox extends Component {
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <button
                                 className={
-                                    creating
+                                    lighthouseScanStatus &&
+                                    (lighthouseScanStatus === 'scan' ||
+                                        lighthouseScanStatus === 'scanning')
                                         ? 'bs-Button bs-Button--blue'
                                         : 'bs-Button bs-ButtonLegacy ActionIconParent'
                                 }
                                 type="button"
-                                disabled={creating}
+                                disabled={
+                                    lighthouseScanStatus &&
+                                    (lighthouseScanStatus === 'scan' ||
+                                        lighthouseScanStatus === 'scanning')
+                                }
                                 id={`scanWebsites_${this.props.monitor.name}`}
                                 onClick={() => this.scanWebsites()}
                             >
-                                <ShouldRender if={!creating}>
-                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--download">
+                                <ShouldRender
+                                    if={
+                                        lighthouseScanStatus &&
+                                        !(
+                                            lighthouseScanStatus === 'scan' ||
+                                            lighthouseScanStatus === 'scanning'
+                                        )
+                                    }
+                                >
+                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--search">
                                         <span>Scan Websites</span>
                                     </span>
                                 </ShouldRender>
-                                <ShouldRender if={creating}>
+                                <ShouldRender
+                                    if={
+                                        lighthouseScanStatus &&
+                                        (lighthouseScanStatus === 'scan' ||
+                                            lighthouseScanStatus === 'scanning')
+                                    }
+                                >
                                     <FormLoader />
                                 </ShouldRender>
                             </button>

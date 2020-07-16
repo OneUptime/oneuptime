@@ -127,7 +127,13 @@ export function editMonitor(projectId, values) {
 
     return function(dispatch) {
         const promise = putApi(`monitor/${projectId}/${values._id}`, values);
-        dispatch(editMonitorRequest());
+        if (
+            !values.lighthouseScanStatus ||
+            (values.lighthouseScanStatus &&
+                values.lighthouseScanStatus !== 'scan')
+        ) {
+            dispatch(editMonitorRequest());
+        }
 
         promise.then(
             function(monitor) {
