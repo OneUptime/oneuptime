@@ -13,7 +13,7 @@ const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 
-let projectId, newProjectId, userRole, airtableId, newAirtableId;
+let projectId, newProjectId, userRole,token, airtableId, newAirtableId;
 
 describe('Enterprise User API', function() {
     this.timeout(20000);
@@ -33,7 +33,8 @@ describe('Enterprise User API', function() {
                         email: data.user.email,
                         password: data.user.password,
                     })
-                    .end(function() {
+                    .end(function(err, res) {
+                        token = res.body.tokens.jwtAccessToken;
                         done();
                     });
             });
