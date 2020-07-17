@@ -7,7 +7,6 @@ import APISettings from '../components/settings/APISettings';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 import RenderIfMember from '../components/basic/RenderIfMember';
-// import ErrorWarning from '../components/common/ErrorWarning';
 
 class FyipeApi extends Component {
     render() {
@@ -29,40 +28,49 @@ class FyipeApi extends Component {
                             <APISettings />
                         </RenderIfOwner>
                         <RenderIfMember>
-                            <div
-                                // id="app-loading"
-                                style={{
-                                    position: 'fixed',
-                                    top: '0',
-                                    bottom: '0',
-                                    backgroundColor: '#fdfdfd',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    flexDirection: 'column',
-                                    zIndex: '-999',
-                                }}
-                            >
-                                <div
-                                    className="db-SideNav-icon db-SideNav-icon--apis db-SideNav-icon--selected"
-                                    style={{
-                                        backgroundRepeat: 'no-repeat',
-                                        backgroundSize: '50px',
-                                        height: '50px',
-                                        width: '50px',
-                                    }}
-                                />
-                                <div
-                                    style={{
-                                        marginTop: '20px',
-                                        fontSize: '16px',
-                                        textAlign: 'center',
-                                    }}
-                                >
-                                    You are not authorized to view this page
-                                    because you’re not an administrator of this
-                                    project. Please contact admin for any work
-                                    you need to be done on this page.
+                            <div className="Box-root ">
+                                <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                    <div className="Box-root Card-shadow--medium Border-radius--4">
+                                        <div
+                                            className="bs-ContentSection-content Box-root Padding-horizontal--20 Padding-vertical--12"
+                                            style={{
+                                                paddingBottom: '200px',
+                                                paddingTop: '200px',
+                                            }}
+                                        >
+                                            <div
+                                                className="db-SideNav-icon db-SideNav-icon--blocked db-SideNav-icon--selected"
+                                                style={{
+                                                    backgroundRepeat:
+                                                        'no-repeat',
+                                                    backgroundSize: 'contain',
+                                                    backgroundPosition:
+                                                        'center',
+                                                    height: '70px',
+                                                    width: '70px',
+                                                    marginRight: '50%',
+                                                    marginLeft: '50%',
+                                                }}
+                                            />
+                                            <div
+                                                id="errorMessage"
+                                                style={{
+                                                    width: '100%',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    padding: '10px',
+                                                    textAlign: 'center',
+                                                }}
+                                            >
+                                                You are not authorized to view
+                                                this page because you’re not an
+                                                administrator of this project.
+                                                Please contact admin for any
+                                                work you need to be done on this
+                                                page.
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </RenderIfMember>

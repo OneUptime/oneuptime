@@ -175,7 +175,7 @@ describe('API test', () => {
                 });
                 expect(elementHandle).toEqual(null);
 
-                elementHandle = await page.$('#warningMessage', {
+                elementHandle = await page.$('#errorMessage', {
                     visible: true,
                 });
                 expect(elementHandle).not.toBe(null);
