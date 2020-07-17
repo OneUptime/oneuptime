@@ -62,12 +62,12 @@ const SecurityLog = ({
                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                            <span>{type} Security Log</span>
+                            <span>{type} Security Issues</span>
                         </span>
                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 Here&#39;s a log of your {type.toLowerCase()}{' '}
-                                security.
+                                security issues.
                             </span>
                         </span>
                     </div>
