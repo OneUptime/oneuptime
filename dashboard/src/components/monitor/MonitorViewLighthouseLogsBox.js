@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import { editMonitor, fetchLighthouseLogs } from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
-import { FormLoader } from '../basic/Loader';
+import { FormLoader, Spinner } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import AddSiteUrl from '../modals/AddSiteUrl';
@@ -105,14 +105,6 @@ export class MonitorViewLighthouseLogsBox extends Component {
 
         siteUrls.unshift({ value: '', label: 'All Site URLs' });
 
-        const monitorUrl =
-            this.props.monitor &&
-            this.props.monitor.data &&
-            this.props.monitor.data.url
-                ? this.props.monitor.data.url
-                : '';
-        siteUrls.push({ value: monitorUrl, label: monitorUrl });
-
         const lighthouseScanStatus =
             this.props.monitor && this.props.monitor.lighthouseScanStatus;
 
@@ -156,52 +148,64 @@ export class MonitorViewLighthouseLogsBox extends Component {
                             </span>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                            <button
-                                className={
-                                    !lighthouseScanStatus ||
-                                    (lighthouseScanStatus &&
-                                        (lighthouseScanStatus === 'scan' ||
-                                            lighthouseScanStatus ===
-                                                'scanning'))
-                                        ? 'bs-Button bs-Button--blue'
-                                        : 'bs-Button bs-ButtonLegacy ActionIconParent'
+                            <ShouldRender
+                                if={
+                                    this.props.monitor &&
+                                    this.props.monitor.siteUrls &&
+                                    this.props.monitor.siteUrls.length > 0
                                 }
-                                type="button"
-                                disabled={
-                                    !lighthouseScanStatus ||
-                                    (lighthouseScanStatus &&
-                                        (lighthouseScanStatus === 'scan' ||
-                                            lighthouseScanStatus ===
-                                                'scanning'))
-                                }
-                                id={`scanWebsites_${this.props.monitor.name}`}
-                                onClick={() => this.scanWebsites()}
                             >
-                                <ShouldRender
-                                    if={
-                                        lighthouseScanStatus &&
-                                        !(
-                                            lighthouseScanStatus === 'scan' ||
-                                            lighthouseScanStatus === 'scanning'
-                                        )
+                                <button
+                                    className={
+                                        !lighthouseScanStatus ||
+                                        (lighthouseScanStatus &&
+                                            (lighthouseScanStatus === 'scan' ||
+                                                lighthouseScanStatus ===
+                                                    'scanning'))
+                                            ? 'bs-Button bs-DeprecatedButton'
+                                            : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--security-scan'
                                     }
-                                >
-                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--search">
-                                        <span>Scan Website</span>
-                                    </span>
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={
+                                    type="button"
+                                    disabled={
                                         !lighthouseScanStatus ||
                                         (lighthouseScanStatus &&
                                             (lighthouseScanStatus === 'scan' ||
                                                 lighthouseScanStatus ===
                                                     'scanning'))
                                     }
+                                    id={`scanWebsites_${this.props.monitor.name}`}
+                                    onClick={() => this.scanWebsites()}
                                 >
-                                    <FormLoader />
-                                </ShouldRender>
-                            </button>
+                                    <ShouldRender
+                                        if={
+                                            lighthouseScanStatus &&
+                                            !(
+                                                lighthouseScanStatus ===
+                                                    'scan' ||
+                                                lighthouseScanStatus ===
+                                                    'scanning'
+                                            )
+                                        }
+                                    >
+                                        <span>Scan</span>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={
+                                            !lighthouseScanStatus ||
+                                            (lighthouseScanStatus &&
+                                                (lighthouseScanStatus ===
+                                                    'scan' ||
+                                                    lighthouseScanStatus ===
+                                                        'scanning'))
+                                        }
+                                    >
+                                        <Spinner
+                                            style={{ stroke: '#8898aa' }}
+                                        />
+                                        <span>Scanning</span>
+                                    </ShouldRender>
+                                </button>
+                            </ShouldRender>
                             <button
                                 className={
                                     creating
@@ -235,7 +239,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                 if={
                                     this.props.monitor &&
                                     this.props.monitor.siteUrls &&
-                                    this.props.monitor.siteUrls.length > 0
+                                    this.props.monitor.siteUrls.length > 1
                                 }
                             >
                                 <div
