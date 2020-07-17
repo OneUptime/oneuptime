@@ -301,7 +301,7 @@ export const groups = [
                         title: 'Integrations',
                         path:
                             '/dashboard/project/:projectId/settings/integrations',
-                        icon: 'radar',
+                        icon: 'integration',
                         visible: true,
                         subRoutes: [],
                         component: Integrations,
@@ -328,7 +328,7 @@ export const groups = [
                     {
                         title: 'Probe',
                         path: '/dashboard/project/:projectId/settings/probe',
-                        icon: 'radar',
+                        icon: 'doc',
                         visible: true,
                         subRoutes: [],
                         component: Probe,
@@ -338,7 +338,7 @@ export const groups = [
                         title: 'Git Credentials',
                         path:
                             '/dashboard/project/:projectId/settings/gitCredential',
-                        icon: 'radar',
+                        icon: 'git',
                         visible: true,
                         subRoutes: [],
                         component: GitCredential,
@@ -357,7 +357,7 @@ export const groups = [
                     {
                         title: 'API',
                         path: '/dashboard/project/:projectId/settings/api',
-                        icon: 'radar',
+                        icon: 'apis',
                         visible: true,
                         subRoutes: [],
                         component: FyipeApi,

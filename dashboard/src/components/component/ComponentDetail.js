@@ -156,14 +156,25 @@ export class ComponentDetail extends Component {
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                    <span
-                                        id="component-content-header"
-                                        className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
-                                    >
+                                    <span className="Box-root Flex-flex Flex-direction--row">
                                         <span
-                                            id={`component-title-${component.name}`}
+                                            className="db-SideNav-icon db-SideNav-icon--square db-SideNav-icon--selected"
+                                            style={{
+                                                backgroundRepeat: 'no-repeat',
+                                                backgroundSize: '15px',
+                                                backgroundPosition: 'center',
+                                                margin: '3px 3px',
+                                            }}
+                                        />
+                                        <span
+                                            id="component-content-header"
+                                            className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            {component.name}
+                                            <span
+                                                id={`component-title-${component.name}`}
+                                            >
+                                                {component.name}
+                                            </span>
                                         </span>
                                     </span>
                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">

@@ -238,7 +238,7 @@ class DashboardView extends Component {
                                                                 }}
                                                             >
                                                                 <div
-                                                                    className="db-SideNav-icon db-SideNav-icon--atlas "
+                                                                    className="db-SideNav-icon db-SideNav-icon--square "
                                                                     style={{
                                                                         backgroundRepeat:
                                                                             'no-repeat',
