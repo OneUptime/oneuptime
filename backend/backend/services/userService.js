@@ -794,11 +794,9 @@ module.exports = {
         if (user && user.length > 1) {
             const users = await Promise.all(
                 user.map(async user => {
-                    const userId = user._id;
+                    query._id = user._id;
                     user = await _this.updateOneBy(
-                        {
-                            _id: userId,
-                        },
+                        query._id,
                         {
                             deleted: false,
                             deletedBy: null,
@@ -812,11 +810,9 @@ module.exports = {
         } else {
             user = user[0];
             if (user) {
-                const userId = user._id;
+                query._id = user._id;
                 user = await _this.updateOneBy(
-                    {
-                        _id: userId,
-                    },
+                    query,
                     {
                         deleted: false,
                         deletedBy: null,
