@@ -3,6 +3,7 @@ import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import Zoom from 'react-reveal/Zoom';
 import EmailTemplatesBox from '../components/emailTemplates/EmailTemplatesBox';
 import EmailSmtpBox from '../components/emailTemplates/EmailSmtpBox';
 import { getEmailTemplates, getSmtpConfig } from '../actions/emailTemplates';
@@ -37,13 +38,15 @@ class EmailTemplates extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Project Settings"
-                />
-                <BreadCrumbItem route={pathname} name="Email" />
-                <EmailTemplatesBox />
-                <EmailSmtpBox />
+                <Zoom>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Project Settings"
+                    />
+                    <BreadCrumbItem route={pathname} name="Email" />
+                    <EmailTemplatesBox />
+                    <EmailSmtpBox />
+                </Zoom>
             </Dashboard>
         );
     }

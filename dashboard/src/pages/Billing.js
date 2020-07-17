@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
+import Zoom from 'react-reveal/Zoom';
 import Dashboard from '../components/Dashboard';
 import CustomerBalance from '../components/paymentCard/CustomerBalance';
 import AlertCharges from '../components/alert/AlertCharges';
@@ -35,24 +36,26 @@ class Billing extends Component {
 
         return (
             <Dashboard>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Project Settings"
-                />
-                <BreadCrumbItem route={pathname} name="Billing" />
-                <div className="Margin-vertical--12">
-                    <ShouldRender if={!alertEnable}>
-                        <AlertDisabledWarning page="Billing" />
-                    </ShouldRender>
-                    <ShouldRender if={currentProject}>
-                        <AlertAdvanceOption />
-                    </ShouldRender>
-                    <CustomerBalance />
-                    <AlertCharges />
-                    <ShouldRender if={currentProject}>
-                        <ChangePlan />
-                    </ShouldRender>
-                </div>
+                <Zoom>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Project Settings"
+                    />
+                    <BreadCrumbItem route={pathname} name="Billing" />
+                    <div className="Margin-vertical--12">
+                        <ShouldRender if={!alertEnable}>
+                            <AlertDisabledWarning page="Billing" />
+                        </ShouldRender>
+                        <ShouldRender if={currentProject}>
+                            <AlertAdvanceOption />
+                        </ShouldRender>
+                        <CustomerBalance />
+                        <AlertCharges />
+                        <ShouldRender if={currentProject}>
+                            <ChangePlan />
+                        </ShouldRender>
+                    </div>
+                </Zoom>
             </Dashboard>
         );
     }

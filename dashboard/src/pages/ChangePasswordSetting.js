@@ -1,5 +1,6 @@
 import React from 'react';
 import { PropTypes } from 'prop-types';
+import Zoom from 'react-reveal/Zoom';
 import Dashboard from '../components/Dashboard';
 import ChangePassword from '../components/profileSettings/ChangePassword';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -11,24 +12,26 @@ const ChangePasswordSetting = props => {
 
     return (
         <Dashboard>
-            <BreadCrumbItem route={pathname} name="Change Password" />
-            <div>
+            <Zoom>
+                <BreadCrumbItem route={pathname} name="Change Password" />
                 <div>
-                    <div className="db-BackboneViewContainer">
-                        <div className="react-settings-view react-view">
-                            <span data-reactroot="">
-                                <div>
+                    <div>
+                        <div className="db-BackboneViewContainer">
+                            <div className="react-settings-view react-view">
+                                <span data-reactroot="">
                                     <div>
-                                        <div className="Box-root Margin-bottom--12">
-                                            <ChangePassword />
+                                        <div>
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ChangePassword />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </span>
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </Zoom>
         </Dashboard>
     );
 };

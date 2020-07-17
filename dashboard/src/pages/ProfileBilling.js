@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
+import Zoom from 'react-reveal/Zoom';
 import Dashboard from '../components/Dashboard';
 import Invoice from '../components/invoice/Invoice';
 import PaymentCard from '../components/paymentCard/PaymentCard';
@@ -28,11 +29,13 @@ class ProfileBilling extends Component {
 
         return (
             <Dashboard>
-                <BreadCrumbItem route={pathname} name="Billing" />
-                <div className="Margin-vertical--12">
-                    <Invoice />
-                    <PaymentCard />
-                </div>
+                <Zoom>
+                    <BreadCrumbItem route={pathname} name="Billing" />
+                    <div className="Margin-vertical--12">
+                        <Invoice />
+                        <PaymentCard />
+                    </div>
+                </Zoom>
             </Dashboard>
         );
     }

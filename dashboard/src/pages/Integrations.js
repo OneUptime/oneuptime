@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { PropTypes } from 'prop-types';
+import Zoom from 'react-reveal/Zoom';
 import Dashboard from '../components/Dashboard';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import ZapierBox from '../components/zapier/ZapierBox';
@@ -27,14 +28,16 @@ class Integrations extends Component {
 
         return (
             <Dashboard>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Project Settings"
-                />
-                <BreadCrumbItem route={pathname} name="Integrations" />
-                {/* <Slack />*/}
-                <WebHookBox />
-                <ZapierBox />
+                <Zoom>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Project Settings"
+                    />
+                    <BreadCrumbItem route={pathname} name="Integrations" />
+                    {/* <Slack />*/}
+                    <WebHookBox />
+                    <ZapierBox />
+                </Zoom>
             </Dashboard>
         );
     }

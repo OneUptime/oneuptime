@@ -2,6 +2,7 @@ import React from 'react';
 import Dashboard from '../components/Dashboard';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import Zoom from 'react-reveal/Zoom';
 import {
     incidentsRequest,
     incidentsError,
@@ -189,25 +190,31 @@ class IncidentLog extends React.Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name={componentName}
-                />
-                <BreadCrumbItem route={pathname} name="Incident Log" />
-                <div>
+                <Zoom>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem route={pathname} name="Incident Log" />
                     <div>
-                        <div className="db-RadarRulesLists-page">
-                            <ShouldRender if={this.props.incidentTutorial.show}>
-                                <TutorialBox type="incident" />
-                            </ShouldRender>
+                        <div>
+                            <div className="db-RadarRulesLists-page">
+                                <ShouldRender
+                                    if={this.props.incidentTutorial.show}
+                                >
+                                    <TutorialBox type="incident" />
+                                </ShouldRender>
 
-                            {allIncidents}
-                            <ShouldRender if={this.props.incidents.requesting}>
-                                <LoadingState />
-                            </ShouldRender>
+                                {allIncidents}
+                                <ShouldRender
+                                    if={this.props.incidents.requesting}
+                                >
+                                    <LoadingState />
+                                </ShouldRender>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Zoom>
             </Dashboard>
         );
     }

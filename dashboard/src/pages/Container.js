@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
+import Zoom from 'react-reveal/Zoom';
 import Dashboard from '../components/Dashboard';
 import ContainerSecurityForm from '../components/security/ContainerSecurityForm';
 import ContainerSecurity from '../components/security/ContainerSecurity';
@@ -81,90 +82,92 @@ class Container extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname, null, 'component')}
-                    name={componentName}
-                />
-                <BreadCrumbItem
-                    route={pathname}
-                    name="Container Security"
-                    pageTitle="Container"
-                />
-                <div className="Margin-vertical--12">
-                    <div>
-                        <div className="db-BackboneViewContainer">
-                            <div className="react-settings-view react-view">
-                                <ShouldRender
-                                    if={
-                                        gettingContainerSecurities &&
-                                        gettingSecurityLogs
-                                    }
-                                >
-                                    <div
-                                        id="largeSpinner"
-                                        style={{ textAlign: 'center' }}
+                <Zoom>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname, null, 'component')}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name="Container Security"
+                        pageTitle="Container"
+                    />
+                    <div className="Margin-vertical--12">
+                        <div>
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <ShouldRender
+                                        if={
+                                            gettingContainerSecurities &&
+                                            gettingSecurityLogs
+                                        }
                                     >
-                                        <LargeSpinner />
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={
-                                        !gettingContainerSecurities &&
-                                        !gettingSecurityLogs
-                                    }
-                                >
-                                    {containerSecurities.length > 0 &&
-                                        containerSecurities.map(
-                                            containerSecurity => {
-                                                return (
-                                                    <span
-                                                        key={
-                                                            containerSecurity._id
-                                                        }
-                                                    >
-                                                        <div>
-                                                            <div>
-                                                                <ContainerSecurity
-                                                                    name={
-                                                                        containerSecurity.name
-                                                                    }
-                                                                    dockerRegistryUrl={
-                                                                        containerSecurity.dockerRegistryUrl
-                                                                    }
-                                                                    imagePath={
-                                                                        containerSecurity.imagePath
-                                                                    }
-                                                                    containerSecurityId={
-                                                                        containerSecurity._id
-                                                                    }
-                                                                    projectId={
-                                                                        projectId
-                                                                    }
-                                                                    componentId={
-                                                                        componentId
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </span>
-                                                );
-                                            }
-                                        )}
-                                </ShouldRender>
-                                <span>
-                                    <div>
-                                        <div>
-                                            <ContainerSecurityForm
-                                                componentId={componentId}
-                                                projectId={projectId}
-                                            />
+                                        <div
+                                            id="largeSpinner"
+                                            style={{ textAlign: 'center' }}
+                                        >
+                                            <LargeSpinner />
                                         </div>
-                                    </div>
-                                </span>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={
+                                            !gettingContainerSecurities &&
+                                            !gettingSecurityLogs
+                                        }
+                                    >
+                                        {containerSecurities.length > 0 &&
+                                            containerSecurities.map(
+                                                containerSecurity => {
+                                                    return (
+                                                        <span
+                                                            key={
+                                                                containerSecurity._id
+                                                            }
+                                                        >
+                                                            <div>
+                                                                <div>
+                                                                    <ContainerSecurity
+                                                                        name={
+                                                                            containerSecurity.name
+                                                                        }
+                                                                        dockerRegistryUrl={
+                                                                            containerSecurity.dockerRegistryUrl
+                                                                        }
+                                                                        imagePath={
+                                                                            containerSecurity.imagePath
+                                                                        }
+                                                                        containerSecurityId={
+                                                                            containerSecurity._id
+                                                                        }
+                                                                        projectId={
+                                                                            projectId
+                                                                        }
+                                                                        componentId={
+                                                                            componentId
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </span>
+                                                    );
+                                                }
+                                            )}
+                                    </ShouldRender>
+                                    <span>
+                                        <div>
+                                            <div>
+                                                <ContainerSecurityForm
+                                                    componentId={componentId}
+                                                    projectId={projectId}
+                                                />
+                                            </div>
+                                        </div>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Zoom>
             </Dashboard>
         );
     }

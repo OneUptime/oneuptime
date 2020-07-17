@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import { PropTypes } from 'prop-types';
+import Zoom from 'react-reveal/Zoom';
 import Dashboard from '../components/Dashboard';
 import MonitorCategories from '../components/settings/MonitorCategories';
 import { logEvent } from '../analytics';
@@ -30,26 +31,26 @@ class Monitors extends Component {
 
         return (
             <Dashboard>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Project Settings"
-                />
-                <BreadCrumbItem route={pathname} name="Monitors" />
-                <div className="Margin-vertical--12">
-                    <div>
-                        <div className="db-BackboneViewContainer">
-                            <div className="react-settings-view react-view">
-                                <span>
-                                    <div>
+                <Zoom>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Project Settings"
+                    />
+                    <BreadCrumbItem route={pathname} name="Monitors" />
+                    <div className="Margin-vertical--12">
+                        <div>
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span>
                                         <div>
                                             <MonitorCategories />
                                         </div>
-                                    </div>
-                                </span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Zoom>
             </Dashboard>
         );
     }

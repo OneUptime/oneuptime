@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import Zoom from 'react-reveal/Zoom';
 import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
@@ -16,65 +17,69 @@ class FyipeApi extends Component {
 
         return (
             <Dashboard>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Project Settings"
-                />
-                <BreadCrumbItem route={pathname} name="API" />
-                <div className="db-BackboneViewContainer">
-                    <div className="react-settings-view react-view">
-                        <RenderIfOwner>
-                            <TutorialBox type="api" />
-                            <APISettings />
-                        </RenderIfOwner>
-                        <RenderIfMember>
-                            <div className="Box-root ">
-                                <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
-                                    <div className="Box-root Card-shadow--medium Border-radius--4">
-                                        <div
-                                            className="bs-ContentSection-content Box-root Padding-horizontal--20 Padding-vertical--12"
-                                            style={{
-                                                paddingBottom: '100px',
-                                                paddingTop: '100px',
-                                            }}
-                                        >
+                <Zoom>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Project Settings"
+                    />
+                    <BreadCrumbItem route={pathname} name="API" />
+                    <div className="db-BackboneViewContainer">
+                        <div className="react-settings-view react-view">
+                            <RenderIfOwner>
+                                <TutorialBox type="api" />
+                                <APISettings />
+                            </RenderIfOwner>
+                            <RenderIfMember>
+                                <div className="Box-root ">
+                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                        <div className="Box-root Card-shadow--medium Border-radius--4">
                                             <div
-                                                className="db-SideNav-icon db-SideNav-icon--blocked"
+                                                className="bs-ContentSection-content Box-root Padding-horizontal--20 Padding-vertical--12"
                                                 style={{
-                                                    backgroundRepeat:
-                                                        'no-repeat',
-                                                    backgroundSize: 'contain',
-                                                    backgroundPosition:
-                                                        'center',
-                                                    height: '40px',
-                                                    width: '40px',
-                                                    marginRight: '50%',
-                                                    marginLeft: '50%',
-                                                }}
-                                            />
-                                            <div
-                                                id="errorMessage"
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px',
-                                                    textAlign: 'center',
+                                                    paddingBottom: '100px',
+                                                    paddingTop: '100px',
                                                 }}
                                             >
-                                                You are not authorized to view
-                                                this page because you’re not an
-                                                administrator of this project.
-                                                <br />
-                                                Please contact admin for any
-                                                work you need to be done on this
-                                                page.
+                                                <div
+                                                    className="db-SideNav-icon db-SideNav-icon--blocked"
+                                                    style={{
+                                                        backgroundRepeat:
+                                                            'no-repeat',
+                                                        backgroundSize:
+                                                            'contain',
+                                                        backgroundPosition:
+                                                            'center',
+                                                        height: '40px',
+                                                        width: '40px',
+                                                        marginRight: '50%',
+                                                        marginLeft: '50%',
+                                                    }}
+                                                />
+                                                <div
+                                                    id="errorMessage"
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '10px',
+                                                        textAlign: 'center',
+                                                    }}
+                                                >
+                                                    You are not authorized to
+                                                    view this page because
+                                                    you’re not an administrator
+                                                    of this project.
+                                                    <br />
+                                                    Please contact admin for any
+                                                    work you need to be done on
+                                                    this page.
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </RenderIfMember>
+                            </RenderIfMember>
+                        </div>
                     </div>
-                </div>
+                </Zoom>
             </Dashboard>
         );
     }

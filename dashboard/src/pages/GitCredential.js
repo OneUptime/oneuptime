@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+import Zoom from 'react-reveal/Zoom';
 import Dashboard from '../components/Dashboard';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -38,27 +39,29 @@ class GitCredential extends Component {
 
         return (
             <Dashboard>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Project Settings"
-                />
-                <BreadCrumbItem route={pathname} name="Git Credentials" />
-                <div className="Margin-vertical--12">
-                    <div>
-                        <div className="db-BackboneViewContainer">
-                            <div className="react-settings-view react-view">
-                                <span>
-                                    <GitCredentialList
-                                        gitCredentials={gitCredentials}
-                                        error={getError}
-                                        projectId={projectId}
-                                        isRequesting={isRequesting}
-                                    />
-                                </span>
+                <Zoom>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Project Settings"
+                    />
+                    <BreadCrumbItem route={pathname} name="Git Credentials" />
+                    <div className="Margin-vertical--12">
+                        <div>
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span>
+                                        <GitCredentialList
+                                            gitCredentials={gitCredentials}
+                                            error={getError}
+                                            projectId={projectId}
+                                            isRequesting={isRequesting}
+                                        />
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Zoom>
             </Dashboard>
         );
     }

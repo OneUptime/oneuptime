@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import Zoom from 'react-reveal/Zoom';
 import Dashboard from '../components/Dashboard';
 import ProjectSettings from '../components/settings/ProjectSettings';
 import SubProjects from '../components/settings/SubProjects';
@@ -38,17 +39,17 @@ class Settings extends Component {
 
         return (
             <Dashboard>
-                <BreadCrumbItem route={pathname} name="Project Settings" />
-                <div
-                    onKeyDown={this.handleKeyBoard}
-                    className="Margin-vertical--12"
-                >
-                    <div>
+                <Zoom>
+                    <BreadCrumbItem route={pathname} name="Project Settings" />
+                    <div
+                        onKeyDown={this.handleKeyBoard}
+                        className="Margin-vertical--12"
+                    >
                         <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <span>
-                                        <div>
+                            <div>
+                                <div className="db-BackboneViewContainer">
+                                    <div className="react-settings-view react-view">
+                                        <span>
                                             <div>
                                                 <ProjectSettings />
 
@@ -62,13 +63,13 @@ class Settings extends Component {
                                                     <ExitProject />
                                                 </RenderIfMember>
                                             </div>
-                                        </div>
-                                    </span>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Zoom>
             </Dashboard>
         );
     }

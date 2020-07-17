@@ -1,6 +1,7 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import Zoom from 'react-reveal/Zoom';
 import {
     incidentRequest,
     incidentError,
@@ -342,25 +343,27 @@ class Incident extends React.Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem route="#" name={componentName} />
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Incident Log"
-                />
-                <BreadCrumbItem route={pathname} name="Incident" />
-                <div>
+                <Zoom>
+                    <BreadCrumbItem route="#" name={componentName} />
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Incident Log"
+                    />
+                    <BreadCrumbItem route={pathname} name="Incident" />
                     <div>
-                        <div className="db-BackboneViewContainer">
-                            <div className="react-settings-view react-view">
-                                <span>
-                                    <div>
-                                        <div>{variable}</div>
-                                    </div>
-                                </span>
+                        <div>
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span>
+                                        <div>
+                                            <div>{variable}</div>
+                                        </div>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Zoom>
             </Dashboard>
         );
     }
