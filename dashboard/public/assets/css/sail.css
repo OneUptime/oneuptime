@@ -123,6 +123,9 @@
 .Box-background--surface {
   background-color: white;
 }
+.Box-background--transparent {
+  background-color: transparent;
+}
 .Box-background--offset {
   background-color: #f7f7f7;
 }
@@ -582,6 +585,9 @@
 }
 .Margin-top--48 {
   margin-top: 48px;
+}
+.Margin-top--60 {
+  margin-top: 60px;
 }
 .Margin-right--2 {
   margin-right: 2px;
