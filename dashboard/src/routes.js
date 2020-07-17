@@ -301,7 +301,7 @@ export const groups = [
                         title: 'Integrations',
                         path:
                             '/dashboard/project/:projectId/settings/integrations',
-                        icon: 'radar',
+                        icon: 'integration',
                         visible: true,
                         subRoutes: [],
                         component: Integrations,
