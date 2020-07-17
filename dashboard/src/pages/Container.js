@@ -193,8 +193,8 @@ Container.propTypes = {
 };
 
 const mapStateToProps = (state, ownProps) => {
-    // ids from url
     const components = [];
+    // ids from url
     const { componentId, projectId } = ownProps.match.params;
     // filter to get the actual component
     state.component.componentList.components.map(item =>

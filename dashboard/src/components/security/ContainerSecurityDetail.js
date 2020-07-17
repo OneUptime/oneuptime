@@ -67,7 +67,7 @@ class ContainerSecurityDetail extends Component {
             fetchCredentialError,
             fetchLogError,
             location: { pathname },
-            component,
+            components,
             scanContainerSecuritySuccess,
             getContainerSecuritySuccess,
         } = this.props;
@@ -81,7 +81,7 @@ class ContainerSecurityDetail extends Component {
         });
 
         const componentName =
-            component.length > 0 ? component[0].name : 'loading...';
+            components.length > 0 ? components[0].name : 'loading...';
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -196,7 +196,7 @@ ContainerSecurityDetail.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
+    components: PropTypes.arrayOf(
         PropTypes.shape({
             name: PropTypes.string,
         })
@@ -224,11 +224,16 @@ const mapStateToProps = (state, ownProps) => {
         containerSecurityId,
     } = ownProps.match.params;
 
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(
-            component => String(component._id) === String(componentId)
-        );
-    });
+    const components = [];
+    // filter to get the actual component
+    state.component.componentList.components.map(item =>
+        item.components.map(component => {
+            if (String(component._id) === String(componentId)) {
+                components.push(component);
+            }
+            return component;
+        })
+    );
 
     return {
         projectId,
@@ -242,7 +247,7 @@ const mapStateToProps = (state, ownProps) => {
         fetchLogError: state.security.getContainerSecurityLog.error,
         gettingCredentials: state.credential.getCredential.requesting,
         fetchCredentialError: state.credential.getCredential.error,
-        component,
+        components,
     };
 };
 
