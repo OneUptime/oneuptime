@@ -302,4 +302,38 @@ describe('Member Restriction', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should show unauthorised modal when trying to delete a monitor category for a member who is not the admin or owner of the project',
+        async done => {
+            cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 120000,
+            });
+
+            await cluster.execute(null, async ({ page }) => {
+                await init.loginUser({ email: teamEmail, password }, page);
+                await init.switchProject(newProjectName, page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+
+                await page.waitForSelector('#monitors');
+                await page.click('#monitors');
+                const deleteBtn = `#delete_${monitorCategory}`;
+                await page.waitForSelector(deleteBtn, {
+                    visible: true,
+                });
+                await page.click(deleteBtn);
+                const modal = await page.waitForSelector('#unauthorisedModal');
+                expect(modal).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });
