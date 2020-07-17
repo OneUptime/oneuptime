@@ -7,9 +7,12 @@ import { changePlan } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import PlanFields from '../project/PlanFields';
-import { PricingPlan } from '../../config';
+import { PricingPlan, User } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
+import Unauthorised from '../modals/Unauthorised';
+import { openModal } from '../../actions/modal';
 
 function Validate(values) {
     const errors = {};
@@ -61,30 +64,37 @@ export class Plans extends Component {
     };
 
     submit = values => {
+        const { currentProject, openModal } = this.props;
+        const userId = User.getUserId();
         const { _id: id, name } = this.props.currentProject;
-        const {
-            category: oldCategory,
-            type: oldType,
-            details: oldDetails,
-        } = PricingPlan.getPlanById(this.props.initialValues.planId);
-        const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
-        const {
-            category: newCategory,
-            type: newType,
-            details: newDetails,
-        } = PricingPlan.getPlanById(values.planId);
-        const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
-        this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROJECT > PLAN CHANGED', {
-                oldPlan,
-                newPlan,
-            });
+        if (isOwnerOrAdmin(userId, currentProject)) {
+            const {
+                category: oldCategory,
+                type: oldType,
+                details: oldDetails,
+            } = PricingPlan.getPlanById(this.props.initialValues.planId);
+            const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
+            const {
+                category: newCategory,
+                type: newType,
+                details: newDetails,
+            } = PricingPlan.getPlanById(values.planId);
+            const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
+            this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
+
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent('EVENT: DASHBOARD > PROJECT > PLAN CHANGED', {
+                    oldPlan,
+                    newPlan,
+                });
+            }
+        } else {
+            openModal({ id: userId, content: Unauthorised });
         }
     };
 
     render() {
-        const { handleSubmit, isRequesting, error, activeForm } = this.props;
+        const { isRequesting, error, activeForm, handleSubmit } = this.props;
         const { isAnnual, plans } = this.state;
 
         return (
@@ -214,6 +224,7 @@ Plans.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    openModal: PropTypes.func,
 };
 
 const ChangePlan = new reduxForm({
@@ -236,6 +247,6 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ changePlan }, dispatch);
+    bindActionCreators({ changePlan, openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ChangePlan);
