@@ -338,8 +338,16 @@ const SecurityLog = ({
                         >
                             <div className="Box-root">
                                 <span className="Text-fontWeight--medium">
-                                    {applicationLogs.count} Log
-                                    {applicationLogs.count > 1 ? 's' : ''}
+                                    {applicationLogs.count
+                                        ? applicationLogs.count
+                                        : 0}{' '}
+                                    Security Issue
+                                    {applicationLogs.count > 1
+                                        ? 's'
+                                        : !applicationLogs.count ||
+                                          applicationLogs.count === 0
+                                        ? 's'
+                                        : ''}
                                 </span>
                             </div>
                         </div>
@@ -356,8 +364,16 @@ const SecurityLog = ({
                         >
                             <div className="Box-root">
                                 <span className="Text-fontWeight--medium">
-                                    {containerLogs.count} Log
-                                    {containerLogs.count > 1 ? 's' : ''}
+                                    {containerLogs.count
+                                        ? containerLogs.count
+                                        : 0}{' '}
+                                    Security Issue
+                                    {containerLogs.count > 1
+                                        ? 's'
+                                        : !containerLogs.count ||
+                                          containerLogs.count === 0
+                                        ? 's'
+                                        : ''}
                                 </span>
                             </div>
                         </div>
