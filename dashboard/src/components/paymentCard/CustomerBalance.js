@@ -13,7 +13,9 @@ import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, env } from '../../config';
+import { SHOULD_LOG_ANALYTICS, env, User } from '../../config';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
+import Unauthorised from '../modals/Unauthorised';
 
 function validate(value) {
     const errors = {};
@@ -33,31 +35,39 @@ export class CustomerBalance extends Component {
     };
 
     submitForm = values => {
-        const { rechargeBalanceAmount } = values;
-        const { addBalance, projectId, openModal } = this.props;
-        const { MessageBoxId } = this.state;
+        const { addBalance, projectId, openModal, currentProject } = this.props;
+        const userId = User.getUserId();
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > BILLING > ADD BALANCE',
-                values
-            );
-        }
+        if (isOwnerOrAdmin(userId, currentProject)) {
+            const { MessageBoxId } = this.state;
+            const { rechargeBalanceAmount } = values;
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent(
+                    'EVENT: DASHBOARD > PROJECT > BILLING > ADD BALANCE',
+                    values
+                );
+            }
 
-        if (rechargeBalanceAmount) {
-            addBalance(projectId, values)
-                .then(() => {
-                    const { paymentIntent } = this.props;
-                    this.handlePaymentIntent(paymentIntent.client_secret);
-                })
-                .catch(err => {
-                    openModal({
-                        id: MessageBoxId,
-                        content: MessageBox,
-                        title: 'Message',
-                        message: err.message,
+            if (rechargeBalanceAmount) {
+                addBalance(projectId, values)
+                    .then(() => {
+                        const { paymentIntent } = this.props;
+                        this.handlePaymentIntent(paymentIntent.client_secret);
+                    })
+                    .catch(err => {
+                        openModal({
+                            id: MessageBoxId,
+                            content: MessageBox,
+                            title: 'Message',
+                            message: err.message,
+                        });
                     });
-                });
+            }
+        } else {
+            openModal({
+                id: projectId,
+                content: Unauthorised,
+            });
         }
     };
     handlePaymentIntent = paymentIntentClientSecret => {
@@ -282,6 +292,7 @@ CustomerBalance.propTypes = {
     paymentIntent: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
     stripe: PropTypes.object,
     getProjects: PropTypes.func,
+    currentProject: PropTypes.object,
 };
 
 const formName = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1);
@@ -308,6 +319,7 @@ const mapStateToProps = state => ({
         state.project.currentProject._id,
     isRequesting: state.project.addBalance.requesting,
     paymentIntent: state.project.addBalance.pi,
+    currentProject: state.project.currentProject,
 });
 
 const CustomerBalanceFormStripe = injectStripe(
