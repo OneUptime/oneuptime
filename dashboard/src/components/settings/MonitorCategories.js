@@ -213,6 +213,7 @@ export class MonitorCategories extends Component {
                                                                     }}
                                                                     className="Button bs-ButtonLegacy"
                                                                     type="button"
+                                                                    id={`edit_${name}`}
                                                                 >
                                                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -236,6 +237,7 @@ export class MonitorCategories extends Component {
                                                                     }}
                                                                     className="Button bs-ButtonLegacy"
                                                                     type="button"
+                                                                    id={`delete_${name}`}
                                                                 >
                                                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">

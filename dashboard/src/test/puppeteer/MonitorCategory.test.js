@@ -9,6 +9,7 @@ const password = '1234567890';
 const componentName = utils.generateRandomString();
 const teamEmail = utils.generateRandomBusinessEmail();
 const newProjectName = 'Test';
+const monitorCategory = 'stat';
 
 describe('Monitor Category', () => {
     const operationTimeOut = 50000;
@@ -222,7 +223,7 @@ describe('Member Restriction', () => {
                     },
                     page
                 );
-                await init.addMonitorCategory('stat', page);
+                await init.addMonitorCategory(monitorCategory, page);
             }
         );
 
@@ -260,6 +261,40 @@ describe('Member Restriction', () => {
                     visible: true,
                 });
                 await page.click('#createMonitorCategoryButton');
+                const modal = await page.waitForSelector('#unauthorisedModal');
+                expect(modal).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should show unauthorised modal when trying to edit a monitor category for a member who is not the admin or owner of the project',
+        async done => {
+            cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 120000,
+            });
+
+            await cluster.execute(null, async ({ page }) => {
+                await init.loginUser({ email: teamEmail, password }, page);
+                await init.switchProject(newProjectName, page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+
+                await page.waitForSelector('#monitors');
+                await page.click('#monitors');
+                const editBtn = `#edit_${monitorCategory}`;
+                await page.waitForSelector(editBtn, {
+                    visible: true,
+                });
+                await page.click(editBtn);
                 const modal = await page.waitForSelector('#unauthorisedModal');
                 expect(modal).toBeDefined();
             });
