@@ -183,4 +183,31 @@ describe('Member Restriction', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should show unauthorised modal when a team member who is not an admin or owner of the project tries to change project plan',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#billing');
+                await page.click('#billing');
+                await page.waitForSelector('input#Startup_month', {
+                    visible: true,
+                });
+                await page.click('input#Startup_month');
+                await page.click('#changePlanBtn');
+                const unauthorisedModal = await page.waitForSelector(
+                    '#unauthorisedModal',
+                    { visible: true }
+                );
+                expect(unauthorisedModal).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });
