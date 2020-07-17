@@ -10,6 +10,7 @@ then
     for ((i = 2; i <= $#; i++ ))
     do
         hash_found=`./ci/scripts/hashexist.sh $1 ${!i}`
+        echo "value of hash found; $hash_found"
         if [[ $hash_found == *"true"* ]]
         then
             next_stage="skip"
