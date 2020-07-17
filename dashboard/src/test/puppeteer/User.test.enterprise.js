@@ -69,6 +69,7 @@ describe('Enterprise Team SubProject API', () => {
                         '.bs-ObjectList-rows>a:first-of-type'
                     );
                     await pageInPrivateMode.click('.bs-ObjectList-rows>a:first-of-type');
+                    await pageInPrivateMode.waitFor(3000);
                     await pageInPrivateMode.waitForSelector('#delete');
                     await pageInPrivateMode.click('#delete');
                     await pageInPrivateMode.waitForSelector('#confirmDelete');
