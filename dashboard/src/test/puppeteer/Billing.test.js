@@ -125,7 +125,7 @@ describe('Member Restriction', () => {
     });
 
     test(
-        'should not show billing details for team member who is not the admin or owner of the project',
+        'should show unauthorised modal when a team member who is not an admin or owner of the project tries to update alert option',
         async done => {
             cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
@@ -144,10 +144,14 @@ describe('Member Restriction', () => {
                 await page.click('#projectSettings');
                 await page.waitForSelector('#billing');
                 await page.click('#billing');
-                const plan = await page.waitForSelector('input#Growth_month', {
-                    hidden: true,
-                });
-                expect(plan).toBeNull();
+                await page.waitForSelector('#alertEnable', { visible: true });
+                await page.$eval('#alertEnable', checkbox => checkbox.click);
+                await page.click('#alertOptionSave');
+                const unauthorisedModal = await page.waitForSelector(
+                    '#unauthorisedModal',
+                    { visible: true }
+                );
+                expect(unauthorisedModal).toBeDefined();
             });
             done();
         },
