@@ -1,3 +1,5 @@
+[![maven](https://img.shields.io/maven-central/v/io.hackerbay.fyipe/log-java)](https://search.maven.org/artifact/io.hackerbay.fyipe/log-java)
+
 # Fyipe Application Logger
 
 A fyipe application logger that can be used to send logs about your applications created on your fypie dashboard
