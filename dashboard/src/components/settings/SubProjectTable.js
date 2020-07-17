@@ -9,18 +9,76 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import RemoveSubProject from '../modals/RemoveSubProject';
 import SubProjectApiKey from '../modals/SubProjectApiKey';
+import { User } from '../../config';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
+import Unauthorised from '../modals/Unauthorised';
 
 export class SubProjectTable extends Component {
     constructor(props) {
         super(props);
         this.state = { subProjectModalId: uuid.v4() };
     }
+
+    handleRevealAPIKey = userId => {
+        const { openModal, subProject, currentProject } = this.props;
+        isOwnerOrAdmin(userId, currentProject)
+            ? openModal({
+                  id: this.state.subProjectModalId,
+                  content: DataPathHoC(SubProjectApiKey, {
+                      subProjectModalId: this.state.subProjectModalId,
+                      subProjectId: subProject._id,
+                      subProjectTitle: subProject.name,
+                  }),
+              })
+            : openModal({
+                  id: this.state.subProjectModalId,
+                  content: DataPathHoC(Unauthorised),
+              });
+    };
+
+    handleEdit = userId => {
+        const { openModal, subProject, currentProject } = this.props;
+        isOwnerOrAdmin(userId, currentProject)
+            ? openModal({
+                  id: this.state.subProjectModalId,
+                  content: DataPathHoC(SubProjectForm, {
+                      subProjectModalId: this.state.subProjectModalId,
+                      editSubProject: true,
+                      subProjectId: subProject._id,
+                      subProjectTitle: subProject.name,
+                  }),
+              })
+            : openModal({
+                  id: this.state.subProjectModalId,
+                  content: DataPathHoC(Unauthorised),
+              });
+    };
+
+    handleRemove = userId => {
+        const { openModal, subProject, currentProject } = this.props;
+        isOwnerOrAdmin(userId, currentProject)
+            ? openModal({
+                  id: this.state.subProjectModalId,
+                  content: DataPathHoC(RemoveSubProject, {
+                      subProjectModalId: this.state.subProjectModalId,
+                      subProjectId: subProject._id,
+                      subProjectTitle: subProject.name,
+                  }),
+              })
+            : openModal({
+                  id: this.state.subProjectModalId,
+                  content: DataPathHoC(Unauthorised),
+              });
+    };
+
     render() {
         const { subProject, subProjectState } = this.props;
         const disabled =
             subProjectState.subProjects.requesting ||
             subProjectState.newSubProject.requesting ||
             subProjectState.renameSubProject.requesting;
+        const userId = User.getUserId();
+
         return (
             <div className="bs-ObjectList-row db-UserListRow">
                 <div
@@ -67,17 +125,7 @@ export class SubProjectTable extends Component {
                                 disabled={disabled}
                                 className="bs-Button bs-DeprecatedButton"
                                 type="button"
-                                onClick={() =>
-                                    this.props.openModal({
-                                        id: this.state.subProjectModalId,
-                                        content: DataPathHoC(SubProjectApiKey, {
-                                            subProjectModalId: this.state
-                                                .subProjectModalId,
-                                            subProjectId: subProject._id,
-                                            subProjectTitle: subProject.name,
-                                        }),
-                                    })
-                                }
+                                onClick={() => this.handleRevealAPIKey(userId)}
                             >
                                 <span>Reveal API Key</span>
                             </button>
@@ -87,18 +135,7 @@ export class SubProjectTable extends Component {
                                 disabled={disabled}
                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
                                 type="button"
-                                onClick={() =>
-                                    this.props.openModal({
-                                        id: this.state.subProjectModalId,
-                                        content: DataPathHoC(SubProjectForm, {
-                                            subProjectModalId: this.state
-                                                .subProjectModalId,
-                                            editSubProject: true,
-                                            subProjectId: subProject._id,
-                                            subProjectTitle: subProject.name,
-                                        }),
-                                    })
-                                }
+                                onClick={() => this.handleEdit(userId)}
                             >
                                 <span>Edit</span>
                             </button>
@@ -108,17 +145,7 @@ export class SubProjectTable extends Component {
                                 disabled={disabled}
                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
                                 type="button"
-                                onClick={() =>
-                                    this.props.openModal({
-                                        id: this.state.subProjectModalId,
-                                        content: DataPathHoC(RemoveSubProject, {
-                                            subProjectModalId: this.state
-                                                .subProjectModalId,
-                                            subProjectId: subProject._id,
-                                            subProjectTitle: subProject.name,
-                                        }),
-                                    })
-                                }
+                                onClick={() => this.handleRemove(userId)}
                             >
                                 <span>Remove</span>
                             </button>
@@ -137,6 +164,7 @@ SubProjectTable.propTypes = {
     openModal: PropTypes.func,
     subProject: PropTypes.object,
     subProjectState: PropTypes.object,
+    currentProject: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => {
