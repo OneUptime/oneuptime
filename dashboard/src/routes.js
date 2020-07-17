@@ -338,7 +338,7 @@ export const groups = [
                         title: 'Git Credentials',
                         path:
                             '/dashboard/project/:projectId/settings/gitCredential',
-                        icon: 'radar',
+                        icon: 'git',
                         visible: true,
                         subRoutes: [],
                         component: GitCredential,
