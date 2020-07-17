@@ -12,8 +12,8 @@ const password = '1234567890';
 describe('Credential Page', () => {
     const operationTimeOut = 500000;
     const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
-    const dockerUsername = 'username';
-    const dockerPassword = 'hello1234567890';
+    const dockerUsername = utils.dockerCredential.dockerUsername;
+    const dockerPassword = utils.dockerCredential.dockerPassword;
     const gitUsername = utils.gitCredential.gitUsername;
     const gitPassword = utils.gitCredential.gitPassword;
 
