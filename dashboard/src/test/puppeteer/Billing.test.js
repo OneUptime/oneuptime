@@ -157,4 +157,30 @@ describe('Member Restriction', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should show unauthorised modal when a team member who is not an admin or owner of the project tries to recharge account',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#billing');
+                await page.click('#billing');
+                await page.waitForSelector('#rechargeBalanceAmount');
+                await page.click('#rechargeBalanceAmount');
+                await page.type('#rechargeBalanceAmount', '20');
+                await page.click('#rechargeAccount');
+                const unauthorisedModal = await page.waitForSelector(
+                    '#unauthorisedModal',
+                    { visible: true }
+                );
+                expect(unauthorisedModal).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });

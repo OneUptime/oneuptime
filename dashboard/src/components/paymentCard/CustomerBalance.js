@@ -246,7 +246,7 @@ export class CustomerBalance extends Component {
                                         <span className="db-SettingsForm-footerMessage"></span>
                                         <div>
                                             <button
-                                                id="btnCreateProject"
+                                                id="rechargeAccount"
                                                 className="bs-Button bs-Button--blue"
                                                 disabled={
                                                     this.props.isRequesting
