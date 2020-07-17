@@ -456,4 +456,17 @@ module.exports = {
         await page.click('#btnCreateProject');
         await page.waitForNavigation({ waitUntil: 'networkidle0' });
     },
+    growthPlanUpgrade: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings', { visible: true });
+        await page.click('#projectSettings');
+        await page.waitForSelector('#billing');
+        await page.click('#billing');
+        await page.waitForSelector('input#Growth_month', {
+            visible: true,
+        });
+        await page.click('input#Growth_month');
+        await page.click('#changePlanBtn');
+        await page.waitForSelector('.ball-beat', { hidden: true });
+    },
 };
