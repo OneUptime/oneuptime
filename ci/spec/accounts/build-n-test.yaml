@@ -3,7 +3,6 @@ build_n_test_accounts:
     script:
         - chmod +x ./ci/scripts/checkhash.sh
         - export next_stage=`./ci/scripts/checkhash.sh build_n_test_accounts dashboard backend accounts`
-        - echo "next_stage value is $next_stage"
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo apt-get update

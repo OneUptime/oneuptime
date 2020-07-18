@@ -3,7 +3,6 @@ build_n_test_admin-dashboard:
     script:
         - chmod +x ./ci/scripts/checkhash.sh
         - export next_stage=`./ci/scripts/checkhash.sh build_n_test_admin-dashboard admin-dashboard`
-        - echo "next_stage value is $next_stage"
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - cd admin-dashboard
@@ -24,7 +23,6 @@ build_n_test_enterprise_admin-dashboard:
     script:
         - chmod +x ./ci/scripts/checkhash.sh
         - export next_stage=`./ci/scripts/checkhash.sh build_n_test_enterprise_admin-dashboard backend accounts licensing admin-dashboard`
-        - echo "next_stage value is $next_stage"
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
