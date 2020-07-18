@@ -77,6 +77,10 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
+            if (data.dockerPassword) {
+                data.dockerPassword = await encrypt(data.dockerPassword);
+            }
+
             const dockerCredential = await DockerCredentialModel.findOneAndUpdate(
                 query,
                 {
