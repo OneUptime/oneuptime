@@ -52,6 +52,14 @@ const GitCredentialList = ({
         });
     };
 
+    const handleCredentialUpdate = credentialId => {
+        openModal({
+            id: projectId,
+            content: GitCredentialModal,
+            propArr: [{ projectId, credentialId }],
+        });
+    };
+
     const handleKeyboard = e => {
         switch (e.key) {
             case 'Escape':
@@ -177,7 +185,20 @@ const GitCredentialList = ({
                                                         <button
                                                             id={`deleteCredentialBtn_${index}`}
                                                             title="delete"
-                                                            className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit Margin-left--8"
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleCredentialUpdate(
+                                                                    gitCredential._id
+                                                                )
+                                                            }
+                                                        >
+                                                            <span>Edit</span>
+                                                        </button>
+                                                        <button
+                                                            id={`deleteCredentialBtn_${index}`}
+                                                            title="delete"
+                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete Margin-left--8"
                                                             type="button"
                                                             onClick={() =>
                                                                 handleDelete(
