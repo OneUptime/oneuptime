@@ -8,8 +8,11 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { PricingPlan } from '../../config';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
 import ChangePlanField from './ChangePlanField';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
+import Unauthorised from '../modals/Unauthorised';
+import { openModal } from '../../actions/modal';
 
 function Validate(values) {
     const errors = {};
