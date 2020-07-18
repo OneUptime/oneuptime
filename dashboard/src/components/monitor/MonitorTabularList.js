@@ -192,7 +192,19 @@ export class MonitorTabularList extends Component {
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                 style={{ height: '1px' }}
                                             >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Flex-flex Flex-direction--row">
+                                                    <span
+                                                        className="db-SideNav-icon db-SideNav-icon--monitor db-SideNav-icon--selected"
+                                                        style={{
+                                                            backgroundRepeat:
+                                                                'no-repeat',
+                                                            backgroundSize:
+                                                                '15px',
+                                                            backgroundPosition:
+                                                                'center',
+                                                            margin: '3px 3px',
+                                                        }}
+                                                    />
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root Margin-right--16">
                                                             <span>

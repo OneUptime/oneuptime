@@ -14,6 +14,9 @@ import getParentRoute from '../utils/getParentRoute';
 import { PropTypes } from 'prop-types';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import ShouldRender from '../components/basic/ShouldRender';
+import NotAuthorised from '../components/project/NotAuthorised';
+import RenderIfOwnerOrAdmin from '../components/basic/RenderIfOwnerOrAdmin';
+import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMember';
 
 class Billing extends Component {
     constructor(props) {
@@ -40,20 +43,25 @@ class Billing extends Component {
                     name="Project Settings"
                 />
                 <BreadCrumbItem route={pathname} name="Billing" />
-                <div className="Margin-vertical--12">
-                    <ShouldRender if={!alertEnable}>
-                        <AlertDisabledWarning page="Billing" />
-                    </ShouldRender>
-                    <RenderIfOwner>
-                        <AlertAdvanceOption />
-                    </RenderIfOwner>
-                    <CustomerBalance />
-                    <AlertCharges />
+                <RenderIfOwnerOrAdmin>
+                    <div className="Margin-vertical--12">
+                        <ShouldRender if={!alertEnable}>
+                            <AlertDisabledWarning page="Billing" />
+                        </ShouldRender>
+                        <RenderIfOwner>
+                            <AlertAdvanceOption />
+                        </RenderIfOwner>
+                        <CustomerBalance />
+                        <AlertCharges />
 
-                    <RenderIfOwner>
-                        <ChangePlan />
-                    </RenderIfOwner>
-                </div>
+                        <RenderIfOwner>
+                            <ChangePlan />
+                        </RenderIfOwner>
+                    </div>
+                </RenderIfOwnerOrAdmin>
+                <RenderIfSubProjectMember>
+                    <NotAuthorised />
+                </RenderIfSubProjectMember>
             </Dashboard>
         );
     }
@@ -66,6 +74,7 @@ const mapStateToProps = state => {
         alertEnable:
             state.form.AlertAdvanceOption &&
             state.form.AlertAdvanceOption.values.alertEnable,
+        currentProject: state.project.currentProject,
     };
 };
 
