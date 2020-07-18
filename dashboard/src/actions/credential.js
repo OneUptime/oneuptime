@@ -235,16 +235,16 @@ export const addDockerCredential = ({ projectId, data }) => async dispatch => {
 
 // Edit and update Docker Credential
 export const updateDockerCredentialRequest = () => ({
-    type: types.UPDATE_GIT_CREDENTIAL_REQUEST,
+    type: types.UPDATE_DOCKER_CREDENTIAL_REQUEST,
 });
 
 export const updateDockerCredentialSuccess = payload => ({
-    type: types.UPDATE_GIT_CREDENTIAL_SUCCESS,
+    type: types.UPDATE_DOCKER_CREDENTIAL_SUCCESS,
     payload,
 });
 
 export const updateDockerCredentialFailure = error => ({
-    type: types.UPDATE_GIT_CREDENTIAL_FAILURE,
+    type: types.UPDATE_DOCKER_CREDENTIAL_FAILURE,
     payload: error,
 });
 
