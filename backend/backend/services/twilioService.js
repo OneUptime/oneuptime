@@ -127,7 +127,8 @@ const _this = {
         smsTemplate,
         incident,
         projectName,
-        projectId
+        projectId,
+        componentName
     ) {
         try {
             const _this = this;
@@ -140,6 +141,7 @@ const _this = {
                 monitorName: monitorName,
                 incidentTime: incidentTime,
                 incidentType: incident.incidentType,
+                componentName,
             };
             template = template(data);
             const creds = await _this.getSettings();
@@ -185,7 +187,8 @@ const _this = {
         smsTemplate,
         incident,
         projectName,
-        projectId
+        projectId,
+        componentName
     ) {
         try {
             const _this = this;
@@ -198,6 +201,7 @@ const _this = {
                 monitorName: monitorName,
                 incidentTime: incidentTime,
                 incidentType: incident.incidentType,
+                componentName,
             };
             template = template(data);
             const creds = await _this.getSettings();
@@ -243,7 +247,8 @@ const _this = {
         smsTemplate,
         incident,
         projectName,
-        projectId
+        projectId,
+        componentName
     ) {
         try {
             const _this = this;
@@ -256,6 +261,7 @@ const _this = {
                 monitorName: monitorName,
                 incidentTime: incidentTime,
                 incidentType: incident.incidentType,
+                componentName,
             };
             template = template(data);
             const creds = await _this.getSettings();

@@ -410,7 +410,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                       },
             };
             return Object.assign({}, state, {
-                logs: requestStats,
+                stats: requestStats,
             });
 
         case FETCH_LOG_STAT_RESET:

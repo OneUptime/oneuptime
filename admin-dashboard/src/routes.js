@@ -1,5 +1,9 @@
 import pages from './pages';
-import { IS_SAAS_SERVICE, IS_THIRD_PARTY_BILLING } from './config';
+import {
+    IS_SAAS_SERVICE,
+    IS_THIRD_PARTY_BILLING,
+    DASHBOARD_URL,
+} from './config';
 
 const {
     Users,
@@ -131,6 +135,16 @@ export const groups = [
                     },
                 ],
                 index: 1,
+            },
+            {
+                title: 'Back to Dashboard',
+                path: DASHBOARD_URL,
+                icon: 'back',
+                component: null,
+                visible: true,
+                subRoutes: [],
+                index: 2,
+                external: true,
             },
         ],
     },

@@ -28,6 +28,7 @@ export function logoutUser() {
         dispatch(requestLogout());
         const cookies = new Cookies();
         cookies.remove('data');
+        cookies.remove('admin-data');
         localStorage.clear();
         dispatch(receiveLogout());
         window.location = ACCOUNTS_URL;

@@ -89,7 +89,7 @@ then
         sudo microk8s.enable storage
     fi
     echo "RUNNING COMMAND: sudo microk8s.inspect"
-    sudo sudo microk8s.inspect
+    sudo microk8s.inspect
     echo "Sleeping for 30 seconds"
     sleep 30s
 fi

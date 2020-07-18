@@ -25,6 +25,8 @@ module.exports = {
                         : -1;
                     if (
                         (monitor.lighthouseScanStatus &&
+                            monitor.lighthouseScanStatus === 'scan') ||
+                        (monitor.lighthouseScanStatus &&
                             monitor.lighthouseScanStatus === 'failed') ||
                         ((!monitor.lighthouseScannedAt ||
                             scanIntervalInDays > 0) &&

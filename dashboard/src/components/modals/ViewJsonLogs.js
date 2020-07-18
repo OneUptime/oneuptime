@@ -31,7 +31,7 @@ class ViewJsonLogs extends Component {
                     style={{ marginTop: 40 }}
                 >
                     <div className="bs-BIM">
-                        <div className="bs-Modal bs-Modal--medium">
+                        <div className="bs-Modal bs-Modal--large">
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -39,8 +39,8 @@ class ViewJsonLogs extends Component {
                                     </span>
                                 </div>
                             </div>
-                            <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                            <div className="bs-Modal-content Text-overflow--scroll Text-wrap--wrap">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base">
                                     <ReactJson
                                         src={jsonLog}
                                         theme="rjv-default"

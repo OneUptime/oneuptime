@@ -9,7 +9,8 @@ import { renameProject } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 
 function validate(value) {
     const errors = {};
@@ -40,6 +41,9 @@ export class ProjectSettings extends Component {
     };
 
     render() {
+        const { currentProject } = this.props;
+        const userId = User.getUserId();
+
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -82,7 +86,11 @@ export class ProjectSettings extends Component {
                                                             required="required"
                                                             disabled={
                                                                 this.props
-                                                                    .isRequesting
+                                                                    .isRequesting ||
+                                                                !isOwnerOrAdmin(
+                                                                    userId,
+                                                                    currentProject
+                                                                )
                                                             }
                                                         />
                                                     </div>
@@ -98,7 +106,13 @@ export class ProjectSettings extends Component {
                                     <button
                                         id="btnCreateProject"
                                         className="bs-Button bs-Button--blue"
-                                        disabled={this.props.isRequesting}
+                                        disabled={
+                                            this.props.isRequesting ||
+                                            !isOwnerOrAdmin(
+                                                userId,
+                                                currentProject
+                                            )
+                                        }
                                         type="submit"
                                     >
                                         <ShouldRender
@@ -129,6 +143,7 @@ ProjectSettings.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     projectId: PropTypes.string,
+    currentProject: PropTypes.object,
 };
 
 const formName = 'ProjectSettings' + Math.floor(Math.random() * 10 + 1);
@@ -156,6 +171,7 @@ const mapStateToProps = state => ({
                 ? state.project.currentProject.name
                 : '',
     },
+    currentProject: state.project.currentProject,
 });
 
 export default connect(

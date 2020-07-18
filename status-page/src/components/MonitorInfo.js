@@ -261,16 +261,18 @@ class MonitorInfo extends Component {
                                 {monitor.name}
                             </span>
                             <br />
-                            <span
+                            <div
                                 style={{
                                     color: '#8898aa',
                                     textDecoration: 'none',
                                     paddingLeft: '0px',
                                     fontSize: '12px',
+                                    width: '300px',
+                                    wordWrap: 'break-word',
                                 }}
                             >
                                 {selectedCharts.description}
-                            </span>
+                            </div>
                         </div>
                     </div>
                     <div>

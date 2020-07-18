@@ -134,7 +134,11 @@ class MonitorView extends React.Component {
                     route={`${componentMonitorsRoute}#`}
                     name="Monitors"
                 />
-                <BreadCrumbItem route={pathname} name={monitorName} />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={monitorName}
+                    pageTitle="Monitor View"
+                />
                 <div className="Box-root">
                     <div>
                         <div>

@@ -6,18 +6,20 @@ const ProcessedDescription = text => {
 
     const tempArr = text.split(/\[Learn more\]/i);
     return (
-        <span>
-            {tempArr && tempArr[0]}{' '}
-            {tempArr && tempArr[1] ? (
-                <a
-                    href={tempArr[1].replace(/^\(|\)|\.$/gi, '')}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                >
-                    <b>Learn more.</b>
-                </a>
-            ) : null}
-        </span>
+        <a
+            href={tempArr[1].replace(/^\(|\)|\.$/gi, '')}
+            rel="noopener noreferrer"
+            target="_blank"
+        >
+            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                    <span>
+                        {tempArr && tempArr[0]}{' '}
+                        {tempArr && tempArr[1] ? <b>Learn more.</b> : null}
+                    </span>
+                </span>
+            </div>
+        </a>
     );
 };
 
@@ -80,13 +82,9 @@ const WebsiteIssuesList = ({ issues }) => {
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                         style={{ height: '1px', width: '70%' }}
                                     >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                {ProcessedDescription(
-                                                    issue.description
-                                                )}
-                                            </span>
-                                        </div>
+                                        {ProcessedDescription(
+                                            issue.description
+                                        )}
                                     </td>
                                 </tr>
                             );

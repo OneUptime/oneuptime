@@ -50,13 +50,9 @@ class Settings extends Component {
                                     <span>
                                         <div>
                                             <div>
-                                                <RenderIfOwner>
-                                                    <ProjectSettings />
-                                                </RenderIfOwner>
+                                                <ProjectSettings />
 
-                                                <RenderIfOwner>
-                                                    <SubProjects />
-                                                </RenderIfOwner>
+                                                <SubProjects />
 
                                                 <RenderIfOwner>
                                                     <DeleteProject />

@@ -21,6 +21,10 @@ import {
     ADD_SEAT_FAILURE,
     ADD_SEAT_REQUEST,
     ADD_SEAT_RESET,
+    FETCH_COMPONENT_RESOURCES_FAILURE,
+    FETCH_COMPONENT_RESOURCES_REQUEST,
+    FETCH_COMPONENT_RESOURCES_RESET,
+    FETCH_COMPONENT_RESOURCES_SUCCESS,
 } from '../constants/component';
 
 const INITIAL_STATE = {
@@ -48,10 +52,14 @@ const INITIAL_STATE = {
         success: false,
     },
     deleteComponent: false,
+    componentResourceList: [],
 };
 
 export default function component(state = INITIAL_STATE, action) {
-    let components, isExistingComponent;
+    let components,
+        isExistingComponent,
+        failureComponentResourceList,
+        requestComponentResourceList;
     switch (action.type) {
         case CREATE_COMPONENT_SUCCESS:
             isExistingComponent = state.componentList.components.find(
@@ -387,6 +395,70 @@ export default function component(state = INITIAL_STATE, action) {
                     error: null,
                     success: false,
                 },
+            });
+
+        case FETCH_COMPONENT_RESOURCES_SUCCESS:
+            return Object.assign({}, state, {
+                componentResourceList: {
+                    ...state.componentResourceList,
+                    [action.payload.componentId]: {
+                        requesting: false,
+                        error: null,
+                        success: false,
+                        componentResources: action.payload.totalResources,
+                    },
+                },
+            });
+
+        case FETCH_COMPONENT_RESOURCES_FAILURE:
+            failureComponentResourceList = {
+                ...state.componentResourceList,
+                [action.payload.componentId]: state.componentResourceList[
+                    action.payload.componentId
+                ]
+                    ? {
+                          ...state.componentResourceList[
+                              action.payload.componentId
+                          ],
+                          error: action.payload.error,
+                      }
+                    : {
+                          componentResourceList: [],
+                          error: action.payload.error,
+                          requesting: false,
+                          success: false,
+                      },
+            };
+            return Object.assign({}, state, {
+                componentResourceList: failureComponentResourceList,
+            });
+
+        case FETCH_COMPONENT_RESOURCES_RESET:
+            return Object.assign({}, state, {
+                componentResourceList: INITIAL_STATE.componentResourceList,
+            });
+
+        case FETCH_COMPONENT_RESOURCES_REQUEST:
+            requestComponentResourceList = {
+                ...state.componentResourceList,
+                [action.payload.componentId]: state.componentResourceList[
+                    action.payload.componentId
+                ]
+                    ? {
+                          ...state.componentResourceList[
+                              action.payload.componentId
+                          ],
+                          requesting: true,
+                      }
+                    : {
+                          componentResourceList: [],
+                          error: null,
+                          requesting: true,
+                          success: false,
+                      },
+            };
+            return Object.assign({}, state, {
+                componentResourceList: requestComponentResourceList,
             });
 
         default:

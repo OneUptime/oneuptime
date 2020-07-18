@@ -48,6 +48,7 @@
                 <version>2.9.1</version>
                 <configuration>
                     <source>7</source>
+                    <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
                 </configuration>
                 <executions>
                     <execution>
@@ -69,6 +70,12 @@
                         <goals>
                             <goal>sign</goal>
                         </goals>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -89,7 +96,6 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.13</version>
-            <scope>test</scope>
         </dependency>
 
     </dependencies>
@@ -115,6 +121,7 @@
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
+            <name>ossrh</name>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>

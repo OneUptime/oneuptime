@@ -63,6 +63,7 @@ function TeamMemberProfile({
             <BreadCrumbItem
                 route={match.url}
                 name={teamMember ? teamMember.name : ''}
+                pageTitle="Team Member Profile"
             />
             <div>
                 <div>
