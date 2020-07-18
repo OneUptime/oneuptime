@@ -5,6 +5,7 @@ audit_accounts:
     script:
         - chmod +x ./ci/scripts/checkhash.sh
         - export next_stage=`./ci/scripts/checkhash.sh audit_accounts accounts`
+        - echo "next_stage value is $next_stage"
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
