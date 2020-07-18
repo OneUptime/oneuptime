@@ -86,7 +86,7 @@ module.exports = {
                     $set: data,
                 },
                 { new: true }
-            );
+            ).populate('projectId');
 
             if (!gitCredential) {
                 const error = new Error(

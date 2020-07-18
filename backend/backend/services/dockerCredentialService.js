@@ -83,7 +83,7 @@ module.exports = {
                     $set: data,
                 },
                 { new: true }
-            );
+            ).populate('projectId');
 
             if (!dockerCredential) {
                 const error = new Error(
