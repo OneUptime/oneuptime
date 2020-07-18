@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, Field, change } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
-import { ValidateField } from '../../config';
+import { ValidateField, User } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import { alertOptionsUpdate } from '../../actions/project';
 import PropTypes from 'prop-types';
@@ -14,6 +14,8 @@ import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
 import { env } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
+import Unauthorised from '../modals/Unauthorised';
 
 export class AlertAdvanceOption extends Component {
     state = {
@@ -21,14 +23,26 @@ export class AlertAdvanceOption extends Component {
     };
 
     submitForm = value => {
-        value._id = this.props.projectId;
-        this.props.alertOptionsUpdate(this.props.projectId, value).then(() => {
-            const { paymentIntent } = this.props;
-            if (paymentIntent) {
-                //init payment
-                this.handlePaymentIntent(paymentIntent);
-            }
-        });
+        const {
+            currentProject,
+            projectId,
+            alertOptionsUpdate,
+            openModal,
+        } = this.props;
+        value._id = projectId;
+        const userId = User.getUserId();
+        isOwnerOrAdmin(userId, currentProject)
+            ? alertOptionsUpdate(projectId, value).then(() => {
+                  const { paymentIntent } = this.props;
+                  if (paymentIntent) {
+                      //init payment
+                      this.handlePaymentIntent(paymentIntent);
+                  }
+              })
+            : openModal({
+                  id: projectId,
+                  content: Unauthorised,
+              });
     };
 
     handlePaymentIntent = paymentIntentClientSecret => {
@@ -678,6 +692,7 @@ AlertAdvanceOption.propTypes = {
     paymentIntent: PropTypes.string,
     openModal: PropTypes.func.isRequired,
     balance: PropTypes.number,
+    currentProject: PropTypes.object,
 };
 
 const formName = 'AlertAdvanceOption';
@@ -721,6 +736,7 @@ const mapStateToProps = state => ({
         state.project.alertOptionsUpdate.project.paymentIntent,
     balance:
         state.project.currentProject && state.project.currentProject.balance,
+    currentProject: state.project.currentProject,
 });
 
 const AlertAdvanceOptionFormStripe = injectStripe(

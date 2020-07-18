@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-chmod +x ./ci/scripts/gethash.sh
-
-
 # install jq only when it does not exist
 if [[ ! $(which jq) ]]
 then
@@ -12,7 +9,8 @@ fi
 function hashExist {
     # $1 is the job name
     # $2 is the project
-    HASH_VALUE=`./ci/scripts/gethash.sh $1 $2`
+    PROJECT_HASH=`find ./$2 -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum`
+    HASH_VALUE=`echo $1$PROJECT_HASH | sha256sum | head -c 64`
     RESPONSE=`curl -H "Content-Type: application/json" -d "{\"structuredQuery\": {\"from\": {\"collectionId\": \"builds\"},\"where\": {\"compositeFilter\": {\"op\": \"AND\",\"filters\": [{\"fieldFilter\": {\"field\": {\"fieldPath\": \"project\"},\"op\": \"EQUAL\",\"value\": {\"stringValue\": '$2'}}},{\"fieldFilter\": {\"field\": {\"fieldPath\": \"hash\"},\"op\": \"EQUAL\",\"value\": {\"stringValue\": '$HASH_VALUE'}}}]}}}}" -X POST "https://firestore.googleapis.com/v1/projects/fyipe-devops/databases/(default)/documents:runQuery"`
     
     # if response contains an array of object with document key, then the hash already exist in db

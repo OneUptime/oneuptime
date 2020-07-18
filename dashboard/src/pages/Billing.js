@@ -4,7 +4,6 @@ import { withRouter } from 'react-router';
 import Dashboard from '../components/Dashboard';
 import CustomerBalance from '../components/paymentCard/CustomerBalance';
 import AlertCharges from '../components/alert/AlertCharges';
-import RenderIfOwner from '../components/basic/RenderIfOwner';
 import ChangePlan from '../components/settings/ChangePlan';
 import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
 import { logEvent } from '../analytics';
@@ -31,6 +30,7 @@ class Billing extends Component {
         const {
             location: { pathname },
             alertEnable,
+            currentProject,
         } = this.props;
 
         return (
@@ -44,15 +44,14 @@ class Billing extends Component {
                     <ShouldRender if={!alertEnable}>
                         <AlertDisabledWarning page="Billing" />
                     </ShouldRender>
-                    <RenderIfOwner>
+                    <ShouldRender if={currentProject}>
                         <AlertAdvanceOption />
-                    </RenderIfOwner>
+                    </ShouldRender>
                     <CustomerBalance />
                     <AlertCharges />
-
-                    <RenderIfOwner>
+                    <ShouldRender if={currentProject}>
                         <ChangePlan />
-                    </RenderIfOwner>
+                    </ShouldRender>
                 </div>
             </Dashboard>
         );
@@ -66,6 +65,7 @@ const mapStateToProps = state => {
         alertEnable:
             state.form.AlertAdvanceOption &&
             state.form.AlertAdvanceOption.values.alertEnable,
+        currentProject: state.project.currentProject,
     };
 };
 
@@ -74,6 +74,7 @@ Billing.propTypes = {
         pathname: PropTypes.string,
     }),
     alertEnable: PropTypes.bool,
+    currentProject: PropTypes.object,
 };
 
 export default withRouter(connect(mapStateToProps, null)(Billing));
