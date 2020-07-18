@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-chmod +x ./ci/scripts/gethash.sh
 chmod +x ./ci/scripts/hashexist.sh
 
 function storeHash {
     # $1 -> Job Name; $2 -> Project
-    HASH_VALUE=`./ci/scripts/gethash.sh $1 $2`
+    PROJECT_HASH=`find ./$2 -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum`
+    HASH_VALUE=`echo $1$PROJECT_HASH | sha256sum | head -c 64`
     curl -H "Content-Type: application/json" -d "{\"fields\": {\"project\": {\"stringValue\": '$2'},\"hash\": {\"stringValue\": '$HASH_VALUE'}}}"  -X POST "https://firestore.googleapis.com/v1/projects/fyipe-devops/databases/(default)/documents/builds"
 }
 
