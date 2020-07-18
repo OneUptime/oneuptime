@@ -61,30 +61,37 @@ export class Plans extends Component {
     };
 
     submit = values => {
+        const { currentProject, openModal } = this.props;
+        const userId = User.getUserId();
         const { _id: id, name } = this.props.currentProject;
-        const {
-            category: oldCategory,
-            type: oldType,
-            details: oldDetails,
-        } = PricingPlan.getPlanById(this.props.initialValues.planId);
-        const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
-        const {
-            category: newCategory,
-            type: newType,
-            details: newDetails,
-        } = PricingPlan.getPlanById(values.planId);
-        const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
-        this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROJECT > PLAN CHANGED', {
-                oldPlan,
-                newPlan,
-            });
+        if (isOwnerOrAdmin(userId, currentProject)) {
+            const {
+                category: oldCategory,
+                type: oldType,
+                details: oldDetails,
+            } = PricingPlan.getPlanById(this.props.initialValues.planId);
+            const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
+            const {
+                category: newCategory,
+                type: newType,
+                details: newDetails,
+            } = PricingPlan.getPlanById(values.planId);
+            const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
+            this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
+
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent('EVENT: DASHBOARD > PROJECT > PLAN CHANGED', {
+                    oldPlan,
+                    newPlan,
+                });
+            }
+        } else {
+            openModal({ id: userId, content: Unauthorised });
         }
     };
 
     render() {
-        const { handleSubmit, isRequesting, error, activeForm } = this.props;
+        const { isRequesting, error, activeForm, handleSubmit } = this.props;
         const { isAnnual, plans } = this.state;
 
         return (
@@ -214,6 +221,7 @@ Plans.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    openModal: PropTypes.func,
 };
 
 const ChangePlan = new reduxForm({
@@ -236,6 +244,6 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ changePlan }, dispatch);
+    bindActionCreators({ changePlan, openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ChangePlan);

@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { FormLoader } from '../basic/Loader';
+import { connect } from 'react-redux';
 
-class Unauthorised extends Component {
+class ResetSmsTemplate extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -12,11 +14,18 @@ class Unauthorised extends Component {
     };
 
     render() {
+        let deleting = false;
+        if (
+            this.props.resetSmsTemplates &&
+            this.props.resetSmsTemplates.requesting
+        ) {
+            deleting = true;
+        }
+
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-                id="unauthorisedModal"
             >
                 <div
                     className="ModalLayer-contents"
@@ -28,30 +37,34 @@ class Unauthorised extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Unauthorised Action</span>
+                                        <span>Confirm Sms Template Reset</span>
                                     </span>
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    You are not authorized to perform this
-                                    action since you are not an admin of this
-                                    project. If you like to perform this action,
-                                    please contact project admin.
+                                    Are you sure you want to reset this sms
+                                    template ?
                                 </span>
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey"
-                                        style={{
-                                            minWidth: 50,
-                                            textAlign: 'center',
-                                        }}
                                         type="button"
                                         onClick={this.props.closeThisDialog}
                                     >
-                                        <span>Ok</span>
+                                        <span>Cancel</span>
+                                    </button>
+                                    <button
+                                        id="ResetSmsTemplate"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                        type="button"
+                                        onClick={this.props.confirmThisDialog}
+                                        disabled={deleting}
+                                    >
+                                        {!deleting && <span>Reset</span>}
+                                        {deleting && <FormLoader />}
                                     </button>
                                 </div>
                             </div>
@@ -63,10 +76,18 @@ class Unauthorised extends Component {
     }
 }
 
-Unauthorised.displayName = 'Unauthorised';
+ResetSmsTemplate.displayName = 'ResetSmsTemplateFormModal';
 
-Unauthorised.propTypes = {
+ResetSmsTemplate.propTypes = {
+    confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
+    resetSmsTemplates: PropTypes.object,
 };
 
-export default Unauthorised;
+const mapStateToProps = state => {
+    return {
+        applicationLogState: state.applicationLog,
+    };
+};
+
+export default connect(mapStateToProps)(ResetSmsTemplate);
