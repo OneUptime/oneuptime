@@ -34,7 +34,10 @@ class Unauthorised extends Component {
                             </div>
                             <div className="bs-Modal-content">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    You are not authorised
+                                    You are not authorized to perform this
+                                    action since you are not an admin of this
+                                    project. If you like to perform this action,
+                                    please contact project admin.
                                 </span>
                             </div>
                             <div className="bs-Modal-footer">
