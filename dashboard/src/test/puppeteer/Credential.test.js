@@ -128,6 +128,43 @@ describe('Credential Page', () => {
     );
 
     test(
+        'should update a git credential',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#gitCredentials', {
+                    visible: true,
+                });
+                await page.click('#gitCredentials');
+
+                await page.waitForSelector('#editCredentialBtn_0', {
+                    visible: true,
+                });
+                await page.click('#editCredentialBtn_0');
+                await page.waitForSelector('#gitCredentialForm');
+                const gitUsername = 'newusername';
+                await page.click('#gitUsername', { clickCount: 3 });
+                await page.type('#gitUsername', gitUsername);
+                await page.click('#updateCredentialModalBtn');
+                await page.waitForSelector('#gitCredentialForm', {
+                    hidden: true,
+                });
+                const updatedCredential = await page.waitForSelector(
+                    `#gitUsername_${gitUsername}`,
+                    { visible: true }
+                );
+                expect(updatedCredential).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'should cancel deleting a git credential in a project',
         async done => {
             await cluster.execute(null, async ({ page }) => {
