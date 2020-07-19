@@ -312,6 +312,81 @@ describe('Credential Page', () => {
     );
 
     test(
+        'should update a docker credential',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#dockerCredentials', {
+                    visible: true,
+                });
+                await page.click('#dockerCredentials');
+
+                await page.waitForSelector('#editCredentialBtn_0');
+                await page.click('#editCredentialBtn_0');
+                await page.waitForSelector('#dockerCredentialForm');
+                const dockerUsername = 'username';
+                const dockerPassword = 'hello1234567890';
+                await page.click('#dockerUsername', { clickCount: 3 });
+                await page.type('#dockerUsername', dockerUsername);
+                await page.click('#dockerPassword', { clickCount: 3 });
+                await page.type('#dockerPassword', dockerPassword);
+                await page.click('#updateCredentialModalBtn');
+                await page.waitForSelector('#dockerCredentialForm', {
+                    hidden: true,
+                });
+
+                const updatedCredential = await page.waitForSelector(
+                    `#dockerUsername_${dockerUsername}`,
+                    { visible: true }
+                );
+                expect(updatedCredential).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not update a docker credential if username or password is invalid',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#dockerCredentials', {
+                    visible: true,
+                });
+                await page.click('#dockerCredentials');
+
+                await page.waitForSelector('#editCredentialBtn_0');
+                await page.click('#editCredentialBtn_0');
+                await page.waitForSelector('#dockerCredentialForm');
+                const dockerUsername = 'invalidusername';
+                const dockerPassword = 'hello1234567890';
+                await page.click('#dockerUsername', { clickCount: 3 });
+                await page.type('#dockerUsername', dockerUsername);
+                await page.click('#dockerPassword', { clickCount: 3 });
+                await page.type('#dockerPassword', dockerPassword);
+                await page.click('#updateCredentialModalBtn');
+
+                const updateCredentialError = await page.waitForSelector(
+                    '#updateCredentialError',
+                    { visible: true, timeout: operationTimeOut }
+                );
+                expect(updateCredentialError).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'should not add a docker credential to a project if username or password is invalid',
         async done => {
             await cluster.execute(null, async ({ page }) => {

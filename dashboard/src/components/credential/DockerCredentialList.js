@@ -186,7 +186,9 @@ const DockerCredentialList = ({
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root">
-                                                            <span>
+                                                            <span
+                                                                id={`dockerUsername_${dockerCredential.dockerUsername}`}
+                                                            >
                                                                 {
                                                                     dockerCredential.dockerUsername
                                                                 }
@@ -208,7 +210,7 @@ const DockerCredentialList = ({
                                                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root">
                                                             <button
-                                                                id={`deleteCredentialBtn_${index}`}
+                                                                id={`editCredentialBtn_${index}`}
                                                                 title="delete"
                                                                 className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit Margin-left--8"
                                                                 type="button"
