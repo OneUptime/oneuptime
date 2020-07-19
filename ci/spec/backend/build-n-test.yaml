@@ -22,7 +22,7 @@ build_n_test_backend:
         - sudo docker ps
         - sudo docker run --name fyipe --env-file ./backend/.env -e IS_SAAS_SERVICE=true -e DOCKER_UNMASKED_USERNAME=$DOCKER_UNMASKED_USERNAME -e DOCKER_UNMASKED_PASSWORD=$DOCKER_UNMASKED_PASSWORD -e DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL -e DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH -e DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS -e GITHUB_UNMASKED_USERNAME=$GITHUB_UNMASKED_USERNAME -e GITHUB_UNMASKED_PASSWORD=$GITHUB_UNMASKED_PASSWORD -e GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm test
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_backend backend "init-script" probe "http-test-server"
+        - ./ci/scripts/storehash.sh build_n_test_backend backend init-script probe http-test-server
     except:
         refs:
             - hotfix-master
