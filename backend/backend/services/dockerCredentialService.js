@@ -1,6 +1,6 @@
 const DockerCredentialModel = require('../models/dockerCredential');
 const ErrorService = require('./errorService');
-const { encrypt } = require('../config/encryptDecrypt');
+const { encrypt, decrypt } = require('../config/encryptDecrypt');
 const axios = require('axios');
 
 module.exports = {
@@ -77,11 +77,28 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            if (data.dockerPassword) {
-                data.dockerPassword = await encrypt(data.dockerPassword);
+            let dockerCredential = this.findOneBy(query);
+
+            if (!data.deleted && !data.deletedAt) {
+                // validate docker username and password before update
+                if (data.dockerPassword) {
+                    await this.validateDockerCredential({
+                        username: data.dockerUsername,
+                        password: data.dockerPassword,
+                    });
+                    data.dockerPassword = await encrypt(data.dockerPassword);
+                } else {
+                    const password = await decrypt(
+                        dockerCredential.dockerPassword
+                    );
+                    await this.validateDockerCredential({
+                        username: data.dockerUsername,
+                        password,
+                    });
+                }
             }
 
-            const dockerCredential = await DockerCredentialModel.findOneAndUpdate(
+            dockerCredential = await DockerCredentialModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
