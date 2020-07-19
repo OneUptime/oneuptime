@@ -14,6 +14,9 @@ import EditMonitorCategory from '../../components/modals/EditMonitorCategory';
 import { openModal, closeModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import uuid from 'uuid';
+import { User } from '../../config';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
+import Unauthorised from '../modals/Unauthorised';
 
 export class MonitorCategories extends Component {
     state = {
@@ -41,6 +44,54 @@ export class MonitorCategories extends Component {
         );
     };
 
+    handleCreateMonitorCategory = userId => {
+        const { openModal, currentProject } = this.props;
+        isOwnerOrAdmin(userId, currentProject)
+            ? openModal({
+                  id: this.state.CreateMonitorCategoryModalId,
+                  content: AddMonitorCategoryForm,
+              })
+            : openModal({
+                  id: this.state.CreateMonitorCategoryModalId,
+                  content: Unauthorised,
+              });
+    };
+
+    handleEdit = (userId, _id) => {
+        const { openModal, currentProject } = this.props;
+        isOwnerOrAdmin(userId, currentProject)
+            ? openModal({
+                  id: this.state.EditMonitorCategoryModalId,
+                  content: DataPathHoC(EditMonitorCategory, {
+                      monitorCategoryId: _id,
+                  }),
+              })
+            : openModal({
+                  id: this.state.CreateMonitorCategoryModalId,
+                  content: Unauthorised,
+              });
+    };
+
+    handleDelete = (userId, _id) => {
+        const { openModal, currentProject } = this.props;
+        isOwnerOrAdmin(userId, currentProject)
+            ? openModal({
+                  id: this.state.removeMonitorCategoryModalId,
+                  onClose: () => '',
+                  onConfirm: () => {
+                      return new Promise(resolve => {
+                          this.handleDeleteMonitorCategory(_id);
+                          resolve(true);
+                      });
+                  },
+                  content: RemoveMonitorCategory,
+              })
+            : openModal({
+                  id: this.state.CreateMonitorCategoryModalId,
+                  content: Unauthorised,
+              });
+    };
+
     render() {
         const footerBorderTopStyle = { margin: 0, padding: 0 };
         let canNext =
@@ -55,6 +106,9 @@ export class MonitorCategories extends Component {
             canNext = false;
             canPrev = false;
         }
+
+        const userId = User.getUserId();
+
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -76,11 +130,9 @@ export class MonitorCategories extends Component {
                                 <div className="Box-root">
                                     <button
                                         onClick={() => {
-                                            this.props.openModal({
-                                                id: this.state
-                                                    .CreateMonitorCategoryModalId,
-                                                content: AddMonitorCategoryForm,
-                                            });
+                                            this.handleCreateMonitorCategory(
+                                                userId
+                                            );
                                         }}
                                         className="Button bs-ButtonLegacy ActionIconParent"
                                         type="button"
@@ -154,22 +206,14 @@ export class MonitorCategories extends Component {
                                                             <div className="Box-root">
                                                                 <button
                                                                     onClick={() => {
-                                                                        this.props.openModal(
-                                                                            {
-                                                                                id: this
-                                                                                    .state
-                                                                                    .EditMonitorCategoryModalId,
-                                                                                content: DataPathHoC(
-                                                                                    EditMonitorCategory,
-                                                                                    {
-                                                                                        monitorCategoryId: _id,
-                                                                                    }
-                                                                                ),
-                                                                            }
+                                                                        this.handleEdit(
+                                                                            userId,
+                                                                            _id
                                                                         );
                                                                     }}
                                                                     className="Button bs-ButtonLegacy"
                                                                     type="button"
+                                                                    id={`edit_${name}`}
                                                                 >
                                                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -186,31 +230,14 @@ export class MonitorCategories extends Component {
                                                             >
                                                                 <button
                                                                     onClick={() => {
-                                                                        this.props.openModal(
-                                                                            {
-                                                                                id: this
-                                                                                    .state
-                                                                                    .removeMonitorCategoryModalId,
-                                                                                onClose: () =>
-                                                                                    '',
-                                                                                onConfirm: () => {
-                                                                                    return new Promise(
-                                                                                        resolve => {
-                                                                                            this.handleDeleteMonitorCategory(
-                                                                                                _id
-                                                                                            );
-                                                                                            resolve(
-                                                                                                true
-                                                                                            );
-                                                                                        }
-                                                                                    );
-                                                                                },
-                                                                                content: RemoveMonitorCategory,
-                                                                            }
+                                                                        this.handleDelete(
+                                                                            userId,
+                                                                            _id
                                                                         );
                                                                     }}
                                                                     className="Button bs-ButtonLegacy"
                                                                     type="button"
+                                                                    id={`delete_${name}`}
                                                                 >
                                                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -350,6 +377,7 @@ MonitorCategories.propTypes = {
     name: PropTypes.string,
     openModal: PropTypes.func.isRequired,
     error: PropTypes.object,
+    currentProject: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -373,6 +401,7 @@ const mapStateToProps = state => ({
     limit: state.monitorCategories.monitorCategoryList.limit,
     count: state.monitorCategories.monitorCategoryList.count,
     isRequesting: state.monitorCategories.monitorCategoryList.requesting,
+    currentProject: state.project.currentProject,
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorCategories);

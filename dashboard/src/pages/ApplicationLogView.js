@@ -46,7 +46,11 @@ class ApplicationLogView extends Component {
             <Dashboard ready={this.ready}>
                 <BreadCrumbItem route="#" name={componentName} />
                 <BreadCrumbItem route={getParentRoute(pathname)} name="Logs" />
-                <BreadCrumbItem route={pathname} name={applicationLogName} />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={applicationLogName}
+                    pageTitle="Logs"
+                />
                 <ShouldRender if={!this.props.applicationLog[0]}>
                     <LoadingState />
                 </ShouldRender>

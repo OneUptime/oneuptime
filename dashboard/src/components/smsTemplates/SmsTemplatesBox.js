@@ -36,7 +36,7 @@ class SmsTemplatesBox extends React.Component {
 
     resetTemplate = templateId => {
         const { currentProject } = this.props;
-        this.props.resetSmsTemplates(currentProject._id, templateId);
+        return this.props.resetSmsTemplates(currentProject._id, templateId);
     };
 
     templateChange = (e, value) => {

@@ -112,5 +112,32 @@ public class LoggerTest {
         assertEquals(contentToBeLogged, response.get("content").getAsString());
         assertEquals("warning", response.get("type").getAsString());
     }
+    @Test
+    public void itShouldLogARequestOfTypeObjectForErrorWithATag() throws IOException {
+        SampleLog contentToBeLogged = new SampleLog("Home Page", 50, "Travis");
+        Logger logger = new Logger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
+        String [] tags = new String[1];
+        tags[0] = "server";
+        JsonObject response = logger.error(new Gson().toJson(contentToBeLogged), tags);
+        assertEquals(contentToBeLogged.getPage(), response.get("content").getAsJsonObject().get("page").getAsString());
+        assertEquals(contentToBeLogged.getName(), response.get("content").getAsJsonObject().get("name").getAsString());
+        assertEquals(contentToBeLogged.getTime(), response.get("content").getAsJsonObject().get("time").getAsInt());
+        assertEquals(tags[0], response.get("tags").getAsJsonArray().get(0).getAsString());
+        assertEquals("error", response.get("type").getAsString());
+    }
+    @Test
+    public void itShouldLogARequestOfTypeObjectForWarningWith3Tags() throws IOException {
+        SampleLog contentToBeLogged = new SampleLog("Home Page", 50, "Travis");
+        Logger logger = new Logger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
+        String [] tags = { "server", "content", "monitoring"};
+        JsonObject response = logger.warning(new Gson().toJson(contentToBeLogged), tags);
+        assertEquals(contentToBeLogged.getPage(), response.get("content").getAsJsonObject().get("page").getAsString());
+        assertEquals(contentToBeLogged.getName(), response.get("content").getAsJsonObject().get("name").getAsString());
+        assertEquals(contentToBeLogged.getTime(), response.get("content").getAsJsonObject().get("time").getAsInt());
+        for (int i = 0; i < tags.length; i++) {
+            assertEquals(tags[i], response.get("tags").getAsJsonArray().get(i).getAsString());
+        }
+        assertEquals("warning", response.get("type").getAsString());
+    }
 
 }

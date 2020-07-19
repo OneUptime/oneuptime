@@ -159,6 +159,7 @@ export function resetSmsTemplates(projectId, templateId) {
                 dispatch(resetSmsTemplatesError(errors(error)));
             }
         );
+        return promise;
     };
 }
 
