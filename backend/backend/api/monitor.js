@@ -14,6 +14,7 @@ const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
 const ScheduleService = require('../services/scheduleService');
 const ProbeService = require('../services/probeService');
+const Api = require('../utils/api');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -139,22 +140,24 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
             if (data.type === 'api') {
                 try {
-                    const headers = {};
-                    const body =
-                        data.bodyType && data.bodyType === 'application/json'
-                            ? JSON.parse(data.text)
-                            : data.text;
-                    if (data.headers) {
-                        for (const header of data.headers) {
-                            headers[header.key] = header.value;
-                        }
-                    }
+                    const headers = Api.headers(data.headers, data.bodyType);
+                    const body = Api.body(
+                        data.text && data.text.length
+                            ? data.text
+                            : data.formData,
+                        data.text && data.text.length ? 'text' : 'formData'
+                    );
                     const payload = {
                         method: data.method,
                         url: data.data.url,
-                        headers,
-                        data: body,
                     };
+                    if (headers && Object.keys(headers).length) {
+                        payload.headers = headers;
+                    }
+                    if (body && Object.keys(body).length) {
+                        payload.data = body;
+                    }
+                    console.log(payload);
                     const apiResponse = await axios(payload);
                     const headerContentType =
                         apiResponse.headers['content-type'];
@@ -251,6 +254,50 @@ router.put(
     async function(req, res) {
         try {
             const data = req.body;
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "values can't be null",
+                });
+            }
+            if (data.type && data.type === 'api') {
+                try {
+                    const headers = Api.headers(data.headers, data.bodyType);
+                    const body = Api.body(
+                        data.text && data.text.length
+                            ? data.text
+                            : data.formData,
+                        data.text && data.text.length ? 'text' : 'formData'
+                    );
+                    const payload = {
+                        method: data.method,
+                        url: data.data.url,
+                    };
+                    if (headers && Object.keys(headers).length) {
+                        payload.headers = headers;
+                    }
+                    if (body && Object.keys(body).length) {
+                        payload.data = body;
+                    }
+                    console.log(payload);
+                    const apiResponse = await axios(payload);
+                    const headerContentType =
+                        apiResponse.headers['content-type'];
+                    if (/text\/html/.test(headerContentType)) {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'Monitor url should not be a website.',
+                        });
+                    }
+                } catch (err) {
+                    return sendErrorResponse(req, res, {
+                        code: (err.response && err.response.status) || 400,
+                        message:
+                            (err.response && err.response.statusText) ||
+                            'Monitor url did not return a valid response.',
+                    });
+                }
+            }
             let unsetData;
             if (!data.monitorCategoryId || data.monitorCategoryId === '') {
                 unsetData = { monitorCategoryId: '' };
