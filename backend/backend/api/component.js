@@ -9,6 +9,10 @@ const UserService = require('../services/userService');
 const ComponentService = require('../services/componentService');
 const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
+const ApplicationLogService = require('../services/applicationLogService');
+const MonitorService = require('../services/monitorService');
+const ApplicationSecurityService = require('../services/applicationSecurityService');
+const ContainerSecurityService = require('../services/containerSecurityService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -173,6 +177,125 @@ router.get(
 
             const component = await ComponentService.findOneBy(query);
             return sendItemResponse(req, res, component);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// TODO fetch latest stats related to a particular component
+router.get(
+    '/:projectId/resources/:componentId',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function(req, res) {
+        try {
+            const componentId = req.params.componentId;
+            const type = req.query.type;
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map(project => project._id)
+                : null;
+
+            const query = type
+                ? { _id: componentId, projectId: { $in: subProjectIds }, type }
+                : { _id: componentId, projectId: { $in: subProjectIds } };
+
+            // Get that component
+            const component = await ComponentService.findOneBy(query);
+            if (!component) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Component not Found',
+                });
+            }
+
+            let totalResources = [];
+            const limit = req.query.limit || 5;
+            const skip = req.query.skip || 0;
+            // fetch application logs
+            const applicationLogs = await ApplicationLogService.getApplicationLogsByComponentId(
+                componentId,
+                limit,
+                skip
+            );
+            applicationLogs.map(elem => {
+                const newElement = {
+                    _id: elem._id,
+                    name: elem.name,
+                    type: 'application-log',
+                    createdAt: elem.createdAt,
+                };
+                // add it to the total resources
+                totalResources.push(newElement);
+                return newElement;
+            });
+
+            // fetch monitors
+            const monitors = await MonitorService.findBy(
+                { componentId: componentId },
+                limit,
+                skip
+            );
+            monitors.map(elem => {
+                const newElement = {
+                    _id: elem._id,
+                    name: elem.name,
+                    type: 'monitor',
+                    createdAt: elem.createdAt,
+                };
+                // add it to the total resources
+                totalResources.push(newElement);
+                return newElement;
+            });
+
+            // fetch application security
+            const applicationSecurity = await ApplicationSecurityService.findBy(
+                { componentId: componentId },
+                limit,
+                skip
+            );
+            applicationSecurity.map(elem => {
+                const newElement = {
+                    _id: elem._id,
+                    name: elem.name,
+                    type: 'application-security',
+                    createdAt: elem.createdAt,
+                };
+                // add it to the total resources
+                totalResources.push(newElement);
+                return newElement;
+            });
+
+            // fetch container security
+            const containerSecurity = await ContainerSecurityService.findBy(
+                { componentId: componentId },
+                limit,
+                skip
+            );
+            containerSecurity.map(elem => {
+                const newElement = {
+                    _id: elem._id,
+                    name: elem.name,
+                    type: 'container-security',
+                    createdAt: elem.createdAt,
+                };
+                // add it to the total resources
+                totalResources.push(newElement);
+                return newElement;
+            });
+
+            // Sort all resources by creation date
+            totalResources = totalResources.sort(
+                (a, b) => b.createdAt - a.createdAt
+            );
+
+            // return response
+            return sendItemResponse(req, res, {
+                totalResources,
+                skip,
+                componentId,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

@@ -13,6 +13,10 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { setRevealVariable } from '../../actions/smsTemplates';
+import { openModal, closeModal } from '../../actions/modal';
+import uuid from 'uuid';
+import DataPathHoC from '../DataPathHoC';
+import ResetSmsTemplate from '../modals/ResetSmsTemplate';
 
 const style = {
     backgroundColor: '#fff',
@@ -37,6 +41,45 @@ function validate(values) {
 }
 
 export class SmsTemplatesFormBox extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            openSmsTemplateResetModalId: uuid.v4(),
+        };
+    }
+    // deleteApplicationLog = () => {
+    //     const promise = this.props.deleteApplicationLog(
+    //         this.props.currentProject._id,
+    //         this.props.componentId,
+    //         this.props.index
+    //     );
+    //     history.push(
+    //         `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`
+    //     );
+    //     if (SHOULD_LOG_ANALYTICS) {
+    //         logEvent(
+    //             'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > APPLICATION LOG DELETED',
+    //             {
+    //                 ProjectId: this.props.currentProject._id,
+    //                 applicationLogId: this.props.index,
+    //             }
+    //         );
+    //     }
+    //     return promise;
+    // };
+    resetTemplate = id => {
+        const promise = this.props.resetTemplate(id);
+        this.props.closeModal({
+            id: this.state.openSmsTemplateResetModalId,
+        });
+        return promise;
+    };
+    closeModalLocal() {
+        this.props.closeModal({
+            id: this.state.openSmsTemplateResetModalId,
+        });
+    }
     render() {
         const {
             template,
@@ -254,6 +297,29 @@ export class SmsTemplatesFormBox extends Component {
                                 </button>
                                 <button
                                     className="bs-Button"
+                                    type="button"
+                                    onClick={() =>
+                                        this.props.openModal({
+                                            id: this.state
+                                                .openSmsTemplateResetModalId,
+                                            onClose: () => '',
+                                            onConfirm: () =>
+                                                this.resetTemplate(
+                                                    template._id
+                                                ),
+                                            content: DataPathHoC(
+                                                ResetSmsTemplate,
+                                                {
+                                                    resetSmsTemplates,
+                                                }
+                                            ),
+                                        })
+                                    }
+                                >
+                                    <span>Reset</span>
+                                </button>
+                                {/* <button
+                                    className="bs-Button"
                                     disabled={
                                         (resetSmsTemplates &&
                                             resetSmsTemplates.requesting) ||
@@ -283,7 +349,7 @@ export class SmsTemplatesFormBox extends Component {
                                     >
                                         <FormLoader />
                                     </ShouldRender>
-                                </button>
+                                </button> */}
                             </div>
                         </div>
                     </form>
@@ -304,6 +370,8 @@ SmsTemplatesFormBox.propTypes = {
     revealVariable: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
     submitForm: PropTypes.func.isRequired,
     resetTemplate: PropTypes.func.isRequired,
+    openModal: PropTypes.func,
+    closeModal: PropTypes.func,
 };
 
 const SmsTemplatesFormBoxForm = reduxForm({
@@ -316,6 +384,8 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             setRevealVariable,
+            openModal,
+            closeModal,
         },
         dispatch
     );

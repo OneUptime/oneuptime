@@ -12,11 +12,11 @@ audit_log-java:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y maven
         - sudo update-alternatives --config java
-        - sudo apt install -y default-jdk
-        - sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+        # - sudo apt install -y default-jdk
+        - sudo apt-get install -y openjdk-8-jdk
         - sudo update-ca-certificates -f
+        - sudo /var/lib/dpkg/info/ca-certificates-java.postinst configure
         - sudo apt install ca-certificates-java --reinstall
-        - cp -f log-java/.m2/settings.xml $HOME/.m2/settings.xml
         - cd log-java
         - mvn clean
         - cd ..
