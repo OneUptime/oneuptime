@@ -140,8 +140,11 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
             if (data.type === 'api') {
                 try {
-                    const headers = Api.headers(data.headers, data.bodyType);
-                    const body = Api.body(
+                    const headers = await Api.headers(
+                        data.headers,
+                        data.bodyType
+                    );
+                    const body = await Api.body(
                         data.text && data.text.length
                             ? data.text
                             : data.formData,
@@ -157,7 +160,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     if (body && Object.keys(body).length) {
                         payload.data = body;
                     }
-                    console.log(payload);
                     const apiResponse = await axios(payload);
                     const headerContentType =
                         apiResponse.headers['content-type'];
@@ -262,8 +264,11 @@ router.put(
             }
             if (data.type && data.type === 'api') {
                 try {
-                    const headers = Api.headers(data.headers, data.bodyType);
-                    const body = Api.body(
+                    const headers = await Api.headers(
+                        data.headers,
+                        data.bodyType
+                    );
+                    const body = await Api.body(
                         data.text && data.text.length
                             ? data.text
                             : data.formData,
@@ -279,7 +284,6 @@ router.put(
                     if (body && Object.keys(body).length) {
                         payload.data = body;
                     }
-                    console.log(payload);
                     const apiResponse = await axios(payload);
                     const headerContentType =
                         apiResponse.headers['content-type'];
