@@ -13,7 +13,7 @@ build_n_test_admin-dashboard:
         - echo "No test implemented"
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_admin-dashboard admin-dashboard
+        - ./ci/scripts/storehash.sh build_n_test_admin-dashboard "admin-dashboard"
     except:
         refs:
             - hotfix-master
@@ -50,7 +50,7 @@ build_n_test_enterprise_admin-dashboard:
         - npm run enterprise-test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_enterprise_admin-dashboard admin-dashboard backend accounts licensing
+        - ./ci/scripts/storehash.sh build_n_test_enterprise_admin-dashboard "admin-dashboard" backend accounts licensing
     except:
         refs:
             - hotfix-master
