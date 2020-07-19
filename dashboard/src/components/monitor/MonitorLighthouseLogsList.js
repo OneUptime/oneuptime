@@ -3,16 +3,37 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { history } from '../../store';
+import DataPathHoC from '../DataPathHoC';
 import { ListLoader, Spinner } from '../basic/Loader';
 import { deleteSiteUrl } from '../../actions/monitor';
+import DeleteSiteUrl from '../modals/DeleteSiteUrl';
 import moment from 'moment';
+import uuid from 'uuid';
+import { openModal, closeModal } from '../../actions/modal';
 
 export class MonitorLighthouseLogsList extends Component {
     // eslint-disable-next-line
     constructor(props) {
         super(props);
+        this.props = props;
+        this.state = {
+            deleteSiteUrlModalId: uuid.v4(),
+        };
     }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({
+                    id: this.state.deleteSiteUrlModalId,
+                });
+            default:
+                return false;
+        }
+    };
+
     render() {
+        const { deleteSiteUrlModalId } = this.state;
         const { monitor, monitorState } = this.props;
         const lighthouseLogs = monitor.lighthouseLogs || {};
         let skip =
@@ -48,7 +69,7 @@ export class MonitorLighthouseLogsList extends Component {
         const lighthouseScanStatus = monitor && monitor.lighthouseScanStatus;
 
         return (
-            <div>
+            <div onKeyDown={this.handleKeyBoard}>
                 {(!lighthouseScanStatus ||
                     (lighthouseScanStatus &&
                         (lighthouseScanStatus === 'scan' ||
@@ -409,13 +430,24 @@ export class MonitorLighthouseLogsList extends Component {
                                                                     <button
                                                                         id={`removeSiteUrl_${monitor.name}_${i}`}
                                                                         onClick={() =>
-                                                                            this.props.deleteSiteUrl(
-                                                                                monitor._id,
-                                                                                this
-                                                                                    .props
-                                                                                    .currentProject
-                                                                                    ._id,
-                                                                                log.url
+                                                                            this.props.openModal(
+                                                                                {
+                                                                                    id: deleteSiteUrlModalId,
+                                                                                    onClose: () =>
+                                                                                        '',
+                                                                                    onConfirm: () =>
+                                                                                        this.props.deleteSiteUrl(
+                                                                                            monitor._id,
+                                                                                            this
+                                                                                                .props
+                                                                                                .currentProject
+                                                                                                ._id,
+                                                                                            log.url
+                                                                                        ),
+                                                                                    content: DataPathHoC(
+                                                                                        DeleteSiteUrl
+                                                                                    ),
+                                                                                }
                                                                             )
                                                                         }
                                                                         className="bs-Button bs-ButtonLegacy ActionIconParent"
@@ -548,7 +580,10 @@ function mapStateToProps(state) {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ deleteSiteUrl }, dispatch);
+    return bindActionCreators(
+        { openModal, closeModal, deleteSiteUrl },
+        dispatch
+    );
 };
 
 MonitorLighthouseLogsList.displayName = 'MonitorLighthouseLogsList';
@@ -558,6 +593,8 @@ MonitorLighthouseLogsList.propTypes = {
     monitorState: PropTypes.object,
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
+    openModal: PropTypes.func.isRequired,
+    closeModal: PropTypes.func.isRequired,
     deleteSiteUrl: PropTypes.func.isRequired,
     currentProject: PropTypes.object,
     componentId: PropTypes.string.isRequired,

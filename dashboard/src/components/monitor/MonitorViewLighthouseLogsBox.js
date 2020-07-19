@@ -92,7 +92,9 @@ export class MonitorViewLighthouseLogsBox extends Component {
 
     render() {
         const { addSiteUrlModalId } = this.state;
-        const creating = this.props.create ? this.props.create : false;
+        const requesting = this.props.requesting
+            ? this.props.requesting
+            : false;
 
         const siteUrls =
             this.props.monitor &&
@@ -208,12 +210,12 @@ export class MonitorViewLighthouseLogsBox extends Component {
                             </ShouldRender>
                             <button
                                 className={
-                                    creating
+                                    requesting
                                         ? 'bs-Button bs-Button--blue'
                                         : 'bs-Button bs-ButtonLegacy ActionIconParent'
                                 }
                                 type="button"
-                                disabled={creating}
+                                disabled={requesting}
                                 id={`addSiteUrl_${this.props.monitor.name}`}
                                 onClick={() =>
                                     this.props.openModal({
@@ -226,12 +228,12 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                     })
                                 }
                             >
-                                <ShouldRender if={!creating}>
+                                <ShouldRender if={!requesting}>
                                     <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
                                         <span>Add New Site URL</span>
                                     </span>
                                 </ShouldRender>
-                                <ShouldRender if={creating}>
+                                <ShouldRender if={requesting}>
                                     <FormLoader />
                                 </ShouldRender>
                             </button>
@@ -256,7 +258,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                         placeholder="All Site URLs"
                                         className="db-select-pr"
                                         id="url_selector"
-                                        isDisabled={creating}
+                                        isDisabled={requesting}
                                         style={{ height: '28px' }}
                                         options={siteUrls}
                                     />
@@ -286,7 +288,7 @@ MonitorViewLighthouseLogsBox.propTypes = {
     monitor: PropTypes.object.isRequired,
     editMonitor: PropTypes.func,
     fetchLighthouseLogs: PropTypes.func,
-    create: PropTypes.bool,
+    requesting: PropTypes.bool,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
 };
@@ -300,7 +302,7 @@ const mapDispatchToProps = dispatch =>
 function mapStateToProps(state) {
     return {
         currentProject: state.project.currentProject,
-        create: state.monitor.editMonitor.requesting,
+        requesting: state.monitor.editMonitor.requesting,
     };
 }
 
