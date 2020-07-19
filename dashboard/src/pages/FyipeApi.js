@@ -63,6 +63,7 @@ class FyipeApi extends Component {
                                                 You are not authorized to view
                                                 this page because you’re not an
                                                 administrator of this project.
+                                                <br />
                                                 Please contact admin for any
                                                 work you need to be done on this
                                                 page.
