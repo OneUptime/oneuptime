@@ -79,7 +79,6 @@ const pingfetch = async (url, method, body, headers) => {
                 }
             }
         } catch (e) {
-            console.log(e);
             if (e.code === 'DEPTH_ZERO_SELF_SIGNED_CERT') {
                 response = { status: 200 };
                 sslCertificate = {
