@@ -77,7 +77,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            let dockerCredential = this.findOneBy(query);
+            let dockerCredential = await this.findOneBy(query);
 
             if (!data.deleted && !data.deletedAt) {
                 // validate docker username and password before update
