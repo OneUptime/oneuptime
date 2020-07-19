@@ -171,7 +171,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     }
                 } catch (err) {
                     return sendErrorResponse(req, res, {
-                        code: (err.response && err.response.status) || 400,
+                        code: 400,
                         message:
                             (err.response && err.response.statusText) ||
                             'Monitor url did not return a valid response.',
@@ -295,7 +295,7 @@ router.put(
                     }
                 } catch (err) {
                     return sendErrorResponse(req, res, {
-                        code: (err.response && err.response.status) || 400,
+                        code: 400,
                         message:
                             (err.response && err.response.statusText) ||
                             'Monitor url did not return a valid response.',
