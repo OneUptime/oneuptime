@@ -5,8 +5,11 @@ chmod +x ./ci/scripts/hashexist.sh
 function storeHash {
     # $1 -> Job Name; $2 -> Project
     PROJECT_HASH=`find $2 -type f ! -path "*node_modules*" -print0 | sort -z | xargs -0 sha256sum | sha256sum`
-    HASH_VALUE=`echo $1$PROJECT_HASH | sha256sum | head -c 64`
+    HASH_VALUE=`echo $PROJECT_HASH$1 | sha256sum | head -c 64`
     curl -H "Content-Type: application/json" -d "{\"fields\": {\"project\": {\"stringValue\": '$2'},\"hash\": {\"stringValue\": '$HASH_VALUE'}}}"  -X POST "https://firestore.googleapis.com/v1/projects/fyipe-devops/databases/(default)/documents/builds"
+    
+    echo "project hash inside storeHash is $PROJECT_HASH"
+    echo "hash value inside storehash is $HASH_VALUE"
 }
 
 if [[ $CI_COMMIT_BRANCH != "master" ]] && [[ $CI_COMMIT_BRANCH != "release" ]]
@@ -15,6 +18,7 @@ then
     for ((i = 2; i <= $#; i++ ))
     do
         hash_exist=`./ci/scripts/hashexist.sh $1 ${!i}`
+        echo "hash exist value is $hash_exist"
         if [[ $hash_exist == *"false"* ]]
         then
             storeHash $1 ${!i}
