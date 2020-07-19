@@ -906,6 +906,8 @@ describe('Monitor Detail API', () => {
                     page
                 );
 
+                await page.waitFor(200000);
+
                 const createdLighthouseLogsSelector =
                     '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
                 await page.waitForSelector(createdLighthouseLogsSelector);
