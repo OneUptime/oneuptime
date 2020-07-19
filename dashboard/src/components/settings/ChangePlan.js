@@ -6,10 +6,10 @@ import { connect } from 'react-redux';
 import { changePlan } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import PlanFields from '../project/PlanFields';
-import { PricingPlan, User } from '../../config';
+import { PricingPlan } from '../../config';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+import ChangePlanField from './ChangePlanField';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 import { openModal } from '../../actions/modal';
@@ -157,7 +157,7 @@ export class Plans extends Component {
                                                 <fieldset className="bs-Fieldset">
                                                     <div className="bs-Fieldset-rows">
                                                         <div className="price-list-3c Margin-all--16">
-                                                            <PlanFields
+                                                            <ChangePlanField
                                                                 plans={plans}
                                                                 activeForm={
                                                                     activeForm

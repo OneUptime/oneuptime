@@ -99,6 +99,7 @@ class ApplicationSecurityDetail extends Component {
                 <BreadCrumbItem
                     route={pathname}
                     name={applicationSecurity.name || 'loading...'}
+                    pageTitle="Application Detail"
                 />
                 <ShouldRender
                     if={
