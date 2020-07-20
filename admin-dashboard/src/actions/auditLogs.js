@@ -134,8 +134,6 @@ export const deleteAuditLogs = () => async dispatch => {
         const message = response.data.message;
 
         dispatch(deleteAuditLogsSuccess(message));
-
-        return response;
     } catch (error) {
         let errorMsg;
         if (error && error.response && error.response.data)
