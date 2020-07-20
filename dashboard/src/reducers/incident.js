@@ -773,7 +773,7 @@ export default function incident(state = initialState, action) {
                             incidentMessages: action.payload.incidentMessages,
                             error: null,
                             requesting: false,
-                            success: false,
+                            success: true,
                             skip: action.payload.skip,
                             limit: action.payload.limit,
                             count: action.payload.count,
