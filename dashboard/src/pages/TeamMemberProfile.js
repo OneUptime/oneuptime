@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import { API_URL } from '../config';
 import Dashboard from '../components/Dashboard';
 import { LargeSpinner as Loader } from '../components/basic/Loader';
@@ -57,7 +57,7 @@ function TeamMemberProfile({
 
     return (
         <Dashboard>
-            <Zoom>
+            <Fade>
                 <BreadCrumbItem
                     route={getParentRoute(match.url, projectId)}
                     name="Team Members"
@@ -277,7 +277,7 @@ function TeamMemberProfile({
                         </div>
                     </div>
                 </div>
-            </Zoom>
+            </Fade>
         </Dashboard>
     );
 }

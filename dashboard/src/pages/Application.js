@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import ApplicationSecurityForm from '../components/security/ApplicationSecurityForm';
 import ApplicationSecurity from '../components/security/ApplicationSecurity';
@@ -81,7 +81,7 @@ class Application extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname, null, 'component')}
                         name={componentName}
@@ -157,7 +157,7 @@ class Application extends Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

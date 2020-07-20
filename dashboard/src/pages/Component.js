@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { destroy } from 'redux-form';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import NewComponent from '../components/component/NewComponent';
 import ComponentList from '../components/component/ComponentList';
@@ -168,7 +168,7 @@ class DashboardView extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem route={pathname} name="Components" />
                     <AlertDisabledWarning page="Component" />
                     <div className="Box-root">
@@ -299,7 +299,7 @@ class DashboardView extends Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

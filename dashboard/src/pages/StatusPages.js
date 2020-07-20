@@ -1,8 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import Rotate from 'react-reveal/Rotate';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import StatusPagesTable from '../components/statusPage/StatusPagesTable';
 import PropTypes from 'prop-types';
@@ -27,16 +26,14 @@ class StatusPage extends Component {
 
         return (
             <Dashboard>
-                <Zoom>
-                    <Rotate top left>
-                        <BreadCrumbItem route={pathname} name="Status Pages" />
-                        <ShouldRender if={this.props.statusPageTutorial.show}>
-                            <TutorialBox type="status-page" />
-                        </ShouldRender>
+                <Fade>
+                    <BreadCrumbItem route={pathname} name="Status Pages" />
+                    <ShouldRender if={this.props.statusPageTutorial.show}>
+                        <TutorialBox type="status-page" />
+                    </ShouldRender>
 
-                        <StatusPagesTable projectId={projectId} />
-                    </Rotate>
-                </Zoom>
+                    <StatusPagesTable projectId={projectId} />
+                </Fade>
             </Dashboard>
         );
     }

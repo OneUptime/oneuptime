@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -39,7 +39,7 @@ class DockerCredential extends Component {
 
         return (
             <Dashboard>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
                         name="Project Settings"
@@ -66,7 +66,7 @@ class DockerCredential extends Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

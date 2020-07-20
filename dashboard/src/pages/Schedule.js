@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import DeleteBox from '../components/schedule/DeleteBox';
 import MonitorBox from '../components/schedule/MonitorBox';
@@ -62,7 +62,7 @@ class Schedule extends Component {
 
         return (
             <Dashboard>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
                         name="Call Schedules"
@@ -127,7 +127,7 @@ class Schedule extends Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

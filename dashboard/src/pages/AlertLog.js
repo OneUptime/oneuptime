@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Dashboard from '../components/Dashboard';
 import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import { fetchAlert, fetchProjectAlert } from '../actions/alert';
 import PropTypes from 'prop-types';
 import AlertProjectBox from '../components/alert/AlertProjectBox';
@@ -223,7 +223,7 @@ class AlertLog extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
                         name="Call Schedules"
@@ -238,7 +238,7 @@ class AlertLog extends Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

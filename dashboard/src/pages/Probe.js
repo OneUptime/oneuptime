@@ -3,7 +3,7 @@ import Dashboard from '../components/Dashboard';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import ProbeList from '../components/probe/ProbeList';
 import { getProbes } from '../actions/probe';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -46,7 +46,7 @@ class Probe extends React.Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
                         name="Project Settings"
@@ -113,7 +113,7 @@ class Probe extends React.Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

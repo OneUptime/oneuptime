@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import ProjectSettings from '../components/settings/ProjectSettings';
 import SubProjects from '../components/settings/SubProjects';
@@ -39,7 +39,7 @@ class Settings extends Component {
 
         return (
             <Dashboard>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem route={pathname} name="Project Settings" />
                     <div
                         onKeyDown={this.handleKeyBoard}
@@ -69,7 +69,7 @@ class Settings extends Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

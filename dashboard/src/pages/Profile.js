@@ -1,5 +1,5 @@
 import React from 'react';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import ProfileSetting from '../components/profileSettings/Profile';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -13,7 +13,7 @@ const Profile = props => {
 
     return (
         <Dashboard>
-            <Zoom>
+            <Fade>
                 <div className="db-World-contentPane Box-root Padding-bottom--48">
                     <BreadCrumbItem route={pathname} name="Profile Settings" />
                     <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
@@ -35,7 +35,7 @@ const Profile = props => {
                         </div>
                     </div>
                 </div>
-            </Zoom>
+            </Fade>
         </Dashboard>
     );
 };

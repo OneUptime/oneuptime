@@ -1,6 +1,6 @@
 import React from 'react';
 import { PropTypes } from 'prop-types';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import ChangePassword from '../components/profileSettings/ChangePassword';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -12,7 +12,7 @@ const ChangePasswordSetting = props => {
 
     return (
         <Dashboard>
-            <Zoom>
+            <Fade>
                 <BreadCrumbItem route={pathname} name="Change Password" />
                 <div>
                     <div>
@@ -31,7 +31,7 @@ const ChangePasswordSetting = props => {
                         </div>
                     </div>
                 </div>
-            </Zoom>
+            </Fade>
         </Dashboard>
     );
 };

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import { bindActionCreators } from 'redux';
 import SmsTemplatesBox from '../components/smsTemplates/SmsTemplatesBox';
 import SmsSmtpBox from '../components/smsTemplates/SmsSmtpBox';
@@ -38,7 +38,7 @@ class SmsTemplates extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
                         name="Project Settings"
@@ -46,7 +46,7 @@ class SmsTemplates extends Component {
                     <BreadCrumbItem route={pathname} name="SMS" />
                     <SmsTemplatesBox />
                     <SmsSmtpBox />
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

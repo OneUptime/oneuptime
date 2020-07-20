@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
 import Dashboard from '../components/Dashboard';
@@ -45,7 +45,7 @@ class ApplicationLogView extends Component {
             applicationLog.length > 0 ? applicationLog[0].name : null;
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem route="#" name={componentName} />
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
@@ -75,7 +75,7 @@ class ApplicationLogView extends Component {
                             />
                         </div>
                     </ShouldRender>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

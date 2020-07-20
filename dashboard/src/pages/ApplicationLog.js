@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -73,7 +73,7 @@ class ApplicationLog extends Component {
         const componentName = component.length > 0 ? component[0].name : null;
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
                         name={componentName}
@@ -109,7 +109,7 @@ class ApplicationLog extends Component {
                             </ShouldRender>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

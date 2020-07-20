@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import DateRangeWrapper from '../components/reports/DateRangeWrapper';
 import Dashboard from '../components/Dashboard';
 import Members from '../components/reports/Members';
@@ -140,7 +140,7 @@ export class Reports extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem route={pathname} name="Reports" />
                     <div className="Box-root Margin-vertical--12">
                         <div>
@@ -592,7 +592,7 @@ export class Reports extends Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

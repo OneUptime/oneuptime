@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import {
     subProjectTeamLoading,
@@ -255,7 +255,7 @@ class TeamApp extends Component {
 
         return (
             <Dashboard>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem route={pathname} name="Team Members" />
                     <div
                         onKeyDown={this.handleKeyBoard}
@@ -299,7 +299,7 @@ class TeamApp extends Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

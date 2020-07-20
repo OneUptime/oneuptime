@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import {
     fetchMonitorsIncidents,
     fetchMonitorsSubscribers,
@@ -127,7 +127,7 @@ class MonitorView extends React.Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem
                         route={componentMonitorsRoute}
                         name={componentName}
@@ -393,7 +393,7 @@ class MonitorView extends React.Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

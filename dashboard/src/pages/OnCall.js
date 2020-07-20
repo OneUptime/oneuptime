@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import {
     fetchProjectSchedule,
@@ -263,7 +263,7 @@ export class OnCall extends Component {
 
         return (
             <Dashboard>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem route={pathname} name="Call Schedules" />
                     <div tabIndex="0" onKeyDown={this.handleKeyBoard}>
                         <div>
@@ -278,7 +278,7 @@ export class OnCall extends Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

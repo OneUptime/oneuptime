@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import CustomerBalance from '../components/paymentCard/CustomerBalance';
 import AlertCharges from '../components/alert/AlertCharges';
@@ -36,7 +36,7 @@ class Billing extends Component {
 
         return (
             <Dashboard>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
                         name="Project Settings"
@@ -55,7 +55,7 @@ class Billing extends Component {
                             <ChangePlan />
                         </ShouldRender>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

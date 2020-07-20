@@ -1,7 +1,7 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import {
     incidentRequest,
     incidentError,
@@ -343,7 +343,7 @@ class Incident extends React.Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem route="#" name={componentName} />
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
@@ -363,7 +363,7 @@ class Incident extends React.Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

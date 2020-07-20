@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import ApplicationSecurityDetail from '../components/security/ApplicationSecurityDetail';
 
@@ -7,7 +7,7 @@ class ApplicationDetail extends Component {
     render() {
         return (
             <Dashboard>
-                <Zoom>
+                <Fade>
                     <div className="Margin-vertical--12">
                         <div>
                             <div className="db-BackboneViewContainer">
@@ -17,7 +17,7 @@ class ApplicationDetail extends Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

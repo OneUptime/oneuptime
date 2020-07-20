@@ -1,7 +1,7 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { fetchMonitorIssue } from '../actions/monitor';
@@ -392,7 +392,7 @@ class WebsiteMonitorIssues extends React.Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <Zoom>
+                <Fade>
                     <BreadCrumbItem
                         route={componentMonitorsRoute}
                         name={componentName}
@@ -423,7 +423,7 @@ class WebsiteMonitorIssues extends React.Component {
                             </div>
                         </div>
                     </div>
-                </Zoom>
+                </Fade>
             </Dashboard>
         );
     }

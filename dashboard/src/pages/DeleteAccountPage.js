@@ -1,6 +1,6 @@
 import React from 'react';
 import { PropTypes } from 'prop-types';
-import Zoom from 'react-reveal/Zoom';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import DeleteAccountBox from '../components/profileSettings/DeleteAccountBox';
@@ -12,7 +12,7 @@ const DeleteAccountPage = props => {
 
     return (
         <Dashboard>
-            <Zoom>
+            <Fade>
                 <BreadCrumbItem route={pathname} name="Advanced" />
                 <div>
                     <div>
@@ -31,7 +31,7 @@ const DeleteAccountPage = props => {
                         </div>
                     </div>
                 </div>
-            </Zoom>
+            </Fade>
         </Dashboard>
     );
 };
