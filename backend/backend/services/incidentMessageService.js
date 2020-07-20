@@ -26,6 +26,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
+            data.updated = true;
             let incidentMessage = await IncidentMessageModel.findOneAndUpdate(
                 query,
                 { $set: data },

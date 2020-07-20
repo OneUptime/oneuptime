@@ -411,24 +411,28 @@ router.post(
                 });
             }
 
-            if (!data.type) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Incident Message type is required.',
-                });
-            }
-            if (typeof data.type !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Incident Message type is not in string type.',
-                });
-            }
+            if (!data.id) {
+                // this is a message creation Rquest
+                if (!data.type) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Incident Message type is required.',
+                    });
+                }
+                if (typeof data.type !== 'string') {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Incident Message type is not in string type.',
+                    });
+                }
 
-            if (!['investigation', 'internal'].includes(data.type)) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Incident Message type is not of required types.',
-                });
+                if (!['investigation', 'internal'].includes(data.type)) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message:
+                            'Incident Message type is not of required types.',
+                    });
+                }
             }
 
             // Call the IncidentService
@@ -444,28 +448,29 @@ router.post(
             }
 
             // If the message ID is available, treat this as an update
-            if (data.messageId) {
+            if (data.id) {
                 // TODO validate if Message ID exist or not
             }
             let incidentMessage = null;
             // TODO save inside thread or update existing thread.
             if (incident && incident._id) {
                 data.incidentId = incidentId;
-                const status = `${data.type} notes ${
-                    data.messageId ? 'updated' : 'added'
-                }`;
 
                 // TODO handle creation or updating
-                if (!data.messageId) {
+                if (!data.id) {
                     data.createdById = req.user.id;
                     incidentMessage = await IncidentMessageService.create(data);
                 } else {
-                    const updatedMessage = { content: data.message };
+                    const updatedMessage = { content: data.content };
                     incidentMessage = await IncidentMessageService.updateOneBy(
-                        { _id: data.messageId },
+                        { _id: data.id },
                         updatedMessage
                     );
                 }
+                const status = `${incidentMessage.type} notes ${
+                    data.id ? 'updated' : 'added'
+                }`;
+
                 // update timeline
                 await IncidentTimelineService.create({
                     incidentId: incident._id,
