@@ -13,7 +13,7 @@ const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 
-let projectId, newProjectId, userRole, airtableId, newAirtableId;
+let projectId, newProjectId, userRole, token, airtableId, newAirtableId;
 
 describe('Enterprise User API', function() {
     this.timeout(20000);
@@ -33,7 +33,8 @@ describe('Enterprise User API', function() {
                         email: data.user.email,
                         password: data.user.password,
                     })
-                    .end(function() {
+                    .end(function(err, res) {
+                        token = res.body.tokens.jwtAccessToken;
                         done();
                     });
             });
@@ -108,6 +109,26 @@ describe('Enterprise User API', function() {
                 expect(res.body.email).to.equal(data.newUser.email);
                 expect(res.body).have.property('redirect');
                 expect(res.body.redirect).to.eql('http://fyipe.com');
+                done();
+            });
+    });
+
+    it('should get list of users without their hashed passwords', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get('/user/users')
+            .set('Authorization', authorization)
+            .end(async function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body.data).to.be.an('array');
+                expect(res.body.data.length).to.eql(2);
+                const { data } = res.body;
+                for (const element of data) {
+                    expect(element).to.be.an('object');
+                    expect(element).to.not.have.property('password');
+                }
                 done();
             });
     });
