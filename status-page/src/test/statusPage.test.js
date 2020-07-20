@@ -385,7 +385,7 @@ describe('Status page monitors check', function() {
         });
         const textHeader = await page.$eval('.title', e => e.textContent);
         expect(textHeader).to.be.eql('Some services are degraded');
-        page.waitForSelector('.largestatus > .status-paused');
+        await page.waitForSelector('.largestatus > .status-paused');
     });
 });
 
