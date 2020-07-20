@@ -10,6 +10,7 @@ const IncidentService = require('../services/incidentService');
 const IncidentTimelineService = require('../services/incidentTimelineService');
 const MonitorStatusService = require('../services/monitorStatusService');
 const RealTimeService = require('../services/realTimeService');
+const incidentMessageService = require('../services/incidentMessageService');
 const router = express.Router();
 
 const { isAuthorized } = require('../middlewares/authorization');
@@ -60,7 +61,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
             });
         }
 
-        if (typeof monitorId !== 'string') {
+        if (typeof projectId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Project ID  is not in string type.',
@@ -382,6 +383,104 @@ router.put(
                 await RealTimeService.updateIncidentNote(incident);
             }
             return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.post(
+    '/:projectId/incident/:incidentId/message',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const data = req.body;
+            const incidentId = req.params.incidentId;
+
+            if (!data.content) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Incident Message is required.',
+                });
+            }
+            if (typeof data.content !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Incident Message is not in string type.',
+                });
+            }
+
+            if (!data.type) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Incident Message type is required.',
+                });
+            }
+            if (typeof data.type !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Incident Message type is not in string type.',
+                });
+            }
+
+            if (!['investigation', 'internal'].includes(data.type)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Incident Message type is not of required types.',
+                });
+            }
+
+            // Call the IncidentService
+            const incident = await IncidentService.findOneBy({
+                _id: incidentId,
+            });
+
+            if (!incident) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Incident not found.',
+                });
+            }
+
+            // If the message ID is available, treat this as an update
+            if (data.messageId) {
+                // TODO validate if Message ID exist or not
+            }
+            let incidentMessage = null;
+            // TODO save inside thread or update existing thread.
+            if (incident && incident._id) {
+                data.incidentId = incidentId;
+                const status = `${data.type} notes ${
+                    data.messageId ? 'updated' : 'added'
+                }`;
+
+                // TODO handle creation or updating
+                if (!data.messageId) {
+                    data.createdById = req.user.id;
+                    console.log(data);
+                    incidentMessage = await incidentMessageService.create(data);
+                } else {
+                    const updatedMessage = { content: data.message };
+                    incidentMessage = await incidentMessageService.updateOneBy(
+                        { _id: data.messageId },
+                        updatedMessage
+                    );
+                }
+                // update timeline
+                await IncidentTimelineService.create({
+                    incidentId: incident._id,
+                    createdById: req.user.id,
+                    status,
+                });
+
+                incidentMessage = await incidentMessageService.findOneBy({
+                    _id: incidentMessage._id,
+                    incidentId: incidentMessage.incidentId,
+                });
+                await RealTimeService.updateIncidentNote(incident);
+            }
+            return sendItemResponse(req, res, incidentMessage);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
