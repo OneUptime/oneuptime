@@ -17,13 +17,18 @@ export class AuditLogsList extends Component {
     }
 
     handleDelete = () => {
-        const { deleteAuditLogs } = this.props;
+        const { deleteAuditLogs, deleteError, openModal } = this.props;
         const thisObj = this;
         const { deleteModalId } = this.state;
-        this.props.openModal({
+        openModal({
             id: deleteModalId,
             onConfirm: () => {
                 return deleteAuditLogs().then(() => {
+                    // prevent dismissal of modal if there is error
+                    if (deleteError) {
+                        return this.handleDelete();
+                    }
+
                     if (window.location.href.indexOf('localhost') <= -1) {
                         thisObj.context.mixpanel.track('Audit Log Deleted');
                     }
@@ -391,6 +396,7 @@ function mapStateToProps(state) {
     return {
         users: state.user.users.users,
         deleteRequest: state.auditLogs.auditLogs.deleteRequest,
+        deleteError: state.auditLogs.auditLogs.error,
     };
 }
 
@@ -407,6 +413,10 @@ AuditLogsList.propTypes = {
     ]),
     requesting: PropTypes.bool,
     openModal: PropTypes.func.isRequired,
+    deleteError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(AuditLogsList);
