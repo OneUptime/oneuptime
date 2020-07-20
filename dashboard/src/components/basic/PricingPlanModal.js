@@ -45,7 +45,7 @@ const PricingPlanModal = ({
                         <form onSubmit={handleSubmit(handleFormSubmit)}>
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <span>Upgrade Plan</span>
                                     </span>
                                 </div>
@@ -67,51 +67,56 @@ const PricingPlanModal = ({
                                 )}
                             </div>
                             <ShouldRender if={propArr[0].plan !== 'Enterprise'}>
-                                <div className="bs-Modal-content">
-                                    <div className="Margin-bottom--12 Text-fontWeight--medium">
-                                        Choose a Plan
-                                    </div>
-                                    {plans.map((plan, index) => (
-                                        <div
-                                            className="bs-Fieldset-fields .Flex-justifyContent--center Margin-bottom--12"
-                                            style={{ flex: 1, padding: 0 }}
-                                            key={index}
-                                        >
-                                            <span
-                                                style={{
-                                                    marginBottom: '4px',
-                                                }}
-                                            >
-                                                {plan.category}{' '}
-                                                {plan.type === 'month'
-                                                    ? 'Monthly'
-                                                    : 'Yearly'}{' '}
-                                                Plan
-                                            </span>
-                                            <div
-                                                className="bs-Fieldset-field"
-                                                style={{
-                                                    width: '100%',
-                                                    alignItems: 'center',
-                                                }}
-                                            >
-                                                <Field
-                                                    required={true}
-                                                    component="input"
-                                                    type="radio"
-                                                    name="planId"
-                                                    id={`${plan.category}_${plan.type}`}
-                                                    value={plan.planId}
-                                                    className="Margin-right--12"
-                                                />
-                                                <label
-                                                    htmlFor={`${plan.category}_${plan.type}`}
-                                                >
-                                                    {plan.details}
-                                                </label>
-                                            </div>
+                                <div
+                                    className="bs-Modal-content"
+                                    style={{ paddingTop: 0 }}
+                                >
+                                    <fieldset className="bs-Fieldset">
+                                        <div className="Margin-bottom--12 Text-fontWeight--medium">
+                                            Choose a Plan
                                         </div>
-                                    ))}
+                                        {plans.map((plan, index) => (
+                                            <div
+                                                className="bs-Fieldset-fields .Flex-justifyContent--center Margin-bottom--12"
+                                                style={{ flex: 1, padding: 0 }}
+                                                key={index}
+                                            >
+                                                <span
+                                                    style={{
+                                                        marginBottom: '4px',
+                                                    }}
+                                                >
+                                                    {plan.category}{' '}
+                                                    {plan.type === 'month'
+                                                        ? 'Monthly'
+                                                        : 'Yearly'}{' '}
+                                                    Plan
+                                                </span>
+                                                <div
+                                                    className="bs-Fieldset-field"
+                                                    style={{
+                                                        width: '100%',
+                                                        alignItems: 'center',
+                                                    }}
+                                                >
+                                                    <Field
+                                                        required={true}
+                                                        component="input"
+                                                        type="radio"
+                                                        name="planId"
+                                                        id={`${plan.category}_${plan.type}`}
+                                                        value={plan.planId}
+                                                        className="Margin-right--12"
+                                                    />
+                                                    <label
+                                                        htmlFor={`${plan.category}_${plan.type}`}
+                                                    >
+                                                        {plan.details}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </fieldset>
                                 </div>
                             </ShouldRender>
                             <ShouldRender if={error}>
