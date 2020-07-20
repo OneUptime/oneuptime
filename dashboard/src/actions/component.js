@@ -298,3 +298,62 @@ export function addSeatReset() {
         type: types.ADD_SEAT_RESET,
     };
 }
+
+// Component Resources list
+// props -> {name: '', type, data -> { data.url}}
+export function fetchComponentResources(projectId, componentId, skip, limit) {
+    return function(dispatch) {
+        const promise = getApi(
+            `component/${projectId}/resources/${componentId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchComponentResourcesRequest(componentId));
+
+        promise.then(
+            function(components) {
+                dispatch(fetchComponentResourcesSuccess(components.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchComponentResourcesFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchComponentResourcesSuccess(resources) {
+    return {
+        type: types.FETCH_COMPONENT_RESOURCES_SUCCESS,
+        payload: resources,
+    };
+}
+
+export function fetchComponentResourcesRequest(componentId) {
+    return {
+        type: types.FETCH_COMPONENT_RESOURCES_REQUEST,
+        payload: componentId,
+    };
+}
+
+export function fetchComponentResourcesFailure(error) {
+    return {
+        type: types.FETCH_COMPONENT_RESOURCES_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetFetchComponentResources() {
+    return {
+        type: types.FETCH_COMPONENT_RESOURCES_RESET,
+    };
+}

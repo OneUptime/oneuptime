@@ -187,6 +187,39 @@ describe('Monitor API', function() {
             });
     });
 
+    it('should not remove monitor url from a monitor', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .delete(`/monitor/${projectId}/siteUrl/${monitorId}`)
+            .set('Authorization', authorization)
+            .send({
+                siteUrl: 'http://www.tests.org',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Monitor URL can not be deleted.'
+                );
+                done();
+            });
+    });
+
+    it('should remove a site url from a monitor', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .delete(`/monitor/${projectId}/siteUrl/${monitorId}`)
+            .set('Authorization', authorization)
+            .send({
+                siteUrl: 'https://twitter.com',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body._id).to.be.equal(monitorId);
+                expect(res.body.siteUrls).to.not.contain('https://twitter.com');
+                done();
+            });
+    });
+
     it('should not create a new monitor with invalid call schedule', function(done) {
         let scheduleId = 20;
         let authorization = `Basic ${token}`;

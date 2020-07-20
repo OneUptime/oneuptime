@@ -5,16 +5,15 @@
 
 <head>
     <title>Fyipe | Status Page and On-call made simple.</title>
-    <meta name="description"
-        content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+    <meta name="description" content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
     <% include ./head %>
-    
+
     <link rel="stylesheet" href="/css/crm.css">
     <link rel="stylesheet" href="/css/sdlc.css">
     <link rel="stylesheet" href="/css/comparision.css">
 
     <script src="/js/crm.js" type="text/javascript" async></script>
-    <link rel="stylesheet" href="/css/home.css"  >
+    <link rel="stylesheet" href="/css/home.css">
 
     <script defer src="/js/home.js"></script>
     <script src="/js/amplitude.js"></script>
@@ -24,23 +23,20 @@
             amplitude.getInstance().logEvent('PAGE VIEW: HOME');
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.bundle.min.js"
-        type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.bundle.min.js" type="text/javascript"></script>
 </head>
 
 <body>
     <% include ./nav %>
 
     <div class="globalContent">
-
         <main>
             <header>
-
                 <section id="intro">
                     <div class="container-lg" style="display: flex; justify-content: center;">
                         <div>
                             <h1 class="black main-page-title" style="text-align:center">
-                                One Complete SRE <br/>and IT Ops
+                                One Complete SRE <br />and IT Ops
                                 platform.
                             </h1>
                             <p class="common-BodyText" style="text-align:center;max-width:100%">
@@ -48,26 +44,20 @@
                                 downtime happens. We also give you a Status Page which keeps your customers looped in
                                 and improves transparency.
                             </p>
-                            
+
                             <ul style="margin-left: calc(50% - 150px); margin-top: 70px;">
                                 <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top"
-                                        data-analytics-action="create_account" data-analytics-source="header_cta">
+                                    <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top" data-analytics-action="create_account" data-analytics-source="header_cta">
                                         Try Free for 14 days
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
+                                    <a href="/enterprise/demo" class="common-Button" data-analytics-action="contact_sales" data-analytics-source="header_cta">
                                         Request Demo
                                     </a>
                                 </li>
                             </ul>
-                            
-
                         </div>
-                       
-
                     </div>
                 </section>
             </header>
@@ -90,8 +80,7 @@
                                 <img style="height:70px" class="hersheys" alt="hersheys" src="img/hershey-s.svg">
                             </li>
                             <li>
-                                <img style="height:30px" class="elasticstack" alt="elasticstack"
-                                    src="img/elastic-stack.svg">
+                                <img style="height:30px" class="elasticstack" alt="elasticstack" src="img/elastic-stack.svg">
                             </li>
                             <li>
                                 <img style="height:24px" class="freshsales" alt="freshsales" src="img/freshsales-1.svg">
@@ -110,67 +99,64 @@
 
             <section class="sdlc-container sectionBorderTop" style="margin-bottom:0px">
                 <div class="sdlc-description">
-              
-                  <h2 class="title-link h2">Uptime Monitoring</h2>
-              
-                  <p></p>
-                  <p>Fyipe's monitoring lets you know exactly what is wrong with your service, at the right time, saving you critical minutes during downtime.</p>
-                  <p></p>
+
+                    <h2 class="title-link h2">Uptime Monitoring</h2>
+
+                    <p></p>
+                    <p>Fyipe's monitoring lets you know exactly what is wrong with your service, at the right time, saving you critical minutes during downtime.</p>
+                    <p></p>
                 </div>
-                
+
                 <!-- <div style="display:flex; justify-content:center; margin-bottom:30px;">
                     <img src="/img/status-page-dashboard.png" width="900" class="imageshadow"/>
                 </div> -->
                 <section class="main basics" style="padding:0px">
-                <div class="content">
-                    <ul class="columns">
-                        <li class="reliability">
-                            <h3>Monitor Anything.</h3>
-                            <p class="text-center">Monitor uptime and performance of your dashboards, API's, servers, applications, and more.</p>
-                        </li>
-                        <li class="moni">
-                            <h3>Detailed Metrics</h3>
-                            <p class="text-center">All teams get the same visibility for technical and business response orchestration, enabling better collaboration and rapid resolution. </p>
-                        </li>
-                        <li class="time">
-                            <h3>Every second check.</h3>
-                            <p class="text-center">Fyipe checks the status of the endpoint every second to make sure you get alerted as soon as any of your resources go down.</p>
-                        </li>
-                        
-                    </ul>
-                </div>
-            </section>
+                    <div class="content">
+                        <ul class="columns">
+                            <li class="reliability">
+                                <h3>Monitor Anything.</h3>
+                                <p class="text-center">Monitor uptime and performance of your dashboards, API's, servers, applications, and more.</p>
+                            </li>
+                            <li class="moni">
+                                <h3>Detailed Metrics</h3>
+                                <p class="text-center">All teams get the same visibility for technical and business response orchestration, enabling better collaboration and rapid resolution. </p>
+                            </li>
+                            <li class="time">
+                                <h3>Every second check.</h3>
+                                <p class="text-center">Fyipe checks the status of the endpoint every second to make sure you get alerted as soon as any of your resources go down.</p>
+                            </li>
+
+                        </ul>
+                    </div>
+                </section>
 
                 <div>
-              
-                   
-                
                     <p></p>
                     <p> <a class="common-Link--arrow black " href="/product/uptime-monitoring"> <span class="">Learn more about monitoring here.</span> </a></p>
                     <p></p>
-                  </div>
-
-              </section>
-
-              <section class="sdlc-container sectionBorderTop" style="margin-bottom:0px">
-                <div class="sdlc-description">
-              
-                  <h2 class="title-link h2">Status Page</h2>
-              
-                  <p></p>
-                  <p>Status Page helps you be more transparent with your customers and showcase reliability. Easily communicate real-time status to your customers, gain trust and increase revenue.</p>
-                  <p></p>
                 </div>
-                
+
+            </section>
+
+            <section class="sdlc-container sectionBorderTop" style="margin-bottom:0px">
+                <div class="sdlc-description">
+
+                    <h2 class="title-link h2">Status Page</h2>
+
+                    <p></p>
+                    <p>Status Page helps you be more transparent with your customers and showcase reliability. Easily communicate real-time status to your customers, gain trust and increase revenue.</p>
+                    <p></p>
+                </div>
+
                 <div style="display:flex; justify-content:center; margin-top:50px">
-                    <img src="/img/status-page.png" width="900" class="imageshadow" alt="Status page" id="status-page"/>
+                    <img src="/img/status-page.png" width="900" class="imageshadow" alt="Status page" id="status-page" />
                 </div>
                 <section class="main basics" style="padding:0px">
                     <div class="content">
                         <ul class="columns">
                             <li class="trend">
                                 <h3>Realtime Status</h3>
-                                <p class="text-center">Show realtime status of your product or service - home page, 
+                                <p class="text-center">Show realtime status of your product or service - home page,
                                     websites, API, dashboards or more.</p>
                             </li>
                             <li class="cost">
@@ -183,40 +169,36 @@
                                 <p class="text-center">Showcase the reliability of your platform and compliance with your SLA
                                     and build trust with your customers.</p>
                             </li>
-                            
+
                         </ul>
-    
+
                     </div>
                 </section>
 
                 <div>
-              
-                   
-                
                     <p></p>
                     <p> <a class="common-Link--arrow black " href="/product/status-page"> <span class="">Learn more about status page here.</span> </a></p>
                     <p></p>
-                  </div>
-
-              </section>
-
-              <section class="sdlc-container sectionBorderTop" style="margin-bottom:0px">
-                <div class="sdlc-description">
-              
-                  <h2 class="title-link h2">On-Call Management</h2>
-              
-                  <p></p>
-                  <p><i>Downtime happens.</i> On-Call Management lets you alert the right team at the right time saving you critical time during downtime.</p>
-                  <p></p>
                 </div>
-                
+
+            </section>
+
+            <section class="sdlc-container sectionBorderTop" style="margin-bottom:0px">
+                <div class="sdlc-description">
+
+                    <h2 class="title-link h2">On-Call Management</h2>
+                    <p></p>
+                    <p><i>Downtime happens.</i> On-Call Management lets you alert the right team at the right time saving you critical time during downtime.</p>
+                    <p></p>
+                </div>
+
                 <div style="display:flex; justify-content:center; margin-bottom:30px;">
-                    <img src="/img/call-schedule-dashboard.png" width="900" class="imageshadow" alt="Call schedule dashboard" id="status-page"/>
+                    <img src="/img/call-schedule-dashboard.png" width="900" class="imageshadow" alt="Call schedule dashboard" id="status-page" />
                 </div>
 
                 <section class="main basics" style="padding:0px">
                     <div class="content">
-    
+
                         <ul class="columns">
                             <li class="rotation">
                                 <h3>Duty Rotations</h3>
@@ -230,30 +212,27 @@
                                 <h3>Any Alert Channel</h3>
                                 <p class="text-center">Alert your team by call, SMS, Email, Push Notifications and more. </p>
                             </li>
-                            
+
                         </ul>
-    
+
                     </div>
-                    </section>
+                </section>
 
                 <div>
-              
-                   
-                
                     <p></p>
                     <p> <a class="common-Link--arrow black " href="/product/oncall-management"> <span class="">Learn more about on-call management here.</span> </a></p>
                     <p></p>
-                  </div>
+                </div>
 
-              </section>
+            </section>
 
-              <div style="background-color:black;height: 600px;width:100%;" class="enterprise-section">
+            <div style="background-color:black;height: 600px;width:100%;" class="enterprise-section">
                 <header style="padding-top: 75px;
                 text-align: center;
                 margin-bottom: 70px;">
                     <h2 class="header" style="color:white">1500+ Enterprise Integrations and counting.</h2>
                     <p class="common-BodyText">Fyipe integrates with over a thousand enterprise-class app and
-                        services which helps you streamline and  <br/> automate your digital ops workflow.</p>
+                        services which helps you streamline and <br /> automate your digital ops workflow.</p>
                 </header>
 
                 <ul class="integration-list">
@@ -310,10 +289,6 @@ height: 60px;
                 </ul>
 
             </div>
-
-
-
-            
         </main>
 
     </div>
@@ -330,10 +305,21 @@ height: 60px;
                 $('[data-toggle="tooltip"]').tooltip()
             })
             let acceptCookies = getCookie("acceptCookies");
+            const isLoggedIn = getCookie('data') || getCookie('admin-data');
+
+            if (isLoggedIn) {
+                const accountsUrl = getAccountsUrl();
+                window.location.replace(accountsUrl);
+            }
+
             if (acceptCookies != "") {
-                $('#cookies-notification').css({ display: 'none' });
+                $('#cookies-notification').css({
+                    display: 'none'
+                });
             } else {
-                $('#cookies-notification').css({ display: 'block' });
+                $('#cookies-notification').css({
+                    display: 'block'
+                });
             }
         })
 
@@ -359,10 +345,22 @@ height: 60px;
             }
             return "";
         }
+
+        function getAccountsUrl() {
+            let accountsUrl = window.location.origin + '/accounts';
+            if (
+                window &&
+                window.location &&
+                window.location.host &&
+                (window.location.host.includes('localhost:') ||
+                    window.location.host.includes('0.0.0.0:') ||
+                    window.location.host.includes('127.0.0.1:'))
+            ) {
+                accountsUrl = window.location.protocol + '//localhost:3003/accounts';
+            }
+            return accountsUrl;
+        }
     </script>
-
-    
-
     <script type="text/javascript" async>
         _linkedin_partner_id = "706292";
         window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
@@ -372,17 +370,14 @@ height: 60px;
         (function () {
             var s = document.getElementsByTagName("script")[0];
             var b = document.createElement("script");
-            b.type = "text/javascript"; b.async = true;
+            b.type = "text/javascript";
+            b.async = true;
             b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
             s.parentNode.insertBefore(b, s);
         })();
     </script>
-    
-        <img height="1" width="1" style="display:none;" alt=""
-            src="https://dc.ads.linkedin.com/collect/?pid=706292&fmt=gif" />
-    
-    
-</body>
 
+    <img height="1" width="1" style="display:none;" alt="" src="https://dc.ads.linkedin.com/collect/?pid=706292&fmt=gif" />
+</body>
 
 </html>

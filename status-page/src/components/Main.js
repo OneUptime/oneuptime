@@ -67,6 +67,15 @@ class Main extends Component {
 
             this.setLastAlive();
         }
+        if (
+            prevProps.statusData.customJS !== this.props.statusData.customJS &&
+            this.props.statusData.customJS
+        ) {
+            const javascript = document
+                .createRange()
+                .createContextualFragment(this.props.statusData.customJS);
+            document.body.appendChild(javascript);
+        }
     }
 
     setLastAlive = () => {

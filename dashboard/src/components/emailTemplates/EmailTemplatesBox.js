@@ -125,8 +125,7 @@ class EmailTemplatesBox extends React.Component {
                                                                       template => ({
                                                                           value:
                                                                               template.emailType,
-                                                                          label:
-                                                                              template.emailType,
+                                                                          label: `External ${template.emailType}`,
                                                                       })
                                                                   )
                                                                 : []),

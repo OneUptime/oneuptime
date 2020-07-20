@@ -1010,6 +1010,18 @@ module.exports = {
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId,
             });
+            // get thee monitor
+            const monitor = await MonitorService.findOneBy({
+                _id: incident.monitorId._id
+                    ? incident.monitorId._id
+                    : incident.monitorId,
+            });
+            // get the component
+            const component = await ComponentService.findOneBy({
+                _id: monitor.componentId._id
+                    ? monitor.componentId._id
+                    : monitor.componentId,
+            });
             if (subscriber.alertVia == AlertType.Email) {
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     projectId: incident.projectId,
@@ -1082,7 +1094,8 @@ module.exports = {
                         smsTemplate,
                         incident,
                         project.name,
-                        incident.projectId
+                        incident.projectId,
+                        component.name
                     );
                 } else if (templateType === 'Subscriber Incident Resolved') {
                     sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
@@ -1092,7 +1105,8 @@ module.exports = {
                         smsTemplate,
                         incident,
                         project.name,
-                        incident.projectId
+                        incident.projectId,
+                        component.name
                     );
                 } else {
                     sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
@@ -1102,7 +1116,8 @@ module.exports = {
                         smsTemplate,
                         incident,
                         project.name,
-                        incident.projectId
+                        incident.projectId,
+                        component.name
                     );
                 }
                 if (sendResult && sendResult.code && sendResult.code === 400) {
@@ -1293,3 +1308,4 @@ const moment = require('moment-timezone');
 const TimeZoneNames = moment.tz.names();
 const OnCallScheduleStatusService = require('./onCallScheduleStatusService');
 const { IS_SAAS_SERVICE } = require('../config/server');
+const ComponentService = require('./componentService');

@@ -6,10 +6,13 @@ import { connect } from 'react-redux';
 import { changePlan } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import PlanFields from '../project/PlanFields';
 import { PricingPlan } from '../../config';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+import ChangePlanField from './ChangePlanField';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
+import Unauthorised from '../modals/Unauthorised';
+import { openModal } from '../../actions/modal';
 
 function Validate(values) {
     const errors = {};
@@ -22,32 +25,80 @@ function Validate(values) {
 }
 
 export class Plans extends Component {
+    constructor(props) {
+        super(props);
+        this.plansArr = PricingPlan.getPlans();
+        this.initialType = PricingPlan.getPlanById(
+            props.currentProject.stripePlanId
+        ).type;
+
+        this.getPlansFromToggle = (planDuration, plansArr) =>
+            plansArr.filter(plan => plan.type === planDuration);
+
+        this.state = {
+            isAnnual: this.initialType === 'annual' ? true : false,
+            plans: this.getPlansFromToggle(this.initialType, this.plansArr),
+        };
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        this.shouldTogglePlans(prevState);
+    }
+
+    shouldTogglePlans = prevState => {
+        if (this.state.isAnnual !== prevState.isAnnual) {
+            if (this.state.isAnnual) {
+                this.setState({
+                    plans: this.getPlansFromToggle('annual', this.plansArr),
+                });
+            } else {
+                this.setState({
+                    plans: this.getPlansFromToggle('month', this.plansArr),
+                });
+            }
+        }
+    };
+
+    handlePlanToggle = () => {
+        this.setState(prevState => ({ isAnnual: !prevState.isAnnual }));
+    };
+
     submit = values => {
+        const { currentProject, openModal } = this.props;
+        const userId = User.getUserId();
         const { _id: id, name } = this.props.currentProject;
-        const {
-            category: oldCategory,
-            type: oldType,
-            details: oldDetails,
-        } = PricingPlan.getPlanById(this.props.initialValues.planId);
-        const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
-        const {
-            category: newCategory,
-            type: newType,
-            details: newDetails,
-        } = PricingPlan.getPlanById(values.planId);
-        const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
-        this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROJECT > PLAN CHANGED', {
-                oldPlan,
-                newPlan,
-            });
+        if (isOwnerOrAdmin(userId, currentProject)) {
+            const {
+                category: oldCategory,
+                type: oldType,
+                details: oldDetails,
+            } = PricingPlan.getPlanById(this.props.initialValues.planId);
+            const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
+            const {
+                category: newCategory,
+                type: newType,
+                details: newDetails,
+            } = PricingPlan.getPlanById(values.planId);
+            const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
+            this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
+
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent('EVENT: DASHBOARD > PROJECT > PLAN CHANGED', {
+                    oldPlan,
+                    newPlan,
+                });
+            }
+        } else {
+            openModal({ id: userId, content: Unauthorised });
         }
     };
 
     render() {
+        const { isRequesting, error, activeForm, handleSubmit } = this.props;
+        const { isAnnual, plans } = this.state;
+
         return (
-            <form onSubmit={this.props.handleSubmit(this.submit)}>
+            <form onSubmit={handleSubmit(this.submit)}>
                 <div
                     className="db-World-contentPane Box-root"
                     style={{ paddingTop: 0 }}
@@ -70,26 +121,48 @@ export class Plans extends Component {
                                                 </span>
                                             </p>
                                         </div>
+                                        <div
+                                            className="bs-Fieldset-row"
+                                            style={{
+                                                padding: 0,
+                                                display: 'flex',
+                                                marginTop: 15,
+                                            }}
+                                        >
+                                            <label style={{ marginRight: 10 }}>
+                                                {isAnnual
+                                                    ? 'Annual Plans'
+                                                    : 'Monthly Plans'}
+                                            </label>
+                                            <div>
+                                                <label className="Toggler-wrap">
+                                                    <input
+                                                        className="btn-toggler"
+                                                        type="checkbox"
+                                                        onChange={() =>
+                                                            this.handlePlanToggle()
+                                                        }
+                                                        name="planDuration"
+                                                        id="planDuration"
+                                                        checked={isAnnual}
+                                                    />
+                                                    <span className="TogglerBtn-slider round"></span>
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                                         <div>
                                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                                 <fieldset className="bs-Fieldset">
                                                     <div className="bs-Fieldset-rows">
-                                                        <div className="bs-Fieldset-row">
-                                                            <PlanFields />
-                                                        </div>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label"></label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <span
-                                                                    className="value"
-                                                                    style={{
-                                                                        marginTop:
-                                                                            '6px',
-                                                                    }}
-                                                                ></span>
-                                                            </div>
+                                                        <div className="price-list-3c Margin-all--16">
+                                                            <ChangePlanField
+                                                                plans={plans}
+                                                                activeForm={
+                                                                    activeForm
+                                                                }
+                                                            />
                                                         </div>
                                                     </div>
                                                 </fieldset>
@@ -97,22 +170,32 @@ export class Plans extends Component {
                                         </div>
                                     </div>
                                     <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                                        <span className="db-SettingsForm-footerMessage"></span>
+                                        <span className="db-SettingsForm-footerMessage">
+                                            <ShouldRender
+                                                if={!isRequesting && error}
+                                            >
+                                                <div className="Box-background--white">
+                                                    <div
+                                                        className="Padding-all--20"
+                                                        style={{ color: 'red' }}
+                                                    >
+                                                        {error}
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
+                                        </span>
                                         <div>
                                             <button
                                                 className="bs-Button bs-Button--blue"
                                                 type="submit"
+                                                id="changePlanBtn"
                                             >
                                                 <ShouldRender
-                                                    if={
-                                                        !this.props.isRequesting
-                                                    }
+                                                    if={!isRequesting}
                                                 >
                                                     <span>Change Plan</span>
                                                 </ShouldRender>
-                                                <ShouldRender
-                                                    if={this.props.isRequesting}
-                                                >
+                                                <ShouldRender if={isRequesting}>
                                                     <FormLoader />
                                                 </ShouldRender>
                                             </button>
@@ -136,6 +219,12 @@ Plans.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     initialValues: PropTypes.object.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
+    activeForm: PropTypes.string,
+    error: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    openModal: PropTypes.func,
 };
 
 const ChangePlan = new reduxForm({
@@ -151,10 +240,13 @@ const mapStateToProps = state => {
         initialValues: { planId },
         currentProject: state.project.currentProject,
         isRequesting: state.project.changePlan.requesting,
+        error: state.project.changePlan.error,
+        activeForm:
+            state.form.ChangePlan && state.form.ChangePlan.values.planId,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ changePlan }, dispatch);
+    bindActionCreators({ changePlan, openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ChangePlan);

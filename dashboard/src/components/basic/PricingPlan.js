@@ -27,11 +27,17 @@ const PricingPlanComponent = ({
     let category;
     const [pricingPlanModalId] = useState(uuid.v4()); // initialise modal ID
     const isEnterprise =
-        currentProject.stripePlanId === 'enterprise' ? true : false;
+        currentProject &&
+        (currentProject.stripePlanId === 'enterprise' ? true : false);
 
-    if (!isEnterprise && PricingPlan.getPlanById(currentProject.stripePlanId)) {
-        category = PricingPlan.getPlanById(currentProject.stripePlanId)
-            .category;
+    if (currentProject) {
+        if (
+            !isEnterprise &&
+            PricingPlan.getPlanById(currentProject.stripePlanId)
+        ) {
+            category = PricingPlan.getPlanById(currentProject.stripePlanId)
+                .category;
+        }
     }
 
     const createAllowedPlans = plan => {

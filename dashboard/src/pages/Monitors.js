@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import { PropTypes } from 'prop-types';
 import Dashboard from '../components/Dashboard';
-import RenderIfAdmin from '../components/basic/RenderIfAdmin';
 import MonitorCategories from '../components/settings/MonitorCategories';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -43,9 +42,7 @@ class Monitors extends Component {
                                 <span>
                                     <div>
                                         <div>
-                                            <RenderIfAdmin>
-                                                <MonitorCategories />
-                                            </RenderIfAdmin>
+                                            <MonitorCategories />
                                         </div>
                                     </div>
                                 </span>

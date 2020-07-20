@@ -74,7 +74,7 @@ class AlertCharge extends Component {
                                                                 this.fetchData
                                                             }
                                                             className={
-                                                                'Button bs-ButtonLegacy' +
+                                                                'bs-Button bs-ButtonLegacy' +
                                                                 (!canDownload
                                                                     ? ''
                                                                     : 'Is--disabled')
@@ -84,14 +84,16 @@ class AlertCharge extends Component {
                                                                 !canDownload
                                                             }
                                                         >
-                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                            <ShouldRender
+                                                                if={!requesting}
+                                                            >
+                                                                <span className="bs-Button--icon bs-Button--download">
                                                                     <span>
-                                                                        + Export
+                                                                        Export
                                                                         as CSV
                                                                     </span>
                                                                 </span>
-                                                            </div>
+                                                            </ShouldRender>
                                                         </button>
                                                         <CSVLink
                                                             data={

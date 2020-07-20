@@ -1,19 +1,24 @@
 ##ADMINDASHBOARD
 audit_admin-dashboard:
-  stage: BuildAndTest
-  allow_failure: true
-  script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl gcc
-    - sudo apt-get install -y build-essential
-    - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    - sudo apt-get install -y nodejs
-    - cd admin-dashboard
-    - npm ci
-    - npm run audit
-    - npm run dep-check
-    - cd ..
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+    stage: BuildAndTest
+    allow_failure: true
+    script:
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh audit_admin-dashboard admin-dashboard`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - cd admin-dashboard
+        - npm ci
+        - npm run audit
+        - npm run dep-check
+        - cd ..
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh audit_admin-dashboard admin-dashboard
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release

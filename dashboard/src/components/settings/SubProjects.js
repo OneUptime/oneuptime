@@ -10,6 +10,9 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import { getSubProjects } from '../../actions/subProject';
 import PricingPlan from '../basic/PricingPlan';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
+import { User } from '../../config';
+import Unauthorised from '../modals/Unauthorised';
 
 export class SubProjects extends Component {
     constructor(props) {
@@ -27,12 +30,32 @@ export class SubProjects extends Component {
         getSubProjects(currentProject._id, skip ? skip + 10 : 10, 10);
     };
 
+    handleAddSubProject = () => {
+        const { currentProject, openModal } = this.props;
+        const userId = User.getUserId();
+        isOwnerOrAdmin(userId, currentProject)
+            ? openModal({
+                  id: this.state.subProjectModalId,
+                  content: DataPathHoC(SubProjectForm, {
+                      subProjectModalId: this.state.subProjectModalId,
+                      editSubProject: false,
+                      subProjectId: null,
+                      subProjectTitle: null,
+                  }),
+              })
+            : openModal({
+                  id: this.state.subProjectModalId,
+                  content: DataPathHoC(Unauthorised),
+              });
+    };
+
     render() {
         const { limit, skip, count, subProjectState } = this.props;
         const { subProjects } = subProjectState;
         const canNext = count > skip + limit ? false : true;
         const canPrev = skip <= 0 ? true : false;
         const _this = this;
+
         return (
             <div className="bs-BIM">
                 <div className="Box-root Margin-bottom--12">
@@ -59,22 +82,8 @@ export class SubProjects extends Component {
                                                 disabled={
                                                     subProjectState.requesting
                                                 }
-                                                onClick={() =>
-                                                    this.props.openModal({
-                                                        id: this.state
-                                                            .subProjectModalId,
-                                                        content: DataPathHoC(
-                                                            SubProjectForm,
-                                                            {
-                                                                subProjectModalId: this
-                                                                    .state
-                                                                    .subProjectModalId,
-                                                                editSubProject: false,
-                                                                subProjectId: null,
-                                                                subProjectTitle: null,
-                                                            }
-                                                        ),
-                                                    })
+                                                onClick={
+                                                    this.handleAddSubProject
                                                 }
                                                 className="Button bs-ButtonLegacy ActionIconParent"
                                                 type="button"

@@ -32,7 +32,7 @@ class UnVerifiedEmailBox extends Component {
         return (
             <div className="Box-root Margin-vertical--12">
                 <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
-                    <div className="Box-root Box-background--red4">
+                    <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
                         {((!emailVerificationError &&
                             !emailVerificationRequesting &&
                             !emailVerificationData.data) ||
