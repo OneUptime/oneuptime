@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import {
     fetchProjectSchedule,
@@ -262,20 +263,22 @@ export class OnCall extends Component {
 
         return (
             <Dashboard>
-                <BreadCrumbItem route={pathname} name="Call Schedules" />
-                <div tabIndex="0" onKeyDown={this.handleKeyBoard}>
-                    <div>
+                <Fade>
+                    <BreadCrumbItem route={pathname} name="Call Schedules" />
+                    <div tabIndex="0" onKeyDown={this.handleKeyBoard}>
                         <div>
-                            <ShouldRender
-                                if={this.props.callScheduleTutorial.show}
-                            >
-                                <TutorialBox type="call-schedule" />
-                            </ShouldRender>
+                            <div>
+                                <ShouldRender
+                                    if={this.props.callScheduleTutorial.show}
+                                >
+                                    <TutorialBox type="call-schedule" />
+                                </ShouldRender>
 
-                            {allSchedules}
+                                {allSchedules}
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Fade>
             </Dashboard>
         );
     }
