@@ -22,6 +22,11 @@ const log = {
     content: 'this is a log',
     type: 'info',
 };
+const logCount = {
+    error: 0,
+    info: 0,
+    warning: 0,
+};
 
 describe('Application Log API', function() {
     this.timeout(80000);
@@ -164,6 +169,7 @@ describe('Application Log API', function() {
                 expect(res.body.applicationLogId).to.include({
                     name: applicationLog.name,
                 });
+                logCount.info++;
                 done();
             });
     });
@@ -182,6 +188,92 @@ describe('Application Log API', function() {
                 expect(res.body.applicationLogId).to.include({
                     name: applicationLog.name,
                 });
+                logCount.error++;
+                done();
+            });
+    });
+    it('should create a log with correct application log key with type error and one tag', function(done) {
+        const authorization = `Basic ${token}`;
+        log.applicationLogKey = applicationLog.key;
+        log.type = 'error';
+        log.tags = 'server-side';
+        request
+            .post(`/application-log/${applicationLog._id}/log`)
+            .set('Authorization', authorization)
+            .send(log)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.include({ content: log.content });
+                expect(res.body).to.include({ type: log.type });
+                expect(res.body.tags).to.be.an('array');
+                expect(res.body.tags).to.have.lengthOf(1);
+                expect(res.body.tags).to.include(log.tags);
+                logCount.error++;
+                done();
+            });
+    });
+    it('should not create a log with correct application log key with type error but invalid tag', function(done) {
+        const authorization = `Basic ${token}`;
+        log.applicationLogKey = applicationLog.key;
+        log.type = 'error';
+        log.tags = { key: 'server-side' };
+        request
+            .post(`/application-log/${applicationLog._id}/log`)
+            .set('Authorization', authorization)
+            .send(log)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Application Log Tags must be of type String or Array of Strings'
+                );
+                // remove the invalid tag
+                delete log['tags'];
+                done();
+            });
+    });
+    it('should create a log with correct application log key with type error and 5 tags', function(done) {
+        const authorization = `Basic ${token}`;
+        log.applicationLogKey = applicationLog.key;
+        log.type = 'error';
+        log.tags = ['server', 'side', 'monitor', 'watcher', 'testing'];
+        request
+            .post(`/application-log/${applicationLog._id}/log`)
+            .set('Authorization', authorization)
+            .send(log)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.include({ content: log.content });
+                expect(res.body).to.include({ type: log.type });
+                expect(res.body.tags).to.be.an('array');
+                expect(res.body.tags).to.have.lengthOf(log.tags.length);
+                logCount.error++;
+                delete log['tags'];
+                done();
+            });
+    });
+    it('should fetch logs related to application log with tag search params', function(done) {
+        const authorization = `Basic ${token}`;
+        // create a log
+        log.applicationLogKey = applicationLog.key;
+        log.content = 'another content';
+        log.type = 'warning';
+        log.tags = ['server', 'side', 'monitor', 'watcher', 'testing'];
+        request
+            .post(`/application-log/${applicationLog._id}/log`)
+            .set('Authorization', authorization)
+            .send(log)
+            .end();
+        logCount.warning++;
+        request
+            .post(
+                `/application-log/${projectId}/${componentId}/${applicationLog._id}/logs`
+            )
+            .set('Authorization', authorization)
+            .send({ filter: 'server' })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.data).to.be.an('array');
+                expect(res.body.count).to.be.equal(3);
                 done();
             });
     });
@@ -246,7 +338,9 @@ describe('Application Log API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('array');
-                expect(res.body.count).to.be.equal(2);
+                expect(res.body.count).to.be.equal(
+                    logCount.error + logCount.info + logCount.warning
+                );
                 done();
             });
     });
@@ -261,6 +355,7 @@ describe('Application Log API', function() {
             .set('Authorization', authorization)
             .send(log)
             .end();
+        logCount.warning++;
         request
             .post(
                 `/application-log/${projectId}/${componentId}/${applicationLog._id}/logs`
@@ -270,7 +365,7 @@ describe('Application Log API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('array');
-                expect(res.body.count).to.be.equal(1);
+                expect(res.body.count).to.be.equal(2);
                 done();
             });
     });
@@ -285,6 +380,7 @@ describe('Application Log API', function() {
             .set('Authorization', authorization)
             .send(log)
             .end();
+        logCount.error++;
         request
             .post(
                 `/application-log/${projectId}/${componentId}/${applicationLog._id}/logs`
@@ -294,7 +390,7 @@ describe('Application Log API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('array');
-                expect(res.body.count).to.be.equal(2);
+                expect(res.body.count).to.be.equal(logCount.error);
             });
         request
             .post(
@@ -320,6 +416,7 @@ describe('Application Log API', function() {
             .set('Authorization', authorization)
             .send(log)
             .end();
+        logCount.error++;
         request
             .post(
                 `/application-log/${projectId}/${componentId}/${applicationLog._id}/stats`
@@ -329,10 +426,12 @@ describe('Application Log API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('object');
-                expect(res.body.data.all).to.be.equal(5); // total logs
-                expect(res.body.data.error).to.be.equal(3); // total error
-                expect(res.body.data.info).to.be.equal(1); // total info
-                expect(res.body.data.warning).to.be.equal(1); // total warning
+                expect(res.body.data.all).to.be.equal(
+                    logCount.error + logCount.warning + logCount.info
+                ); // total logs
+                expect(res.body.data.error).to.be.equal(logCount.error); // total error
+                expect(res.body.data.info).to.be.equal(logCount.info); // total info
+                expect(res.body.data.warning).to.be.equal(logCount.warning); // total warning
                 done();
             });
     });

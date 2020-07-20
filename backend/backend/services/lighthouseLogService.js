@@ -113,21 +113,21 @@ module.exports = {
             let lighthouseLogs = [];
             let siteUrls;
 
+            const monitor = await MonitorService.findOneBy({
+                _id: monitorId,
+            });
+
             if (url) {
-                siteUrls = [url];
-                let log = await this.findBy({ monitorId, url }, 1, 0);
-                if (!log || (log && log.length === 0)) {
-                    log = [{ url }];
+                if (monitor.siteUrls && monitor.siteUrls.includes(url)) {
+                    siteUrls = [url];
+                    let log = await this.findBy({ monitorId, url }, 1, 0);
+                    if (!log || (log && log.length === 0)) {
+                        log = [{ url }];
+                    }
+                    lighthouseLogs = log;
                 }
-                lighthouseLogs = log;
             } else {
-                const monitor = await MonitorService.findOneBy({
-                    _id: monitorId,
-                });
-                siteUrls =
-                    monitor.siteUrls && monitor.data && monitor.data.url
-                        ? [...monitor.siteUrls, monitor.data.url]
-                        : [];
+                siteUrls = monitor.siteUrls || [];
                 if (siteUrls.length > 0) {
                     for (const url of siteUrls.slice(
                         skip,

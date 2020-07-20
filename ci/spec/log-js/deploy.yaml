@@ -10,12 +10,15 @@ deploy_staging_log-js:
         - sudo apt-get install -y nodejs
         - cd log-js
         - sudo npm install -g json
-        - git checkout -f staging
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe-log-js-staging"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
+        - git init
+        - git add .
+        - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
+        - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git staging --force
         - cd ..
     only:
@@ -41,6 +44,8 @@ deploy_production_log-js:
         - json -I -f package.json -e 'this.name="fyipe-log-js"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
+        - git add .
+        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
         - cd ..
     only:

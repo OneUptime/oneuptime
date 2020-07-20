@@ -63,4 +63,32 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should logout and get redirected to the login page if the user deletes his account',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                // navigating to dashboard url
+                // automatically redirects to users route
+                await page.goto(utils.ADMIN_DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+
+                await page.waitForSelector(
+                    '.bs-ObjectList-rows>a:last-of-type'
+                );
+                await page.click('.bs-ObjectList-rows>a:last-of-type');
+                await page.waitFor(3000);
+                await page.waitForSelector('#delete');
+                await page.click('#delete');
+                await page.waitForSelector('#confirmDelete');
+                await page.click('#confirmDelete');
+                await page.waitFor(3000);
+                await page.waitForSelector('#users');
+                await page.click('#users');
+                await page.waitForSelector('#login-button');
+            });
+        },
+        operationTimeOut
+    );
 });

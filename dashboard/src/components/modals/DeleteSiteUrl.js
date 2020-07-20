@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import { FormLoader } from '../basic/Loader';
 
-class Unauthorised extends Component {
+export class DeleteSiteUrl extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -16,7 +18,6 @@ class Unauthorised extends Component {
             <div
                 onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-                id="unauthorisedModal"
             >
                 <div
                     className="ModalLayer-contents"
@@ -28,30 +29,38 @@ class Unauthorised extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Unauthorised Action</span>
+                                        <span>Confirm Deletion</span>
                                     </span>
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    You are not authorized to perform this
-                                    action since you are not an admin of this
-                                    project. If you like to perform this action,
-                                    please contact project admin.
+                                    Are you sure you want to delete this website
+                                    url?
                                 </span>
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey"
-                                        style={{
-                                            minWidth: 50,
-                                            textAlign: 'center',
-                                        }}
                                         type="button"
                                         onClick={this.props.closeThisDialog}
                                     >
-                                        <span>Ok</span>
+                                        <span>Cancel</span>
+                                    </button>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                        type="button"
+                                        onClick={this.props.confirmThisDialog}
+                                        disabled={this.props.requesting}
+                                        id="websiteUrlDelete"
+                                    >
+                                        {!this.props.requesting && (
+                                            <span>Delete</span>
+                                        )}
+                                        {this.props.requesting && (
+                                            <FormLoader />
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -63,10 +72,18 @@ class Unauthorised extends Component {
     }
 }
 
-Unauthorised.displayName = 'Unauthorised';
+DeleteSiteUrl.displayName = 'DeleteSiteUrl';
 
-Unauthorised.propTypes = {
-    closeThisDialog: PropTypes.func.isRequired,
+const mapStateToProps = state => {
+    return {
+        requesting: state.monitor.editMonitor.requesting,
+    };
 };
 
-export default Unauthorised;
+DeleteSiteUrl.propTypes = {
+    confirmThisDialog: PropTypes.func.isRequired,
+    closeThisDialog: PropTypes.func.isRequired,
+    requesting: PropTypes.bool,
+};
+
+export default connect(mapStateToProps, null)(DeleteSiteUrl);

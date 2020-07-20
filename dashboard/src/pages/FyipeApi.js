@@ -34,20 +34,20 @@ class FyipeApi extends Component {
                                         <div
                                             className="bs-ContentSection-content Box-root Padding-horizontal--20 Padding-vertical--12"
                                             style={{
-                                                paddingBottom: '200px',
-                                                paddingTop: '200px',
+                                                paddingBottom: '100px',
+                                                paddingTop: '100px',
                                             }}
                                         >
                                             <div
-                                                className="db-SideNav-icon db-SideNav-icon--blocked db-SideNav-icon--selected"
+                                                className="db-SideNav-icon db-SideNav-icon--blocked"
                                                 style={{
                                                     backgroundRepeat:
                                                         'no-repeat',
                                                     backgroundSize: 'contain',
                                                     backgroundPosition:
                                                         'center',
-                                                    height: '70px',
-                                                    width: '70px',
+                                                    height: '40px',
+                                                    width: '40px',
                                                     marginRight: '50%',
                                                     marginLeft: '50%',
                                                 }}
@@ -56,8 +56,6 @@ class FyipeApi extends Component {
                                                 id="errorMessage"
                                                 style={{
                                                     width: '100%',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
                                                     padding: '10px',
                                                     textAlign: 'center',
                                                 }}
@@ -65,6 +63,7 @@ class FyipeApi extends Component {
                                                 You are not authorized to view
                                                 this page because you’re not an
                                                 administrator of this project.
+                                                <br />
                                                 Please contact admin for any
                                                 work you need to be done on this
                                                 page.

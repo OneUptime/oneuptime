@@ -906,6 +906,8 @@ describe('Monitor Detail API', () => {
                     page
                 );
 
+                await page.waitFor(200000);
+
                 const createdLighthouseLogsSelector =
                     '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
                 await page.waitForSelector(createdLighthouseLogsSelector);
@@ -971,6 +973,8 @@ describe('Monitor Detail API', () => {
                     `#removeSiteUrl_${urlMonitorName}_0`
                 );
                 await page.click(`#removeSiteUrl_${urlMonitorName}_0`);
+                await page.waitForSelector('#websiteUrlDelete');
+                await page.click('#websiteUrlDelete');
                 await page.waitFor(5000);
 
                 const createdLighthouseLogsSelector =

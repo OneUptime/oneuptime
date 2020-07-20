@@ -60,6 +60,34 @@ router.get(
     }
 );
 
+router.put(
+    '/:projectId/gitCredential/:credentialId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { credentialId } = req.params;
+            const { gitUsername, gitPassword } = req.body;
+
+            const data = {};
+            if (gitUsername) {
+                data.gitUsername = gitUsername;
+            }
+            if (gitPassword) {
+                data.gitPassword = gitPassword;
+            }
+
+            const gitCredential = await GitCredentialService.updateOneBy(
+                { _id: credentialId },
+                data
+            );
+            return sendItemResponse(req, res, gitCredential);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.delete(
     '/:projectId/gitCredential/:credentialId',
     getUser,

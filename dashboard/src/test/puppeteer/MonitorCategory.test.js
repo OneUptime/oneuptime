@@ -7,6 +7,9 @@ const { Cluster } = require('puppeteer-cluster');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const componentName = utils.generateRandomString();
+const teamEmail = utils.generateRandomBusinessEmail();
+const newProjectName = 'Test';
+const monitorCategory = 'stat';
 
 describe('Monitor Category', () => {
     const operationTimeOut = 50000;
@@ -176,6 +179,160 @@ describe('Monitor Category', () => {
 
                 expect(monitorCategoryCount).toEqual('0 Monitor Category');
             });
+        },
+        operationTimeOut
+    );
+});
+
+describe('Member Restriction', () => {
+    const operationTimeOut = 50000;
+
+    let cluster;
+
+    beforeAll(async done => {
+        jest.setTimeout(200000);
+
+        cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000,
+        });
+
+        cluster.on('taskerror', err => {
+            throw err;
+        });
+
+        await cluster.execute(
+            { teamEmail, password },
+            async ({ page, data }) => {
+                const user = {
+                    email: data.teamEmail,
+                    password: data.password,
+                };
+
+                // user
+                await init.registerUser(user, page);
+                await init.loginUser({ email, password }, page);
+                await init.renameProject(newProjectName, page);
+                await init.addUserToProject(
+                    {
+                        email: teamEmail,
+                        role: 'Member',
+                        subProjectName: newProjectName,
+                    },
+                    page
+                );
+                await init.addMonitorCategory(monitorCategory, page);
+            }
+        );
+
+        done();
+    });
+
+    afterAll(async done => {
+        await cluster.idle();
+        await cluster.close();
+        done();
+    });
+
+    test(
+        'should show unauthorised modal when trying to add a monitor category for a member who is not the admin or owner of the project',
+        async done => {
+            cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 120000,
+            });
+
+            await cluster.execute(null, async ({ page }) => {
+                await init.loginUser({ email: teamEmail, password }, page);
+                await init.switchProject(newProjectName, page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+
+                await page.waitForSelector('#monitors');
+                await page.click('#monitors');
+                await page.waitForSelector('#createMonitorCategoryButton', {
+                    visible: true,
+                });
+                await page.click('#createMonitorCategoryButton');
+                const modal = await page.waitForSelector('#unauthorisedModal');
+                expect(modal).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should show unauthorised modal when trying to edit a monitor category for a member who is not the admin or owner of the project',
+        async done => {
+            cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 120000,
+            });
+
+            await cluster.execute(null, async ({ page }) => {
+                await init.loginUser({ email: teamEmail, password }, page);
+                await init.switchProject(newProjectName, page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+
+                await page.waitForSelector('#monitors');
+                await page.click('#monitors');
+                const editBtn = `#edit_${monitorCategory}`;
+                await page.waitForSelector(editBtn, {
+                    visible: true,
+                });
+                await page.click(editBtn);
+                const modal = await page.waitForSelector('#unauthorisedModal');
+                expect(modal).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should show unauthorised modal when trying to delete a monitor category for a member who is not the admin or owner of the project',
+        async done => {
+            cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 120000,
+            });
+
+            await cluster.execute(null, async ({ page }) => {
+                await init.loginUser({ email: teamEmail, password }, page);
+                await init.switchProject(newProjectName, page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+
+                await page.waitForSelector('#monitors');
+                await page.click('#monitors');
+                const deleteBtn = `#delete_${monitorCategory}`;
+                await page.waitForSelector(deleteBtn, {
+                    visible: true,
+                });
+                await page.click(deleteBtn);
+                const modal = await page.waitForSelector('#unauthorisedModal');
+                expect(modal).toBeDefined();
+            });
+            done();
         },
         operationTimeOut
     );
