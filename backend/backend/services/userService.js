@@ -796,14 +796,11 @@ module.exports = {
             const users = await Promise.all(
                 user.map(async user => {
                     query._id = user._id;
-                    user = await _this.updateOneBy(
-                        query._id,
-                        {
-                            deleted: false,
-                            deletedBy: null,
-                            deletedAt: null,
-                        }
-                    );
+                    user = await _this.updateOneBy(query._id, {
+                        deleted: false,
+                        deletedBy: null,
+                        deletedAt: null,
+                    });
                     return user;
                 })
             );
@@ -812,14 +809,11 @@ module.exports = {
             user = user[0];
             if (user) {
                 query._id = user._id;
-                user = await _this.updateOneBy(
-                    query,
-                    {
-                        deleted: false,
-                        deletedBy: null,
-                        deletedAt: null,
-                    }
-                );
+                user = await _this.updateOneBy(query, {
+                    deleted: false,
+                    deletedBy: null,
+                    deletedAt: null,
+                });
             }
             return user;
         }
