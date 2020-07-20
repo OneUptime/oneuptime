@@ -100,6 +100,7 @@ class ContainerSecurityDetail extends Component {
                 <BreadCrumbItem
                     route={pathname}
                     name={containerSecurity.name || 'loading...'}
+                    pageTitle="Container Detail"
                 />
                 <ShouldRender
                     if={

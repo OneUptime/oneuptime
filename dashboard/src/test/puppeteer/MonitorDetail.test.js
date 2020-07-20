@@ -906,8 +906,6 @@ describe('Monitor Detail API', () => {
                     page
                 );
 
-                await page.waitFor(200000);
-
                 const createdLighthouseLogsSelector =
                     '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
                 await page.waitForSelector(createdLighthouseLogsSelector);
@@ -918,6 +916,102 @@ describe('Monitor Detail API', () => {
                 const countLighthouseLogs = lighthouseLogsRows.length;
 
                 expect(countLighthouseLogs).toEqual(1);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and add new site url',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    urlMonitorName,
+                    page
+                );
+
+                await page.waitForSelector(`#addSiteUrl_${urlMonitorName}`);
+                await page.click(`#addSiteUrl_${urlMonitorName}`);
+
+                await page.waitForSelector('input[id=siteUrl]');
+                await page.click('input[id=siteUrl]');
+                await page.type('input[id=siteUrl]', 'http://localhost:3010');
+                await page.click('#addSiteUrlButton');
+                await page.waitFor(5000);
+
+                const createdLighthouseLogsSelector =
+                    '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem';
+                await page.waitForSelector(createdLighthouseLogsSelector);
+
+                const lighthouseLogsRows = await page.$$(
+                    createdLighthouseLogsSelector
+                );
+                const countLighthouseLogs = lighthouseLogsRows.length;
+
+                expect(countLighthouseLogs).toEqual(2);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and remove site url',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    urlMonitorName,
+                    page
+                );
+
+                await page.waitForSelector(
+                    `#removeSiteUrl_${urlMonitorName}_0`
+                );
+                await page.click(`#removeSiteUrl_${urlMonitorName}_0`);
+                await page.waitFor(5000);
+
+                const createdLighthouseLogsSelector =
+                    '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem';
+                await page.waitForSelector(createdLighthouseLogsSelector);
+
+                const lighthouseLogsRows = await page.$$(
+                    createdLighthouseLogsSelector
+                );
+                const countLighthouseLogs = lighthouseLogsRows.length;
+
+                expect(countLighthouseLogs).toEqual(1);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor details and trigger website scan',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    urlMonitorName,
+                    page
+                );
+
+                await page.waitForSelector(`#scanWebsites_${urlMonitorName}`);
+                await page.click(`#scanWebsites_${urlMonitorName}`);
+
+                await page.waitFor(200000);
+
+                let lighthousePerformanceElement = await page.waitForSelector(
+                    `#performance_${urlMonitorName}_0`
+                );
+                lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
+                    'innerText'
+                );
+                lighthousePerformanceElement = await lighthousePerformanceElement.jsonValue();
+                lighthousePerformanceElement.should.endWith('%');
             });
         },
         operationTimeOut

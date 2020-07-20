@@ -41,6 +41,11 @@ router.post(
                 });
             }
 
+            await DockerCredentialService.validateDockerCredential({
+                username: dockerUsername,
+                password: dockerPassword,
+            });
+
             const response = await DockerCredentialService.create({
                 dockerRegistryUrl,
                 dockerUsername,

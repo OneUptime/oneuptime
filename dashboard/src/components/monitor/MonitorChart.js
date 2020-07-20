@@ -762,7 +762,7 @@ export function MonitorChart({
                                         className="db-Trend-rowTitle"
                                         title="Fingerprint"
                                     >
-                                        <div className="db-Trend-title">
+                                        <div className="db-Trend-title Margin-top--8">
                                             <span className="chart-font">
                                                 Fingerprint
                                             </span>

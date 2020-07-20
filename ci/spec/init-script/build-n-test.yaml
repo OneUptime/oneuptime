@@ -1,11 +1,16 @@
-
 build_n_test_init-script:
-  stage: BuildAndTest
-  script:
-    - cd init-script
-    - npm ci
-    - npm test
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+    stage: BuildAndTest
+    script:
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_init-script init-script`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
+        - cd init-script
+        - npm ci
+        - npm test
+        - cd ..
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh build_n_test_init-script init-script
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release
