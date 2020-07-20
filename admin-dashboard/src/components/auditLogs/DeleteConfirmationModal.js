@@ -1,14 +1,27 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
+import { closeModal } from '../../actions/modal';
+import { deleteAuditLogs } from '../../actions/auditLogs';
 
 const DeleteConfirmationModal = ({
-    confirmThisDialog,
     closeThisDialog,
     deleteRequest,
     error,
+    deleteAuditLogs,
+    closeModal,
+    modalId,
 }) => {
+    const handleDelete = () => {
+        deleteAuditLogs().then(() => {
+            if (!error) {
+                return closeModal({ id: modalId });
+            }
+        });
+    };
+
     return (
         <div
             onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
@@ -69,7 +82,7 @@ const DeleteConfirmationModal = ({
                                     id="confirmDelete"
                                     className={`bs-Button bs-Button--red Box-background--red ${deleteRequest &&
                                         'bs-is-disabled'}`}
-                                    onClick={confirmThisDialog}
+                                    onClick={handleDelete}
                                     disabled={deleteRequest}
                                 >
                                     <span>Delete Logs</span>
@@ -86,18 +99,27 @@ const DeleteConfirmationModal = ({
 const mapStateToProps = state => ({
     deleteRequest: state.auditLogs.auditLogs.deleteRequest,
     error: state.auditLogs.auditLogs.error,
+    modalId: state.modal.modals[0].id,
 });
+
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ closeModal, deleteAuditLogs }, dispatch);
 
 DeleteConfirmationModal.displayName = 'Delete Confirmation Modal';
 
 DeleteConfirmationModal.propTypes = {
-    confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func,
     deleteRequest: PropTypes.bool,
     error: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    closeModal: PropTypes.func,
+    deleteAuditLogs: PropTypes.func,
+    modalId: PropTypes.string,
 };
 
-export default connect(mapStateToProps)(DeleteConfirmationModal);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(DeleteConfirmationModal);

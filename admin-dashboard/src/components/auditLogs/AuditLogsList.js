@@ -6,7 +6,6 @@ import uuid from 'uuid';
 
 import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
-import { deleteAuditLogs } from '../../actions/auditLogs';
 import AuditLogsJsonViewModal from './AuditLogsJsonViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
@@ -17,23 +16,10 @@ export class AuditLogsList extends Component {
     }
 
     handleDelete = () => {
-        const { deleteAuditLogs, deleteError, openModal } = this.props;
-        const thisObj = this;
+        const { openModal } = this.props;
         const { deleteModalId } = this.state;
         openModal({
             id: deleteModalId,
-            onConfirm: () => {
-                return deleteAuditLogs().then(() => {
-                    // prevent dismissal of modal if there is error
-                    if (deleteError) {
-                        return this.handleDelete();
-                    }
-
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Audit Log Deleted');
-                    }
-                });
-            },
             content: DeleteConfirmationModal,
         });
     };
@@ -386,17 +372,13 @@ export class AuditLogsList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators(
-        { openModal, closeModal, deleteAuditLogs },
-        dispatch
-    );
+    return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
 function mapStateToProps(state) {
     return {
         users: state.user.users.users,
         deleteRequest: state.auditLogs.auditLogs.deleteRequest,
-        deleteError: state.auditLogs.auditLogs.error,
     };
 }
 
@@ -406,17 +388,12 @@ AuditLogsList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
-    deleteAuditLogs: PropTypes.func.isRequired,
     auditLogs: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
     requesting: PropTypes.bool,
     openModal: PropTypes.func.isRequired,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(AuditLogsList);
