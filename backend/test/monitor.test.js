@@ -459,7 +459,9 @@ describe('API Monitor API', function() {
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
-        await ProjectService.hardDeleteBy({ _id: projectId });
+        await UserService.hardDeleteBy({
+            email: userData.user.email,
+        });
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteUser(airtableId);
     });
@@ -499,9 +501,6 @@ describe('API Monitor API', function() {
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal(
-                    'Monitor url did not return a valid response.'
-                );
                 done();
             });
     });
