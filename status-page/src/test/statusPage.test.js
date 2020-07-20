@@ -44,7 +44,7 @@ const dateId = moment(today)
 let browser, page, statusPageURL;
 
 describe('Status page monitors check', function() {
-    this.timeout(30000);
+    this.timeout(240000);
     before(async function() {
         this.enableTimeouts(false);
         await UserService.hardDeleteBy({ email: testData.user.email });
