@@ -87,6 +87,44 @@ describe('Docker Credential API', function() {
             });
     });
 
+    it('should update a docker credential', function(done) {
+        const authorization = `Basic ${token}`;
+        const dockerUsername = 'username';
+        const dockerPassword = 'hello1234567890';
+
+        request
+            .put(`/credential/${projectId}/dockerCredential/${credentialId}`)
+            .set('Authorization', authorization)
+            .send({
+                dockerRegistryUrl,
+                dockerUsername,
+                dockerPassword,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.dockerUsername).to.be.equal(dockerUsername);
+                done();
+            });
+    });
+
+    it('should not update docker credential with invalid username or password', function(done) {
+        const authorization = `Basic ${token}`;
+        const dockerUsername = 'randomUsername';
+        const dockerPassword = 'randomPassword';
+
+        request
+            .put(`/credential/${projectId}/dockerCredential/${credentialId}`)
+            .set('Authorization', authorization)
+            .send({ dockerRegistryUrl, dockerUsername, dockerPassword })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Invalid docker credential'
+                );
+                done();
+            });
+    });
+
     it('should not add docker credential if username or password is invalid', function(done) {
         const authorization = `Basic ${token}`;
 

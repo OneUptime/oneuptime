@@ -80,13 +80,17 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
+            if (data.gitPassword) {
+                data.gitPassword = await encrypt(data.gitPassword);
+            }
+
             const gitCredential = await GitCredentialModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
                 },
                 { new: true }
-            );
+            ).populate('projectId');
 
             if (!gitCredential) {
                 const error = new Error(

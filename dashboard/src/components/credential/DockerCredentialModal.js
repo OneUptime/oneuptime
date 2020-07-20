@@ -8,7 +8,10 @@ import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
 import { closeModal } from '../../actions/modal';
-import { addDockerCredential } from '../../actions/credential';
+import {
+    addDockerCredential,
+    updateDockerCredential,
+} from '../../actions/credential';
 
 class DockerCredentialModal extends Component {
     componentDidUpdate(prevProps) {
@@ -17,11 +20,19 @@ class DockerCredentialModal extends Component {
             isRequesting,
             closeModal,
             addCredentialError,
+            updatingCredential,
+            updateCredentialError,
         } = this.props;
         const { projectId } = propArr[0];
 
         if (prevProps.isRequesting !== isRequesting) {
             if (!isRequesting && !addCredentialError) {
+                closeModal({ id: projectId });
+            }
+        }
+
+        if (prevProps.updatingCredential !== updatingCredential) {
+            if (!updatingCredential && !updateCredentialError) {
                 closeModal({ id: projectId });
             }
         }
@@ -40,12 +51,18 @@ class DockerCredentialModal extends Component {
     };
 
     submitForm = values => {
-        const { addDockerCredential, propArr } = this.props;
-        const { projectId } = propArr[0];
+        const {
+            addDockerCredential,
+            propArr,
+            updateDockerCredential,
+        } = this.props;
+        const { projectId, credentialId } = propArr[0];
 
         if (!values) return;
 
-        addDockerCredential({ projectId, data: values });
+        credentialId
+            ? updateDockerCredential({ projectId, credentialId, data: values })
+            : addDockerCredential({ projectId, data: values });
     };
 
     render() {
@@ -55,8 +72,10 @@ class DockerCredentialModal extends Component {
             addCredentialError,
             handleSubmit,
             propArr,
+            updateCredentialError,
+            updatingCredential,
         } = this.props;
-        const { projectId } = propArr[0];
+        const { projectId, credentialId } = propArr[0];
 
         return (
             <div
@@ -76,8 +95,14 @@ class DockerCredentialModal extends Component {
                         >
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy bs-u-flex Flex-direction--column">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Add Docker Credentials</span>
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap Margin-bottom--4">
+                                        {credentialId ? (
+                                            <span>
+                                                Update Docker Credentials
+                                            </span>
+                                        ) : (
+                                            <span>Add Docker Credentials</span>
+                                        )}
                                     </span>
                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                         <span>
@@ -165,6 +190,7 @@ class DockerCredentialModal extends Component {
                                                                         isRequesting
                                                                     }
                                                                     validate={
+                                                                        !credentialId &&
                                                                         ValidateField.required
                                                                     }
                                                                 />
@@ -176,72 +202,151 @@ class DockerCredentialModal extends Component {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="bs-Modal-footer">
-                                    <div
-                                        className="bs-Modal-footer-actions"
-                                        style={{ width: 280 }}
-                                    >
-                                        <ShouldRender
-                                            if={
-                                                !isRequesting &&
-                                                addCredentialError
-                                            }
+                                {credentialId ? (
+                                    <div className="bs-Modal-footer">
+                                        <div
+                                            className="bs-Modal-footer-actions"
+                                            style={{ width: 280 }}
                                         >
-                                            <div
-                                                id="addCredentialError"
-                                                className="bs-Tail-copy"
+                                            <ShouldRender
+                                                if={
+                                                    !updatingCredential &&
+                                                    updateCredentialError
+                                                }
                                             >
                                                 <div
-                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                    style={{
-                                                        marginTop: '10px',
-                                                    }}
+                                                    id="updateCredentialError"
+                                                    className="bs-Tail-copy"
                                                 >
-                                                    <div className="Box-root Margin-right--8">
-                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                    </div>
-                                                    <div className="Box-root">
-                                                        <span
-                                                            style={{
-                                                                color: 'red',
-                                                            }}
-                                                        >
-                                                            {addCredentialError}
-                                                        </span>
+                                                    <div
+                                                        className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                        style={{
+                                                            marginTop: '10px',
+                                                        }}
+                                                    >
+                                                        <div className="Box-root Margin-right--8">
+                                                            <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                        </div>
+                                                        <div className="Box-root">
+                                                            <span
+                                                                style={{
+                                                                    color:
+                                                                        'red',
+                                                                }}
+                                                            >
+                                                                {
+                                                                    updateCredentialError
+                                                                }
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </ShouldRender>
+                                            </ShouldRender>
+                                        </div>
+                                        <div className="bs-Modal-footer-actions">
+                                            <button
+                                                className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                                type="button"
+                                                onClick={e => {
+                                                    e.preventDefault();
+                                                    closeModal({
+                                                        id: projectId,
+                                                    });
+                                                }}
+                                                id="cancelCredentialModalBtn"
+                                                disabled={updatingCredential}
+                                            >
+                                                <span>Cancel</span>
+                                            </button>
+                                            <button
+                                                id="updateCredentialModalBtn"
+                                                className="bs-Button bs-Button bs-Button--blue"
+                                                type="submit"
+                                                disabled={updatingCredential}
+                                            >
+                                                {!updatingCredential && (
+                                                    <span>
+                                                        Update Docker Credential
+                                                    </span>
+                                                )}
+                                                {updatingCredential && (
+                                                    <FormLoader />
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="bs-Modal-footer-actions">
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--grey"
-                                            type="button"
-                                            onClick={e => {
-                                                e.preventDefault();
-                                                closeModal({
-                                                    id: projectId,
-                                                });
-                                            }}
-                                            id="cancelCredentialModalBtn"
+                                ) : (
+                                    <div className="bs-Modal-footer">
+                                        <div
+                                            className="bs-Modal-footer-actions"
+                                            style={{ width: 280 }}
                                         >
-                                            <span>Cancel</span>
-                                        </button>
-                                        <button
-                                            id="addCredentialModalBtn"
-                                            className="bs-Button bs-Button bs-Button--blue"
-                                            type="submit"
-                                            disabled={isRequesting}
-                                        >
-                                            {!isRequesting && (
-                                                <span>
-                                                    Add Docker Credential
-                                                </span>
-                                            )}
-                                            {isRequesting && <FormLoader />}
-                                        </button>
+                                            <ShouldRender
+                                                if={
+                                                    !isRequesting &&
+                                                    addCredentialError
+                                                }
+                                            >
+                                                <div
+                                                    id="addCredentialError"
+                                                    className="bs-Tail-copy"
+                                                >
+                                                    <div
+                                                        className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                        style={{
+                                                            marginTop: '10px',
+                                                        }}
+                                                    >
+                                                        <div className="Box-root Margin-right--8">
+                                                            <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                        </div>
+                                                        <div className="Box-root">
+                                                            <span
+                                                                style={{
+                                                                    color:
+                                                                        'red',
+                                                                }}
+                                                            >
+                                                                {
+                                                                    addCredentialError
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
+                                        </div>
+                                        <div className="bs-Modal-footer-actions">
+                                            <button
+                                                className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                                type="button"
+                                                onClick={e => {
+                                                    e.preventDefault();
+                                                    closeModal({
+                                                        id: projectId,
+                                                    });
+                                                }}
+                                                id="cancelCredentialModalBtn"
+                                                disabled={isRequesting}
+                                            >
+                                                <span>Cancel</span>
+                                            </button>
+                                            <button
+                                                id="addCredentialModalBtn"
+                                                className="bs-Button bs-Button bs-Button--blue"
+                                                type="submit"
+                                                disabled={isRequesting}
+                                            >
+                                                {!isRequesting && (
+                                                    <span>
+                                                        Add Docker Credential
+                                                    </span>
+                                                )}
+                                                {isRequesting && <FormLoader />}
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </form>
                         </div>
                     </div>
@@ -264,17 +369,40 @@ DockerCredentialModal.propTypes = {
     addDockerCredential: PropTypes.func,
     closeModal: PropTypes.func,
     handleSubmit: PropTypes.func,
+    updateDockerCredential: PropTypes.func,
+    updateCredentialError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    updatingCredential: PropTypes.bool,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, ownProps) => {
+    const { propArr } = ownProps;
+    const { credentialId } = propArr[0];
+    const dockerCredential = credentialId
+        ? state.credential.dockerCredentials.filter(
+              dockerCredential =>
+                  String(dockerCredential._id) === String(credentialId)
+          )[0]
+        : {};
     return {
         isRequesting: state.credential.addCredential.requesting,
         addCredentialError: state.credential.addCredential.error,
+        initialValues: {
+            dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
+            dockerUsername: dockerCredential.dockerUsername,
+        },
+        updateCredentialError: state.credential.updateCredential.error,
+        updatingCredential: state.credential.updateCredential.requesting,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, addDockerCredential }, dispatch);
+    bindActionCreators(
+        { closeModal, addDockerCredential, updateDockerCredential },
+        dispatch
+    );
 
 const DockerCredentialForm = reduxForm({
     form: 'DockerCredentialForm',

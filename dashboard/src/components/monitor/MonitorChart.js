@@ -790,7 +790,14 @@ export function MonitorChart({
                 </ShouldRender>
                 <ShouldRender
                     if={
-                        !isCurrentlyNotMonitoring && checkLogs && type === 'url'
+                        !isCurrentlyNotMonitoring &&
+                        checkLogs &&
+                        monitor &&
+                        monitor.data &&
+                        monitor.data.url &&
+                        monitor.siteUrls &&
+                        monitor.siteUrls.includes(monitor.data.url) &&
+                        type === 'url'
                     }
                 >
                     <div

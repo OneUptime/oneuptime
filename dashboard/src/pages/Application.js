@@ -59,7 +59,7 @@ class Application extends Component {
             gettingApplicationSecurities,
             gettingSecurityLogs,
             location: { pathname },
-            component,
+            components,
             scanApplicationSecuritySuccess,
             getApplicationSecuritySuccess,
         } = this.props;
@@ -76,7 +76,7 @@ class Application extends Component {
             });
 
         const componentName =
-            component.length > 0 ? component[0].name : 'loading...';
+            components.length > 0 ? components[0].name : 'loading...';
 
         return (
             <Dashboard ready={this.ready}>
@@ -173,7 +173,7 @@ Application.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
+    components: PropTypes.arrayOf(
         PropTypes.shape({
             name: PropTypes.string,
         })
@@ -184,11 +184,16 @@ Application.propTypes = {
 
 const mapStateToProps = (state, ownProps) => {
     const { componentId, projectId } = ownProps.match.params;
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(
-            component => String(component._id) === String(componentId)
-        );
-    });
+    const components = [];
+    // filter to get the actual component
+    state.component.componentList.components.map(item =>
+        item.components.map(component => {
+            if (String(component._id) === String(componentId)) {
+                components.push(component);
+            }
+            return component;
+        })
+    );
 
     return {
         componentId,
@@ -197,7 +202,7 @@ const mapStateToProps = (state, ownProps) => {
         gettingSecurityLogs:
             state.security.getApplicationSecurityLog.requesting,
         gettingApplicationSecurities: state.security.getApplication.requesting,
-        component,
+        components,
     };
 };
 
