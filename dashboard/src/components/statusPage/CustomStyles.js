@@ -26,9 +26,14 @@ export class CustomStyles extends Component {
     shouldComponentUpdate(nextProps, nextState) {
         const { recent } = nextState.syntaxError;
         const { syntaxError } = this.state;
-        const noError =
-            syntaxError[recent] === undefined &&
-            nextState.syntaxError[recent] === false;
+        const noError = !syntaxError[recent] && !nextState.syntaxError[recent];
+        if (
+            this.props.statusPage.customHTML.requesting !==
+            nextProps.statusPage.customHTML.requesting
+        ) {
+            return true;
+        }
+
         if (noError || syntaxError[recent] === nextState.syntaxError[recent]) {
             return false;
         }
@@ -91,7 +96,7 @@ export class CustomStyles extends Component {
     };
 
     render() {
-        const { handleSubmit } = this.props;
+        const { handleSubmit, statusPage } = this.props;
         const { syntaxError } = this.state;
 
         const scripts = [
@@ -296,10 +301,16 @@ export class CustomStyles extends Component {
                                     type="submit"
                                     id="btnAddCustomStyles"
                                 >
-                                    {!this.props.statusPage.customHTML
-                                        .requesting && <span>Save</span>}
-                                    {this.props.statusPage.customHTML
-                                        .requesting && <FormLoader />}
+                                    <ShouldRender
+                                        if={!statusPage.customHTML.requesting}
+                                    >
+                                        <span>Save</span>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={statusPage.customHTML.requesting}
+                                    >
+                                        <FormLoader />
+                                    </ShouldRender>
                                 </button>
                             </div>
                         </div>
