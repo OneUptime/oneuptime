@@ -449,14 +449,23 @@ router.post(
 
             // If the message ID is available, treat this as an update
             if (data.id) {
-                // TODO validate if Message ID exist or not
+                // validate if Message ID exist or not
+                const incidentMsg = await IncidentMessageService.findOneBy({
+                    _id: data.id,
+                });
+
+                if (!incidentMsg) {
+                    return sendErrorResponse(req, res, {
+                        code: 404,
+                        message: 'Incident Message not found.',
+                    });
+                }
             }
             let incidentMessage = null;
-            // TODO save inside thread or update existing thread.
             if (incident && incident._id) {
                 data.incidentId = incidentId;
 
-                // TODO handle creation or updating
+                // handle creation or updating
                 if (!data.id) {
                     data.createdById = req.user.id;
                     incidentMessage = await IncidentMessageService.create(data);
