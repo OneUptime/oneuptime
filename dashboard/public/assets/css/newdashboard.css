@@ -10951,5 +10951,23 @@ table {
     position: absolute;
     width: 6px;
     top: 10px;
-  }
+}
+.custom-tab-list {
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    border-radius: 4px;
+    margin: 0 0 10px;
+    display: flex;
+}
+.custom-tab {
+    padding: 15px;
+    border-right: 2px solid #cccaca;
+    width: 25%;
+    color: #878787;
+    display: flex;
+    justify-content: center;
+}
+.custom-tab-selected {
+    color: #000;
+    border-bottom: 2px solid;
+}
   
