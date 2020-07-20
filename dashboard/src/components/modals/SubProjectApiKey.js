@@ -11,6 +11,10 @@ import {
 import ShouldRender from '../basic/ShouldRender';
 
 class SubProjectApiKey extends Component {
+    state = {
+        hidden: true,
+    };
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -25,6 +29,19 @@ class SubProjectApiKey extends Component {
         resetSubProjectToken(data.subProjectId);
     };
 
+    renderAPIKey = hidden => {
+        const { subproject } = this.props;
+        return hidden ? (
+            <span id="apiKey" className="value">
+                Click here to reveal API key
+            </span>
+        ) : (
+            <span id="apiKey" className="value">
+                {subproject.apiKey}
+            </span>
+        );
+    };
+
     render() {
         const {
             subProjectResetToken,
@@ -33,6 +50,8 @@ class SubProjectApiKey extends Component {
             resetSubProjectKeyReset,
             subproject,
         } = this.props;
+        const { hidden } = this.state;
+
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -44,7 +63,7 @@ class SubProjectApiKey extends Component {
                     style={{ marginTop: 40 }}
                 >
                     <div className="bs-BIM">
-                        <div className="bs-Modal bs-Modal--medium">
+                        <div className="bs-Modal bs-Modal--large">
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -65,12 +84,46 @@ class SubProjectApiKey extends Component {
                                 </div>
                             </div>
                             <div
-                                className="bs-Modal-content"
+                                className="bs-Modal-content Flex-flex Flex-direction--column"
                                 style={{ textAlign: 'center' }}
                             >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    {subproject.apiKey}
-                                </span>
+                                <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                                    <div>
+                                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                            <fieldset className="bs-Fieldset">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Project ID:
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields Margin-top--6">
+                                                            {subproject._id}
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            API Key:
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields Margin-top--6"
+                                                            onClick={() =>
+                                                                this.setState(
+                                                                    state => ({
+                                                                        hidden: !state.hidden,
+                                                                    })
+                                                                )
+                                                            }
+                                                        >
+                                                            {this.renderAPIKey(
+                                                                hidden
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
