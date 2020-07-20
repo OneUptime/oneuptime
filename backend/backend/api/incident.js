@@ -10,7 +10,7 @@ const IncidentService = require('../services/incidentService');
 const IncidentTimelineService = require('../services/incidentTimelineService');
 const MonitorStatusService = require('../services/monitorStatusService');
 const RealTimeService = require('../services/realTimeService');
-const incidentMessageService = require('../services/incidentMessageService');
+const IncidentMessageService = require('../services/incidentMessageService');
 const router = express.Router();
 
 const { isAuthorized } = require('../middlewares/authorization');
@@ -458,11 +458,10 @@ router.post(
                 // TODO handle creation or updating
                 if (!data.messageId) {
                     data.createdById = req.user.id;
-                    console.log(data);
-                    incidentMessage = await incidentMessageService.create(data);
+                    incidentMessage = await IncidentMessageService.create(data);
                 } else {
                     const updatedMessage = { content: data.message };
-                    incidentMessage = await incidentMessageService.updateOneBy(
+                    incidentMessage = await IncidentMessageService.updateOneBy(
                         { _id: data.messageId },
                         updatedMessage
                     );
@@ -474,13 +473,39 @@ router.post(
                     status,
                 });
 
-                incidentMessage = await incidentMessageService.findOneBy({
+                incidentMessage = await IncidentMessageService.findOneBy({
                     _id: incidentMessage._id,
                     incidentId: incidentMessage.incidentId,
                 });
                 await RealTimeService.updateIncidentNote(incident);
             }
             return sendItemResponse(req, res, incidentMessage);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+router.get(
+    '/:projectId/incident/:incidentId/message',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        let type = 'investigation';
+        if (req.query.type && req.query.type === 'internal') {
+            type = 'internal';
+        }
+        try {
+            const incidentId = req.params.incidentId;
+            const incidentMessages = await IncidentMessageService.findBy(
+                { incidentId, type },
+                req.query.skip || 0,
+                req.query.limit || 10
+            );
+            const count = await IncidentMessageService.countBy({
+                incidentId,
+                type,
+            });
+            return sendListResponse(req, res, incidentMessages, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

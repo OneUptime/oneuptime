@@ -60,6 +60,44 @@ module.exports = {
             throw error;
         }
     },
+    findBy: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') skip = parseInt(skip);
+            if (typeof limit === 'string') limit = parseInt(limit);
+
+            if (!query) {
+                query = {};
+            }
+
+            const incidentMessages = await IncidentMessageModel.find(query)
+                .sort([['createdAt', 1]])
+                .limit(limit)
+                .skip(skip)
+                .populate('createdById', 'name');
+
+            return incidentMessages;
+        } catch (error) {
+            ErrorService.log('incidentMessageService.findBy', error);
+            throw error;
+        }
+    },
+    countBy: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            const count = await IncidentMessageModel.countDocuments(query);
+
+            return count;
+        } catch (error) {
+            ErrorService.log('incidentMessageService.countBy', error);
+            throw error;
+        }
+    },
 };
 
 const IncidentMessageModel = require('../models/incidentMessage');
