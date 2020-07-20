@@ -168,7 +168,7 @@ class DashboardView extends Component {
         return (
             <Dashboard ready={this.ready}>
                 <BreadCrumbItem route={pathname} name="Components" />
-                <AlertDisabledWarning />
+                <AlertDisabledWarning page="Component" />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -238,7 +238,7 @@ class DashboardView extends Component {
                                                                 }}
                                                             >
                                                                 <div
-                                                                    className="db-SideNav-icon db-SideNav-icon--atlas "
+                                                                    className="db-SideNav-icon db-SideNav-icon--square "
                                                                     style={{
                                                                         backgroundRepeat:
                                                                             'no-repeat',

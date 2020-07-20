@@ -57,6 +57,7 @@ const statusSchema = new Schema({
     headerHTML: String,
     footerHTML: String,
     customCSS: String,
+    customJS: String,
     createdAt: {
         type: Date,
         default: Date.now,

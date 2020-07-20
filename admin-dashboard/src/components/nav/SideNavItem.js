@@ -19,6 +19,38 @@ export class SidebarNavItem extends Component {
             .replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
     };
 
+    routeInnerDiv = (route, isLinkActive) => {
+        return (
+            <div style={{ outline: 'none' }}>
+                <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
+                    <div className="Box-root Flex-flex Flex-alignItems--center">
+                        <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
+                            <span
+                                className={`db-SideNav-icon db-SideNav-icon--${
+                                    route.icon
+                                } ${
+                                    isLinkActive
+                                        ? 'db-SideNav-icon--selected'
+                                        : null
+                                }`}
+                            />
+                        </div>
+                        <span
+                            className={
+                                'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
+                                (isLinkActive
+                                    ? ' Text-color--fyipeblue Text-fontWeight--bold'
+                                    : ' Text-color--dark')
+                            }
+                        >
+                            <span>{route.title}</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     render() {
         const { RenderListItems } = this;
         const { route, location, match, loadPage } = this.props;
@@ -41,35 +73,16 @@ export class SidebarNavItem extends Component {
         return (
             <div id={this.camalize(route.title)} style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
-                    <Link to={path} onClick={() => loadPage(route.title)}>
-                        <div style={{ outline: 'none' }}>
-                            <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
-                                <div className="Box-root Flex-flex Flex-alignItems--center">
-                                    <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
-                                        <span
-                                            className={`db-SideNav-icon db-SideNav-icon--${
-                                                route.icon
-                                            } ${
-                                                isLinkActive
-                                                    ? 'db-SideNav-icon--selected'
-                                                    : null
-                                            }`}
-                                        />
-                                    </div>
-                                    <span
-                                        className={
-                                            'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
-                                            (isLinkActive
-                                                ? ' Text-color--fyipeblue Text-fontWeight--bold'
-                                                : ' Text-color--dark')
-                                        }
-                                    >
-                                        <span>{route.title}</span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
+                    <ShouldRender if={route.external}>
+                        <a href={route.path}>
+                            {this.routeInnerDiv(route, isLinkActive)}
+                        </a>
+                    </ShouldRender>
+                    <ShouldRender if={!route.external}>
+                        <Link to={path} onClick={() => loadPage(route.title)}>
+                            {this.routeInnerDiv(route, isLinkActive)}
+                        </Link>
+                    </ShouldRender>
                 </ShouldRender>
                 <div>
                     <span>

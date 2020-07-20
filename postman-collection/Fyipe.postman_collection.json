@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "c8fcbf8a-da41-485c-866d-95e0c48e7d59",
+        "_postman_id": "27fae684-855e-4cf4-abdb-e9b4235bd6f8",
         "name": "Fyipe",
         "description": "Fyipe backend",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -6106,6 +6106,156 @@
                             ],
                             "cookie": [],
                             "body": "{\n    \"formData\": [],\n    \"headers\": [],\n    \"deleted\": false,\n    \"siteUrls\": [\n        \"https://fyipe.com/accounts\",\n        \"https://fyipe.com\",\n        \"https://hibeekaey.me\"\n    ],\n    \"_id\": \"5ed125a2819d9344f3c0ee13\",\n    \"createdAt\": \"2020-05-18T11:18:42.539Z\",\n    \"pollTime\": \"2020-06-13T21:37:02.009Z\",\n    \"lastPingTime\": \"2020-05-18T11:18:42.539Z\",\n    \"updateTime\": \"2020-05-18T11:18:42.539Z\",\n    \"name\": \"Google Home\",\n    \"type\": \"url\",\n    \"createdById\": \"5ec26ecee1f3855718f18802\",\n    \"data\": {\n        \"url\": \"https://google.com\"\n    },\n    \"componentId\": \"5ec26f03e1f3855718f18830\",\n    \"projectId\": {\n        \"_id\": \"5ec26ed5e1f3855718f18804\",\n        \"name\": \"Unnamed Project\"\n    },\n    \"criteria\": {\n        \"up\": {\n            \"and\": [\n                {\n                    \"responseType\": \"statusCode\",\n                    \"filter\": \"gtEqualTo\",\n                    \"field1\": \"200\"\n                },\n                {\n                    \"responseType\": \"statusCode\",\n                    \"filter\": \"lessThan\",\n                    \"field1\": \"300\"\n                },\n                {\n                    \"responseType\": \"doesRespond\",\n                    \"filter\": \"isUp\"\n                },\n                {\n                    \"responseType\": \"responseTime\",\n                    \"filter\": \"ltEqualTo\",\n                    \"field1\": \"5000\"\n                }\n            ],\n            \"or\": [],\n            \"createAlert\": false,\n            \"autoAcknowledge\": false,\n            \"autoResolve\": false\n        },\n        \"degraded\": {\n            \"and\": [\n                {\n                    \"responseType\": \"responseTime\",\n                    \"filter\": \"greaterThan\",\n                    \"field1\": \"5000\"\n                }\n            ],\n            \"or\": [],\n            \"createAlert\": true,\n            \"autoAcknowledge\": true,\n            \"autoResolve\": true\n        },\n        \"down\": {\n            \"and\": [],\n            \"or\": [\n                {\n                    \"responseType\": \"doesRespond\",\n                    \"filter\": \"isDown\"\n                },\n                {\n                    \"responseType\": \"statusCode\",\n                    \"filter\": \"gtEqualTo\",\n                    \"field1\": \"400\"\n                }\n            ],\n            \"createAlert\": true,\n            \"autoAcknowledge\": true,\n            \"autoResolve\": true\n        }\n    },\n    \"__v\": 0,\n    \"lighthouseScanStatus\": \"scanned\",\n    \"lighthouseScannedAt\": \"2020-06-13T21:34:11.109Z\",\n    \"lighthouseScannedBy\": \"5ec26f2a82cc5bd9bb500547\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Remove Site URL",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "name": "Content-Type",
+                                "type": "text",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "type": "text",
+                                "value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlYzI2ZWNlZTFmMzg1NTcxOGYxODgwMiIsImlhdCI6MTU5MjA4Mzg0NSwiZXhwIjoxNjAwNzIzODQ1fQ.8XJ4TU-8q8LQQg93ZpY2vY24uZ62XedeKZeBUq549dw"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"siteUrl\": \"https://fyipe.com/accounts\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:3002/monitor/:projectId/siteUrl/:monitorId",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3002",
+                            "path": [
+                                "monitor",
+                                ":projectId",
+                                "siteUrl",
+                                ":monitorId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "projectId",
+                                    "value": "5ec26ed5e1f3855718f18804"
+                                },
+                                {
+                                    "key": "monitorId",
+                                    "value": "5ed125a2819d9344f3c0ee13"
+                                }
+                            ]
+                        },
+                        "description": "Remove Site URL"
+                    },
+                    "response": [
+                        {
+                            "name": "Remove Site URL",
+                            "originalRequest": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "name": "Content-Type",
+                                        "type": "text",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "type": "text",
+                                        "value": "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlYzI2ZWNlZTFmMzg1NTcxOGYxODgwMiIsImlhdCI6MTU5MjA4Mzg0NSwiZXhwIjoxNjAwNzIzODQ1fQ.8XJ4TU-8q8LQQg93ZpY2vY24uZ62XedeKZeBUq549dw"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"siteUrl\": \"https://fyipe.com/accounts\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "http://localhost:3002/monitor/:projectId/siteUrl/:monitorId",
+                                    "protocol": "http",
+                                    "host": ["localhost"],
+                                    "port": "3002",
+                                    "path": [
+                                        "monitor",
+                                        ":projectId",
+                                        "siteUrl",
+                                        ":monitorId"
+                                    ],
+                                    "variable": [
+                                        {
+                                            "key": "projectId",
+                                            "value": "5ec26ed5e1f3855718f18804"
+                                        },
+                                        {
+                                            "key": "monitorId",
+                                            "value": "5ed125a2819d9344f3c0ee13"
+                                        }
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "X-Powered-By",
+                                    "value": "Express"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Origin",
+                                    "value": "undefined"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Credentials",
+                                    "value": "true"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Methods",
+                                    "value": "GET,PUT,POST,DELETE,OPTIONS"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Headers",
+                                    "value": "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization"
+                                },
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=utf-8"
+                                },
+                                {
+                                    "key": "Content-Length",
+                                    "value": "1393"
+                                },
+                                {
+                                    "key": "ETag",
+                                    "value": "W/\"571-daQZocZC+xmBH8HAwx427KvEqeY\""
+                                },
+                                {
+                                    "key": "Date",
+                                    "value": "Sun, 14 Jun 2020 21:01:06 GMT"
+                                },
+                                {
+                                    "key": "Connection",
+                                    "value": "keep-alive"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"formData\": [],\n    \"headers\": [],\n    \"deleted\": false,\n    \"siteUrls\": [\n        \"https://fyipe.com\",\n        \"https://hibeekaey.me\"\n    ],\n    \"_id\": \"5ed125a2819d9344f3c0ee13\",\n    \"createdAt\": \"2020-05-18T11:18:42.539Z\",\n    \"pollTime\": \"2020-06-13T21:37:02.009Z\",\n    \"lastPingTime\": \"2020-05-18T11:18:42.539Z\",\n    \"updateTime\": \"2020-05-18T11:18:42.539Z\",\n    \"name\": \"Google Home\",\n    \"type\": \"url\",\n    \"createdById\": \"5ec26ecee1f3855718f18802\",\n    \"data\": {\n        \"url\": \"https://google.com\"\n    },\n    \"componentId\": \"5ec26f03e1f3855718f18830\",\n    \"projectId\": {\n        \"_id\": \"5ec26ed5e1f3855718f18804\",\n        \"name\": \"Unnamed Project\"\n    },\n    \"criteria\": {\n        \"up\": {\n            \"and\": [\n                {\n                    \"responseType\": \"statusCode\",\n                    \"filter\": \"gtEqualTo\",\n                    \"field1\": \"200\"\n                },\n                {\n                    \"responseType\": \"statusCode\",\n                    \"filter\": \"lessThan\",\n                    \"field1\": \"300\"\n                },\n                {\n                    \"responseType\": \"doesRespond\",\n                    \"filter\": \"isUp\"\n                },\n                {\n                    \"responseType\": \"responseTime\",\n                    \"filter\": \"ltEqualTo\",\n                    \"field1\": \"5000\"\n                }\n            ],\n            \"or\": [],\n            \"createAlert\": false,\n            \"autoAcknowledge\": false,\n            \"autoResolve\": false\n        },\n        \"degraded\": {\n            \"and\": [\n                {\n                    \"responseType\": \"responseTime\",\n                    \"filter\": \"greaterThan\",\n                    \"field1\": \"5000\"\n                }\n            ],\n            \"or\": [],\n            \"createAlert\": true,\n            \"autoAcknowledge\": true,\n            \"autoResolve\": true\n        },\n        \"down\": {\n            \"and\": [],\n            \"or\": [\n                {\n                    \"responseType\": \"doesRespond\",\n                    \"filter\": \"isDown\"\n                },\n                {\n                    \"responseType\": \"statusCode\",\n                    \"filter\": \"gtEqualTo\",\n                    \"field1\": \"400\"\n                }\n            ],\n            \"createAlert\": true,\n            \"autoAcknowledge\": true,\n            \"autoResolve\": true\n        }\n    },\n    \"__v\": 0,\n    \"lighthouseScanStatus\": \"scanned\",\n    \"lighthouseScannedAt\": \"2020-06-13T21:34:11.109Z\",\n    \"lighthouseScannedBy\": \"5ec26f2a82cc5bd9bb500547\"\n}"
                         }
                     ]
                 }
@@ -20035,7 +20185,7 @@
                 {
                     "listen": "prerequest",
                     "script": {
-                        "id": "c8df9f48-5f98-4596-a7e2-e7ea61c65d9f",
+                        "id": "a76225b3-51a6-439a-8632-53fd945ad15f",
                         "type": "text/javascript",
                         "exec": [""]
                     }
@@ -20043,7 +20193,7 @@
                 {
                     "listen": "test",
                     "script": {
-                        "id": "3c0d6e03-a786-4ec7-a1db-90b9b4eb7c0b",
+                        "id": "74a27311-2357-42ab-b018-43a52e890a47",
                         "type": "text/javascript",
                         "exec": [""]
                     }
@@ -25582,7 +25732,7 @@
                 {
                     "listen": "prerequest",
                     "script": {
-                        "id": "9b19d1fa-b76a-42ac-af3e-4e63ba853aab",
+                        "id": "0f70f0b8-55ea-490a-9a7d-0e23fc5ffd9f",
                         "type": "text/javascript",
                         "exec": [""]
                     }
@@ -25590,7 +25740,7 @@
                 {
                     "listen": "test",
                     "script": {
-                        "id": "3ed47d17-5918-4a22-aebb-c05154ee5004",
+                        "id": "fcf62f30-1cfe-41bd-9dd3-4565382e009a",
                         "type": "text/javascript",
                         "exec": [""]
                     }

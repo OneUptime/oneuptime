@@ -94,16 +94,16 @@ const updatedScheduledEventDescription = 'event description updated';
 const updatedScheduledEventName = 'event name updated';
 
 const dockerCredential = {
-    dockerUsername: process.env.DOCKERHUBUSERNAME,
-    dockerPassword: process.env.DOCKERHUBPASSWORD,
+    dockerUsername: process.env.DOCKER_UNMASKED_USERNAME,
+    dockerPassword: process.env.DOCKER_UNMASKED_PASSWORD,
     dockerRegistryUrl: process.env.DOCKER_SECURITY_SCAN_REGISTRY_URL,
     imagePath: process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH,
     imageTags: process.env.DOCKER_SECURITY_SCAN_IMAGE_TAGS,
 };
 
 const gitCredential = {
-    gitUsername: process.env.GITHUB_USERNAME,
-    gitPassword: process.env.GITHUB_PASSWORD,
+    gitUsername: process.env.GITHUB_UNMASKED_USERNAME,
+    gitPassword: process.env.GITHUB_UNMASKED_PASSWORD,
     gitRepositoryUrl: process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL,
 };
 

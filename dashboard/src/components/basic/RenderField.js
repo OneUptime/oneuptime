@@ -29,7 +29,7 @@ const RenderField = ({
         {meta.error && meta.touched && (
             <div
                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                style={{ marginTop: '5px' }}
+                style={{ marginTop: '5px', alignItems: 'center' }}
             >
                 <div
                     className="Box-root Margin-right--8"

@@ -107,7 +107,7 @@ include:
   - '/ci/spec/e2e/kubernetes-enterprise-test.yaml'
   - '/ci/spec/e2e/kubernetes-test.yaml'
 
-  #SMOKE TEST
+  # SMOKE TEST
   - '/ci/spec/smoke-tests/staging.yaml'
   - '/ci/spec/smoke-tests/production.yaml'
 
@@ -121,6 +121,8 @@ include:
   - '/ci/spec/log-php/build-n-test.yaml'
   - '/ci/spec/log-php/deploy.yaml'
 
-  # # LOG-JAVA
+  # LOG-JAVA
   # - '/ci/spec/log-java/audit.yaml'
   # - '/ci/spec/log-java/build-n-test.yaml'
+  # - '/ci/spec/log-java/deploy.yaml'
+
