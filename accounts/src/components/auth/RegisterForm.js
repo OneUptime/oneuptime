@@ -3,6 +3,7 @@ import { reduxForm } from 'redux-form';
 import UserForm from './UserForm';
 import CardForm from './CardForm';
 import { connect } from 'react-redux';
+import Fade from 'react-reveal/Fade';
 import {
     signupUser,
     incrementStep,
@@ -96,21 +97,23 @@ export class RegisterForm extends Component {
     render() {
         const { step } = this.props.register;
         return (
-            <div>
-                {step === 1 && (
-                    <UserForm
-                        submitForm={this.userFormSubmitted}
-                        error={this.props.register.error}
-                        location={this.props.location}
-                    />
-                )}
-                {step === 2 && (
-                    <CardForm
-                        planId={this.props.planId}
-                        error={this.props.register.error}
-                    />
-                )}
-            </div>
+            <Fade>
+                <div>
+                    {step === 1 && (
+                        <UserForm
+                            submitForm={this.userFormSubmitted}
+                            error={this.props.register.error}
+                            location={this.props.location}
+                        />
+                    )}
+                    {step === 2 && (
+                        <CardForm
+                            planId={this.props.planId}
+                            error={this.props.register.error}
+                        />
+                    )}
+                </div>
+            </Fade>
         );
     }
 }

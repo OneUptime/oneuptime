@@ -4,6 +4,7 @@ import { Field, reduxForm } from 'redux-form';
 import RenderCountrySelector from '../basic/CountrySelector';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import Fade from 'react-reveal/Fade';
 import { RenderField } from '../basic/RenderField';
 import { PricingPlan, Validate, env } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
@@ -170,341 +171,347 @@ class CardForm extends Component {
             header = <span>Enter your card details</span>;
         }
         return (
-            <div id="main-body" className="box css" style={{ width: 500 }}>
-                <div className="inner">
-                    <div className="title extra">
-                        <div>
-                            <h2>{header}</h2>
-                            <p>
-                                Your card will be charged $1.00 to check its
-                                billability. You will be charged $
-                                {this.plan.amount}/
-                                {this.plan.type === 'month' ? 'mo' : 'yr'} after
-                                your 14 day free trial.
-                            </p>
+            <Fade>
+                <div id="main-body" className="box css" style={{ width: 500 }}>
+                    <div className="inner">
+                        <div className="title extra">
+                            <div>
+                                <h2>{header}</h2>
+                                <p>
+                                    Your card will be charged $1.00 to check its
+                                    billability. You will be charged $
+                                    {this.plan.amount}/
+                                    {this.plan.type === 'month' ? 'mo' : 'yr'}{' '}
+                                    after your 14 day free trial.
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                    <form
-                        id="card-form"
-                        onSubmit={handleSubmit(this.handleSubmit)}
-                    >
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                            }}
+                        <form
+                            id="card-form"
+                            onSubmit={handleSubmit(this.handleSubmit)}
                         >
-                            <p
-                                className="text"
+                            <div
                                 style={{
-                                    display: 'block',
-                                    maxWidth: '50%',
-                                    marginTop: 0,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
                                 }}
                             >
-                                <span>
-                                    <label htmlFor="cardName">
-                                        Card Holder Name
-                                    </label>
-                                    <Field
-                                        type="text"
-                                        name="cardName"
-                                        id="cardName"
-                                        placeholder="Card Holder Name"
-                                        component={RenderField}
-                                        required="required"
-                                    />
-                                </span>
-                            </p>
-                            <p
-                                className="text"
-                                style={{
-                                    display: 'block',
-                                    marginTop: 0,
-                                    width: 222,
-                                }}
-                            >
-                                <span>
-                                    <label htmlFor="cardNumber">
-                                        Card Number
-                                    </label>
-                                    <div
-                                        style={{
-                                            border: '1px solid #bbb',
-                                            height: 44,
-                                            padding: '10px 12px',
-                                        }}
-                                    >
-                                        <CardNumberElement
-                                            {...createOptions()}
-                                            onChange={this.handleChange}
-                                        />
-                                    </div>
-                                    <span style={errorStyle}>
-                                        {this.state.cardNumber}
-                                    </span>
-                                </span>
-                            </p>
-                        </div>
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                            }}
-                        >
-                            <p
-                                className="text"
-                                style={{
-                                    display: 'block',
-                                    maxWidth: '50%',
-                                    marginTop: 0,
-                                    width: 222,
-                                }}
-                            >
-                                <span>
-                                    <label htmlFor="cvv">CVC</label>
-                                    <div
-                                        style={{
-                                            border: '1px solid #bbb',
-                                            height: 44,
-                                            padding: '10px 12px',
-                                        }}
-                                    >
-                                        <CardCVCElement
-                                            {...createOptions()}
-                                            onChange={this.handleChange}
-                                        />
-                                    </div>
-                                    <span style={errorStyle}>
-                                        {this.state.cardCvc}
-                                    </span>
-                                </span>
-                            </p>
-                            <p
-                                className="text"
-                                style={{
-                                    display: 'block',
-                                    maxWidth: '50%',
-                                    marginTop: 0,
-                                    width: 222,
-                                }}
-                            >
-                                <span>
-                                    <label htmlFor="expiry">Expiry Date</label>
-                                    <div
-                                        style={{
-                                            border: '1px solid #bbb',
-                                            height: 44,
-                                            padding: '10px 12px',
-                                        }}
-                                    >
-                                        <CardExpiryElement
-                                            {...createOptions()}
-                                            onChange={this.handleChange}
-                                        />
-                                    </div>
-                                    <span style={errorStyle}>
-                                        {this.state.cardExpiry}
-                                    </span>
-                                </span>
-                            </p>
-                        </div>
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                            }}
-                        >
-                            <p
-                                className="text"
-                                style={{
-                                    display: 'block',
-                                    maxWidth: '50%',
-                                    marginTop: 0,
-                                }}
-                            >
-                                <span>
-                                    <label htmlFor="address1">
-                                        Street Address 1
-                                    </label>
-                                    <Field
-                                        type="text"
-                                        component={RenderField}
-                                        name="address1"
-                                        id="address1"
-                                        placeholder="Street Address 1"
-                                    />
-                                </span>
-                            </p>
-                            <p
-                                className="text"
-                                style={{
-                                    display: 'block',
-                                    maxWidth: '50%',
-                                    marginTop: 0,
-                                }}
-                            >
-                                <span>
-                                    <label htmlFor="address2">
-                                        Street Address 2
-                                    </label>
-                                    <Field
-                                        type="text"
-                                        component={RenderField}
-                                        name="address2"
-                                        id="address2"
-                                        placeholder="Street Address 2"
-                                    />
-                                </span>
-                            </p>
-                        </div>
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                            }}
-                        >
-                            <p
-                                className="text"
-                                style={{
-                                    display: 'block',
-                                    maxWidth: '50%',
-                                    marginTop: 0,
-                                }}
-                            >
-                                <span>
-                                    <label htmlFor="city">City</label>
-                                    <Field
-                                        type="text"
-                                        component={RenderField}
-                                        name="city"
-                                        id="city"
-                                        placeholder="City"
-                                    />
-                                </span>
-                            </p>
-                            <p
-                                className="text"
-                                style={{
-                                    display: 'block',
-                                    maxWidth: '50%',
-                                    marginTop: 0,
-                                }}
-                            >
-                                <span>
-                                    <label htmlFor="state">State</label>
-                                    <Field
-                                        type="text"
-                                        component={RenderField}
-                                        name="state"
-                                        id="state"
-                                        placeholder="State (Optional)"
-                                    />
-                                </span>
-                            </p>
-                        </div>
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                            }}
-                        >
-                            <p
-                                className="text"
-                                style={{
-                                    display: 'block',
-                                    maxWidth: '50%',
-                                    marginTop: 0,
-                                }}
-                            >
-                                <span>
-                                    <label htmlFor="zipCode">
-                                        Zip Code / Postal Code
-                                    </label>
-                                    <Field
-                                        type="text"
-                                        component={RenderField}
-                                        name="zipCode"
-                                        id="zipCode"
-                                        placeholder="Zip Code or Postal Code"
-                                        required="required"
-                                    />
-                                </span>
-                            </p>
-                            <p
-                                className="text"
-                                style={{
-                                    display: 'block',
-                                    maxWidth: '50%',
-                                    marginTop: 0,
-                                }}
-                            >
-                                <span>
-                                    <label htmlFor="country">Country</label>
-                                    <Field
-                                        type="text"
-                                        component={RenderCountrySelector}
-                                        name="country"
-                                        id="country"
-                                        placeholder="Select Country"
-                                        required="required"
-                                    />
-                                </span>
-                            </p>
-                        </div>
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                            }}
-                        >
-                            <p
-                                className="text"
-                                style={{
-                                    display: 'block',
-                                    maxWidth: '50%',
-                                    marginTop: 0,
-                                    marginBottom: 30,
-                                }}
-                            >
-                                <span>
-                                    <label htmlFor="promocode">
-                                        Promo Code
-                                    </label>
-                                    <Field
-                                        type="text"
-                                        component={RenderField}
-                                        name="promocode"
-                                        id="promocode"
-                                        placeholder="Promocode (Optional)"
-                                    />
-                                </span>
-                            </p>
-                        </div>
-                        <div>
-                            <p
-                                className="submit"
-                                style={{ width: '100%', maxWidth: '100%' }}
-                            >
-                                <button
-                                    style={{ width: '100%' }}
-                                    type="submit"
-                                    className="button blue medium"
-                                    id="create-account-button"
-                                    disabled={this.props.register.requesting}
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '50%',
+                                        marginTop: 0,
+                                    }}
                                 >
-                                    {!this.props.register.requesting && (
-                                        <span>Create Fyipe Account</span>
-                                    )}
-                                    {this.props.register.requesting && (
-                                        <ButtonSpinner />
-                                    )}
-                                </button>
-                            </p>
-                        </div>
-                    </form>
+                                    <span>
+                                        <label htmlFor="cardName">
+                                            Card Holder Name
+                                        </label>
+                                        <Field
+                                            type="text"
+                                            name="cardName"
+                                            id="cardName"
+                                            placeholder="Card Holder Name"
+                                            component={RenderField}
+                                            required="required"
+                                        />
+                                    </span>
+                                </p>
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        marginTop: 0,
+                                        width: 222,
+                                    }}
+                                >
+                                    <span>
+                                        <label htmlFor="cardNumber">
+                                            Card Number
+                                        </label>
+                                        <div
+                                            style={{
+                                                border: '1px solid #bbb',
+                                                height: 44,
+                                                padding: '10px 12px',
+                                            }}
+                                        >
+                                            <CardNumberElement
+                                                {...createOptions()}
+                                                onChange={this.handleChange}
+                                            />
+                                        </div>
+                                        <span style={errorStyle}>
+                                            {this.state.cardNumber}
+                                        </span>
+                                    </span>
+                                </p>
+                            </div>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                }}
+                            >
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '50%',
+                                        marginTop: 0,
+                                        width: 222,
+                                    }}
+                                >
+                                    <span>
+                                        <label htmlFor="cvv">CVC</label>
+                                        <div
+                                            style={{
+                                                border: '1px solid #bbb',
+                                                height: 44,
+                                                padding: '10px 12px',
+                                            }}
+                                        >
+                                            <CardCVCElement
+                                                {...createOptions()}
+                                                onChange={this.handleChange}
+                                            />
+                                        </div>
+                                        <span style={errorStyle}>
+                                            {this.state.cardCvc}
+                                        </span>
+                                    </span>
+                                </p>
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '50%',
+                                        marginTop: 0,
+                                        width: 222,
+                                    }}
+                                >
+                                    <span>
+                                        <label htmlFor="expiry">
+                                            Expiry Date
+                                        </label>
+                                        <div
+                                            style={{
+                                                border: '1px solid #bbb',
+                                                height: 44,
+                                                padding: '10px 12px',
+                                            }}
+                                        >
+                                            <CardExpiryElement
+                                                {...createOptions()}
+                                                onChange={this.handleChange}
+                                            />
+                                        </div>
+                                        <span style={errorStyle}>
+                                            {this.state.cardExpiry}
+                                        </span>
+                                    </span>
+                                </p>
+                            </div>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                }}
+                            >
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '50%',
+                                        marginTop: 0,
+                                    }}
+                                >
+                                    <span>
+                                        <label htmlFor="address1">
+                                            Street Address 1
+                                        </label>
+                                        <Field
+                                            type="text"
+                                            component={RenderField}
+                                            name="address1"
+                                            id="address1"
+                                            placeholder="Street Address 1"
+                                        />
+                                    </span>
+                                </p>
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '50%',
+                                        marginTop: 0,
+                                    }}
+                                >
+                                    <span>
+                                        <label htmlFor="address2">
+                                            Street Address 2
+                                        </label>
+                                        <Field
+                                            type="text"
+                                            component={RenderField}
+                                            name="address2"
+                                            id="address2"
+                                            placeholder="Street Address 2"
+                                        />
+                                    </span>
+                                </p>
+                            </div>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                }}
+                            >
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '50%',
+                                        marginTop: 0,
+                                    }}
+                                >
+                                    <span>
+                                        <label htmlFor="city">City</label>
+                                        <Field
+                                            type="text"
+                                            component={RenderField}
+                                            name="city"
+                                            id="city"
+                                            placeholder="City"
+                                        />
+                                    </span>
+                                </p>
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '50%',
+                                        marginTop: 0,
+                                    }}
+                                >
+                                    <span>
+                                        <label htmlFor="state">State</label>
+                                        <Field
+                                            type="text"
+                                            component={RenderField}
+                                            name="state"
+                                            id="state"
+                                            placeholder="State (Optional)"
+                                        />
+                                    </span>
+                                </p>
+                            </div>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                }}
+                            >
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '50%',
+                                        marginTop: 0,
+                                    }}
+                                >
+                                    <span>
+                                        <label htmlFor="zipCode">
+                                            Zip Code / Postal Code
+                                        </label>
+                                        <Field
+                                            type="text"
+                                            component={RenderField}
+                                            name="zipCode"
+                                            id="zipCode"
+                                            placeholder="Zip Code or Postal Code"
+                                            required="required"
+                                        />
+                                    </span>
+                                </p>
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '50%',
+                                        marginTop: 0,
+                                    }}
+                                >
+                                    <span>
+                                        <label htmlFor="country">Country</label>
+                                        <Field
+                                            type="text"
+                                            component={RenderCountrySelector}
+                                            name="country"
+                                            id="country"
+                                            placeholder="Select Country"
+                                            required="required"
+                                        />
+                                    </span>
+                                </p>
+                            </div>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                }}
+                            >
+                                <p
+                                    className="text"
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '50%',
+                                        marginTop: 0,
+                                        marginBottom: 30,
+                                    }}
+                                >
+                                    <span>
+                                        <label htmlFor="promocode">
+                                            Promo Code
+                                        </label>
+                                        <Field
+                                            type="text"
+                                            component={RenderField}
+                                            name="promocode"
+                                            id="promocode"
+                                            placeholder="Promocode (Optional)"
+                                        />
+                                    </span>
+                                </p>
+                            </div>
+                            <div>
+                                <p
+                                    className="submit"
+                                    style={{ width: '100%', maxWidth: '100%' }}
+                                >
+                                    <button
+                                        style={{ width: '100%' }}
+                                        type="submit"
+                                        className="button blue medium"
+                                        id="create-account-button"
+                                        disabled={
+                                            this.props.register.requesting
+                                        }
+                                    >
+                                        {!this.props.register.requesting && (
+                                            <span>Create Fyipe Account</span>
+                                        )}
+                                        {this.props.register.requesting && (
+                                            <ButtonSpinner />
+                                        )}
+                                    </button>
+                                </p>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
+            </Fade>
         );
     }
 }
