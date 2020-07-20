@@ -52,10 +52,14 @@ const initialState = {
         success: false,
     },
     fetchIncidentTimelineRequest: false,
+    incidentMessages: {},
 };
 
 export default function incident(state = initialState, action) {
-    let incidents, isExistingIncident;
+    let incidents,
+        isExistingIncident,
+        failureIncidentMessage,
+        requestIncidentMessage;
     switch (action.type) {
         case types.INCIDENTS_SUCCESS:
             return Object.assign({}, state, {
@@ -759,6 +763,89 @@ export default function incident(state = initialState, action) {
                         error: null,
                     },
                 },
+            });
+        case types.FETCH_INCIDENT_MESSAGES_SUCCESS:
+            return Object.assign({}, state, {
+                incidentMessages: {
+                    ...state.logs,
+                    [action.payload.incidentId]: {
+                        [action.payload.type]: {
+                            incidentMessages: action.payload.incidentMessages,
+                            error: null,
+                            requesting: false,
+                            success: false,
+                            skip: action.payload.skip,
+                            limit: action.payload.limit,
+                            count: action.payload.count,
+                        },
+                    },
+                },
+            });
+        case types.FETCH_INCIDENT_MESSAGES_FAILURE:
+            failureIncidentMessage = {
+                ...state.incidentMessages,
+                [action.payload.incidentId]: state.incidentMessages[
+                    action.payload.incidentId
+                ][action.payload.type]
+                    ? {
+                          ...state.incidentMessages[action.payload.incidentId][
+                              action.payload.type
+                          ],
+                          error: action.payload.error,
+                      }
+                    : {
+                          incidentMessages: [],
+                          error: action.payload.error,
+                          requesting: false,
+                          success: false,
+                          skip: 0,
+                          limit: 10,
+                          count: null,
+                      },
+            };
+            return Object.assign({}, state, {
+                incidentMessages: failureIncidentMessage,
+            });
+        case types.FETCH_INCIDENT_MESSAGES_REQUEST:
+            requestIncidentMessage = {
+                ...state.incidentMessages,
+                [action.payload.incidentId]: state.incidentMessages[
+                    action.payload.incidentId
+                ]
+                    ? state.incidentMessages[action.payload.incidentId][
+                          action.payload.type
+                      ]
+                        ? {
+                              ...state.incidentMessages[
+                                  action.payload.incidentId
+                              ][action.payload.type],
+                              requesting: true,
+                          }
+                        : {
+                              incidentMessages: [],
+                              error: null,
+                              requesting: true,
+                              success: false,
+                              skip: 0,
+                              limit: 10,
+                              count: null,
+                          }
+                    : {
+                          incidentMessages: [],
+                          error: null,
+                          requesting: true,
+                          success: false,
+                          skip: 0,
+                          limit: 10,
+                          count: null,
+                      },
+            };
+            return Object.assign({}, state, {
+                incidentMessages: requestIncidentMessage,
+            });
+        case types.FETCH_INCIDENT_MESSAGES_RESET:
+            return Object.assign({}, state, {
+                incidentMessages: initialState.incidentMessages,
             });
         default:
             return state;
