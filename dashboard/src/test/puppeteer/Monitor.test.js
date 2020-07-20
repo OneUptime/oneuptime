@@ -329,7 +329,7 @@ describe('Monitor API', () => {
                     () => (document.getElementById('statusCode').value = '')
                 );
                 await page.evaluate(
-                    () => (document.getElementById('header').value = '{}')
+                    () => (document.getElementById('header').value = '')
                 );
                 await page.evaluate(
                     () => (document.getElementById('body').value = '')
@@ -481,7 +481,7 @@ describe('API Monitor API', () => {
                 () => (document.getElementById('statusCode').value = '')
             );
             await page.evaluate(
-                () => (document.getElementById('header').value = '{}')
+                () => (document.getElementById('header').value = '')
             );
             await page.evaluate(
                 () => (document.getElementById('body').value = '')
@@ -510,7 +510,7 @@ describe('API Monitor API', () => {
 
         return await cluster.execute(null, async ({ page }) => {
             const user = {
-                email,
+                email: utils.generateRandomBusinessEmail(),
                 password,
             };
             await init.registerUser(user, page);
@@ -545,7 +545,7 @@ describe('API Monitor API', () => {
                 await page.click('button[type=submit]');
 
                 let spanElement = await page.waitForSelector(
-                    '#form-new-monitor span#field-error'
+                    '#formNewMonitorError'
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
@@ -578,13 +578,11 @@ describe('API Monitor API', () => {
                 await page.click('button[type=submit]');
 
                 let spanElement = await page.waitForSelector(
-                    '#form-new-monitor span#field-error'
+                    '#formNewMonitorError'
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(
-                    'Monitor url did not return a valid response.'
-                );
+                spanElement.should.be.exactly('Unauthorized');
             });
         },
         operationTimeOut
