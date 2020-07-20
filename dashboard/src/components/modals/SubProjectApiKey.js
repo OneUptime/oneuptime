@@ -2,17 +2,21 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import uuid from 'uuid';
 import { FormLoader } from '../basic/Loader';
-import { closeModal } from '../../actions/modal';
+import { closeModal, openModal } from '../../actions/modal';
 import {
     resetSubProjectToken,
     resetSubProjectKeyReset,
 } from '../../actions/subProject';
 import ShouldRender from '../basic/ShouldRender';
+import DataPathHoC from '../DataPathHoC';
+import ConfirmationDialog from './ConfirmationDialog';
 
 class SubProjectApiKey extends Component {
     state = {
         hidden: true,
+        confirmationModalId: uuid.v4(),
     };
 
     handleKeyBoard = e => {
@@ -26,7 +30,9 @@ class SubProjectApiKey extends Component {
 
     resetSubProjectToken = () => {
         const { resetSubProjectToken, data } = this.props;
-        resetSubProjectToken(data.subProjectId);
+        resetSubProjectToken(data.subProjectId).then(() => {
+            this.props.closeThisDialog();
+        });
     };
 
     renderAPIKey = hidden => {
@@ -46,6 +52,7 @@ class SubProjectApiKey extends Component {
         const {
             subProjectResetToken,
             closeModal,
+            openModal,
             data,
             resetSubProjectKeyReset,
             subproject,
@@ -105,7 +112,7 @@ class SubProjectApiKey extends Component {
                                                             API Key:
                                                         </label>
                                                         <div
-                                                            className="bs-Fieldset-fields Margin-top--6"
+                                                            className="bs-Fieldset-fields Margin-top--6 pointer"
                                                             onClick={() =>
                                                                 this.setState(
                                                                     state => ({
@@ -143,9 +150,31 @@ class SubProjectApiKey extends Component {
                                         id="removeSubProject"
                                         className="bs-Button bs-DeprecatedButton bs-Button--red"
                                         type="button"
-                                        onClick={() =>
-                                            this.resetSubProjectToken()
-                                        }
+                                        onClick={() => {
+                                            openModal({
+                                                id: this.state
+                                                    .confirmationModalId,
+                                                content: DataPathHoC(
+                                                    ConfirmationDialog,
+                                                    {
+                                                        ConfirmationDialogId: this
+                                                            .state
+                                                            .confirmationModalId,
+                                                        SubProjectModalId:
+                                                            data.subProjectModalId,
+                                                        subProjectId:
+                                                            data.subProjectId,
+                                                        subProjectTitle:
+                                                            data.subProjectTitle,
+                                                        confirm: this
+                                                            .resetSubProjectToken,
+                                                    }
+                                                ),
+                                            });
+                                            return closeModal({
+                                                id: data.subProjectModalId,
+                                            });
+                                        }}
                                         disabled={
                                             subProjectResetToken.requesting
                                         }
@@ -195,7 +224,12 @@ const mapStateToProps = (state, props) => {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { closeModal, resetSubProjectToken, resetSubProjectKeyReset },
+        {
+            closeModal,
+            openModal,
+            resetSubProjectToken,
+            resetSubProjectKeyReset,
+        },
         dispatch
     );
 };
@@ -208,6 +242,7 @@ SubProjectApiKey.propTypes = {
     resetSubProjectToken: PropTypes.func,
     subProjectResetToken: PropTypes.object,
     subproject: PropTypes.object,
+    openModal: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubProjectApiKey);
