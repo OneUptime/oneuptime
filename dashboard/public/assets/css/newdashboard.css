@@ -10965,6 +10965,7 @@ table {
     color: #878787;
     display: flex;
     justify-content: center;
+    cursor: pointer;
 }
 .custom-tab-selected {
     color: #000;
