@@ -364,6 +364,27 @@ describe('Status page monitors check', function() {
 
         expect(scheduledEvents).to.be.equal(null);
     });
+
+    it('should display Some services are degraded', async function() {
+        await chai
+            .request('http://localhost:3010/')
+            .post('api/settings')
+            .send({
+                responseTime: 6000,
+                statusCode: 200,
+                responseType: 'json',
+                header: {},
+                body: { status: 'ok' },
+            });
+
+        //wait for 2 min approximatively
+        await page.waitFor(125000);
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
+        const textHeader = await page.$eval('.title', e => e.textContent);
+        expect(textHeader).to.be.eql('Some services are degraded');
+    });
 });
 
 let newBrowser, newPage, privateStatusPageURL;
