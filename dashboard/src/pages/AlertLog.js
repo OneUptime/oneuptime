@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Dashboard from '../components/Dashboard';
 import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
+import Fade from 'react-reveal/Fade';
 import { fetchAlert, fetchProjectAlert } from '../actions/alert';
 import PropTypes from 'prop-types';
 import AlertProjectBox from '../components/alert/AlertProjectBox';
@@ -222,20 +223,22 @@ class AlertLog extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Call Schedules"
-                />
-                <BreadCrumbItem route={pathname} name="Alert Log" />
-                <div className="Box-root">
-                    <div>
+                <Fade>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Call Schedules"
+                    />
+                    <BreadCrumbItem route={pathname} name="Alert Log" />
+                    <div className="Box-root">
                         <div>
-                            <div className="Margin-vertical--12">
-                                {allAlerts}
+                            <div>
+                                <div className="Margin-vertical--12">
+                                    {allAlerts}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Fade>
             </Dashboard>
         );
     }

@@ -1,4 +1,5 @@
 import React from 'react';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import ProfileSetting from '../components/profileSettings/Profile';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -12,27 +13,29 @@ const Profile = props => {
 
     return (
         <Dashboard>
-            <div className="db-World-contentPane Box-root Padding-bottom--48">
-                <BreadCrumbItem route={pathname} name="Profile Settings" />
-                <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
-                <div>
+            <Fade>
+                <div className="db-World-contentPane Box-root Padding-bottom--48">
+                    <BreadCrumbItem route={pathname} name="Profile Settings" />
+                    <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
                     <div>
-                        <div className="db-BackboneViewContainer">
-                            <div className="react-settings-view react-view">
-                                <span data-reactroot="">
-                                    <div>
+                        <div>
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span data-reactroot="">
                                         <div>
-                                            <div className="Margin-vertical--12">
-                                                <ProfileSetting />
+                                            <div>
+                                                <div className="Margin-vertical--12">
+                                                    <ProfileSetting />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </Fade>
         </Dashboard>
     );
 };
