@@ -30,7 +30,7 @@ export function postApi(url, data) {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
-                cookies.remove('data', { path: '/' });        
+                cookies.remove('data', { path: '/' });
                 User.clear();
                 window.location = ACCOUNTS_URL + '/login';
             }
@@ -60,7 +60,7 @@ export function getApi(url) {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
-                cookies.remove('data', { path: '/' });        
+                cookies.remove('data', { path: '/' });
                 User.clear();
                 window.location = ACCOUNTS_URL + '/login';
             }
@@ -92,7 +92,7 @@ export function putApi(url, data) {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
-                cookies.remove('data', { path: '/' });        
+                cookies.remove('data', { path: '/' });
                 User.clear();
                 window.location = ACCOUNTS_URL + '/login';
             }
@@ -124,7 +124,7 @@ export function deleteApi(url, data) {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
-                cookies.remove('data', { path: '/' });        
+                cookies.remove('data', { path: '/' });
                 User.clear();
                 window.location = ACCOUNTS_URL + '/login';
             }

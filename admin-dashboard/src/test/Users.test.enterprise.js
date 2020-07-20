@@ -78,12 +78,12 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
                     '.bs-ObjectList-rows>a:last-of-type'
                 );
                 await page.click('.bs-ObjectList-rows>a:last-of-type');
-                await page.waitFor(3000)
+                await page.waitFor(3000);
                 await page.waitForSelector('#delete');
                 await page.click('#delete');
                 await page.waitForSelector('#confirmDelete');
                 await page.click('#confirmDelete');
-                await page.waitFor(3000)
+                await page.waitFor(3000);
                 await page.waitForSelector('#users');
                 await page.click('#users');
                 await page.waitForSelector('#login-button');

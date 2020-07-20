@@ -8,7 +8,7 @@ require('should');
 const admin = {
     email: 'masteradmin@hackerbay.io',
     password: '1234567890',
-}
+};
 // user credentials
 const user = {
     email: utils.generateRandomBusinessEmail(),
@@ -30,9 +30,7 @@ describe('Enterprise Team SubProject API', () => {
         cluster1 = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: {
-                args: [
-                    '--incognito',
-                ],
+                args: ['--incognito'],
             },
             puppeteer,
             timeout: 500000,
@@ -63,23 +61,29 @@ describe('Enterprise Team SubProject API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.loginUser(user, page);
                 // Delete user from admin dashboard
-                await cluster1.execute(null, async ({ page: pageInPrivateMode }) => {
-                    await init.loginUser(admin, pageInPrivateMode);
-                    await pageInPrivateMode.waitForSelector(
-                        '.bs-ObjectList-rows>a:first-of-type'
-                    );
-                    await pageInPrivateMode.click('.bs-ObjectList-rows>a:first-of-type');
-                    await pageInPrivateMode.waitFor(3000);
-                    await pageInPrivateMode.waitForSelector('#delete');
-                    await pageInPrivateMode.click('#delete');
-                    await pageInPrivateMode.waitForSelector('#confirmDelete');
-                    await pageInPrivateMode.click('#confirmDelete');
-                    await pageInPrivateMode.waitFor(3000);
-                });
+                await cluster1.execute(
+                    null,
+                    async ({ page: pageInPrivateMode }) => {
+                        await init.loginUser(admin, pageInPrivateMode);
+                        await pageInPrivateMode.waitForSelector(
+                            '.bs-ObjectList-rows>a:first-of-type'
+                        );
+                        await pageInPrivateMode.click(
+                            '.bs-ObjectList-rows>a:first-of-type'
+                        );
+                        await pageInPrivateMode.waitFor(3000);
+                        await pageInPrivateMode.waitForSelector('#delete');
+                        await pageInPrivateMode.click('#delete');
+                        await pageInPrivateMode.waitForSelector(
+                            '#confirmDelete'
+                        );
+                        await pageInPrivateMode.click('#confirmDelete');
+                        await pageInPrivateMode.waitFor(3000);
+                    }
+                );
                 await page.waitForSelector('#statusPages');
                 await page.click('#statusPages');
                 await page.waitForSelector('#login-button');
-
             });
         },
         operationTimeOut
