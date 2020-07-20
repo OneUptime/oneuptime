@@ -5,6 +5,7 @@ const initialState = {
     getCredential: { requesting: false, success: false, error: null },
     deleteCredential: { requesting: false, success: false, error: null },
     getSecurities: { requesting: false, success: false, error: null },
+    updateCredential: { requesting: false, success: false, error: null },
     gitCredentials: [],
     gitSecurities: [],
     dockerCredentials: [],
@@ -40,6 +41,45 @@ export default function credential(state = initialState, action) {
             return {
                 ...state,
                 addCredential: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.UPDATE_GIT_CREDENTIAL_REQUEST:
+            return {
+                ...state,
+                updateCredential: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.UPDATE_GIT_CREDENTIAL_SUCCESS: {
+            const gitCredentials = state.gitCredentials.map(gitCredential => {
+                if (String(gitCredential._id) === String(action.payload._id)) {
+                    gitCredential = action.payload;
+                }
+                return gitCredential;
+            });
+
+            return {
+                ...state,
+                updateCredential: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                gitCredentials,
+            };
+        }
+
+        case types.UPDATE_GIT_CREDENTIAL_FAILURE:
+            return {
+                ...state,
+                updateCredential: {
                     requesting: false,
                     success: false,
                     error: action.payload,
@@ -176,6 +216,50 @@ export default function credential(state = initialState, action) {
             return {
                 ...state,
                 addCredential: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.UPDATE_DOCKER_CREDENTIAL_REQUEST:
+            return {
+                ...state,
+                updateCredential: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.UPDATE_DOCKER_CREDENTIAL_SUCCESS: {
+            const dockerCredentials = state.dockerCredentials.map(
+                dockerCredential => {
+                    if (
+                        String(dockerCredential._id) ===
+                        String(action.payload._id)
+                    ) {
+                        dockerCredential = action.payload;
+                    }
+                    return dockerCredential;
+                }
+            );
+
+            return {
+                ...state,
+                updateCredential: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                dockerCredentials,
+            };
+        }
+
+        case types.UPDATE_DOCKER_CREDENTIAL_FAILURE:
+            return {
+                ...state,
+                updateCredential: {
                     requesting: false,
                     success: false,
                     error: action.payload,
