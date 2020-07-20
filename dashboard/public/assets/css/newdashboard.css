@@ -10960,7 +10960,7 @@ table {
 }
 .custom-tab {
     padding: 15px;
-    border-right: 2px solid #cccaca;
+    border-right: 2px solid #F7F7F7;
     width: 25%;
     color: #878787;
     display: flex;
@@ -10969,6 +10969,6 @@ table {
 }
 .custom-tab-selected {
     color: #000;
-    border-bottom: 2px solid;
+    border-bottom: 1px solid;
 }
   
