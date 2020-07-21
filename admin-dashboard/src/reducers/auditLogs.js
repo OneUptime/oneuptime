@@ -106,13 +106,15 @@ export default function project(state = INITIAL_STATE, action) {
 
         //Delete all Audit logs
         case DELETE_ALL_AUDITLOGS_REQUEST:
-            return Object.assign({}, state, {
+            return {
+                ...state,
                 auditLogs: {
+                    ...state.auditLogs,
                     error: null,
                     success: false,
                     deleteRequest: true,
                 },
-            });
+            };
 
         case DELETE_ALL_AUDITLOGS_SUCCESS:
             return Object.assign({}, state, {
@@ -130,13 +132,15 @@ export default function project(state = INITIAL_STATE, action) {
             });
 
         case DELETE_ALL_AUDITLOGS_FAILURE:
-            return Object.assign({}, state, {
+            return {
+                ...state,
                 auditLogs: {
+                    ...state.auditLogs,
                     error: action.payload,
                     success: false,
                     deleteRequest: false,
                 },
-            });
+            };
 
         default:
             return state;
