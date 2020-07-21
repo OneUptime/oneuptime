@@ -108,7 +108,7 @@ const IncidentTimelineList = props => {
                                                     {log.probeId ? (
                                                         <div className="Box-root Margin-right--16">
                                                             <img
-                                                                src="/dashboard/assets/img/favicons/ms-icon-70x70.png"
+                                                                src="/dashboard/assets/img/FyipeFull.svg"
                                                                 style={{
                                                                     display:
                                                                         'inline-block',
@@ -137,7 +137,7 @@ const IncidentTimelineList = props => {
                                                     ) : log.createdByZapier ? (
                                                         <div className="Box-root Margin-right--16">
                                                             <img
-                                                                src="/dashboard/assets/img/favicons/ms-icon-70x70.png"
+                                                                src="/dashboard/assets/img/FyipeFull.svg"
                                                                 style={{
                                                                     display:
                                                                         'inline-block',
