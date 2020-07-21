@@ -2,7 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm } from 'redux-form';
 import { PricingPlan, Validate } from '../../config';
 import { FormLoader } from './Loader';
 import ShouldRender from './ShouldRender';
@@ -10,6 +10,7 @@ import { changePlan } from '../../actions/project';
 import { closeModal } from '../../actions/modal';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
+import RadioInput from '../project/RadioInput';
 
 function validate(values) {
     const errors = {};
@@ -32,6 +33,7 @@ const PricingPlanModal = ({
     currentPlanId,
     modalId,
     changePlan,
+    activePlan,
 }) => {
     const handleFormSubmit = values => {
         const { _id: id, name } = currentProject;
@@ -106,53 +108,75 @@ const PricingPlanModal = ({
                             <ShouldRender if={propArr[0].plan !== 'Enterprise'}>
                                 <div
                                     className="bs-Modal-content"
-                                    style={{ paddingTop: 0 }}
+                                    style={{ padding: 0 }}
                                 >
-                                    <fieldset className="bs-Fieldset">
-                                        <div className="Margin-bottom--12 Text-fontWeight--medium">
-                                            Choose a Plan
-                                        </div>
-                                        {plans.map((plan, index) => (
-                                            <div
-                                                className="bs-Fieldset-fields .Flex-justifyContent--center Margin-bottom--12"
-                                                style={{ flex: 1, padding: 0 }}
-                                                key={index}
-                                            >
-                                                <span
-                                                    style={{
-                                                        marginBottom: '4px',
-                                                    }}
-                                                >
-                                                    {plan.category}{' '}
-                                                    {plan.type === 'month'
-                                                        ? 'Monthly'
-                                                        : 'Yearly'}{' '}
-                                                    Plan
-                                                </span>
-                                                <div
-                                                    className="bs-Fieldset-field"
-                                                    style={{
-                                                        width: '100%',
-                                                        alignItems: 'center',
-                                                    }}
-                                                >
-                                                    <Field
-                                                        required={true}
-                                                        component="input"
-                                                        type="radio"
-                                                        name="planId"
-                                                        id={`${plan.category}_${plan.type}`}
-                                                        value={plan.planId}
-                                                        className="Margin-right--12"
-                                                    />
+                                    <fieldset
+                                        className="bs-Fieldset"
+                                        style={{ padding: 0 }}
+                                    >
+                                        <div className="bs-Fieldset-rows">
+                                            <div className="price-list-2c Margin-all--16">
+                                                {plans.map(plan => (
                                                     <label
+                                                        key={plan.planId}
                                                         htmlFor={`${plan.category}_${plan.type}`}
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                        }}
                                                     >
-                                                        {plan.details}
+                                                        <div
+                                                            className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${
+                                                                activePlan ===
+                                                                plan.planId
+                                                                    ? 'price-list-item--active'
+                                                                    : ''
+                                                            }`}
+                                                            style={{
+                                                                flex: 1,
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                <span
+                                                                    style={{
+                                                                        marginBottom:
+                                                                            '4px',
+                                                                    }}
+                                                                >
+                                                                    {
+                                                                        plan.category
+                                                                    }{' '}
+                                                                    {plan.type ===
+                                                                    'month'
+                                                                        ? 'Monthly'
+                                                                        : 'Yearly'}{' '}
+                                                                    Plan
+                                                                </span>
+                                                            </span>
+                                                            <RadioInput
+                                                                id={`${plan.category}_${plan.type}`}
+                                                                details={
+                                                                    plan.details
+                                                                }
+                                                                value={
+                                                                    plan.planId
+                                                                }
+                                                                style={{
+                                                                    display:
+                                                                        'flex',
+                                                                    alignItems:
+                                                                        'center',
+                                                                    justifyContent:
+                                                                        'center',
+                                                                    color:
+                                                                        '#4c4c4c',
+                                                                }}
+                                                            />
+                                                        </div>
                                                     </label>
-                                                </div>
+                                                ))}
                                             </div>
-                                        ))}
+                                        </div>
                                     </fieldset>
                                 </div>
                             </ShouldRender>
@@ -228,6 +252,7 @@ PricingPlanModal.propTypes = {
     currentPlanId: PropTypes.string,
     modalId: PropTypes.string,
     changePlan: PropTypes.func,
+    activePlan: PropTypes.string,
 };
 
 const mapStateToProps = state => {
@@ -248,6 +273,8 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         currentPlanId,
         modalId: state.modal.modals[0].id,
+        activePlan:
+            state.form.PricingForm && state.form.PricingForm.values.planId,
     };
 };
 

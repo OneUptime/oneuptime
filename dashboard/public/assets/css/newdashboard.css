@@ -10110,6 +10110,12 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     position: relative;
 }
 
+.price-list-2c {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-gap: 20px;
+}
+
 .price-list-3c {
   display: grid;
   grid-template-columns: auto auto auto;
@@ -10856,14 +10862,17 @@ table {
 }
 
 @media only screen and (max-width: 660px){
-  /* make pricing list two column system */
-  .price-list-3c {
-    grid-template-columns: auto auto;
-  }
-  /* three column */
-  .price-list-4c {
-    grid-template-columns: auto auto;
-  }
+    .price-list-2c {
+        grid-template-columns: auto;
+    }
+    /* make pricing list two column system */
+    .price-list-3c {
+        grid-template-columns: auto auto;
+    }
+    /* three column */
+    .price-list-4c {
+        grid-template-columns: auto auto;
+    }
 }
 
 @media screen and (max-width: 500px) {
