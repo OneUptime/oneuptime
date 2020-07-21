@@ -1,10 +1,15 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { reduxForm, Field } from 'redux-form';
 import { PricingPlan, Validate } from '../../config';
 import { FormLoader } from './Loader';
 import ShouldRender from './ShouldRender';
+import { changePlan } from '../../actions/project';
+import { closeModal } from '../../actions/modal';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { logEvent } from '../../analytics';
 
 function validate(values) {
     const errors = {};
@@ -19,13 +24,45 @@ function validate(values) {
 const PricingPlanModal = ({
     closeThisDialog,
     propArr,
-    confirmThisDialog,
     handleSubmit,
     isRequesting,
     error,
+    closeModal,
+    currentProject,
+    currentPlanId,
+    modalId,
+    changePlan,
 }) => {
     const handleFormSubmit = values => {
-        confirmThisDialog(values);
+        const { _id: id, name } = currentProject;
+        const {
+            category: oldCategory,
+            type: oldType,
+            details: oldDetails,
+        } = PricingPlan.getPlanById(currentPlanId);
+        const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
+        const {
+            category: newCategory,
+            type: newType,
+            details: newDetails,
+        } = PricingPlan.getPlanById(values.planId);
+
+        const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
+
+        changePlan(id, values.planId, name, oldPlan, newPlan).then(() => {
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent('EVENT: DAHBOARD > PROJECT PLAN CHANGED', {
+                    oldPlan,
+                    newPlan,
+                });
+            }
+
+            if (!error) {
+                return closeModal({
+                    id: modalId,
+                });
+            }
+        });
     };
 
     const plans = PricingPlan.getPlans();
@@ -179,7 +216,6 @@ PricingPlanModal.displayName = 'Pricing Plan Modal';
 
 PricingPlanModal.propTypes = {
     closeThisDialog: PropTypes.func,
-    confirmThisDialog: PropTypes.func,
     propArr: PropTypes.array,
     handleSubmit: PropTypes.func,
     isRequesting: PropTypes.bool,
@@ -187,6 +223,11 @@ PricingPlanModal.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    closeModal: PropTypes.func,
+    currentProject: PropTypes.object,
+    currentPlanId: PropTypes.string,
+    modalId: PropTypes.string,
+    changePlan: PropTypes.func,
 };
 
 const mapStateToProps = state => {
@@ -204,8 +245,14 @@ const mapStateToProps = state => {
         },
         isRequesting: state.project.changePlan.requesting,
         error: state.project.changePlan.error,
+        currentProject: state.project.currentProject,
+        currentPlanId,
+        modalId: state.modal.modals[0].id,
     };
 };
+
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ closeModal, changePlan }, dispatch);
 
 const PricingForm = new reduxForm({
     form: 'PricingForm',
@@ -213,4 +260,4 @@ const PricingForm = new reduxForm({
     enableReinitialize: true,
 })(PricingPlanModal);
 
-export default connect(mapStateToProps)(PricingForm);
+export default connect(mapStateToProps, mapDispatchToProps)(PricingForm);
