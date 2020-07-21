@@ -97,7 +97,6 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = state => {
     return {
         deleting: state.security.deleteApplication.requesting,
-        deleteError: state.security.deleteApplication.error,
     };
 };
 
