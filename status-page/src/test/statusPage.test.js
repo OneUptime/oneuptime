@@ -44,7 +44,7 @@ const dateId = moment(today)
 let browser, page, statusPageURL;
 
 describe('Status page monitors check', function() {
-    this.timeout(30000);
+    this.timeout(240000);
     before(async function() {
         this.enableTimeouts(false);
         await UserService.hardDeleteBy({ email: testData.user.email });
@@ -363,6 +363,29 @@ describe('Status page monitors check', function() {
         const scheduledEvents = await page.$('#scheduledEvents');
 
         expect(scheduledEvents).to.be.equal(null);
+    });
+
+    it('should display Some services are degraded', async function() {
+        await chai
+            .request('http://localhost:3010/')
+            .post('api/settings')
+            .send({
+                responseTime: 6000,
+                statusCode: 200,
+                responseType: 'json',
+                header: {},
+                body: { status: 'ok' },
+            });
+
+        page.waitForSelector('.largestatus > .status-up');
+        //wait for 2 min approximatively
+        await page.waitFor(125000);
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
+        const textHeader = await page.$eval('.title', e => e.textContent);
+        expect(textHeader).to.be.eql('Some services are degraded');
+        await page.waitForSelector('.largestatus > .status-paused');
     });
 });
 

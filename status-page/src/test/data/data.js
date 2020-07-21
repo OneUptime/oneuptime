@@ -29,7 +29,7 @@ module.exports = {
     monitor: {
         name: 'New Monitor',
         type: 'url',
-        data: { url: 'http://www.tests.org' },
+        data: { url: 'http://localhost:3010/' },
     },
     monitorCategory: {
         monitorCategoryName: 'New Monitor category',
