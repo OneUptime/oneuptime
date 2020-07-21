@@ -788,3 +788,82 @@ export function deleteIncident(projectId, incidentId) {
         return promise;
     };
 }
+
+export function fetchIncidentMessages(
+    projectId,
+    incidentId,
+    skip,
+    limit,
+    type = 'investigation'
+) {
+    skip = parseInt(skip);
+    limit = parseInt(limit);
+    return function(dispatch) {
+        const promise = getApi(
+            `incident/${projectId}/incident/${incidentId}/message?type=${type}&limit=${limit}&skip=${skip}`
+        );
+        dispatch(fetchIncidentMessagesRequest({ incidentId, type }));
+
+        promise.then(
+            function(response) {
+                dispatch(
+                    fetchIncidentMessagesSuccess({
+                        incidentId,
+                        incidentMessages: response.data.data,
+                        skip,
+                        limit,
+                        count: response.data.count,
+                        type,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    fetchIncidentMessagesFailure({
+                        incidentId,
+                        error: errors(error),
+                    })
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchIncidentMessagesSuccess(incidentMessages) {
+    return {
+        type: types.FETCH_INCIDENT_MESSAGES_SUCCESS,
+        payload: incidentMessages,
+    };
+}
+
+export function fetchIncidentMessagesRequest(incidentId) {
+    return {
+        type: types.FETCH_INCIDENT_MESSAGES_REQUEST,
+        payload: incidentId,
+    };
+}
+
+export function fetchIncidentMessagesFailure(error) {
+    return {
+        type: types.FETCH_INCIDENT_MESSAGES_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetFetchIncidentMessages() {
+    return {
+        type: types.FETCH_INCIDENT_MESSAGES_RESET,
+    };
+}

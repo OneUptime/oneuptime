@@ -88,7 +88,7 @@ class TopContent extends Component {
                 tabIndex="0"
                 onKeyDown={this.handleKeyBoard}
                 style={{ zIndex: '2' }}
-                className="db-World-topContent Box-root Box-background--surface Padding-vertical--20"
+                className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20"
             >
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root" onClick={this.props.openSideNav}>

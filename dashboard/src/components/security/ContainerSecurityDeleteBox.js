@@ -5,39 +5,16 @@ import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
-import { history } from '../../store';
-import { deleteContainerSecurity } from '../../actions/security';
 import DeleteContainerSecurity from '../modals/DeleteContainerSecurity';
 
 export class ContainerSecurityDeleteBox extends Component {
-    handleDelete = data => {
-        const thisObj = this;
-        const {
-            deleteContainerSecurity,
-            deleteApplicationError,
-            openModal,
-        } = this.props;
+    handleDelete = ({ projectId, componentId, containerSecurityId }) => {
+        const { openModal } = this.props;
 
         openModal({
-            id: data.containerSecurityId,
-            onConfirm: () => {
-                return deleteContainerSecurity(data).then(() => {
-                    if (deleteApplicationError) {
-                        // prevent dismissal of modal if errored
-                        return this.handleDelete(data);
-                    }
-
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Container Security');
-                    }
-
-                    history.push(
-                        `/dashboard/project/${data.projectId}/${data.componentId}/security/container`
-                    );
-                });
-            },
+            id: containerSecurityId,
             content: DeleteContainerSecurity,
-            propArr: [],
+            propArr: [{ projectId, componentId, containerSecurityId }],
         });
     };
 
@@ -113,15 +90,11 @@ export class ContainerSecurityDeleteBox extends Component {
 ContainerSecurityDeleteBox.displayName = 'ContainerSecurityDeleteBox';
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { openModal, closeModal, deleteContainerSecurity },
-        dispatch
-    );
+    bindActionCreators({ openModal, closeModal }, dispatch);
 
 const mapStateToProps = state => {
     return {
         deleting: state.security.deleteApplication.requesting,
-        deleteApplicationError: state.security.deleteApplication.error,
     };
 };
 
@@ -129,14 +102,9 @@ ContainerSecurityDeleteBox.propTypes = {
     componentId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     containerSecurityId: PropTypes.string.isRequired,
-    deleteContainerSecurity: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     deleting: PropTypes.bool,
-    deleteApplicationError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
 };
 
 export default connect(
