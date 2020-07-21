@@ -176,7 +176,7 @@ module.exports = {
     hardDeleteBy: async function(query) {
         try {
             await SmsSmtpModel.deleteMany(query);
-            return 'Sms Smtp(s) removed successfully';
+            return 'SMS Smtp(s) removed successfully';
         } catch (error) {
             ErrorService.log('smsSmtpService.hardDeleteBy', error);
             throw error;
