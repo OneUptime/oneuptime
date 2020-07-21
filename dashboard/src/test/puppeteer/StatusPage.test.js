@@ -113,7 +113,7 @@ describe('Status Page', () => {
     );
 
     test(
-        'should show error message if no chart is selected.',
+        'should show error message and not submit the form if no chart is selected.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
@@ -135,6 +135,12 @@ describe('Status Page', () => {
                 expect(element).toContain(
                     'You must select at least one bar chart'
                 );
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(3000);
+                await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitFor(3000);
+                const monitor = await page.$$('#monitor-0');
+                expect(monitor.length).toEqual(0);
             });
         },
         operationTimeOut
