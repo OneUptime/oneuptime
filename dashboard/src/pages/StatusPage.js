@@ -26,6 +26,8 @@ import {
 import CustomStyles from '../components/statusPage/CustomStyles';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import 'react-tabs/style/react-tabs.css';
 
 class StatusPage extends Component {
     async componentDidMount() {
@@ -81,101 +83,127 @@ class StatusPage extends Component {
                         name={pageName}
                         pageTitle="Status Page"
                     />
-                    <div className="Box-root">
-                        <div>
+                    <Tabs selectedTabClassName={'custom-tab-selected'}>
+                        <TabList className={'custom-tab-list'}>
+                            <Tab className={'custom-tab'}>Basic</Tab>
+                            <Tab className={'custom-tab'}>Domain</Tab>
+                            <Tab className={'custom-tab'}>Branding</Tab>
+                            <Tab className={'custom-tab'}>Advance</Tab>
+                        </TabList>
+
+                        <div className="Box-root">
                             <div>
-                                <div className="db-BackboneViewContainer">
-                                    <div className="react-settings-view react-view">
-                                        <span data-reactroot="">
-                                            <div>
+                                <div>
+                                    <div className="db-BackboneViewContainer">
+                                        <div className="react-settings-view react-view">
+                                            <span data-reactroot="">
                                                 <div>
-                                                    <ShouldRender
-                                                        if={
-                                                            !this.props
-                                                                .statusPage
-                                                                .requesting
-                                                        }
-                                                    >
-                                                        <div className="Box-root Margin-bottom--12">
-                                                            <Header />
-                                                        </div>
-                                                        <div className="Box-root Margin-bottom--12">
-                                                            <Basic />
-                                                        </div>
-                                                        <RenderIfSubProjectAdmin
-                                                            subProjectId={
-                                                                this.props.match
-                                                                    .params
-                                                                    .subProjectId
+                                                    <div>
+                                                        <ShouldRender
+                                                            if={
+                                                                !this.props
+                                                                    .statusPage
+                                                                    .requesting
                                                             }
                                                         >
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <Monitors />
-                                                            </div>
-                                                        </RenderIfSubProjectAdmin>
-                                                        <div className="Box-root Margin-bottom--12">
-                                                            <Setting />
-                                                        </div>
-                                                        <RenderIfSubProjectAdmin
-                                                            subProjectId={
-                                                                this.props.match
-                                                                    .params
-                                                                    .subProjectId
+                                                            <TabPanel>
+                                                                <div className="Box-root Margin-bottom--12">
+                                                                    <Header />
+                                                                </div>
+                                                                <div className="Box-root Margin-bottom--12">
+                                                                    <Basic />
+                                                                </div>
+                                                                <RenderIfSubProjectAdmin
+                                                                    subProjectId={
+                                                                        this
+                                                                            .props
+                                                                            .match
+                                                                            .params
+                                                                            .subProjectId
+                                                                    }
+                                                                >
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <Monitors />
+                                                                    </div>
+                                                                </RenderIfSubProjectAdmin>
+                                                            </TabPanel>
+                                                            <TabPanel>
+                                                                <div className="Box-root Margin-bottom--12">
+                                                                    <Setting />
+                                                                </div>
+                                                            </TabPanel>
+                                                            <TabPanel>
+                                                                <RenderIfSubProjectAdmin
+                                                                    subProjectId={
+                                                                        this
+                                                                            .props
+                                                                            .match
+                                                                            .params
+                                                                            .subProjectId
+                                                                    }
+                                                                >
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <Branding />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <Links />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <CustomStyles />
+                                                                    </div>
+                                                                </RenderIfSubProjectAdmin>
+                                                            </TabPanel>
+                                                            <TabPanel>
+                                                                <RenderIfSubProjectAdmin
+                                                                    subProjectId={
+                                                                        this
+                                                                            .props
+                                                                            .match
+                                                                            .params
+                                                                            .subProjectId
+                                                                    }
+                                                                >
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <PrivateStatusPage />
+                                                                    </div>
+                                                                </RenderIfSubProjectAdmin>
+                                                                <RenderIfSubProjectAdmin
+                                                                    subProjectId={
+                                                                        this
+                                                                            .props
+                                                                            .match
+                                                                            .params
+                                                                            .subProjectId
+                                                                    }
+                                                                >
+                                                                    <DeleteBox
+                                                                        match={
+                                                                            this
+                                                                                .props
+                                                                                .match
+                                                                        }
+                                                                    />
+                                                                </RenderIfSubProjectAdmin>
+                                                            </TabPanel>
+                                                        </ShouldRender>
+                                                        <ShouldRender
+                                                            if={
+                                                                this.props
+                                                                    .statusPage
+                                                                    .requesting
                                                             }
                                                         >
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <Branding />
-                                                            </div>
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <Links />
-                                                            </div>
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <CustomStyles />
-                                                            </div>
-                                                        </RenderIfSubProjectAdmin>
-                                                        <RenderIfSubProjectAdmin
-                                                            subProjectId={
-                                                                this.props.match
-                                                                    .params
-                                                                    .subProjectId
-                                                            }
-                                                        >
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <PrivateStatusPage />
-                                                            </div>
-                                                        </RenderIfSubProjectAdmin>
-                                                        <RenderIfSubProjectAdmin
-                                                            subProjectId={
-                                                                this.props.match
-                                                                    .params
-                                                                    .subProjectId
-                                                            }
-                                                        >
-                                                            <DeleteBox
-                                                                match={
-                                                                    this.props
-                                                                        .match
-                                                                }
-                                                            />
-                                                        </RenderIfSubProjectAdmin>
-                                                    </ShouldRender>
-                                                    <ShouldRender
-                                                        if={
-                                                            this.props
-                                                                .statusPage
-                                                                .requesting
-                                                        }
-                                                    >
-                                                        <LoadingState />
-                                                    </ShouldRender>
+                                                            <LoadingState />
+                                                        </ShouldRender>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </Tabs>
                 </Fade>
             </Dashboard>
         );
