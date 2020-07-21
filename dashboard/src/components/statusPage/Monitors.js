@@ -25,12 +25,14 @@ import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 
 const validate = values => {
-    const monitorFormsErrors = {};
+    const errors = {};
     const { monitors } = values;
+    const monitorsArrayErrors = {};
     for (let i = 0; i < monitors.length; i++) {
+        const monitorErrors = {};
         const monitor = monitors[i];
         if (!monitor.monitor)
-            monitorFormsErrors[i] = { monitor: 'A monitor must be selected.' };
+            monitorErrors.monitor = 'A monitor must be selected.';
         const {
             uptime,
             memory,
@@ -48,12 +50,15 @@ const validate = values => {
             !responseTime &&
             !temperature &&
             !runtime
-        )
-            monitorFormsErrors[i] = {
-                error: 'You must select at least one bar chart',
-            };
+        ) {
+            //At least one registred field need must be assigned a value
+            monitorErrors.uptime = true;
+            monitorErrors.error = 'You must select at least one bar chart';
+        }
+        monitorsArrayErrors[i] = monitorErrors;
     }
-    return { monitors: monitorFormsErrors };
+    errors.monitors = monitorsArrayErrors;
+    return errors;
 };
 
 export class Monitors extends Component {
