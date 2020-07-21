@@ -10112,7 +10112,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 
 .price-list-2c {
     display: grid;
-    grid-template-columns: auto auto;
+    grid-template-columns: repeat(2, 1fr);
     grid-gap: 20px;
 }
 
