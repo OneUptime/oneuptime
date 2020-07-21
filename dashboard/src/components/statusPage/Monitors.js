@@ -169,14 +169,8 @@ export class Monitors extends Component {
                                         >
                                             <FieldArray
                                                 name="monitors"
-                                                component={({ ...props }) => (
-                                                    <RenderMonitors
-                                                        {...{
-                                                            ...props,
-                                                            subProject,
-                                                        }}
-                                                    />
-                                                )}
+                                                component={RenderMonitors}
+                                                subProject={subProject}
                                             />
                                         </fieldset>
                                     </div>
