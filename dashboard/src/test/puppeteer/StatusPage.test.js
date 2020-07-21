@@ -101,8 +101,13 @@ describe('Status Page', () => {
                 await page.waitForSelector('#monitor-0');
                 await page.click('#btnAddStatusPageMonitors');
                 await page.waitFor(3000);
-                const textContent=await page.$eval('#monitor-0',e=>e.textContent);
-                expect(textContent.includes('A monitor must be selected.')).toEqual(true);
+                const textContent = await page.$eval(
+                    '#monitor-0',
+                    e => e.textContent
+                );
+                expect(
+                    textContent.includes('A monitor must be selected.')
+                ).toEqual(true);
                 await page.reload({ waitUntil: 'networkidle0' });
                 await page.waitFor(3000);
                 const monitor = await page.$$('#monitor-0');
