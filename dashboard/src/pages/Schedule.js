@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import DeleteBox from '../components/schedule/DeleteBox';
 import MonitorBox from '../components/schedule/MonitorBox';
@@ -61,65 +62,72 @@ class Schedule extends Component {
 
         return (
             <Dashboard>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Call Schedules"
-                />
-                <BreadCrumbItem route={pathname} name={name} />
-                <div className="Box-root">
-                    <div>
+                <Fade>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Call Schedules"
+                    />
+                    <BreadCrumbItem route={pathname} name={name} />
+                    <div className="Box-root">
                         <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <span>
-                                        <div>
+                            <div>
+                                <div className="db-BackboneViewContainer">
+                                    <div className="react-settings-view react-view">
+                                        <span>
                                             <div>
-                                                <RenameScheduleBox />
+                                                <div>
+                                                    <RenameScheduleBox />
 
-                                                <MonitorBox />
+                                                    <MonitorBox />
 
-                                                {!editSchedule &&
-                                                    escalations.length > 0 && (
-                                                        <EscalationSummary
-                                                            onEditClicked={() => {
+                                                    {!editSchedule &&
+                                                        escalations.length >
+                                                            0 && (
+                                                            <EscalationSummary
+                                                                onEditClicked={() => {
+                                                                    this.setState(
+                                                                        {
+                                                                            editSchedule: true,
+                                                                        }
+                                                                    );
+                                                                }}
+                                                                escalations={
+                                                                    escalations
+                                                                }
+                                                                teamMembers={
+                                                                    teamMembers
+                                                                }
+                                                            />
+                                                        )}
+
+                                                    {(editSchedule ||
+                                                        escalations.length ===
+                                                            0) && (
+                                                        <OnCallAlertBox
+                                                            afterSave={() => {
                                                                 this.setState({
-                                                                    editSchedule: true,
+                                                                    editSchedule: false,
                                                                 });
                                                             }}
-                                                            escalations={
-                                                                escalations
-                                                            }
-                                                            teamMembers={
-                                                                teamMembers
-                                                            }
                                                         />
                                                     )}
 
-                                                {(editSchedule ||
-                                                    escalations.length ===
-                                                        0) && (
-                                                    <OnCallAlertBox
-                                                        afterSave={() => {
-                                                            this.setState({
-                                                                editSchedule: false,
-                                                            });
-                                                        }}
-                                                    />
-                                                )}
-
-                                                <RenderIfSubProjectAdmin
-                                                    subProjectId={subProjectId}
-                                                >
-                                                    <DeleteBox />
-                                                </RenderIfSubProjectAdmin>
+                                                    <RenderIfSubProjectAdmin
+                                                        subProjectId={
+                                                            subProjectId
+                                                        }
+                                                    >
+                                                        <DeleteBox />
+                                                    </RenderIfSubProjectAdmin>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </span>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Fade>
             </Dashboard>
         );
     }

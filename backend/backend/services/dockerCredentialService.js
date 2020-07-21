@@ -1,6 +1,7 @@
 const DockerCredentialModel = require('../models/dockerCredential');
 const ErrorService = require('./errorService');
-const { encrypt } = require('../config/encryptDecrypt');
+const { encrypt, decrypt } = require('../config/encryptDecrypt');
+const axios = require('axios');
 
 module.exports = {
     findBy: async function(query, limit, skip) {
@@ -76,13 +77,34 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const dockerCredential = await DockerCredentialModel.findOneAndUpdate(
+            let dockerCredential = await this.findOneBy(query);
+
+            if (!data.deleted && !data.deletedAt) {
+                // validate docker username and password before update
+                if (data.dockerPassword) {
+                    await this.validateDockerCredential({
+                        username: data.dockerUsername,
+                        password: data.dockerPassword,
+                    });
+                    data.dockerPassword = await encrypt(data.dockerPassword);
+                } else {
+                    const password = await decrypt(
+                        dockerCredential.dockerPassword
+                    );
+                    await this.validateDockerCredential({
+                        username: data.dockerUsername,
+                        password,
+                    });
+                }
+            }
+
+            dockerCredential = await DockerCredentialModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
                 },
                 { new: true }
-            );
+            ).populate('projectId');
 
             if (!dockerCredential) {
                 const error = new Error(
@@ -128,6 +150,22 @@ module.exports = {
             return 'Docker credential(s) successfully deleted';
         } catch (error) {
             ErrorService.log('dockerCredentialService.hardDeleteBy', error);
+            throw error;
+        }
+    },
+    validateDockerCredential: async function({ username, password }) {
+        try {
+            // user docker api to check if username and password is valid
+            const response = await axios.post(
+                'https://hub.docker.com/v2/users/login',
+                { username, password }
+            );
+            // response.data should contain a token
+            return response.data;
+        } catch (err) {
+            // username or password was incorrect
+            const error = new Error('Invalid docker credential');
+            error.code = 400;
             throw error;
         }
     },

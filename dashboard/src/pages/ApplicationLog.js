@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -69,39 +70,49 @@ class ApplicationLog extends Component {
                 false
             );
 
-        const componentName = component.length > 0 ? component[0].name : null;
+        const componentName =
+            component.length > 0 && component[0] && component[0].name
+                ? component[0].name
+                : null;
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name={componentName}
-                />
-                <BreadCrumbItem route={pathname} name="Logs" />
-                <div>
+                <Fade>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem route={pathname} name="Logs" />
                     <div>
-                        <ShouldRender if={this.props.applicationLog.requesting}>
-                            <LoadingState />
-                        </ShouldRender>
-                        <ShouldRender
-                            if={!this.props.applicationLog.requesting}
-                        >
-                            <div className="db-RadarRulesLists-page">
-                                <ShouldRender
-                                    if={this.props.applicationLogTutorial.show}
-                                >
-                                    <TutorialBox type="applicationLog" />
-                                </ShouldRender>
-                                <LibraryList />
-                                {applicationLogsList}
-                                <NewApplicationLog
-                                    index={2000}
-                                    formKey="NewApplicationLogForm"
-                                    componentId={this.props.componentId}
-                                />
-                            </div>
-                        </ShouldRender>
+                        <div>
+                            <ShouldRender
+                                if={this.props.applicationLog.requesting}
+                            >
+                                <LoadingState />
+                            </ShouldRender>
+                            <ShouldRender
+                                if={!this.props.applicationLog.requesting}
+                            >
+                                <div className="db-RadarRulesLists-page">
+                                    <ShouldRender
+                                        if={
+                                            this.props.applicationLogTutorial
+                                                .show
+                                        }
+                                    >
+                                        <TutorialBox type="applicationLog" />
+                                    </ShouldRender>
+                                    <LibraryList />
+                                    {applicationLogsList}
+                                    <NewApplicationLog
+                                        index={2000}
+                                        formKey="NewApplicationLogForm"
+                                        componentId={this.props.componentId}
+                                    />
+                                </div>
+                            </ShouldRender>
+                        </div>
                     </div>
-                </div>
+                </Fade>
             </Dashboard>
         );
     }

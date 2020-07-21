@@ -187,6 +187,22 @@ describe('Monitor API', function() {
             });
     });
 
+    it('should remove a site url from a monitor', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .delete(`/monitor/${projectId}/siteUrl/${monitorId}`)
+            .set('Authorization', authorization)
+            .send({
+                siteUrl: 'https://twitter.com',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body._id).to.be.equal(monitorId);
+                expect(res.body.siteUrls).to.not.contain('https://twitter.com');
+                done();
+            });
+    });
+
     it('should not create a new monitor with invalid call schedule', function(done) {
         let scheduleId = 20;
         let authorization = `Basic ${token}`;
@@ -359,6 +375,156 @@ describe('Monitor API', function() {
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
+                done();
+            });
+    });
+});
+
+const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
+const testServer = chai.request(HTTP_TEST_SERVER_URL);
+
+describe('API Monitor API', function() {
+    this.timeout(30000);
+
+    before(function(done) {
+        this.timeout(30000);
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                let project = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+                airtableId = res.body.airtableId;
+
+                ComponentModel.create({ name: 'Test Component' }, function(
+                    err,
+                    component
+                ) {
+                    componentId = component;
+                    VerificationTokenModel.findOne({ userId }, function(
+                        err,
+                        verificationToken
+                    ) {
+                        request
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end(function() {
+                                request
+                                    .post('/user/login')
+                                    .send({
+                                        email: userData.user.email,
+                                        password: userData.user.password,
+                                    })
+                                    .end(function(err, res) {
+                                        token = res.body.tokens.jwtAccessToken;
+                                        testServer
+                                            .post('/api/settings')
+                                            .send({
+                                                responseTime: 0,
+                                                statusCode: 200,
+                                                responseType: 'json',
+                                                header:
+                                                    '{"Content-Type":"application/json"}',
+                                                body: '{"status":"ok"}',
+                                            })
+                                            .end(async () => {
+                                                done();
+                                            });
+                                    });
+                            });
+                    });
+                });
+            });
+        });
+    });
+
+    after(async function() {
+        await GlobalConfig.removeTestConfig();
+        await MonitorService.hardDeleteBy({ _id: monitorId });
+        await UserService.hardDeleteBy({
+            email: userData.user.email,
+        });
+        await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteUser(airtableId);
+    });
+
+    it('should not add API monitor with invalid url', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Monitor 30',
+                type: 'api',
+                method: 'get',
+                data: { url: 'https://google.com' },
+                componentId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Monitor url should not be a website.'
+                );
+                done();
+            });
+    });
+
+    it('should not add API monitor with invalid payload', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Monitor 30',
+                type: 'api',
+                method: 'post',
+                data: { url: `https://fyipe.com/api/monitor/${projectId}` },
+                componentId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('should add API monitor with valid url and payload', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Monitor 30',
+                type: 'api',
+                method: 'get',
+                data: { url: HTTP_TEST_SERVER_URL },
+                componentId,
+            })
+            .end(function(err, res) {
+                monitorId = res.body._id;
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal('New Monitor 30');
+                done();
+            });
+    });
+
+    it('should not edit API monitor with invalid url', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .put(`/monitor/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Monitor 30',
+                type: 'api',
+                method: 'get',
+                data: { url: 'https://google.com' },
+                componentId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Monitor url should not be a website.'
+                );
                 done();
             });
     });

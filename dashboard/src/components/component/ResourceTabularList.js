@@ -111,8 +111,6 @@ class ResourceTabularList extends Component {
                                                 className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                                 style={{
                                                     height: '50px',
-                                                    borderBottom:
-                                                        '#f7f7f7 solid',
                                                 }}
                                             >
                                                 <td

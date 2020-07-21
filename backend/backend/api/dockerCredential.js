@@ -41,6 +41,11 @@ router.post(
                 });
             }
 
+            await DockerCredentialService.validateDockerCredential({
+                username: dockerUsername,
+                password: dockerPassword,
+            });
+
             const response = await DockerCredentialService.create({
                 dockerRegistryUrl,
                 dockerUsername,
@@ -66,6 +71,41 @@ router.get(
                 projectId,
             });
             return sendItemResponse(req, res, dockerCredentials);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
+    '/:projectId/dockerCredential/:credentialId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { credentialId } = req.params;
+            const {
+                dockerRegistryUrl,
+                dockerUsername,
+                dockerPassword,
+            } = req.body;
+
+            const data = {};
+            if (dockerRegistryUrl) {
+                data.dockerRegistryUrl = dockerRegistryUrl;
+            }
+            if (dockerUsername) {
+                data.dockerUsername = dockerUsername;
+            }
+            if (dockerPassword) {
+                data.dockerPassword = dockerPassword;
+            }
+
+            const dockerCredential = await DockerCredentialService.updateOneBy(
+                { _id: credentialId },
+                data
+            );
+            return sendItemResponse(req, res, dockerCredential);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

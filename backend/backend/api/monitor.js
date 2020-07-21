@@ -5,6 +5,7 @@
  */
 
 const express = require('express');
+const axios = require('axios');
 const UserService = require('../services/userService');
 const MonitorService = require('../services/monitorService');
 const MonitorLogService = require('../services/monitorLogService');
@@ -13,6 +14,7 @@ const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
 const ScheduleService = require('../services/scheduleService');
 const ProbeService = require('../services/probeService');
+const Api = require('../utils/api');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -116,7 +118,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             });
         }
 
-        if (data.type === 'url') {
+        if (data.type === 'url' || data.type === 'api') {
             if (!data.data.url) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -134,6 +136,47 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     message:
                         'Monitor data should have a `url` property of type string.',
                 });
+            }
+
+            if (data.type === 'api') {
+                try {
+                    const headers = await Api.headers(
+                        data.headers,
+                        data.bodyType
+                    );
+                    const body = await Api.body(
+                        data.text && data.text.length
+                            ? data.text
+                            : data.formData,
+                        data.text && data.text.length ? 'text' : 'formData'
+                    );
+                    const payload = {
+                        method: data.method,
+                        url: data.data.url,
+                    };
+                    if (headers && Object.keys(headers).length) {
+                        payload.headers = headers;
+                    }
+                    if (body && Object.keys(body).length) {
+                        payload.data = body;
+                    }
+                    const apiResponse = await axios(payload);
+                    const headerContentType =
+                        apiResponse.headers['content-type'];
+                    if (/text\/html/.test(headerContentType)) {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'Monitor url should not be a website.',
+                        });
+                    }
+                } catch (err) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message:
+                            (err.response && err.response.statusText) ||
+                            'Monitor url did not return a valid response.',
+                    });
+                }
             }
         }
 
@@ -213,6 +256,52 @@ router.put(
     async function(req, res) {
         try {
             const data = req.body;
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "values can't be null",
+                });
+            }
+            if (data.type && data.type === 'api') {
+                try {
+                    const headers = await Api.headers(
+                        data.headers,
+                        data.bodyType
+                    );
+                    const body = await Api.body(
+                        data.text && data.text.length
+                            ? data.text
+                            : data.formData,
+                        data.text && data.text.length ? 'text' : 'formData'
+                    );
+                    const payload = {
+                        method: data.method,
+                        url: data.data.url,
+                    };
+                    if (headers && Object.keys(headers).length) {
+                        payload.headers = headers;
+                    }
+                    if (body && Object.keys(body).length) {
+                        payload.data = body;
+                    }
+                    const apiResponse = await axios(payload);
+                    const headerContentType =
+                        apiResponse.headers['content-type'];
+                    if (/text\/html/.test(headerContentType)) {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'Monitor url should not be a website.',
+                        });
+                    }
+                } catch (err) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message:
+                            (err.response && err.response.statusText) ||
+                            'Monitor url did not return a valid response.',
+                    });
+                }
+            }
             let unsetData;
             if (!data.monitorCategoryId || data.monitorCategoryId === '') {
                 unsetData = { monitorCategoryId: '' };
@@ -592,6 +681,26 @@ router.post(
         try {
             const { siteUrl } = req.body;
             const monitor = await MonitorService.addSiteUrl(
+                {
+                    _id: req.params.monitorId,
+                },
+                { siteUrl }
+            );
+            return sendItemResponse(req, res, monitor);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.delete(
+    '/:projectId/siteUrl/:monitorId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { siteUrl } = req.body;
+            const monitor = await MonitorService.removeSiteUrl(
                 {
                     _id: req.params.monitorId,
                 },

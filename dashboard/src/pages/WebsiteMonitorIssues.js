@@ -1,6 +1,7 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { fetchMonitorIssue } from '../actions/monitor';
@@ -391,33 +392,38 @@ class WebsiteMonitorIssues extends React.Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem
-                    route={componentMonitorsRoute}
-                    name={componentName}
-                />
-                <BreadCrumbItem
-                    route={`${componentMonitorsRoute}#`}
-                    name="Monitors"
-                />
-                <BreadCrumbItem route={monitorDetailRoute} name={monitorName} />
-                <BreadCrumbItem
-                    route={`${monitorDetailRoute}#`}
-                    name="Website Issues"
-                />
-                <BreadCrumbItem route={pathname} name={url} />
-                <div>
+                <Fade>
+                    <BreadCrumbItem
+                        route={componentMonitorsRoute}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem
+                        route={`${componentMonitorsRoute}#`}
+                        name="Monitors"
+                    />
+                    <BreadCrumbItem
+                        route={monitorDetailRoute}
+                        name={monitorName}
+                    />
+                    <BreadCrumbItem
+                        route={`${monitorDetailRoute}#`}
+                        name="Website Issues"
+                    />
+                    <BreadCrumbItem route={pathname} name={url} />
                     <div>
-                        <div className="db-BackboneViewContainer">
-                            <div className="react-settings-view react-view">
-                                <span>
-                                    <div>
-                                        <div>{variable}</div>
-                                    </div>
-                                </span>
+                        <div>
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span>
+                                        <div>
+                                            <div>{variable}</div>
+                                        </div>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Fade>
             </Dashboard>
         );
     }

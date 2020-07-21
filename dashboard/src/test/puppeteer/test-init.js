@@ -456,4 +456,36 @@ module.exports = {
         await page.click('#btnCreateProject');
         await page.waitForNavigation({ waitUntil: 'networkidle0' });
     },
+    growthPlanUpgrade: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings', { visible: true });
+        await page.click('#projectSettings');
+        await page.waitForSelector('#billing');
+        await page.click('#billing');
+        await page.waitForSelector('input#Growth_month', {
+            visible: true,
+        });
+        await page.click('input#Growth_month');
+        await page.click('#changePlanBtn');
+        await page.waitForSelector('.ball-beat', { hidden: true });
+    },
+    addMonitorCategory: async function(monitorCategory, page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings');
+        await page.click('#projectSettings');
+
+        await page.waitForSelector('li#monitors a');
+        await page.click('li#monitors a');
+        await page.waitForSelector('#createMonitorCategoryButton');
+        await page.click('#createMonitorCategoryButton');
+        await page.waitForSelector('#monitorCategoryName');
+        await page.type('#monitorCategoryName', monitorCategory);
+        await page.click('#addMonitorCategoryButton');
+
+        const createdMonitorCategorySelector =
+            '#monitorCategoryList #monitor-category-name';
+        await page.waitForSelector(createdMonitorCategorySelector, {
+            visible: true,
+        });
+    },
 };

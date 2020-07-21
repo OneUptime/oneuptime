@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import Fade from 'react-reveal/Fade';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
 import Dashboard from '../components/Dashboard';
@@ -44,32 +45,37 @@ class ApplicationLogView extends Component {
             applicationLog.length > 0 ? applicationLog[0].name : null;
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem route="#" name={componentName} />
-                <BreadCrumbItem route={getParentRoute(pathname)} name="Logs" />
-                <BreadCrumbItem
-                    route={pathname}
-                    name={applicationLogName}
-                    pageTitle="Logs"
-                />
-                <ShouldRender if={!this.props.applicationLog[0]}>
-                    <LoadingState />
-                </ShouldRender>
-                <ShouldRender if={this.props.applicationLog[0]}>
-                    <div>
-                        <ApplicationLogDetail
-                            componentId={componentId}
-                            index={this.props.applicationLog[0]?._id}
-                            isDetails={true}
-                        />
-                    </div>
+                <Fade>
+                    <BreadCrumbItem route="#" name={componentName} />
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Logs"
+                    />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name={applicationLogName}
+                        pageTitle="Logs"
+                    />
+                    <ShouldRender if={!this.props.applicationLog[0]}>
+                        <LoadingState />
+                    </ShouldRender>
+                    <ShouldRender if={this.props.applicationLog[0]}>
+                        <div>
+                            <ApplicationLogDetail
+                                componentId={componentId}
+                                index={this.props.applicationLog[0]?._id}
+                                isDetails={true}
+                            />
+                        </div>
 
-                    <div className="Box-root Margin-bottom--12">
-                        <ApplicationLogViewDeleteBox
-                            componentId={this.props.componentId}
-                            applicationLog={this.props.applicationLog[0]}
-                        />
-                    </div>
-                </ShouldRender>
+                        <div className="Box-root Margin-bottom--12">
+                            <ApplicationLogViewDeleteBox
+                                componentId={this.props.componentId}
+                                applicationLog={this.props.applicationLog[0]}
+                            />
+                        </div>
+                    </ShouldRender>
+                </Fade>
             </Dashboard>
         );
     }

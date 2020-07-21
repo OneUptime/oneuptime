@@ -52,6 +52,14 @@ const GitCredentialList = ({
         });
     };
 
+    const handleCredentialUpdate = credentialId => {
+        openModal({
+            id: projectId,
+            content: GitCredentialModal,
+            propArr: [{ projectId, credentialId }],
+        });
+    };
+
     const handleKeyboard = e => {
         switch (e.key) {
             case 'Escape':
@@ -84,13 +92,10 @@ const GitCredentialList = ({
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <span>Git Credentials</span>
                             </span>
-                            <span
-                                style={{ textTransform: 'lowercase' }}
-                                className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                            >
+                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span>
-                                    Here&#39;s a list of all the available Git
-                                    Credentials for this project
+                                    Here&#39;s a list of all the available git
+                                    credentials for this project
                                 </span>
                             </span>
                         </div>
@@ -156,7 +161,9 @@ const GitCredentialList = ({
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root">
-                                                        <span>
+                                                        <span
+                                                            id={`gitUsername_${gitCredential.gitUsername}`}
+                                                        >
                                                             {
                                                                 gitCredential.gitUsername
                                                             }
@@ -178,9 +185,22 @@ const GitCredentialList = ({
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root">
                                                         <button
+                                                            id={`editCredentialBtn_${index}`}
+                                                            title="delete"
+                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit Margin-left--8"
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleCredentialUpdate(
+                                                                    gitCredential._id
+                                                                )
+                                                            }
+                                                        >
+                                                            <span>Edit</span>
+                                                        </button>
+                                                        <button
                                                             id={`deleteCredentialBtn_${index}`}
                                                             title="delete"
-                                                            className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete Margin-left--8"
                                                             type="button"
                                                             onClick={() =>
                                                                 handleDelete(

@@ -25,6 +25,8 @@ module.exports = {
                         : -1;
                     if (
                         (monitor.lighthouseScanStatus &&
+                            monitor.lighthouseScanStatus === 'scan') ||
+                        (monitor.lighthouseScanStatus &&
                             monitor.lighthouseScanStatus === 'failed') ||
                         ((!monitor.lighthouseScannedAt ||
                             scanIntervalInDays > 0) &&
@@ -36,7 +38,7 @@ module.exports = {
                             resp: { lighthouseScanStatus: 'scanning' },
                         });
 
-                        const sites = [monitor.data.url, ...monitor.siteUrls];
+                        const sites = monitor.siteUrls;
                         let failedCount = 0;
                         for (const url of sites) {
                             try {

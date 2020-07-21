@@ -127,7 +127,13 @@ export function editMonitor(projectId, values) {
 
     return function(dispatch) {
         const promise = putApi(`monitor/${projectId}/${values._id}`, values);
-        dispatch(editMonitorRequest());
+        if (
+            !values.lighthouseScanStatus ||
+            (values.lighthouseScanStatus &&
+                values.lighthouseScanStatus !== 'scan')
+        ) {
+            dispatch(editMonitorRequest());
+        }
 
         promise.then(
             function(monitor) {
@@ -191,6 +197,37 @@ export function resetEditMonitor() {
 export function addSiteUrl(monitorId, projectId, siteUrl) {
     return function(dispatch) {
         const promise = postApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
+            siteUrl,
+        });
+        dispatch(editMonitorRequest());
+
+        promise.then(
+            function(monitor) {
+                dispatch(editMonitorSuccess(monitor.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(editMonitorFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function deleteSiteUrl(monitorId, projectId, siteUrl) {
+    return function(dispatch) {
+        const promise = deleteApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
             siteUrl,
         });
         dispatch(editMonitorRequest());

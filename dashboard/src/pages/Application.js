@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import ApplicationSecurityForm from '../components/security/ApplicationSecurityForm';
 import ApplicationSecurity from '../components/security/ApplicationSecurity';
@@ -59,7 +60,7 @@ class Application extends Component {
             gettingApplicationSecurities,
             gettingSecurityLogs,
             location: { pathname },
-            component,
+            components,
             scanApplicationSecuritySuccess,
             getApplicationSecuritySuccess,
         } = this.props;
@@ -76,85 +77,87 @@ class Application extends Component {
             });
 
         const componentName =
-            component.length > 0 ? component[0].name : 'loading...';
+            components.length > 0 ? components[0].name : 'loading...';
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname, null, 'component')}
-                    name={componentName}
-                />
-                <BreadCrumbItem
-                    route={pathname}
-                    name="Application Security"
-                    pageTitle="Application"
-                />
-                <div className="Margin-vertical--12">
-                    <div>
-                        <div className="db-BackboneViewContainer">
-                            <div className="react-settings-view react-view">
-                                <ShouldRender
-                                    if={
-                                        gettingApplicationSecurities &&
-                                        gettingSecurityLogs
-                                    }
-                                >
-                                    <div style={{ textAlign: 'center' }}>
-                                        <LargeSpinner />
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={
-                                        !gettingApplicationSecurities &&
-                                        !gettingSecurityLogs
-                                    }
-                                >
-                                    {applicationSecurities.length > 0 &&
-                                        applicationSecurities.map(
-                                            applicationSecurity => {
-                                                return (
-                                                    <span
-                                                        key={
-                                                            applicationSecurity._id
-                                                        }
-                                                    >
-                                                        <div>
-                                                            <div>
-                                                                <ApplicationSecurity
-                                                                    name={
-                                                                        applicationSecurity.name
-                                                                    }
-                                                                    applicationSecurityId={
-                                                                        applicationSecurity._id
-                                                                    }
-                                                                    projectId={
-                                                                        projectId
-                                                                    }
-                                                                    componentId={
-                                                                        componentId
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </span>
-                                                );
-                                            }
-                                        )}
-                                </ShouldRender>
-                                <span>
-                                    <div>
-                                        <div>
-                                            <ApplicationSecurityForm
-                                                projectId={projectId}
-                                                componentId={componentId}
-                                            />
+                <Fade>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname, null, 'component')}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name="Application Security"
+                        pageTitle="Application"
+                    />
+                    <div className="Margin-vertical--12">
+                        <div>
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <ShouldRender
+                                        if={
+                                            gettingApplicationSecurities &&
+                                            gettingSecurityLogs
+                                        }
+                                    >
+                                        <div style={{ textAlign: 'center' }}>
+                                            <LargeSpinner />
                                         </div>
-                                    </div>
-                                </span>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={
+                                            !gettingApplicationSecurities &&
+                                            !gettingSecurityLogs
+                                        }
+                                    >
+                                        {applicationSecurities.length > 0 &&
+                                            applicationSecurities.map(
+                                                applicationSecurity => {
+                                                    return (
+                                                        <span
+                                                            key={
+                                                                applicationSecurity._id
+                                                            }
+                                                        >
+                                                            <div>
+                                                                <div>
+                                                                    <ApplicationSecurity
+                                                                        name={
+                                                                            applicationSecurity.name
+                                                                        }
+                                                                        applicationSecurityId={
+                                                                            applicationSecurity._id
+                                                                        }
+                                                                        projectId={
+                                                                            projectId
+                                                                        }
+                                                                        componentId={
+                                                                            componentId
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </span>
+                                                    );
+                                                }
+                                            )}
+                                    </ShouldRender>
+                                    <span>
+                                        <div>
+                                            <div>
+                                                <ApplicationSecurityForm
+                                                    projectId={projectId}
+                                                    componentId={componentId}
+                                                />
+                                            </div>
+                                        </div>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Fade>
             </Dashboard>
         );
     }
@@ -173,7 +176,7 @@ Application.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
+    components: PropTypes.arrayOf(
         PropTypes.shape({
             name: PropTypes.string,
         })
@@ -184,11 +187,16 @@ Application.propTypes = {
 
 const mapStateToProps = (state, ownProps) => {
     const { componentId, projectId } = ownProps.match.params;
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(
-            component => String(component._id) === String(componentId)
-        );
-    });
+    const components = [];
+    // filter to get the actual component
+    state.component.componentList.components.map(item =>
+        item.components.map(component => {
+            if (String(component._id) === String(componentId)) {
+                components.push(component);
+            }
+            return component;
+        })
+    );
 
     return {
         componentId,
@@ -197,7 +205,7 @@ const mapStateToProps = (state, ownProps) => {
         gettingSecurityLogs:
             state.security.getApplicationSecurityLog.requesting,
         gettingApplicationSecurities: state.security.getApplication.requesting,
-        component,
+        components,
     };
 };
 

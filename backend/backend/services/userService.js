@@ -13,6 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const users = await UserModel.find(query)
+                .select('-password')
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -794,17 +795,12 @@ module.exports = {
         if (user && user.length > 1) {
             const users = await Promise.all(
                 user.map(async user => {
-                    const userId = user._id;
-                    user = await _this.updateOneBy(
-                        {
-                            _id: userId,
-                        },
-                        {
-                            deleted: false,
-                            deletedBy: null,
-                            deletedAt: null,
-                        }
-                    );
+                    query._id = user._id;
+                    user = await _this.updateOneBy(query._id, {
+                        deleted: false,
+                        deletedBy: null,
+                        deletedAt: null,
+                    });
                     return user;
                 })
             );
@@ -812,17 +808,12 @@ module.exports = {
         } else {
             user = user[0];
             if (user) {
-                const userId = user._id;
-                user = await _this.updateOneBy(
-                    {
-                        _id: userId,
-                    },
-                    {
-                        deleted: false,
-                        deletedBy: null,
-                        deletedAt: null,
-                    }
-                );
+                query._id = user._id;
+                user = await _this.updateOneBy(query, {
+                    deleted: false,
+                    deletedBy: null,
+                    deletedAt: null,
+                });
             }
             return user;
         }

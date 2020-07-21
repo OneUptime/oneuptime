@@ -1,5 +1,5 @@
 import * as types from '../constants/credential';
-import { postApi, getApi, deleteApi } from '../api';
+import { postApi, getApi, deleteApi, putApi } from '../api';
 
 // Add Git Credential
 export const addGitCredentialRequest = () => ({
@@ -35,6 +35,48 @@ export const addGitCredential = ({ projectId, data }) => async dispatch => {
                 ? error.message
                 : 'Network Error';
         dispatch(addGitCredentialFailure(errorMsg));
+    }
+};
+
+// Edit and update Git Credential
+export const updateGitCredentialRequest = () => ({
+    type: types.UPDATE_GIT_CREDENTIAL_REQUEST,
+});
+
+export const updateGitCredentialSuccess = payload => ({
+    type: types.UPDATE_GIT_CREDENTIAL_SUCCESS,
+    payload,
+});
+
+export const updateGitCredentialFailure = error => ({
+    type: types.UPDATE_GIT_CREDENTIAL_FAILURE,
+    payload: error,
+});
+
+export const updateGitCredential = ({
+    projectId,
+    credentialId,
+    data,
+}) => async dispatch => {
+    dispatch(updateGitCredentialRequest());
+
+    try {
+        const response = await putApi(
+            `credential/${projectId}/gitCredential/${credentialId}`,
+            data
+        );
+
+        dispatch(updateGitCredentialSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(updateGitCredentialFailure(errorMsg));
     }
 };
 
@@ -188,6 +230,48 @@ export const addDockerCredential = ({ projectId, data }) => async dispatch => {
                 ? error.message
                 : 'Network Error';
         dispatch(addDockerCredentialFailure(errorMsg));
+    }
+};
+
+// Edit and update Docker Credential
+export const updateDockerCredentialRequest = () => ({
+    type: types.UPDATE_DOCKER_CREDENTIAL_REQUEST,
+});
+
+export const updateDockerCredentialSuccess = payload => ({
+    type: types.UPDATE_DOCKER_CREDENTIAL_SUCCESS,
+    payload,
+});
+
+export const updateDockerCredentialFailure = error => ({
+    type: types.UPDATE_DOCKER_CREDENTIAL_FAILURE,
+    payload: error,
+});
+
+export const updateDockerCredential = ({
+    projectId,
+    credentialId,
+    data,
+}) => async dispatch => {
+    dispatch(updateDockerCredentialRequest());
+
+    try {
+        const response = await putApi(
+            `credential/${projectId}/dockerCredential/${credentialId}`,
+            data
+        );
+
+        dispatch(updateDockerCredentialSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(updateDockerCredentialFailure(errorMsg));
     }
 };
 

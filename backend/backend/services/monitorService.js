@@ -127,6 +127,9 @@ module.exports = {
                         if (data.headers && data.headers.length)
                             monitor.headers = data.headers;
                     }
+                    if (data.type === 'url') {
+                        monitor.siteUrls = [monitor.data.url];
+                    }
                     const savedMonitor = await monitor.save();
                     monitor = await _this.findOneBy({ _id: savedMonitor._id });
                     return monitor;
@@ -664,12 +667,9 @@ module.exports = {
             let monitor = await this.findOneBy(query);
 
             if (
-                (monitor.siteUrls &&
-                    monitor.siteUrls.length > 0 &&
-                    monitor.siteUrls.includes(data.siteUrl)) ||
-                (monitor.data &&
-                    monitor.data.url &&
-                    monitor.data.url === data.siteUrl)
+                monitor.siteUrls &&
+                monitor.siteUrls.length > 0 &&
+                monitor.siteUrls.includes(data.siteUrl)
             ) {
                 const error = new Error('Site URL already exists.');
                 error.code = 400;
@@ -684,6 +684,35 @@ module.exports = {
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.addSiteUrl', error);
+            throw error;
+        }
+    },
+
+    removeSiteUrl: async function(query, data) {
+        try {
+            let monitor = await this.findOneBy(query);
+            const siteUrlIndex =
+                monitor.siteUrls && monitor.siteUrls.length > 0
+                    ? monitor.siteUrls.indexOf(data.siteUrl)
+                    : -1;
+
+            if (siteUrlIndex === -1) {
+                const error = new Error('Site URL does not exist.');
+                error.code = 400;
+                ErrorService.log('monitorService.removeSiteUrl', error);
+                throw error;
+            }
+
+            if (monitor.siteUrls && monitor.siteUrls.length > 0) {
+                monitor.siteUrls.splice(siteUrlIndex, 1);
+            }
+            const siteUrls = monitor.siteUrls;
+
+            monitor = await this.updateOneBy(query, { siteUrls });
+
+            return monitor;
+        } catch (error) {
+            ErrorService.log('monitorService.removeSiteUrl', error);
             throw error;
         }
     },

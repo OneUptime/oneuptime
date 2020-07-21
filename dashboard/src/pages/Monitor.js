@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { destroy } from 'redux-form';
+import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import NewMonitor from '../components/monitor/NewMonitor';
 import MonitorList from '../components/monitor/MonitorList';
@@ -265,136 +266,145 @@ class DashboardView extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem route={pathname} name={componentName} />
-                <BreadCrumbItem route={pathname + '#'} name="Monitors" />
-                <div className="Box-root">
-                    <div>
+                <Fade>
+                    <BreadCrumbItem route={pathname} name={componentName} />
+                    <BreadCrumbItem route={pathname + '#'} name="Monitors" />
+                    <div className="Box-root">
                         <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="dashboard-home-view react-view">
-                                    <div>
+                            <div>
+                                <div className="db-BackboneViewContainer">
+                                    <div className="dashboard-home-view react-view">
                                         <div>
-                                            <span>
-                                                <ShouldRender
-                                                    if={
-                                                        !this.props.monitor
-                                                            .monitorsList
-                                                            .requesting
-                                                    }
-                                                >
+                                            <div>
+                                                <span>
                                                     <ShouldRender
                                                         if={
-                                                            this.props
-                                                                .monitorTutorial
-                                                                .show
+                                                            !this.props.monitor
+                                                                .monitorsList
+                                                                .requesting
                                                         }
                                                     >
-                                                        <TutorialBox type="monitor" />
-                                                    </ShouldRender>
-
-                                                    <div className="Box-root Margin-bottom--12">
-                                                        {incidentslist}
-                                                    </div>
-
-                                                    {monitors}
-
-                                                    <RenderIfSubProjectAdmin>
-                                                        <NewMonitor
-                                                            index={1000}
-                                                            formKey="NewMonitorForm"
-                                                            componentId={
-                                                                this.props
-                                                                    .componentId
-                                                            }
-                                                        />
-                                                    </RenderIfSubProjectAdmin>
-
-                                                    <RenderIfSubProjectMember>
                                                         <ShouldRender
                                                             if={
-                                                                !this.props
-                                                                    .monitor
-                                                                    .monitorsList
-                                                                    .requesting &&
-                                                                allMonitors.length ===
-                                                                    0
+                                                                this.props
+                                                                    .monitorTutorial
+                                                                    .show
                                                             }
                                                         >
-                                                            <div
-                                                                id="app-loading"
-                                                                style={{
-                                                                    position:
-                                                                        'fixed',
-                                                                    top: '0',
-                                                                    bottom: '0',
-                                                                    left: '0',
-                                                                    right: '0',
-                                                                    backgroundColor:
-                                                                        '#fdfdfd',
-                                                                    zIndex:
-                                                                        '999',
-                                                                    display:
-                                                                        'flex',
-                                                                    justifyContent:
-                                                                        'center',
-                                                                    alignItems:
-                                                                        'center',
-                                                                    flexDirection:
-                                                                        'column',
-                                                                }}
+                                                            <TutorialBox type="monitor" />
+                                                        </ShouldRender>
+
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            {incidentslist}
+                                                        </div>
+
+                                                        {monitors}
+
+                                                        <RenderIfSubProjectAdmin>
+                                                            <NewMonitor
+                                                                index={1000}
+                                                                formKey="NewMonitorForm"
+                                                                componentId={
+                                                                    this.props
+                                                                        .componentId
+                                                                }
+                                                            />
+                                                        </RenderIfSubProjectAdmin>
+
+                                                        <RenderIfSubProjectMember>
+                                                            <ShouldRender
+                                                                if={
+                                                                    !this.props
+                                                                        .monitor
+                                                                        .monitorsList
+                                                                        .requesting &&
+                                                                    allMonitors.length ===
+                                                                        0
+                                                                }
                                                             >
                                                                 <div
-                                                                    className="db-SideNav-icon db-SideNav-icon--atlas "
+                                                                    id="app-loading"
                                                                     style={{
-                                                                        backgroundRepeat:
-                                                                            'no-repeat',
-                                                                        backgroundSize:
-                                                                            '50px',
-                                                                        height:
-                                                                            '50px',
-                                                                        width:
-                                                                            '50px',
-                                                                    }}
-                                                                ></div>
-                                                                <div
-                                                                    style={{
-                                                                        marginTop:
-                                                                            '20px',
-                                                                        fontSize:
-                                                                            '16px',
+                                                                        position:
+                                                                            'fixed',
+                                                                        top:
+                                                                            '0',
+                                                                        bottom:
+                                                                            '0',
+                                                                        left:
+                                                                            '0',
+                                                                        right:
+                                                                            '0',
+                                                                        backgroundColor:
+                                                                            '#fdfdfd',
+                                                                        zIndex:
+                                                                            '999',
+                                                                        display:
+                                                                            'flex',
+                                                                        justifyContent:
+                                                                            'center',
+                                                                        alignItems:
+                                                                            'center',
+                                                                        flexDirection:
+                                                                            'column',
                                                                     }}
                                                                 >
-                                                                    No monitors
-                                                                    are added to
-                                                                    this
-                                                                    project.
-                                                                    Please
-                                                                    contact your
-                                                                    project
-                                                                    admin.
+                                                                    <div
+                                                                        className="db-SideNav-icon db-SideNav-icon--atlas "
+                                                                        style={{
+                                                                            backgroundRepeat:
+                                                                                'no-repeat',
+                                                                            backgroundSize:
+                                                                                '50px',
+                                                                            height:
+                                                                                '50px',
+                                                                            width:
+                                                                                '50px',
+                                                                        }}
+                                                                    ></div>
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '20px',
+                                                                            fontSize:
+                                                                                '16px',
+                                                                        }}
+                                                                    >
+                                                                        No
+                                                                        monitors
+                                                                        are
+                                                                        added to
+                                                                        this
+                                                                        project.
+                                                                        Please
+                                                                        contact
+                                                                        your
+                                                                        project
+                                                                        admin.
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        </ShouldRender>
-                                                    </RenderIfSubProjectMember>
-                                                </ShouldRender>
+                                                            </ShouldRender>
+                                                        </RenderIfSubProjectMember>
+                                                    </ShouldRender>
 
-                                                <ShouldRender
-                                                    if={
-                                                        this.props.monitor
-                                                            .monitorsList
-                                                            .requesting
-                                                    }
-                                                >
-                                                    <LoadingState />
-                                                </ShouldRender>
-                                            </span>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props.monitor
+                                                                .monitorsList
+                                                                .requesting
+                                                        }
+                                                    >
+                                                        <LoadingState />
+                                                    </ShouldRender>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Fade>
             </Dashboard>
         );
     }

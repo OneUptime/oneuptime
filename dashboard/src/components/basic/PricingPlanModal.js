@@ -1,10 +1,15 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { reduxForm, Field } from 'redux-form';
 import { PricingPlan, Validate } from '../../config';
 import { FormLoader } from './Loader';
 import ShouldRender from './ShouldRender';
+import { changePlan } from '../../actions/project';
+import { closeModal } from '../../actions/modal';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { logEvent } from '../../analytics';
 
 function validate(values) {
     const errors = {};
@@ -19,13 +24,45 @@ function validate(values) {
 const PricingPlanModal = ({
     closeThisDialog,
     propArr,
-    confirmThisDialog,
     handleSubmit,
     isRequesting,
     error,
+    closeModal,
+    currentProject,
+    currentPlanId,
+    modalId,
+    changePlan,
 }) => {
     const handleFormSubmit = values => {
-        confirmThisDialog(values);
+        const { _id: id, name } = currentProject;
+        const {
+            category: oldCategory,
+            type: oldType,
+            details: oldDetails,
+        } = PricingPlan.getPlanById(currentPlanId);
+        const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
+        const {
+            category: newCategory,
+            type: newType,
+            details: newDetails,
+        } = PricingPlan.getPlanById(values.planId);
+
+        const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
+
+        changePlan(id, values.planId, name, oldPlan, newPlan).then(() => {
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent('EVENT: DAHBOARD > PROJECT PLAN CHANGED', {
+                    oldPlan,
+                    newPlan,
+                });
+            }
+
+            if (!error) {
+                return closeModal({
+                    id: modalId,
+                });
+            }
+        });
     };
 
     const plans = PricingPlan.getPlans();
@@ -45,7 +82,7 @@ const PricingPlanModal = ({
                         <form onSubmit={handleSubmit(handleFormSubmit)}>
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <span>Upgrade Plan</span>
                                     </span>
                                 </div>
@@ -67,51 +104,56 @@ const PricingPlanModal = ({
                                 )}
                             </div>
                             <ShouldRender if={propArr[0].plan !== 'Enterprise'}>
-                                <div className="bs-Modal-content">
-                                    <div className="Margin-bottom--12 Text-fontWeight--medium">
-                                        Choose a Plan
-                                    </div>
-                                    {plans.map((plan, index) => (
-                                        <div
-                                            className="bs-Fieldset-fields .Flex-justifyContent--center Margin-bottom--12"
-                                            style={{ flex: 1, padding: 0 }}
-                                            key={index}
-                                        >
-                                            <span
-                                                style={{
-                                                    marginBottom: '4px',
-                                                }}
-                                            >
-                                                {plan.category}{' '}
-                                                {plan.type === 'month'
-                                                    ? 'Monthly'
-                                                    : 'Yearly'}{' '}
-                                                Plan
-                                            </span>
-                                            <div
-                                                className="bs-Fieldset-field"
-                                                style={{
-                                                    width: '100%',
-                                                    alignItems: 'center',
-                                                }}
-                                            >
-                                                <Field
-                                                    required={true}
-                                                    component="input"
-                                                    type="radio"
-                                                    name="planId"
-                                                    id={`${plan.category}_${plan.type}`}
-                                                    value={plan.planId}
-                                                    className="Margin-right--12"
-                                                />
-                                                <label
-                                                    htmlFor={`${plan.category}_${plan.type}`}
-                                                >
-                                                    {plan.details}
-                                                </label>
-                                            </div>
+                                <div
+                                    className="bs-Modal-content"
+                                    style={{ paddingTop: 0 }}
+                                >
+                                    <fieldset className="bs-Fieldset">
+                                        <div className="Margin-bottom--12 Text-fontWeight--medium">
+                                            Choose a Plan
                                         </div>
-                                    ))}
+                                        {plans.map((plan, index) => (
+                                            <div
+                                                className="bs-Fieldset-fields .Flex-justifyContent--center Margin-bottom--12"
+                                                style={{ flex: 1, padding: 0 }}
+                                                key={index}
+                                            >
+                                                <span
+                                                    style={{
+                                                        marginBottom: '4px',
+                                                    }}
+                                                >
+                                                    {plan.category}{' '}
+                                                    {plan.type === 'month'
+                                                        ? 'Monthly'
+                                                        : 'Yearly'}{' '}
+                                                    Plan
+                                                </span>
+                                                <div
+                                                    className="bs-Fieldset-field"
+                                                    style={{
+                                                        width: '100%',
+                                                        alignItems: 'center',
+                                                    }}
+                                                >
+                                                    <Field
+                                                        required={true}
+                                                        component="input"
+                                                        type="radio"
+                                                        name="planId"
+                                                        id={`${plan.category}_${plan.type}`}
+                                                        value={plan.planId}
+                                                        className="Margin-right--12"
+                                                    />
+                                                    <label
+                                                        htmlFor={`${plan.category}_${plan.type}`}
+                                                    >
+                                                        {plan.details}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </fieldset>
                                 </div>
                             </ShouldRender>
                             <ShouldRender if={error}>
@@ -174,7 +216,6 @@ PricingPlanModal.displayName = 'Pricing Plan Modal';
 
 PricingPlanModal.propTypes = {
     closeThisDialog: PropTypes.func,
-    confirmThisDialog: PropTypes.func,
     propArr: PropTypes.array,
     handleSubmit: PropTypes.func,
     isRequesting: PropTypes.bool,
@@ -182,6 +223,11 @@ PricingPlanModal.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    closeModal: PropTypes.func,
+    currentProject: PropTypes.object,
+    currentPlanId: PropTypes.string,
+    modalId: PropTypes.string,
+    changePlan: PropTypes.func,
 };
 
 const mapStateToProps = state => {
@@ -199,8 +245,14 @@ const mapStateToProps = state => {
         },
         isRequesting: state.project.changePlan.requesting,
         error: state.project.changePlan.error,
+        currentProject: state.project.currentProject,
+        currentPlanId,
+        modalId: state.modal.modals[0].id,
     };
 };
+
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ closeModal, changePlan }, dispatch);
 
 const PricingForm = new reduxForm({
     form: 'PricingForm',
@@ -208,4 +260,4 @@ const PricingForm = new reduxForm({
     enableReinitialize: true,
 })(PricingPlanModal);
 
-export default connect(mapStateToProps)(PricingForm);
+export default connect(mapStateToProps, mapDispatchToProps)(PricingForm);

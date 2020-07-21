@@ -3,9 +3,9 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
-import { fetchLighthouseLogs } from '../../actions/monitor';
+import { editMonitor, fetchLighthouseLogs } from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
-import { FormLoader } from '../basic/Loader';
+import { FormLoader, Spinner } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import AddSiteUrl from '../modals/AddSiteUrl';
@@ -82,9 +82,19 @@ export class MonitorViewLighthouseLogsBox extends Component {
         fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5, data.value);
     };
 
+    scanWebsites = () => {
+        const { currentProject, monitor, editMonitor } = this.props;
+        editMonitor(currentProject._id, {
+            ...monitor,
+            lighthouseScanStatus: 'scan',
+        });
+    };
+
     render() {
         const { addSiteUrlModalId } = this.state;
-        const creating = this.props.create ? this.props.create : false;
+        const requesting = this.props.requesting
+            ? this.props.requesting
+            : false;
 
         const siteUrls =
             this.props.monitor &&
@@ -97,13 +107,8 @@ export class MonitorViewLighthouseLogsBox extends Component {
 
         siteUrls.unshift({ value: '', label: 'All Site URLs' });
 
-        const monitorUrl =
-            this.props.monitor &&
-            this.props.monitor.data &&
-            this.props.monitor.data.url
-                ? this.props.monitor.data.url
-                : '';
-        siteUrls.push({ value: monitorUrl, label: monitorUrl });
+        const lighthouseScanStatus =
+            this.props.monitor && this.props.monitor.lighthouseScanStatus;
 
         return (
             <div
@@ -117,32 +122,100 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                 <span>Website Scan</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                <span>
-                                    Here&apos;s a summary of{' '}
-                                    <a
-                                        href="https://developers.google.com/web/tools/lighthouse"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{
-                                            cursor: 'pointer',
-                                            textDecoration: 'underline',
-                                        }}
-                                    >
-                                        Lighthouse
-                                    </a>{' '}
-                                    scans we&apos;ve done on your website.
-                                </span>
+                                {!lighthouseScanStatus ||
+                                (lighthouseScanStatus &&
+                                    (lighthouseScanStatus === 'scan' ||
+                                        lighthouseScanStatus ===
+                                            'scanning')) ? (
+                                    <span>
+                                        Currently scanning your website URL(s).
+                                    </span>
+                                ) : (
+                                    <span>
+                                        Here&apos;s a summary of{' '}
+                                        <a
+                                            href="https://developers.google.com/web/tools/lighthouse"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                                cursor: 'pointer',
+                                                textDecoration: 'underline',
+                                            }}
+                                        >
+                                            Lighthouse
+                                        </a>{' '}
+                                        scans we&apos;ve done on your website.
+                                    </span>
+                                )}
                             </span>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                            <ShouldRender
+                                if={
+                                    this.props.monitor &&
+                                    this.props.monitor.siteUrls &&
+                                    this.props.monitor.siteUrls.length > 0
+                                }
+                            >
+                                <button
+                                    className={
+                                        !lighthouseScanStatus ||
+                                        (lighthouseScanStatus &&
+                                            (lighthouseScanStatus === 'scan' ||
+                                                lighthouseScanStatus ===
+                                                    'scanning'))
+                                            ? 'bs-Button bs-DeprecatedButton'
+                                            : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--security-scan'
+                                    }
+                                    type="button"
+                                    disabled={
+                                        !lighthouseScanStatus ||
+                                        (lighthouseScanStatus &&
+                                            (lighthouseScanStatus === 'scan' ||
+                                                lighthouseScanStatus ===
+                                                    'scanning'))
+                                    }
+                                    id={`scanWebsites_${this.props.monitor.name}`}
+                                    onClick={() => this.scanWebsites()}
+                                >
+                                    <ShouldRender
+                                        if={
+                                            lighthouseScanStatus &&
+                                            !(
+                                                lighthouseScanStatus ===
+                                                    'scan' ||
+                                                lighthouseScanStatus ===
+                                                    'scanning'
+                                            )
+                                        }
+                                    >
+                                        <span>Scan</span>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={
+                                            !lighthouseScanStatus ||
+                                            (lighthouseScanStatus &&
+                                                (lighthouseScanStatus ===
+                                                    'scan' ||
+                                                    lighthouseScanStatus ===
+                                                        'scanning'))
+                                        }
+                                    >
+                                        <Spinner
+                                            style={{ stroke: '#8898aa' }}
+                                        />
+                                        <span>Scanning</span>
+                                    </ShouldRender>
+                                </button>
+                            </ShouldRender>
                             <button
                                 className={
-                                    creating
+                                    requesting
                                         ? 'bs-Button bs-Button--blue'
                                         : 'bs-Button bs-ButtonLegacy ActionIconParent'
                                 }
                                 type="button"
-                                disabled={creating}
+                                disabled={requesting}
                                 id={`addSiteUrl_${this.props.monitor.name}`}
                                 onClick={() =>
                                     this.props.openModal({
@@ -155,12 +228,12 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                     })
                                 }
                             >
-                                <ShouldRender if={!creating}>
+                                <ShouldRender if={!requesting}>
                                     <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
                                         <span>Add New Site URL</span>
                                     </span>
                                 </ShouldRender>
-                                <ShouldRender if={creating}>
+                                <ShouldRender if={requesting}>
                                     <FormLoader />
                                 </ShouldRender>
                             </button>
@@ -168,7 +241,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                 if={
                                     this.props.monitor &&
                                     this.props.monitor.siteUrls &&
-                                    this.props.monitor.siteUrls.length > 0
+                                    this.props.monitor.siteUrls.length > 1
                                 }
                             >
                                 <div
@@ -185,7 +258,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                         placeholder="All Site URLs"
                                         className="db-select-pr"
                                         id="url_selector"
-                                        isDisabled={creating}
+                                        isDisabled={requesting}
                                         style={{ height: '28px' }}
                                         options={siteUrls}
                                     />
@@ -213,22 +286,23 @@ MonitorViewLighthouseLogsBox.propTypes = {
     componentId: PropTypes.string.isRequired,
     currentProject: PropTypes.object,
     monitor: PropTypes.object.isRequired,
+    editMonitor: PropTypes.func,
     fetchLighthouseLogs: PropTypes.func,
-    create: PropTypes.bool,
+    requesting: PropTypes.bool,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { fetchLighthouseLogs, openModal, closeModal },
+        { editMonitor, fetchLighthouseLogs, openModal, closeModal },
         dispatch
     );
 
 function mapStateToProps(state) {
     return {
         currentProject: state.project.currentProject,
-        create: state.monitor.editMonitor.requesting,
+        requesting: state.monitor.editMonitor.requesting,
     };
 }
 

@@ -1,16 +1,39 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { history } from '../../store';
-import { ListLoader } from '../basic/Loader';
+import DataPathHoC from '../DataPathHoC';
+import { ListLoader, Spinner } from '../basic/Loader';
+import { deleteSiteUrl } from '../../actions/monitor';
+import DeleteSiteUrl from '../modals/DeleteSiteUrl';
 import moment from 'moment';
+import uuid from 'uuid';
+import { openModal, closeModal } from '../../actions/modal';
 
 export class MonitorLighthouseLogsList extends Component {
     // eslint-disable-next-line
     constructor(props) {
         super(props);
+        this.props = props;
+        this.state = {
+            deleteSiteUrlModalId: uuid.v4(),
+        };
     }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({
+                    id: this.state.deleteSiteUrlModalId,
+                });
+            default:
+                return false;
+        }
+    };
+
     render() {
+        const { deleteSiteUrlModalId } = this.state;
         const { monitor, monitorState } = this.props;
         const lighthouseLogs = monitor.lighthouseLogs || {};
         let skip =
@@ -43,309 +66,414 @@ export class MonitorLighthouseLogsList extends Component {
             canPrev = false;
         }
 
+        const lighthouseScanStatus = monitor && monitor.lighthouseScanStatus;
+
         return (
-            <div>
-                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
-                    <table id="lighthouseLogsList" className="Table">
-                        <thead className="Table-body">
-                            <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px', minWidth: '210px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>URL</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Performance</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Accessibility</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Best Practices</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>SEO{'   '}</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>PWA</span>
-                                        </span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </thead>
-                        <tbody className="Table-body">
-                            {lighthouseLogs.data &&
-                            lighthouseLogs.data.length > 0 ? (
-                                lighthouseLogs.data.map((log, i) => {
-                                    return (
-                                        <tr
-                                            id={`lighthouseLogs_${
-                                                monitor.name
-                                                    ? monitor.name
-                                                    : 'Unknown Monitor'
-                                            }_${i}`}
-                                            key={i}
-                                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink lighthouseLogsListItem"
-                                            onClick={() => {
-                                                return log._id
-                                                    ? history.push(
-                                                          '/dashboard/project/' +
-                                                              this.props
-                                                                  .currentProject
-                                                                  ._id +
-                                                              '/' +
-                                                              this.props
-                                                                  .componentId +
-                                                              '/monitoring/' +
-                                                              monitor._id +
-                                                              '/issues/' +
-                                                              log._id
-                                                      )
-                                                    : false;
+            <div onKeyDown={this.handleKeyBoard}>
+                {(!lighthouseScanStatus ||
+                    (lighthouseScanStatus &&
+                        (lighthouseScanStatus === 'scan' ||
+                            lighthouseScanStatus === 'scanning'))) &&
+                monitor &&
+                monitor.siteUrls &&
+                monitor.siteUrls.length > 0 ? (
+                    <div
+                        className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
+                        style={{ boxShadow: 'none' }}
+                    >
+                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                            <div
+                                className="db-Trend"
+                                style={{ height: '100%', cursor: 'pointer' }}
+                            >
+                                <div className="block-chart-side line-chart">
+                                    <div className="db-TrendRow">
+                                        <div
+                                            className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
+                                            style={{
+                                                textAlign: 'center',
+                                                width: '100%',
+                                                fontSize: 14,
                                             }}
                                         >
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                style={{
-                                                    height: '1px',
-                                                    minWidth: '210px',
-                                                }}
+                                            <Spinner
+                                                style={{ stroke: '#8898aa' }}
+                                            />{' '}
+                                            <span style={{ width: 10 }} />
+                                            We are currently scanning your
+                                            website URL(s) and it will take few
+                                            minutes.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                        <table id="lighthouseLogsList" className="Table">
+                            <thead className="Table-body">
+                                <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{
+                                            height: '1px',
+                                            minWidth: '210px',
+                                        }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>URL</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: '1px' }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>Performance</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: '1px' }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>Accessibility</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: '1px' }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>Best Practices</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: '1px' }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>SEO{'   '}</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: '1px' }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>PWA</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: '1px' }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>Action</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </thead>
+                            <tbody className="Table-body">
+                                {lighthouseLogs.data &&
+                                lighthouseLogs.data.length > 0 ? (
+                                    lighthouseLogs.data.map((log, i) => {
+                                        return (
+                                            <tr
+                                                id={`lighthouseLogs_${
+                                                    monitor.name
+                                                        ? monitor.name
+                                                        : 'Unknown Monitor'
+                                                }_${i}`}
+                                                key={i}
+                                                className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink lighthouseLogsListItem"
                                             >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16">
-                                                            <span>
-                                                                {log && log.url
-                                                                    ? log.url
-                                                                    : '-'}
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                    style={{
+                                                        height: '1px',
+                                                        minWidth: '210px',
+                                                    }}
+                                                    onClick={() => {
+                                                        return log._id
+                                                            ? history.push(
+                                                                  '/dashboard/project/' +
+                                                                      this.props
+                                                                          .currentProject
+                                                                          ._id +
+                                                                      '/' +
+                                                                      this.props
+                                                                          .componentId +
+                                                                      '/monitoring/' +
+                                                                      monitor._id +
+                                                                      '/issues/' +
+                                                                      log._id
+                                                              )
+                                                            : false;
+                                                    }}
+                                                >
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <div className="Box-root Margin-right--16">
+                                                                <span>
+                                                                    {log &&
+                                                                    log.url
+                                                                        ? log.url
+                                                                        : '-'}
+                                                                </span>
+                                                            </div>
+                                                        </span>
+                                                        <div className="Box-root Flex">
+                                                            <div className="Box-root Flex">
+                                                                <div className="Box-root Flex-flex">
+                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-vertical--2">
+                                                                            <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                <span>
+                                                                                    {moment(
+                                                                                        log.createdAt
+                                                                                    ).fromNow()}{' '}
+                                                                                </span>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <div
+                                                                        className="Box-root Flex"
+                                                                        style={{
+                                                                            paddingTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                            (
+                                                                            {moment(
+                                                                                log.createdAt
+                                                                            ).format(
+                                                                                'MMMM Do YYYY, h:mm:ss a'
+                                                                            )}
+                                                                            )
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <div className="Box-root Flex">
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                    <span
+                                                                                        id={`performance_${monitor.name}_${i}`}
+                                                                                    >
+                                                                                        {log &&
+                                                                                        log.performance
+                                                                                            ? `${log.performance}%`
+                                                                                            : '-'}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             </span>
                                                         </div>
-                                                    </span>
-                                                    <div className="Box-root Flex">
-                                                        <div className="Box-root Flex">
-                                                            <div className="Box-root Flex-flex">
-                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                    <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-vertical--2">
-                                                                        <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                    </div>
+                                                </td>
+
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <div className="Box-root Flex">
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                    <span>
+                                                                                        {log &&
+                                                                                        log.accessibility
+                                                                                            ? `${log.accessibility}%`
+                                                                                            : '-'}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <div className="Box-root Flex">
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                    <span>
+                                                                                        {log &&
+                                                                                        log.bestPractices
+                                                                                            ? `${log.bestPractices}%`
+                                                                                            : '-'}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <div className="Box-root Flex">
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                    <span>
+                                                                                        {log &&
+                                                                                        log.seo
+                                                                                            ? `${log.seo}%`
+                                                                                            : '-'}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <div className="Box-root Flex">
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                    <span>
+                                                                                        {log &&
+                                                                                        log.pwa
+                                                                                            ? `${log.pwa}%`
+                                                                                            : '-'}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            <div className="Box-root Flex">
+                                                                <span>
+                                                                    <button
+                                                                        id={`removeSiteUrl_${monitor.name}_${i}`}
+                                                                        onClick={() =>
+                                                                            this.props.openModal(
+                                                                                {
+                                                                                    id: deleteSiteUrlModalId,
+                                                                                    onClose: () =>
+                                                                                        '',
+                                                                                    onConfirm: () =>
+                                                                                        this.props.deleteSiteUrl(
+                                                                                            monitor._id,
+                                                                                            this
+                                                                                                .props
+                                                                                                .currentProject
+                                                                                                ._id,
+                                                                                            log.url
+                                                                                        ),
+                                                                                    content: DataPathHoC(
+                                                                                        DeleteSiteUrl
+                                                                                    ),
+                                                                                }
+                                                                            )
+                                                                        }
+                                                                        className="bs-Button bs-ButtonLegacy ActionIconParent"
+                                                                        type="button"
+                                                                    >
+                                                                        <span className="bs-Button--icon bs-Button--trash">
                                                                             <span>
-                                                                                {moment(
-                                                                                    log.createdAt
-                                                                                ).fromNow()}{' '}
+                                                                                Remove
                                                                             </span>
                                                                         </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <div
-                                                                    className="Box-root Flex"
-                                                                    style={{
-                                                                        paddingTop:
-                                                                            '5px',
-                                                                    }}
-                                                                >
-                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        (
-                                                                        {moment(
-                                                                            log.createdAt
-                                                                        ).format(
-                                                                            'MMMM Do YYYY, h:mm:ss a'
-                                                                        )}
-                                                                        )
-                                                                    </div>
-                                                                </div>
+                                                                    </button>
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </td>
-
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Flex">
-                                                                <div className="Box-root Flex-flex">
-                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    {log &&
-                                                                                    log.performance
-                                                                                        ? `${log.performance}%`
-                                                                                        : '-'}
-                                                                                </span>
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Flex">
-                                                                <div className="Box-root Flex-flex">
-                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    {log &&
-                                                                                    log.accessibility
-                                                                                        ? `${log.accessibility}%`
-                                                                                        : '-'}
-                                                                                </span>
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Flex">
-                                                                <div className="Box-root Flex-flex">
-                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    {log &&
-                                                                                    log.bestPractices
-                                                                                        ? `${log.bestPractices}%`
-                                                                                        : '-'}
-                                                                                </span>
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Flex">
-                                                                <div className="Box-root Flex-flex">
-                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    {log &&
-                                                                                    log.seo
-                                                                                        ? `${log.seo}%`
-                                                                                        : '-'}
-                                                                                </span>
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Flex">
-                                                                <div className="Box-root Flex-flex">
-                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    {log &&
-                                                                                    log.pwa
-                                                                                        ? `${log.pwa}%`
-                                                                                        : '-'}
-                                                                                </span>
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            ) : (
-                                <tr></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
                 {monitorState.fetchLighthouseLogsRequest ? (
                     <ListLoader />
@@ -358,10 +486,15 @@ export class MonitorLighthouseLogsList extends Component {
                         padding: '0 10px',
                     }}
                 >
-                    {!monitorState.fetchLighthouseLogsRequest &&
+                    {lighthouseScanStatus &&
+                    !(
+                        lighthouseScanStatus === 'scan' ||
+                        lighthouseScanStatus === 'scanning'
+                    ) &&
+                    !monitorState.fetchLighthouseLogsRequest &&
                     (!lighthouseLogs.data ||
                         (lighthouseLogs.data && lighthouseLogs.data.length < 1))
-                        ? "We don't have any website issues yet"
+                        ? "You don't have any website URL yet"
                         : null}
                 </div>
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
@@ -446,6 +579,13 @@ function mapStateToProps(state) {
     };
 }
 
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        { openModal, closeModal, deleteSiteUrl },
+        dispatch
+    );
+};
+
 MonitorLighthouseLogsList.displayName = 'MonitorLighthouseLogsList';
 
 MonitorLighthouseLogsList.propTypes = {
@@ -453,8 +593,14 @@ MonitorLighthouseLogsList.propTypes = {
     monitorState: PropTypes.object,
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
+    openModal: PropTypes.func.isRequired,
+    closeModal: PropTypes.func.isRequired,
+    deleteSiteUrl: PropTypes.func.isRequired,
     currentProject: PropTypes.object,
     componentId: PropTypes.string.isRequired,
 };
 
-export default connect(mapStateToProps, null)(MonitorLighthouseLogsList);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(MonitorLighthouseLogsList);

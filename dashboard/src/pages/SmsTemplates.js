@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+import Fade from 'react-reveal/Fade';
 import { bindActionCreators } from 'redux';
 import SmsTemplatesBox from '../components/smsTemplates/SmsTemplatesBox';
 import SmsSmtpBox from '../components/smsTemplates/SmsSmtpBox';
@@ -37,13 +38,15 @@ class SmsTemplates extends Component {
 
         return (
             <Dashboard ready={this.ready}>
-                <BreadCrumbItem
-                    route={getParentRoute(pathname)}
-                    name="Project Settings"
-                />
-                <BreadCrumbItem route={pathname} name="SMS" />
-                <SmsTemplatesBox />
-                <SmsSmtpBox />
+                <Fade>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name="Project Settings"
+                    />
+                    <BreadCrumbItem route={pathname} name="SMS" />
+                    <SmsTemplatesBox />
+                    <SmsSmtpBox />
+                </Fade>
             </Dashboard>
         );
     }
