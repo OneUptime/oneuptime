@@ -35,9 +35,9 @@ const validate = values => {
         if (!monitor.monitor)
             monitorErrors.monitor = 'A monitor must be selected.';
         else {
-            if(selectedMonitor[monitor.monitor])
+            if (selectedMonitor[monitor.monitor])
                 monitorErrors.monitor = 'This monitor is already selected.';
-            selectedMonitor[monitor.monitor]=true;
+            selectedMonitor[monitor.monitor] = true;
         }
         const {
             uptime,
