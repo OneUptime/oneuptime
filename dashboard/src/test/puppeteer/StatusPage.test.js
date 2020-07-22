@@ -275,6 +275,10 @@ describe('Status Page', () => {
 
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('fieldset[name="added-domain"] input[type="text"]');
+
                 const input = await page.$(
                     'fieldset[name="added-domain"] input[type="text"]'
                 );
@@ -283,6 +287,9 @@ describe('Status Page', () => {
 
                 await page.click('#btnAddDomain');
                 await page.reload({ waitUntil: 'networkidle0' });
+
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
                 const finalInputValue = await page.$eval(
                     'fieldset[name="added-domain"] input[type="text"]',
