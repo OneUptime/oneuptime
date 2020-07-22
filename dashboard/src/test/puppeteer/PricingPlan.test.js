@@ -173,7 +173,7 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 const growthOption = await page.waitForSelector(
-                    '#Growth_month',
+                    'label[for=Growth_month]',
                     { visible: true }
                 );
                 growthOption.click();
@@ -208,7 +208,7 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 const growthOption = await page.waitForSelector(
-                    '#Growth_month',
+                    'label[for=Growth_month]',
                     { visible: true }
                 );
                 growthOption.click();
