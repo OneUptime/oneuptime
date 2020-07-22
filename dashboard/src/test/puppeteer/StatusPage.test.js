@@ -14,7 +14,8 @@ const monitorName1 = 'test.fyipe.com';
 
 const gotoTheFirstStatusPage = async page => {
     await page.goto(utils.DASHBOARD_URL);
-    await page.$eval('#statusPages > a', elem => elem.click());
+    await page.waitForSelector('#statusPages > a');
+    await page.click('#statusPages > a');
     const rowItem = await page.waitForSelector(
         '#statusPagesListContainer > tr',
         { visible: true }
@@ -232,6 +233,8 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 await page.waitForSelector('#domain', { visible: true });
                 await page.type('#domain', 'fyipeapp.com');
                 await page.click('#btnAddDomain');
