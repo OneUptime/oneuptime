@@ -394,7 +394,11 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
+                await page.waitForSelector('fieldset[name="added-domain"]');
+                await page.waitFor(3000);
                 //Get the initial length of domains
                 const initialLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
@@ -408,11 +412,17 @@ describe('Status Page', () => {
                 await page.type('#domain', 'app.fyipeapp.com');
                 await page.click('#btnAddDomain');
                 await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
+                await page.waitForSelector('.btnDeleteDomain');
                 await page.$eval('.btnDeleteDomain', elem => elem.click());
                 await page.$eval('#cancelDomainDelete', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('fieldset[name="added-domain"]');
                 // get the final length of domains after cancelling
                 const finalLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
