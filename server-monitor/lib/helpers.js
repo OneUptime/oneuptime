@@ -40,24 +40,26 @@ const defaultErrorHandler = error => {
 
 /**
  * Get request data with axios.
+ * @param {string} apiUrl - The url of the api.
  * @param {string} url - The endpoint of the request.
  * @param {string} key - The api key of the endpoint.
  * @param {Function} success - The request success callback.
  * @param {Function} error - The request error callback.
  * @return {Promise} The request promise.
  */
-const get = (url, key, success, error = defaultErrorHandler) => {
+const get = (apiUrl, url, key, success, error = defaultErrorHandler) => {
     headers['apiKey'] = key;
 
     return axios({
         method: 'get',
-        url: `${API_URL}/${url}`,
+        url: `${apiUrl || API_URL}/${url}`,
         headers,
     }).then(success, error);
 };
 
 /**
  * Post request data with axios.
+ * @param {string} apiUrl - The url of the api.
  * @param {string} url - The endpoint of the request.
  * @param {Object} data - The data of endpoint.
  * @param {string} key - The api key of the endpoint.
@@ -65,12 +67,12 @@ const get = (url, key, success, error = defaultErrorHandler) => {
  * @param {Function} error - The request error callback.
  * @return {Promise} The request promise.
  */
-const post = (url, data, key, success, error = defaultErrorHandler) => {
+const post = (apiUrl, url, data, key, success, error = defaultErrorHandler) => {
     headers['apiKey'] = key;
 
     return axios({
         method: 'post',
-        url: `${API_URL}/${url}`,
+        url: `${apiUrl || API_URL}/${url}`,
         headers,
         data,
     }).then(success, error);
