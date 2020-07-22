@@ -260,7 +260,9 @@ describe('Status Page', () => {
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
-                await page.waitForSelector('fieldset[name="added-domain"] input[type="text"]');
+                await page.waitForSelector(
+                    'fieldset[name="added-domain"] input[type="text"]'
+                );
 
                 const input = await page.$(
                     'fieldset[name="added-domain"] input[type="text"]'
@@ -351,7 +353,7 @@ describe('Status Page', () => {
 
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
-                await page.waitForSelector('.btnDeleteDomain');                
+                await page.waitForSelector('.btnDeleteDomain');
                 await page.$eval('.btnDeleteDomain', elem => elem.click());
                 await page.$eval('#confirmDomainDelete', elem => elem.click());
 
@@ -469,7 +471,7 @@ describe('Status Page', () => {
                 await page.waitFor(3000);
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
-                
+
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
                 await page.waitForSelector('#publicStatusPageUrl');
