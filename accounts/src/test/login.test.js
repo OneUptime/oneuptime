@@ -28,6 +28,31 @@ describe('Login API', () => {
         await browser.close();
     });
 
+    test('login form should be cleaned if the user moves to the signup form and returns back.', async () => {
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
+        await page.waitForSelector('#login-button');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', user.email);
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', user.password);
+        await page.click('#signUpLink a');
+        await page.waitForSelector('#loginLink');
+        await page.click('#loginLink a');
+        await page.waitFor(3000);
+        const email = await page.$eval(
+            'input[name=email]',
+            element => element.value
+        );
+        expect(email).toEqual('');
+        const password = await page.$eval(
+            'input[name=password]',
+            element => element.value
+        );
+        expect(password).toEqual('');
+    }, 160000);
+
     it('Users cannot login with incorrect credentials', async () => {
         try {
             await page.goto(utils.ACCOUNTS_URL + '/login', {

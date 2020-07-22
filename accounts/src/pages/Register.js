@@ -62,7 +62,7 @@ class RegisterPage extends React.Component {
                     />
                 )}
                 {/* END CONTENT */}
-                <div className="below-box">
+                <div id="loginLink" className="below-box">
                     <p>
                         Already have an account?{' '}
                         <Link to="/accounts/login">Sign in</Link>.
