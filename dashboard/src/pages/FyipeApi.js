@@ -7,7 +7,7 @@ import PropTypes from 'prop-types';
 import APISettings from '../components/settings/APISettings';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
-import RenderIfMember from '../components/basic/RenderIfMember';
+import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMember';
 
 class FyipeApi extends Component {
     render() {
@@ -29,7 +29,7 @@ class FyipeApi extends Component {
                                 <TutorialBox type="api" />
                                 <APISettings />
                             </RenderIfOwner>
-                            <RenderIfMember>
+                            <RenderIfSubProjectMember>
                                 <div className="Box-root ">
                                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
                                         <div className="Box-root Card-shadow--medium Border-radius--4">
@@ -76,7 +76,7 @@ class FyipeApi extends Component {
                                         </div>
                                     </div>
                                 </div>
-                            </RenderIfMember>
+                            </RenderIfSubProjectMember>
                         </div>
                     </div>
                 </Fade>

@@ -142,7 +142,7 @@ export const groups = [
                         title: 'Container Detail',
                         path:
                             '/dashboard/project/:projectId/:componentId/security/container/:containerSecurityId',
-                        icon: 'info',
+                        icon: 'docker',
                         visible: true,
                         subRoute: [],
                         index: 2,
