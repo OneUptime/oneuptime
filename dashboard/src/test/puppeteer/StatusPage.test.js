@@ -250,23 +250,6 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // This test comes after you must have created a domain
-    test(
-        'should indicate if domain(s) is set on a status page',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-
-                const elem = await page.waitForSelector('#domainSet', {
-                    visible: true,
-                });
-                expect(elem).toBeTruthy();
-            });
-        },
-        operationTimeOut
-    );
-
     test(
         'should update a domain',
         async () => {
