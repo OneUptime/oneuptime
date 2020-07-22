@@ -11,6 +11,7 @@ import {
     getIncidentTimeline,
     setInvestigationNote,
     setinternalNote,
+    fetchIncidentMessages,
 } from '../actions/incident';
 import { fetchIncidentAlert, fetchSubscriberAlert } from '../actions/alert';
 import Dashboard from '../components/Dashboard';
@@ -230,6 +231,12 @@ class Incident extends React.Component {
             null,
             this.props.match.params.incidentId
         );
+        this.props.fetchIncidentMessages(
+            this.props.match.params.projectId,
+            this.props.match.params.incidentId,
+            0,
+            10
+        );
     };
 
     render() {
@@ -404,6 +411,7 @@ const mapDispatchToProps = dispatch => {
             resetIncident,
             getIncident,
             getIncidentTimeline,
+            fetchIncidentMessages,
         },
         dispatch
     );
@@ -433,6 +441,7 @@ Incident.propTypes = {
             name: PropTypes.string,
         })
     ),
+    fetchIncidentMessages: PropTypes.func,
 };
 
 Incident.displayName = 'Incident';

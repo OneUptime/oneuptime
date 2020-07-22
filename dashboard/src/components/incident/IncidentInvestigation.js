@@ -5,6 +5,9 @@ import { connect } from 'react-redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
+import moment from 'moment';
+import momentTz from 'moment-timezone';
+import { currentTimeZone } from '../basic/TimezoneArray';
 
 export class IncidentInvestigation extends Component {
     constructor(props) {
@@ -12,6 +15,7 @@ export class IncidentInvestigation extends Component {
         this.investigationNotesRef = React.createRef();
     }
     render() {
+        const { incidentMessages } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -27,6 +31,86 @@ export class IncidentInvestigation extends Component {
                                     </span>
                                 </p>
                             </div>
+                        </div>
+
+                        <div className="bs-ContentSection-content">
+                            {incidentMessages &&
+                                incidentMessages.incidentMessages.map(
+                                    (incidentMessage, index) => {
+                                        return (
+                                            <div
+                                                id={`investigation_message_${index}`}
+                                                key={index}
+                                                className={`${
+                                                    index % 2 === 0
+                                                        ? 'Box-background--offset '
+                                                        : ''
+                                                }Box-root Box-divider--surface-bottom-1 Padding-horizontal--20 Padding-vertical--8`}
+                                            >
+                                                <div className="Flex-flex Flex-justifyContent--spaceBetween">
+                                                    <div className="Box-root Margin-right--16">
+                                                        <img
+                                                            src="/dashboard/assets/img/profile-user.svg"
+                                                            className="userIcon"
+                                                            alt=""
+                                                            style={{
+                                                                marginBottom:
+                                                                    '-5px',
+                                                            }}
+                                                        />
+                                                        <span>
+                                                            {incidentMessage
+                                                                .createdById
+                                                                .name
+                                                                ? incidentMessage
+                                                                      .createdById
+                                                                      .name
+                                                                : 'Unknown User'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="Box-root Margin-right--16">
+                                                        <span>
+                                                            <strong>
+                                                                {currentTimeZone
+                                                                    ? momentTz(
+                                                                          incidentMessage.createdAt
+                                                                      )
+                                                                          .tz(
+                                                                              currentTimeZone
+                                                                          )
+                                                                          .format(
+                                                                              'lll'
+                                                                          )
+                                                                    : moment(
+                                                                          incidentMessage.createdAt
+                                                                      ).format(
+                                                                          'lll'
+                                                                      )}
+                                                            </strong>{' '}
+                                                            (
+                                                            {moment(
+                                                                incidentMessage.createdAt
+                                                            ).fromNow()}
+                                                            )
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        padding: '0px 30px',
+                                                    }}
+                                                >
+                                                    <p>
+                                                        {' '}
+                                                        {
+                                                            incidentMessage.content
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                )}
                         </div>
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                             <div>
@@ -105,17 +189,28 @@ IncidentInvestigation.displayName = 'IncidentInvestigation';
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
-const mapStateToProps = state => ({
-    request:
-        state.incident && state.incident.investigationNotes
-            ? state.incident.investigationNotes.requesting
-            : false,
-});
+function mapStateToProps(state, ownProps) {
+    const incidentMessages = state.incident.incidentMessages
+        ? state.incident.incidentMessages[ownProps.incident._id]
+            ? state.incident.incidentMessages[ownProps.incident._id][
+                  'investigation'
+              ]
+            : []
+        : [];
+    return {
+        request:
+            state.incident && state.incident.investigationNotes
+                ? state.incident.investigationNotes.requesting
+                : false,
+        incidentMessages,
+    };
+}
 
 IncidentInvestigation.propTypes = {
     setdata: PropTypes.func.isRequired,
     request: PropTypes.bool,
     incident: PropTypes.object.isRequired,
+    incidentMessages: PropTypes.object,
 };
 
 export default connect(
