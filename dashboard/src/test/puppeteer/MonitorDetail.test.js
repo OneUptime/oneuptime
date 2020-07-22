@@ -106,6 +106,34 @@ describe('Monitor Detail API', () => {
     );
 
     test(
+        'Should navigate to monitor details and open the incident creation pop up',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                // tab the create incident button over thee monitor view header
+                await page.waitForSelector(
+                    `#monitorCreateIncident_${monitorName}`
+                );
+                await page.click(`#monitorCreateIncident_${monitorName}`);
+                await page.waitForSelector('#incidentTitleLabel');
+                let spanElement = await page.waitForSelector(
+                    `#incidentTitleLabel`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Create New Incident');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should navigate to monitor details and get list of incidents and paginate incidents',
         async () => {
             expect.assertions(2);
