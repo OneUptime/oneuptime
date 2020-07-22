@@ -440,11 +440,17 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
-
                 await page.waitForNavigation({ waitUntil: 'load' });
+
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
                 await page.type('#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
+
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#publicStatusPageUrl');
 
                 let link = await page.$('#publicStatusPageUrl > span > a');
                 link = await link.getProperty('href');
