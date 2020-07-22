@@ -329,7 +329,11 @@ describe('Status Page', () => {
         'should not have option of deleting a domain, if there is only one domain in the status page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.reload({ waitUntil: 'networkidle0' });
+                await gotoTheFirstStatusPage(page);
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitFor(3000);
                 const elem = await page.$('.btnDeleteDomain');
                 expect(elem).toBeNull();
             });
