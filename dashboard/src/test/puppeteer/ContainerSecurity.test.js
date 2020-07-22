@@ -55,7 +55,7 @@ describe('Container Security Page', () => {
             const dockerUsername = utils.dockerCredential.dockerUsername;
             const dockerPassword = utils.dockerCredential.dockerPassword;
             const imagePath = utils.dockerCredential.imagePath;
-            const imageTags = utils.dockerCredential.imageTags;
+            const imageTags = utils.dockerCredential.imageTags || '';
             await cluster.execute(null, async ({ page }) => {
                 await init.addComponent(component, page);
 
@@ -87,7 +87,7 @@ describe('Container Security Page', () => {
                 await page.click('#name');
                 await page.type('#name', containerSecurityName);
                 await page.click('#dockerCredential');
-                await page.type('#dockerCredential', dockerRegistryUrl);
+                await page.type('#dockerCredential', dockerUsername);
                 await page.keyboard.press('Enter');
                 await page.click('#imagePath');
                 await page.type('#imagePath', imagePath);
