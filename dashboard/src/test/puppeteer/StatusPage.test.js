@@ -445,6 +445,7 @@ describe('Status Page', () => {
                 await page.waitForSelector('#react-tabs-4');
                 await page.click('#react-tabs-4');
                 await page.type('#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
+                await page.waitFor(3000);
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
 
@@ -471,23 +472,29 @@ describe('Status Page', () => {
         'should create custom Javascript',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await gotoTheFirstStatusPage(page);
                 const javascript = `console.log('this is a js code');`;
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'load' });
+
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
+                await page.waitForSelector('#customJS textarea');
                 await page.type(
                     '#customJS textarea',
-                    `
-                <script id='js'>${javascript}</script>
-                `
+                    `<script id='js'>${javascript}`
                 );
+                await page.waitFor(3000);
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
+                
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#publicStatusPageUrl');
 
                 let link = await page.$('#publicStatusPageUrl > span > a');
                 link = await link.getProperty('href');
                 link = await link.jsonValue();
                 await page.goto(link);
-                await page.waitForNavigation({ waitUntil: 'load' });
                 await page.waitFor('#js');
 
                 const code = await page.$eval(
