@@ -308,6 +308,8 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 await page.waitForSelector('#btnVerifyDomain');
                 await page.click('#btnVerifyDomain');
 
