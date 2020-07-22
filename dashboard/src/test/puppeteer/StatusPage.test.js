@@ -445,6 +445,7 @@ describe('Status Page', () => {
                 link = await link.getProperty('href');
                 link = await link.jsonValue();
                 await page.goto(link);
+                await page.waitForNavigation({ waitUntil: 'load' });
                 await page.waitFor('#js');
 
                 const code = await page.$eval(
