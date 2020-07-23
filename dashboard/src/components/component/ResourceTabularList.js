@@ -112,6 +112,13 @@ class ResourceTabularList extends Component {
                                                 style={{
                                                     height: '50px',
                                                 }}
+                                                onClick={() => {
+                                                    history.push(
+                                                        this.generateUrlLink(
+                                                            componentResource
+                                                        )
+                                                    );
+                                                }}
                                             >
                                                 <td
                                                     className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -122,7 +129,20 @@ class ResourceTabularList extends Component {
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Margin-right--16">
+                                                            <div className="Box-root Margin-right--16 Flex-flex Flex-direction--row">
+                                                                <span
+                                                                    className="db-SideNav-icon db-SideNav-icon--monitor db-SideNav-icon--selected Margin-right--4"
+                                                                    style={{
+                                                                        backgroundRepeat:
+                                                                            'no-repeat',
+                                                                        backgroundSize:
+                                                                            '15px',
+                                                                        backgroundPosition:
+                                                                            'center',
+                                                                        margin:
+                                                                            '3px 3px',
+                                                                    }}
+                                                                />
                                                                 <span>
                                                                     {
                                                                         componentResource.name

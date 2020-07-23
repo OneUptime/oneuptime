@@ -8,3 +8,7 @@
     box-sizing: border-box;
     height: 45px;
 }
+
+#pricingPlanModal input[name='planId'] {
+    visibility: hidden;
+}
