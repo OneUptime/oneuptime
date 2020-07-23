@@ -276,11 +276,11 @@ describe('StatusPage API With SubProjects', () => {
                     await page.click('tr.statusPageListItem');
                     await page.waitForSelector(`#btnAddStatusPageMonitors`);
                     await page.click('#btnAddStatusPageMonitors');
-                    await page.click('#react-tabs-2');    
+                    await page.click('#react-tabs-2');
                     await page.click('#domain');
                     await page.type('#domain', 'https://fyipe.com');
                     await page.click('#btnAddDomain');
-                    await page.click('#react-tabs-4');    
+                    await page.click('#react-tabs-4');
                     await page.click('textarea[name=description]');
                     await page.type(
                         'textarea[name=description]',
@@ -322,7 +322,7 @@ describe('StatusPage API With SubProjects', () => {
                     await page.click('#statusPages');
                     await page.waitForSelector('tr.statusPageListItem');
                     await page.click('tr.statusPageListItem');
-                    await page.click('#react-tabs-6');    
+                    await page.click('#react-tabs-6');
                     await page.waitForSelector('#delete');
                     await page.click('#delete');
                     await page.waitForSelector('#confirmDelete');
