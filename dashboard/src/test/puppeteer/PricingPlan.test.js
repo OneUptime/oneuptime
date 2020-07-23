@@ -9,7 +9,7 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-describe('Status Page', () => {
+describe('Status Page -> Pricing Plan Component', () => {
     const operationTimeOut = 500000;
 
     let cluster;
@@ -74,16 +74,19 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.click('#react-tabs-6');
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );
-
                 const modal = await page.waitForSelector('#pricingPlanModal', {
                     visible: true,
                 });
-                expect(modal).toBeTruthy();
+                expect(modal).toBeDefined();
             });
         },
         operationTimeOut
@@ -101,8 +104,12 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.click('#react-tabs-6');
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
                 await page.$eval('input[name="isSubscriberEnabled"]', elem =>
                     elem.click()
                 );
@@ -112,8 +119,8 @@ describe('Status Page', () => {
                 });
                 const emailBtn = await page.waitForSelector('#enterpriseMail');
 
-                expect(modal).toBeTruthy();
-                expect(emailBtn).toBeTruthy();
+                expect(modal).toBeDefined();
+                expect(emailBtn).toBeDefined();
             });
         },
         operationTimeOut
@@ -166,8 +173,12 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.click('#react-tabs-6');
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );
@@ -176,7 +187,7 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 const growthOption = await page.waitForSelector(
-                    '#Growth_month',
+                    'label[for=Growth_month]',
                     { visible: true }
                 );
                 growthOption.click();
@@ -202,8 +213,12 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.click('#react-tabs-6');
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );
@@ -212,7 +227,7 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 const growthOption = await page.waitForSelector(
-                    '#Growth_month',
+                    'label[for=Growth_month]',
                     { visible: true }
                 );
                 growthOption.click();
@@ -222,7 +237,10 @@ describe('Status Page', () => {
                     hidden: true,
                 });
                 await page.reload({ waitUntil: 'networkidle2' });
-                await page.click('#react-tabs-6');
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
+
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );

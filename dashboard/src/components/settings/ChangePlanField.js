@@ -26,7 +26,8 @@ export default function ChangePlanField({ plans, activeForm }) {
                             marginBottom: '4px',
                         }}
                     >
-                        {plan.category} Plan
+                        {plan.category}{' '}
+                        {plan.type === 'month' ? 'Monthly' : 'Yearly'} Plan
                     </span>
                 </span>
                 <RadioInput

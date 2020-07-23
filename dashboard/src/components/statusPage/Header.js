@@ -14,7 +14,9 @@ export class StatusHeader extends Component {
                         <div className="Box-root">
                             <p>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>
+                                    <span
+                                        id={`header-${statusPage.status.name}`}
+                                    >
                                         Status Page:{' '}
                                         {statusPage.status.name ||
                                             'Status Page'}

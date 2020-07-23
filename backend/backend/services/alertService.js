@@ -1046,7 +1046,8 @@ module.exports = {
                         incident,
                         project.name,
                         emailTemplate,
-                        trackEmailAsViewedUrl
+                        trackEmailAsViewedUrl,
+                        component.name
                     );
                 } else if (templateType === 'Subscriber Incident Resolved') {
                     MailService.sendIncidentResolvedMailToSubscriber(
@@ -1058,7 +1059,8 @@ module.exports = {
                         incident,
                         project.name,
                         emailTemplate,
-                        trackEmailAsViewedUrl
+                        trackEmailAsViewedUrl,
+                        component.name
                     );
                 } else {
                     MailService.sendIncidentCreatedMailToSubscriber(
@@ -1070,7 +1072,8 @@ module.exports = {
                         incident,
                         project.name,
                         emailTemplate,
-                        trackEmailAsViewedUrl
+                        trackEmailAsViewedUrl,
+                        component.name
                     );
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {

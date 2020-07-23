@@ -80,6 +80,24 @@ describe('Server Monitor', function() {
         });
     });
 
+    it('Should connect when project id, custom api url, api key and monitor id are provided', done => {
+        const monitor = serverMonitor({
+            projectId,
+            apiUrl: 'http://localhost:3002',
+            apiKey,
+            monitorId,
+        });
+
+        monitor.start().then(job => {
+            const stopJob = monitor.stop();
+
+            expect(job).to.be.an('object');
+            expect(stopJob).to.be.an('object');
+
+            done();
+        });
+    });
+
     it('Should request for monitor id when only project id and api key are provided', done => {
         const monitor = serverMonitor({
             projectId,
