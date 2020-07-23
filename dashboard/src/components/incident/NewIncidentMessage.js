@@ -252,11 +252,11 @@ const mapStateToProps = (state, ownProps) => {
         initialValues,
         incidentMessageState,
         currentProject,
+        form: ownProps.formId,
     };
 };
 NewIncidentMessage.displayName = 'NewIncidentMessage';
 const NewIncidentMessageForm = new reduxForm({
-    form: 'NewIncidentMessage',
     destroyOnUnmount: true,
     enableReinitialize: true,
 })(NewIncidentMessage);

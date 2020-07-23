@@ -153,6 +153,9 @@ export class IncidentInvestigation extends Component {
                                                         incidentMessage={
                                                             incidentMessage
                                                         }
+                                                        formId={
+                                                            incidentMessage._id
+                                                        }
                                                     />
                                                 </ShouldRender>
                                             </div>
@@ -163,6 +166,7 @@ export class IncidentInvestigation extends Component {
                         <NewIncidentMessage
                             incident={this.props.incident}
                             type={'investigation'}
+                            formId="NewInvestigationForm"
                         />
                     </div>
                 </div>
