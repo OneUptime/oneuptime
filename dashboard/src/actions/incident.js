@@ -642,19 +642,21 @@ export function investigationNoteError(error) {
     };
 }
 
-export function investigationNoteSuccess(incident) {
+export function investigationNoteSuccess(incidentMessage) {
     return {
         type: types.INVESTIGATION_NOTE_SUCCESS,
-        payload: incident,
+        payload: incidentMessage,
     };
 }
 
-export function setInvestigationNote(projectId, incidentId, investigationNote) {
+export function setInvestigationNote(projectId, incidentId, body) {
     return function(dispatch) {
         let promise = null;
-        const body = {};
-        body.investigationNote = investigationNote;
-        promise = putApi(`incident/${projectId}/incident/${incidentId}`, body);
+
+        promise = postApi(
+            `incident/${projectId}/incident/${incidentId}/message`,
+            body
+        );
 
         dispatch(investigationNoteRequest(promise));
 
@@ -676,6 +678,7 @@ export function setInvestigationNote(projectId, incidentId, investigationNote) {
                 dispatch(investigationNoteError(errors(error)));
             }
         );
+        return promise;
     };
 }
 

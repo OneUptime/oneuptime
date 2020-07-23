@@ -59,7 +59,8 @@ export default function incident(state = initialState, action) {
     let incidents,
         isExistingIncident,
         failureIncidentMessage,
-        requestIncidentMessage;
+        requestIncidentMessage,
+        incidentMessages;
     switch (action.type) {
         case types.INCIDENTS_SUCCESS:
             return Object.assign({}, state, {
@@ -536,10 +537,31 @@ export default function incident(state = initialState, action) {
             });
 
         case types.INVESTIGATION_NOTE_SUCCESS:
+            incidentMessages = state.incidentMessages[
+                action.payload.incidentId._id
+            ][action.payload.type][action.payload._id]
+                ? state.incidentMessages[action.payload.incidentId._id][
+                      action.payload.type
+                  ].map(incidentMessage => {
+                      if (incidentMessage._id === action.payload._id) {
+                          incidentMessage = action.payload;
+                      }
+                      return incidentMessage;
+                  })
+                : state.incidentMessages[action.payload.incidentId._id][
+                      action.payload.type
+                  ].incidentMessages.concat([action.payload]);
             return Object.assign({}, state, {
-                incident: {
-                    ...state.incident,
-                    incident: action.payload,
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    [action.payload.incidentId._id]: {
+                        [action.payload.type]: {
+                            ...state.incidentMessages[
+                                action.payload.incidentId._id
+                            ][action.payload.type],
+                            incidentMessages: incidentMessages,
+                        },
+                    },
                 },
                 investigationNotes: {
                     requesting: false,
@@ -767,7 +789,7 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_SUCCESS:
             return Object.assign({}, state, {
                 incidentMessages: {
-                    ...state.logs,
+                    ...state.incidentMessages,
                     [action.payload.incidentId]: {
                         [action.payload.type]: {
                             incidentMessages: action.payload.incidentMessages,
