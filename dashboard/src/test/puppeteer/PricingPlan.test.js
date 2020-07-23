@@ -203,6 +203,7 @@ describe('Status Page', () => {
                 );
                 rowItem.click();
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.click('#react-tabs-6');
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );
@@ -221,6 +222,7 @@ describe('Status Page', () => {
                     hidden: true,
                 });
                 await page.reload({ waitUntil: 'networkidle2' });
+                await page.click('#react-tabs-6');
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );
