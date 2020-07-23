@@ -3,6 +3,7 @@ module.exports = [
         allowedVariables: [
             '{{userName}} : User display name.',
             '{{monitorName}} : Name of the monitor on which incident has occured.',
+            '{{componentName}} : Name of the component the monitor belongs to',
             '{{projectName}} : Name of the project on which the incident has occured.',
             '{{incidentTime}} : Time at which this incident occured.',
             '{{incidentType}} : Type of incident.',
@@ -11,7 +12,8 @@ module.exports = [
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
         ],
         emailType: 'Subscriber Incident Created',
-        subject: '{{projectName}}/{{monitorName}}: Incident Created',
+        subject:
+            '{{projectName}} - {{componentName}}/{{monitorName}}: Incident Created',
         body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
@@ -295,7 +297,7 @@ span.st-Delink.st-Delink--footer a {
       </td>
       <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
-     	<h3>{{projectName}}/{{monitorName}}: Incident Created!</h3>
+     	<h3>{{projectName}} - {{componentName}}/{{monitorName}}: Incident Created!</h3>
 
       </td>
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -342,7 +344,7 @@ span.st-Delink.st-Delink--footer a {
       <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
      
-      <strong￼ style="color: #000000 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. A new incident has been created on {{incidentTime}} and is available on the status page
+      <strong￼ style="color: #000000 !important;">{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}}</strong>. A new incident has been created on {{incidentTime}} and is available on the status page
  
 
       </td>
@@ -518,6 +520,7 @@ span.st-Delink.st-Delink--footer a {
         allowedVariables: [
             '{{userName}} : User display name.',
             '{{monitorName}} : Name of the monitor on which incident has occured.',
+            '{{componentName}} : Name of the component the monitor belongs to',
             '{{projectName}} : Name of the project on which the incident has occured.',
             '{{incidentTime}} : Time at which this incident occured.',
             '{{incidentType}} : Type of incident.',
@@ -526,7 +529,8 @@ span.st-Delink.st-Delink--footer a {
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
         ],
         emailType: 'Subscriber Incident Acknowldeged',
-        subject: '{{projectName}}/{{monitorName}}: Incident Acknowldeged',
+        subject:
+            '{{projectName}} - {{componentName}}/{{monitorName}}: Incident Acknowldeged',
         body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
@@ -809,7 +813,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
-     <h3>{{projectName}}/{{monitorName}}: Incident Acknowledged!</h3>
+     <h3>{{projectName}} - {{componentName}}/{{monitorName}}: Incident Acknowledged!</h3>
 
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -856,7 +860,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
    
-    <strong￼ style="color: #000000 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been acknowledged on {{incidentTime}} and is available on the status page
+    <strong￼ style="color: #000000 !important;">{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been acknowledged on {{incidentTime}} and is available on the status page
 
 
     </td>
@@ -1032,6 +1036,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
         allowedVariables: [
             '{{userName}} : User display name.',
             '{{monitorName}} : Name of the monitor on which incident has occured.',
+            '{{componentName}} : Name of the component the monitor belongs to',
             '{{projectName}} : Name of the project on which the incident has occured.',
             '{{incidentTime}} : Time at which this incident occured.',
             '{{incidentType}} : Type of incident.',
@@ -1040,7 +1045,8 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
         ],
         emailType: 'Subscriber Incident Resolved',
-        subject: '{{projectName}}/{{monitorName}}: Incident Resolved',
+        subject:
+            '{{projectName}} - {{componentName}}/{{monitorName}}: Incident Resolved',
         body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
@@ -1323,7 +1329,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
-     <h3>{{projectName}}/{{monitorName}}: Incident Resolved!</h3>
+     <h3>{{projectName}} - {{componentName}}/{{monitorName}}: Incident Resolved!</h3>
 
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1367,7 +1373,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
-    <strong￼ style="color: #000000 !important;">{{projectName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been resolved on {{incidentTime}} and is available on the status page
+    <strong￼ style="color: #000000 !important;">{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been resolved on {{incidentTime}} and is available on the status page
 
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { LargeSpinner as Loader } from '../basic/Loader';
+import { LargeSpinner as Loader, Spinner } from '../basic/Loader';
 import {
     ResponsiveContainer,
     AreaChart as Chart,
@@ -140,11 +140,24 @@ class AreaChart extends Component {
                     {requesting ? (
                         <Loader />
                     ) : (
-                        <h3>
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
+                            style={{
+                                textAlign: 'center',
+                                width: '100%',
+                                fontSize: 14,
+                                fontWeight: '500',
+                                margin: 0,
+                                color: '#4c4c4c',
+                                lineHeight: 1.6,
+                            }}
+                        >
+                            <Spinner style={{ stroke: '#8898aa' }} />{' '}
+                            <span style={{ width: 10 }} />
                             We&apos;re currently in the process of collecting
                             data for this monitor. <br />
-                            More info will be available in few minutes.
-                        </h3>
+                            More info will be available in few minutes
+                        </div>
                     )}
                 </div>
             );

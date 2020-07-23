@@ -26,6 +26,7 @@ import { getMonitorStatus, filterProbeData } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import CreateManualIncident from '../modals/CreateManualIncident';
 
 export class MonitorViewHeader extends Component {
     constructor(props) {
@@ -35,6 +36,7 @@ export class MonitorViewHeader extends Component {
             deleteModalId: uuid.v4(),
             startDate: moment().subtract(30, 'd'),
             endDate: moment(),
+            createIncidentModalId: uuid.v4(),
         };
 
         this.deleteMonitor = this.deleteMonitor.bind(this);
@@ -121,7 +123,12 @@ export class MonitorViewHeader extends Component {
     };
 
     render() {
-        const { deleteModalId, startDate, endDate } = this.state;
+        const {
+            deleteModalId,
+            startDate,
+            endDate,
+            createIncidentModalId,
+        } = this.state;
         const {
             monitor,
             subProjects,
@@ -129,6 +136,7 @@ export class MonitorViewHeader extends Component {
             activeProbe,
             currentProject,
             probes,
+            creating,
         } = this.props;
 
         const subProjectId = monitor.projectId._id || monitor.projectId;
@@ -191,6 +199,38 @@ export class MonitorViewHeader extends Component {
                                 <RenderIfSubProjectAdmin
                                     subProjectId={subProjectId}
                                 >
+                                    <button
+                                        className={
+                                            creating
+                                                ? 'bs-Button bs-Button--blue'
+                                                : 'bs-Button bs-ButtonLegacy ActionIconParent'
+                                        }
+                                        type="button"
+                                        disabled={creating}
+                                        id={`monitorCreateIncident_${monitor.name}`}
+                                        onClick={() =>
+                                            this.props.openModal({
+                                                id: createIncidentModalId,
+                                                content: DataPathHoC(
+                                                    CreateManualIncident,
+                                                    {
+                                                        monitorId: monitor._id,
+                                                        projectId:
+                                                            currentProject._id,
+                                                    }
+                                                ),
+                                            })
+                                        }
+                                    >
+                                        <ShouldRender if={!creating}>
+                                            <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                <span>Create New Incident</span>
+                                            </span>
+                                        </ShouldRender>
+                                        <ShouldRender if={creating}>
+                                            <FormLoader />
+                                        </ShouldRender>
+                                    </button>
                                     <button
                                         id={`edit_${monitor.name}`}
                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
@@ -325,6 +365,7 @@ MonitorViewHeader.propTypes = {
     activeProbe: PropTypes.number,
     selectedProbe: PropTypes.func.isRequired,
     probes: PropTypes.array,
+    creating: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -348,6 +389,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,
+        creating: state.incident.newIncident.requesting,
     };
 };
 

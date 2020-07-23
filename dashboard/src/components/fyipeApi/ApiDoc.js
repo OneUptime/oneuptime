@@ -19,7 +19,11 @@ function ApiDoc() {
                             We have built an extensive RESTful API documentation
                             for you.
                             <br />{' '}
-                            <a href=" https://fyipe.com/docs" target="_blank">
+                            <a
+                                href=" https://fyipe.com/docs"
+                                target="_blank"
+                                className="Text-fontWeight--bold underline"
+                            >
                                 Please check it out here.
                             </a>
                         </article>

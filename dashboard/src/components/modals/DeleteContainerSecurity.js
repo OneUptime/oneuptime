@@ -2,7 +2,11 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
+import { closeModal } from '../../actions/modal';
+import { history } from '../../store';
+import { deleteContainerSecurity } from '../../actions/security';
 
 class DeleteContainerSecurity extends Component {
     handleKeyBoard = e => {
@@ -14,10 +18,31 @@ class DeleteContainerSecurity extends Component {
         }
     };
 
+    handleDelete = () => {
+        const {
+            deleteContainerSecurity,
+            deleteContainerError,
+            closeModal,
+            modalId,
+            propArr,
+        } = this.props;
+        const { projectId, componentId, containerSecurityId } = propArr[0];
+        const data = { projectId, componentId, containerSecurityId };
+
+        deleteContainerSecurity(data).then(() => {
+            history.push(
+                `/dashboard/project/${data.projectId}/${data.componentId}/security/container`
+            );
+
+            if (!deleteContainerError) {
+                return closeModal({ id: modalId });
+            }
+        });
+    };
+
     render() {
         const {
             isRequesting,
-            confirmThisDialog,
             closeThisDialog,
             deleteContainerError,
         } = this.props;
@@ -92,7 +117,7 @@ class DeleteContainerSecurity extends Component {
                                         id="deleteContainerSecurityModalBtn"
                                         className="bs-Button bs-DeprecatedButton bs-Button--red"
                                         type="button"
-                                        onClick={confirmThisDialog}
+                                        onClick={this.handleDelete}
                                         disabled={isRequesting}
                                     >
                                         {!isRequesting && <span>Delete</span>}
@@ -111,20 +136,30 @@ class DeleteContainerSecurity extends Component {
 DeleteContainerSecurity.displayName = 'Delete Container Security';
 
 DeleteContainerSecurity.propTypes = {
-    confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
     deleteContainerError: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    closeModal: PropTypes.func,
+    deleteContainerSecurity: PropTypes.func,
+    modalId: PropTypes.string,
+    propArr: PropTypes.array,
 };
 
 const mapStateToProps = state => {
     return {
         isRequesting: state.security.deleteContainer.requesting,
         deleteContainerError: state.security.deleteContainer.error,
+        modalId: state.modal.modals[0].id,
     };
 };
 
-export default connect(mapStateToProps)(DeleteContainerSecurity);
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ closeModal, deleteContainerSecurity }, dispatch);
+
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(DeleteContainerSecurity);

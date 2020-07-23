@@ -332,90 +332,46 @@ export class PrivateStatusPage extends Component {
                                                                             Subscribers
                                                                         </span>
                                                                     </label>
-                                                                    <p className="bs-Fieldset-explanation">
-                                                                        <span>
-                                                                            Enabling
-                                                                            this
-                                                                            will
-                                                                            allow
-                                                                            your
-                                                                            users
-                                                                            to
-                                                                            subscribe
-                                                                            and
-                                                                            get
-                                                                            notifications
-                                                                            for
-                                                                            your
-                                                                            incidents.
-                                                                        </span>
-                                                                    </p>
                                                                 </div>
                                                             </label>
                                                         </div>
                                                     </PricingPlan>
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label
-                                                    className="bs-Fieldset-label"
-                                                    style={{ flex: '25% 0 0' }}
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div
-                                                        className="Box-root"
+                                                    <p
+                                                        className="bs-Fieldset-explanation"
                                                         style={{
-                                                            height: '5px',
+                                                            paddingLeft: '21px',
                                                         }}
-                                                    ></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <div
-                                                                    className="Box-root"
-                                                                    style={{
-                                                                        paddingLeft:
-                                                                            '18px',
-                                                                    }}
-                                                                >
-                                                                    <label>
-                                                                        <button
-                                                                            type="button"
-                                                                            className="button-as-anchor"
-                                                                            style={{
-                                                                                cursor:
-                                                                                    'pointer',
-                                                                            }}
-                                                                            onClick={() => {
-                                                                                this.props.openModal(
-                                                                                    {
-                                                                                        id: subscriberAdvanceOptionModalId,
-                                                                                        content: DataPathHoC(
-                                                                                            SubscriberAdvanceOptions,
-                                                                                            {}
-                                                                                        ),
-                                                                                    }
-                                                                                );
-                                                                            }}
-                                                                        >
-                                                                            Advance
-                                                                            options
-                                                                            for
-                                                                            subscribers
-                                                                        </button>
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-                                                        </label>
-                                                    </div>
+                                                    >
+                                                        <span>
+                                                            Enabling this will
+                                                            allow your users to
+                                                            subscribe and get
+                                                            notifications for
+                                                            your incidents.
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            className="button-as-anchor"
+                                                            style={{
+                                                                cursor:
+                                                                    'pointer',
+                                                            }}
+                                                            onClick={() => {
+                                                                this.props.openModal(
+                                                                    {
+                                                                        id: subscriberAdvanceOptionModalId,
+                                                                        content: DataPathHoC(
+                                                                            SubscriberAdvanceOptions,
+                                                                            {}
+                                                                        ),
+                                                                    }
+                                                                );
+                                                            }}
+                                                        >
+                                                            Advance options for
+                                                            subscribers
+                                                        </button>
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>

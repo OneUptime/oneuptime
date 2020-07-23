@@ -15,7 +15,7 @@ const user = {
     password: '1234567890',
 };
 
-describe('Enterprise Team SubProject API', () => {
+describe('Users', () => {
     const operationTimeOut = 500000;
     let cluster, cluster1;
     beforeAll(async () => {
@@ -55,7 +55,7 @@ describe('Enterprise Team SubProject API', () => {
         done();
     });
 
-    test(
+    it(
         'should logout the user if the admin deletes the account from the dashboard.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
@@ -84,6 +84,33 @@ describe('Enterprise Team SubProject API', () => {
                 await page.waitForSelector('#statusPages');
                 await page.click('#statusPages');
                 await page.waitForSelector('#login-button');
+            });
+        },
+        operationTimeOut
+    );
+
+    it(
+        'should be able to restore deleted users (using admin account)',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await init.loginUser(admin, page);
+                await page.waitForSelector(
+                    '.bs-ObjectList-rows>a:first-of-type'
+                );
+                await page.click('.bs-ObjectList-rows>a:first-of-type');
+                await page.waitFor(3000);
+                await page.waitForSelector('#restore');
+                await page.click('#restore');
+                await page.waitForSelector('#delete');
+                await page.click('#users');
+                await page.waitForSelector(
+                    '.bs-ObjectList-rows>a:first-of-type>.bs-ObjectList-cell:nth-child(3)'
+                );
+                const text = await page.$eval(
+                    '.bs-ObjectList-rows>a:first-of-type>.bs-ObjectList-cell:nth-child(3)',
+                    e => e.textContent
+                );
+                expect(text.startsWith('Online')).toEqual(true);
             });
         },
         operationTimeOut

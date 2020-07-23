@@ -3,11 +3,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { history } from '../../store';
-import {
-    deleteApplicationSecurity,
-    scanApplicationSecurity,
-} from '../../actions/security';
+import { scanApplicationSecurity } from '../../actions/security';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteApplicationSecurity from '../modals/DeleteApplicationSecurity';
 import SecurityDetail from './SecurityDetail';
@@ -19,14 +15,12 @@ import EditApplicationSecurity from '../modals/EditApplicationSecurity';
 import threatLevel from '../../utils/threatLevel';
 
 const ApplicationSecurityView = ({
-    deleteApplicationSecurity,
     isRequesting,
     applicationSecurityId,
     projectId,
     componentId,
     openModal,
     closeModal,
-    deleteApplicationError,
     securityLog,
     scanApplicationSecurity,
     scanning,
@@ -34,29 +28,15 @@ const ApplicationSecurityView = ({
     scanError,
     activeApplicationSecurity,
 }) => {
-    const handleDelete = data => {
-        const thisObj = this;
-
+    const handleDelete = ({
+        projectId,
+        componentId,
+        applicationSecurityId,
+    }) => {
         openModal({
-            id: data.applicationSecurityId,
-            onConfirm: () => {
-                return deleteApplicationSecurity(data).then(() => {
-                    if (deleteApplicationError) {
-                        // prevent dismissal of modal if errored
-                        return handleDelete(data);
-                    }
-
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Domain verification');
-                    }
-
-                    history.push(
-                        `/dashboard/project/${data.projectId}/${data.componentId}/security/application`
-                    );
-                });
-            },
+            id: applicationSecurityId,
             content: DeleteApplicationSecurity,
-            propArr: [],
+            propArr: [{ projectId, componentId, applicationSecurityId }],
         });
     };
 
@@ -297,17 +277,12 @@ const ApplicationSecurityView = ({
 ApplicationSecurityView.displayName = 'Application Security View';
 
 ApplicationSecurityView.propTypes = {
-    deleteApplicationSecurity: PropTypes.func,
     isRequesting: PropTypes.bool,
     applicationSecurityId: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
-    deleteApplicationError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     securityLog: PropTypes.object,
     scanApplicationSecurity: PropTypes.func,
     scanning: PropTypes.bool,
@@ -322,7 +297,6 @@ ApplicationSecurityView.propTypes = {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            deleteApplicationSecurity,
             openModal,
             closeModal,
             scanApplicationSecurity,
@@ -333,7 +307,6 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = state => {
     return {
         isRequesting: state.security.deleteApplication.requesting,
-        deleteApplicationError: state.security.deleteApplication.error,
         securityLog: state.security.applicationSecurityLog || {},
         scanning: state.security.scanApplicationSecurity.requesting,
         scanError: state.security.scanApplicationSecurity.error,
