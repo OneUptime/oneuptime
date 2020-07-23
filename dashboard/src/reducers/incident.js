@@ -537,20 +537,24 @@ export default function incident(state = initialState, action) {
             });
 
         case types.INVESTIGATION_NOTE_SUCCESS:
-            incidentMessages = state.incidentMessages[
-                action.payload.incidentId._id
-            ][action.payload.type][action.payload._id]
-                ? state.incidentMessages[action.payload.incidentId._id][
-                      action.payload.type
-                  ].map(incidentMessage => {
-                      if (incidentMessage._id === action.payload._id) {
-                          incidentMessage = action.payload;
-                      }
-                      return incidentMessage;
-                  })
-                : state.incidentMessages[action.payload.incidentId._id][
-                      action.payload.type
-                  ].incidentMessages.concat([action.payload]);
+            incidentMessages =
+                state.incidentMessages[action.payload.incidentId._id][
+                    action.payload.type
+                ].incidentMessages.filter(
+                    incidentMessage =>
+                        incidentMessage._id === action.payload._id
+                ).length > 0
+                    ? state.incidentMessages[action.payload.incidentId._id][
+                          action.payload.type
+                      ].incidentMessages.map(incidentMessage => {
+                          if (incidentMessage._id === action.payload._id) {
+                              incidentMessage = action.payload;
+                          }
+                          return incidentMessage;
+                      })
+                    : state.incidentMessages[action.payload.incidentId._id][
+                          action.payload.type
+                      ].incidentMessages.concat([action.payload]);
             return Object.assign({}, state, {
                 incidentMessages: {
                     ...state.incidentMessages,
@@ -868,6 +872,32 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_RESET:
             return Object.assign({}, state, {
                 incidentMessages: initialState.incidentMessages,
+            });
+        case types.EDIT_INCIDENT_MESSAGE_SWITCH:
+            incidentMessages = state.incidentMessages[
+                action.payload.incidentId._id
+            ][action.payload.type].incidentMessages.map(incidentMessage => {
+                if (incidentMessage._id === action.payload._id) {
+                    if (!incidentMessage.editMode)
+                        incidentMessage.editMode = true;
+                    else incidentMessage.editMode = false;
+                } else {
+                    incidentMessage.editMode = false;
+                }
+                return incidentMessage;
+            });
+            return Object.assign({}, state, {
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    [action.payload.incidentId._id]: {
+                        [action.payload.type]: {
+                            ...state.incidentMessages[
+                                action.payload.incidentId._id
+                            ][action.payload.type],
+                            incidentMessages: incidentMessages,
+                        },
+                    },
+                },
             });
         default:
             return state;

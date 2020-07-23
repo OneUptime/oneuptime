@@ -870,3 +870,9 @@ export function resetFetchIncidentMessages() {
         type: types.FETCH_INCIDENT_MESSAGES_RESET,
     };
 }
+export function editIncidentMessageSwitch(index) {
+    return {
+        type: types.EDIT_INCIDENT_MESSAGE_SWITCH,
+        payload: index,
+    };
+}
