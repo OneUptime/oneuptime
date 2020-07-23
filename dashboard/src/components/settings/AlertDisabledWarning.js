@@ -29,7 +29,7 @@ class AlertDisabledWarning extends Component {
                                                     history.push(redirectTo)
                                                 }
                                             >
-                                                Settings
+                                                Project Settings
                                                 <span className="right-arrow" />
                                                 Billings
                                             </span>{' '}

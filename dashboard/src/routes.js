@@ -328,7 +328,7 @@ export const groups = [
                     {
                         title: 'Probe',
                         path: '/dashboard/project/:projectId/settings/probe',
-                        icon: 'doc',
+                        icon: 'probes',
                         visible: true,
                         subRoutes: [],
                         component: Probe,
