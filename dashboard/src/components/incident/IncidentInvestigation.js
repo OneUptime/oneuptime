@@ -2,20 +2,19 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
 import moment from 'moment';
 import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
+import NewIncidentMessage from './NewIncidentMessage';
+import { editIncidentMessageSwitch } from '../../actions/incident';
 
 export class IncidentInvestigation extends Component {
     constructor(props) {
         super(props);
-        this.investigationNotesRef = React.createRef();
     }
     render() {
-        const { incidentMessages } = this.props;
+        const { incidentMessages, editIncidentMessageSwitch } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -42,142 +41,129 @@ export class IncidentInvestigation extends Component {
                                                 id={`investigation_message_${index}`}
                                                 key={index}
                                                 className={`${
+                                                    !incidentMessage.editMode &&
                                                     index % 2 === 0
                                                         ? 'Box-background--offset '
-                                                        : ''
+                                                        : 'Box-background--white'
                                                 }Box-root Box-divider--surface-bottom-1 Padding-horizontal--20 Padding-vertical--8`}
                                             >
-                                                <div className="Flex-flex Flex-justifyContent--spaceBetween">
-                                                    <div className="Box-root Margin-right--16">
-                                                        <img
-                                                            src="/dashboard/assets/img/profile-user.svg"
-                                                            className="userIcon"
-                                                            alt=""
-                                                            style={{
-                                                                marginBottom:
-                                                                    '-5px',
-                                                            }}
-                                                        />
-                                                        <span>
-                                                            {incidentMessage
-                                                                .createdById
-                                                                .name
-                                                                ? incidentMessage
-                                                                      .createdById
-                                                                      .name
-                                                                : 'Unknown User'}
-                                                        </span>
-                                                    </div>
-                                                    <div className="Box-root Margin-right--16">
-                                                        <span>
-                                                            <strong>
-                                                                {currentTimeZone
-                                                                    ? momentTz(
-                                                                          incidentMessage.createdAt
-                                                                      )
-                                                                          .tz(
-                                                                              currentTimeZone
-                                                                          )
-                                                                          .format(
-                                                                              'lll'
-                                                                          )
-                                                                    : moment(
-                                                                          incidentMessage.createdAt
-                                                                      ).format(
-                                                                          'lll'
-                                                                      )}
-                                                            </strong>{' '}
-                                                            (
-                                                            {moment(
-                                                                incidentMessage.createdAt
-                                                            ).fromNow()}
-                                                            )
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    style={{
-                                                        padding: '0px 30px',
-                                                    }}
+                                                <ShouldRender
+                                                    if={
+                                                        !incidentMessage.editMode
+                                                    }
                                                 >
-                                                    <p>
-                                                        {' '}
-                                                        {
-                                                            incidentMessage.content
+                                                    <div className="Flex-flex Flex-justifyContent--spaceBetween">
+                                                        <div className="Box-root Margin-right--16">
+                                                            <img
+                                                                src="/dashboard/assets/img/profile-user.svg"
+                                                                className="userIcon"
+                                                                alt=""
+                                                                style={{
+                                                                    marginBottom:
+                                                                        '-5px',
+                                                                }}
+                                                            />
+                                                            <span>
+                                                                {incidentMessage
+                                                                    .createdById
+                                                                    .name
+                                                                    ? incidentMessage
+                                                                          .createdById
+                                                                          .name
+                                                                    : 'Unknown User'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="Box-root Margin-right--16">
+                                                            <span>
+                                                                <strong>
+                                                                    {currentTimeZone
+                                                                        ? momentTz(
+                                                                              incidentMessage.createdAt
+                                                                          )
+                                                                              .tz(
+                                                                                  currentTimeZone
+                                                                              )
+                                                                              .format(
+                                                                                  'lll'
+                                                                              )
+                                                                        : moment(
+                                                                              incidentMessage.createdAt
+                                                                          ).format(
+                                                                              'lll'
+                                                                          )}
+                                                                </strong>{' '}
+                                                                (
+                                                                {moment(
+                                                                    incidentMessage.createdAt
+                                                                ).fromNow()}
+                                                                )
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="Flex-flex Flex-justifyContent--spaceBetween">
+                                                        <div
+                                                            style={{
+                                                                padding:
+                                                                    '0px 30px',
+                                                            }}
+                                                        >
+                                                            <p>
+                                                                {' '}
+                                                                {
+                                                                    incidentMessage.content
+                                                                }
+                                                            </p>
+                                                            <p
+                                                                style={{
+                                                                    cursor:
+                                                                        'pointer',
+                                                                }}
+                                                                onClick={() =>
+                                                                    editIncidentMessageSwitch(
+                                                                        incidentMessage
+                                                                    )
+                                                                }
+                                                            >
+                                                                <img
+                                                                    src="/dashboard/assets/img/edit.svg"
+                                                                    className="Margin-right--8"
+                                                                    style={{
+                                                                        height:
+                                                                            '10px',
+                                                                        width:
+                                                                            '10px',
+                                                                    }}
+                                                                />
+                                                                Edit Response
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
+                                                        incidentMessage.editMode
+                                                    }
+                                                >
+                                                    <NewIncidentMessage
+                                                        incident={
+                                                            this.props.incident
                                                         }
-                                                    </p>
-                                                </div>
+                                                        type={'investigation'}
+                                                        edit={true}
+                                                        incidentMessage={
+                                                            incidentMessage
+                                                        }
+                                                    />
+                                                </ShouldRender>
                                             </div>
                                         );
                                     }
                                 )}
                         </div>
-                        <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                            <div>
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    <fieldset className="bs-Fieldset">
-                                        <div className="bs-Fieldset-rows">
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
-                                                    Investigation Notes
-                                                </label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <textarea
-                                                        id="txtInvestigationNote"
-                                                        name="product_description"
-                                                        rows="5"
-                                                        className="bs-TextArea"
-                                                        type="text"
-                                                        ref={
-                                                            this
-                                                                .investigationNotesRef
-                                                        }
-                                                        defaultValue={
-                                                            this.props.incident
-                                                                .investigationNote
-                                                        }
-                                                    ></textarea>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                            <span className="db-SettingsForm-footerMessage"></span>
-                            <div>
-                                <RenderIfUserInSubProject
-                                    subProjectId={this.props.incident.projectId}
-                                >
-                                    <button
-                                        id="btnUpdateInvestigationNote"
-                                        onClick={() =>
-                                            this.props.setdata(
-                                                this.investigationNotesRef
-                                                    .current &&
-                                                    this.investigationNotesRef
-                                                        .current.value
-                                                    ? this.investigationNotesRef
-                                                          .current.value
-                                                    : this.props.incident
-                                                          .investigationNote
-                                            )
-                                        }
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                        disabled={this.props.request}
-                                        type="button"
-                                    >
-                                        <ShouldRender if={this.props.request}>
-                                            <FormLoader />
-                                        </ShouldRender>
-                                        <ShouldRender if={!this.props.request}>
-                                            <span>Save</span>
-                                        </ShouldRender>
-                                    </button>
-                                </RenderIfUserInSubProject>
-                            </div>
-                        </div>
+                        <NewIncidentMessage
+                            incident={this.props.incident}
+                            type={'investigation'}
+                        />
                     </div>
                 </div>
             </div>
@@ -187,7 +173,13 @@ export class IncidentInvestigation extends Component {
 
 IncidentInvestigation.displayName = 'IncidentInvestigation';
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            editIncidentMessageSwitch,
+        },
+        dispatch
+    );
 
 function mapStateToProps(state, ownProps) {
     const incidentMessages = state.incident.incidentMessages
@@ -198,19 +190,14 @@ function mapStateToProps(state, ownProps) {
             : []
         : [];
     return {
-        request:
-            state.incident && state.incident.investigationNotes
-                ? state.incident.investigationNotes.requesting
-                : false,
         incidentMessages,
     };
 }
 
 IncidentInvestigation.propTypes = {
-    setdata: PropTypes.func.isRequired,
-    request: PropTypes.bool,
     incident: PropTypes.object.isRequired,
     incidentMessages: PropTypes.object,
+    editIncidentMessageSwitch: PropTypes.func,
 };
 
 export default connect(

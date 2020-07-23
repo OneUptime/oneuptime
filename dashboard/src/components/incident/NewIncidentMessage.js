@@ -7,7 +7,10 @@ import { Field, reduxForm, formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import { logEvent } from 'amplitude-js';
-import { setInvestigationNote } from '../../actions/incident';
+import {
+    setInvestigationNote,
+    editIncidentMessageSwitch,
+} from '../../actions/incident';
 import { bindActionCreators } from 'redux';
 const selector = formValueSelector('NewIncidentMessage');
 
@@ -18,6 +21,9 @@ class NewIncidentMessage extends Component {
             errors.name = 'Incident Message is required.';
         }
         return errors;
+    };
+    cancelEdit = () => {
+        this.props.editIncidentMessageSwitch(this.props.incidentMessage);
     };
     submitForm = values => {
         const thisObj = this;
@@ -78,7 +84,7 @@ class NewIncidentMessage extends Component {
         // }
     };
     render() {
-        const { handleSubmit, incidentMessageState } = this.props;
+        const { handleSubmit, incidentMessageState, edit } = this.props;
         return (
             <div>
                 <form
@@ -91,9 +97,17 @@ class NewIncidentMessage extends Component {
                                 <fieldset className="bs-Fieldset">
                                     <div className="bs-Fieldset-rows">
                                         <div className="bs-Fieldset-row">
-                                            <label className="bs-Fieldset-label">
-                                                Investigation Notes
-                                            </label>
+                                            <ShouldRender if={!edit}>
+                                                <label className="bs-Fieldset-label">
+                                                    Investigation Notes
+                                                </label>
+                                            </ShouldRender>
+                                            <ShouldRender if={edit}>
+                                                <label className="bs-Fieldset-label">
+                                                    Update your Investigation
+                                                    Note
+                                                </label>
+                                            </ShouldRender>
                                             <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                 <Field
                                                     component={RenderTextArea}
@@ -117,36 +131,94 @@ class NewIncidentMessage extends Component {
                     <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                         <div className="bs-Tail-copy">
                             <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                <ShouldRender if={true}>
+                                <ShouldRender
+                                    if={
+                                        this.props.incidentMessageState.error &&
+                                        edit
+                                    }
+                                >
                                     <div className="Box-root Margin-right--8">
                                         <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
                                     </div>
                                     <div className="Box-root">
                                         <span style={{ color: 'red' }}>
-                                            {`something went wrong`}
+                                            {
+                                                this.props.incidentMessageState
+                                                    .error
+                                            }
+                                        </span>
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender
+                                    if={
+                                        this.props.incidentMessageState.error &&
+                                        !edit
+                                    }
+                                >
+                                    <div className="Box-root Margin-right--8">
+                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                    </div>
+                                    <div className="Box-root">
+                                        <span style={{ color: 'red' }}>
+                                            {
+                                                this.props.incidentMessageState
+                                                    .error
+                                            }
                                         </span>
                                     </div>
                                 </ShouldRender>
                             </div>
                         </div>
                         <span className="db-SettingsForm-footerMessage"></span>
-                        <div>
-                            <button
-                                className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                type="submit"
-                            >
-                                <ShouldRender
-                                    if={incidentMessageState.requesting}
+                        <ShouldRender if={!edit}>
+                            <div>
+                                <button
+                                    id="addIncidentMessageButton"
+                                    className="bs-Button bs-Button--blue"
+                                    type="submit"
                                 >
-                                    <FormLoader />
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={!incidentMessageState.requesting}
+                                    <ShouldRender
+                                        if={!incidentMessageState.requesting}
+                                    >
+                                        <span>Save </span>
+                                    </ShouldRender>
+
+                                    <ShouldRender
+                                        if={incidentMessageState.requesting}
+                                    >
+                                        <FormLoader />
+                                    </ShouldRender>
+                                </button>
+                            </div>
+                        </ShouldRender>
+                        <ShouldRender if={edit}>
+                            <div>
+                                <button
+                                    className="bs-Button"
+                                    disabled={incidentMessageState.requesting}
+                                    onClick={this.cancelEdit}
                                 >
-                                    <span>Save</span>
-                                </ShouldRender>
-                            </button>
-                        </div>
+                                    <span>Cancel</span>
+                                </button>
+                                <button
+                                    id="addIncidentMessageButton"
+                                    className="bs-Button bs-Button--blue"
+                                    type="submit"
+                                >
+                                    <ShouldRender
+                                        if={!incidentMessageState.requesting}
+                                    >
+                                        <span>Update </span>
+                                    </ShouldRender>
+
+                                    <ShouldRender
+                                        if={incidentMessageState.requesting}
+                                    >
+                                        <FormLoader />
+                                    </ShouldRender>
+                                </button>
+                            </div>
+                        </ShouldRender>
                     </div>
                 </form>
             </div>
@@ -158,6 +230,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             setInvestigationNote,
+            editIncidentMessageSwitch,
         },
         dispatch
     );
@@ -169,8 +242,8 @@ const mapStateToProps = (state, ownProps) => {
             ? state.incident.investigationNotes
             : state.incident.internalNotes;
     const initialValues = {
-        content: ownProps.IncidentMessage
-            ? ownProps.IncidentMessage.content
+        content: ownProps.incidentMessage
+            ? ownProps.incidentMessage.content
             : '',
     };
     const currentProject = state.project.currentProject;
@@ -196,6 +269,7 @@ NewIncidentMessage.propTypes = {
     handleSubmit: PropTypes.func,
     edit: PropTypes.bool,
     type: PropTypes.string,
+    editIncidentMessageSwitch: PropTypes.func,
 };
 export default connect(
     mapStateToProps,
