@@ -34,7 +34,10 @@ class ConfirmationDialog extends Component {
                         <div className="bs-Modal bs-Modal--medium">
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span
+                                        className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                        id="modalTitle"
+                                    >
                                         Confirm API Reset
                                     </span>
                                 </div>
@@ -71,6 +74,7 @@ class ConfirmationDialog extends Component {
                                         <span>Cancel</span>
                                     </button>
                                     <button
+                                        id="confirmResetKey"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         type="button"
                                         onClick={() => {
