@@ -136,14 +136,20 @@ export const groups = [
                 ],
                 index: 1,
             },
+        ],
+    },
+    {
+        group: 'External',
+        visible: true,
+        routes: [
             {
-                title: 'Back to Dashboard',
+                title: 'Go to User Dashboard',
                 path: DASHBOARD_URL,
-                icon: 'back',
+                icon: 'square',
                 component: null,
                 visible: true,
                 subRoutes: [],
-                index: 2,
+                index: 1,
                 external: true,
             },
         ],

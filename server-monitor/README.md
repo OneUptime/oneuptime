@@ -24,14 +24,14 @@ $ npm install fyipe-server-monitor
 You can use on the CLI:
 
 -   Run `fyipe-server-monitor`.
--   Enter your Project ID and API key - Get these from your Fyipe Dashboard.
+-   Enter your Project ID, API URL, and API key - Get these from your Fyipe Dashboard.
 -   Select Server Monitor from the list of Server Monitors.
 -   Server will be pinged every minute and the data stored in your project.
 
 You can also use like so:
 
 ```
-$ fyipe-server-monitor -p 5d64d59cae46131619708309 -a b02798c0-c898-11e9-9f14-4963dc67e2ab -m 5d7775e9f14a531364ba6917
+$ fyipe-server-monitor -p 5d64d59cae46131619708309 -u http://example.com -a b02798c0-c898-11e9-9f14-4963dc67e2ab -m 5d7775e9f14a531364ba6917
 ```
 
 <a name="module_api"></a>
@@ -43,6 +43,7 @@ const serverMonitor = require('fyipe-server-monitor');
 
 const monitor = serverMonitor({
     projectId: '5d64d59cae46131619708309',
+    apiUrl: 'http://example.com', // optional - your external API URL
     apiKey: 'b02798c0-c898-11e9-9f14-4963dc67e2ab',
     monitorId: '5d7775e9f14a531364ba6917',
     interval: '*/5 * * * * *', // cron job interval
@@ -68,14 +69,14 @@ Main API to authenticate user, start and stop server monitoring.
     -   [CLI Usage](#cli-usage)
     -   [Basic Usage](#basic-usage)
     -   [API Documentation](#api-documentation)
-        -   [module.exports(config, apiKey, monitorId) ⇒ <code>Object</code> ⏏](#moduleexportsconfig-apikey-monitorid--object-)
-            -   [module.exports~ping(projectId, monitorId, apiKey, interval) ⇒ <code>Object</code>](#moduleexportspingprojectid-monitorid-apikey-interval--object)
+        -   [module.exports(config, apiUrl, apiKey, monitorId) ⇒ <code>Object</code> ⏏](#moduleexportsconfig-apiurl-apikey-monitorid--object-)
+            -   [module.exports~ping(projectId, monitorId, apiUrl, apiKey, interval) ⇒ <code>Object</code>](#moduleexportspingprojectid-monitorid-apiurl-apikey-interval--object)
             -   [module.exports~start(id) ⇒ <code>Object</code> \| <code>number</code>](#moduleexportsstartid--object--number)
             -   [module.exports~stop() ⇒ <code>Object</code>](#moduleexportsstop--object)
 
 <a name="exp_module_api--module.exports"></a>
 
-### module.exports(config, apiKey, monitorId) ⇒ <code>Object</code> ⏏
+### module.exports(config, apiUrl, apiKey, monitorId) ⇒ <code>Object</code> ⏏
 
 Authenticate user and get list of server monitors if monitor id not provided.
 
@@ -85,12 +86,13 @@ Authenticate user and get list of server monitors if monitor id not provided.
 | Param     | Type                                         | Description                                                             |
 | --------- | -------------------------------------------- | ----------------------------------------------------------------------- |
 | config    | <code>string</code> \| <code>Object</code>   | The project id or config of the project.                                |
+| apiUrl    | <code>string</code>                          | The url of the api.                                                     |
 | apiKey    | <code>string</code>                          | The api key of the project.                                             |
 | monitorId | <code>string</code> \| <code>function</code> | The monitor id or function to resolve monitor id of the server monitor. |
 
 <a name="module_api--module.exports..ping"></a>
 
-#### module.exports~ping(projectId, monitorId, apiKey, interval) ⇒ <code>Object</code>
+#### module.exports~ping(projectId, monitorId, apiUrl, apiKey, interval) ⇒ <code>Object</code>
 
 Get system information at interval and upload to server.
 
@@ -101,6 +103,7 @@ Get system information at interval and upload to server.
 | --------- | ------------------- | --------------------------------------- | ---------------------------------------------------------- |
 | projectId | <code>string</code> |                                         | The project id of the project.                             |
 | monitorId | <code>string</code> |                                         | The monitor id of the server monitor.                      |
+| apiUrl    | <code>string</code> |                                         | The url of the api.                                        |
 | apiKey    | <code>string</code> |                                         | The api key of the project.                                |
 | interval  | <code>string</code> | <code>&quot;\* \* \* \* \*&quot;</code> | The interval of the cron job, must ba a valid cron format. |
 

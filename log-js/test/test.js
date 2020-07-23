@@ -12,42 +12,47 @@ const timeout = 5000;
 import Logger from '../src/logger';
 
 describe('Logger', function() {
+    const sleep = milliseconds => {
+        return new Promise(resolve => setTimeout(resolve, milliseconds));
+    };
     this.timeout(timeout + 1000);
     let projectId, token, componentId, applicationLog;
     // create a new user
     user.email = generateRandomBusinessEmail();
     const component = { name: 'Our Component' };
-    before(function(done) {
-        this.timeout(30000);
 
-        request
-            .post('/user/signup')
-            .send(user)
-            .end(function(err, res) {
-                const project = res.body.project;
-                projectId = project._id;
-                token = res.body.tokens.jwtAccessToken;
-                request
-                    .post(`/component/${projectId}`)
-                    .set('Authorization', `Basic ${token}`)
-                    .send(component)
-                    .end(function(err, res) {
-                        componentId = res.body._id;
-                        request
-                            .post(
-                                `/application-log/${projectId}/${componentId}/create`
-                            )
-                            .set('Authorization', `Basic ${token}`)
-                            .send({ name: 'Application Logger' })
-                            .end(function(err, res) {
-                                expect(res).to.have.status(200);
-                                expect(res.body).to.be.an('object');
-                                expect(res.body).to.have.property('_id');
-                                applicationLog = res.body;
-                                done();
-                            });
-                    });
-            });
+    before(function(done) {
+        this.timeout(60000);
+        sleep(30000).then(() => {
+            request
+                .post('/user/signup')
+                .send(user)
+                .end(function(err, res) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    token = res.body.tokens.jwtAccessToken;
+                    request
+                        .post(`/component/${projectId}`)
+                        .set('Authorization', `Basic ${token}`)
+                        .send(component)
+                        .end(function(err, res) {
+                            componentId = res.body._id;
+                            request
+                                .post(
+                                    `/application-log/${projectId}/${componentId}/create`
+                                )
+                                .set('Authorization', `Basic ${token}`)
+                                .send({ name: 'Application Logger' })
+                                .end(function(err, res) {
+                                    expect(res).to.have.status(200);
+                                    expect(res.body).to.be.an('object');
+                                    expect(res.body).to.have.property('_id');
+                                    applicationLog = res.body;
+                                    done();
+                                });
+                        });
+                });
+        });
     });
     it('should request for application log key', function() {
         const firstLog = new Logger(API_URL, applicationLog._id, '');

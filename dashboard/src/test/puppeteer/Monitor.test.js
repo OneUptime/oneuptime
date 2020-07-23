@@ -329,7 +329,7 @@ describe('Monitor API', () => {
                     () => (document.getElementById('statusCode').value = '')
                 );
                 await page.evaluate(
-                    () => (document.getElementById('header').value = '{}')
+                    () => (document.getElementById('header').value = '')
                 );
                 await page.evaluate(
                     () => (document.getElementById('body').value = '')
@@ -448,6 +448,199 @@ describe('Monitor API', () => {
 
             await cluster.execute(null, testServer);
             await cluster.execute(null, dashboard);
+        },
+        operationTimeOut
+    );
+});
+
+describe('API Monitor API', () => {
+    const operationTimeOut = 500000;
+
+    let cluster;
+
+    beforeAll(async () => {
+        jest.setTimeout(500000);
+
+        cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: utils.timeout,
+        });
+
+        cluster.on('taskerror', err => {
+            throw err;
+        });
+
+        const testServer = async ({ page }) => {
+            await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
+            await page.evaluate(
+                () => (document.getElementById('responseTime').value = '')
+            );
+            await page.evaluate(
+                () => (document.getElementById('statusCode').value = '')
+            );
+            await page.evaluate(
+                () => (document.getElementById('header').value = '')
+            );
+            await page.evaluate(
+                () => (document.getElementById('body').value = '')
+            );
+            await page.waitForSelector('#responseTime');
+            await page.click('input[name=responseTime]');
+            await page.type('input[name=responseTime]', '0');
+            await page.waitForSelector('#statusCode');
+            await page.click('input[name=statusCode]');
+            await page.type('input[name=statusCode]', '200');
+            await page.select('#responseType', 'json');
+            await page.waitForSelector('#header');
+            await page.click('textarea[name=header]');
+            await page.type(
+                'textarea[name=header]',
+                '{"Content-Type":"application/json"}'
+            );
+            await page.waitForSelector('#body');
+            await page.click('textarea[name=body]');
+            await page.type('textarea[name=body]', '{"status":"ok"}');
+            await page.click('button[type=submit]');
+            await page.waitForSelector('#save-btn');
+        };
+
+        await cluster.execute(null, testServer);
+
+        return await cluster.execute(null, async ({ page }) => {
+            const user = {
+                email: utils.generateRandomBusinessEmail(),
+                password,
+            };
+            await init.registerUser(user, page);
+            await init.loginUser(user, page);
+        });
+    });
+
+    afterAll(async () => {
+        await cluster.idle();
+        await cluster.close();
+    });
+
+    const componentName = utils.generateRandomString();
+    const monitorName = utils.generateRandomString();
+
+    test(
+        'should not add API monitor with invalid url',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Create Component first
+                // Redirects automatically component to details page
+                await init.addComponent(componentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', monitorName);
+                await init.selectByText('#type', 'api', page);
+                await init.selectByText('#method', 'get', page);
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', 'https://google.com');
+                await page.click('button[type=submit]');
+
+                let spanElement = await page.waitForSelector(
+                    '#formNewMonitorError'
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(
+                    'Monitor url should not be a website.'
+                );
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not add API monitor with invalid payload',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', monitorName);
+                await init.selectByText('#type', 'api', page);
+                await init.selectByText('#method', 'post', page);
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type(
+                    '#url',
+                    'https://fyipe.com/api/monitor/valid-project-id'
+                );
+                await page.click('button[type=submit]');
+
+                let spanElement = await page.waitForSelector(
+                    '#formNewMonitorError'
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Unauthorized');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should add API monitor with valid url and payload',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', monitorName);
+                await init.selectByText('#type', 'api', page);
+                await init.selectByText('#method', 'get', page);
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', utils.HTTP_TEST_SERVER_URL);
+                await page.click('button[type=submit]');
+
+                let spanElement = await page.waitForSelector(
+                    `#monitor-title-${monitorName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(monitorName);
+            });
+        },
+        operationTimeOut
+    );
+
+    it(
+        'should delete API monitor',
+        async () => {
+            expect.assertions(1);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const deleteButtonSelector = `#delete_${monitorName}`;
+                await page.click(deleteButtonSelector);
+
+                const confirmDeleteButtonSelector = '#deleteMonitor';
+                await page.waitForSelector(confirmDeleteButtonSelector);
+                await page.click(confirmDeleteButtonSelector);
+                await page.waitFor(5000);
+
+                const selector = `span#monitor-title-${monitorName}`;
+
+                const spanElement = await page.$(selector);
+                expect(spanElement).toEqual(null);
+            });
         },
         operationTimeOut
     );

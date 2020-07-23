@@ -1298,7 +1298,10 @@ class NewMonitor extends Component {
                                                 <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
                                             </div>
                                             <div className="Box-root">
-                                                <span style={{ color: 'red' }}>
+                                                <span
+                                                    style={{ color: 'red' }}
+                                                    id="formNewMonitorError"
+                                                >
                                                     {this.props.monitor
                                                         .newMonitor.error ||
                                                         this.props.monitor

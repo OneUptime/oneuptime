@@ -96,7 +96,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     ...state.applicationLogsList,
                     requesting: false,
                     error: null,
-                    success: false,
+                    success: true,
                     applicationLogs: action.payload,
                 },
             });
@@ -132,7 +132,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     ...state.applicationLogsList,
                     requesting: false,
                     error: null,
-                    success: false,
+                    success: true,
                     applicationLogs: state.applicationLogsList.applicationLogs.filter(
                         ({ _id }) => _id !== action.payload
                     ),
@@ -187,7 +187,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                         logs: action.payload.logs,
                         error: null,
                         requesting: false,
-                        success: false,
+                        success: true,
                         skip: action.payload.skip,
                         limit: action.payload.limit,
                         count: action.payload.count,
@@ -261,7 +261,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     ...state.applicationLogsList,
                     requesting: false,
                     error: null,
-                    success: false,
+                    success: true,
                     applicationLogs: applicationLogs,
                 },
             });
@@ -331,7 +331,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     ...state.applicationLogsList,
                     requesting: false,
                     error: null,
-                    success: false,
+                    success: true,
                     applicationLogs: applicationLogs,
                 },
             });
@@ -366,7 +366,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                         stats: action.payload.stats,
                         error: null,
                         requesting: false,
-                        success: false,
+                        success: true,
                     },
                 },
             });

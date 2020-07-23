@@ -11,6 +11,8 @@ import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
+import { openModal, closeModal } from '../../actions/modal';
+import Unauthorised from '../modals/Unauthorised';
 
 function validate(value) {
     const errors = {};
@@ -25,27 +27,53 @@ function validate(value) {
 export class ProjectSettings extends Component {
     submitForm = values => {
         const projectName = values.project_name;
+        const {
+            currentProject,
+            openModal,
+            renameProject,
+            projectId,
+        } = this.props;
+        const userId = User.getUserId();
 
-        if (projectName) {
-            this.props
-                .renameProject(this.props.projectId, projectName)
-                .then(val => {
+        if (isOwnerOrAdmin(userId, currentProject)) {
+            if (projectName) {
+                renameProject(projectId, projectName).then(val => {
                     if (val && val.data && val.data.name) {
                         document.title = val.data.name + ' Dashboard';
                     }
                 });
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent('EVENT: DASHBOARD > PROJECT > RENAME PROJECT', values);
+                if (SHOULD_LOG_ANALYTICS) {
+                    logEvent(
+                        'EVENT: DASHBOARD > PROJECT > RENAME PROJECT',
+                        values
+                    );
+                }
             }
+        } else {
+            openModal({
+                id: projectId,
+                content: Unauthorised,
+            });
+        }
+    };
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({
+                    id: this.props.projectId,
+                });
+            default:
+                return false;
         }
     };
 
     render() {
-        const { currentProject } = this.props;
-        const userId = User.getUserId();
-
         return (
-            <div className="Box-root Margin-bottom--12">
+            <div
+                onKeyDown={this.handleKeyBoard}
+                className="Box-root Margin-bottom--12"
+            >
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -86,11 +114,7 @@ export class ProjectSettings extends Component {
                                                             required="required"
                                                             disabled={
                                                                 this.props
-                                                                    .isRequesting ||
-                                                                !isOwnerOrAdmin(
-                                                                    userId,
-                                                                    currentProject
-                                                                )
+                                                                    .isRequesting
                                                             }
                                                         />
                                                     </div>
@@ -106,13 +130,7 @@ export class ProjectSettings extends Component {
                                     <button
                                         id="btnCreateProject"
                                         className="bs-Button bs-Button--blue"
-                                        disabled={
-                                            this.props.isRequesting ||
-                                            !isOwnerOrAdmin(
-                                                userId,
-                                                currentProject
-                                            )
-                                        }
+                                        disabled={this.props.isRequesting}
                                         type="submit"
                                     >
                                         <ShouldRender
@@ -144,6 +162,8 @@ ProjectSettings.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     projectId: PropTypes.string,
     currentProject: PropTypes.object,
+    openModal: PropTypes.func,
+    closeModal: PropTypes.func,
 };
 
 const formName = 'ProjectSettings' + Math.floor(Math.random() * 10 + 1);
@@ -158,7 +178,7 @@ const ProjectSettingsForm = new reduxForm({
 })(ProjectSettings);
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ renameProject }, dispatch);
+    bindActionCreators({ renameProject, openModal, closeModal }, dispatch);
 
 const mapStateToProps = state => ({
     isRequesting: state.project.renameProject.isRequesting,
