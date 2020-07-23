@@ -322,6 +322,7 @@ describe('StatusPage API With SubProjects', () => {
                     await page.click('#statusPages');
                     await page.waitForSelector('tr.statusPageListItem');
                     await page.click('tr.statusPageListItem');
+                    await page.click('#react-tabs-6');    
                     await page.waitForSelector('#delete');
                     await page.click('#delete');
                     await page.waitForSelector('#confirmDelete');
