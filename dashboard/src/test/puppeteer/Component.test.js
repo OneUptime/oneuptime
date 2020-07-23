@@ -241,6 +241,7 @@ describe('Components', () => {
         },
         operationTimeOut
     );
+
     test(
         'Should get list of resources and confirm their types match',
         async () => {

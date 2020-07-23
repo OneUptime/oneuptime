@@ -236,6 +236,11 @@ describe('Status Page -> Pricing Plan Component', () => {
                 await page.waitForSelector('#pricingPlanModal', {
                     hidden: true,
                 });
+                await page.reload({ waitUntil: 'networkidle2' });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
+
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );

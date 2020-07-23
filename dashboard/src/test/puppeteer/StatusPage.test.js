@@ -14,7 +14,8 @@ const monitorName1 = 'test.fyipe.com';
 
 const gotoTheFirstStatusPage = async page => {
     await page.goto(utils.DASHBOARD_URL);
-    await page.$eval('#statusPages > a', elem => elem.click());
+    await page.waitForSelector('#statusPages > a');
+    await page.click('#statusPages > a');
     const rowItem = await page.waitForSelector(
         '#statusPagesListContainer > tr',
         { visible: true }
@@ -232,6 +233,8 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 await page.waitForSelector('#domain', { visible: true });
                 await page.type('#domain', 'fyipeapp.com');
                 await page.click('#btnAddDomain');
@@ -247,7 +250,6 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // This test comes after you must have created a domain
     test(
         'should indicate if domain(s) is set on a status page',
         async () => {
@@ -272,6 +274,12 @@ describe('Status Page', () => {
 
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector(
+                    'fieldset[name="added-domain"] input[type="text"]'
+                );
+
                 const input = await page.$(
                     'fieldset[name="added-domain"] input[type="text"]'
                 );
@@ -280,6 +288,9 @@ describe('Status Page', () => {
 
                 await page.click('#btnAddDomain');
                 await page.reload({ waitUntil: 'networkidle0' });
+
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
                 const finalInputValue = await page.$eval(
                     'fieldset[name="added-domain"] input[type="text"]',
@@ -298,6 +309,8 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 await page.waitForSelector('#btnVerifyDomain');
                 await page.click('#btnVerifyDomain');
 
@@ -317,7 +330,11 @@ describe('Status Page', () => {
         'should not have option of deleting a domain, if there is only one domain in the status page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.reload({ waitUntil: 'networkidle0' });
+                await gotoTheFirstStatusPage(page);
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitFor(3000);
                 const elem = await page.$('.btnDeleteDomain');
                 expect(elem).toBeNull();
             });
@@ -331,6 +348,10 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('fieldset[name="added-domain"]');
+                await page.waitFor(3000);
 
                 //Get the initial length of domains
                 const initialLength = await page.$$eval(
@@ -346,11 +367,17 @@ describe('Status Page', () => {
                 await page.click('#btnAddDomain');
                 await page.reload({ waitUntil: 'networkidle0' });
 
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('.btnDeleteDomain');
                 await page.$eval('.btnDeleteDomain', elem => elem.click());
                 await page.$eval('#confirmDomainDelete', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 // get the final length of domains after deleting
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('fieldset[name="added-domain"]');
                 const finalLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
                     domains => domains.length
@@ -368,7 +395,11 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
+                await page.waitForSelector('fieldset[name="added-domain"]');
+                await page.waitFor(3000);
                 //Get the initial length of domains
                 const initialLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
@@ -382,11 +413,17 @@ describe('Status Page', () => {
                 await page.type('#domain', 'app.fyipeapp.com');
                 await page.click('#btnAddDomain');
                 await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
+                await page.waitForSelector('.btnDeleteDomain');
                 await page.$eval('.btnDeleteDomain', elem => elem.click());
                 await page.$eval('#cancelDomainDelete', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('fieldset[name="added-domain"]');
                 // get the final length of domains after cancelling
                 const finalLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
@@ -404,11 +441,18 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
-
                 await page.waitForNavigation({ waitUntil: 'load' });
+
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
                 await page.type('#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
+                await page.waitFor(3000);
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
+
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#publicStatusPageUrl');
 
                 let link = await page.$('#publicStatusPageUrl > span > a');
                 link = await link.getProperty('href');
@@ -429,17 +473,24 @@ describe('Status Page', () => {
         'should create custom Javascript',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await gotoTheFirstStatusPage(page);
                 const javascript = `console.log('this is a js code');`;
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'load' });
+
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
+                await page.waitForSelector('#customJS textarea');
                 await page.type(
                     '#customJS textarea',
-                    `
-                <script id='js'>${javascript}</script>
-                `
+                    `<script id='js'>${javascript}`
                 );
+                await page.waitFor(3000);
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
+
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#publicStatusPageUrl');
 
                 let link = await page.$('#publicStatusPageUrl > span > a');
                 link = await link.getProperty('href');
