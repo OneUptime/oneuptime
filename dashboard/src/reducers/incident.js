@@ -792,7 +792,7 @@ export default function incident(state = initialState, action) {
                     ...state.incidentMessages,
                     [action.payload.incidentId]: {
                         [action.payload.type]: {
-                            incidentMessages: action.payload.incidentMessages,
+                            incidentMessages: action.payload.incidentMessages.reverse(), // sort in rverse order for easy display in threads
                             error: null,
                             requesting: false,
                             success: true,
