@@ -74,7 +74,7 @@ module.exports = {
             }
 
             const incidentMessages = await IncidentMessageModel.find(query)
-                .sort([['createdAt', 1]])
+                .sort([['createdAt', -1]]) // fetch from latest to oldest
                 .limit(limit)
                 .skip(skip)
                 .populate('createdById', 'name');
