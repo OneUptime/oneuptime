@@ -77,7 +77,8 @@ module.exports = {
                 .sort([['createdAt', -1]]) // fetch from latest to oldest
                 .limit(limit)
                 .skip(skip)
-                .populate('createdById', 'name');
+                .populate('createdById', 'name')
+                .populate('incidentId', 'name');
 
             return incidentMessages;
         } catch (error) {
