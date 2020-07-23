@@ -207,7 +207,7 @@ export class MonitorViewHeader extends Component {
                                         }
                                         type="button"
                                         disabled={creating}
-                                        id={`createIncident_${monitor.name}`}
+                                        id={`monitorCreateIncident_${monitor.name}`}
                                         onClick={() =>
                                             this.props.openModal({
                                                 id: createIncidentModalId,

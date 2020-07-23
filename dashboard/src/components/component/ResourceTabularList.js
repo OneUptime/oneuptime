@@ -112,6 +112,13 @@ class ResourceTabularList extends Component {
                                                 style={{
                                                     height: '50px',
                                                 }}
+                                                onClick={() => {
+                                                    history.push(
+                                                        this.generateUrlLink(
+                                                            componentResource
+                                                        )
+                                                    );
+                                                }}
                                             >
                                                 <td
                                                     className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
