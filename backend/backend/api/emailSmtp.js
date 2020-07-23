@@ -14,6 +14,7 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const UserService = require('../services/userService');
 
 router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
     try {
@@ -64,7 +65,9 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const data = req.body;
         data.projectId = req.params.projectId;
-        data.email = req.user.email;
+        const user = await UserService.findOneBy({ _id: req.user.id });
+        data.email = user.email;
+
         if (!data.user) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -126,7 +129,9 @@ router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function(
     try {
         const data = req.body;
         const emailSmtpId = req.params.emailSmtpId;
-        data.email = req.user.email;
+        const user = await UserService.findOneBy({ _id: req.user.id });
+        data.email = user.email;
+
         const testResult = await MailService.testSmtpConfig(data);
         if (!testResult.failed) {
             // Call the EmailTemplateService
