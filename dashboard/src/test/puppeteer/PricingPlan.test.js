@@ -102,6 +102,7 @@ describe('Status Page', () => {
                 );
                 rowItem.click();
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.click('#react-tabs-6');
                 await page.$eval('input[name="isSubscriberEnabled"]', elem =>
                     elem.click()
                 );
