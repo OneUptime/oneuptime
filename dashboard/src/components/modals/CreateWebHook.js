@@ -185,16 +185,20 @@ class CreateWebHook extends React.Component {
                                                                             'Select monitor',
                                                                     },
                                                                     ...(allMonitors &&
-                                                                        allMonitors.length >
+                                                                    allMonitors.length >
                                                                         0
                                                                         ? allMonitors.map(
                                                                               monitor => ({
                                                                                   value:
                                                                                       monitor._id,
-                                                                                  label:
-                                                                                  `${
-                                                                                      getParentComponent(monitor).name
-                                                                                    } / ${monitor.name}`,
+                                                                                  label: `${
+                                                                                      getParentComponent(
+                                                                                          monitor
+                                                                                      )
+                                                                                          .name
+                                                                                  } / ${
+                                                                                      monitor.name
+                                                                                  }`,
                                                                               })
                                                                           )
                                                                         : []),
@@ -556,14 +560,14 @@ const mapStateToProps = state => {
     const allComponents = state.component.componentList.components
         .map(component => component.components)
         .flat();
-    return ({
-    allComponents,
-    webhook: state.webhook,
-    monitor: state.monitor,
-    currentProject: state.project.currentProject,
-    newWebHook: state.webHooks.createWebHook,
-    initialValues: { endpoint: '', endpointType: '', monitorId: '' },
-});
+    return {
+        allComponents,
+        webhook: state.webhook,
+        monitor: state.monitor,
+        currentProject: state.project.currentProject,
+        newWebHook: state.webHooks.createWebHook,
+        initialValues: { endpoint: '', endpointType: '', monitorId: '' },
+    };
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewCreateWebHook);
