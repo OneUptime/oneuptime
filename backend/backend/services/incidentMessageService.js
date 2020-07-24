@@ -52,9 +52,9 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const incidentMessage = await IncidentMessageModel.findOne(
-                query
-            ).populate('incidentId', 'name');
+            const incidentMessage = await IncidentMessageModel.findOne(query)
+                .populate('incidentId', 'name')
+                .populate('createdById', 'name');
             return incidentMessage;
         } catch (error) {
             ErrorService.log('incidentMessageService.findOneBy', error);
