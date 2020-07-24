@@ -89,7 +89,37 @@ describe('Registration API', () => {
         html.should.containEql('Please enter a business email address.');
     }, 160000);
 
-    test('Registeration form fields should be cleaned if the user moves from card form to the login form and returns back.', async () => {
+    test('Registration form fields should be cleaned if the user moves to the login form and returns back.', async () => {
+        await page.goto(utils.ACCOUNTS_URL + '/register', {
+            waitUntil: 'networkidle2',
+        });
+        await page.waitForSelector('#email');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', user.email);
+        await page.click('input[name=name]');
+        await page.type('input[name=name]', utils.user.name);
+        await page.click('input[name=companyName]');
+        await page.type('input[name=companyName]', utils.user.company.name);
+        await page.click('input[name=companyPhoneNumber]');
+        await page.type('input[name=companyPhoneNumber]', '1234567890');
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', '1234567890');
+        await page.click('input[name=confirmPassword]');
+        await page.type('input[name=confirmPassword]', '1234567890');
+
+        await page.click('#loginLink a');
+        await page.waitForSelector('#signUpLink a');
+        await page.click('#signUpLink a');
+
+        await page.waitFor(5000);
+        const email = await page.$eval(
+            'input[name=email]',
+            element => element.value
+        );
+        expect(email).toEqual('');
+    }, 160000);
+
+    test('Registration form fields should be cleaned if the user moves from card form to the login form and returns back.', async () => {
         await page.goto(utils.ACCOUNTS_URL + '/register', {
             waitUntil: 'networkidle2',
         });
