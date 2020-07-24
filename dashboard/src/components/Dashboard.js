@@ -21,6 +21,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from './breadCrumb/BreadCrumbItem';
 import BreadCrumbs from './breadCrumb/BreadCrumbs';
+import IncidentCreated from './incident/IncidentCreated';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
@@ -100,6 +101,7 @@ export class DashboardApp extends Component {
             project,
             children,
             project: { currentProject },
+            notifiable,
         } = this.props;
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
@@ -316,6 +318,9 @@ export class DashboardApp extends Component {
                         </ShouldRender>
                     </div>
                 </div>
+                <ShouldRender if={true}>
+                    <IncidentCreated />
+                </ShouldRender>
             </Fragment>
         );
     }
@@ -341,6 +346,7 @@ const mapStateToProps = state => ({
     project: state.project,
     profile: state.profileSettings,
     notification: state.notifications,
+    notifiable: state.incident.notifiableIncidents,
 });
 
 const mapDispatchToProps = dispatch =>
