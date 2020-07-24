@@ -6,6 +6,9 @@ import uuid from 'uuid';
 import { PricingPlan, IS_SAAS_SERVICE } from '../../config';
 import PricingPlanModal from './PricingPlanModal';
 import { openModal } from '../../actions/modal';
+import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
+import { User } from '../../config';
+import Unauthorised from '../modals/Unauthorised';
 
 const PricingPlanComponent = ({
     plan,
@@ -52,6 +55,14 @@ const PricingPlanComponent = ({
         // javascript enables bubbling by default
         // prevent propagation of the bubble
         e.stopPropagation();
+        const userId = User.getUserId();
+        if (!isOwnerOrAdmin(userId, currentProject)) {
+            return openModal({
+                id: userId,
+                content: Unauthorised,
+            });
+        }
+
         openModal({
             id: pricingPlanModalId,
             content: PricingPlanModal,
