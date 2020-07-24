@@ -31,14 +31,28 @@ const initialState = {
         },
     },
     investigationNotes: {
-        requesting: false,
-        error: null,
-        success: false,
+        create: {
+            requesting: false,
+            error: null,
+            success: false,
+        },
+        edit: {
+            requesting: false,
+            error: null,
+            success: false,
+        },
     },
     internalNotes: {
-        requesting: false,
-        error: null,
-        success: false,
+        create: {
+            requesting: false,
+            error: null,
+            success: false,
+        },
+        edit: {
+            requesting: false,
+            error: null,
+            success: false,
+        },
     },
     unresolvedincidents: {
         requesting: false,
@@ -60,7 +74,8 @@ export default function incident(state = initialState, action) {
         isExistingIncident,
         failureIncidentMessage,
         requestIncidentMessage,
-        incidentMessages;
+        incidentMessages,
+        noteStatus;
     switch (action.type) {
         case types.INCIDENTS_SUCCESS:
             return Object.assign({}, state, {
@@ -524,6 +539,9 @@ export default function incident(state = initialState, action) {
                     : state.incidentMessages[action.payload.incidentId._id][
                           action.payload.type
                       ].incidentMessages.concat([action.payload]);
+            noteStatus = action.payload.updated
+                ? { edit: { requesting: false, success: true, error: null } }
+                : { create: { requesting: false, success: true, error: null } };
             return Object.assign({}, state, {
                 incidentMessages: {
                     ...state.incidentMessages,
@@ -540,27 +558,42 @@ export default function incident(state = initialState, action) {
                     },
                 },
                 internalNotes: {
-                    requesting: false,
-                    success: true,
-                    error: null,
+                    ...state.internalNotes,
+                    ...noteStatus,
                 },
             });
 
         case types.INTERNAL_NOTE_REQUEST:
+            noteStatus = action.payload.updated
+                ? { edit: { requesting: true, success: false, error: null } }
+                : { create: { requesting: true, success: false, error: null } };
             return Object.assign({}, state, {
                 internalNotes: {
-                    requesting: true,
-                    success: false,
-                    error: null,
+                    ...state.internalNotes,
+                    ...noteStatus,
                 },
             });
 
         case types.INTERNAL_NOTE_FAILED:
+            noteStatus = action.payload.updated
+                ? {
+                      edit: {
+                          requesting: false,
+                          success: false,
+                          error: action.payload.error,
+                      },
+                  }
+                : {
+                      create: {
+                          requesting: false,
+                          success: false,
+                          error: action.payload.error,
+                      },
+                  };
             return Object.assign({}, state, {
                 internalNotes: {
-                    requesting: false,
-                    success: false,
-                    error: action.payload,
+                    ...state.internalNotes,
+                    ...noteStatus,
                 },
             });
 
@@ -583,6 +616,9 @@ export default function incident(state = initialState, action) {
                     : state.incidentMessages[action.payload.incidentId._id][
                           action.payload.type
                       ].incidentMessages.concat([action.payload]);
+            noteStatus = action.payload.updated
+                ? { edit: { requesting: false, success: true, error: null } }
+                : { create: { requesting: false, success: true, error: null } };
             return Object.assign({}, state, {
                 incidentMessages: {
                     ...state.incidentMessages,
@@ -599,27 +635,42 @@ export default function incident(state = initialState, action) {
                     },
                 },
                 investigationNotes: {
-                    requesting: false,
-                    success: true,
-                    error: null,
+                    ...state.investigationNotes,
+                    ...noteStatus,
                 },
             });
 
         case types.INVESTIGATION_NOTE_REQUEST:
+            noteStatus = action.payload.updated
+                ? { edit: { requesting: true, success: false, error: null } }
+                : { create: { requesting: true, success: false, error: null } };
             return Object.assign({}, state, {
                 investigationNotes: {
-                    requesting: true,
-                    success: false,
-                    error: null,
+                    ...state.investigationNotes,
+                    ...noteStatus,
                 },
             });
 
         case types.INVESTIGATION_NOTE_FAILED:
+            noteStatus = action.payload.updated
+                ? {
+                      edit: {
+                          requesting: false,
+                          success: false,
+                          error: action.payload.error,
+                      },
+                  }
+                : {
+                      create: {
+                          requesting: false,
+                          success: false,
+                          error: action.payload.error,
+                      },
+                  };
             return Object.assign({}, state, {
                 investigationNotes: {
-                    requesting: false,
-                    success: false,
-                    error: action.payload,
+                    ...state.investigationNotes,
+                    ...noteStatus,
                 },
             });
 

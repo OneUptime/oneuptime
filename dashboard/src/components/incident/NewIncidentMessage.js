@@ -143,8 +143,9 @@ class NewIncidentMessage extends Component {
                             <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                 <ShouldRender
                                     if={
-                                        this.props.incidentMessageState.error &&
-                                        edit
+                                        edit &&
+                                        this.props.incidentMessageState.edit
+                                            .error
                                     }
                                 >
                                     <div className="Box-root Margin-right--8">
@@ -154,15 +155,16 @@ class NewIncidentMessage extends Component {
                                         <span style={{ color: 'red' }}>
                                             {
                                                 this.props.incidentMessageState
-                                                    .error
+                                                    .edit.error
                                             }
                                         </span>
                                     </div>
                                 </ShouldRender>
                                 <ShouldRender
                                     if={
-                                        this.props.incidentMessageState.error &&
-                                        !edit
+                                        !edit &&
+                                        this.props.incidentMessageState.create
+                                            .error
                                     }
                                 >
                                     <div className="Box-root Margin-right--8">
@@ -172,7 +174,7 @@ class NewIncidentMessage extends Component {
                                         <span style={{ color: 'red' }}>
                                             {
                                                 this.props.incidentMessageState
-                                                    .error
+                                                    .create.error
                                             }
                                         </span>
                                     </div>
@@ -188,13 +190,19 @@ class NewIncidentMessage extends Component {
                                     type="submit"
                                 >
                                     <ShouldRender
-                                        if={!incidentMessageState.requesting}
+                                        if={
+                                            !incidentMessageState.create
+                                                .requesting
+                                        }
                                     >
                                         <span>Save </span>
                                     </ShouldRender>
 
                                     <ShouldRender
-                                        if={incidentMessageState.requesting}
+                                        if={
+                                            incidentMessageState.create
+                                                .requesting
+                                        }
                                     >
                                         <FormLoader />
                                     </ShouldRender>
@@ -205,7 +213,9 @@ class NewIncidentMessage extends Component {
                             <div>
                                 <button
                                     className="bs-Button"
-                                    disabled={incidentMessageState.requesting}
+                                    disabled={
+                                        incidentMessageState.edit.requesting
+                                    }
                                     onClick={this.cancelEdit}
                                 >
                                     <span>Cancel</span>
@@ -216,13 +226,18 @@ class NewIncidentMessage extends Component {
                                     type="submit"
                                 >
                                     <ShouldRender
-                                        if={!incidentMessageState.requesting}
+                                        if={
+                                            !incidentMessageState.edit
+                                                .requesting
+                                        }
                                     >
                                         <span>Update </span>
                                     </ShouldRender>
 
                                     <ShouldRender
-                                        if={incidentMessageState.requesting}
+                                        if={
+                                            incidentMessageState.edit.requesting
+                                        }
                                     >
                                         <FormLoader />
                                     </ShouldRender>

@@ -628,17 +628,17 @@ export function deleteProjectIncidents(projectId) {
 
 // Internal notes and investigation notes Section
 
-export function investigationNoteRequest(promise) {
+export function investigationNoteRequest(promise, updated) {
     return {
         type: types.INVESTIGATION_NOTE_REQUEST,
-        payload: promise,
+        payload: { promise, updated },
     };
 }
 
-export function investigationNoteError(error) {
+export function investigationNoteError(error, updated) {
     return {
         type: types.INVESTIGATION_NOTE_FAILED,
-        payload: error,
+        payload: { error, updated },
     };
 }
 
@@ -658,7 +658,9 @@ export function setInvestigationNote(projectId, incidentId, body) {
             body
         );
 
-        dispatch(investigationNoteRequest(promise));
+        const isUpdate = body.id ? true : false;
+
+        dispatch(investigationNoteRequest(promise, isUpdate));
 
         promise.then(
             function(incidents) {
@@ -675,24 +677,24 @@ export function setInvestigationNote(projectId, incidentId, body) {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(investigationNoteError(errors(error)));
+                dispatch(investigationNoteError(errors(error), isUpdate));
             }
         );
         return promise;
     };
 }
 
-export function internalNoteRequest(promise) {
+export function internalNoteRequest(promise, updated) {
     return {
         type: types.INTERNAL_NOTE_REQUEST,
-        payload: promise,
+        payload: { promise, updated },
     };
 }
 
-export function internalNoteError(error) {
+export function internalNoteError(error, updated) {
     return {
         type: types.INTERNAL_NOTE_FAILED,
-        payload: error,
+        payload: { error, updated },
     };
 }
 
@@ -711,7 +713,9 @@ export function setInternalNote(projectId, incidentId, body) {
             body
         );
 
-        dispatch(internalNoteRequest(promise));
+        const isUpdate = body.id ? true : false;
+
+        dispatch(internalNoteRequest(promise, isUpdate));
 
         promise.then(
             function(incidents) {
@@ -728,7 +732,7 @@ export function setInternalNote(projectId, incidentId, body) {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(internalNoteError(errors(error)));
+                dispatch(internalNoteError(errors(error), isUpdate));
             }
         );
         return promise;
