@@ -88,7 +88,7 @@ class NewIncidentMessage extends Component {
         // }
     };
     render() {
-        const { handleSubmit, incidentMessageState, edit } = this.props;
+        const { handleSubmit, incidentMessageState, edit, type } = this.props;
         return (
             <div>
                 <form
@@ -103,13 +103,20 @@ class NewIncidentMessage extends Component {
                                         <div className="bs-Fieldset-row">
                                             <ShouldRender if={!edit}>
                                                 <label className="bs-Fieldset-label">
-                                                    Investigation Notes
+                                                    {`${type
+                                                        .charAt(0)
+                                                        .toUpperCase()}${type.slice(
+                                                        1
+                                                    )} Notes`}
                                                 </label>
                                             </ShouldRender>
                                             <ShouldRender if={edit}>
                                                 <label className="bs-Fieldset-label">
-                                                    Update your Investigation
-                                                    Note
+                                                    {`Update your ${type
+                                                        .charAt(0)
+                                                        .toUpperCase()}${type.slice(
+                                                        1
+                                                    )} Note`}
                                                 </label>
                                             </ShouldRender>
                                             <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
