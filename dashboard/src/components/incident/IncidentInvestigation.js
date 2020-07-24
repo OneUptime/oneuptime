@@ -185,6 +185,15 @@ export class IncidentInvestigation extends Component {
                                                                 {
                                                                     incidentMessage.content
                                                                 }
+                                                                <ShouldRender
+                                                                    if={
+                                                                        incidentMessage.updated
+                                                                    }
+                                                                >
+                                                                    <span className="Margin-horizontal--4 Text-color--dark">
+                                                                        (edited)
+                                                                    </span>
+                                                                </ShouldRender>
                                                             </p>
                                                             <p
                                                                 style={{
