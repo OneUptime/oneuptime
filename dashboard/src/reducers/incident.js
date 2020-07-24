@@ -835,18 +835,28 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_REQUEST:
             requestIncidentMessage = {
                 ...state.incidentMessages,
-                [action.payload.incidentId]: state.incidentMessages[
-                    action.payload.incidentId
-                ]
-                    ? state.incidentMessages[action.payload.incidentId][
-                          action.payload.type
-                      ]
-                        ? {
-                              ...state.incidentMessages[
-                                  action.payload.incidentId
-                              ][action.payload.type],
-                              requesting: true,
-                          }
+                [action.payload.incidentId]: {
+                    [action.payload.type]: state.incidentMessages[
+                        action.payload.incidentId
+                    ]
+                        ? state.incidentMessages[action.payload.incidentId][
+                              action.payload.type
+                          ]
+                            ? {
+                                  ...state.incidentMessages[
+                                      action.payload.incidentId
+                                  ][action.payload.type],
+                                  requesting: true,
+                              }
+                            : {
+                                  incidentMessages: [],
+                                  error: null,
+                                  requesting: true,
+                                  success: false,
+                                  skip: 0,
+                                  limit: 10,
+                                  count: null,
+                              }
                         : {
                               incidentMessages: [],
                               error: null,
@@ -855,16 +865,8 @@ export default function incident(state = initialState, action) {
                               skip: 0,
                               limit: 10,
                               count: null,
-                          }
-                    : {
-                          incidentMessages: [],
-                          error: null,
-                          requesting: true,
-                          success: false,
-                          skip: 0,
-                          limit: 10,
-                          count: null,
-                      },
+                          },
+                },
             };
             return Object.assign({}, state, {
                 incidentMessages: requestIncidentMessage,

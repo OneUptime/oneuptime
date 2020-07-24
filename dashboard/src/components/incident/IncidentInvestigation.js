@@ -14,6 +14,7 @@ import {
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 import { User } from '../../config';
+import { ListLoader } from '../basic/Loader';
 
 export class IncidentInvestigation extends Component {
     olderInvestigationMessage = () => {
@@ -60,12 +61,14 @@ export class IncidentInvestigation extends Component {
         let requesting = false;
         let canSeeOlder = false;
         let canSeeNewer = false;
+        let error;
         const { incidentMessages, editIncidentMessageSwitch } = this.props;
         if (incidentMessages) {
             count = incidentMessages.count;
             skip = incidentMessages.skip;
             limit = incidentMessages.limit;
             requesting = incidentMessages.requesting;
+            error = incidentMessages.error;
 
             if (count && typeof count === 'string') {
                 count = parseInt(count, 10);
@@ -256,63 +259,85 @@ export class IncidentInvestigation extends Component {
                                     }
                                 )}
                         </div>
-                        <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                            <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    <span></span>
-                                </span>
-                            </div>
-                            <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
-                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                    <div className="Box-root Margin-right--8">
-                                        <button
-                                            id="btnTimelinePrev"
-                                            onClick={() => {
-                                                this.olderInvestigationMessage();
-                                            }}
-                                            className={
-                                                'Button bs-ButtonLegacy' +
-                                                (canSeeOlder
-                                                    ? ''
-                                                    : 'Is--disabled')
-                                            }
-                                            disabled={!canSeeOlder}
-                                            data-db-analytics-name="list_view.pagination.previous"
-                                            type="button"
-                                        >
-                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                    <span>Older Messages</span>
-                                                </span>
-                                            </div>
-                                        </button>
-                                    </div>
-                                    <div className="Box-root">
-                                        <button
-                                            id="btnTimelineNext"
-                                            onClick={() => {
-                                                this.newerInvestigationMessage();
-                                            }}
-                                            className={
-                                                'Button bs-ButtonLegacy' +
-                                                (canSeeNewer
-                                                    ? ''
-                                                    : 'Is--disabled')
-                                            }
-                                            disabled={!canSeeNewer}
-                                            data-db-analytics-name="list_view.pagination.next"
-                                            type="button"
-                                        >
-                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                    <span>Newer Messages</span>
-                                                </span>
-                                            </div>
-                                        </button>
+                        {requesting ? <ListLoader /> : null}
+
+                        <div
+                            style={{
+                                textAlign: 'center',
+                                padding: '0 10px',
+                                margin: '10px 0',
+                            }}
+                        >
+                            {incidentMessages &&
+                            incidentMessages.incidentMessages &&
+                            incidentMessages.incidentMessages.length < 1
+                                ? "You don't have any messages yet, start up a conversation."
+                                : null}
+                            {error}
+                        </div>
+                        <ShouldRender if={count > 0}>
+                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <span></span>
+                                    </span>
+                                </div>
+                                <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                        <div className="Box-root Margin-right--8">
+                                            <button
+                                                id="btnTimelinePrev"
+                                                onClick={() => {
+                                                    this.olderInvestigationMessage();
+                                                }}
+                                                className={
+                                                    'Button bs-ButtonLegacy' +
+                                                    (canSeeOlder
+                                                        ? ''
+                                                        : 'Is--disabled')
+                                                }
+                                                disabled={!canSeeOlder}
+                                                data-db-analytics-name="list_view.pagination.previous"
+                                                type="button"
+                                            >
+                                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                        <span>
+                                                            Older Messages
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        <div className="Box-root">
+                                            <button
+                                                id="btnTimelineNext"
+                                                onClick={() => {
+                                                    this.newerInvestigationMessage();
+                                                }}
+                                                className={
+                                                    'Button bs-ButtonLegacy' +
+                                                    (canSeeNewer
+                                                        ? ''
+                                                        : 'Is--disabled')
+                                                }
+                                                disabled={!canSeeNewer}
+                                                data-db-analytics-name="list_view.pagination.next"
+                                                type="button"
+                                            >
+                                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                        <span>
+                                                            Newer Messages
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </ShouldRender>
                         <NewIncidentMessage
                             incident={this.props.incident}
                             type={'investigation'}
