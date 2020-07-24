@@ -919,6 +919,7 @@ export default function incident(state = initialState, action) {
             requestIncidentMessage = {
                 ...state.incidentMessages,
                 [action.payload.incidentId]: {
+                    ...state.incidentMessages[action.payload.incidentId],
                     [action.payload.type]: state.incidentMessages[
                         action.payload.incidentId
                     ]
