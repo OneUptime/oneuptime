@@ -68,35 +68,35 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
         const user = await UserService.findOneBy({ _id: req.user.id });
         data.email = user.email;
 
-        if (!data.user) {
+        if (!data.user || !data.user.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'User Name is required.',
             });
         }
 
-        if (!data.pass) {
+        if (!data.pass || !data.pass.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Password is required.',
             });
         }
 
-        if (!data.host) {
+        if (!data.host || !data.host.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'host is required.',
             });
         }
 
-        if (!data.port) {
+        if (!data.port || !data.port.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'port is required.',
             });
         }
 
-        if (!data.from) {
+        if (!data.from || !data.from.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'from is required.',
@@ -131,6 +131,41 @@ router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function(
         const emailSmtpId = req.params.emailSmtpId;
         const user = await UserService.findOneBy({ _id: req.user.id });
         data.email = user.email;
+
+        if (!data.user || !data.user.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'User Name is required.',
+            });
+        }
+
+        if (!data.pass || !data.pass.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Password is required.',
+            });
+        }
+
+        if (!data.host || !data.host.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'host is required.',
+            });
+        }
+
+        if (!data.port || !data.port.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'port is required.',
+            });
+        }
+
+        if (!data.from || !data.from.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'from is required.',
+            });
+        }
 
         const testResult = await MailService.testSmtpConfig(data);
         if (!testResult.failed) {
