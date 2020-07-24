@@ -449,10 +449,12 @@ module.exports = {
         await page.click('#create-project');
         await page.waitForSelector('#name');
         await page.type('#name', projectName ? projectName : 'test');
-        await page.$$eval(
-            'input[name="planId"]',
-            inputs => inputs[0].click() // select the first plan
+        await page.click('label[for=Startup_month]');
+        const startupOption = await page.waitForSelector(
+            'label[for=Startup_month]',
+            { visible: true }
         );
+        startupOption.click();
         await page.click('#btnCreateProject');
         await page.waitForNavigation({ waitUntil: 'networkidle0' });
     },
@@ -487,5 +489,43 @@ module.exports = {
         await page.waitForSelector(createdMonitorCategorySelector, {
             visible: true,
         });
+    },
+    addGrowthProject: async function(projectName = 'GrowthProject', page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#AccountSwitcherId');
+        await page.click('#AccountSwitcherId');
+        await page.waitForSelector('#create-project');
+        await page.click('#create-project');
+        await page.waitForSelector('#name');
+        await page.type('#name', projectName);
+        await page.click('label[for=Growth_month]');
+        const growthOption = await page.waitForSelector(
+            'label[for=Growth_month]',
+            { visible: true }
+        );
+        growthOption.click();
+        await Promise.all([
+            await page.click('#btnCreateProject'),
+            await page.waitForNavigation({ waitUntil: 'networkidle0' }),
+        ]);
+    },
+    addScaleProject: async function(projectName = 'ScaleProject', page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#AccountSwitcherId');
+        await page.click('#AccountSwitcherId');
+        await page.waitForSelector('#create-project');
+        await page.click('#create-project');
+        await page.waitForSelector('#name');
+        await page.type('#name', projectName);
+        await page.click('label[for=Scale_month]');
+        const scaleOption = await page.waitForSelector(
+            'label[for=Scale_month]',
+            { visible: true }
+        );
+        scaleOption.click();
+        await Promise.all([
+            await page.click('#btnCreateProject'),
+            await page.waitForNavigation({ waitUntil: 'networkidle0' }),
+        ]);
     },
 };
