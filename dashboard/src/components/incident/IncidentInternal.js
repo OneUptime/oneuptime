@@ -109,8 +109,8 @@ export class IncidentInternal extends Component {
                         incident={incident}
                         type={'internal'}
                         error={error}
-                        newerInternalMessage={this.newerInternalMessage}
-                        olderInternalMessage={this.olderInternalMessage}
+                        newerMessage={this.newerInternalMessage}
+                        olderMessage={this.olderInternalMessage}
                     />
                 </div>
             </div>

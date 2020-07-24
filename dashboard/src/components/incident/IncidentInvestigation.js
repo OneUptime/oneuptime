@@ -105,12 +105,8 @@ export class IncidentInvestigation extends Component {
                         incident={incident}
                         type={'investigation'}
                         error={error}
-                        newerInvestigationMessage={
-                            this.newerInvestigationMessage
-                        }
-                        olderInvestigationMessage={
-                            this.olderInvestigationMessage
-                        }
+                        newerMessage={this.newerInvestigationMessage}
+                        olderMessage={this.olderInvestigationMessage}
                     />
                 </div>
             </div>

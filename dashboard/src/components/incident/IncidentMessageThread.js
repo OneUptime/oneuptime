@@ -22,8 +22,8 @@ export class IncidentMessageThread extends Component {
             editIncidentMessageSwitch,
             type,
             error,
-            olderInvestigationMessage,
-            newerInvestigationMessage,
+            olderMessage,
+            newerMessage,
         } = this.props;
         return (
             <div className="Box-root">
@@ -205,7 +205,7 @@ export class IncidentMessageThread extends Component {
                                     <button
                                         id="btnTimelinePrev"
                                         onClick={() => {
-                                            olderInvestigationMessage();
+                                            olderMessage();
                                         }}
                                         className={
                                             'Button bs-ButtonLegacy' +
@@ -226,7 +226,7 @@ export class IncidentMessageThread extends Component {
                                     <button
                                         id="btnTimelineNext"
                                         onClick={() => {
-                                            newerInvestigationMessage();
+                                            newerMessage();
                                         }}
                                         className={
                                             'Button bs-ButtonLegacy' +
@@ -271,8 +271,8 @@ IncidentMessageThread.propTypes = {
     requesting: PropTypes.bool,
     type: PropTypes.string,
     error: PropTypes.string,
-    olderInvestigationMessage: PropTypes.func,
-    newerInvestigationMessage: PropTypes.func,
+    olderMessage: PropTypes.func,
+    newerMessage: PropTypes.func,
 };
 
 export default IncidentMessageThread;
