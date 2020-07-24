@@ -151,7 +151,47 @@ describe('Status Page', () => {
         },
         operationTimeOut
     );
+    test(
+        'should show an error message and not submit the form if the users select the same monitor twice.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#addMoreMonitors');
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-0');
+                await init.selectByText(
+                    '#monitor-0 .db-select-nw',
+                    `${componentName} / ${monitorName}`,
+                    page
+                );
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-1');
+                await init.selectByText(
+                    '#monitor-1 .db-select-nw',
+                    `${componentName} / ${monitorName}`,
+                    page
+                );
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(3000);
+                const textContent = await page.$eval(
+                    '#monitor-1',
+                    e => e.textContent
+                );
+                expect(
+                    textContent.includes('This monitor is already selected.')
+                ).toEqual(true);
+                await page.reload({ waitUntil: 'networkidle0' });
 
+                await page.waitFor(3000);
+
+                const monitor = await page.$$('#monitor-0');
+                expect(monitor.length).toEqual(0);
+                const monitor1 = await page.$$('#monitor-1');
+                expect(monitor1.length).toEqual(0);
+            });
+        },
+        operationTimeOut
+    );
     test(
         'should add a new monitor.',
         async () => {

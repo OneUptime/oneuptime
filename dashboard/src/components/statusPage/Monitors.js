@@ -28,11 +28,17 @@ const validate = values => {
     const errors = {};
     const { monitors } = values;
     const monitorsArrayErrors = {};
+    const selectedMonitor = {};
     for (let i = 0; i < monitors.length; i++) {
         const monitorErrors = {};
         const monitor = monitors[i];
         if (!monitor.monitor)
             monitorErrors.monitor = 'A monitor must be selected.';
+        else {
+            if (selectedMonitor[monitor.monitor])
+                monitorErrors.monitor = 'This monitor is already selected.';
+            selectedMonitor[monitor.monitor] = true;
+        }
         const {
             uptime,
             memory,
