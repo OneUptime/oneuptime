@@ -112,12 +112,6 @@ describe('Member Restriction', () => {
                     },
                     page
                 );
-                await init.growthPlanUpgrade(page);
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
-                // adding a subProject is only allowed on growth plan and above
-                await init.addSubProject(subProjectName, page);
             }
         );
 
@@ -159,6 +153,51 @@ describe('Member Restriction', () => {
 
                 expect(unauthorisedModal).toBeDefined();
             });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should show unauthorised modal to a team member who is not an admin of the project trying to perform any action subproject list',
+        async done => {
+            cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 120000,
+            });
+
+            await cluster.execute(null, async ({ page }) => {
+                await init.loginUser({ email, password }, page);
+
+                await init.growthPlanUpgrade(page);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                // adding a subProject is only allowed on growth plan and above
+                await init.addSubProject(subProjectName, page);
+                await init.logout(page);
+
+                await init.loginUser({ email: teamEmail, password }, page);
+                await init.switchProject(newProjectName, page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                const deleteSubProjectBtn = `#sub_project_delete_${subProjectName}`;
+                await page.waitForSelector(deleteSubProjectBtn, {
+                    visible: true,
+                });
+                await page.click(deleteSubProjectBtn);
+                const unauthorisedModal = await page.waitForSelector(
+                    '#unauthorisedModal',
+                    { visible: true }
+                );
+                expect(unauthorisedModal).toBeDefined();
+            });
+
             done();
         },
         operationTimeOut
