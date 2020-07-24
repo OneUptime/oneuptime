@@ -13,6 +13,7 @@ import {
 } from '../../actions/incident';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
+import { User } from '../../config';
 
 export class IncidentInvestigation extends Component {
     olderInvestigationMessage = () => {
@@ -195,29 +196,39 @@ export class IncidentInvestigation extends Component {
                                                                     </span>
                                                                 </ShouldRender>
                                                             </p>
-                                                            <p
-                                                                style={{
-                                                                    cursor:
-                                                                        'pointer',
-                                                                }}
-                                                                onClick={() =>
-                                                                    editIncidentMessageSwitch(
-                                                                        incidentMessage
-                                                                    )
+                                                            <ShouldRender
+                                                                if={
+                                                                    User.getUserId() ===
+                                                                    incidentMessage
+                                                                        .createdById
+                                                                        ._id
                                                                 }
                                                             >
-                                                                <img
-                                                                    src="/dashboard/assets/img/edit.svg"
-                                                                    className="Margin-right--8"
+                                                                <p
                                                                     style={{
-                                                                        height:
-                                                                            '10px',
-                                                                        width:
-                                                                            '10px',
+                                                                        cursor:
+                                                                            'pointer',
                                                                     }}
-                                                                />
-                                                                Edit Response
-                                                            </p>
+                                                                    onClick={() =>
+                                                                        editIncidentMessageSwitch(
+                                                                            incidentMessage
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <img
+                                                                        src="/dashboard/assets/img/edit.svg"
+                                                                        className="Margin-right--8"
+                                                                        style={{
+                                                                            height:
+                                                                                '10px',
+                                                                            width:
+                                                                                '10px',
+                                                                        }}
+                                                                    />
+                                                                    Edit
+                                                                    Response
+                                                                </p>
+                                                            </ShouldRender>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -248,16 +259,7 @@ export class IncidentInvestigation extends Component {
                         <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                             <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    <span>
-                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            {count
-                                                ? count +
-                                                  (count > 1
-                                                      ? ' Messages'
-                                                      : ' Message')
-                                                : '0 Messages'}
-                                        </span>
-                                    </span>
+                                    <span></span>
                                 </span>
                             </div>
                             <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
