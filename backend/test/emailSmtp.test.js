@@ -285,4 +285,99 @@ describe('Email SMTP Api Test', function() {
                 done();
             });
     });
+
+    it('should not update custom SMTP settings if user name is missing', done => {
+        const authorization = `Basic ${jwtToken}`;
+        let user;
+        const data = {
+            ...smtpCredential,
+            user,
+        };
+
+        request
+            .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end((err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('User Name is required.');
+                done();
+            });
+    });
+
+    it('should not update custom SMTP settings if password is missing', done => {
+        const authorization = `Basic ${jwtToken}`;
+        let pass;
+        const data = {
+            ...smtpCredential,
+            pass,
+        };
+
+        request
+            .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end((err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('Password is required.');
+                done();
+            });
+    });
+
+    it('should not update custom SMTP settings if host is missing', done => {
+        const authorization = `Basic ${jwtToken}`;
+        let host;
+        const data = {
+            ...smtpCredential,
+            host,
+        };
+
+        request
+            .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end((err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('host is required.');
+                done();
+            });
+    });
+
+    it('should not update custom SMTP settings if port is missing', done => {
+        const authorization = `Basic ${jwtToken}`;
+        let port;
+        const data = {
+            ...smtpCredential,
+            port,
+        };
+
+        request
+            .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end((err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('port is required.');
+                done();
+            });
+    });
+
+    it('should not update custom SMTP settings if from is missing', done => {
+        const authorization = `Basic ${jwtToken}`;
+        let from;
+        const data = {
+            ...smtpCredential,
+            from,
+        };
+
+        request
+            .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end((err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('from is required.');
+                done();
+            });
+    });
 });
