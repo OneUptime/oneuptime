@@ -7,7 +7,7 @@ import RegisterForm from '../components/auth/RegisterForm';
 import queryString from 'query-string';
 import { PricingPlan, IS_SAAS_SERVICE } from '../config';
 import MessageBox from '../components/MessageBox';
-import { savePlanId,signUpReset } from '../actions/register';
+import { savePlanId, signUpReset } from '../actions/register';
 
 class RegisterPage extends React.Component {
     componentWillUnmount() {
@@ -117,6 +117,7 @@ RegisterPage.propTypes = {
     register: PropTypes.object,
     success: PropTypes.bool,
     savePlanId: PropTypes.func.isRequired,
+    signUpReset: PropTypes.func.isRequired,
     masterAdminExists: PropTypes.bool,
 };
 
