@@ -6,12 +6,12 @@ import { ValidateField, SHOULD_LOG_ANALYTICS } from '../../config';
 import { Field, reduxForm, formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import { RenderTextArea } from '../basic/RenderTextArea';
-import { logEvent } from 'amplitude-js';
 import {
     setInvestigationNote,
     editIncidentMessageSwitch,
 } from '../../actions/incident';
 import { bindActionCreators } from 'redux';
+import { logEvent } from '../../analytics';
 const selector = formValueSelector('NewIncidentMessage');
 
 class NewIncidentMessage extends Component {
@@ -29,9 +29,13 @@ class NewIncidentMessage extends Component {
         const thisObj = this;
         const postObj = {};
         postObj.content = values[`content`];
-        this.props.edit
-            ? (postObj.id = this.props.incidentMessage._id)
-            : (postObj.type = this.props.type);
+        let mode = 'NEW';
+        if (this.props.edit) {
+            postObj.id = this.props.incidentMessage._id;
+        } else {
+            postObj.type = this.props.type;
+            mode = 'EDIT';
+        }
 
         if (this.props.type === 'investigation') {
             this.props
@@ -45,7 +49,7 @@ class NewIncidentMessage extends Component {
                         thisObj.props.reset();
                         if (SHOULD_LOG_ANALYTICS) {
                             logEvent(
-                                'EVENT: DASHBOARD > PROJECT > MONITOR > INCIDENT > NEW INVESTIGATION MESSAGE',
+                                `EVENT: DASHBOARD > PROJECT > MONITOR > INCIDENT > ${mode} INVESTIGATION MESSAGE`,
                                 values
                             );
                         }
