@@ -310,7 +310,7 @@ const validate = function(values) {
 
 const userForm = reduxForm({
     form: 'UserSignupForm', // <------ same form name
-    destroyOnUnmount: false,
+    destroyOnUnmount: true,
     validate,
 })(UserForm);
 
