@@ -64,20 +64,7 @@ describe('Schedule API With SubProjects', () => {
             const user = { email, password };
             await init.loginUser(user, page);
 
-            await page.goto(utils.DASHBOARD_URL);
-
-            await page.waitForSelector('#AccountSwitcherId');
-            await page.click('#AccountSwitcherId');
-            await page.waitForSelector('#create-project');
-            await page.click('#create-project');
-            await page.waitForSelector('#name');
-            await page.type('#name', projectName);
-            await page.$$eval(
-                'input[name="planId"]',
-                inputs => inputs[2].click() // select Growth plan
-            );
-            await page.click('#btnCreateProject');
-            await page.waitForNavigation({ waitUntil: 'networkidle0' });
+            await init.addGrowthProject(projectName, page);
 
             // add sub-project
             await init.addSubProject(subProjectName, page);
