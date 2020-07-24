@@ -11,6 +11,8 @@ import { ListLoader } from '../basic/Loader';
 export class IncidentMessageThread extends Component {
     render() {
         const {
+            title,
+            description,
             incident,
             incidentMessages,
             count,
@@ -28,10 +30,10 @@ export class IncidentMessageThread extends Component {
                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                            <span>Investigation</span>
+                            <span>{title}</span>
                         </span>
                         <p>
-                            <span>Tell us more about what went wrong.</span>
+                            <span>{description}</span>
                         </p>
                     </div>
                 </div>
@@ -258,6 +260,8 @@ export class IncidentMessageThread extends Component {
 IncidentMessageThread.displayName = 'IncidentMessageThread';
 
 IncidentMessageThread.propTypes = {
+    title: PropTypes.string,
+    description: PropTypes.string,
     incident: PropTypes.object.isRequired,
     incidentMessages: PropTypes.object,
     editIncidentMessageSwitch: PropTypes.func,

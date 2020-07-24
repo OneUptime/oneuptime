@@ -94,6 +94,8 @@ export class IncidentInvestigation extends Component {
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentMessageThread
+                        title="Investigaion"
+                        description="Tell us more about what went wrong."
                         incidentMessages={incidentMessages}
                         count={count}
                         canSeeOlder={canSeeOlder}
