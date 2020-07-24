@@ -549,7 +549,7 @@ describe('API Monitor API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(
-                    'Monitor url should not be a website.'
+                    'API Monitor URL should not be a HTML page.'
                 );
             });
         },
