@@ -7,12 +7,13 @@ import RegisterForm from '../components/auth/RegisterForm';
 import queryString from 'query-string';
 import { PricingPlan, IS_SAAS_SERVICE } from '../config';
 import MessageBox from '../components/MessageBox';
-import { savePlanId } from '../actions/register';
+import { savePlanId,signUpReset } from '../actions/register';
 
 class RegisterPage extends React.Component {
     componentWillUnmount() {
         document.body.id = '';
         document.body.className = '';
+        this.props.signUpReset();
     }
 
     componentDidMount() {
@@ -105,6 +106,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             savePlanId,
+            signUpReset,
         },
         dispatch
     );
