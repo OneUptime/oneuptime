@@ -16,12 +16,14 @@ const program = require('commander');
 const Promise = require('promise');
 const { version } = require('../package.json');
 const { prompt } = require('inquirer');
+const { API_URL } = require('../lib/config');
 const serverMonitor = require('../lib/api');
 
 program.version(version, '-v, --version').description('Fyipe Monitoring Shell');
 
 program
     .option('-p, --project-id [projectId]', 'Use Project ID from dashboard')
+    .option('-u, --api-url [apiUrl]', 'Use URL for API')
     .option('-a, --api-key [apiKey]', 'Use API key from dashboard')
     .option('-m, --monitor-id [monitorId]', 'Use monitor ID from dashboard')
     .parse(process.argv);
@@ -32,6 +34,12 @@ const questions = [
         type: 'input',
         name: 'projectId',
         message: 'What is your Project ID?',
+    },
+    {
+        type: 'input',
+        name: 'apiUrl',
+        message: "What is your API's URL?",
+        default: API_URL,
     },
     {
         type: 'input',
@@ -96,10 +104,11 @@ const getParamValue = (params, name) => {
 
 /** Init server monitor cli. */
 checkParams(questions).then(values => {
-    const [projectId, apiKey, monitorId] = values;
+    const [projectId, apiUrl, apiKey, monitorId] = values;
 
     serverMonitor({
         projectId,
+        apiUrl,
         apiKey,
         monitorId:
             monitorId ||

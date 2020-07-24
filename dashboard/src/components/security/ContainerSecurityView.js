@@ -3,11 +3,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { history } from '../../store';
-import {
-    deleteContainerSecurity,
-    scanContainerSecurity,
-} from '../../actions/security';
+import { scanContainerSecurity } from '../../actions/security';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteContainerSecurity from '../modals/DeleteContainerSecurity';
 import SecurityDetail from './SecurityDetail';
@@ -19,14 +15,12 @@ import EditContainerSecurity from '../modals/EditContainerSecurity';
 import threatLevel from '../../utils/threatLevel';
 
 const ContainerSecurityView = ({
-    deleteContainerSecurity,
     isRequesting,
     containerSecurityId,
     projectId,
     componentId,
     openModal,
     closeModal,
-    deleteContainerError,
     scanContainerSecurity,
     securityLog,
     scanning,
@@ -34,29 +28,11 @@ const ContainerSecurityView = ({
     scanError,
     activeContainerSecurity,
 }) => {
-    const handleDelete = data => {
-        const thisObj = this;
-
+    const handleDelete = ({ projectId, componentId, containerSecurityId }) => {
         openModal({
-            id: data.containerSecurityId,
-            onConfirm: () => {
-                return deleteContainerSecurity(data).then(() => {
-                    if (deleteContainerError) {
-                        // prevent dismissal of modal if errored
-                        return handleDelete(data);
-                    }
-
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Domain verification');
-                    }
-
-                    history.push(
-                        `/dashboard/project/${data.projectId}/${data.componentId}/security/container`
-                    );
-                });
-            },
+            id: containerSecurityId,
             content: DeleteContainerSecurity,
-            propArr: [],
+            propArr: [{ projectId, componentId, containerSecurityId }],
         });
     };
 
@@ -268,7 +244,7 @@ const ContainerSecurityView = ({
                             <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                 <ShouldRender
                                     if={
-                                        !isRequesting &&
+                                        !scanning &&
                                         scanError &&
                                         String(containerSecurityId) ===
                                             String(activeContainerSecurity)
@@ -295,17 +271,12 @@ const ContainerSecurityView = ({
 ContainerSecurityView.displayName = 'Container Security View';
 
 ContainerSecurityView.propTypes = {
-    deleteContainerSecurity: PropTypes.func,
     isRequesting: PropTypes.bool,
     containerSecurityId: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
-    deleteContainerError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     scanContainerSecurity: PropTypes.func,
     scanning: PropTypes.bool,
     securityLog: PropTypes.object,
@@ -320,7 +291,6 @@ ContainerSecurityView.propTypes = {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            deleteContainerSecurity,
             openModal,
             closeModal,
             scanContainerSecurity,
@@ -331,7 +301,6 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = state => {
     return {
         isRequesting: state.security.deleteContainer.requesting,
-        deleteContainerError: state.security.deleteContainer.error,
         scanning: state.security.scanContainerSecurity.requesting,
         securityLog: state.security.containerSecurityLog || {},
         scanError: state.security.scanContainerSecurity.error,

@@ -87,7 +87,7 @@ export class SubProjectTable extends Component {
                 >
                     <div
                         className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
-                        id={`sub_project_name_${this.props.loop}`}
+                        id={`sub_project_name_${subProject.name}`}
                     >
                         {subProject.name}
                     </div>
@@ -131,7 +131,7 @@ export class SubProjectTable extends Component {
                             </button>
                             <button
                                 title="edit"
-                                id={`sub_project_edit_${this.props.loop}`}
+                                id={`sub_project_edit_${subProject.name}`}
                                 disabled={disabled}
                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
                                 type="button"
@@ -141,7 +141,7 @@ export class SubProjectTable extends Component {
                             </button>
                             <button
                                 title="delete"
-                                id={`sub_project_delete_${this.props.loop}`}
+                                id={`sub_project_delete_${subProject.name}`}
                                 disabled={disabled}
                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
                                 type="button"

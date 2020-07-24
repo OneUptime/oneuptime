@@ -186,6 +186,10 @@ class ProjectUpgrade extends Component {
                                                                         {
                                                                             plan.category
                                                                         }{' '}
+                                                                        {plan.type ===
+                                                                        'month'
+                                                                            ? 'Monthly'
+                                                                            : 'Yearly'}{' '}
                                                                         Plan
                                                                     </span>
                                                                 </span>

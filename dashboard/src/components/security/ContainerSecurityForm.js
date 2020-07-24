@@ -149,7 +149,7 @@ class ContainerSecurityForm extends Component {
                                                                               value:
                                                                                   dockerCredential._id,
                                                                               label:
-                                                                                  dockerCredential.dockerRegistryUrl,
+                                                                                  dockerCredential.dockerUsername,
                                                                           })
                                                                       )
                                                                     : []),

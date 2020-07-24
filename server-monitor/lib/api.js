@@ -21,11 +21,12 @@ const logger = require('./logger');
  * Get system information at interval and upload to server.
  * @param {string} projectId - The project id of the project.
  * @param {string} monitorId - The monitor id of the server monitor.
+ * @param {string} apiUrl - The url of the api.
  * @param {string} apiKey - The api key of the project.
  * @param {string} interval - The interval of the cron job, must ba a valid cron format.
  * @return {Object} The ping server cron job.
  */
-const ping = (projectId, monitorId, apiKey, interval = '* * * * *') => {
+const ping = (projectId, monitorId, apiUrl, apiKey, interval = '* * * * *') => {
     return new cron.CronJob(
         interval,
         () => {
@@ -59,6 +60,7 @@ const ping = (projectId, monitorId, apiKey, interval = '* * * * *') => {
                 }))
                 .then(data => {
                     post(
+                        apiUrl,
                         `monitor/${projectId}/log/${monitorId}`,
                         data,
                         apiKey,
@@ -81,16 +83,18 @@ const ping = (projectId, monitorId, apiKey, interval = '* * * * *') => {
 /**
  * Authenticate user and get list of server monitors if monitor id not provided.
  * @param {(string | Object)} config - The project id or config of the project.
+ * @param {string} apiUrl - The url of the api.
  * @param {string} apiKey - The api key of the project.
  * @param {(string | Function)} monitorId - The monitor id or function to resolve monitor id of the server monitor.
  * @return {Object} The server monitor handlers.
  */
-module.exports = (config, apiKey, monitorId) => {
+module.exports = (config, apiUrl, apiKey, monitorId) => {
     let pingServer,
         projectId = config;
 
     if (typeof config === 'object') {
         projectId = config.projectId;
+        apiUrl = config.apiUrl;
         apiKey = config.apiKey;
         monitorId = config.monitorId;
     }
@@ -106,7 +110,7 @@ module.exports = (config, apiKey, monitorId) => {
                 id && typeof id === 'string' ? `${id}/` : ''
             }?type=server-monitor`;
 
-            return get(url, apiKey, response => {
+            return get(apiUrl, url, apiKey, response => {
                 return new Promise((resolve, reject) => {
                     const data = response.data;
 
@@ -147,6 +151,7 @@ module.exports = (config, apiKey, monitorId) => {
                         pingServer = ping(
                             projectId,
                             monitorId,
+                            apiUrl,
                             apiKey,
                             config.interval
                         );

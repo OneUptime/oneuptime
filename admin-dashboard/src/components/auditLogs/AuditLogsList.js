@@ -6,7 +6,6 @@ import uuid from 'uuid';
 
 import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
-import { deleteAuditLogs } from '../../actions/auditLogs';
 import AuditLogsJsonViewModal from './AuditLogsJsonViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
@@ -17,18 +16,10 @@ export class AuditLogsList extends Component {
     }
 
     handleDelete = () => {
-        const { deleteAuditLogs } = this.props;
-        const thisObj = this;
+        const { openModal } = this.props;
         const { deleteModalId } = this.state;
-        this.props.openModal({
+        openModal({
             id: deleteModalId,
-            onConfirm: () => {
-                return deleteAuditLogs().then(() => {
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Audit Log Deleted');
-                    }
-                });
-            },
             content: DeleteConfirmationModal,
         });
     };
@@ -364,6 +355,7 @@ export class AuditLogsList extends Component {
                                     className={'Button bs-ButtonLegacy'}
                                     // data-db-analytics-name="list_view.pagination.next"
                                     type="button"
+                                    disabled={this.props.requesting}
                                 >
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -381,10 +373,7 @@ export class AuditLogsList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators(
-        { openModal, closeModal, deleteAuditLogs },
-        dispatch
-    );
+    return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
 function mapStateToProps(state) {
@@ -400,7 +389,6 @@ AuditLogsList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
-    deleteAuditLogs: PropTypes.func.isRequired,
     auditLogs: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),

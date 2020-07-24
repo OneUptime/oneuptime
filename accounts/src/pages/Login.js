@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import Fade from 'react-reveal/Fade';
 import LoginForm from '../components/auth/LoginForm';
 import { loginUser, loginUserSso, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
@@ -48,75 +49,84 @@ class LoginPage extends React.Component {
         }
 
         return (
-            <div id="wrap">
-                <div id="header">
-                    <h1>
-                        <a aria-hidden={false} href="/">
-                            Fyipe
-                        </a>
-                    </h1>
-                </div>
-
-                {/* LOGIN BOX */}
-                {!this.props.login.success &&
-                this.props.login.error &&
-                this.props.login.error === 'Verify your email first.' ? (
-                    <div>
-                        <MessageBox
-                            title="Your email is not verified."
-                            //eslint-disable-next-line
-                                message={`An email is on its way to you with new verification link. Please don't forget to check spam.`}
-                        >
-                            <div className="below-box">
-                                <p>
-                                    Click{' '}
-                                    <Link to="/accounts/user-verify/resend">
-                                        here
-                                    </Link>{' '}
-                                    to resend verification link to your email.
-                                </p>
-                            </div>
-                        </MessageBox>
+            <Fade>
+                <div id="wrap">
+                    <div id="header">
+                        <h1>
+                            <a aria-hidden={false} href="/">
+                                Fyipe
+                            </a>
+                        </h1>
                     </div>
-                ) : (
-                    <LoginForm onSubmit={this.submitHandler} {...this.props} />
-                )}
 
-                {/* FOOTER */}
-                {!masterAdminExists &&
-                    !requestingMasterAdmin &&
-                    !DISABLE_SIGNUP && (
-                        <div id="signUpLink" className="below-box">
-                            <p>
-                                Don&#39;t have an account?{' '}
-                                <Link to="/accounts/register">Sign up</Link>.
-                            </p>
+                    {/* LOGIN BOX */}
+                    {!this.props.login.success &&
+                    this.props.login.error &&
+                    this.props.login.error === 'Verify your email first.' ? (
+                        <div>
+                            <MessageBox
+                                title="Your email is not verified."
+                                //eslint-disable-next-line
+                                message={`An email is on its way to you with new verification link. Please don't forget to check spam.`}
+                            >
+                                <div className="below-box">
+                                    <p>
+                                        Click{' '}
+                                        <Link to="/accounts/user-verify/resend">
+                                            here
+                                        </Link>{' '}
+                                        to resend verification link to your
+                                        email.
+                                    </p>
+                                </div>
+                            </MessageBox>
                         </div>
+                    ) : (
+                        <LoginForm
+                            onSubmit={this.submitHandler}
+                            {...this.props}
+                        />
                     )}
 
-                {/* END FOOTER */}
-                <div id="footer_spacer" />
-                <div id="bottom">
-                    <ul>
-                        <li>
-                            <Link to="/accounts/forgot-password">
-                                Forgot Password
-                            </Link>
-                        </li>
-                        <li>
-                            <a href="http://fyipe.com/legal/privacy">
-                                Privacy Policy
-                            </a>
-                        </li>
-                        <li>
-                            <a href="http://fyipe.com/support">Support</a>
-                        </li>
-                        <li className="last">
-                            <a href="https://hackerbay.io">© HackerBay, Inc.</a>
-                        </li>
-                    </ul>
+                    {/* FOOTER */}
+                    {!masterAdminExists &&
+                        !requestingMasterAdmin &&
+                        !DISABLE_SIGNUP && (
+                            <div id="signUpLink" className="below-box">
+                                <p>
+                                    Don&#39;t have an account?{' '}
+                                    <Link to="/accounts/register">Sign up</Link>
+                                    .
+                                </p>
+                            </div>
+                        )}
+
+                    {/* END FOOTER */}
+                    <div id="footer_spacer" />
+                    <div id="bottom">
+                        <ul>
+                            <li>
+                                <Link to="/accounts/forgot-password">
+                                    Forgot Password
+                                </Link>
+                            </li>
+                            <li>
+                                <a href="http://fyipe.com/legal/privacy">
+                                    Privacy Policy
+                                </a>
+                            </li>
+                            <li>
+                                <a href="http://fyipe.com/support">Support</a>
+                            </li>
+                            <li className="last">
+                                <a href="https://hackerbay.io">
+                                    © HackerBay, Inc.
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
-            </div>
+            </Fade>
         );
     }
 }

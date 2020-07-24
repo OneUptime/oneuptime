@@ -217,65 +217,62 @@ class DashboardView extends Component {
                                                                         0
                                                                 }
                                                             >
-                                                                <div
-                                                                    id="app-loading"
-                                                                    style={{
-                                                                        position:
-                                                                            'fixed',
-                                                                        top:
-                                                                            '0',
-                                                                        bottom:
-                                                                            '0',
-                                                                        left:
-                                                                            '0',
-                                                                        right:
-                                                                            '0',
-                                                                        backgroundColor:
-                                                                            '#fdfdfd',
-                                                                        zIndex:
-                                                                            '999',
-                                                                        display:
-                                                                            'flex',
-                                                                        justifyContent:
-                                                                            'center',
-                                                                        alignItems:
-                                                                            'center',
-                                                                        flexDirection:
-                                                                            'column',
-                                                                    }}
-                                                                >
-                                                                    <div
-                                                                        className="db-SideNav-icon db-SideNav-icon--square "
-                                                                        style={{
-                                                                            backgroundRepeat:
-                                                                                'no-repeat',
-                                                                            backgroundSize:
-                                                                                '50px',
-                                                                            height:
-                                                                                '50px',
-                                                                            width:
-                                                                                '50px',
-                                                                        }}
-                                                                    ></div>
-                                                                    <div
-                                                                        style={{
-                                                                            marginTop:
-                                                                                '20px',
-                                                                            fontSize:
-                                                                                '16px',
-                                                                        }}
-                                                                    >
-                                                                        No
-                                                                        components
-                                                                        are
-                                                                        added to
-                                                                        this
-                                                                        project.
-                                                                        Please
-                                                                        contact
-                                                                        your
-                                                                        project
-                                                                        admin.
+                                                                <div className="Box-root ">
+                                                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                                                        <div className="Box-root Card-shadow--medium Border-radius--4">
+                                                                            <div
+                                                                                className="bs-ContentSection-content Box-root Padding-horizontal--20 Padding-vertical--12"
+                                                                                style={{
+                                                                                    paddingBottom:
+                                                                                        '100px',
+                                                                                    paddingTop:
+                                                                                        '100px',
+                                                                                }}
+                                                                            >
+                                                                                <div
+                                                                                    className="db-SideNav-icon db-SideNav-icon--square "
+                                                                                    style={{
+                                                                                        backgroundRepeat:
+                                                                                            'no-repeat',
+                                                                                        backgroundSize:
+                                                                                            'contain',
+                                                                                        backgroundPosition:
+                                                                                            'center',
+                                                                                        height:
+                                                                                            '40px',
+                                                                                        width:
+                                                                                            '40px',
+                                                                                        marginRight:
+                                                                                            '50%',
+                                                                                        marginLeft:
+                                                                                            '50%',
+                                                                                    }}
+                                                                                ></div>
+                                                                                <div
+                                                                                    style={{
+                                                                                        width:
+                                                                                            '100%',
+                                                                                        padding:
+                                                                                            '10px',
+                                                                                        textAlign:
+                                                                                            'center',
+                                                                                    }}
+                                                                                >
+                                                                                    No
+                                                                                    components
+                                                                                    are
+                                                                                    added
+                                                                                    to
+                                                                                    this
+                                                                                    project.
+                                                                                    Please
+                                                                                    contact
+                                                                                    your
+                                                                                    project
+                                                                                    admin.
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </ShouldRender>

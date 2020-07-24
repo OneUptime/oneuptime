@@ -37,13 +37,13 @@ class ResetSmsTemplate extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Confirm Sms Template Reset</span>
+                                        <span>Confirm SMS Template Reset</span>
                                     </span>
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Are you sure you want to reset this sms
+                                    Are you sure you want to reset this SMS
                                     template ?
                                 </span>
                             </div>

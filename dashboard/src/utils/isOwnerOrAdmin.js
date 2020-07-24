@@ -9,13 +9,14 @@ const isOwnerOrAdmin = (userId, project) => {
         project &&
         project.users.filter(user => String(user.userId) === String(userId));
 
-    return (
-        currentUser &&
+    return currentUser &&
+        currentUser.length > 0 &&
+        currentUser[0] &&
+        currentUser[0].role &&
         (currentUser[0].role === 'Owner' ||
-        currentUser[0].role === 'Administrator'
-            ? true
-            : false)
-    );
+            currentUser[0].role === 'Administrator')
+        ? true
+        : false;
 };
 
 export default isOwnerOrAdmin;

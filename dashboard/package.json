@@ -59,6 +59,7 @@
         "react-scripts": "^3.4.1",
         "react-select": "^3.0.8",
         "react-stripe-elements": "^1.7.0",
+        "react-tabs": "^3.1.1",
         "react-through": "^1.1.4",
         "react-widgets": "^4.4.9",
         "recharts": "^1.7.1",

@@ -88,7 +88,7 @@ describe('Schedule', () => {
                 const modal = await page.waitForSelector('#pricingPlanModal', {
                     visible: true,
                 });
-                expect(modal).toBeTruthy();
+                expect(modal).toBeDefined();
             });
         },
         operationTimeOut
@@ -113,7 +113,7 @@ describe('Schedule', () => {
                 const modal = await page.waitForSelector('#pricingPlanModal', {
                     visible: true,
                 });
-                expect(modal).toBeTruthy();
+                expect(modal).toBeDefined();
             });
         },
         operationTimeOut

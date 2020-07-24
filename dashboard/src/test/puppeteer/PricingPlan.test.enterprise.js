@@ -67,7 +67,12 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );
