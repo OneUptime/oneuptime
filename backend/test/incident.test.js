@@ -53,7 +53,7 @@ const testServerMonitor = {
 describe('Incident API', function() {
     this.timeout(500000);
     before(function(done) {
-        this.timeout(60000);
+        this.timeout(80000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
                 projectId = res.body.project._id;
@@ -390,6 +390,58 @@ describe('Incident API', function() {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body._id).to.be.equal(incidentId);
+                done();
+            });
+    });
+
+    it('should require a valid incident message type', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/incident/${projectId}/incident/${incidentId}/message`)
+            .set('Authorization', authorization)
+            .send({
+                content: 'Update the notes',
+                type: 'test',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Incident Message type is not of required types.'
+                );
+                done();
+            });
+    });
+    it('should add an investigation incident message', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/incident/${projectId}/incident/${incidentId}/message`)
+            .set('Authorization', authorization)
+            .send({
+                content: 'Update the notes',
+                type: 'investigation',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.have.property('data');
+                expect(res.body.incidentId._id).to.be.equal(incidentId);
+                expect(res.body.type).to.be.equal('investigation');
+                done();
+            });
+    });
+    it('should add an internal incident message', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/incident/${projectId}/incident/${incidentId}/message`)
+            .set('Authorization', authorization)
+            .send({
+                content: 'Update the notes',
+                type: 'internal',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.have.property('data');
+                expect(res.body.incidentId._id).to.be.equal(incidentId);
+                expect(res.body.type).to.be.equal('internal');
                 done();
             });
     });
