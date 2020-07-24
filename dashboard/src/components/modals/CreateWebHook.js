@@ -533,6 +533,7 @@ CreateWebHook.propTypes = {
     monitor: PropTypes.object,
     newWebHook: PropTypes.object,
     data: PropTypes.object,
+    allComponents: PropTypes.array,
 };
 
 const NewCreateWebHook = reduxForm({
@@ -553,12 +554,18 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = state => ({
+const mapStateToProps = state => {
+    const allComponents = state.component.componentList.components
+        .map(component => component.components)
+        .flat();
+    return ({
+    allComponents,
     webhook: state.webhook,
     monitor: state.monitor,
     currentProject: state.project.currentProject,
     newWebHook: state.webHooks.createWebHook,
     initialValues: { endpoint: '', endpointType: '', monitorId: '' },
 });
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewCreateWebHook);
