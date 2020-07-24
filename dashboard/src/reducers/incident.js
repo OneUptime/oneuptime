@@ -506,10 +506,38 @@ export default function incident(state = initialState, action) {
             });
 
         case types.INTERNAL_NOTE_SUCCESS:
+            incidentMessages =
+                state.incidentMessages[action.payload.incidentId._id][
+                    action.payload.type
+                ].incidentMessages.filter(
+                    incidentMessage =>
+                        incidentMessage._id === action.payload._id
+                ).length > 0
+                    ? state.incidentMessages[action.payload.incidentId._id][
+                          action.payload.type
+                      ].incidentMessages.map(incidentMessage => {
+                          if (incidentMessage._id === action.payload._id) {
+                              incidentMessage = action.payload;
+                          }
+                          return incidentMessage;
+                      })
+                    : state.incidentMessages[action.payload.incidentId._id][
+                          action.payload.type
+                      ].incidentMessages.concat([action.payload]);
             return Object.assign({}, state, {
-                incident: {
-                    ...state.incident,
-                    incident: action.payload,
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    [action.payload.incidentId._id]: {
+                        ...state.incidentMessages[
+                            action.payload.incidentId._id
+                        ],
+                        [action.payload.type]: {
+                            ...state.incidentMessages[
+                                action.payload.incidentId._id
+                            ][action.payload.type],
+                            incidentMessages: incidentMessages,
+                        },
+                    },
                 },
                 internalNotes: {
                     requesting: false,
@@ -559,6 +587,9 @@ export default function incident(state = initialState, action) {
                 incidentMessages: {
                     ...state.incidentMessages,
                     [action.payload.incidentId._id]: {
+                        ...state.incidentMessages[
+                            action.payload.incidentId._id
+                        ],
                         [action.payload.type]: {
                             ...state.incidentMessages[
                                 action.payload.incidentId._id
@@ -795,6 +826,7 @@ export default function incident(state = initialState, action) {
                 incidentMessages: {
                     ...state.incidentMessages,
                     [action.payload.incidentId]: {
+                        ...state.incidentMessages[action.payload.incidentId],
                         [action.payload.type]: {
                             incidentMessages: action.payload.incidentMessages.reverse(), // sort in rverse order for easy display in threads
                             error: null,
@@ -892,6 +924,9 @@ export default function incident(state = initialState, action) {
                 incidentMessages: {
                     ...state.incidentMessages,
                     [action.payload.incidentId._id]: {
+                        ...state.incidentMessages[
+                            action.payload.incidentId._id
+                        ],
                         [action.payload.type]: {
                             ...state.incidentMessages[
                                 action.payload.incidentId._id

@@ -1,4 +1,4 @@
-import { postApi, getApi, putApi, deleteApi } from '../api';
+import { postApi, getApi, deleteApi } from '../api';
 import * as types from '../constants/incident';
 import errors from '../errors';
 
@@ -703,12 +703,13 @@ export function internalNoteSuccess(incident) {
     };
 }
 
-export function setinternalNote(projectId, incidentId, internalNote) {
+export function setInternalNote(projectId, incidentId, body) {
     return function(dispatch) {
         let promise = null;
-        const body = {};
-        body.internalNote = internalNote;
-        promise = putApi(`incident/${projectId}/incident/${incidentId}`, body);
+        promise = postApi(
+            `incident/${projectId}/incident/${incidentId}/message`,
+            body
+        );
 
         dispatch(internalNoteRequest(promise));
 
@@ -730,6 +731,7 @@ export function setinternalNote(projectId, incidentId, internalNote) {
                 dispatch(internalNoteError(errors(error)));
             }
         );
+        return promise;
     };
 }
 
