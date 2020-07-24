@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
 import { deleteAuditLogs } from '../../actions/auditLogs';
+import { FormLoader } from '../basic/Loader';
 
 const DeleteConfirmationModal = ({
     closeThisDialog,
@@ -85,7 +86,14 @@ const DeleteConfirmationModal = ({
                                     onClick={handleDelete}
                                     disabled={deleteRequest}
                                 >
-                                    <span>Delete Logs</span>
+                                    <ShouldRender if={!deleteRequest}>
+                                        <span>Delete Logs</span>
+                                    </ShouldRender>
+                                    <ShouldRender if={deleteRequest}>
+                                        <span>
+                                            <FormLoader />
+                                        </span>
+                                    </ShouldRender>
                                 </button>
                             </div>
                         </div>
