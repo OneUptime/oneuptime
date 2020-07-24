@@ -9,6 +9,7 @@ import { RenderTextArea } from '../basic/RenderTextArea';
 import {
     setInvestigationNote,
     editIncidentMessageSwitch,
+    setInternalNote,
 } from '../../actions/incident';
 import { bindActionCreators } from 'redux';
 import { logEvent } from '../../analytics';
@@ -60,32 +61,30 @@ class NewIncidentMessage extends Component {
                         }
                     }
                 );
+        } else {
+            this.props
+                .setInternalNote(
+                    this.props.currentProject._id,
+                    this.props.incident._id,
+                    postObj
+                )
+                .then(
+                    () => {
+                        thisObj.props.reset();
+                        if (SHOULD_LOG_ANALYTICS) {
+                            logEvent(
+                                `EVENT: DASHBOARD > PROJECT > MONITOR > INCIDENT > ${mode} INVESTIGATION MESSAGE`,
+                                values
+                            );
+                        }
+                    },
+                    error => {
+                        if (error && error.message) {
+                            return error;
+                        }
+                    }
+                );
         }
-        // else {
-        //     this.props
-        //         .editApplicationLog(
-        //             this.props.currentProject._id,
-        //             this.props.incident._id,
-        //             postObj
-        //         )
-        //         .then(
-        //             () => {
-        //                 thisObj.props.reset();
-        //                 thisObj.props.closeCreateApplicationLogModal();
-        //                 if (SHOULD_LOG_ANALYTICS) {
-        //                     logEvent(
-        //                         'EVENT: DASHBOARD > PROJECT > MONITOR > INCIDENT > EDIT INVESTIGATION MESSAGE',
-        //                         values
-        //                     );
-        //                 }
-        //             },
-        //             error => {
-        //                 if (error && error.message) {
-        //                     return error;
-        //                 }
-        //             }
-        //         );
-        // }
     };
     render() {
         const { handleSubmit, incidentMessageState, edit, type } = this.props;
@@ -242,6 +241,7 @@ const mapDispatchToProps = dispatch =>
         {
             setInvestigationNote,
             editIncidentMessageSwitch,
+            setInternalNote,
         },
         dispatch
     );
@@ -281,6 +281,7 @@ NewIncidentMessage.propTypes = {
     edit: PropTypes.bool,
     type: PropTypes.string,
     editIncidentMessageSwitch: PropTypes.func,
+    setInternalNote: PropTypes.func,
 };
 export default connect(
     mapStateToProps,
