@@ -546,7 +546,7 @@ class Main extends Component {
                                                                             margin:
                                                                                 '30px 0px',
                                                                             backgroundColor:
-                                                                                '#8898aa',
+                                                                                '#e8e8e8',
                                                                             height:
                                                                                 '1px',
                                                                         }}

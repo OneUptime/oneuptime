@@ -284,9 +284,8 @@ export class TemplatesFormBox extends Component {
                                                 : 'bs-Button'
                                         }
                                         disabled={
-                                            (resetEmailTemplates &&
-                                                resetEmailTemplates.requesting) ||
-                                            !template._id
+                                            resetEmailTemplates &&
+                                            resetEmailTemplates.requesting
                                         }
                                         type="button"
                                         onClick={() => {
