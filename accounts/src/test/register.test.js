@@ -89,7 +89,7 @@ describe('Registration API', () => {
         html.should.containEql('Please enter a business email address.');
     }, 160000);
 
-    test('Card form fields should be cleaned if the user moves to the login form and returns back.', async () => {
+    test('Registeration form fields should be cleaned if the user moves from card form to the login form and returns back.', async () => {
         await page.goto(utils.ACCOUNTS_URL + '/register', {
             waitUntil: 'networkidle2',
         });
@@ -117,11 +117,11 @@ describe('Registration API', () => {
         await page.click('#signUpLink a');
 
         await page.waitFor(5000);
-        const cardName = await page.$eval(
-            'input[name=cardName]',
+        const email = await page.$eval(
+            'input[name=email]',
             element => element.value
         );
-        expect(cardName).toEqual('');
+        expect(email).toEqual('');
     }, 160000);
 
     it('Should register User with valid details', async () => {
