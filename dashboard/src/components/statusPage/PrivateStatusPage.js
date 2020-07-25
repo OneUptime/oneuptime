@@ -347,7 +347,7 @@ export class PrivateStatusPage extends Component {
                                                             allow your users to
                                                             subscribe and get
                                                             notifications for
-                                                            your incidents.
+                                                            your incidents.{' '}
                                                         </span>
                                                         <button
                                                             type="button"
