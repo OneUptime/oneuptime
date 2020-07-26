@@ -6,10 +6,12 @@ function ApiDoc() {
             <div className="bs-u-justify--center col-sm-12 Flex-justifyContent--center Padding-all--20 Vertical">
                 <div className="Flex-flex Flex-alignItems--center">
                     <img
-                        src={process.env.PUBLIC_URL + '/assets/icons/api.svg'}
+                        src={
+                            process.env.PUBLIC_URL + '/assets/icons/blocks.svg'
+                        }
                         alt=""
                         className="Margin-right--20"
-                        height="75"
+                        height="60"
                         width="75"
                     />
                     <div>

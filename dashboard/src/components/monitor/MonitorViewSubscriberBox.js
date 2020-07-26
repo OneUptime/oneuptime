@@ -99,7 +99,7 @@ export class MonitorViewSubscriberBox extends Component {
                                         textDecoration: 'underline',
                                     }}
                                 >
-                                    call schedules
+                                    on-call schedules
                                 </span>{' '}
                                 instead.
                             </span>
