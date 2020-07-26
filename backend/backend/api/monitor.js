@@ -166,7 +166,8 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     if (/text\/html/.test(headerContentType)) {
                         return sendErrorResponse(req, res, {
                             code: 400,
-                            message: 'Monitor url should not be a website.',
+                            message:
+                                'API Monitor URL should not be a HTML page.',
                         });
                     }
                 } catch (err) {
@@ -290,7 +291,8 @@ router.put(
                     if (/text\/html/.test(headerContentType)) {
                         return sendErrorResponse(req, res, {
                             code: 400,
-                            message: 'Monitor url should not be a website.',
+                            message:
+                                'API Monitor URL should not be a HTML page.',
                         });
                     }
                 } catch (err) {
