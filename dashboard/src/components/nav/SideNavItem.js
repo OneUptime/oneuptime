@@ -47,7 +47,7 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
             ) &&
-                route.title === 'Call Schedules') ||
+                route.title === 'On-Call Schedules') ||
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/monitors\/([0-9]|[a-z])*/
             ) &&

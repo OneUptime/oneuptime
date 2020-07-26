@@ -226,7 +226,7 @@ class AlertLog extends Component {
                 <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
-                        name="Call Schedules"
+                        name="On-Call Schedules"
                     />
                     <BreadCrumbItem route={pathname} name="Alert Log" />
                     <div className="Box-root">
