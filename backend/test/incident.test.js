@@ -500,7 +500,7 @@ describe('Incident API', function() {
                 done();
             });
     });
-    it('should fetch list of investigation incident messages', function(done) {
+    it('should fetch list of internal incident messages', function(done) {
         const authorization = `Basic ${token}`;
         const type = 'internal';
         request
