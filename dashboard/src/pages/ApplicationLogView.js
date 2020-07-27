@@ -40,7 +40,12 @@ class ApplicationLogView extends Component {
             applicationLog,
         } = this.props;
 
-        const componentName = component.length > 0 ? component[0].name : null;
+        const componentName =
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : component[1].name
+                : null;
         const applicationLogName =
             applicationLog.length > 0 ? applicationLog[0].name : null;
         return (

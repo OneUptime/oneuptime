@@ -101,10 +101,18 @@ export class DashboardApp extends Component {
             project,
             children,
             project: { currentProject },
-            notifiable,
+            notification: {
+                notifications: { notifications },
+            },
         } = this.props;
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
+        const incidentNotifications = notifications.filter(
+            notification =>
+                notification.read.length === 0 &&
+                notification.meta &&
+                notification.meta.type === 'Incident'
+        );
 
         return (
             <Fragment>
@@ -318,8 +326,13 @@ export class DashboardApp extends Component {
                         </ShouldRender>
                     </div>
                 </div>
-                <ShouldRender if={true}>
-                    <IncidentCreated />
+                <ShouldRender
+                    if={
+                        incidentNotifications &&
+                        incidentNotifications.length > 0
+                    }
+                >
+                    <IncidentCreated notifications={incidentNotifications} />
                 </ShouldRender>
             </Fragment>
         );
@@ -346,7 +359,6 @@ const mapStateToProps = state => ({
     project: state.project,
     profile: state.profileSettings,
     notification: state.notifications,
-    notifiable: state.incident.notifiableIncidents,
 });
 
 const mapDispatchToProps = dispatch =>
