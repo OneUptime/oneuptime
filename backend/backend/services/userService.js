@@ -302,23 +302,6 @@ module.exports = {
                     // IS_SAAS_SERVICE: save a user only when payment method is charged and then next steps
                     user = await _this.create(data);
 
-                    const createdAt = new Date(user.createdAt)
-                        .toISOString()
-                        .split('T', 1);
-                    let record;
-                    try {
-                        record = await AirtableService.logUser({
-                            name: data.name,
-                            email: data.email,
-                            phone: data.companyPhoneNumber,
-                            company: data.companyName,
-                            jobRole: data.companyRole,
-                            createdAt,
-                        });
-                    } catch (e) {
-                        //
-                    }
-
                     let verificationToken;
                     if (user.role !== 'master-admin') {
                         verificationToken = await _this.sendToken(
@@ -350,6 +333,23 @@ module.exports = {
                             : null,
                     };
                     await ProjectService.create(projectData);
+
+                    const createdAt = new Date(user.createdAt)
+                        .toISOString()
+                        .split('T', 1);
+                    let record;
+                    try {
+                        record = await AirtableService.logUser({
+                            name: data.name,
+                            email: data.email,
+                            phone: data.companyPhoneNumber,
+                            company: data.companyName,
+                            jobRole: data.companyRole,
+                            createdAt,
+                        });
+                    } catch (e) {
+                        //
+                    }
 
                     if (record && record.id) {
                         user.airtableId = record.id;
