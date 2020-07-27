@@ -51,13 +51,6 @@ const initialState = {
         error: null,
         success: false,
     },
-    notifiableIncidents: {
-        requesting: false,
-        error: null,
-        success: false,
-        notify: false,
-        incidents: [],
-    },
     fetchIncidentTimelineRequest: false,
     incidentMessages: {},
 };
@@ -853,15 +846,6 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_RESET:
             return Object.assign({}, state, {
                 incidentMessages: initialState.incidentMessages,
-            });
-        case 'ADD_NEW_INCIDENT_NOTIFICATION':
-            return Object.assign({}, state, {
-                notifiableIncidents: {
-                    ...state.notifiableIncidents,
-                    incidents: [action.payload].concat(
-                        state.notifiableIncidents.incidents
-                    ),
-                },
             });
         default:
             return state;

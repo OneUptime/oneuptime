@@ -183,10 +183,6 @@ export function createNewIncident(projectId, monitorId, incidentType) {
                     type: 'ADD_NEW_INCIDENT_TO_MONITORS',
                     payload: createIncident.data,
                 });
-                dispatch({
-                    type: 'ADD_NEW_INCIDENT_NOTIFICATION',
-                    payload: createIncident.data,
-                });
                 return { createIncident };
             },
             function(error) {

@@ -52,7 +52,9 @@ function IncidentDescription(props) {
                                                         to={
                                                             '/dashboard/project/' +
                                                             props.projectId +
-                                                            '/monitors/' +
+                                                            '/' +
+                                                            props.componentId +
+                                                            '/monitoring/' +
                                                             props.incident
                                                                 .monitorId._id
                                                         }
@@ -153,6 +155,7 @@ IncidentDescription.displayName = 'IncidentDescription';
 IncidentDescription.propTypes = {
     incident: PropTypes.object.isRequired,
     projectId: PropTypes.string.isRequired,
+    componentId: PropTypes.string,
 };
 
 export default IncidentDescription;

@@ -108,10 +108,6 @@ export function incidentcreatedbysocket(incident) {
             type: 'ADD_NEW_INCIDENT_TO_MONITORS',
             payload: incident,
         });
-        dispatch({
-            type: 'ADD_NEW_INCIDENT_NOTIFICATION',
-            payload: incident,
-        });
     };
 }
 
