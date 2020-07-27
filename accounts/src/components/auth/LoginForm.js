@@ -166,7 +166,7 @@ const validate = function(values, props) {
 const loginForm = reduxForm({
     form: 'LoginForm', // a unique identifier for this form
     validate,
-    destroyOnUnmount: false,
+    destroyOnUnmount: true,
 })(LoginForm);
 
 const mapDispatchToProps = dispatch => {
