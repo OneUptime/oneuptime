@@ -123,7 +123,9 @@ class NewIncidentMessage extends Component {
                                                     component={RenderTextArea}
                                                     type="text"
                                                     name={`content`}
-                                                    id="content"
+                                                    id={`${
+                                                        edit ? 'edit' : 'new'
+                                                    }-${type}`}
                                                     className="bs-TextArea"
                                                     rows="2"
                                                     placeholder="Add a message to the thread"
@@ -185,7 +187,7 @@ class NewIncidentMessage extends Component {
                         <ShouldRender if={!edit}>
                             <div>
                                 <button
-                                    id="addIncidentMessageButton"
+                                    id={`${type}-addButton`}
                                     className="bs-Button bs-Button--blue"
                                     type="submit"
                                 >
@@ -221,7 +223,7 @@ class NewIncidentMessage extends Component {
                                     <span>Cancel</span>
                                 </button>
                                 <button
-                                    id="addIncidentMessageButton"
+                                    id={`${type}-editButton`}
                                     className="bs-Button bs-Button--blue"
                                     type="submit"
                                 >

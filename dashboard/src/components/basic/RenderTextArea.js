@@ -11,11 +11,12 @@ const RenderTextArea = ({
     rows,
     disabled,
     style,
+    id,
     initialValue,
 }) => (
     <span style={{ display: 'block', width: '100%' }}>
         <textarea
-            id="feedback-textarea"
+            id={id}
             {...input}
             type={type}
             rows={rows}
@@ -59,6 +60,7 @@ RenderTextArea.propTypes = {
     disabled: PropTypes.bool,
     style: PropTypes.object.isRequired,
     initialValue: PropTypes.string,
+    id: PropTypes.string.isRequired,
 };
 
 export { RenderTextArea };
