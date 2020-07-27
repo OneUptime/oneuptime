@@ -285,6 +285,78 @@ describe('Status Page', () => {
     );
 
     test(
+        'Status page should render monitors in the same order as in the form.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#publicStatusPageUrl');
+
+                let link = await page.$('#publicStatusPageUrl > span > a');
+                link = await link.getProperty('href');
+                link = await link.jsonValue();
+                await page.goto(link);
+                await page.waitForSelector('#monitor0');
+                const firstMonitorBeforeSwap = await page.$eval(
+                    '#monitor0 .uptime-stat-name',
+                    e => e.textContent
+                );
+                const secondMonitorBeforeSwap = await page.$eval(
+                    '#monitor1 .uptime-stat-name',
+                    e => e.textContent
+                );
+                expect(firstMonitorBeforeSwap).toEqual(monitorName);
+                expect(secondMonitorBeforeSwap).toEqual(monitorName1);
+
+                // We delete the first monitor in the status page, and we insert it again
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#delete-monitor-0');
+                await page.click('#delete-monitor-0');
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-1');
+                await init.selectByText(
+                    '#monitor-1 .db-select-nw',
+                    `${componentName} / ${monitorName}`,
+                    page
+                );
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(5000);
+                await page.reload({ waitUntil: 'networkidle0' });
+                // We check if the monitors are added
+                const firstMonitorContainer = await page.waitForSelector(
+                    '#monitor-0',
+                    {
+                        visible: true,
+                    }
+                );
+                expect(firstMonitorContainer).toBeTruthy();
+                const secondMonitorContainer = await page.waitForSelector(
+                    '#monitor-1',
+                    {
+                        visible: true,
+                    }
+                );
+                expect(secondMonitorContainer).toBeTruthy();
+
+                await page.goto(link);
+                await page.waitForSelector('#monitor0');
+                const firstMonitorAfterSwap = await page.$eval(
+                    '#monitor0 .uptime-stat-name',
+                    e => e.textContent
+                );
+                const secondMonitorAfterSwap = await page.$eval(
+                    '#monitor1 .uptime-stat-name',
+                    e => e.textContent
+                );
+                expect(firstMonitorAfterSwap).toEqual(secondMonitorBeforeSwap);
+                expect(secondMonitorAfterSwap).toEqual(firstMonitorBeforeSwap);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'should indicate that no domain is set yet for a status page.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {

@@ -20,6 +20,7 @@ const initialState = {
         success: false,
         requesting: false,
         error: null,
+        reset: false,
     },
     renameSubProject: {
         success: false,
@@ -163,6 +164,7 @@ export default function subProject(state = initialState, action) {
                     requesting: false,
                     success: true,
                     error: null,
+                    reset: true,
                 },
             });
 
@@ -172,6 +174,7 @@ export default function subProject(state = initialState, action) {
                     requesting: true,
                     success: false,
                     error: null,
+                    reset: false,
                 },
             });
 
@@ -181,6 +184,7 @@ export default function subProject(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                    reset: false,
                 },
             });
 
@@ -190,6 +194,7 @@ export default function subProject(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
+                    reset: false,
                 },
             });
 

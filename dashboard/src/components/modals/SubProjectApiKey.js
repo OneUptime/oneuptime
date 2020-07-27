@@ -30,9 +30,7 @@ class SubProjectApiKey extends Component {
 
     resetSubProjectToken = () => {
         const { resetSubProjectToken, data } = this.props;
-        resetSubProjectToken(data.subProjectId).then(() => {
-            this.props.closeThisDialog();
-        });
+        resetSubProjectToken(data.subProjectId);
     };
 
     renderAPIKey = hidden => {
@@ -134,58 +132,77 @@ class SubProjectApiKey extends Component {
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
-                                        type="button"
-                                        onClick={() => {
-                                            resetSubProjectKeyReset();
-                                            return closeModal({
-                                                id: data.subProjectModalId,
-                                            });
-                                        }}
-                                    >
-                                        <span>Cancel</span>
-                                    </button>
-                                    <button
-                                        id="removeSubProject"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
-                                        type="button"
-                                        onClick={() => {
-                                            openModal({
-                                                id: this.state
-                                                    .confirmationModalId,
-                                                content: DataPathHoC(
-                                                    ConfirmationDialog,
-                                                    {
-                                                        ConfirmationDialogId: this
-                                                            .state
-                                                            .confirmationModalId,
-                                                        SubProjectModalId:
+                                    {data.subProjectResetToken ? (
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                            type="button"
+                                            onClick={() => {
+                                                resetSubProjectKeyReset();
+                                                return closeModal({
+                                                    id: data.subProjectModalId,
+                                                });
+                                            }}
+                                        >
+                                            <span>Close</span>
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button
+                                                className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                                type="button"
+                                                onClick={() => {
+                                                    resetSubProjectKeyReset();
+                                                    return closeModal({
+                                                        id:
                                                             data.subProjectModalId,
-                                                        subProjectId:
-                                                            data.subProjectId,
-                                                        subProjectTitle:
-                                                            data.subProjectTitle,
-                                                        confirm: this
-                                                            .resetSubProjectToken,
-                                                    }
-                                                ),
-                                            });
-                                            return closeModal({
-                                                id: data.subProjectModalId,
-                                            });
-                                        }}
-                                        disabled={
-                                            subProjectResetToken.requesting
-                                        }
-                                    >
-                                        {!subProjectResetToken.requesting && (
-                                            <span>Reset API Key</span>
-                                        )}
-                                        {subProjectResetToken.requesting && (
-                                            <FormLoader />
-                                        )}
-                                    </button>
+                                                    });
+                                                }}
+                                            >
+                                                <span>Cancel</span>
+                                            </button>
+                                            <button
+                                                id="removeSubProject"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                                type="button"
+                                                onClick={() => {
+                                                    openModal({
+                                                        id: this.state
+                                                            .confirmationModalId,
+                                                        content: DataPathHoC(
+                                                            ConfirmationDialog,
+                                                            {
+                                                                ConfirmationDialogId: this
+                                                                    .state
+                                                                    .confirmationModalId,
+                                                                SubProjectModalId:
+                                                                    data.subProjectModalId,
+                                                                subProjectId:
+                                                                    data.subProjectId,
+                                                                subProjectTitle:
+                                                                    data.subProjectTitle,
+                                                                confirm: this
+                                                                    .resetSubProjectToken,
+                                                            }
+                                                        ),
+                                                    });
+                                                    return closeModal({
+                                                        id:
+                                                            data.subProjectModalId,
+                                                    });
+                                                }}
+                                                disabled={
+                                                    subProjectResetToken.requesting
+                                                }
+                                            >
+                                                {!subProjectResetToken.requesting && (
+                                                    <span>Reset API Key</span>
+                                                )}
+                                                {subProjectResetToken.requesting && (
+                                                    <FormLoader />
+                                                )}
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

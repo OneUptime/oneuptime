@@ -464,7 +464,7 @@ describe('API Monitor API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
-                    'Monitor url should not be a website.'
+                    'API Monitor URL should not be a HTML page.'
                 );
                 done();
             });
@@ -523,7 +523,7 @@ describe('API Monitor API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
-                    'Monitor url should not be a website.'
+                    'API Monitor URL should not be a HTML page.'
                 );
                 done();
             });

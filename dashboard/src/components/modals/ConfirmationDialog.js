@@ -90,6 +90,7 @@ class ConfirmationDialog extends Component {
                                                         subProjectModalId: SubProjectModalId,
                                                         subProjectId,
                                                         subProjectTitle,
+                                                        subProjectResetToken: true,
                                                     }
                                                 ),
                                             });

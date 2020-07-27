@@ -225,6 +225,7 @@ router.get(
                     name: elem.name,
                     type: 'application-log',
                     createdAt: elem.createdAt,
+                    icon: 'appLog',
                 };
                 // add it to the total resources
                 totalResources.push(newElement);
@@ -243,6 +244,7 @@ router.get(
                     name: elem.name,
                     type: 'monitor',
                     createdAt: elem.createdAt,
+                    icon: 'monitor',
                 };
                 // add it to the total resources
                 totalResources.push(newElement);
@@ -261,6 +263,7 @@ router.get(
                     name: elem.name,
                     type: 'application-security',
                     createdAt: elem.createdAt,
+                    icon: 'security',
                 };
                 // add it to the total resources
                 totalResources.push(newElement);
@@ -279,6 +282,7 @@ router.get(
                     name: elem.name,
                     type: 'container-security',
                     createdAt: elem.createdAt,
+                    icon: 'docker',
                 };
                 // add it to the total resources
                 totalResources.push(newElement);

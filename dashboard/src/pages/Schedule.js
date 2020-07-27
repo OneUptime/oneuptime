@@ -65,9 +65,13 @@ class Schedule extends Component {
                 <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
-                        name="Call Schedules"
+                        name="On-Call Schedules"
                     />
-                    <BreadCrumbItem route={pathname} name={name} />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name={name}
+                        pageTitle="Schedule"
+                    />
                     <div className="Box-root">
                         <div>
                             <div>

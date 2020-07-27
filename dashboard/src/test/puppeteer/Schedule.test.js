@@ -51,19 +51,7 @@ describe('Schedule', () => {
             await cluster.execute(null, async ({ page }) => {
                 const projectName = 'newproject';
                 const newScheduleName = 'test';
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#AccountSwitcherId');
-                await page.click('#AccountSwitcherId');
-                await page.waitForSelector('#create-project');
-                await page.click('#create-project');
-                await page.waitForSelector('#name');
-                await page.type('#name', projectName);
-                await page.$$eval(
-                    'input[name="planId"]',
-                    inputs => inputs[0].click() // select the first plan
-                );
-                await page.click('#btnCreateProject');
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await init.addProject(page, projectName);
 
                 await page.$eval('#callSchedules a', elem => elem.click());
                 const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
