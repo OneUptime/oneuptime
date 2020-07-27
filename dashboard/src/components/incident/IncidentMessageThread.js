@@ -145,6 +145,7 @@ export class IncidentMessageThread extends Component {
                                                             <img
                                                                 src="/dashboard/assets/img/edit.svg"
                                                                 className="Margin-right--8"
+                                                                alt="edit_icon"
                                                                 style={{
                                                                     height:
                                                                         '10px',
