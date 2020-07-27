@@ -305,14 +305,19 @@ module.exports = {
                     const createdAt = new Date(user.createdAt)
                         .toISOString()
                         .split('T', 1);
-                    const record = await AirtableService.logUser({
-                        name: data.name,
-                        email: data.email,
-                        phone: data.companyPhoneNumber,
-                        company: data.companyName,
-                        jobRole: data.companyRole,
-                        createdAt,
-                    });
+                    let record;
+                    try {
+                        record = await AirtableService.logUser({
+                            name: data.name,
+                            email: data.email,
+                            phone: data.companyPhoneNumber,
+                            company: data.companyName,
+                            jobRole: data.companyRole,
+                            createdAt,
+                        });
+                    } catch (e) {
+                        //
+                    }
 
                     let verificationToken;
                     if (user.role !== 'master-admin') {
