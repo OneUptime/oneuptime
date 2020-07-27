@@ -116,6 +116,12 @@ const smtpCredential = {
     secure: true,
 };
 
+const twilioCredentials={
+    accountSid: process.env.TEST_TWILIO_ACCOUNT_SID,
+    authToken: process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN,
+    phoneNumber: process.env.TEST_TWILIO_PHONE,
+}
+
 module.exports = {
     ACCOUNTS_URL,
     DASHBOARD_URL,
@@ -142,4 +148,5 @@ module.exports = {
     dockerCredential,
     gitCredential,
     smtpCredential,
+    twilioCredentials,
 };
