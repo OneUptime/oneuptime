@@ -385,6 +385,7 @@ export class SmsSmtpBox extends Component {
 
                                             <div>
                                                 <button
+                                                    id="submitTwilioSettings"
                                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                                     disabled={
                                                         this.props
