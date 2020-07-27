@@ -10,8 +10,9 @@ const password = '1234567890';
 const { twilioCredentials } = { ...utils }
 
 const projectName= 'project';
-const componentName= 'component 1';
-const monitorName= 'monitor 1';
+const componentName= 'component1';
+const monitorName= 'monitor1';
+const phoneNumber= '9173976235';
 
 describe('Custom Twilio Settings', () => {
     const operationTimeOut = 500000;
@@ -78,5 +79,34 @@ describe('Custom Twilio Settings', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should send SMS to external subscribers if an incident is created.',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await init.addMonitorToComponent(componentName, monitorName, page);
+                await page.waitForSelector(`#more-details-${monitorName}`);
+                await page.click(`#more-details-${monitorName}`);
+                await page.waitForSelector('#addSubscriberButton');
+                await page.click('#addSubscriberButton');
+                await init.selectByText('#alertViaId','SMS',page);
+                await page.waitForSelector('#countryCodeId');
+                await init.selectByText('#countryCodeId','+1',page);
+                await page.type('#contactPhoneId',phoneNumber);
+                await page.click('#createSubscriber');
+                await init.addIncidentToProject(monitorName, projectName, page);
+                await page.waitForSelector('#incident_monitor1_0 > td:nth-child(2)');
+                await page.click('#incident_monitor1_0 > td:nth-child(2)');
+                await page.waitForSelector('#subscriberAlertTable>tbody>tr>td:nth-child(2)');
+                const receiverPhoneNumber=await page.$eval('#subscriberAlertTable>tbody>tr>td:nth-child(2)',
+                    e=>e.textContent
+                );
+                expect(receiverPhoneNumber).toEqual(phoneNumber);
+            });
+
+            done();
+        },
+        operationTimeOut
+    );    
 
 });
