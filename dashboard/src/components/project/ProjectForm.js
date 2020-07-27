@@ -108,7 +108,13 @@ class _ProjectForm extends React.Component {
     };
 
     render() {
-        const { handleSubmit, hideForm, errorStack, requesting } = this.props;
+        const {
+            handleSubmit,
+            hideForm,
+            errorStack,
+            requesting,
+            activePlan,
+        } = this.props;
         const cardRegistered = User.isCardRegistered();
 
         return (
@@ -169,22 +175,29 @@ class _ProjectForm extends React.Component {
                                 </div>
                             </fieldset>
                             <ShouldRender if={IS_SAAS_SERVICE}>
-                                <fieldset className="bs-Fieldset">
-                                    <div className="bs-Fieldset-rows">
-                                        <div className="Margin-bottom--12 Text-fontWeight--medium">
-                                            Choose a Plan
+                                <div
+                                    className="bs-Modal-content"
+                                    style={{
+                                        padding: 0,
+                                        marginLeft: -20,
+                                        marginRight: -20,
+                                        marginBottom: -20,
+                                        marginTop: 10,
+                                    }}
+                                >
+                                    <fieldset
+                                        className="bs-Fieldset"
+                                        style={{ padding: 0 }}
+                                    >
+                                        <div className="bs-Fieldset-rows">
+                                            <div className="price-list-2c Margin-all--16">
+                                                <PlanFields
+                                                    activePlan={activePlan}
+                                                />
+                                            </div>
                                         </div>
-                                        <div
-                                            className="bs-Fieldset-row .Flex-justifyContent--center"
-                                            style={{
-                                                padding: 0,
-                                                flexDirection: 'column',
-                                            }}
-                                        >
-                                            <PlanFields />
-                                        </div>
-                                    </div>
-                                </fieldset>
+                                    </fieldset>
+                                </div>
                                 <ShouldRender
                                     if={
                                         !cardRegistered ||
@@ -265,6 +278,10 @@ _ProjectForm.propTypes = {
     email: PropTypes.string,
     companyName: PropTypes.string,
     elementFontSize: PropTypes.string,
+    activePlan: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 const ProjectForm = new reduxForm({
@@ -280,6 +297,10 @@ const mapStateToProps = state => {
         companyName:
             state.profileSettings.profileSetting &&
             state.profileSettings.profileSetting.data.companyName,
+        activePlan:
+            state.form._ProjectForm &&
+            state.form._ProjectForm.values &&
+            state.form._ProjectForm.values.planId,
     };
 };
 

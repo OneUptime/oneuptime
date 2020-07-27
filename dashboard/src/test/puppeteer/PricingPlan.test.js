@@ -9,7 +9,7 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-describe('Status Page', () => {
+describe('Status Page -> Pricing Plan Component', () => {
     const operationTimeOut = 500000;
 
     let cluster;
@@ -48,19 +48,7 @@ describe('Status Page', () => {
         'should show upgrade modal if project is not available in a particular plan',
         async () => {
             await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#AccountSwitcherId');
-                await page.click('#AccountSwitcherId');
-                await page.waitForSelector('#create-project');
-                await page.click('#create-project');
-                await page.waitForSelector('#name');
-                await page.type('#name', 'test');
-                await page.$$eval(
-                    'input[name="planId"]',
-                    inputs => inputs[0].click() // select the first plan
-                );
-                await page.click('#btnCreateProject');
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await init.addProject(page, 'test');
                 await page.$eval('#statusPages > a', elem => elem.click());
                 await page.waitForSelector('#btnCreateStatusPage_test');
                 await page.click('#btnCreateStatusPage_test');
@@ -74,15 +62,19 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );
-
                 const modal = await page.waitForSelector('#pricingPlanModal', {
                     visible: true,
                 });
-                expect(modal).toBeTruthy();
+                expect(modal).toBeDefined();
             });
         },
         operationTimeOut
@@ -100,7 +92,12 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
                 await page.$eval('input[name="isSubscriberEnabled"]', elem =>
                     elem.click()
                 );
@@ -110,8 +107,8 @@ describe('Status Page', () => {
                 });
                 const emailBtn = await page.waitForSelector('#enterpriseMail');
 
-                expect(modal).toBeTruthy();
-                expect(emailBtn).toBeTruthy();
+                expect(modal).toBeDefined();
+                expect(emailBtn).toBeDefined();
             });
         },
         operationTimeOut
@@ -164,7 +161,12 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );
@@ -173,7 +175,7 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 const growthOption = await page.waitForSelector(
-                    '#Growth_month',
+                    'label[for=Growth_month]',
                     { visible: true }
                 );
                 growthOption.click();
@@ -199,7 +201,12 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 rowItem.click();
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );
@@ -208,7 +215,7 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 const growthOption = await page.waitForSelector(
-                    '#Growth_month',
+                    'label[for=Growth_month]',
                     { visible: true }
                 );
                 growthOption.click();
@@ -218,6 +225,10 @@ describe('Status Page', () => {
                     hidden: true,
                 });
                 await page.reload({ waitUntil: 'networkidle2' });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[3].click()
+                );
+
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
                 );

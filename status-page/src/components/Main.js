@@ -492,71 +492,62 @@ class Main extends Component {
                                               undefined &&
                                           this.props.statusData.monitorsData
                                               .length > 0 ? (
-                                            this.props.statusData.monitorsData.map(
-                                                (monitor, i) => {
-                                                    return (
-                                                        this.props.monitors && (
-                                                            <>
-                                                                {this.props.monitors.some(
+                                            this.props.monitors
+                                                .filter(monitor =>
+                                                    this.props.statusData.monitorsData.some(
+                                                        m =>
+                                                            m._id ===
+                                                            monitor.monitor
+                                                    )
+                                                )
+                                                .map((monitor, i) => (
+                                                    <>
+                                                        <MonitorInfo
+                                                            monitor={
+                                                                this.props.statusData.monitorsData.filter(
                                                                     m =>
-                                                                        monitor._id ===
-                                                                        m.monitor
-                                                                ) && (
-                                                                    <MonitorInfo
-                                                                        monitor={
-                                                                            monitor
-                                                                        }
-                                                                        selectedCharts={
-                                                                            this.props.monitors.filter(
-                                                                                m =>
-                                                                                    monitor._id ===
-                                                                                    m.monitor
-                                                                            )[0]
-                                                                        }
-                                                                        key={`uptime-${i}`}
-                                                                        id={`monitor${i}`}
-                                                                    />
-                                                                )}
-                                                                {this.props.monitors.some(
+                                                                        m._id ===
+                                                                        monitor.monitor
+                                                                )[0]
+                                                            }
+                                                            selectedCharts={
+                                                                monitor
+                                                            }
+                                                            key={`uptime-${i}`}
+                                                            id={`monitor${i}`}
+                                                        />
+                                                        <LineChartsContainer
+                                                            monitor={
+                                                                this.props.statusData.monitorsData.filter(
                                                                     m =>
-                                                                        monitor._id ===
-                                                                        m.monitor
-                                                                ) && (
-                                                                    <LineChartsContainer
-                                                                        monitor={
-                                                                            monitor
-                                                                        }
-                                                                        selectedCharts={
-                                                                            this.props.monitors.filter(
-                                                                                m =>
-                                                                                    monitor._id ===
-                                                                                    m.monitor
-                                                                            )[0]
-                                                                        }
-                                                                    />
-                                                                )}
-                                                                {i <
-                                                                    this.props
-                                                                        .statusData
-                                                                        .monitorsData
-                                                                        .length -
-                                                                        1 && (
-                                                                    <div
-                                                                        style={{
-                                                                            margin:
-                                                                                '30px 0px',
-                                                                            backgroundColor:
-                                                                                '#8898aa',
-                                                                            height:
-                                                                                '1px',
-                                                                        }}
-                                                                    />
-                                                                )}
-                                                            </>
-                                                        )
-                                                    );
-                                                }
-                                            )
+                                                                        m._id ===
+                                                                        monitor.monitor
+                                                                )[0]
+                                                            }
+                                                            selectedCharts={
+                                                                monitor
+                                                            }
+                                                            key={`line-charts-${i}`}
+                                                        />
+                                                        {i <
+                                                            this.props
+                                                                .statusData
+                                                                .monitorsData
+                                                                .length -
+                                                                1 && (
+                                                            <div
+                                                                style={{
+                                                                    margin:
+                                                                        '30px 0px',
+                                                                    backgroundColor:
+                                                                        '#e8e8e8',
+                                                                    height:
+                                                                        '1px',
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </>
+                                                ))
                                         ) : (
                                             <NoMonitor />
                                         )}

@@ -25,7 +25,7 @@ const ScheduleProjectBox = props => (
                                     : props.subProjects.length > 0
                                     ? 'Project'
                                     : ''}{' '}
-                                call schedules
+                                on-call schedules
                             </span>
                         </span>
                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">

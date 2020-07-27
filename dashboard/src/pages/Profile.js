@@ -14,7 +14,7 @@ const Profile = props => {
     return (
         <Dashboard>
             <Fade>
-                <div className="db-World-contentPane Box-root Padding-bottom--48">
+                <div className="db-World-contentPane Box-root Padding-bottom--48 Padding-top--78">
                     <BreadCrumbItem route={pathname} name="Profile Settings" />
                     <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
                     <div>

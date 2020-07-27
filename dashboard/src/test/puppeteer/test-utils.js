@@ -107,6 +107,15 @@ const gitCredential = {
     gitRepositoryUrl: process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL,
 };
 
+const smtpCredential = {
+    user: process.env.TEST_EMAIL,
+    pass: process.env.TEST_EMAIL_PASSWORD,
+    host: process.env.TEST_EMAIL_SMTP_SERVER,
+    port: process.env.TEST_EMAIL_SMTP_PORT,
+    from: process.env.TEST_EMAIL,
+    secure: true,
+};
+
 module.exports = {
     ACCOUNTS_URL,
     DASHBOARD_URL,
@@ -132,4 +141,5 @@ module.exports = {
     parseBoolean,
     dockerCredential,
     gitCredential,
+    smtpCredential,
 };

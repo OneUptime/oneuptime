@@ -81,19 +81,7 @@ describe('New Monitor API', () => {
             const projectName = utils.generateRandomString();
             const componentName = utils.generateRandomString();
             await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#AccountSwitcherId');
-                await page.click('#AccountSwitcherId');
-                await page.waitForSelector('#create-project');
-                await page.click('#create-project');
-                await page.waitForSelector('#name');
-                await page.type('#name', projectName);
-                await page.$$eval(
-                    'input[name="planId"]',
-                    inputs => inputs[2].click() // select the Growth plan
-                );
-                await page.click('#btnCreateProject');
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await init.addGrowthProject(projectName, page);
 
                 // create a component
                 // Redirects automatically component to details page
@@ -126,19 +114,7 @@ describe('New Monitor API', () => {
             const projectName = utils.generateRandomString();
             const componentName = utils.generateRandomString();
             await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#AccountSwitcherId');
-                await page.click('#AccountSwitcherId');
-                await page.waitForSelector('#create-project');
-                await page.click('#create-project');
-                await page.waitForSelector('#name');
-                await page.type('#name', projectName);
-                await page.$$eval(
-                    'input[name="planId"]',
-                    inputs => inputs[4].click() // select the Scale plan
-                );
-                await page.click('#btnCreateProject');
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await init.addScaleProject(projectName, page);
 
                 // create a component
                 // Redirects automatically component to details page

@@ -181,7 +181,7 @@ export class IncidentList extends Component {
                                                                 incident.createdByZapier ? (
                                                                     <div className="Box-root Margin-right--16">
                                                                         <img
-                                                                            src="/dashboard/assets/img/favicons/ms-icon-70x70.png"
+                                                                            src="/dashboard/assets/img/Fyipe.svg"
                                                                             style={{
                                                                                 display:
                                                                                     'inline-block',
@@ -205,7 +205,7 @@ export class IncidentList extends Component {
                                                                 ) : (
                                                                     <div className="Box-root Margin-right--16">
                                                                         <img
-                                                                            src="/dashboard/assets/img/favicons/ms-icon-70x70.png"
+                                                                            src="/dashboard/assets/img/Fyipe.svg"
                                                                             style={{
                                                                                 display:
                                                                                     'inline-block',
@@ -405,7 +405,7 @@ export class IncidentList extends Component {
                                                                                             incident.acknowledgedByZapier ? (
                                                                                                 <span>
                                                                                                     <img
-                                                                                                        src="/dashboard/assets/img/favicons/ms-icon-70x70.png"
+                                                                                                        src="/dashboard/assets/img/Fyipe.svg"
                                                                                                         style={{
                                                                                                             display:
                                                                                                                 'inline-block',
@@ -429,7 +429,7 @@ export class IncidentList extends Component {
                                                                                             ) : (
                                                                                                 <span>
                                                                                                     <img
-                                                                                                        src="/dashboard/assets/img/favicons/ms-icon-70x70.png"
+                                                                                                        src="/dashboard/assets/img/Fyipe.svg"
                                                                                                         style={{
                                                                                                             display:
                                                                                                                 'inline-block',
@@ -581,7 +581,7 @@ export class IncidentList extends Component {
                                                                                 incident.resolvedByZapier ? (
                                                                                     <span>
                                                                                         <img
-                                                                                            src="/dashboard/assets/img/favicons/ms-icon-70x70.png"
+                                                                                            src="/dashboard/assets/img/Fyipe.svg"
                                                                                             style={{
                                                                                                 display:
                                                                                                     'inline-block',
@@ -605,7 +605,7 @@ export class IncidentList extends Component {
                                                                                 ) : (
                                                                                     <span>
                                                                                         <img
-                                                                                            src="/dashboard/assets/img/favicons/ms-icon-70x70.png"
+                                                                                            src="/dashboard/assets/img/Fyipe.svg"
                                                                                             style={{
                                                                                                 display:
                                                                                                     'inline-block',

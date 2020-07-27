@@ -14,6 +14,7 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const UserService = require('../services/userService');
 
 router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
     try {
@@ -64,36 +65,38 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const data = req.body;
         data.projectId = req.params.projectId;
-        data.email = req.user.email;
-        if (!data.user) {
+        const user = await UserService.findOneBy({ _id: req.user.id });
+        data.email = user.email;
+
+        if (!data.user || !data.user.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'User Name is required.',
             });
         }
 
-        if (!data.pass) {
+        if (!data.pass || !data.pass.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Password is required.',
             });
         }
 
-        if (!data.host) {
+        if (!data.host || !data.host.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'host is required.',
             });
         }
 
-        if (!data.port) {
+        if (!data.port || !data.port.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'port is required.',
             });
         }
 
-        if (!data.from) {
+        if (!data.from || !data.from.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'from is required.',
@@ -126,7 +129,44 @@ router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function(
     try {
         const data = req.body;
         const emailSmtpId = req.params.emailSmtpId;
-        data.email = req.user.email;
+        const user = await UserService.findOneBy({ _id: req.user.id });
+        data.email = user.email;
+
+        if (!data.user || !data.user.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'User Name is required.',
+            });
+        }
+
+        if (!data.pass || !data.pass.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Password is required.',
+            });
+        }
+
+        if (!data.host || !data.host.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'host is required.',
+            });
+        }
+
+        if (!data.port || !data.port.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'port is required.',
+            });
+        }
+
+        if (!data.from || !data.from.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'from is required.',
+            });
+        }
+
         const testResult = await MailService.testSmtpConfig(data);
         if (!testResult.failed) {
             // Call the EmailTemplateService

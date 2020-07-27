@@ -241,6 +241,7 @@ describe('Components', () => {
         },
         operationTimeOut
     );
+
     test(
         'Should get list of resources and confirm their types match',
         async () => {
@@ -372,7 +373,7 @@ describe('Components', () => {
                 await page.waitForSelector('#name');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', utils.generateRandomString());
-                await page.click('input[id=Startup_month]');
+                await page.click('label[for=Startup_month]');
                 await page.click('button[type=submit]');
                 let currentPage = await page.waitForSelector('#cbComponents');
                 currentPage = await currentPage.getProperty('innerText');

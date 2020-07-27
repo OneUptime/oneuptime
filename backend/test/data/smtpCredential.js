@@ -1,0 +1,8 @@
+module.exports = {
+    user: process.env.TEST_EMAIL,
+    pass: process.env.TEST_EMAIL_PASSWORD,
+    host: process.env.TEST_EMAIL_SMTP_SERVER,
+    port: process.env.TEST_EMAIL_SMTP_PORT,
+    from: process.env.TEST_EMAIL,
+    secure: true,
+};

@@ -84,7 +84,10 @@ class StatusPage extends Component {
                         pageTitle="Status Page"
                     />
                     <Tabs selectedTabClassName={'custom-tab-selected'}>
-                        <TabList className={'custom-tab-list'}>
+                        <TabList
+                            id="customTabList"
+                            className={'custom-tab-list'}
+                        >
                             <Tab className={'custom-tab'}>Basic</Tab>
                             <Tab className={'custom-tab'}>Domain</Tab>
                             <Tab className={'custom-tab'}>Branding</Tab>

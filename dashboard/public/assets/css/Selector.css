@@ -8,3 +8,8 @@
     box-sizing: border-box;
     height: 45px;
 }
+
+#pricingPlanModal input[name='planId'],
+#frmCreateProject input[name='planId'] {
+    visibility: hidden;
+}

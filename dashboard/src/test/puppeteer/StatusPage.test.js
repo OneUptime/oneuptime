@@ -14,7 +14,8 @@ const monitorName1 = 'test.fyipe.com';
 
 const gotoTheFirstStatusPage = async page => {
     await page.goto(utils.DASHBOARD_URL);
-    await page.$eval('#statusPages > a', elem => elem.click());
+    await page.waitForSelector('#statusPages > a');
+    await page.click('#statusPages > a');
     const rowItem = await page.waitForSelector(
         '#statusPagesListContainer > tr',
         { visible: true }
@@ -92,7 +93,33 @@ describe('Status Page', () => {
     );
 
     test(
-        'should show error message if no chart is selected.',
+        'should show error message and not submit the form if no monitor is selected and user clicks on save.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#addMoreMonitors');
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-0');
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(3000);
+                const textContent = await page.$eval(
+                    '#monitor-0',
+                    e => e.textContent
+                );
+                expect(
+                    textContent.includes('A monitor must be selected.')
+                ).toEqual(true);
+                await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitFor(3000);
+                const monitor = await page.$$('#monitor-0');
+                expect(monitor.length).toEqual(0);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should show error message and not submit the form if no chart is selected.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
@@ -114,11 +141,57 @@ describe('Status Page', () => {
                 expect(element).toContain(
                     'You must select at least one bar chart'
                 );
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(3000);
+                await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitFor(3000);
+                const monitor = await page.$$('#monitor-0');
+                expect(monitor.length).toEqual(0);
             });
         },
         operationTimeOut
     );
+    test(
+        'should show an error message and not submit the form if the users select the same monitor twice.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#addMoreMonitors');
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-0');
+                await init.selectByText(
+                    '#monitor-0 .db-select-nw',
+                    `${componentName} / ${monitorName}`,
+                    page
+                );
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-1');
+                await init.selectByText(
+                    '#monitor-1 .db-select-nw',
+                    `${componentName} / ${monitorName}`,
+                    page
+                );
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(3000);
+                const textContent = await page.$eval(
+                    '#monitor-1',
+                    e => e.textContent
+                );
+                expect(
+                    textContent.includes('This monitor is already selected.')
+                ).toEqual(true);
+                await page.reload({ waitUntil: 'networkidle0' });
 
+                await page.waitFor(3000);
+
+                const monitor = await page.$$('#monitor-0');
+                expect(monitor.length).toEqual(0);
+                const monitor1 = await page.$$('#monitor-1');
+                expect(monitor1.length).toEqual(0);
+            });
+        },
+        operationTimeOut
+    );
     test(
         'should add a new monitor.',
         async () => {
@@ -212,6 +285,78 @@ describe('Status Page', () => {
     );
 
     test(
+        'Status page should render monitors in the same order as in the form.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#publicStatusPageUrl');
+
+                let link = await page.$('#publicStatusPageUrl > span > a');
+                link = await link.getProperty('href');
+                link = await link.jsonValue();
+                await page.goto(link);
+                await page.waitForSelector('#monitor0');
+                const firstMonitorBeforeSwap = await page.$eval(
+                    '#monitor0 .uptime-stat-name',
+                    e => e.textContent
+                );
+                const secondMonitorBeforeSwap = await page.$eval(
+                    '#monitor1 .uptime-stat-name',
+                    e => e.textContent
+                );
+                expect(firstMonitorBeforeSwap).toEqual(monitorName);
+                expect(secondMonitorBeforeSwap).toEqual(monitorName1);
+
+                // We delete the first monitor in the status page, and we insert it again
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#delete-monitor-0');
+                await page.click('#delete-monitor-0');
+                await page.click('#addMoreMonitors');
+                await page.waitForSelector('#monitor-1');
+                await init.selectByText(
+                    '#monitor-1 .db-select-nw',
+                    `${componentName} / ${monitorName}`,
+                    page
+                );
+                await page.click('#btnAddStatusPageMonitors');
+                await page.waitFor(5000);
+                await page.reload({ waitUntil: 'networkidle0' });
+                // We check if the monitors are added
+                const firstMonitorContainer = await page.waitForSelector(
+                    '#monitor-0',
+                    {
+                        visible: true,
+                    }
+                );
+                expect(firstMonitorContainer).toBeTruthy();
+                const secondMonitorContainer = await page.waitForSelector(
+                    '#monitor-1',
+                    {
+                        visible: true,
+                    }
+                );
+                expect(secondMonitorContainer).toBeTruthy();
+
+                await page.goto(link);
+                await page.waitForSelector('#monitor0');
+                const firstMonitorAfterSwap = await page.$eval(
+                    '#monitor0 .uptime-stat-name',
+                    e => e.textContent
+                );
+                const secondMonitorAfterSwap = await page.$eval(
+                    '#monitor1 .uptime-stat-name',
+                    e => e.textContent
+                );
+                expect(firstMonitorAfterSwap).toEqual(secondMonitorBeforeSwap);
+                expect(secondMonitorAfterSwap).toEqual(firstMonitorBeforeSwap);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'should indicate that no domain is set yet for a status page.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
@@ -232,6 +377,8 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 await page.waitForSelector('#domain', { visible: true });
                 await page.type('#domain', 'fyipeapp.com');
                 await page.click('#btnAddDomain');
@@ -247,7 +394,6 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // This test comes after you must have created a domain
     test(
         'should indicate if domain(s) is set on a status page',
         async () => {
@@ -272,6 +418,12 @@ describe('Status Page', () => {
 
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector(
+                    'fieldset[name="added-domain"] input[type="text"]'
+                );
+
                 const input = await page.$(
                     'fieldset[name="added-domain"] input[type="text"]'
                 );
@@ -280,6 +432,9 @@ describe('Status Page', () => {
 
                 await page.click('#btnAddDomain');
                 await page.reload({ waitUntil: 'networkidle0' });
+
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
                 const finalInputValue = await page.$eval(
                     'fieldset[name="added-domain"] input[type="text"]',
@@ -298,6 +453,8 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 await page.waitForSelector('#btnVerifyDomain');
                 await page.click('#btnVerifyDomain');
 
@@ -317,7 +474,11 @@ describe('Status Page', () => {
         'should not have option of deleting a domain, if there is only one domain in the status page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.reload({ waitUntil: 'networkidle0' });
+                await gotoTheFirstStatusPage(page);
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitFor(3000);
                 const elem = await page.$('.btnDeleteDomain');
                 expect(elem).toBeNull();
             });
@@ -331,6 +492,10 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('fieldset[name="added-domain"]');
+                await page.waitFor(3000);
 
                 //Get the initial length of domains
                 const initialLength = await page.$$eval(
@@ -346,11 +511,17 @@ describe('Status Page', () => {
                 await page.click('#btnAddDomain');
                 await page.reload({ waitUntil: 'networkidle0' });
 
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('.btnDeleteDomain');
                 await page.$eval('.btnDeleteDomain', elem => elem.click());
                 await page.$eval('#confirmDomainDelete', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 // get the final length of domains after deleting
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('fieldset[name="added-domain"]');
                 const finalLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
                     domains => domains.length
@@ -368,7 +539,11 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
+                await page.waitForSelector('fieldset[name="added-domain"]');
+                await page.waitFor(3000);
                 //Get the initial length of domains
                 const initialLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
@@ -382,11 +557,17 @@ describe('Status Page', () => {
                 await page.type('#domain', 'app.fyipeapp.com');
                 await page.click('#btnAddDomain');
                 await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
+                await page.waitForSelector('.btnDeleteDomain');
                 await page.$eval('.btnDeleteDomain', elem => elem.click());
                 await page.$eval('#cancelDomainDelete', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('fieldset[name="added-domain"]');
                 // get the final length of domains after cancelling
                 const finalLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
@@ -404,11 +585,18 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
-
                 await page.waitForNavigation({ waitUntil: 'load' });
+
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
                 await page.type('#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
+                await page.waitFor(3000);
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
+
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#publicStatusPageUrl');
 
                 let link = await page.$('#publicStatusPageUrl > span > a');
                 link = await link.getProperty('href');
@@ -429,17 +617,24 @@ describe('Status Page', () => {
         'should create custom Javascript',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await gotoTheFirstStatusPage(page);
                 const javascript = `console.log('this is a js code');`;
+                await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'load' });
+
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
+                await page.waitForSelector('#customJS textarea');
                 await page.type(
                     '#customJS textarea',
-                    `
-                <script id='js'>${javascript}</script>
-                `
+                    `<script id='js'>${javascript}`
                 );
+                await page.waitFor(3000);
                 await page.click('#btnAddCustomStyles');
                 await page.waitFor(3000);
+
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#publicStatusPageUrl');
 
                 let link = await page.$('#publicStatusPageUrl > span > a');
                 link = await link.getProperty('href');

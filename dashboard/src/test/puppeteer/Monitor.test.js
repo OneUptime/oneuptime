@@ -354,7 +354,6 @@ describe('Monitor API', () => {
                         "Server": "Kestrel",
                         "Set-Cookie": ".AspNetCore.Mvc.CookieTempDataProvider=CfDJ8PriW8VpBIRPo51qMDgzq4Zj6vj_43mJxcKilJDLtxRtiYklbJPut5ndVVaj-W2WxhDuIe_2Dkx7sOkynLl3nnpF6DKN4pag_TA6YEUVrZaCML2yvy6tF_W0x9IDY0gt6ng3DIaVEKo3M0FICa3tw_oeDMlxOjYNmfoj06IHR0kK; path=/; samesite=lax; httponly",
                         "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-                        "Transfer-Encoding": "chunked",
                         "Vary": "Accept-Encoding",
                         "X-Content-Type-Options": "nosniff",
                         "X-Frame-Options": "SAMEORIGIN",
@@ -550,7 +549,7 @@ describe('API Monitor API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(
-                    'Monitor url should not be a website.'
+                    'API Monitor URL should not be a HTML page.'
                 );
             });
         },
@@ -616,7 +615,7 @@ describe('API Monitor API', () => {
         operationTimeOut
     );
 
-    it(
+    test(
         'should delete API monitor',
         async () => {
             expect.assertions(1);

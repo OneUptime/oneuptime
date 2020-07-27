@@ -63,21 +63,7 @@ describe('StatusPage API With SubProjects', () => {
         await cluster.execute(null, async ({ page }) => {
             const user = { email, password };
             await init.loginUser(user, page);
-
-            await page.goto(utils.DASHBOARD_URL);
-
-            await page.waitForSelector('#AccountSwitcherId');
-            await page.click('#AccountSwitcherId');
-            await page.waitForSelector('#create-project');
-            await page.click('#create-project');
-            await page.waitForSelector('#name');
-            await page.type('#name', projectName);
-            await page.$$eval(
-                'input[name="planId"]',
-                inputs => inputs[2].click() // select Growth plan
-            );
-            await page.click('#btnCreateProject');
-            await page.waitForNavigation({ waitUntil: 'networkidle0' });
+            await init.addGrowthProject(projectName, page);
 
             // add sub-project
             await init.addSubProject(subProjectName, page);
@@ -276,9 +262,11 @@ describe('StatusPage API With SubProjects', () => {
                     await page.click('tr.statusPageListItem');
                     await page.waitForSelector(`#btnAddStatusPageMonitors`);
                     await page.click('#btnAddStatusPageMonitors');
+                    await page.click('#react-tabs-2');
                     await page.click('#domain');
                     await page.type('#domain', 'https://fyipe.com');
                     await page.click('#btnAddDomain');
+                    await page.click('#react-tabs-4');
                     await page.click('textarea[name=description]');
                     await page.type(
                         'textarea[name=description]',
@@ -320,6 +308,7 @@ describe('StatusPage API With SubProjects', () => {
                     await page.click('#statusPages');
                     await page.waitForSelector('tr.statusPageListItem');
                     await page.click('tr.statusPageListItem');
+                    await page.click('#react-tabs-6');
                     await page.waitForSelector('#delete');
                     await page.click('#delete');
                     await page.waitForSelector('#confirmDelete');

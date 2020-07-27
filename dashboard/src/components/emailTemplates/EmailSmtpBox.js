@@ -460,6 +460,7 @@ export class EmailSmtpBox extends Component {
                                                                     color:
                                                                         'red',
                                                                 }}
+                                                                id="errorInfo"
                                                             >
                                                                 {this.props
                                                                     .smtpConfigurations
@@ -485,6 +486,7 @@ export class EmailSmtpBox extends Component {
                                                         .requesting
                                                 }
                                                 type="submit"
+                                                id="saveSmtp"
                                             >
                                                 <ShouldRender
                                                     if={

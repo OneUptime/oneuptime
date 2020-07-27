@@ -112,12 +112,6 @@ describe('Member Restriction', () => {
                     },
                     page
                 );
-                await init.growthPlanUpgrade(page);
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
-                // adding a subProject is only allowed on growth plan and above
-                await init.addSubProject(subProjectName, page);
             }
         );
 
@@ -148,11 +142,6 @@ describe('Member Restriction', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
-                await page.waitForSelector('input[name=project_name]');
-                const disabled = await page.$eval(
-                    'input[name=project_name]',
-                    input => input.disabled
-                );
                 await page.waitForSelector('#btn_Add_SubProjects', {
                     visible: true,
                 });
@@ -163,7 +152,6 @@ describe('Member Restriction', () => {
                 );
 
                 expect(unauthorisedModal).toBeDefined();
-                expect(disabled).toBe(true);
             });
             done();
         },
@@ -171,7 +159,7 @@ describe('Member Restriction', () => {
     );
 
     test(
-        'should disable fields for project description box',
+        'should show unauthorised modal to a team member who is not an admin of the project trying to perform any action subproject list',
         async done => {
             cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
@@ -181,6 +169,16 @@ describe('Member Restriction', () => {
             });
 
             await cluster.execute(null, async ({ page }) => {
+                await init.loginUser({ email, password }, page);
+
+                await init.growthPlanUpgrade(page);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                // adding a subProject is only allowed on growth plan and above
+                await init.addSubProject(subProjectName, page);
+                await init.logout(page);
+
                 await init.loginUser({ email: teamEmail, password }, page);
                 await init.switchProject(newProjectName, page);
                 await page.goto(utils.DASHBOARD_URL);
@@ -188,13 +186,18 @@ describe('Member Restriction', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
-                await page.waitForSelector('input[name=project_name]');
-                const disabled = await page.$eval(
-                    'input[name=project_name]',
-                    input => input.disabled
+                const deleteSubProjectBtn = `#sub_project_delete_${subProjectName}`;
+                await page.waitForSelector(deleteSubProjectBtn, {
+                    visible: true,
+                });
+                await page.click(deleteSubProjectBtn);
+                const unauthorisedModal = await page.waitForSelector(
+                    '#unauthorisedModal',
+                    { visible: true }
                 );
-                expect(disabled).toBe(true);
+                expect(unauthorisedModal).toBeDefined();
             });
+
             done();
         },
         operationTimeOut
