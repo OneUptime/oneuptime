@@ -3275,6 +3275,13 @@ html.db-NewChrome body {
 .db-Trends-highlightedLegend {
   display: flex;
 }
+.react-reveal {
+    /* 
+    ** this style is needed to overide animation-fill-mode used in react-reveal package for animation 
+    ** to fix the issue we had with our select element
+    */ 
+    animation-fill-mode: unset !important;
+}
 @media (max-width: 1246px) {
   .db-Trends-footerCol:first-child {
     flex-basis: 75%;

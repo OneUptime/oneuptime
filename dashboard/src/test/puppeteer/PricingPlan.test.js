@@ -48,19 +48,7 @@ describe('Status Page -> Pricing Plan Component', () => {
         'should show upgrade modal if project is not available in a particular plan',
         async () => {
             await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#AccountSwitcherId');
-                await page.click('#AccountSwitcherId');
-                await page.waitForSelector('#create-project');
-                await page.click('#create-project');
-                await page.waitForSelector('#name');
-                await page.type('#name', 'test');
-                await page.$$eval(
-                    'input[name="planId"]',
-                    inputs => inputs[0].click() // select the first plan
-                );
-                await page.click('#btnCreateProject');
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await init.addProject(page, 'test');
                 await page.$eval('#statusPages > a', elem => elem.click());
                 await page.waitForSelector('#btnCreateStatusPage_test');
                 await page.click('#btnCreateStatusPage_test');
