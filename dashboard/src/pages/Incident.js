@@ -334,19 +334,17 @@ class Incident extends React.Component {
             component,
             location: { pathname },
         } = this.props;
-        const componentName =
-            component.length > 0
-                ? component[0]
-                    ? component[0].name
-                    : null
-                : null;
+        const componentName = component.length > 0 ? component[0].name : '';
 
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
-                    <BreadCrumbItem route="#" name={componentName} />
                     <BreadCrumbItem
-                        route={getParentRoute(pathname)}
+                        route={getParentRoute(pathname, null, 'incidents')}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname, null, 'incident-log')}
                         name="Incident Log"
                     />
                     <BreadCrumbItem route={pathname} name="Incident" />
@@ -372,7 +370,9 @@ class Incident extends React.Component {
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
     const component = state.component.componentList.components.map(item => {
-        return item.components.find(component => component._id === componentId);
+        return item.components.find(
+            component => String(component._id) === String(componentId)
+        );
     });
 
     return {
