@@ -411,6 +411,19 @@ router.post(
                 });
             }
 
+            if (!data.incident_state) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Incident State is required.',
+                });
+            }
+            if (typeof data.incident_state !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Incident State is not in string type.',
+                });
+            }
+
             if (!data.id) {
                 // this is a message creation Rquest
                 if (!data.type) {
@@ -470,7 +483,10 @@ router.post(
                     data.createdById = req.user.id;
                     incidentMessage = await IncidentMessageService.create(data);
                 } else {
-                    const updatedMessage = { content: data.content };
+                    const updatedMessage = {
+                        content: data.content,
+                        incident_state: data.incident_state,
+                    };
                     incidentMessage = await IncidentMessageService.updateOneBy(
                         { _id: data.id },
                         updatedMessage

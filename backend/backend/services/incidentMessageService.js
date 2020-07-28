@@ -7,6 +7,7 @@ module.exports = {
             incidentMessage.incidentId = data.incidentId;
             incidentMessage.createdById = data.createdById;
             incidentMessage.type = data.type;
+            incidentMessage.incident_state = data.incident_state;
 
             incidentMessage = await incidentMessage.save();
             incidentMessage = await this.findOneBy({
