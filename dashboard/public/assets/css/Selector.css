@@ -13,3 +13,49 @@
 #frmCreateProject input[name='planId'] {
     visibility: hidden;
 }
+
+.tooltip {
+  position: relative;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 70px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.5s;
+    height: 25px;
+    right: 0;
+    position: absolute;
+    line-height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+}
+
+.tooltip .tooltiptext strong {
+    text-transform: capitalize;
+}
+
+.tooltip .tooltiptext span {
+    font-size: 12px;
+}
+
+.tooltip .tooltiptext::after {
+    content: " ";
+    position: absolute;
+    bottom: 30%;
+    left: -10px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent #555 transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
