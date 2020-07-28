@@ -42,19 +42,23 @@ class NewIncidentMessage extends Component {
         const thisObj = this;
         const postObj = {};
         postObj.content = values[`content`];
+        postObj.incident_state =
+            values[`incident_state`] === 'others'
+                ? values[`custom_incident_state`]
+                : values[`incident_state`];
         let mode = 'NEW';
-        if (this.props.edit) {
+        if (this.props.data.edit) {
             postObj.id = this.props.incidentMessage._id;
         } else {
-            postObj.type = this.props.type;
+            postObj.type = this.props.data.type;
             mode = 'EDIT';
         }
 
-        if (this.props.type === 'investigation') {
+        if (this.props.data.type === 'investigation') {
             this.props
                 .setInvestigationNote(
                     this.props.currentProject._id,
-                    this.props.incident._id,
+                    this.props.data.incident._id,
                     postObj
                 )
                 .then(
@@ -77,7 +81,7 @@ class NewIncidentMessage extends Component {
             this.props
                 .setInternalNote(
                     this.props.currentProject._id,
-                    this.props.incident._id,
+                    this.props.data.incident._id,
                     postObj
                 )
                 .then(
@@ -245,7 +249,7 @@ class NewIncidentMessage extends Component {
                                                             validate={
                                                                 ValidateField.text
                                                             }
-                                                            style=""
+                                                            style={``}
                                                         />
                                                     </div>
                                                 </div>
