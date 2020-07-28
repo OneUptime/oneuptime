@@ -270,6 +270,7 @@ export class SmsTemplatesFormBox extends Component {
                                             resetSmsTemplates.requesting)
                                     }
                                     type="submit"
+                                    id="saveTemplate"
                                 >
                                     <ShouldRender
                                         if={
@@ -297,6 +298,7 @@ export class SmsTemplatesFormBox extends Component {
                                 </button>
                                 <ShouldRender if={template._id}>
                                     <button
+                                        id="templateReset"
                                         className="bs-Button"
                                         type="button"
                                         onClick={() =>
