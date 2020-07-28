@@ -39,50 +39,25 @@ class IncidentCreated extends Component {
                         margin: '0 30px 20px 0',
                     }}
                 >
-                    <div className="ContextualPopover-contents">
-                        <div
-                            className="Box-root"
-                            id="notificationscroll"
-                            style={{
-                                width: '450px',
-                                maxHeight: '350px',
-                                overflowX: 'scroll',
-                            }}
-                        >
+                    <div
+                        className="Box-root"
+                        id="notificationscroll"
+                        style={{
+                            width: '450px',
+                            maxHeight: '350px',
+                            overflowX: 'scroll',
+                        }}
+                    >
+                        <div className="Box-root Padding-all--4">
                             <div
-                                className="Box-root Box-divider--surface-bottom-1 Padding-all--12"
+                                className="Box-root"
                                 style={{
-                                    boxShadow: '1px 1px rgba(188,188,188,0.5)',
+                                    fontWeight: '500',
                                 }}
                             >
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                    }}
-                                >
-                                    <span
-                                        style={{
-                                            color: '#24b47e',
-                                            paddingLeft: '15px',
-                                            fontSize: '14px',
-                                            fontWeight: 'bold',
-                                        }}
-                                    >
-                                        NEW INCIDENT CREATED
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="Box-root Padding-all--4">
-                                <div
-                                    className="Box-root"
-                                    style={{
-                                        fontWeight: '500',
-                                    }}
-                                >
-                                    {notifications && notifications.length > 0
-                                        ? notifications.map(notification => {
+                                {notifications && notifications.length > 0
+                                    ? notifications.map(
+                                          (notification, index) => {
                                               return (
                                                   <div
                                                       className="Box-root Box-background--red4"
@@ -90,28 +65,14 @@ class IncidentCreated extends Component {
                                                           padding: '10px 10px',
                                                           fontWeight: '400',
                                                           fontSize: '1em',
-                                                          borderBottom:
-                                                              '1px solid #ffffff',
-                                                          borderRadius: '2px',
+                                                          marginBottom: '4px',
+                                                          borderRadius: '4px',
                                                       }}
                                                       key={notification._id}
                                                   >
                                                       <div className="Notify-fyipe">
-                                                          <img
-                                                              src={`/dashboard/assets/img/${
-                                                                  notification.icon
-                                                                      ? notification.icon
-                                                                      : 'information'
-                                                              }.svg`}
-                                                              className="Notify-fyipe-row-primary"
-                                                              style={{
-                                                                  height:
-                                                                      '20px',
-                                                                  width: '20px',
-                                                              }}
-                                                              alt="notify"
-                                                          />
-                                                          <span className="Notify-fyipe-row-secondary Text-color--white">
+                                                          <div className="Notify-fyipe-container-row-primary db-SideNav-icon--danger" />
+                                                          <span className="Notify-fyipe-container-row-secondary Text-color--white">
                                                               {
                                                                   notification.message
                                                               }{' '}
@@ -125,29 +86,40 @@ class IncidentCreated extends Component {
                                                       </div>
                                                       <div className="Notify-fyipe">
                                                           <span></span>
-                                                          <button
-                                                              id="createIncident"
-                                                              className="bs-Button"
-                                                              style={{
-                                                                  height:
-                                                                      '30px',
-                                                                  width: '50px',
-                                                              }}
-                                                              onClick={() =>
-                                                                  this.markAsRead(
-                                                                      notification
-                                                                  )
-                                                              }
-                                                              type="button"
-                                                          >
-                                                              <span>View</span>
-                                                          </button>
+                                                          <span>
+                                                              <button
+                                                                  id={`viewIncident-${index}`}
+                                                                  className="bs-Button bs-Button--red Box-background--red border-white"
+                                                                  style={{
+                                                                      height:
+                                                                          '30px',
+                                                                      width:
+                                                                          '50px',
+                                                                      boxShadow:
+                                                                          '0 0 0 1px #ffffff, 0 1.5px 1px 0 rgba(158, 33, 70, 0.15), 0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent',
+                                                                      float:
+                                                                          'right',
+                                                                      marginRight:
+                                                                          '5px',
+                                                                  }}
+                                                                  onClick={() =>
+                                                                      this.markAsRead(
+                                                                          notification
+                                                                      )
+                                                                  }
+                                                                  type="button"
+                                                              >
+                                                                  <span>
+                                                                      View
+                                                                  </span>
+                                                              </button>
+                                                          </span>
                                                       </div>
                                                   </div>
                                               );
-                                          })
-                                        : null}
-                                </div>
+                                          }
+                                      )
+                                    : null}
                             </div>
                         </div>
                     </div>
