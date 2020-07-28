@@ -9,8 +9,17 @@ import {
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 import IncidentMessageThread from './IncidentMessageThread';
+import { openModal } from '../../actions/modal';
+import uuid from 'uuid';
 
 export class IncidentInvestigation extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            createMessageModalId: uuid.v4(),
+        };
+    }
     olderInvestigationMessage = () => {
         this.props.fetchIncidentMessages(
             this.props.currentProject._id,
@@ -60,7 +69,9 @@ export class IncidentInvestigation extends Component {
             incidentMessages,
             editIncidentMessageSwitch,
             incident,
+            openModal,
         } = this.props;
+        const { createMessageModalId } = this.state;
         if (incidentMessages) {
             count = incidentMessages.count;
             skip = incidentMessages.skip;
@@ -107,6 +118,8 @@ export class IncidentInvestigation extends Component {
                         error={error}
                         newerMessage={this.newerInvestigationMessage}
                         olderMessage={this.olderInvestigationMessage}
+                        createMessageModalId={createMessageModalId}
+                        openModal={openModal}
                     />
                 </div>
             </div>
@@ -121,6 +134,7 @@ const mapDispatchToProps = dispatch =>
         {
             editIncidentMessageSwitch,
             fetchIncidentMessages,
+            openModal,
         },
         dispatch
     );
@@ -146,6 +160,7 @@ IncidentInvestigation.propTypes = {
     currentProject: PropTypes.object,
     editIncidentMessageSwitch: PropTypes.func,
     fetchIncidentMessages: PropTypes.func,
+    openModal: PropTypes.func,
 };
 
 export default connect(

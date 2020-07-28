@@ -4,9 +4,10 @@ import ShouldRender from '../basic/ShouldRender';
 import moment from 'moment';
 import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
-import NewIncidentMessage from './NewIncidentMessage';
+import NewIncidentMessage from '../modals/NewIncidentMessage';
 import { User } from '../../config';
 import { ListLoader } from '../basic/Loader';
+import DataPathHoC from '../DataPathHoC';
 
 export class IncidentMessageThread extends Component {
     render() {
@@ -24,6 +25,8 @@ export class IncidentMessageThread extends Component {
             error,
             olderMessage,
             newerMessage,
+            createMessageModalId,
+            openModal,
         } = this.props;
         return (
             <div className="Box-root">
@@ -35,6 +38,27 @@ export class IncidentMessageThread extends Component {
                         <p>
                             <span>{description}</span>
                         </p>
+                    </div>
+                    <div className="Box-root">
+                        <button
+                            className="bs-Button bs-ButtonLegacy ActionIconParent"
+                            type="button"
+                            id={`add-${title.toLowerCase()}-message`}
+                            onClick={() =>
+                                openModal({
+                                    id: createMessageModalId,
+                                    content: DataPathHoC(NewIncidentMessage, {
+                                        incident: incident,
+                                        formId: `New${type}Form`,
+                                        type: type,
+                                    }),
+                                })
+                            }
+                        >
+                            <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                <span>{`Add ${title} Note`}</span>
+                            </span>
+                        </button>
                     </div>
                 </div>
 
@@ -53,128 +77,100 @@ export class IncidentMessageThread extends Component {
                                                 : 'Box-background--white'
                                         }Box-root Box-divider--surface-bottom-1 Padding-horizontal--20 Padding-vertical--8`}
                                     >
-                                        <ShouldRender
-                                            if={!incidentMessage.editMode}
-                                        >
-                                            <div className="Flex-flex Flex-justifyContent--spaceBetween">
-                                                <div className="Box-root Margin-right--16">
-                                                    <img
-                                                        src="/dashboard/assets/img/profile-user.svg"
-                                                        className="userIcon"
-                                                        alt="user_image"
-                                                        style={{
-                                                            marginBottom:
-                                                                '-5px',
-                                                        }}
-                                                    />
-                                                    <span>
-                                                        {incidentMessage
-                                                            .createdById.name
-                                                            ? incidentMessage
-                                                                  .createdById
-                                                                  .name
-                                                            : 'Unknown User'}
-                                                    </span>
-                                                </div>
-                                                <div className="Box-root Margin-right--16">
-                                                    <span>
-                                                        <strong>
-                                                            {currentTimeZone
-                                                                ? momentTz(
-                                                                      incidentMessage.createdAt
-                                                                  )
-                                                                      .tz(
-                                                                          currentTimeZone
-                                                                      )
-                                                                      .format(
-                                                                          'lll'
-                                                                      )
-                                                                : moment(
-                                                                      incidentMessage.createdAt
-                                                                  ).format(
-                                                                      'lll'
-                                                                  )}
-                                                        </strong>{' '}
-                                                        (
-                                                        {moment(
-                                                            incidentMessage.createdAt
-                                                        ).fromNow()}
-                                                        )
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="Flex-flex Flex-justifyContent--spaceBetween">
-                                                <div
+                                        <div className="Flex-flex Flex-justifyContent--spaceBetween">
+                                            <div className="Box-root Margin-right--16">
+                                                <img
+                                                    src="/dashboard/assets/img/profile-user.svg"
+                                                    className="userIcon"
+                                                    alt="user_image"
                                                     style={{
-                                                        padding: '0px 30px',
+                                                        marginBottom: '-5px',
                                                     }}
+                                                />
+                                                <span>
+                                                    {incidentMessage.createdById
+                                                        .name
+                                                        ? incidentMessage
+                                                              .createdById.name
+                                                        : 'Unknown User'}
+                                                </span>
+                                            </div>
+                                            <div className="Box-root Margin-right--16">
+                                                <span>
+                                                    <strong>
+                                                        {currentTimeZone
+                                                            ? momentTz(
+                                                                  incidentMessage.createdAt
+                                                              )
+                                                                  .tz(
+                                                                      currentTimeZone
+                                                                  )
+                                                                  .format('lll')
+                                                            : moment(
+                                                                  incidentMessage.createdAt
+                                                              ).format('lll')}
+                                                    </strong>{' '}
+                                                    (
+                                                    {moment(
+                                                        incidentMessage.createdAt
+                                                    ).fromNow()}
+                                                    )
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="Flex-flex Flex-justifyContent--spaceBetween">
+                                            <div
+                                                style={{
+                                                    padding: '0px 30px',
+                                                }}
+                                            >
+                                                <p
+                                                    id={`${type}_incident_message_${index}_content`}
                                                 >
-                                                    <p
-                                                        id={`${type}_incident_message_${index}_content`}
-                                                    >
-                                                        {' '}
-                                                        {
-                                                            incidentMessage.content
-                                                        }
-                                                        <ShouldRender
-                                                            if={
-                                                                incidentMessage.updated
-                                                            }
-                                                        >
-                                                            <span className="Margin-horizontal--4 Text-color--dark">
-                                                                (edited)
-                                                            </span>
-                                                        </ShouldRender>
-                                                    </p>
+                                                    {' '}
+                                                    {incidentMessage.content}
                                                     <ShouldRender
                                                         if={
-                                                            User.getUserId() ===
-                                                            incidentMessage
-                                                                .createdById._id
+                                                            incidentMessage.updated
                                                         }
                                                     >
-                                                        <p
-                                                            style={{
-                                                                cursor:
-                                                                    'pointer',
-                                                            }}
-                                                            onClick={() =>
-                                                                editIncidentMessageSwitch(
-                                                                    incidentMessage
-                                                                )
-                                                            }
-                                                            id={`edit_${type}_incident_message_${index}`}
-                                                        >
-                                                            <img
-                                                                src="/dashboard/assets/img/edit.svg"
-                                                                className="Margin-right--8"
-                                                                alt="edit_icon"
-                                                                style={{
-                                                                    height:
-                                                                        '10px',
-                                                                    width:
-                                                                        '10px',
-                                                                }}
-                                                            />
-                                                            Edit Response
-                                                        </p>
+                                                        <span className="Margin-horizontal--4 Text-color--dark">
+                                                            (edited)
+                                                        </span>
                                                     </ShouldRender>
-                                                </div>
+                                                </p>
+                                                <ShouldRender
+                                                    if={
+                                                        User.getUserId() ===
+                                                        incidentMessage
+                                                            .createdById._id
+                                                    }
+                                                >
+                                                    <p
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                        }}
+                                                        onClick={() =>
+                                                            editIncidentMessageSwitch(
+                                                                incidentMessage
+                                                            )
+                                                        }
+                                                        id={`edit_${type}_incident_message_${index}`}
+                                                    >
+                                                        <img
+                                                            src="/dashboard/assets/img/edit.svg"
+                                                            className="Margin-right--8"
+                                                            alt="edit_icon"
+                                                            style={{
+                                                                height: '10px',
+                                                                width: '10px',
+                                                            }}
+                                                        />
+                                                        Edit Response
+                                                    </p>
+                                                </ShouldRender>
                                             </div>
-                                        </ShouldRender>
-                                        <ShouldRender
-                                            if={incidentMessage.editMode}
-                                        >
-                                            <NewIncidentMessage
-                                                incident={incident}
-                                                type={type}
-                                                edit={true}
-                                                incidentMessage={
-                                                    incidentMessage
-                                                }
-                                                formId={incidentMessage._id}
-                                            />
-                                        </ShouldRender>
+                                        </div>
                                     </div>
                                 );
                             }
@@ -251,11 +247,6 @@ export class IncidentMessageThread extends Component {
                         </div>
                     </div>
                 </ShouldRender>
-                <NewIncidentMessage
-                    incident={incident}
-                    type={type}
-                    formId={`New${type}Form`}
-                />
             </div>
         );
     }
@@ -277,6 +268,8 @@ IncidentMessageThread.propTypes = {
     error: PropTypes.string,
     olderMessage: PropTypes.func,
     newerMessage: PropTypes.func,
+    openModal: PropTypes.func,
+    createMessageModalId: PropTypes.string,
 };
 
 export default IncidentMessageThread;
