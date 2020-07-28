@@ -13,6 +13,7 @@ const incidentLogSchema = new Schema({
         enum: ['investigation', 'internal'],
         required: true,
     },
+    incident_state: String,
     createdById: { type: String, ref: 'User' }, //userId.
     createdAt: {
         type: Date,
