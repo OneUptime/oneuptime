@@ -8,14 +8,16 @@ require('should');
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+let defaultSubject;
 
 describe('Email Templates API', () => {
     const operationTimeOut = 100000;
 
+    let cluster;
     beforeAll(async done => {
         jest.setTimeout(200000);
 
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
@@ -27,44 +29,30 @@ describe('Email Templates API', () => {
         });
 
         // Register user
-        await cluster.task(async ({ page, data }) => {
+        await cluster.execute({ email, password }, async ({ page, data }) => {
             const user = {
                 email: data.email,
                 password: data.password,
             };
             // user
             await init.registerUser(user, page);
+            await init.loginUser(user, page);
         });
 
-        await cluster.queue({ email, password });
+        done();
+    });
 
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
         done();
     });
 
-    afterAll(async done => {
-        done();
-    });
-
     test(
-        'should hide reset button when no template is saved',
+        'should not show reset button when no template is saved',
         async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
             await cluster.execute(null, async ({ page }) => {
-                const user = { email, password };
-                await init.loginUser(user, page);
-
+                await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
                 await page.waitForSelector('#email');
@@ -74,6 +62,8 @@ describe('Email Templates API', () => {
                     'External Subscriber Incident Created',
                     page
                 );
+                await page.waitForSelector('#name');
+                defaultSubject = await page.$eval('#name', elem => elem.value);
                 const resetBtn = await page.waitForSelector('#templateReset', {
                     hidden: true,
                 });
@@ -88,63 +78,38 @@ describe('Email Templates API', () => {
     test(
         'Should update default email template',
         async done => {
-            expect.assertions(1);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
                 await page.waitForSelector('#email');
                 await page.click('#email');
-                await page.waitFor(5000);
                 await init.selectByText(
                     '#type',
-                    'Subscriber Incident Created',
+                    'External Subscriber Incident Created',
                     page
                 );
-                await page.waitForSelector('#frmEmailTemplate');
-                await page.click('input[id=name]', { clickCount: 3 });
-                await page.type('input[id=name]', 'New Subject');
-                await page.click('button[type=submit]');
-                await page.waitFor(10000);
+                const subject = 'Updated Subject';
+                await page.waitForSelector('#name');
+                await page.click('#name', { clickCount: 3 });
+                await page.type('#name', subject);
+                await page.click('#saveTemplate');
+                await page.waitForSelector('#ball-beat', { hidden: true });
 
-                await page.reload({
-                    waitUntil: ['networkidle0', 'domcontentloaded'],
-                });
-                await page.waitFor(5000);
+                await page.reload();
                 await init.selectByText(
                     '#type',
-                    'Subscriber Incident Created',
+                    'External Subscriber Incident Created',
                     page
                 );
-                await page.waitForSelector('#frmEmailTemplate');
-
-                const emailTemplateSubject = await page.$eval(
-                    'input[id=name]',
-                    el => el.value
+                await page.waitForSelector('#name');
+                const finalSubject = await page.$eval(
+                    '#name',
+                    elem => elem.value
                 );
-                expect(emailTemplateSubject).toEqual('New Subject');
+
+                expect(finalSubject).toEqual(subject);
             });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
             done();
         },
         operationTimeOut
@@ -153,21 +118,8 @@ describe('Email Templates API', () => {
     test(
         'should show reset button when a template is already saved',
         async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
             await cluster.execute(null, async ({ page }) => {
-                const user = { email, password };
-                await init.loginUser(user, page);
-
+                await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
                 await page.waitForSelector('#email');
@@ -181,6 +133,45 @@ describe('Email Templates API', () => {
                     visible: true,
                 });
                 expect(resetBtn).toBeDefined();
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should reset template to default state',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#email');
+                await page.click('#email');
+                await init.selectByText(
+                    '#type',
+                    'External Subscriber Incident Created',
+                    page
+                );
+                await page.waitForSelector('#templateReset', {
+                    visible: true,
+                });
+                await page.click('#templateReset');
+                await page.waitForSelector('#ball-beat', { hidden: true });
+
+                await page.reload();
+                await init.selectByText(
+                    '#type',
+                    'External Subscriber Incident Created',
+                    page
+                );
+                await page.waitForSelector('#name');
+                const finalSubject = await page.$eval(
+                    '#name',
+                    elem => elem.value
+                );
+                expect(defaultSubject).toEqual(finalSubject);
             });
 
             done();

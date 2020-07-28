@@ -123,6 +123,7 @@ export class TemplatesFormBox extends Component {
                                                         name="body"
                                                         style={style}
                                                         rows={30}
+                                                        id="templateTextArea"
                                                     />
                                                 </div>
                                             </div>
@@ -255,6 +256,7 @@ export class TemplatesFormBox extends Component {
                                                 resetEmailTemplates.requesting)
                                         }
                                         type="submit"
+                                        id="saveTemplate"
                                     >
                                         <ShouldRender
                                             if={
