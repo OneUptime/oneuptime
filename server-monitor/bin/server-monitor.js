@@ -22,10 +22,16 @@ const serverMonitor = require('../lib/api');
 program.version(version, '-v, --version').description('Fyipe Monitoring Shell');
 
 program
-    .option('-p, --project-id [projectId]', 'Use Project ID from dashboard')
-    .option('-u, --api-url [apiUrl]', 'Use URL for API')
-    .option('-a, --api-key [apiKey]', 'Use API key from dashboard')
-    .option('-m, --monitor-id [monitorId]', 'Use monitor ID from dashboard')
+    .option(
+        '-p, --project-id [projectId]',
+        "Use Project ID from project's API settings"
+    )
+    .option('-u, --api-url [apiUrl]', "Use API URL from project's API settings")
+    .option('-a, --api-key [apiKey]', "Use API Key from project's API settings")
+    .option(
+        '-m, --monitor-id [monitorId]',
+        'Use Monitor ID from monitor details'
+    )
     .parse(process.argv);
 
 /** The questions to get project id, api key and monitor id. */
@@ -121,11 +127,17 @@ checkParams(questions).then(values => {
                         param => param.name === 'monitorId'
                     );
                     question[0].choices = data.map(
-                        monitor => `${monitor._id} (${monitor.name})`
+                        monitor =>
+                            `${monitor.componentId.name} / ${monitor.name} (${monitor._id})`
                     );
 
                     prompt(question).then(({ monitorId }) => {
-                        resolve(monitorId.split(' (').shift());
+                        resolve(
+                            monitorId
+                                .replace(/\/|\(|\)$/gi, '')
+                                .split(' ')
+                                .pop()
+                        );
                     });
                 });
             }),

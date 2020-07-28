@@ -316,6 +316,11 @@ export class MonitorDetail extends Component {
                                                         href="https://www.npmjs.com/package/fyipe-server-monitor"
                                                         rel="noopener noreferrer"
                                                         target="_blank"
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                            textDecoration:
+                                                                'underline',
+                                                        }}
                                                     >
                                                         click here
                                                     </a>{' '}

@@ -57,7 +57,7 @@ let RenderMonitor = ({
     const { monitor: currentMonitorID } = currentMonitorForm;
     const getParentComponent = monitor =>
         allComponents.filter(
-            component => component._id === monitor.componentId
+            component => component._id === monitor.componentId._id
         )[0];
 
     const selectedMonitor = allMonitors.filter(

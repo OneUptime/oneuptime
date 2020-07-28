@@ -258,11 +258,7 @@ class DashboardView extends Component {
 
         monitors && monitors.unshift(projectMonitor);
         const componentName =
-            component.length > 0
-                ? component[0]
-                    ? component[0].name
-                    : null
-                : null;
+            component.length > 0 ? (component[0] ? component[0].name : '') : '';
 
         return (
             <Dashboard ready={this.ready}>
@@ -436,7 +432,7 @@ const mapStateToProps = (state, props) => {
 
     monitor.monitorsList.monitors.forEach(item => {
         item.monitors = item.monitors.filter(
-            monitor => monitor.componentId === componentId
+            monitor => monitor.componentId._id === componentId
         );
     });
 

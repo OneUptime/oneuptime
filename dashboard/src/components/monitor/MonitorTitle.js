@@ -95,7 +95,7 @@ export class MonitorTitle extends Component {
                             >
                                 <StatusIndicator status={status} />
                                 <span id={`monitor-title-${monitor.name}`}>
-                                    {monitor.name}
+                                    {monitor.name} ({monitor._id})
                                 </span>
                             </span>
                             <ShouldRender if={monitor && monitor.type}>
@@ -112,6 +112,10 @@ export class MonitorTitle extends Component {
                                                 href="https://www.npmjs.com/package/fyipe-server-monitor"
                                                 rel="noopener noreferrer"
                                                 target="_blank"
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    textDecoration: 'underline',
+                                                }}
                                             >
                                                 click here
                                             </a>{' '}

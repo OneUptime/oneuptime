@@ -8,9 +8,9 @@
     "main": "./lib/api.js",
     "scripts": {
         "start": "node ./bin/server-monitor.js",
-        "dev": "NODE_ENV=development nodemon ./bin/server-monitor.js | ./node_modules/.bin/pino-pretty",
+        "dev": "NODE_ENV=development nodemon ./bin/server-monitor.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",
-        "test": "NODE_ENV=development mocha --exit | ./node_modules/.bin/pino-pretty",
+        "test": "NODE_ENV=development mocha --exit",
         "doc": "jsdoc -r ./bin ./lib --readme README.md",
         "dep-check": "depcheck ./ --skip-missing=true"
     },
@@ -23,6 +23,7 @@
         "dotenv": "^8.1.0",
         "inquirer": "^6.5.2",
         "pino": "^5.13.4",
+        "pino-pretty": "^3.2.1",
         "promise": "^8.0.3",
         "systeminformation": "^4.14.8"
     },
@@ -37,8 +38,7 @@
         "chai-http": "^4.3.0",
         "depcheck": "^0.9.2",
         "mocha": "^6.2.0",
-        "npm-audit-ci-wrapper": "^2.5.1",
-        "pino-pretty": "^3.2.1"
+        "npm-audit-ci-wrapper": "^2.5.1"
     },
     "directories": {
         "lib": "lib",
