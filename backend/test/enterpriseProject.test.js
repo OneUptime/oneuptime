@@ -63,4 +63,15 @@ describe('Enterprise Project API', function() {
                 done();
             });
     });
+
+    it('should delete a project', done => {
+        const authorization = `Basic ${token}`;
+        request
+            .delete(`/project/${projectId}/deleteProject`)
+            .set('Authorization', authorization)
+            .end((err, res) => {
+                expect(res).to.have.status(200);
+                done();
+            });
+    });
 });
