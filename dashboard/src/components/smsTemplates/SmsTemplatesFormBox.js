@@ -295,29 +295,31 @@ export class SmsTemplatesFormBox extends Component {
                                         <FormLoader />
                                     </ShouldRender>
                                 </button>
-                                <button
-                                    className="bs-Button"
-                                    type="button"
-                                    onClick={() =>
-                                        this.props.openModal({
-                                            id: this.state
-                                                .openSmsTemplateResetModalId,
-                                            onClose: () => '',
-                                            onConfirm: () =>
-                                                this.resetTemplate(
-                                                    template._id
+                                <ShouldRender if={template._id}>
+                                    <button
+                                        className="bs-Button"
+                                        type="button"
+                                        onClick={() =>
+                                            this.props.openModal({
+                                                id: this.state
+                                                    .openSmsTemplateResetModalId,
+                                                onClose: () => '',
+                                                onConfirm: () =>
+                                                    this.resetTemplate(
+                                                        template._id
+                                                    ),
+                                                content: DataPathHoC(
+                                                    ResetSmsTemplate,
+                                                    {
+                                                        resetSmsTemplates,
+                                                    }
                                                 ),
-                                            content: DataPathHoC(
-                                                ResetSmsTemplate,
-                                                {
-                                                    resetSmsTemplates,
-                                                }
-                                            ),
-                                        })
-                                    }
-                                >
-                                    <span>Reset</span>
-                                </button>
+                                            })
+                                        }
+                                    >
+                                        <span>Reset</span>
+                                    </button>
+                                </ShouldRender>
                                 {/* <button
                                     className="bs-Button"
                                     disabled={
