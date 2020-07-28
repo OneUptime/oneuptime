@@ -74,4 +74,15 @@ describe('Enterprise Project API', function() {
                 done();
             });
     });
+
+    it('should restore a deleted project', done => {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/project/${projectId}/restoreProject`)
+            .set('Authorization', authorization)
+            .end((err, res) => {
+                expect(res).to.have.status(200);
+                done();
+            });
+    });
 });
