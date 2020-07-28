@@ -116,4 +116,30 @@ describe('SMS Templates API', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should show reset button when a template is already saved',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#sms');
+                await page.click('#sms');
+                await page.waitForSelector('#type');
+                await init.selectByText(
+                    '#type',
+                    'Subscriber Incident Created',
+                    page
+                );
+                const resetBtn = await page.waitForSelector('#templateReset', {
+                    visible: true,
+                });
+                expect(resetBtn).toBeDefined();
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
 });
