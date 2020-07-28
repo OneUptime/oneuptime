@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import Badge from '../common/Badge';
 import StatusIndicator from './StatusIndicator';
+import ShouldRender from '../basic/ShouldRender';
 import moment from 'moment';
 
 export class MonitorTitle extends Component {
@@ -51,7 +52,7 @@ export class MonitorTitle extends Component {
     }
 
     render() {
-        const { monitor, status, activeProbe, probes } = this.props;
+        const { monitor, status, activeProbe, probes, logs } = this.props;
 
         const probe =
             monitor && probes && probes.length > 0
@@ -97,6 +98,30 @@ export class MonitorTitle extends Component {
                                     {monitor.name}
                                 </span>
                             </span>
+                            <ShouldRender if={monitor && monitor.type}>
+                                {monitor.type === 'server-monitor' ? (
+                                    <ShouldRender
+                                        if={
+                                            !logs || (logs && logs.length === 0)
+                                        }
+                                    >
+                                        <span className="Text-fontSize--14">
+                                            You need to install an agent on your
+                                            server. Please{' '}
+                                            <a
+                                                href="https://www.npmjs.com/package/fyipe-server-monitor"
+                                                rel="noopener noreferrer"
+                                                target="_blank"
+                                            >
+                                                click here
+                                            </a>{' '}
+                                            for instructions.
+                                        </span>
+                                    </ShouldRender>
+                                ) : (
+                                    ''
+                                )}
+                            </ShouldRender>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 {url && (
                                     <span>
@@ -138,6 +163,7 @@ MonitorTitle.propTypes = {
     status: PropTypes.string,
     activeProbe: PropTypes.number,
     probes: PropTypes.array,
+    logs: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);

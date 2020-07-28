@@ -301,6 +301,27 @@ export class MonitorDetail extends Component {
                                                     </Link>
                                                 </span>
                                             </ShouldRender>
+                                        ) : monitor.type ===
+                                          'server-monitor' ? (
+                                            <ShouldRender
+                                                if={
+                                                    !logs ||
+                                                    (logs && logs.length === 0)
+                                                }
+                                            >
+                                                <span className="Text-fontSize--14">
+                                                    You need to install an agent
+                                                    on your server. Please{' '}
+                                                    <a
+                                                        href="https://www.npmjs.com/package/fyipe-server-monitor"
+                                                        rel="noopener noreferrer"
+                                                        target="_blank"
+                                                    >
+                                                        click here
+                                                    </a>{' '}
+                                                    for instructions.
+                                                </span>
+                                            </ShouldRender>
                                         ) : (
                                             ''
                                         )}

@@ -33,18 +33,21 @@ const questions = [
     {
         type: 'input',
         name: 'projectId',
-        message: 'What is your Project ID?',
+        message:
+            'What is your Project ID (You can find this by going to Project Settings > API)?',
     },
     {
         type: 'input',
         name: 'apiUrl',
-        message: "What is your API's URL?",
+        message:
+            'What is your API URL (You can find this by going to Project Settings > API)?',
         default: API_URL,
     },
     {
         type: 'input',
         name: 'apiKey',
-        message: "What is your Project's API key?",
+        message:
+            'What is your API key (You can find this by going to Project Settings > API)?',
     },
     {
         type: 'list',
