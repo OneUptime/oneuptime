@@ -102,4 +102,30 @@ describe('Project', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should restore a deleted project',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#projects', { visible: true });
+                await page.click('#projects');
+
+                const firstProject = await page.waitForSelector('#project_0', {
+                    visible: true,
+                });
+                firstProject.click();
+                await page.waitForSelector('#restore', { visible: true });
+                await page.click('#restore');
+
+                const deleteBtn = await page.waitForSelector('#delete', {
+                    visible: true,
+                });
+                expect(deleteBtn).toBeDefined();
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
 });
