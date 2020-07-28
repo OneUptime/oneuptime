@@ -44,7 +44,7 @@ export class IncidentMessageThread extends Component {
                             (incidentMessage, index) => {
                                 return (
                                     <div
-                                        id={`incident_message_${index}`}
+                                        id={`${type}_incident_message_${index}`}
                                         key={index}
                                         className={`${
                                             !incidentMessage.editMode &&
@@ -109,7 +109,9 @@ export class IncidentMessageThread extends Component {
                                                         padding: '0px 30px',
                                                     }}
                                                 >
-                                                    <p>
+                                                    <p
+                                                        id={`${type}_incident_message_${index}_content`}
+                                                    >
                                                         {' '}
                                                         {
                                                             incidentMessage.content
@@ -141,7 +143,7 @@ export class IncidentMessageThread extends Component {
                                                                     incidentMessage
                                                                 )
                                                             }
-                                                            id={`edit_incident_message_${index}`}
+                                                            id={`edit_${type}_incident_message_${index}`}
                                                         >
                                                             <img
                                                                 src="/dashboard/assets/img/edit.svg"
