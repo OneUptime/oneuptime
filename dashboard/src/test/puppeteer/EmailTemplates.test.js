@@ -149,4 +149,42 @@ describe('Email Templates API', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should show reset button when a template is already saved',
+        async done => {
+            const cluster = await Cluster.launch({
+                concurrency: Cluster.CONCURRENCY_PAGE,
+                puppeteerOptions: utils.puppeteerLaunchConfig,
+                puppeteer,
+                timeout: 100000,
+            });
+
+            cluster.on('taskerror', err => {
+                throw err;
+            });
+
+            await cluster.execute(null, async ({ page }) => {
+                const user = { email, password };
+                await init.loginUser(user, page);
+
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#email');
+                await page.click('#email');
+                await init.selectByText(
+                    '#type',
+                    'External Subscriber Incident Created',
+                    page
+                );
+                const resetBtn = await page.waitForSelector('#templateReset', {
+                    visible: true,
+                });
+                expect(resetBtn).toBeDefined();
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
 });

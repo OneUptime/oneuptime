@@ -294,6 +294,7 @@ export class TemplatesFormBox extends Component {
                                                     template._id
                                                 );
                                             }}
+                                            id="templateReset"
                                         >
                                             <ShouldRender
                                                 if={
