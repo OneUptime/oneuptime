@@ -116,11 +116,11 @@ const smtpCredential = {
     secure: true,
 };
 
-const twilioCredentials={
+const twilioCredentials = {
     accountSid: process.env.TEST_TWILIO_ACCOUNT_SID,
     authToken: process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN,
     phoneNumber: process.env.TEST_TWILIO_PHONE,
-}
+};
 
 module.exports = {
     ACCOUNTS_URL,
