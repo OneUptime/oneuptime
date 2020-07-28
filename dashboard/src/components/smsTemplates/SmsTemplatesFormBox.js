@@ -139,6 +139,7 @@ export class SmsTemplatesFormBox extends Component {
                                                         style={style}
                                                         rows={3}
                                                         maxlength={160}
+                                                        id="templateField"
                                                     />
                                                 </div>
                                             </div>

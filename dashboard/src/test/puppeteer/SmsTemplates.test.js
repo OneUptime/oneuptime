@@ -12,7 +12,7 @@ const password = '1234567890';
 describe('SMS Templates API', () => {
     const operationTimeOut = 100000;
 
-    let cluster;
+    let cluster, initialTemplate;
     beforeAll(async done => {
         jest.setTimeout(200000);
 
@@ -62,7 +62,11 @@ describe('SMS Templates API', () => {
                     'Subscriber Incident Created',
                     page
                 );
-
+                await page.waitForSelector('#templateField');
+                initialTemplate = await page.$eval(
+                    '#templateField',
+                    elem => elem.value
+                );
                 const resetBtn = await page.waitForSelector('#templateReset', {
                     hidden: true,
                 });
@@ -136,6 +140,50 @@ describe('SMS Templates API', () => {
                     visible: true,
                 });
                 expect(resetBtn).toBeDefined();
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should reset template to default state',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#sms');
+                await page.click('#sms');
+                await page.waitForSelector('#type');
+                await init.selectByText(
+                    '#type',
+                    'Subscriber Incident Created',
+                    page
+                );
+
+                await page.waitForSelector('#templateReset');
+                await page.click('#templateReset');
+                await page.waitForSelector('#ResetSmsTemplate');
+                await page.click('#ResetSmsTemplate');
+
+                await page.waitForSelector('#ResetSmsTemplate', {
+                    hidden: true,
+                });
+                await page.reload();
+                await page.waitForSelector('#type');
+                await init.selectByText(
+                    '#type',
+                    'Subscriber Incident Created',
+                    page
+                );
+                await page.waitForSelector('#templateField');
+                const template = await page.$eval(
+                    '#templateField',
+                    elem => elem.value
+                );
+                expect(template).toEqual(initialTemplate);
             });
 
             done();
