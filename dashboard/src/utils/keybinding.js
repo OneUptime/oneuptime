@@ -7,7 +7,7 @@ const initKeys = ['c', 'p', 's', 'u', 't', 'm', 'a', 'o'];
  * @description creates keybinding for side nav
  * @param {object} event keyboard event
  * @param {array} route individual route in the application
- * @param {object} path actual path to navigate to
+ * @param {string} path actual path to navigate to
  * @param {array} keys array of keys typed in
  * @param {function} resetKeys function to reset the keys array
  */
