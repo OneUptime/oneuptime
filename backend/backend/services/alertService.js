@@ -1018,9 +1018,10 @@ module.exports = {
             });
             // get the component
             const component = await ComponentService.findOneBy({
-                _id: monitor.componentId._id
-                    ? monitor.componentId._id
-                    : monitor.componentId,
+                _id:
+                    monitor.componentId && monitor.componentId._id
+                        ? monitor.componentId._id
+                        : monitor.componentId,
             });
             if (subscriber.alertVia == AlertType.Email) {
                 const emailTemplate = await EmailTemplateService.findOneBy({
