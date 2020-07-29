@@ -101,6 +101,34 @@ module.exports = {
             throw error;
         }
     },
+    deleteBy: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const incidentMessage = await IncidentMessageModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
+                },
+                { new: true }
+            ).populate('deletedById', 'name');
+            if (incidentMessage) {
+                return incidentMessage;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            ErrorService.log('incidentMessageService.deleteBy', error);
+            throw error;
+        }
+    },
 };
 
 const IncidentMessageModel = require('../models/incidentMessage');

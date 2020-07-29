@@ -515,6 +515,45 @@ router.post(
         }
     }
 );
+router.delete(
+    '/:projectId/incident/:incidentId/message/:incidentMessageId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const incidentMessage = await IncidentMessageService.deleteBy(
+                {
+                    _id: req.params.incidentMessageId,
+                    incidentId: req.params.incidentId,
+                },
+                req.user.id
+            );
+            if (incidentMessage) {
+                const status = `${incidentMessage.type} notes deleted`;
+
+                const incident = IncidentService.findOneBy({
+                    _id: incidentMessage.incidentId._id,
+                });
+                // update timeline
+                await IncidentTimelineService.create({
+                    incidentId: incident._id,
+                    createdById: req.user.id,
+                    status,
+                });
+
+                await RealTimeService.deleteIncidentNote(incident);
+                return sendItemResponse(req, res, incidentMessage);
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Incident Message not found',
+                });
+            }
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 router.get(
     '/:projectId/incident/:incidentId/message',
     getUser,
