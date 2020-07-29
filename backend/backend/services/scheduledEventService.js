@@ -43,6 +43,7 @@ module.exports = {
         }
 
         if (!query.deleted) query.deleted = false;
+
         try {
             const updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
                 query,
@@ -51,17 +52,9 @@ module.exports = {
                 },
                 { new: true }
             ).lean();
-            if (updatedScheduledEvent.createdById === 'API') {
-                updatedScheduledEvent.createdById = { name: 'API', _id: null };
-            } else {
-                const user = await UserModel.findOne({
-                    _id: updatedScheduledEvent.createdById,
-                }).lean();
-                updatedScheduledEvent.createdById = {
-                    _id: user._id,
-                    name: user.name,
-                };
-            }
+
+            await RealTimeService.updateScheduledEvent(updatedScheduledEvent);
+
             return updatedScheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.updateOneBy', error);
