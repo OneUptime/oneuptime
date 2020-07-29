@@ -25,10 +25,17 @@ class Tooltip extends Component {
                     paddingRight: '7px',
                 }}
             >
-                <img
-                    src="/dashboard/assets/img/question.svg"
-                    style={{ height: '18px', width: '18px', cursor: 'pointer' }}
-                    alt=""
+                <span
+                    className="db-SideNav-icon db-SideNav-icon--question"
+                    style={{
+                        backgroundRepeat: 'no-repeat',
+                        backgroundSize: 'contain',
+                        width: '19px',
+                        height: '19px',
+                        paddingLeft: '10px',
+                        paddingRight: '10px',
+                        cursor: 'pointer',
+                    }}
                     onClick={this.handleClick}
                 />
             </div>
