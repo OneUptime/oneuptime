@@ -10778,3 +10778,15 @@ table {
 .Margin-bottom--20i {
     margin-bottom: 20px !important;
 }
+
+.db-SideNav-icon--appLog {
+  background-image: url('../icons/app-log-light.svg');
+}
+
+.db-SideNav-icon--appLog.db-SideNav-icon--highlighted {
+  background-image: url('../icons/app-log.svg');
+}
+
+.db-SideNav-icon--appLog.db-SideNav-icon--selected {
+  background-image: url('../icons/app-log.svg');
+}
