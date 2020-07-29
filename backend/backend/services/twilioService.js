@@ -305,7 +305,7 @@ const _this = {
             const options = {
                 body: 'This is a test SMS from Fyipe',
                 from: data.phoneNumber,
-                to: data.testphoneNumber,
+                to: '+19173976235',
             };
 
             const twilioClient = _this.getClient(
