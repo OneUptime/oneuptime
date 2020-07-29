@@ -123,6 +123,7 @@ export class TemplatesFormBox extends Component {
                                                         name="body"
                                                         style={style}
                                                         rows={30}
+                                                        id="templateTextArea"
                                                     />
                                                 </div>
                                             </div>
@@ -255,6 +256,7 @@ export class TemplatesFormBox extends Component {
                                                 resetEmailTemplates.requesting)
                                         }
                                         type="submit"
+                                        id="saveTemplate"
                                     >
                                         <ShouldRender
                                             if={
@@ -276,44 +278,47 @@ export class TemplatesFormBox extends Component {
                                             <FormLoader />
                                         </ShouldRender>
                                     </button>
-                                    <button
-                                        className={
-                                            resetEmailTemplates &&
-                                            resetEmailTemplates.requesting
-                                                ? 'bs-Button bs-Button--blue'
-                                                : 'bs-Button'
-                                        }
-                                        disabled={
-                                            resetEmailTemplates &&
-                                            resetEmailTemplates.requesting
-                                        }
-                                        type="button"
-                                        onClick={() => {
-                                            this.props.resetTemplate(
-                                                template._id
-                                            );
-                                        }}
-                                    >
-                                        <ShouldRender
-                                            if={
-                                                !(
-                                                    resetEmailTemplates &&
-                                                    resetEmailTemplates.requesting
-                                                )
+                                    <ShouldRender if={template._id}>
+                                        <button
+                                            className={
+                                                resetEmailTemplates &&
+                                                resetEmailTemplates.requesting
+                                                    ? 'bs-Button bs-Button--blue'
+                                                    : 'bs-Button'
                                             }
-                                        >
-                                            <span>Reset</span>
-                                        </ShouldRender>
-
-                                        <ShouldRender
-                                            if={
+                                            disabled={
                                                 resetEmailTemplates &&
                                                 resetEmailTemplates.requesting
                                             }
+                                            type="button"
+                                            onClick={() => {
+                                                this.props.resetTemplate(
+                                                    template._id
+                                                );
+                                            }}
+                                            id="templateReset"
                                         >
-                                            <FormLoader />
-                                        </ShouldRender>
-                                    </button>
+                                            <ShouldRender
+                                                if={
+                                                    !(
+                                                        resetEmailTemplates &&
+                                                        resetEmailTemplates.requesting
+                                                    )
+                                                }
+                                            >
+                                                <span>Reset</span>
+                                            </ShouldRender>
+
+                                            <ShouldRender
+                                                if={
+                                                    resetEmailTemplates &&
+                                                    resetEmailTemplates.requesting
+                                                }
+                                            >
+                                                <FormLoader />
+                                            </ShouldRender>
+                                        </button>
+                                    </ShouldRender>
                                 </RenderIfAdmin>
                             </div>
                         </div>

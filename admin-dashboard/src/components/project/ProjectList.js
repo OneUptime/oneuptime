@@ -152,158 +152,163 @@ export class ProjectList extends Component {
                             ) : this.props.projects &&
                               this.props.projects.projects &&
                               this.props.projects.projects.length > 0 ? (
-                                this.props.projects.projects.map(project => {
-                                    const projectOwner =
-                                        project.users.find(
-                                            user => user.role === 'Owner'
-                                        ) || {};
-                                    const usersDetail =
-                                        project.users.length - 1 > 0
-                                            ? project.users.length - 1 > 1
-                                                ? `${
-                                                      projectOwner.name
-                                                  } and ${project.users.length -
-                                                      1} others`
-                                                : `${projectOwner.name} and 1 other`
-                                            : 'Not Added Yet';
+                                this.props.projects.projects.map(
+                                    (project, index) => {
+                                        const projectOwner =
+                                            project.users.find(
+                                                user => user.role === 'Owner'
+                                            ) || {};
+                                        const usersDetail =
+                                            project.users.length - 1 > 0
+                                                ? project.users.length - 1 > 1
+                                                    ? `${
+                                                          projectOwner.name
+                                                      } and ${project.users
+                                                          .length - 1} others`
+                                                    : `${projectOwner.name} and 1 other`
+                                                : 'Not Added Yet';
 
-                                    return (
-                                        <tr
-                                            key={project._id}
-                                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-                                            onClick={() => {
-                                                history.push(
-                                                    '/admin/projects/' +
-                                                        project._id
-                                                );
-                                            }}
-                                        >
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                style={{
-                                                    height: '1px',
-                                                    minWidth: '270px',
+                                        return (
+                                            <tr
+                                                key={project._id}
+                                                className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
+                                                onClick={() => {
+                                                    history.push(
+                                                        '/admin/projects/' +
+                                                            project._id
+                                                    );
                                                 }}
+                                                id={`project_${index}`}
                                             >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16">
-                                                            <span>
-                                                                {project.name}
-                                                            </span>
-                                                        </div>
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td
-                                                className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                    style={{
+                                                        height: '1px',
+                                                        minWidth: '270px',
+                                                    }}
+                                                >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root">
+                                                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <div className="Box-root Margin-right--16">
                                                                 <span>
                                                                     {
-                                                                        usersDetail
+                                                                        project.name
                                                                     }
                                                                 </span>
                                                             </div>
                                                         </span>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td
-                                                aria-hidden="true"
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{
-                                                    height: '1px',
-                                                    maxWidth: '48px',
-                                                    minWidth: '48px',
-                                                    width: '48px',
-                                                }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        ⁣
+                                                </td>
+                                                <td
+                                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <div className="Box-root">
+                                                                    <span>
+                                                                        {
+                                                                            usersDetail
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Flex-flex">
+                                                </td>
+                                                <td
+                                                    aria-hidden="true"
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{
+                                                        height: '1px',
+                                                        maxWidth: '48px',
+                                                        minWidth: '48px',
+                                                        width: '48px',
+                                                    }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            ⁣
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                 <div className="Box-root Flex-flex">
-                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        {project.deleted ? (
-                                                                            <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                    <span>
-                                                                                        Deleted
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                            {project.deleted ? (
+                                                                                <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                    <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                        <span>
+                                                                                            Deleted
+                                                                                        </span>
                                                                                     </span>
-                                                                                </span>
-                                                                            </div>
-                                                                        ) : project.isBlocked ? (
-                                                                            <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                    <span>
-                                                                                        Blocked
+                                                                                </div>
+                                                                            ) : project.isBlocked ? (
+                                                                                <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                    <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                        <span>
+                                                                                            Blocked
+                                                                                        </span>
                                                                                     </span>
-                                                                                </span>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                    <span>
-                                                                                        Active
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                        <span>
+                                                                                            Active
+                                                                                        </span>
                                                                                     </span>
-                                                                                </span>
-                                                                            </div>
-                                                                        )}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        </span>
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
+                                                </td>
 
-                                            <td
-                                                aria-hidden="true"
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{
-                                                    height: '1px',
-                                                    maxWidth: '48px',
-                                                    minWidth: '48px',
-                                                    width: '48px',
-                                                }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        ⁣
+                                                <td
+                                                    aria-hidden="true"
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{
+                                                        height: '1px',
+                                                        maxWidth: '48px',
+                                                        minWidth: '48px',
+                                                        width: '48px',
+                                                    }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            ⁣
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        {moment(
-                                                            project.createdAt
-                                                        ).fromNow()}
+                                                </td>
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            {moment(
+                                                                project.createdAt
+                                                            ).fromNow()}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"></td>
-                                        </tr>
-                                    );
-                                })
+                                                </td>
+                                                <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"></td>
+                                            </tr>
+                                        );
+                                    }
+                                )
                             ) : (
                                 <tr></tr>
                             )}

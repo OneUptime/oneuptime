@@ -215,14 +215,20 @@ module.exports = {
             const component = await ComponentService.findOneBy({
                 _id: monitor.componentId._id,
             });
+            const meta = {
+                type: 'Incident',
+                componentId: monitor.componentId,
+                incidentId: incident._id,
+            };
 
             if (!incident.createdById) {
-                const msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
+                const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by Fyipe`;
                 await NotificationService.create(
                     incident.projectId,
                     msg,
                     'fyipe',
-                    'warning'
+                    'warning',
+                    meta
                 );
                 // send slack notification
                 await SlackService.sendNotification(
@@ -248,12 +254,13 @@ module.exports = {
                     component
                 );
             } else {
-                const msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
+                const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
                 await NotificationService.create(
                     incident.projectId,
                     msg,
                     incident.createdById.name,
-                    'warning'
+                    'warning',
+                    meta
                 );
                 // send slack notification
                 await SlackService.sendNotification(

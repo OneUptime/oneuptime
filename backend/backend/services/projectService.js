@@ -591,107 +591,69 @@ module.exports = {
         const _this = this;
         query.deleted = true;
 
-        let project = await _this.findBy(query);
-        if (project && project.length > 1) {
-            const projects = await Promise.all(
-                project.map(async project => {
-                    const projectId = project._id;
-                    let projectOwner = project.users.find(
-                        user => user.role === 'Owner'
-                    );
-                    projectOwner = await UserService.findOneBy({
-                        _id: projectOwner.userId,
-                    });
-                    let subscription;
-                    if (IS_SAAS_SERVICE) {
-                        subscription = await PaymentService.subscribePlan(
-                            project.stripePlanId,
-                            projectOwner.stripeCustomerId
-                        );
-                    }
-                    project = await _this.updateOneBy(
-                        { _id: projectId },
-                        {
-                            deleted: false,
-                            deletedBy: null,
-                            deletedAt: null,
-                            stripeSubscriptionId: subscription
-                                ? subscription.stripeSubscriptionId
-                                : null,
-                        }
-                    );
-                    const projectSeats = project.seats;
-                    if (IS_SAAS_SERVICE) {
-                        await PaymentService.changeSeats(
-                            project.stripeSubscriptionId,
-                            projectSeats
-                        );
-                    }
-                    await ScheduleService.restoreBy({
-                        projectId,
-                        deleted: true,
-                    });
-                    await StatusPageService.restoreBy({
-                        projectId,
-                        deleted: true,
-                    });
-                    await integrationService.restoreBy({
-                        projectId,
-                        deleted: true,
-                    });
-                    await MonitorService.restoreBy({
-                        projectId,
-                        deleted: true,
-                    });
-                    return project;
-                })
-            );
-            return projects;
-        } else {
-            project = project[0];
-            if (project) {
-                const projectId = project._id;
-                let projectOwner = project.users.find(
-                    user => user.role === 'Owner'
-                );
-                projectOwner = await UserService.findOneBy({
+        let project = await _this.findOneBy(query);
+
+        if (!project) {
+            const error = new Error('Project not found or no longer exist');
+            error.code = 400;
+            throw error;
+        }
+
+        const projectId = project._id;
+        const projectOwners = project.users.filter(
+            user => user.role === 'Owner'
+        );
+        let subscription;
+        await Promise.all(
+            projectOwners.map(async projectOwner => {
+                const owner = await UserService.findOneBy({
                     _id: projectOwner.userId,
                 });
-                let subscription;
                 if (IS_SAAS_SERVICE) {
                     subscription = await PaymentService.subscribePlan(
                         project.stripePlanId,
-                        projectOwner.stripeCustomerId
+                        owner.stripeCustomerId
                     );
                 }
-                project = await _this.updateOneBy(
-                    { _id: projectId },
-                    {
-                        deleted: false,
-                        deletedBy: null,
-                        deletedAt: null,
-                        stripeSubscriptionId: subscription
-                            ? subscription.stripeSubscriptionId
-                            : null,
-                    }
-                );
-                const projectSeats = project.seats;
-                if (IS_SAAS_SERVICE) {
-                    await PaymentService.changeSeats(
-                        project.stripeSubscriptionId,
-                        projectSeats
-                    );
-                }
-                await integrationService.restoreBy({
-                    projectId,
-                    deleted: true,
-                });
-                await ScheduleService.restoreBy({ projectId, deleted: true });
-                await StatusPageService.restoreBy({ projectId, deleted: true });
-                await MonitorService.restoreBy({ projectId, deleted: true });
+            })
+        );
+
+        project = await _this.updateOneBy(
+            { _id: projectId },
+            {
+                deleted: false,
+                deletedBy: null,
+                deletedAt: null,
+                stripeSubscriptionId: subscription
+                    ? subscription.stripeSubscriptionId
+                    : null,
             }
-            return project;
+        );
+
+        const projectSeats = project.seats;
+        if (IS_SAAS_SERVICE) {
+            await PaymentService.changeSeats(
+                project.stripeSubscriptionId,
+                projectSeats
+            );
         }
+        await ScheduleService.restoreBy({
+            projectId,
+            deleted: true,
+        });
+        await StatusPageService.restoreBy({
+            projectId,
+            deleted: true,
+        });
+        await integrationService.restoreBy({
+            projectId,
+            deleted: true,
+        });
+        await MonitorService.restoreBy({
+            projectId,
+            deleted: true,
+        });
+        return project;
     },
 
     addNotes: async function(projectId, notes) {
