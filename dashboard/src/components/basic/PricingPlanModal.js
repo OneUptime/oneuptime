@@ -91,16 +91,18 @@ const PricingPlanModal = ({
                             </div>
                             <div className="bs-Modal-content">
                                 {propArr[0].plan === 'Enterprise' ? (
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        This feature is available in the
-                                        Enterprise Plan. To upgrade to this
-                                        plan, please contact sales@fyipe.com
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        This feature is available on Enterprise
+                                        Plan. To upgrade to this plan, please
+                                        contact sales@fyipe.com
                                     </span>
                                 ) : (
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         This feature is available on{' '}
-                                        {propArr[0].plan} plan and above. Please
-                                        upgrade your plan to access this
+                                        <strong>
+                                            {propArr[0].plan} plan and above.
+                                        </strong>{' '}
+                                        Please upgrade your plan to access this
                                         feature.
                                     </span>
                                 )}
