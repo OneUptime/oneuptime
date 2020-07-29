@@ -26,6 +26,7 @@ const defaultErrorHandler = error => {
         logger.error(error.response.data);
         logger.debug(error.response.status);
         logger.debug(error.response.headers);
+        throw error.response.data;
     } else {
         if (error.request) {
             logger.debug(error.request);
@@ -33,6 +34,7 @@ const defaultErrorHandler = error => {
             logger.debug('Error', error.message);
         }
     }
+    logger.error(error);
     logger.debug(error.config);
 
     throw error;
