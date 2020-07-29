@@ -21,8 +21,7 @@ class SlackBox extends React.Component {
                                             </span>
                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                 <span>
-                                                    Integrate Fyipe with your
-                                                    Slack.
+                                                Click <a target='_blank' href='https://github.com/Fyipe/feature-docs/blob/master/Webhooks.md#slack'>here</a> to check documentation on how to integrate Slack with Fyipe.
                                                 </span>
                                             </span>
                                         </div>
