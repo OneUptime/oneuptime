@@ -71,17 +71,7 @@ export class IncidentMessageThread extends Component {
                             <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px', minWidth: '190px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Note By</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px', minWidth: '210px' }}
+                                    style={{ height: '1px', minWidth: '450px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -99,17 +89,6 @@ export class IncidentMessageThread extends Component {
                                         </span>
                                     </div>
                                 </td>
-                                <td
-                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Created At </span>
-                                        </span>
-                                    </div>
-                                </td>
-
                                 <td
                                     id="overflow"
                                     type="action"
@@ -147,74 +126,81 @@ export class IncidentMessageThread extends Component {
                                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                                     style={{
                                                         height: '1px',
-                                                        minWidth: '190px',
+                                                        minWidth: '450px',
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div
-                                                                className="Box-root Margin-right--16"
+                                                        <div
+                                                            className="Box-root Margin-right--16"
+                                                            style={{
+                                                                cursor:
+                                                                    'pointer',
+                                                            }}
+                                                        >
+                                                            <img
+                                                                src="/dashboard/assets/img/profile-user.svg"
+                                                                className="userIcon"
+                                                                alt=""
                                                                 style={{
-                                                                    cursor:
-                                                                        'pointer',
+                                                                    marginBottom:
+                                                                        '-5px',
                                                                 }}
-                                                            >
-                                                                <img
-                                                                    src="/dashboard/assets/img/profile-user.svg"
-                                                                    className="userIcon"
-                                                                    alt=""
-                                                                    style={{
-                                                                        marginBottom:
-                                                                            '-5px',
-                                                                    }}
+                                                            />
+                                                            <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                {incidentMessage
+                                                                    .createdById
+                                                                    .name
+                                                                    ? incidentMessage
+                                                                          .createdById
+                                                                          .name
+                                                                    : 'Unknown User'}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="Margin-left--30">
+                                                            <span>
+                                                                <ReactMarkdown
+                                                                    source={
+                                                                        incidentMessage.content
+                                                                    }
                                                                 />
-                                                                <span>
-                                                                    {incidentMessage
-                                                                        .createdById
-                                                                        .name
-                                                                        ? incidentMessage
-                                                                              .createdById
-                                                                              .name
-                                                                        : 'Unknown User'}
+                                                                <ShouldRender
+                                                                    if={
+                                                                        incidentMessage.updated
+                                                                    }
+                                                                >
+                                                                    <span className="Text-color--dark Margin-right--4">
+                                                                        (edited)
+                                                                    </span>
+                                                                </ShouldRender>
+                                                            </span>
+                                                            <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                <span
+                                                                    style={{
+                                                                        fontWeight:
+                                                                            '500',
+                                                                        fontStyle:
+                                                                            'italic',
+                                                                    }}
+                                                                >
+                                                                    {currentTimeZone
+                                                                        ? momentTz(
+                                                                              incidentMessage.createdAt
+                                                                          )
+                                                                              .tz(
+                                                                                  currentTimeZone
+                                                                              )
+                                                                              .format(
+                                                                                  'lll'
+                                                                              )
+                                                                        : moment(
+                                                                              incidentMessage.createdAt
+                                                                          ).format(
+                                                                              'lll'
+                                                                          )}
                                                                 </span>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td
-                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                    style={{
-                                                        height: '1px',
-                                                        minWidth: '210px',
-                                                    }}
-                                                >
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div
-                                                                className="Box-root Margin-right--16"
-                                                                style={{
-                                                                    cursor:
-                                                                        'pointer',
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    <ReactMarkdown
-                                                                        source={
-                                                                            incidentMessage.content
-                                                                        }
-                                                                    />{' '}
-                                                                    <ShouldRender
-                                                                        if={
-                                                                            incidentMessage.updated
-                                                                        }
-                                                                    >
-                                                                        <span className="Margin-horizontal--4 Text-color--dark">
-                                                                            (edited)
-                                                                        </span>
-                                                                    </ShouldRender>
-                                                                </span>
-                                                            </div>
-                                                        </span>
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td
@@ -233,44 +219,6 @@ export class IncidentMessageThread extends Component {
                                                                                         {
                                                                                             incidentMessage.incident_state
                                                                                         }
-                                                                                    </span>
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td
-                                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{ height: '1px' }}
-                                                >
-                                                    <div className="db-ListViewItem-link">
-                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <div className="Box-root Flex">
-                                                                    <div className="Box-root Flex-flex">
-                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                    <span>
-                                                                                        {currentTimeZone
-                                                                                            ? momentTz(
-                                                                                                  incidentMessage.createdAt
-                                                                                              )
-                                                                                                  .tz(
-                                                                                                      currentTimeZone
-                                                                                                  )
-                                                                                                  .format(
-                                                                                                      'lll'
-                                                                                                  )
-                                                                                            : moment(
-                                                                                                  incidentMessage.createdAt
-                                                                                              ).format(
-                                                                                                  'lll'
-                                                                                              )}
                                                                                     </span>
                                                                                 </span>
                                                                             </div>
@@ -301,7 +249,7 @@ export class IncidentMessageThread extends Component {
                                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                                 <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                     <button
-                                                                                        className="bs-Button bs-DeprecatedButton bs-Button--icon bs-Button--settings"
+                                                                                        className="bs-Button bs-DeprecatedButton"
                                                                                         type="button"
                                                                                         onClick={() =>
                                                                                             openModal(
@@ -325,6 +273,15 @@ export class IncidentMessageThread extends Component {
                                                                                         id={`edit_${type}_incident_message_${i}`}
                                                                                     >
                                                                                         <span>
+                                                                                            <img
+                                                                                                src={`/dashboard/assets/img/edit.svg`}
+                                                                                                style={{
+                                                                                                    height:
+                                                                                                        '10px',
+                                                                                                    width:
+                                                                                                        '10px',
+                                                                                                }}
+                                                                                            />{' '}
                                                                                             Edit
                                                                                         </span>
                                                                                     </button>
@@ -377,19 +334,20 @@ export class IncidentMessageThread extends Component {
 
                 {requesting ? <ListLoader /> : null}
 
-                <div
-                    style={{
-                        textAlign: 'center',
-                        padding: '25px',
-                    }}
-                >
-                    {incidentMessages &&
-                    incidentMessages.incidentMessages &&
-                    incidentMessages.incidentMessages.length < 1
-                        ? "You don't have any messages yet, start up a conversation."
-                        : null}
-                    {error}
-                </div>
+                {incidentMessages &&
+                incidentMessages.incidentMessages &&
+                incidentMessages.incidentMessages.length < 1 ? (
+                    <div
+                        style={{
+                            textAlign: 'center',
+                            padding: '25px',
+                        }}
+                    >
+                        {`You don't have any messages yet, start up a conversation`}
+                    </div>
+                ) : null}
+                {error}
+
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
