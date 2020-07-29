@@ -988,6 +988,50 @@ export default function incident(state = initialState, action) {
                     },
                 },
             });
+
+        case types.DELETE_INCIDENT_MESSAGE_SUCCESS:
+            incidentMessages = state.incidentMessages[
+                action.payload.incidentId
+            ][action.payload.type].incidentMessages.filter(
+                incidentMessage => incidentMessage._id !== action.payload._id
+            );
+            return Object.assign({}, state, {
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    [action.payload.incidentId]: {
+                        ...state.incidentMessages[action.payload.incidentId],
+                        [action.payload.type]: {
+                            ...state.incidentMessages[
+                                action.payload.incidentId
+                            ][action.payload.type],
+                            incidentMessages: incidentMessages,
+                        },
+                    },
+                },
+                deleteIncidentMessage: false,
+            });
+
+        case types.DELETE_INCIDENT_MESSAGE_FAILURE:
+            return Object.assign({}, state, {
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                deleteIncidentMessage: false,
+            });
+
+        case types.DELETE_INCIDENT_MESSAGE_REQUEST:
+            return Object.assign({}, state, {
+                incidentMessages: {
+                    ...state.incidentMessages,
+                },
+                deleteIncidentMessage: action.payload,
+            });
         default:
             return state;
     }

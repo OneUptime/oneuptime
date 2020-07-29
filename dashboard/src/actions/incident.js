@@ -882,3 +882,63 @@ export function editIncidentMessageSwitch(index) {
         payload: index,
     };
 }
+
+export function deleteIncidentMessage(
+    projectId,
+    incidentId,
+    incidentMessageId
+) {
+    return function(dispatch) {
+        const promise = deleteApi(
+            `incident/${projectId}/incident/${incidentId}/message/${incidentMessageId}`
+        );
+        dispatch(deleteIncidentMessageRequest(incidentMessageId));
+
+        promise.then(
+            function(incidentMessage) {
+                dispatch(deleteIncidentMessageSuccess(incidentMessage.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    deleteIncidentMessageFailure({
+                        error: errors(error),
+                        incidentMessageId,
+                    })
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function deleteIncidentMessageSuccess(removedIncidentMessage) {
+    return {
+        type: types.DELETE_INCIDENT_MESSAGE_SUCCESS,
+        payload: removedIncidentMessage,
+    };
+}
+
+export function deleteIncidentMessageRequest(incidentMessageId) {
+    return {
+        type: types.DELETE_INCIDENT_MESSAGE_REQUEST,
+        payload: incidentMessageId,
+    };
+}
+
+export function deleteIncidentMessageFailure(error) {
+    return {
+        type: types.DELETE_INCIDENT_MESSAGE_FAILURE,
+        payload: error,
+    };
+}
