@@ -53,6 +53,14 @@ module.exports = {
                 { new: true }
             ).lean();
 
+            if (!updatedScheduledEvent) {
+                const error = new Error(
+                    'Scheduled Event not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
             await RealTimeService.updateScheduledEvent(updatedScheduledEvent);
 
             return updatedScheduledEvent;
