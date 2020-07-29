@@ -679,7 +679,7 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        let statusPage = await _this.findBy(query);
+        const statusPage = await _this.findBy(query);
         if (statusPage && statusPage.length > 1) {
             const statusPages = await Promise.all(
                 statusPage.map(async statusPage => {
@@ -700,24 +700,6 @@ module.exports = {
                 })
             );
             return statusPages;
-        } else {
-            statusPage = statusPage[0];
-            if (statusPage) {
-                const statusPageId = statusPage._id;
-                statusPage = await _this.updateOneBy(
-                    { _id: statusPage, deleted: true },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
-                await SubscriberService.restoreBy({
-                    statusPageId,
-                    deleted: true,
-                });
-            }
-            return statusPage;
         }
     },
 };

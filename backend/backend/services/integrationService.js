@@ -195,7 +195,7 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        let integration = await _this.findBy(query);
+        const integration = await _this.findBy(query);
         if (integration && integration.length > 1) {
             const integrations = await Promise.all(
                 integration.map(async integration => {
@@ -214,22 +214,6 @@ module.exports = {
                 })
             );
             return integrations;
-        } else {
-            integration = integration[0];
-            if (integration) {
-                const integrationId = integration._id;
-                integration = await _this.updateOneBy(
-                    {
-                        _id: integrationId,
-                    },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
-            }
-            return integration;
         }
     },
     hardDeleteBy: async function(query) {

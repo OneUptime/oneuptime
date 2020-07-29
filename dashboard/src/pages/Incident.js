@@ -41,6 +41,11 @@ class Incident extends React.Component {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
     }
+    componentDidUpdate(prevProps) {
+        if (this.props.location.pathname !== prevProps.location.pathname) {
+            this.ready();
+        }
+    }
     internalNote = note => {
         this.props.setinternalNote(
             this.props.match.params.projectId,
@@ -246,12 +251,19 @@ class Incident extends React.Component {
             this.props.incident.monitorId.name
                 ? this.props.incident.monitorId.name
                 : null;
+        const componentId =
+            this.props.component.length > 0
+                ? this.props.component[0]
+                    ? this.props.component[0]._id
+                    : this.props.component[1]._id
+                : null;
         if (this.props.incident) {
             variable = (
                 <div>
                     <IncidentDescription
                         incident={this.props.incident}
                         projectId={this.props.currentProject._id}
+                        componentId={componentId}
                     />
                     <IncidentStatus incident={this.props.incident} />
                     <IncidentAlert
@@ -338,7 +350,7 @@ class Incident extends React.Component {
             component.length > 0
                 ? component[0]
                     ? component[0].name
-                    : null
+                    : component[1].name
                 : null;
 
         return (
@@ -431,6 +443,7 @@ Incident.propTypes = {
     component: PropTypes.arrayOf(
         PropTypes.shape({
             name: PropTypes.string,
+            _id: PropTypes.string,
         })
     ),
 };

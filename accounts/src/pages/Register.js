@@ -7,12 +7,13 @@ import RegisterForm from '../components/auth/RegisterForm';
 import queryString from 'query-string';
 import { PricingPlan, IS_SAAS_SERVICE } from '../config';
 import MessageBox from '../components/MessageBox';
-import { savePlanId } from '../actions/register';
+import { savePlanId, signUpReset } from '../actions/register';
 
 class RegisterPage extends React.Component {
     componentWillUnmount() {
         document.body.id = '';
         document.body.className = '';
+        this.props.signUpReset();
     }
 
     componentDidMount() {
@@ -62,7 +63,7 @@ class RegisterPage extends React.Component {
                     />
                 )}
                 {/* END CONTENT */}
-                <div className="below-box">
+                <div id="loginLink" className="below-box">
                     <p>
                         Already have an account?{' '}
                         <Link to="/accounts/login">Sign in</Link>.
@@ -105,6 +106,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             savePlanId,
+            signUpReset,
         },
         dispatch
     );
@@ -115,6 +117,7 @@ RegisterPage.propTypes = {
     register: PropTypes.object,
     success: PropTypes.bool,
     savePlanId: PropTypes.func.isRequired,
+    signUpReset: PropTypes.func.isRequired,
     masterAdminExists: PropTypes.bool,
 };
 

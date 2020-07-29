@@ -103,7 +103,7 @@ class CreateSchedule extends React.Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Create Scheduled event</span>
+                                    <span>Create Scheduled Event</span>
                                 </span>
                             </div>
                         </div>

@@ -546,7 +546,7 @@ const validate = function(values) {
 
 const cardForm = reduxForm({
     form: 'CardForm', // <------ same form name                     // <----- validate form data
-    destroyOnUnmount: false, // <------ preserve form data
+    destroyOnUnmount: true, // <------ preserve form data
     forceUnregisterOnUnmount: true, // <------ unregister fields on unmount
     validate,
 })(CardForm);

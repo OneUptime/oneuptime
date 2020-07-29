@@ -20,7 +20,6 @@ version api-docs
 version server-monitor
 version probe
 version admin-dashboard
-version slack
 version init-script
 version licensing
 version helm-chart
