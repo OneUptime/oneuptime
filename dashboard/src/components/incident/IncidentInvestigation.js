@@ -16,6 +16,7 @@ export class IncidentInvestigation extends Component {
         this.state = {
             createMessageModalId: uuid.v4(),
             editMessageModalId: uuid.v4(),
+            deleteMessageModalId: uuid.v4(),
         };
     }
     olderInvestigationMessage = () => {
@@ -55,6 +56,9 @@ export class IncidentInvestigation extends Component {
             );
         }
     };
+    deleteInvestigationMessage = () => {
+        alert('will delete later');
+    };
     render() {
         let count = 0;
         let skip = 0;
@@ -64,7 +68,11 @@ export class IncidentInvestigation extends Component {
         let canSeeNewer = false;
         let error;
         const { incidentMessages, incident, openModal } = this.props;
-        const { createMessageModalId, editMessageModalId } = this.state;
+        const {
+            createMessageModalId,
+            editMessageModalId,
+            deleteMessageModalId,
+        } = this.state;
         if (incidentMessages) {
             count = incidentMessages.count;
             skip = incidentMessages.skip;
@@ -113,6 +121,8 @@ export class IncidentInvestigation extends Component {
                         createMessageModalId={createMessageModalId}
                         openModal={openModal}
                         editMessageModalId={editMessageModalId}
+                        deleteMessageModalId={deleteMessageModalId}
+                        deleteIncidentMessage={this.deleteInvestigationMessage}
                     />
                 </div>
             </div>

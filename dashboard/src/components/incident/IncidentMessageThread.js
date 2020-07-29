@@ -9,6 +9,7 @@ import { User } from '../../config';
 import { ListLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
 import ReactMarkdown from 'react-markdown';
+import DeleteIncidentMessage from '../modals/DeleteIncidentMessage';
 export class IncidentMessageThread extends Component {
     render() {
         const {
@@ -27,6 +28,8 @@ export class IncidentMessageThread extends Component {
             createMessageModalId,
             openModal,
             editMessageModalId,
+            deleteMessageModalId,
+            deleteIncidentMessage,
         } = this.props;
         return (
             <div className="Box-root">
@@ -47,11 +50,11 @@ export class IncidentMessageThread extends Component {
                             onClick={() =>
                                 openModal({
                                     id: createMessageModalId,
+                                    onClose: () => '',
                                     content: DataPathHoC(NewIncidentMessage, {
                                         incident,
                                         formId: `New${type}Form`,
                                         type,
-                                        incidentMessageModalId: createMessageModalId,
                                     }),
                                 })
                             }
@@ -304,6 +307,8 @@ export class IncidentMessageThread extends Component {
                                                                                             openModal(
                                                                                                 {
                                                                                                     id: editMessageModalId,
+                                                                                                    onClose: () =>
+                                                                                                        '',
                                                                                                     content: DataPathHoC(
                                                                                                         NewIncidentMessage,
                                                                                                         {
@@ -312,7 +317,6 @@ export class IncidentMessageThread extends Component {
                                                                                                             type,
                                                                                                             incidentMessage,
                                                                                                             edit: true,
-                                                                                                            incidentMessageModalId: editMessageModalId,
                                                                                                         }
                                                                                                     ),
                                                                                                 }
@@ -327,6 +331,23 @@ export class IncidentMessageThread extends Component {
                                                                                     <button
                                                                                         className="bs-Button bs-DeprecatedButton bs-Button--icon bs-Button--delete"
                                                                                         type="button"
+                                                                                        onClick={() =>
+                                                                                            openModal(
+                                                                                                {
+                                                                                                    id: deleteMessageModalId,
+                                                                                                    onClose: () =>
+                                                                                                        '',
+                                                                                                    onConfirm: () =>
+                                                                                                        deleteIncidentMessage(),
+                                                                                                    content: DataPathHoC(
+                                                                                                        DeleteIncidentMessage,
+                                                                                                        {
+                                                                                                            incidentMessage,
+                                                                                                        }
+                                                                                                    ),
+                                                                                                }
+                                                                                            )
+                                                                                        }
                                                                                     >
                                                                                         <span>
                                                                                             Delete
@@ -448,6 +469,8 @@ IncidentMessageThread.propTypes = {
     openModal: PropTypes.func,
     createMessageModalId: PropTypes.string,
     editMessageModalId: PropTypes.string,
+    deleteMessageModalId: PropTypes.string,
+    deleteIncidentMessage: PropTypes.func,
 };
 
 export default IncidentMessageThread;
