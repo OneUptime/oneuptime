@@ -185,7 +185,7 @@ class IncidentLog extends React.Component {
             component.length > 0
                 ? component[0]
                     ? component[0].name
-                    : null
+                    : component[1].name
                 : null;
 
         return (
