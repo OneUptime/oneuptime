@@ -194,19 +194,26 @@ export class Component extends React.Component {
                         </div>
 
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                            <span className="db-SettingsForm-footerMessage"></span>
+                            <span className="db-SettingsForm-footerMessage">
+                                {settings.error && (
+                                    <div className="bs-Tail-copy">
+                                        <div
+                                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                            style={{ marginTop: '10px' }}
+                                        >
+                                            <div className="Box-root Margin-right--8">
+                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                            </div>
+                                            <div className="Box-root">
+                                                <span style={{ color: 'red' }}>
+                                                    {settings.error}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </span>
                             <div>
-                                <button
-                                    className="bs-Button"
-                                    disabled={settings && settings.requesting}
-                                    onClick={this.handleTwilioTest}
-                                >
-                                    {settings.requesting ? (
-                                        <FormLoader />
-                                    ) : (
-                                        <span>Test</span>
-                                    )}
-                                </button>
                                 <button
                                     className="bs-Button bs-Button--blue"
                                     disabled={settings && settings.requesting}
