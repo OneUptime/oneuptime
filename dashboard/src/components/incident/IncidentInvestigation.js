@@ -2,7 +2,10 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { fetchIncidentMessages } from '../../actions/incident';
+import {
+    fetchIncidentMessages,
+    deleteIncidentMessage,
+} from '../../actions/incident';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 import IncidentMessageThread from './IncidentMessageThread';
@@ -56,8 +59,22 @@ export class IncidentInvestigation extends Component {
             );
         }
     };
-    deleteInvestigationMessage = () => {
-        alert('will delete later');
+    deleteInvestigationMessage = incidentMessageId => {
+        const promise = this.props.deleteIncidentMessage(
+            this.props.currentProject._id,
+            this.props.incident._id,
+            incidentMessageId
+        );
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > INVESTIGATION MESSAGE DELETED',
+                {
+                    ProjectId: this.props.currentProject._id,
+                    incidentMessageId: incidentMessageId,
+                }
+            );
+        }
+        return promise;
     };
     render() {
         let count = 0;
@@ -137,6 +154,7 @@ const mapDispatchToProps = dispatch =>
         {
             fetchIncidentMessages,
             openModal,
+            deleteIncidentMessage,
         },
         dispatch
     );
@@ -162,6 +180,7 @@ IncidentInvestigation.propTypes = {
     currentProject: PropTypes.object,
     fetchIncidentMessages: PropTypes.func,
     openModal: PropTypes.func,
+    deleteIncidentMessage: PropTypes.func,
 };
 
 export default connect(
