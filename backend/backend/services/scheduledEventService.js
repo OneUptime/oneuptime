@@ -1,36 +1,35 @@
 const ScheduledEventModel = require('../models/scheduledEvent');
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
+const MonitorService = require('./monitorService');
+const RealTimeService = require('./realTimeService');
 
 module.exports = {
-    create: async function({ projectId, monitorId }, data) {
+    create: async function({ projectId }, data) {
         try {
-            const _this = this;
-            let scheduledEvent = new ScheduledEventModel();
+            let monitorData = [];
+            if (!data.monitors || data.monitors.length === 0) {
+                // select all monitors in a project if no monitor was selected
+                const monitors = await MonitorService.findBy({ projectId });
+                if (monitors.length > 0) {
+                    monitorData = monitors.map(monitor => ({
+                        monitorId: monitor._id,
+                    }));
+                }
+            } else {
+                monitorData = data.monitors.map(monitor => ({
+                    monitorId: monitor,
+                }));
+            }
+            // reassign data.monitors with the restructured monitor data
+            data.monitors = monitorData;
 
-            scheduledEvent.projectId = projectId;
-            scheduledEvent.monitorId = monitorId;
-            scheduledEvent.name = data.name;
-            scheduledEvent.createdById = data.createdById;
-            scheduledEvent.startDate = data.startDate;
-            scheduledEvent.endDate = data.endDate;
-            scheduledEvent.description = data.description;
+            const scheduledEvent = await ScheduledEventModel.create({
+                ...data,
+            });
 
-            if (data.showEventOnStatusPage) {
-                scheduledEvent.showEventOnStatusPage =
-                    data.showEventOnStatusPage;
-            }
-            if (data.callScheduleOnEvent) {
-                scheduledEvent.callScheduleOnEvent = data.callScheduleOnEvent;
-            }
-            if (data.monitorDuringEvent) {
-                scheduledEvent.monitorDuringEvent = data.monitorDuringEvent;
-            }
-            if (data.alertSubscriber) {
-                scheduledEvent.alertSubscriber = data.alertSubscriber;
-            }
-            scheduledEvent = await scheduledEvent.save();
-            scheduledEvent = await _this.findOneBy({ _id: scheduledEvent._id });
+            await RealTimeService.addScheduledEvent(scheduledEvent);
+
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.create', error);
