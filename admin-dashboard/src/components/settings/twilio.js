@@ -98,12 +98,6 @@ const fields = [
         component: RenderField,
     },
     {
-        key: 'verification-sid',
-        label: 'Verification SID',
-        type: 'text',
-        component: RenderField,
-    },
-    {
         key: 'alert-limit',
         label: 'Twilio Alert Limit',
         type: 'number',
