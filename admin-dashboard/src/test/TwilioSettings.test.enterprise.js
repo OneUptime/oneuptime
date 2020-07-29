@@ -66,7 +66,8 @@ describe('Twilio Settings API', () => {
 
                 // All fields should validate false
                 expect((await page.$$('span.field-error')).length).toEqual(
-                    (await page.$$('input[type=text],input[type=number]')).length
+                    (await page.$$('input[type=text],input[type=number]'))
+                        .length
                 );
 
                 await page.reload();
@@ -112,8 +113,11 @@ describe('Twilio Settings API', () => {
                 await page.click('button[type=submit]');
                 await page.waitFor(2000);
                 await page.waitForSelector('#errors');
-                const errorMessage= await page.$eval('#errors', element=> element.textContent);
-                expect(errorMessage).toEqual('Server Error.')
+                const errorMessage = await page.$eval(
+                    '#errors',
+                    element => element.textContent
+                );
+                expect(errorMessage).toEqual('Server Error.');
                 await page.reload();
 
                 const value = await page.$eval(
@@ -158,8 +162,13 @@ describe('Twilio Settings API', () => {
                 await page.click('button[type=submit]');
                 await page.waitFor(2000);
                 await page.waitForSelector('#errors');
-                const errorMessage= await page.$eval('#errors', element=> element.textContent);
-                expect(errorMessage).toEqual('The From phone number +123 is not a valid, SMS-capable inbound phone number or short code for your account.')
+                const errorMessage = await page.$eval(
+                    '#errors',
+                    element => element.textContent
+                );
+                expect(errorMessage).toEqual(
+                    'The From phone number +123 is not a valid, SMS-capable inbound phone number or short code for your account.'
+                );
                 await page.reload();
 
                 const value = await page.$eval(
@@ -198,7 +207,7 @@ describe('Twilio Settings API', () => {
                 await page.click('input[name=phone');
                 await page.type(
                     'input[name=phone',
-                    process.env.TEST_TWILIO_PHONE 
+                    process.env.TEST_TWILIO_PHONE
                 );
 
                 await page.click('input[name=alert-limit]');
