@@ -18,13 +18,12 @@ class MSTeamsBox extends React.Component {
                                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--a1 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                                 <span>
-                                                    MS Teams Integration
+                                                    Microsoft Teams Integration
                                                 </span>
                                             </span>
                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                 <span>
-                                                    Integrate Fyipe with your MS
-                                                    Teams.
+                                                    Click <a target='_blank' href='https://github.com/Fyipe/feature-docs/blob/master/Webhooks.md#microsoft-teams'>here</a> to check documentation on how to integrate Microsoft Teams with Fyipe.
                                                 </span>
                                             </span>
                                         </div>
